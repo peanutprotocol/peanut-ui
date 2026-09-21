@@ -68,7 +68,6 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
-                    country={country}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
@@ -76,6 +75,12 @@ export default function WithdrawBankPage() {
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}
+                    referenceSpec={flow.referenceSpec}
+                    payoutSenderNoteKey={flow.payoutSenderNoteKey}
+                    payoutSenderDefaultReferenceNoteKey={flow.payoutSenderDefaultReferenceNoteKey}
+                    reference={flow.reference}
+                    referenceProblem={flow.referenceProblem}
+                    onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
                     onDone={() => router.push('/home')}
                 />
@@ -114,7 +119,9 @@ export default function WithdrawBankPage() {
                     if (gate.kind === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
                     } else if (gate.kind === 'fixable-rejection') {
-                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        // Through the shared router: it sends a residence park to the
+                        // address step and everything else to resubmit as before.
+                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
                     } else {
                         await sumsubFlow.handleInitiateKyc(
                             bankRegionIntent(countryFromPath),

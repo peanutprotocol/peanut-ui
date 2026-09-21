@@ -20,9 +20,9 @@ import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
+import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
@@ -34,13 +34,20 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // Side-effect import: useSafeBack patches history.pushState at module load. Importing here
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
-import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
+
+/**
+ * How long the protected auth gate may show the mascot before it gives up.
+ *
+ * Same ceiling, and for the same reason, as the `initialization_timeout` on
+ * /setup (app/(setup)/setup/page.tsx): a screen that can wait forever will,
+ * and the person is left with no way out of it.
+ */
+const AUTH_GATE_TIMEOUT_MS = 15000
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -67,7 +74,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { showIosPwaInstallScreen } = useIosPwaInstallGate()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
 
@@ -85,6 +91,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useLongPressGuard()
 
     const isRedirecting = useRef(false)
+    /*
+     * Whether this TAB has held a session separates the two reasons the gate
+     * below fires — a logged-out arrival at a deep link, or a session
+     * collapsing where it stood — and it is recorded per tab rather than per
+     * document so a reload after the token was revoked still knows the
+     * difference (see session-presence). In an effect, not during render:
+     * React can discard or replay a render, and this outlives the one it was
+     * observed in. Declared above the gate so the gate reads it settled.
+     */
+    useEffect(() => {
+        if (user) markSessionHeld()
+    }, [user])
 
     useEffect(() => {
         // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
@@ -102,21 +120,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for a 5xx or a network failure. so an error here means the backend is
         // down, not that the person is logged out. leave them on the error screen
         // below — a bounce to signup reads as "you are logged out" during an outage.
-        if (
-            !isPublicPath &&
-            isReady &&
-            !isFetchingUser &&
-            !user &&
-            !userFetchError &&
-            !isRedirecting.current &&
-            !isDemoMode()
-        ) {
+        if (isPublicPath) {
+            // A session can expire while this tab is sitting on a public route.
+            // Retire that tab-local provenance here without storing the public
+            // route, so its next protected deep link is fresh intent.
+            if (isReady && !isFetchingUser && !user && !userFetchError) consumeHeldSession()
+            return undefined
+        }
+        if (isReady && !isFetchingUser && !user && !userFetchError && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped
             // here and land on /home after login. useLogin/useAccountSetup
-            // consume this via consumePostAuthRedirect.
-            saveRedirectUrl()
+            // consume this via consumePostAuthRedirect — which is why the
+            // origin rides along: a fresh signup must not inherit the page a
+            // previous session was standing on.
+            saveRedirectUrl(consumeHeldSession() ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
@@ -129,6 +148,36 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // redirect logged-in users without peanut wallet account to complete setup
     const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
+
+    /*
+     * A floor under the protected gate.
+     *
+     * On native, `authReady()` can park before the user query ever fires (see
+     * utils/auth-token.ts), so `isFetchingUser` stays true, the /setup bounce
+     * above never arms, and the mascot runs forever. After 15s hand the person
+     * the backend error screen instead — it already offers a reload and a
+     * logout that skips the backend call, which is exactly what a parked
+     * token needs.
+     *
+     * A settled `user === null` is deliberately NOT watched: that is a logged-
+     * out visitor, and the bounce above already carries its own 3s hard-nav
+     * fallback. This watches only the states that claim to still be working.
+     */
+    const isAuthGateWorking = !isPublicPath && (!isReady || isFetchingUser || isCheckingAccount || needsRedirect)
+    const [authGateExpired, setAuthGateExpired] = useState(false)
+    useEffect(() => {
+        if (!isAuthGateWorking) {
+            setAuthGateExpired(false)
+            return undefined
+        }
+        // Harness-only: a reproduce session wipes client state and reloads on
+        // its own schedule, so an error screen mid-flight is noise.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
+            if (new URL(window.location.href).searchParams.get('__reproduce')) return undefined
+        }
+        const timeout = setTimeout(() => setAuthGateExpired(true), AUTH_GATE_TIMEOUT_MS)
+        return () => clearTimeout(timeout)
+    }, [isAuthGateWorking])
 
     // show full-page offline screen when user is offline
     // only show after initialization to prevent flash on initial load
@@ -157,6 +206,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     } else {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
+            if (authGateExpired) return <BackendErrorScreen />
             return (
                 <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
@@ -165,17 +215,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    // PWA sunset: past the cutover the web app is switched off — download the
-    // native app is the only way forward (keep-web cookie bypasses, public
-    // guest links keep working). Must precede the PWA-install and waitlist
-    // screens: the web is gone either way.
+    // Past the cutover, the web app is switched off and the native app is the
+    // only way forward. The keep-web cookie bypasses this for public guest links.
     if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
         return <SunsetScreen />
-    }
-
-    // After setup flow is completed, show ios pwa install screen if not in pwa
-    if (!isPublicPath && showIosPwaInstallScreen) {
-        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access
@@ -192,7 +235,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                    isHome && 'p-0',
                     // Receipt owns its 16px page inset so the same shell also
                     // renders correctly on the public web receipt route.
                     isReceipt && 'p-0',
@@ -201,12 +243,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn && !isProfileMenu
                         ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                         : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0',
-                    isHome && isCapacitor() && 'px-0 pt-0'
+                    isDev && 'p-0 pb-0'
                 )}
                 innerClassName={twMerge(
                     alignStart && 'items-start',
                     isSupport && 'h-full',
+                    // the shell inset now lives on the capped column, so a page that
+                    // owns its own inset opts out here instead of with p-0 above
+                    (isSupport || isReceipt || isDev) && 'px-0',
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',

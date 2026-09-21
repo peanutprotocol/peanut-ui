@@ -40,7 +40,12 @@ export const perksApi = {
             })
 
             if (!response.ok) {
-                console.error('getPendingPerks: API request failed', response.status, response.statusText)
+                // info, not error: captureConsoleIntegration turns a console.error
+                // into a billed Sentry event, and the common failure here is a 401
+                // from a stale session — which fetchWithSentry already suppresses
+                // as expected. Anything it does report (a 5xx) still arrives, with
+                // the request attached instead of this call site's minified name.
+                console.info('getPendingPerks: API request failed', response.status, response.statusText)
                 return { success: false, perks: [], error: 'Failed to fetch pending perks' }
             }
 

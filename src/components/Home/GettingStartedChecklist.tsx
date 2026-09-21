@@ -2,14 +2,19 @@
 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
-import StatusPill from '@/components/Global/StatusPill'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import Badge from '@/components/Global/Badges/Badge'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
@@ -19,17 +24,12 @@ type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-paym
 
 interface ChecklistItem {
     id: ChecklistItemId
+    icon: IconName
     label: string
     sub?: string
     done: boolean
     onTap?: () => void
 }
-
-// The undone marker: same 20px circle StatusPill draws for "completed",
-// outlined and empty. No status token means "not yet", so it stays local.
-const PendingMarker = () => (
-    <span aria-hidden className="flex size-5 shrink-0 rounded-full border border-border-default" />
-)
 
 /**
  * The home getting-started checklist: exactly three items, mirroring the
@@ -42,14 +42,18 @@ const PendingMarker = () => (
  *   3. Get the card when the residence is eligible; otherwise the slot goes to
  *      the first payment, so no one sees a dangling card step
  *
- * Renders nothing once every item is done — the carousel and the rest of home
- * take over from there.
+ * Home renders this checklist before funding; the parent owns funded and
+ * activated states. Since account creation is already complete by the time
+ * this surface appears, its reachable progress copy is the canonical
+ * "Get started" label alongside the current percentage.
  */
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
+    const [, setHomeDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
+    const depositAccountsEnabled = useDepositAccountsEnabled()
     const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
 
@@ -58,9 +62,9 @@ const GettingStartedChecklist = () => {
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
     const isFunded = milestone === 'funded' || milestone === 'activated'
     const hasActiveCard = !!findActiveCard(overview)
-    // While eligibility is loading (undefined) the slot shows the first-payment
-    // step — always a valid action — and upgrades to the card once the server
-    // confirms. Never show a card step the user might not be allowed to take.
+    // isEligible is undefined only for the initial no-data load and remains
+    // stable from cached data during background refetches, so the third slot
+    // does not flip between card and first-payment on focus or reconnect.
     const cardAvailable = !restrictions.card && isEligible === true
 
     const items: ChecklistItem[] = useMemo(() => {
@@ -71,6 +75,7 @@ const GettingStartedChecklist = () => {
         const thirdItem: ChecklistItem = cardAvailable
             ? {
                   id: 'get-card',
+                  icon: 'credit-card',
                   label: t('getCard'),
                   sub: t('getCardNote'),
                   done: hasActiveCard,
@@ -78,49 +83,79 @@ const GettingStartedChecklist = () => {
               }
             : {
                   id: 'first-payment',
+                  icon: 'arrow-up',
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
                   done: milestone === 'activated' || hasSentPayment,
                   onTap: tap('first-payment', () => router.push('/send')),
               }
         return [
-            { id: 'create-account', label: t('createAccount'), sub: t('createAccountDone'), done: true },
+            {
+                id: 'create-account',
+                icon: 'user-plus',
+                label: t('createAccount'),
+                sub: t('createAccountDone'),
+                done: true,
+            },
             {
                 id: 'add-money',
-                // The row opens /add-money, which offers bank transfer AND
+                icon: 'arrow-down',
+                // The Add drawer offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
                 // take you straight to. A residence no bank provider onboards
                 // drops the bank half rather than selling an ID check that
                 // cannot deliver it (same ruling as the signup residence step).
                 label: t('addMoney'),
+                // With standing accounts live, the step is a win rather than a
+                // chore: bank details of the user's own, not an ID check to pay for.
                 sub: restrictions.banking
                     ? t('addMoneyRoutesNoBank')
-                    : isVerified
-                      ? t('addMoneyRoutes')
-                      : t('addMoneyRoutesKyc'),
+                    : depositAccountsEnabled
+                      ? t('addMoneyStandingAccounts')
+                      : isVerified
+                        ? t('addMoneyRoutes')
+                        : t('addMoneyRoutesKyc'),
                 done: isFunded,
-                onTap: tap('add-money', () => router.push('/add-money')),
+                onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
+    }, [
+        cardAvailable,
+        depositAccountsEnabled,
+        hasActiveCard,
+        hasSentPayment,
+        isFunded,
+        isVerified,
+        milestone,
+        restrictions.banking,
+        router,
+        setHomeDrawer,
+        t,
+    ])
 
-    const allDone = items.every((item) => item.done)
+    const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
+    const progressLabel = t('title')
 
     const viewedRef = useRef(false)
     useEffect(() => {
-        if (!allDone && !viewedRef.current) {
+        if (!viewedRef.current) {
             viewedRef.current = true
             posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_VIEWED, {
                 third_item: items[2].id,
             })
         }
-    }, [allDone, items])
-
-    if (allDone) return null
+    }, [items])
 
     return (
-        <Section title={t('title')}>
+        <Section>
+            <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-body-s text-foreground-secondary">
+                    <span>{progressLabel}</span>
+                    <span>{completionPercent}%</span>
+                </div>
+                <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
+            </div>
             <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
@@ -129,16 +164,15 @@ const GettingStartedChecklist = () => {
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
-                            leading={item.done ? <StatusPill status="completed" /> : <PendingMarker />}
+                            leading={<IconBubble icon={item.icon} size="xs" color="yellow" />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
+                            trailing={item.done ? <Badge status="completed" /> : undefined}
                             bodyWrap
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={
-                                item.done ? 'border-border-default bg-background-icon-bubble-green/10' : undefined
-                            }
+                            className={item.done ? 'border-border-default bg-background-default' : undefined}
                         />
                     )
                 })}

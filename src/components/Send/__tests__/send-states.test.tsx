@@ -78,14 +78,14 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
-        { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+        { id: 'bank', title: 'Bank transfer', description: 'EUR, USD, MXN, ARS and more', icons: [], soon: false },
         // present in the catalog but must NOT surface in the send list —
         // withdraw-to-own-account rail (see the exclusion test below)
         { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
-            title: 'Exchange or Wallet',
-            description: 'Binance, Metamask and more',
+            title: 'Crypto',
+            description: 'Binance, MetaMask and more',
             icons: [],
             soon: false,
         },
@@ -216,11 +216,11 @@ function applyDefaults() {
 
     mockUseGeoFilteredPaymentOptions.mockReturnValue({
         filteredMethods: [
-            { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+            { id: 'bank', title: 'Bank transfer', description: 'EUR, USD, MXN, ARS and more', icons: [], soon: false },
             {
                 id: 'exchange-or-wallet',
-                title: 'Exchange or Wallet',
-                description: 'Binance, Metamask and more',
+                title: 'Crypto',
+                description: 'Binance, MetaMask and more',
                 icons: [],
                 soon: false,
             },
@@ -256,18 +256,18 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
 
-    test('Shows Peanut contacts option at top of methods list', () => {
+    test('Shows Peanut username option at top of methods list', () => {
         renderSend()
 
-        const contactsCard = screen.getByTestId('action-card-Peanut contacts')
+        const contactsCard = screen.getByTestId('action-card-Peanut username')
         expect(contactsCard).toBeInTheDocument()
     })
 
     test('Shows geo-filtered payment methods', () => {
         renderSend()
 
-        expect(screen.getByTestId('action-card-Bank')).toBeInTheDocument()
-        expect(screen.getByTestId('action-card-Exchange or Wallet')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Bank transfer')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Crypto')).toBeInTheDocument()
     })
 
     test('Excludes Mercado Pago from the send list (withdraw-to-own-account rail — PR #2813 review)', () => {
@@ -290,7 +290,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         // Should still render without errors
-        expect(screen.getByTestId('action-card-Peanut contacts')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Peanut username')).toBeInTheDocument()
     })
 })
 
@@ -387,14 +387,14 @@ describe('GROUP 4: Method Selection', () => {
         // navigation mounts clean state, so no reset call is needed here.
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Bank'))
+        fireEvent.click(screen.getByTestId('action-card-Bank transfer'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=bank')
     })
 
     test('Clicking exchange-or-wallet navigates to /withdraw?method=crypto', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Exchange or Wallet'))
+        fireEvent.click(screen.getByTestId('action-card-Crypto'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
     })
 
@@ -408,10 +408,10 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Clicking Peanut contacts navigates to /send?view=contacts', () => {
+    test('Clicking Peanut username navigates to /send?view=contacts', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Peanut contacts'))
+        fireEvent.click(screen.getByTestId('action-card-Peanut username'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
     })
 

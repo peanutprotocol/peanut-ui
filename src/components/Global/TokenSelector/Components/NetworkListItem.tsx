@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import StatusBadge from '../../Badges/StatusBadge'
+import Badge from '../../Badges/Badge'
 
 interface NetworkListItemProps {
     chainId: string
@@ -38,18 +38,16 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             key={chainId}
             type="button"
             variant="transparent"
-            className={twMerge(
-                'w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary'
-            )}
+            className={twMerge('w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none')}
             onClick={isComingSoon ? undefined : onClick}
             disabled={isComingSoon}
             aria-pressed={isSelected}
         >
             <Card
-                position="single"
+                position="solo"
                 className={twMerge(
                     'w-full !overflow-visible border-border-default p-4',
-                    isSelected && !isComingSoon ? 'bg-purple-200' : 'bg-background-default',
+                    isSelected && !isComingSoon ? 'bg-action-primary' : 'bg-background-default',
                     isComingSoon && 'bg-background-disabled'
                 )}
                 border={true}
@@ -67,7 +65,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     onError={() => setIconError(true)}
                                 />
                             ) : (
-                                <AvatarWithBadge size="extra-small" name={name} />
+                                <AvatarWithBadge size="s" name={name} />
                             )}
                         </div>
                         <div className="flex flex-col">
@@ -82,7 +80,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                         </div>
                     </div>
                     {isComingSoon ? (
-                        <StatusBadge status="soon" />
+                        <Badge status="soon" />
                     ) : rightContent ? (
                         rightContent
                     ) : (

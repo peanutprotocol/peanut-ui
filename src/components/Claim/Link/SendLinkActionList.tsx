@@ -19,7 +19,7 @@
  * note: request payment flows use RequestPotActionList instead
  */
 
-import StatusBadge from '../../Global/Badges/StatusBadge'
+import Badge from '../../Global/Badges/Badge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -235,7 +235,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="primary-soft"
+                        variant="stroke"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {
@@ -273,7 +273,7 @@ export default function SendLinkActionList({
             )}
 
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
-                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
+                <div className="flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                     <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
@@ -328,7 +328,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                icon="alert"
+                tone="attention"
                 ctas={[
                     {
                         text: tCommon('close'),
@@ -336,9 +336,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
             />
 
             <ConfirmInviteModal
@@ -380,13 +378,13 @@ const MethodCard = ({
     const showSoon = method.soon || soon
     return (
         <ListItem
-            position="single"
-            body={<div className="text-[12px]">{method.description}</div>}
+            position="solo"
+            body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
                     {(showSoon || requiresVerification) && (
-                        <StatusBadge
+                        <Badge
                             status={requiresVerification ? 'custom' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />
@@ -395,7 +393,7 @@ const MethodCard = ({
             }
             onClick={onClick}
             disabled={showSoon || isDisabled}
-            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            trailing={<IconStack icons={method.icons} iconSize={24} />}
         />
     )
 }

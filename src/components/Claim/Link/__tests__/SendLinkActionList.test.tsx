@@ -106,11 +106,17 @@ jest.mock('@/context/tokenSelector.context', () => ({
 }))
 
 // Return a fixed method set so the test is independent of geolocation.
-const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false }
+const bankMethod = {
+    id: 'bank',
+    title: 'Bank transfer',
+    description: 'EUR, USD, MXN, ARS and more',
+    icons: [],
+    soon: false,
+}
 const walletMethod = {
     id: 'exchange-or-wallet',
-    title: 'Exchange or Wallet',
-    description: 'Binance, Metamask and more',
+    title: 'Crypto',
+    description: 'Binance, MetaMask and more',
     icons: [],
     soon: false,
 }
@@ -151,29 +157,29 @@ describe('SendLinkActionList — who gets the alternate rails', () => {
     test('an unrecognised recipient keeps every rail, so a bank claim needs no account', () => {
         renderList()
 
-        expect(screen.getByText('Bank')).toBeInTheDocument()
-        expect(screen.getByText('Exchange or Wallet')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
+        expect(screen.getByText('Crypto')).toBeInTheDocument()
     })
 
     test('a logged-in recipient gets Peanut only', () => {
         renderList({ isLoggedIn: true })
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
-        expect(screen.queryByText('Exchange or Wallet')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
+        expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
     })
 
     test('a logged-out device holding credentials gets Peanut only', () => {
         mockKnownDevice = true
         renderList()
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
     })
 
     test('nothing is offered before recognition resolves, so no rail is shown then withdrawn', () => {
         mockKnownDevice = null
         renderList()
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
     })
 })
 
@@ -186,7 +192,7 @@ describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
         expect(screen.getByText('Soon!')).toBeInTheDocument()
 
         // clicking the disabled bank card does not start the bank flow
-        fireEvent.click(screen.getByText('Bank'))
+        fireEvent.click(screen.getByText('Bank transfer'))
         expect(mockSetFlowStep).not.toHaveBeenCalled()
     })
 
@@ -197,7 +203,7 @@ describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
         expect(screen.queryByText('Soon!')).not.toBeInTheDocument()
 
         // clicking the enabled bank card enters the bank flow
-        fireEvent.click(screen.getByText('Bank'))
+        fireEvent.click(screen.getByText('Bank transfer'))
         expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
     })
 })

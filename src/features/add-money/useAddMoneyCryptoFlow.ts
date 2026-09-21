@@ -18,6 +18,19 @@ import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useMemo, useState } from 'react'
 
+/** An EVM transaction hash, the only shape the history route keys a receipt on. */
+const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
+
+/**
+ * The receipt key for a deposit hash: the `tx:` form for an EVM hash, and the
+ * hash itself, untouched, for a Solana or Tron one — lowercasing a base58
+ * Solana hash would corrupt it.
+ */
+export function receiptIdForDepositHash(txHash: string | undefined): string {
+    if (!txHash) return 'deposit'
+    return EVM_TX_HASH.test(txHash) ? `tx:${txHash.toLowerCase()}` : txHash
+}
+
 // static — peanut wallet is always on arbitrum
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
 
@@ -92,7 +105,15 @@ export function useAddMoneyCryptoFlow() {
                 : undefined
         const now = new Date()
         return {
-            id: depositResult.txHash ?? 'deposit',
+            // GET /history/:id resolves a crypto deposit by `tx:<lowercase evm
+            // hash>`, by the intent uuid, and by a history row's
+            // `<hash>-<logIndex>` — never by a bare hash, which is not a
+            // receipt key. The hash here is always EVM whatever network the
+            // user picked: Rhino bridges a Solana or Tron deposit to Arbitrum
+            // and this is that settlement transfer. The base58 branch stays
+            // anyway, so a hash that is not EVM-shaped is passed through
+            // byte-for-byte rather than lowercased into a different string.
+            id: receiptIdForDepositHash(depositResult.txHash),
             txHash: depositResult.txHash,
             explorerUrl,
             direction: 'add',

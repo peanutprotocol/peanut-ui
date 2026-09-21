@@ -33,7 +33,11 @@ export function SendSuccessView() {
             type="SEND"
             headerTitle={t('headers.send')}
             recipientType="USERNAME"
-            user={recipient ? { username: recipient.username, fullName: recipient.fullName } : undefined}
+            user={
+                recipient
+                    ? { username: recipient.username, fullName: recipient.fullName, avatarKey: recipient.avatarKey }
+                    : undefined
+            }
             usdAmount={usdAmount}
             message={attachment.message}
             chargeDetails={charge}

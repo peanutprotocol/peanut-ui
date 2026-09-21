@@ -11,6 +11,12 @@
 
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { clearCeremonyLog, getCeremonyLog, type CeremonyRecord } from '@/utils/webauthn-ceremony-telemetry'
 import DevPageShell from '../_components/DevPageShell'
 
@@ -57,48 +63,47 @@ export default function CeremonyLogPage() {
             </div>
 
             {records.length === 0 ? (
-                <p className="text-sm text-grey-1">
-                    Nothing recorded yet. Create a send link (or sign in), then come back and hit Refresh.
-                </p>
+                <EmptyState
+                    icon="clock"
+                    title="No ceremonies recorded"
+                    description="Create a send link or sign in, then refresh this log."
+                />
             ) : (
                 <>
-                    <div className="rounded-sm border border-n-1 p-3 text-sm">
-                        <div className="font-bold">{records.length} ceremonies this session</div>
+                    <Card className="divide-y divide-dashed divide-border-default px-4">
+                        <DataRow label="Ceremonies this session" value={records.length} />
                         {Object.entries(byFlow).map(([flow, count]) => (
-                            <div key={flow}>
-                                {flow}: {count}
-                            </div>
+                            <DataRow key={flow} label={flow} value={count} />
                         ))}
-                    </div>
+                    </Card>
 
-                    <div className="flex flex-col gap-2">
+                    <ListGroup>
                         {records.map((record) => (
-                            <div key={record.seq} className="rounded-sm border border-n-1 p-3 text-sm">
-                                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <span className="font-bold">
-                                        #{record.seq} {record.purpose}
-                                        {record.overlapped && ' ⚠️'}
-                                    </span>
-                                    <span>{record.outcome === 'ok' ? '✅ ok' : `❌ ${record.errorName}`}</span>
-                                </div>
-                                <div className="text-grey-1">
-                                    {record.kind} · flow {record.flow ?? '—'} · took {formatMs(record.durationMs)} · gap
-                                    before {formatMs(record.gapMs)}
-                                    {record.allowCredentials !== undefined &&
-                                        ` · allowCredentials ${record.allowCredentials}`}
-                                    {record.errorCode && ` · ${record.errorCode}`}
-                                </div>
-                            </div>
+                            <ListItem
+                                key={record.seq}
+                                title={`#${record.seq} ${record.purpose}`}
+                                bodyWrap
+                                body={
+                                    <>
+                                        {record.overlapped && <strong>Overlapped · </strong>}
+                                        {record.kind} · flow {record.flow ?? '—'} · took {formatMs(record.durationMs)} ·
+                                        gap before {formatMs(record.gapMs)}
+                                        {record.allowCredentials !== undefined &&
+                                            ` · allowCredentials ${record.allowCredentials}`}
+                                        {record.errorCode && ` · ${record.errorCode}`}
+                                    </>
+                                }
+                                trailing={record.outcome === 'ok' ? 'ok' : record.errorName}
+                            />
                         ))}
-                    </div>
+                    </ListGroup>
                 </>
             )}
 
-            <p className="text-xs text-grey-1">
-                ⚠️ marks a ceremony that overlapped another one — its purpose is a guess, not evidence. These are the
-                ceremonies our JavaScript asked for. More sheets on screen than rows here means the extra prompts come
-                from @capgo/capacitor-passkey or the OS credential manager, not from our call sites.
-            </p>
+            <Callout priority="attention" title="About overlapping ceremonies">
+                An overlap label is a guess, not evidence. Extra sheets without log rows come from the native passkey
+                plugin or the OS credential manager.
+            </Callout>
         </DevPageShell>
     )
 }

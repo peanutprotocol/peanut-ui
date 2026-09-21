@@ -1,7 +1,7 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import { useTranslations } from 'next-intl'
 import React from 'react'
-import StatusBadge, { type StatusType } from '../Badges/StatusBadge'
+import Badge, { type StatusType } from '../Badges/Badge'
 import { Icon } from '../Icons/Icon'
 
 interface SuccessViewDetailsCardProps {
@@ -41,7 +41,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                 </div>
 
                 {/* Right side: Status Badge */}
-                {status && <StatusBadge status={status} />}
+                {status && <Badge status={status} />}
             </div>
         </Card>
     )

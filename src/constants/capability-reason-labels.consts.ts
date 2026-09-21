@@ -56,6 +56,10 @@ export const REASON_CODE_KEYS = {
     // today only in Argentina, i.e. an es-419 audience — without this entry the
     // one population that can see it gets the backend's English userMessage.
     tax_id_unresolved: 'reasons.tax_id_unresolved',
+    // The residence gate parked a Bridge rail because we hold no usable address
+    // for the user. Self-serve: the paired action opens the address RFI. Without
+    // this entry the copy ships in English to every locale.
+    residence_unresolved: 'reasons.residence_unresolved',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
 } as const
 

@@ -7,13 +7,13 @@ import Foundation
  * and must answer Apple Wallet's status() within 100ms, so the card facts it
  * needs (is there a provisionable card, its display title, last4) are mirrored
  * into the shared app-group container by the main app. The PushProvisioning
- * plugin writes this on every successful isAvailable()/addCard() so the
- * mirror tracks card state without any extra plumbing.
+ * plugin mirrors this when the card screen is opened, so Wallet can discover
+ * the card even before the in-app sheet has been presented.
  *
  * This file is compiled into BOTH the app target and PushProvisioningExtension.
  * Only non-sensitive display metadata belongs here — never card secrets: the
- * extension fetches provisioning credentials on demand (see the TODO in
- * IssuerExtensionHandler).
+ * extension fetches provisioning credentials on demand. `cardId` is Peanut's
+ * internal UUID, not MeaWallet's processor card ID.
  */
 enum WalletExtensionCardStore {
     // Dedicated group (not the OneSignal one) — registered in the Apple

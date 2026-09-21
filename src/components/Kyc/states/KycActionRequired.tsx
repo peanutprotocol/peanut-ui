@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { RejectLabelsList } from '../RejectLabelsList'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 
@@ -39,7 +39,7 @@ export const KycActionRequired = ({
             <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
             {isGenericAction ? (
-                <Notification priority="error">{t('actionMessageActionRequired')}</Notification>
+                <Callout priority="error">{t('actionMessageActionRequired')}</Callout>
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
             )}

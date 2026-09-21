@@ -1,7 +1,6 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
-import { TierNav } from './_components/TierNav'
 import { DocSidebar } from './_components/DocSidebar'
 
 export default function DesignSystemLayout({ children }: { children: React.ReactNode }) {
@@ -12,20 +11,18 @@ export default function DesignSystemLayout({ children }: { children: React.React
                 <NavHeader title="Design System" href="/dev" />
             </div>
 
-            {/* Tier tabs */}
-            <div className="sticky top-0 z-10 border-b border-border-disabled bg-background-default px-6 py-3">
-                <div className="flex items-center gap-2">
-                    <TierNav />
-                    <div className="ml-auto md:hidden">
-                        <DocSidebar />
-                    </div>
+            {/* Mobile drawer trigger */}
+            <div className="sticky top-0 z-10 border-b border-border-disabled bg-background-default px-6 py-3 md:hidden">
+                <div className="flex items-center justify-end">
+                    <DocSidebar />
                 </div>
             </div>
 
             {/* Content area */}
             <div className="flex flex-1 px-6 py-10 lg:px-10">
-                {/* Desktop sidebar */}
-                <div className="hidden md:block">
+                {/* Desktop sidebar — sticky against #scrollable-content (the AppShell scroller) */}
+                {/* ponytail: max-h-dvh ignores safe insets, fine for a dev tool */}
+                <div className="hidden md:sticky md:top-0 md:block md:max-h-dvh md:self-start md:overflow-y-auto">
                     <DocSidebar />
                 </div>
 

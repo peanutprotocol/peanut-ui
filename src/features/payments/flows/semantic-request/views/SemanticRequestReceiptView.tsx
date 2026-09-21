@@ -11,15 +11,17 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useMemo } from 'react'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { payLinkUrl } from '@/utils/url.utils'
+import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 export function SemanticRequestReceiptView() {
     const onBack = useSafeBack('/home')
@@ -56,9 +58,11 @@ export function SemanticRequestReceiptView() {
         const payerName = successfulPayment.payerAccount?.user?.username || successfulPayment.payerAddress || 'Unknown'
 
         const details: Partial<TransactionDetails> = {
-            id: successfulPayment.payerTransactionHash || charge.uuid,
+            // the charge uuid + the charge's own kind are what GET /history/:id
+            // resolves; a tx hash is not a receipt key
+            id: charge.uuid,
             txHash: successfulPayment.payerTransactionHash,
-            status: 'completed' as StatusPillType,
+            status: 'completed' as IconStatusType,
             amount: parseFloat(charge.tokenAmount),
             createdAt: new Date(charge.createdAt),
             completedAt: new Date(successfulPayment.createdAt),
@@ -69,10 +73,11 @@ export function SemanticRequestReceiptView() {
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
-                kind: 'P2P_REQUEST_FULFILL',
+                kind: receiptKindForCharge(charge),
                 link: receiptLink,
             },
             userName: payerName,
+            avatarKey: successfulPayment.payerAccount?.user?.avatarKey ?? null,
             sourceView: 'status',
             memo: charge.requestLink?.reference || undefined,
             attachmentUrl: charge.requestLink?.attachmentUrl || undefined,
@@ -98,29 +103,29 @@ export function SemanticRequestReceiptView() {
     // show loading if fetching charge
     if (isFetchingCharge || !charge) {
         return (
-            <div className="flex min-h-inherit flex-col gap-4">
+            <PageStack>
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <Loading variant="mascot" />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     // show receipt if we have transaction details
     if (!transactionForReceipt) {
         return (
-            <div className="flex min-h-inherit flex-col gap-4">
+            <PageStack>
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <p className="text-body-s text-foreground-secondary">{t('receipt.unableToLoad')}</p>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-inherit flex-col gap-4">
+        <PageStack>
             <NavHeader title={t('headers.receipt')} onPrev={onBack} />
             <div className="flex w-full flex-grow flex-col justify-center gap-4">
                 <TransactionDetailsReceipt
@@ -129,6 +134,6 @@ export function SemanticRequestReceiptView() {
                     isPublic={true}
                 />
             </div>
-        </div>
+        </PageStack>
     )
 }

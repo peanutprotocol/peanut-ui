@@ -27,7 +27,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
         category: 'Modals',
         layer: 'components',
         summary:
-            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and max-w-[85%], per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailModal both pass modalPanelClassName="rounded-none border-0". Eight more copy-paste the same width recipe, modalPanelClassName="max-w-md mx-8", instead of it being a size prop. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
+            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and (since 2026-09-15, TASK-22452) mx-8 max-w-md, per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailDrawer both pass modalPanelClassName="rounded-none border-0". RESOLVED 2026-09-15 (TASK-22452): the copy-pasted modalPanelClassName="max-w-md mx-8" recipe became the component default and its call-site copies were deleted; fullscreen hosts opt out with mx-0 max-w-full. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
         items: [
             {
                 name: 'Modal (BaseModal, Global/Modal)',
@@ -53,29 +53,13 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'components/Global/ActionModal/index.tsx',
                 divergence:
-                    'The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + max-w-[85%], centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal\'s own rounded-md / max-w-[26rem] defaults. Width is not a prop, so 8 call sites copy modalPanelClassName="max-w-md mx-8".',
+                    "The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + mx-8 max-w-md (the default panel width since 2026-09-15, TASK-22452 — previously max-w-[85%] with an 8-site copy-pasted max-w-md mx-8 override), centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal's own rounded-md / max-w-[26rem] defaults. Fullscreen hosts (SumsubHelpModal, IframeWrapper) opt back out with mx-0 max-w-full.",
                 usedIn: [
                     'components/Kyc/InitiateKycModal.tsx',
                     'components/Global/ReConsentModal/index.tsx',
                     'components/Migration/MigrationDownloadModal.tsx',
                     'components/Notifications/SetupNotificationsModal.tsx',
                     'app/(mobile-ui)/qr-pay/page.tsx',
-                ],
-                verified: true,
-            },
-            {
-                name: 'modalPanelClassName="max-w-md mx-8" (copy-pasted width recipe)',
-                realUsages: 8,
-                status: 'adhoc',
-                source: 'components/Global/ActionModal/index.tsx',
-                divergence:
-                    'Eight modals set the same panel width by hand because ActionModal exposes no size prop. A `size` prop with sm/md/lg would delete all eight strings.',
-                usedIn: [
-                    'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                    'components/Global/GuestVerificationModal/index.tsx',
-                    'components/Global/QRScanner/CameraPermissionModal.tsx',
-                    'components/Setup/Views/PasskeySetupHelpModal.tsx',
-                    'components/Claim/Link/SendLinkActionList.tsx',
                 ],
                 verified: true,
             },
@@ -97,34 +81,27 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'NoMoreJailModal',
+                name: 'NoMoreJailDrawer',
                 realUsages: 1,
                 status: 'variant',
-                source: 'components/Global/NoMoreJailModal/index.tsx',
+                source: 'components/Global/NoMoreJailDrawer/index.tsx',
                 divergence:
                     'Same as ConfirmInviteModal: ActionModal plus modalPanelClassName="rounded-none border-0". Mounted from HomeModals.',
                 verified: true,
             },
             {
-                name: 'EarlyUserModal',
+                name: 'EarlyUserDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Global/EarlyUserModal/index.tsx',
+                source: 'components/Global/EarlyUserDrawer/index.tsx',
                 divergence: 'Mounted from HomeModals behind Suspense.',
             },
             {
-                name: 'IosPwaInstallModal',
-                realUsages: 1,
-                status: 'live',
-                source: 'components/Global/IosPwaInstallModal/index.tsx',
-                divergence: 'Mounted from HomeModals behind Suspense.',
-            },
-            {
-                name: 'EasterEggModal',
+                name: 'EasterEggDrawer',
                 realUsages: 1,
                 devUsages: 2,
                 status: 'live',
-                source: 'components/Global/EasterEggModal/index.tsx',
+                source: 'components/Global/EasterEggDrawer/index.tsx',
                 divergence: 'The only modal also rendered in the /dev/ds showcase.',
             },
             {
@@ -133,28 +110,28 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Global/UnsupportedBrowserModal/index.tsx',
                 divergence:
-                    'ActionModal with modalPanelClassName="max-w-md" — a fourth width value next to max-w-sm, max-w-md mx-8 and max-w-full.',
+                    'ActionModal with modalPanelClassName="max-w-md" — matches the component default width since 2026-09-15 (TASK-22452); the override is now redundant and can drop at next touch.',
             },
             {
-                name: 'InviteFriendsModal',
+                name: 'InviteFriendsDrawer',
                 realUsages: 4,
                 status: 'live',
-                source: 'components/Global/InviteFriendsModal/index.tsx',
+                source: 'components/Global/InviteFriendsDrawer/index.tsx',
             },
             {
-                name: 'BalanceWarningModal',
+                name: 'BalanceWarningDrawer',
                 realUsages: 1,
                 status: 'variant',
-                source: 'components/Global/BalanceWarningModal/index.tsx',
+                source: 'components/Global/BalanceWarningDrawer/index.tsx',
                 divergence:
                     'Forces its own geometry with five !important overrides: modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center". The heaviest panel override in the app.',
                 verified: true,
             },
             {
-                name: 'TokenAndNetworkConfirmationModal',
+                name: 'TokenAndNetworkConfirmationDrawer',
                 realUsages: 3,
                 status: 'live',
-                source: 'components/Global/TokenAndNetworkConfirmationModal/index.tsx',
+                source: 'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                 divergence: 'ActionModal with modalPanelClassName="max-w-sm".',
             },
             {
@@ -162,7 +139,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 realUsages: 1,
                 status: 'live',
                 source: 'components/Global/GuestVerificationModal/index.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'ReConsentModal',
@@ -174,36 +152,37 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'WelcomeUnlockModal',
+                name: 'WelcomeUnlockDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Home/WelcomeUnlockModal/index.tsx',
+                source: 'components/Home/WelcomeUnlockDrawer/index.tsx',
             },
             {
-                name: 'PerkClaimModal',
+                name: 'PerkClaimDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Home/PerkClaimModal.tsx',
+                source: 'components/Home/PerkClaimDrawer.tsx',
             },
             {
                 name: 'OnrampConfirmationModal',
                 realUsages: 1,
                 status: 'live',
                 source: 'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
-                name: 'SupportedNetworksModal',
+                name: 'SupportedNetworksDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/AddMoney/components/SupportedNetworksModal.tsx',
+                source: 'components/AddMoney/components/SupportedNetworksDrawer.tsx',
                 divergence: 'Moved to ActionModal, so its old rounded-sm panel override is gone.',
             },
             {
-                name: 'HowToDepositModal',
+                name: 'HowToDepositDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/AddMoney/components/HowToDepositModal.tsx',
+                source: 'components/AddMoney/components/HowToDepositDrawer.tsx',
                 divergence: 'Moved to ActionModal, so its old rounded-sm panel override is gone.',
             },
             {
@@ -219,10 +198,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 source: 'components/Card/CancelCardModal.tsx',
             },
             {
-                name: 'CardLimitEditModal',
+                name: 'CardLimitEditDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Card/CardLimitEditModal.tsx',
+                source: 'components/Card/CardLimitEditDrawer.tsx',
                 divergence:
                     'Now on ActionModal. Its old rounded-2xl panel — the outlier radius of the 2026-06 sweep — is gone.',
                 verified: true,
@@ -237,10 +216,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'BadgeDetailModal',
+                name: 'BadgeDetailDrawer',
                 realUsages: 3,
                 status: 'live',
-                source: 'components/Badges/BadgeDetailModal.tsx',
+                source: 'components/Badges/BadgeDetailDrawer.tsx',
                 divergence:
                     'New since the last sweep. ActionModal with modalPanelClassName="m-0" — a fifth panel-geometry recipe.',
             },
@@ -338,11 +317,12 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'ActionModal with modalPanelClassName="m-0 max-w-[90%]" — a sixth width value.',
             },
             {
-                name: 'CameraPermissionModal',
+                name: 'CameraPermissionDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Global/QRScanner/CameraPermissionModal.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                source: 'components/Global/QRScanner/CameraPermissionDrawer.tsx',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'RainCooldownIntroModal',
@@ -352,11 +332,12 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'Mounted once in app/AppGlobals.tsx.',
             },
             {
-                name: 'PasskeySetupHelpModal',
+                name: 'PasskeySetupHelpDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Setup/Views/PasskeySetupHelpModal.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                source: 'components/Setup/Views/PasskeySetupHelpDrawer.tsx',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'MigrationDownloadModal',
@@ -364,7 +345,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Migration/MigrationDownloadModal.tsx',
                 divergence:
-                    'New since the last sweep. PWA-to-native migration prompt on ActionModal, mounted from HomeModals. Dev count is its Jest suite.',
+                    'New since the last sweep. Web-to-native migration prompt on ActionModal, mounted from HomeModals. Dev count is its Jest suite.',
             },
             {
                 name: 'ScanToDownloadModal',
@@ -379,7 +360,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'adhoc',
                 source: 'components/Global/QRScannerOverlay/index.tsx',
                 divergence:
-                    'The last hand-rolled centred panel: classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0". ActionModal now ships that exact recipe as its default, so this is a straight migration candidate. The other two copies (NoMoreJailModal, ConfirmInviteModal) already moved.',
+                    'The last hand-rolled centred panel: classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0". ActionModal now ships that exact recipe as its default, so this is a straight migration candidate. The other two copies (NoMoreJailDrawer, ConfirmInviteModal) already moved.',
                 verified: true,
             },
             {
@@ -577,7 +558,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
         category: 'Lists & Rows',
         layer: 'patterns',
         summary:
-            'This category changed the most. 0_Bruddle/ListItem now exists and is the canonical row: 38 app call sites across 25 files. It comes from figma board 17802:61530 — leading slot, title at text-body-m-semibold, body at text-body-s/secondary, trailing slot, optional chevron, 56px tall at p-4, above the 44px touch floor. It handles the row states the old rows each got wrong on their own: pressed fills with background-disabled, disabled fills background-disabled + border-subtle and greys the title while leaving content at full opacity, keyboard Enter/Space activates, and every click fires haptics. Under it sits Global/Card, the grouping primitive: 47 app files, w-full bg-white px-4 py-2, and a `position` prop (single/first/middle/last) that owns the stacked border-radius and the shared top border. The old hand-rolled isFirst/isLast ternary is mostly gone — getCardPosition now has 12 app callers against 3 remaining inline ternaries (AddWithdrawCountriesList, Contacts.view, and one more). ActionListCard is deleted; its job split into ListItem plus three feature-specific action lists (PaymentMethodActionList, SendLinkActionList, RequestPotActionList). What still diverges is padding. Global/Card defaults to px-4 py-2, ListItem overrides to p-4, and the rows that never migrated keep their own: TokenListItem py-3.5, ProfileMenuItem and NetworkListItem p-4, SavedAccountsView p-4 py-2.5. The two transaction feeds also still duplicate each other: HomeHistory (top 5) and app/(mobile-ui)/history/page.tsx run near-identical WebSocket merge, synthetic-entry injection and drawer memo code, differing only in date grouping — and history/page is one of the files still hand-rolling its row position.',
+            'This category changed the most. 0_Bruddle/ListItem now exists and is the canonical row: 38 app call sites across 25 files. It comes from figma board 17802:61530 — leading slot, title at text-body-m-semibold, body at text-body-s/secondary, trailing slot, optional chevron, 56px tall at p-4, above the 44px touch floor. It handles the row states the old rows each got wrong on their own: pressed fills with background-disabled, disabled fills background-disabled + border-subtle and greys the title while leaving content at full opacity, keyboard Enter/Space activates, and every click fires haptics. Under it sits Global/Card, the grouping primitive: 43 app files (recounted 2026-09-15 at this head — the sweep moved five standalone consumers off it), w-full bg-background-default px-4 py-2 (re-tokenized 2026-09-15, TASK-22452), and a `position` prop (single/first/middle/last) that owns the stacked border-radius and the shared top border. The old hand-rolled isFirst/isLast ternary is mostly gone — getCardPosition now has 12 app callers against 3 remaining inline ternaries (AddWithdrawCountriesList, Contacts.view, and one more). ActionListCard is deleted; its job split into ListItem plus three feature-specific action lists (PaymentMethodActionList, SendLinkActionList, RequestPotActionList). What still diverges is padding. Global/Card defaults to px-4 py-2, ListItem overrides to p-4, and the rows that never migrated keep their own: TokenListItem py-3.5, ProfileMenuItem and NetworkListItem p-4, SavedAccountsView p-4 py-2.5. The two transaction feeds also still duplicate each other: HomeHistory (top 5) and app/(mobile-ui)/history/page.tsx run near-identical WebSocket merge, synthetic-entry injection and drawer memo code, differing only in date grouping — and history/page is one of the files still hand-rolling its row position.',
         items: [
             {
                 name: 'ListItem (0_Bruddle/ListItem)',
@@ -597,12 +578,12 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
             },
             {
                 name: 'Global/Card (row + grouping primitive)',
-                realUsages: 47,
+                realUsages: 43,
                 devUsages: 4,
                 status: 'canonical',
                 source: 'components/Global/Card/index.tsx',
                 divergence:
-                    'Counted as files, not call sites: `<Card` is ambiguous because 0_Bruddle/Card renders the same tag. 47 app files import the default export. w-full bg-white px-4 py-2; `position` picks rounded-sm / rounded-t-sm / none / rounded-b-sm and drops the top border on middle and last rows so stacked rows share one hairline. Clickable cards get role=button, tabIndex and Enter/Space by default. Still paints literal bg-white rather than a background token, unlike 0_Bruddle/Card which uses bg-background-default.',
+                    'Counted as files, not call sites: `<Card` is ambiguous because 0_Bruddle/Card renders the same tag. 43 app files import the default export (recounted 2026-09-15). w-full bg-background-default px-4 py-2; `position` picks rounded-sm / rounded-t-sm / none / rounded-b-sm and drops the top border on middle and last rows so stacked rows share one hairline. Clickable cards get role=button, tabIndex and Enter/Space by default. RESOLVED 2026-09-15 (TASK-22452): the literal bg-white was re-tokenized to bg-background-default, matching 0_Bruddle/Card.',
                 usedIn: [
                     'components/0_Bruddle/ListItem.tsx',
                     'components/Home/HomeHistory.tsx',
@@ -779,7 +760,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Claim/Link/SendLinkActionList.tsx',
                 divergence:
-                    'New since the last sweep. Second ActionListCard replacement, on ListItem. Also opens an ActionModal with the copy-pasted "max-w-md mx-8" width string.',
+                    'New since the last sweep. Second ActionListCard replacement, on ListItem. Also opens an ActionModal (its old copy-pasted width string resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'RequestPotActionList',
@@ -787,7 +768,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
                 divergence:
-                    'New since the last sweep. Third ActionListCard replacement, on ListItem. Two ActionModals inside it repeat the "max-w-md mx-8" string.',
+                    'New since the last sweep. Third ActionListCard replacement, on ListItem. Its two ActionModals ride the component default width since 2026-09-15 (TASK-22452).',
             },
             {
                 name: 'BadgesRow',
@@ -820,11 +801,11 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
         category: 'Composite Cards',
         layer: 'components',
         summary:
-            'The card layer now has two primitives with one look. 0_Bruddle/Card is the standalone container — flex-col, rounded-sm, border border-border-default, bg-background-default, no shadow by default, with Card.Header / Title / Description / Content sub-parts typed as text-heading-card and text-body-m. Global/Card is the stacked list container described in the previous category. They agree on radius (rounded-sm) and border, and differ only in background token (bg-background-default vs a literal bg-white) and default padding (none vs px-4 py-2). No file imports both, so `<Card` is ambiguous and both rows are counted as files, not call sites. Global/InfoCard is deleted. Its job moved to 0_Bruddle/Notification — 99 app call sites across 60 files, the single most-used new primitive in this audit. Notification carries priority (info/success/attention/helper/error), optional title, up to two CTAs, an optional dismiss, and an `items` checklist mode that absorbed the check-row markup four modals used to hand-build and each got wrong. Global/MantecaDetailsCard and LandingPage/PioneerCard3D are also gone. What still diverges is padding and colour. Card ships no padding, so call sites pick from p-4 (64 uses), p-6 (33), p-3 (20) and p-2 (14) with no rule for which. The quests cards are the outliers: QuestCard and UserRankCard both use border-2 border-black plus a literal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] and raw palette fills (bg-yellow-100, bg-pink-100, bg-blue-100, bg-purple-200) that exist in no token. The OG cards are a separate family by necessity — they render in satori for og:image, so they use inline style objects and cannot use Tailwind at all.',
+            'The card layer now has two primitives with one look. 0_Bruddle/Card is the standalone container — flex-col, rounded-sm, border border-border-default, bg-background-default, no shadow by default, with Card.Header / Title / Description / Content sub-parts typed as text-heading-card and text-body-m. Global/Card is the stacked list container described in the previous category. They agree on radius (rounded-sm), border, and background token (both bg-background-default since 2026-09-15, TASK-22452), and differ only in default padding (none vs px-4 py-2). Since 2026-09-15 (TASK-22452) two qr-pay files import both (0_Bruddle Card for the standalone surface, Global/Card aliased GlobalCard where a ref or list stack is needed), so `<Card` is ambiguous and both rows are counted as files, not call sites — the mixed-import files count once for each. Global/InfoCard is deleted. Its job moved to 0_Bruddle/Notification — 99 app call sites across 60 files, the single most-used new primitive in this audit. Notification carries priority (info/success/attention/helper/error), optional title, up to two CTAs, an optional dismiss, and an `items` checklist mode that absorbed the check-row markup four modals used to hand-build and each got wrong. Global/MantecaDetailsCard and LandingPage/PioneerCard3D are also gone. What still diverges is padding and colour. Card ships no padding, so call sites pick from p-4 (64 uses), p-6 (33), p-3 (20) and p-2 (14) with no rule for which. The quests cards are the outliers: QuestCard and UserRankCard both use border-2 border-black plus a literal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] and raw palette fills (bg-yellow-100, bg-pink-100, bg-blue-100, bg-purple-200) that exist in no token. The OG cards are a separate family by necessity — they render in satori for og:image, so they use inline style objects and cannot use Tailwind at all.',
         items: [
             {
                 name: 'Card (0_Bruddle/Card)',
-                realUsages: 21,
+                realUsages: 34,
                 devUsages: 12,
                 status: 'canonical',
                 source: 'components/0_Bruddle/Card.tsx',
@@ -884,7 +865,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/User/UserCard.tsx',
                 divergence:
-                    'Global/Card with "flex flex-col items-center gap-4 p-4" — overrides the card\'s px-4 py-2 to p-4. Body text uses the text-body-xs / foreground-secondary tokens.',
+                    '0_Bruddle/Card (moved off Global/Card 2026-09-15, TASK-22452) with "w-full flex-col items-center gap-4 p-4". Body text uses the text-body-xs / foreground-secondary tokens.',
             },
             {
                 name: 'PeanutActionDetailsCard',
@@ -892,7 +873,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Global/PeanutActionDetailsCard/index.tsx',
                 divergence:
-                    'Busiest composite card at 11 call sites. Wraps Global/Card and hand-builds an avatar cluster with rounded-full sizing rather than using 0_Bruddle/IconBubble.',
+                    'Busiest composite card at 11 call sites. Wraps 0_Bruddle/Card (moved off Global/Card 2026-09-15, TASK-22452) and still hand-builds an avatar cluster with rounded-full sizing rather than using 0_Bruddle/IconBubble — that composite is a flagged open decision.',
             },
             {
                 name: 'PeanutActionCard',

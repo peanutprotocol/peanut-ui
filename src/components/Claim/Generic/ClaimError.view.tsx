@@ -2,10 +2,10 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
-import Image from 'next/image'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
-import { PeanutCrying } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 type ClaimErrorViewProps = {
     title: string
@@ -20,13 +20,13 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
 
     return (
         <div className="space-y-4 flex flex-col items-center justify-center text-center">
-            <Image src={PeanutCrying.src} unoptimized alt={t('errors.sadPeanutAlt')} width={96} height={96} />
+            <PeanutMascot pose="worried" alt={t('errors.sadPeanutAlt')} className={MASCOT_STATE_CLASS} />
             <div className="space-y-2">
                 <h1 className="text-heading-card text-foreground-primary">{title}</h1>
                 <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             <div className="flex w-full flex-col gap-2">
-                <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="purple" className="w-full">
+                <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="primary" className="w-full">
                     {primaryButtonText}
                 </Button>
                 <Button

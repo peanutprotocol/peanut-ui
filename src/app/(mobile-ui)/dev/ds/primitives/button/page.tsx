@@ -9,7 +9,6 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
-import { StatusTag } from '../../_components/StatusTag'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
@@ -27,24 +26,25 @@ export default function ButtonPage() {
                 use={[
                     'Primary and secondary CTAs in flows',
                     'Actions that submit, confirm, or navigate forward',
+                    'Button-looking navigation — pass href (link mode, renders one anchor)',
                     'Icon + label combinations for contextual actions (share, copy)',
                 ]}
                 dontUse={[
-                    'Navigation links — use Next.js Link instead',
-                    'Toggle states — use Checkbox or Switch',
+                    'Underlined text links — use LinkButton',
+                    'Toggle states — use Checkbox or Toggle',
                     'Inline text actions — use underlined text links',
                 ]}
             />
 
             <DoDont
                 doExample={
-                    <Button variant="purple" className="w-full">
+                    <Button variant="primary" className="w-full">
                         Continue
                     </Button>
                 }
                 doLabel="Default (medium, 44px) for primary CTAs — shadow is built in"
                 dontExample={
-                    <Button variant="purple" size="small" className="w-full">
+                    <Button variant="primary" size="small" className="w-full">
                         Continue
                     </Button>
                 }
@@ -57,18 +57,17 @@ export default function ButtonPage() {
                 <Playground
                     name="Button"
                     importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    defaults={{ variant: 'purple', children: 'Continue' }}
+                    defaults={{ variant: 'primary', children: 'Continue' }}
                     controls={[
                         {
                             type: 'select',
                             prop: 'variant',
                             label: 'variant',
                             options: [
-                                'purple',
+                                'primary',
                                 'stroke',
                                 'primary-soft',
                                 'transparent',
-                                'dark',
                                 'transparent-dark',
                                 'transparent-light',
                             ],
@@ -105,7 +104,7 @@ export default function ButtonPage() {
                     }}
                     codeTemplate={(props) => {
                         const parts = ['<Button']
-                        if (props.variant && props.variant !== 'purple') parts.push(`variant="${props.variant}"`)
+                        if (props.variant && props.variant !== 'primary') parts.push(`variant="${props.variant}"`)
                         if (props.size) parts.push(`size="${props.size}"`)
                         if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
                         if (props.icon) parts.push(`icon="${props.icon}"`)
@@ -124,11 +123,10 @@ export default function ButtonPage() {
                     <div className="space-y-4">
                         {(
                             [
-                                ['purple', '59 usages', 'production'],
+                                ['primary', '59 usages', 'production'],
                                 ['stroke', '27 usages', 'production'],
                                 ['primary-soft', '18 usages', 'production'],
                                 ['transparent', '12 usages', 'production'],
-                                ['dark', '2 usages', 'limited'],
                                 ['transparent-dark', '3 usages', 'limited'],
                             ] as const
                         ).map(([variant, count, status]) => (
@@ -136,7 +134,7 @@ export default function ButtonPage() {
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
                                     <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <StatusTag status={status} />
+                                    <span className="text-label-m text-foreground-secondary">{status}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
@@ -145,7 +143,7 @@ export default function ButtonPage() {
                             <div className="mb-2 flex items-center gap-2">
                                 <span className="text-label-l">transparent-light</span>
                                 <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <StatusTag status="limited" />
+                                <span className="text-label-m text-foreground-secondary">limited</span>
                             </div>
                             <div className="rounded-sm bg-foreground-primary p-3">
                                 <Button variant="transparent-light">transparent-light</Button>
@@ -156,7 +154,7 @@ export default function ButtonPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Variants"
-                        code={`<Button variant="purple">Primary</Button>
+                        code={`<Button variant="primary">Primary</Button>
 <Button variant="stroke">Stroke</Button>
 <Button variant="primary-soft">Soft</Button>
 <Button variant="transparent">Transparent</Button>`}
@@ -207,10 +205,51 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Link Mode"
+                description="Pass href and the Button renders ONE anchor with the exact button classes — next/link for internal routes, a plain <a> for external/scheme hrefs and downloads. Never wrap a Button in a Link (nested interactive) and never hand-roll .btn classes on an anchor."
+            >
+                <DocSection.Content>
+                    <div className="space-y-3">
+                        <Button href="/home" className="w-full">
+                            Internal route (next/link)
+                        </Button>
+                        <Button variant="stroke" href="https://peanut.me" external className="w-full">
+                            External (new tab, plain anchor)
+                        </Button>
+                        <Button href="/home" disabled className="w-full">
+                            Disabled link (no href, aria-disabled)
+                        </Button>
+                    </div>
+                    <DesignNote type="info">
+                        The split: underlined text link → LinkButton. Button-looking navigation → Button with href.
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Link mode"
+                        code={`{/* internal route — next/link client nav */}
+<Button href="/home">Go home</Button>
+
+{/* external — plain <a>, new tab */}
+<Button variant="stroke" href="https://peanut.me" external>
+  Visit site
+</Button>
+
+{/* download — plain <a> with the attribute */}
+<Button variant="stroke" href="/receipt/1/pdf" download icon="download">
+  Download PDF
+</Button>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Props">
                 <PropsTable
                     rows={[
-                        { name: 'variant', type: 'ButtonVariant', default: "'purple'", description: 'Visual style' },
+                        { name: 'variant', type: 'ButtonVariant', default: "'primary'", description: 'Visual style' },
                         {
                             name: 'size',
                             type: "'small' | 'medium' | 'large'",
@@ -224,7 +263,6 @@ export default function ButtonPage() {
                             default: '(none)',
                             description: "'4' is standard (160+ usages)",
                         },
-                        { name: 'shadowType', type: "'primary' | 'secondary'", default: "'primary'" },
                         {
                             name: 'loading',
                             type: 'boolean',
@@ -241,6 +279,24 @@ export default function ButtonPage() {
                             description: 'Hold-to-confirm with progress bar',
                         },
                         { name: 'disableHaptics', type: 'boolean', default: 'false' },
+                        {
+                            name: 'href',
+                            type: 'string',
+                            default: '(none)',
+                            description: 'Link mode: renders one anchor instead of a button',
+                        },
+                        {
+                            name: 'external',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: plain <a>, target="_blank" rel="noopener noreferrer"',
+                        },
+                        {
+                            name: 'plainAnchor',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: force plain <a> for an internal route (full page load)',
+                        },
                     ]}
                 />
             </DocSection>
@@ -254,7 +310,7 @@ export default function ButtonPage() {
                         area. The old &quot;large is shorter than default&quot; trap is gone.
                     </DesignNote>
                     <DesignNote type="info">
-                        Primary CTA pattern: variant=&quot;purple&quot; className=&quot;w-full&quot; — no size prop, no
+                        Primary CTA pattern: variant=&quot;primary&quot; className=&quot;w-full&quot; — no size prop, no
                         shadowSize (the 4px shadow is built into purple/stroke).
                     </DesignNote>
                 </div>
@@ -265,7 +321,7 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-label-l">Primary CTA (most common)</p>
-                            <Button variant="purple" className="mt-2 w-full">
+                            <Button variant="primary" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
@@ -278,7 +334,7 @@ export default function ButtonPage() {
                         <div>
                             <p className="text-label-l">With icon</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" icon="share">
+                                <Button variant="primary" icon="share">
                                     Share
                                 </Button>
                                 <Button variant="stroke" icon="copy">
@@ -289,10 +345,10 @@ export default function ButtonPage() {
                         <div>
                             <p className="text-label-l">States</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" disabled>
+                                <Button variant="primary" disabled>
                                     Disabled
                                 </Button>
-                                <Button variant="purple" loading>
+                                <Button variant="primary" loading>
                                     Loading
                                 </Button>
                             </div>
@@ -303,7 +359,7 @@ export default function ButtonPage() {
                     <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
-                        code={`<Button variant="purple" className="w-full">
+                        code={`<Button variant="primary" className="w-full">
   Continue
 </Button>`}
                     />
@@ -315,7 +371,7 @@ export default function ButtonPage() {
                     />
                     <CodeBlock
                         label="With icon"
-                        code={`<Button variant="purple" icon="share">
+                        code={`<Button variant="primary" icon="share">
   Share
 </Button>`}
                     />

@@ -64,8 +64,10 @@ jest.mock('@/utils/bridge-accounts.utils', () => ({
 // Records mirror the REAL country table shapes — the UK is { id: 'GBR',
 // iso2: 'GB' }, which is exactly what round 6 caught an id-keyed ternary on.
 let mockCountryId = 'US'
+// mutable rail: the reference rides a different request field on each rail
+let mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
 jest.mock('@/utils/bridge.utils', () => ({
-    getOfframpConfigFromAccount: () => ({ currency: 'usd', paymentRail: 'ach' }),
+    getOfframpConfigFromAccount: () => mockOfframpConfig,
     getCountryFromPath: () =>
         mockCountryId === 'GB'
             ? { id: 'GBR', iso2: 'GB', title: 'United Kingdom' }
@@ -218,6 +220,7 @@ beforeEach(() => {
     mockGateKind = 'ready'
     mockBalance = 100n * 10n ** 6n
     mockCountryId = 'US'
+    mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
     mockExchangeRate = '0.79'
     mockExchangeRateCalls.length = 0
     mockPointsCalls.length = 0
@@ -391,7 +394,7 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
         mockBankAccount = null
         renderFlow({ amount: '50', step: 'review' })
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?amount=50')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?amount=50&step=form')
     })
 
     it('from the send flow, the method marker rides along with the amount', () => {
@@ -399,7 +402,7 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
         mockIsBankFromSend = true
         renderFlow({ amount: '50', step: 'review' })
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?method=bank&amount=50')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?method=bank&amount=50&step=form')
     })
 
     it('no amount at all: recovery to the flow entry keeps only the send marker', () => {
@@ -407,5 +410,91 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
         renderFlow({ step: 'review' })
 
         expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw?method=bank')
+    })
+})
+
+describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
+    const submitWithReference = async (reference: string) => {
+        armHappyOfframp()
+        const view = renderFlow({ amount: '50', step: 'review' })
+        act(() => view.result.current.setReference(reference))
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        return view
+    }
+
+    const sentDestination = () => mockCreateOfframp.mock.calls[0][0].destination as Record<string, unknown>
+
+    it('SEPA: the reference goes out as sepaReference, trimmed', async () => {
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        await submitWithReference('  Invoice 2026-09 / rent  ')
+
+        expect(sentDestination()).toEqual({
+            currency: 'eur',
+            paymentRail: 'sepa',
+            externalAccountId: 'ext-1',
+            sepaReference: 'Invoice 2026-09 / rent',
+        })
+    })
+
+    it('ACH: the reference goes out as achReference, and never as a SEPA or wire field', async () => {
+        await submitWithReference('RENT SEP')
+
+        expect(sentDestination()).toEqual({
+            currency: 'usd',
+            paymentRail: 'ach',
+            externalAccountId: 'ext-1',
+            achReference: 'RENT SEP',
+        })
+    })
+
+    it('no reference: the request carries no reference field', async () => {
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        await submitWithReference('   ')
+
+        expect(sentDestination()).toEqual({ currency: 'eur', paymentRail: 'sepa', externalAccountId: 'ext-1' })
+    })
+
+    it.each([
+        ['faster_payments', 'gbp', 'fasterPaymentsReference'],
+        ['spei', 'mxn', 'speiReference'],
+        ['co_bank_transfer', 'cop', 'coBankTransferReference'],
+    ])('%s sends the reference in its own field, and in no other', async (paymentRail, currency, field) => {
+        mockOfframpConfig = { currency, paymentRail }
+        const view = await submitWithReference('Invoice 42')
+
+        expect(view.result.current.referenceSpec?.field).toBe(field)
+        expect(sentDestination()).toEqual({
+            currency,
+            paymentRail,
+            externalAccountId: 'ext-1',
+            [field]: 'Invoice 42',
+        })
+    })
+
+    it('a rail that takes no reference offers no field and sends none', async () => {
+        mockOfframpConfig = { currency: 'usd', paymentRail: 'wire' }
+        const view = await submitWithReference('Invoice 42')
+
+        expect(view.result.current.referenceSpec).toBeNull()
+        expect(sentDestination()).toEqual({ currency: 'usd', paymentRail: 'wire', externalAccountId: 'ext-1' })
+    })
+
+    it('a reference that breaks the rail limits blocks the submit: nothing is created, nothing moves', async () => {
+        // ACH takes 10 characters
+        const view = await submitWithReference('Invoice 2026-09')
+
+        expect(view.result.current.referenceProblem).toBe('invalidChars')
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('SEPA: a reference under 6 characters blocks the submit', async () => {
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        const view = await submitWithReference('rent')
+
+        expect(view.result.current.referenceProblem).toBe('tooShort')
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
     })
 })

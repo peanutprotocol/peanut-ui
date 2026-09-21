@@ -1,4 +1,4 @@
-import type { NextAction } from '@/types/capabilities'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 
 /**
  * The nextActions renderable as pending Bridge verification tasks:
@@ -7,9 +7,30 @@ import type { NextAction } from '@/types/capabilities'
  * blocking and the advisory (future-dated, `effectiveDate`-carrying)
  * populations — advisory actions arrive as orphans no rail references, so
  * reading top-level `nextActions` is the only way to see them.
+ *
+ * A BLOCKING hosted task stands down while a Bridge rail carries a native
+ * `sumsub` step. Bridge lists its unmapped keys (`kyc_approval`, the
+ * `kyc_with_proof_of_address` tier marker) beside the specific document it
+ * wants, and the hosted flow (Persona identity) cannot collect that document,
+ * so offering both put users in a loop (TASK-22818). The resolver no longer
+ * emits the pair; this keeps older API responses honest too. Advisory hosted
+ * tasks are about keeping access on a working rail and stay.
  */
-export function selectBridgeTasks(nextActions: NextAction[]): NextAction[] {
-    return nextActions.filter((action) => action.kind === 'accept-tos' || action.kind === 'bridge-hosted')
+export function selectBridgeTasks(nextActions: NextAction[], rails: RailCapability[] = []): NextAction[] {
+    const tasks = nextActions.filter((action) => action.kind === 'accept-tos' || action.kind === 'bridge-hosted')
+    if (!hasNativeBridgeStep(nextActions, rails)) return tasks
+    return tasks.filter((action) => action.kind !== 'bridge-hosted' || !!action.effectiveDate)
+}
+
+/** A requires-info Bridge rail whose blocking actions include a Sumsub step the app runs itself. */
+export function hasNativeBridgeStep(nextActions: NextAction[], rails: RailCapability[]): boolean {
+    const kindByKey = new Map(nextActions.map((action) => [action.key, action.kind]))
+    return rails.some(
+        (rail) =>
+            rail.provider === 'bridge' &&
+            rail.status === 'requires-info' &&
+            (rail.blockingActions ?? []).some((key) => kindByKey.get(key) === 'sumsub')
+    )
 }
 
 /**

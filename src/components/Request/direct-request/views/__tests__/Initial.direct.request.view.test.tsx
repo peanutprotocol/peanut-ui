@@ -4,7 +4,7 @@
  * Recipient validation errors are field-level: they render under the recipient
  * input and must NOT flip the primary Request CTA to the Reset/retry state
  * (which wipes the typed recipient). Only flow errors (create-request API
- * failures) keep the Notification + Reset CTA.
+ * failures) keep the Callout + Reset CTA.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -13,8 +13,8 @@ import type { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipien
 
 // ---------- module mocks ----------
 
-jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+jest.mock('@/components/Request/useRequestBack', () => ({
+    useRequestBack: () => jest.fn(),
 }))
 
 // unauthenticated visitor — the recipient input renders in this state
@@ -75,11 +75,6 @@ jest.mock('@/components/Global/Loading', () => ({
 jest.mock('@/components/User/UserCard', () => ({
     __esModule: true,
     default: () => <div data-testid="user-card" />,
-}))
-
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: () => <div data-testid="file-upload" />,
 }))
 
 jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
@@ -151,13 +146,13 @@ describe('DirectRequestInitialView error routing', () => {
 
         fireEvent.click(screen.getByTestId('fire-invalid-recipient'))
 
-        // field-level message, no flow Notification, no Reset flip
+        // field-level message, no flow Callout, no Reset flip
         expect(screen.getByText('Invalid recipient address')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Request' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument()
     })
 
-    test('create-request API failure keeps the Notification and flips to Reset', async () => {
+    test('create-request API failure keeps the Callout and flips to Reset', async () => {
         mockRequestByUsername.mockRejectedValue(new Error('Request failed'))
         renderView()
 

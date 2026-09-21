@@ -71,7 +71,7 @@ export function useBridgeBankFlow() {
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
     // client-side amount validation renders as the field's own error, never in
-    // the flow-level Notification (which keeps backend/API failures only)
+    // the flow-level Callout (which keeps backend/API failures only)
     const [validationError, setValidationError] = useState<string>('')
 
     const { balance } = useWallet()
@@ -267,7 +267,9 @@ export function useBridgeBankFlow() {
         if (gate.kind === 'restart-identity') {
             await sumsubFlow.handleRestartIdentity()
         } else if (gate.kind === 'fixable-rejection') {
-            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+            // Through the shared router: it sends a residence park to the
+            // address step and everything else to resubmit as before.
+            await sumsubFlow.handleFixableGate('BRIDGE', gate)
         } else {
             await sumsubFlow.handleInitiateKyc(
                 bankRegionIntent(selectedCountry),

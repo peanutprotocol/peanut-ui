@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -69,13 +69,11 @@ export function ConfirmBankClaimView({
 
     return (
         <PageStack className="justify-between md:min-h-fit">
-            <div>
-                <NavHeader title={t('receive')} onPrev={onBack} />
-            </div>
+            <NavHeader title={t('receive')} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
-                    avatarSize="small"
+                    avatarSize="m"
                     transactionType="CLAIM_LINK_BANK_ACCOUNT"
                     recipientType="BANK_ACCOUNT"
                     recipientName={bankDetails.country}
@@ -108,7 +106,7 @@ export function ConfirmBankClaimView({
                 <div className="space-y-4">
                     {error ? (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={onConfirm}
                             disabled={false}
@@ -120,7 +118,7 @@ export function ConfirmBankClaimView({
                         </Button>
                     ) : (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={onConfirm}
                             disabled={isProcessing}
@@ -132,7 +130,7 @@ export function ConfirmBankClaimView({
                         </Button>
                     )}
 
-                    {error && <Notification priority="error">{error}</Notification>}
+                    {error && <Callout priority="error">{error}</Callout>}
                 </div>
             </PageStack.Center>
         </PageStack>

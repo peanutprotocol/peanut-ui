@@ -72,6 +72,29 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
+    # The screen-library suite covers capture validation, publication provenance,
+    # storage credentials, shared pointer ordering, and the Worker's public
+    # allowlist. Keep it isolated from the app test jobs because it needs no
+    # submodules or secrets.
+    screen-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  version: 10.30.1
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+            - run: pnpm screens:test
+
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
     # styles, stock text sizes, non-DS classes in views, useSearchParams files)
@@ -376,7 +399,7 @@ jobs:
                   # e2e/flows/ and the regression config are here because the
                   # behaviour specs run inside ds-shots — without them a PR
                   # touching only those files would skip the job that runs them.
-                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression|overflow)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
                   # Inside the set above but never on camera. src/content is the
                   # blog and SEO submodule, and no fixture renders those pages.
                   DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
@@ -507,6 +530,15 @@ jobs:
             # source hash, restore-keys falls back to the newest cache for the
             # same lockfile and build configuration. Do not restore Webpack caches
             # across configuration changes; stale module hashes can crash the build.
+            # The version suffix is the kill switch for a poisoned entry.
+            # v3 invalidated a dev-scoped v2 entry that reproducibly crashed
+            # Webpack's WasmHash on PR builds before screenshot capture; v4
+            # invalidates a v3 entry that went the same way on 2026-09-17
+            # (`TypeError: Cannot read properties of undefined (reading
+            # 'length')` in WasmHash._updateWithBuffer, ~60s into Build, on
+            # every PR that restored it — ui#3227 and ui#3232 crashed
+            # identically off the same key). Bump the version again the next
+            # time PRs start failing in Build with a WasmHash stack.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending
@@ -516,9 +548,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -532,6 +564,8 @@ jobs:
                   # /dev page the regression specs drive. Locally .env sets
                   # it; CI has no .env, so set it here.
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Match the screen-library build: restored Webpack hashes crash WasmHash.
+                  SCREEN_CAPTURE_BUILD: '1'
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -545,7 +579,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
@@ -684,6 +718,18 @@ jobs:
 
             - name: Run regression specs
               run: pnpm test:e2e:regression
+
+            # i18n overflow gate (TASK-22366): renders the fixture set, the
+            # localized landing routes and the setup screens in es-419 at
+            # 320px and fails when translated copy is clipped. Absolute DOM
+            # check, no baseline — so it runs the same way on push and PR.
+            # Advisory the same way this whole job is (not in
+            # ci-success.needs); give it its own blocking job after a week of
+            # PRs with zero false positives.
+            # Failure screenshots land in e2e/__results__/, which the
+            # failure upload below already ships.
+            - name: i18n overflow gate
+              run: pnpm test:i18n-overflow:run
 
             # The page snapshot in error-context.md is the only way to see
             # WHAT rendered on the runner when a spec dies in CI but passes
@@ -1011,7 +1057,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
+        needs: [format, screen-tests, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -1020,6 +1066,7 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"

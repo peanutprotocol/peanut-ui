@@ -48,7 +48,7 @@ export const AVATAR_WALLET_BG = '#FFC900' // yellow for address/non-user/add/wit
 
 // text/icon colors
 export const AVATAR_TEXT_LIGHT = '#FFFFFF' // white
-export const AVATAR_TEXT_DARK = '#000000' // black
+export const AVATAR_TEXT_DARK = 'var(--color-foreground-primary)' // black
 
 /**
  * Generates a deterministic background color from a predefined list based on a username.

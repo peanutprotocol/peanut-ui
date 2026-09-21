@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -128,7 +128,7 @@ export function CancelDepositActions({
     const withError = (button: ReactNode) => (
         <div className="flex w-full flex-col gap-2">
             {button}
-            {error && <Notification priority="error">{error}</Notification>}
+            {error && <Callout priority="error">{error}</Callout>}
             <Drawer
                 nested={!!setIsModalOpen}
                 open={confirmOpen}
@@ -206,26 +206,24 @@ export function CancelDepositActions({
 
     if (showPendingBankRequestCancel) {
         return withError(
-            <div className="pr-1">
-                <CancelButton
-                    label={t('actions.cancelDepositRequest')}
-                    disabled={!!isLoading}
-                    onClick={() =>
-                        armCancel('request', async () => {
-                            const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
-                            if (!bridgeTransferId) {
-                                throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
-                            }
-                            // Bridge cancel must succeed before we cancel the
-                            // charge — otherwise the onramp orphans on Bridge's
-                            // side while the user sees the request as cancelled.
-                            const bridgeResult = await cancelOnramp(bridgeTransferId)
-                            if (bridgeResult.error) throw new Error(bridgeResult.error)
-                            await chargesApi.cancel(transaction.id)
-                        })
-                    }
-                />
-            </div>
+            <CancelButton
+                label={t('actions.cancelDepositRequest')}
+                disabled={!!isLoading}
+                onClick={() =>
+                    armCancel('request', async () => {
+                        const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
+                        if (!bridgeTransferId) {
+                            throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
+                        }
+                        // Bridge cancel must succeed before we cancel the
+                        // charge — otherwise the onramp orphans on Bridge's
+                        // side while the user sees the request as cancelled.
+                        const bridgeResult = await cancelOnramp(bridgeTransferId)
+                        if (bridgeResult.error) throw new Error(bridgeResult.error)
+                        await chargesApi.cancel(transaction.id)
+                    })
+                }
+            />
         )
     }
 

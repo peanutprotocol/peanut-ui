@@ -14,7 +14,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '1',
                 name: 'ETH',
                 decimals: 18,
-                usdPrice: 2094.96,
                 logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
@@ -23,7 +22,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '1',
                 name: 'USD Coin',
                 decimals: 6,
-                usdPrice: 1,
                 logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],
@@ -39,7 +37,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '10',
                 name: 'ETH',
                 decimals: 18,
-                usdPrice: 2093.52,
                 logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
@@ -48,7 +45,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '10',
                 name: 'USD Coin',
                 decimals: 6,
-                usdPrice: 1,
                 logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],
@@ -64,7 +60,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '8453',
                 name: 'ETH',
                 decimals: 18,
-                usdPrice: 2094.96,
                 logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
@@ -73,7 +68,6 @@ const mockChainsAndTokens: Record<string, ChainWithTokens> = {
                 chainId: '8453',
                 name: 'USD Coin',
                 decimals: 6,
-                usdPrice: 1,
                 logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],

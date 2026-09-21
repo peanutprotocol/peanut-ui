@@ -9,17 +9,22 @@ interface FieldColumnProps {
     className?: string
     /** test hook carried by the FieldError (e.g. "error-alert" in the payment flows) */
     errorTestId?: string
+    errorId?: string
 }
 
 /**
  * The form-field column from the form-field board (17788:19179): an input and
  * its FieldError stacked 4px apart. Compose this instead of respelling the
  * flex/gap utilities at every call site. Field validation only — page/flow
- * failures (API errors, submission failures) stay <Notification priority="error">.
+ * failures (API errors, submission failures) stay <Callout priority="error">.
  */
-export const FieldColumn = ({ children, error, className, errorTestId }: FieldColumnProps) => (
+export const FieldColumn = ({ children, error, className, errorTestId, errorId }: FieldColumnProps) => (
     <div className={twMerge('flex flex-col gap-1', className)}>
         {children}
-        {error ? <FieldError data-testid={errorTestId}>{error}</FieldError> : null}
+        {error ? (
+            <FieldError id={errorId} data-testid={errorTestId}>
+                {error}
+            </FieldError>
+        ) : null}
     </div>
 )

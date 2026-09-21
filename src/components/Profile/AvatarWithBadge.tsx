@@ -42,7 +42,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     name,
     icon,
     className,
-    size = 'medium',
+    size = 'l',
     inlineStyle,
     textColor,
     iconFillColor,
@@ -52,11 +52,11 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
     const iconSizeMap: Record<AvatarSize, number> = {
-        tiny: 12,
-        'extra-small': 16,
-        small: 18,
-        medium: 32,
-        large: 48,
+        xs: 12,
+        s: 16,
+        m: 18,
+        l: 32,
+        xl: 48,
     }
 
     const initials = useMemo(() => {

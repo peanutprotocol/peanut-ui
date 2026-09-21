@@ -227,6 +227,7 @@ export enum AccountType {
     US = 'us',
     CLABE = 'clabe',
     GB = 'gb', // uk bank accounts (sort code + account number)
+    CO_BANK_TRANSFER = 'co_bank_transfer', // colombian bank accounts
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     MANTECA = 'manteca',
@@ -238,6 +239,10 @@ export interface Account {
     bridgeAccountId: string
     type: AccountType
     identifier: string
+    /** The name the user gave this account, or null — see destinationLabel. */
+    label?: string | null
+    /** ISO 8601 of the newest withdrawal to this account; null means never used. */
+    lastUsedAt?: string | null
     details: {
         bankName: string | null
         accountOwnerName: string
@@ -299,14 +304,15 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    profileNameLocked?: boolean
     // Residence-based availability derived server-side from the residence the
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
-    // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
-    // null or absent = a change is allowed right now.
+    // nextChangeAllowedAt: legacy field, ignored for self-declaration.
+    // Cooldowns belong to provider verification, not this country selection.
     // declaredSecond: the optional second jurisdiction from the signup step,
     // served by /users/me since 2026-08-26. Optional here only for the window
     // before that BE lands in production; callers fall back to the device
@@ -315,6 +321,11 @@ export interface IUserProfile {
         declared: string | null
         declaredSecond?: string | null
         verified: string | null
+        kycReported?: string | null
+        pending?: string | null
+        pendingSecond?: string | null
+        pendingStatus?: 'REQUESTED' | 'COLLECTING' | 'REVIEW_PENDING' | string | null
+        pendingRequestedAt?: string | null
         nextChangeAllowedAt?: string | null
     }
 }
@@ -329,6 +340,9 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
+    /** Picked profile avatar; null (or absent, on an older API) means the
+     *  username-letter fallback. Same shape as `User.avatarKey`. */
+    avatarKey?: string | null
     /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
     isVerified: boolean
     showFullName: boolean

@@ -1,4 +1,4 @@
-import { captureException } from '@/utils/sentry-lazy'
+import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { setCachedStepUpToken } from '@/services/step-up-cache'
@@ -71,16 +71,40 @@ const GUARD_ERROR_TAG: Record<string, string> = {
     CeremonyConflictError: 'ceremony_conflict',
 }
 
+// A second tap while a ceremony owns the window is a rejected interaction, not
+// a second passkey failure. Keep the first conflict useful for diagnostics but
+// do not let a rapid burst of losing taps multiply the exception count. The
+// entry is removed when its owning ceremony ends, so a later real conflict is
+// still reportable.
+const reportedConflictCeremonies = new Set<number>()
+
 /**
- * One Sentry capture for guard errors from both the login and register catch
- * paths — the tag is derived from the error class, so a new guard error can't
- * silently collapse into the wrong bucket in one copy of a hand-rolled ternary.
+ * Capture guard errors from both the login and register catch paths — the tag
+ * is derived from the error class, so a new guard error cannot silently
+ * collapse into the wrong bucket in one copy of a hand-rolled ternary.
+ * Conflicts are limited to one exception per active ceremony above; later
+ * losing taps remain breadcrumbs rather than new exception events.
  */
 export const captureCeremonyGuardError = (
     err: Error,
     flow: 'login' | 'register',
     extra?: Record<string, unknown>
 ): void => {
+    if (err.name === 'CeremonyConflictError') {
+        const ceremonyId = currentCeremonyId()
+        if (ceremonyId !== null) {
+            if (reportedConflictCeremonies.has(ceremonyId)) {
+                addBreadcrumb({
+                    category: 'webauthn.ceremony',
+                    level: 'info',
+                    message: `suppressed duplicate ${flow} ceremony conflict`,
+                    data: { ceremonyId },
+                })
+                return
+            }
+            reportedConflictCeremonies.add(ceremonyId)
+        }
+    }
     captureException(err, {
         tags: { error_type: `${flow}_${GUARD_ERROR_TAG[err.name] ?? 'ceremony_guard'}` },
         extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor(), ...extra },
@@ -200,6 +224,7 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
         return result
     } finally {
         if (activeCeremonyId === ceremonyId) activeCeremonyId = null
+        reportedConflictCeremonies.delete(ceremonyId)
         stashedVerifyToken = null
         stashedStepUp = null
     }

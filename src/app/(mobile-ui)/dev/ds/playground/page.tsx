@@ -5,7 +5,7 @@ export default function PlaygroundPage() {
     return (
         <DocPage>
             <div>
-                <h1 className="text-h3">Playground</h1>
+                <h1 className="text-heading-m">Playground</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
                     Interactive test harnesses for motion, haptics, confetti and share assets. These are standalone
                     pages under{' '}
@@ -29,7 +29,7 @@ export default function PlaygroundPage() {
                 />
                 <CatalogCard
                     title="Share Builder"
-                    description="Iterator for the D3 card-waitlist share asset — stress-test tiers, names and edge cases."
+                    description="Iterator for the D3 card share asset — stress-test tiers, names and edge cases."
                     href="/dev/share-builder"
                     icon="copy"
                 />

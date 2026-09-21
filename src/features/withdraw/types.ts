@@ -22,7 +22,7 @@ export const WITHDRAW_ROOT_STEPS = ['method', 'amount'] as const
 export type WithdrawRootStep = (typeof WITHDRAW_ROOT_STEPS)[number]
 
 /** Named screen ids for /withdraw/crypto. */
-export const WITHDRAW_CRYPTO_STEPS = ['recipient', 'review', 'success'] as const
+export const WITHDRAW_CRYPTO_STEPS = ['recipient', 'amount', 'review', 'success'] as const
 export type WithdrawCryptoStep = (typeof WITHDRAW_CRYPTO_STEPS)[number]
 
 /** Named screen ids for /withdraw/[country]/bank. */
@@ -30,5 +30,5 @@ export const WITHDRAW_BANK_STEPS = ['review', 'success'] as const
 export type WithdrawBankStep = (typeof WITHDRAW_BANK_STEPS)[number]
 
 /** Named screen ids for /withdraw/manteca. */
-export const WITHDRAW_MANTECA_STEPS = ['amount', 'bank-details', 'review', 'success', 'failure'] as const
+export const WITHDRAW_MANTECA_STEPS = ['bank-details', 'amount', 'review', 'success', 'failure'] as const
 export type WithdrawMantecaStep = (typeof WITHDRAW_MANTECA_STEPS)[number]

@@ -14,6 +14,7 @@ export type TransactionDetailsRowKey =
     | 'exchangeRate'
     | 'bankAccountDetails'
     | 'transferId'
+    | 'senderReference'
     | 'depositInstructions'
     | 'networkFee'
     | 'fee'
@@ -24,6 +25,8 @@ export type TransactionDetailsRowKey =
     | 'mantecaDepositInfo'
     | 'cardPayment'
     | 'closed'
+    | 'reference'
+    | 'issuedOn'
 
 // order of the rows in the receipt (must match actual rendering order in component)
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
@@ -42,13 +45,69 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'exchangeRate',
     'bankAccountDetails',
     'transferId',
+    'senderReference',
     'depositInstructions',
     'points',
     'comment',
     'networkFee',
     'peanutFee',
     'attachment',
+    'reference',
+    'issuedOn',
 ]
+
+/** the receipt's issuance timestamp — the moment the documented state was
+ *  established, never the download time. status-branched: cancelled/closed
+ *  receipts date from the cancellation, refunded from the refund, completed
+ *  from settlement/claim, pending from creation. one rule shared by the
+ *  details-card row and the pdf model so the two can never disagree. */
+/**
+ * The amount a receipt leads with, and the sign in front of it.
+ *
+ * A request pot states what it COLLECTED. Its `amount` is the goal it asked
+ * for, which is not proof that any money arrived, and a pot never carries a
+ * direction sign. Everything else states its own amount, signed the way the
+ * history list signs it.
+ *
+ * The receipt screen and the PDF both derive from here. They used to disagree:
+ * a $100 pot that collected $40 printed $100.00 on screen and $40.00 in the
+ * PDF, and the PDF dropped the sign so a refund and a spend of the same value
+ * printed the same headline.
+ */
+export const receiptHeadlineAmount = (
+    transaction: { isRequestPotLink?: boolean; totalAmountCollected?: number | string | null },
+    /** the amount the caller derived for a non-pot receipt */
+    fallbackAmount: number,
+    sign: '-' | '+' | ''
+): { amount: number; sign: '-' | '+' | ''; isCollectedTotal: boolean } => {
+    if (transaction.isRequestPotLink) {
+        const collected = Number(transaction.totalAmountCollected)
+        return { amount: Number.isFinite(collected) ? collected : 0, sign: '', isCollectedTotal: true }
+    }
+    return { amount: Number.isFinite(fallbackAmount) ? fallbackAmount : 0, sign, isCollectedTotal: false }
+}
+
+export const receiptIssuedAt = (transaction: {
+    status?: string
+    cancelledDate?: string | Date
+    completedAt?: string | Date
+    claimedAt?: string | Date
+    createdAt?: string | Date
+    date: string | Date
+}): Date | undefined => {
+    const { status } = transaction
+    const source =
+        status === 'cancelled'
+            ? transaction.cancelledDate || transaction.createdAt || transaction.date
+            : status === 'closed'
+              ? transaction.cancelledDate || transaction.date || transaction.createdAt
+              : status === 'refunded'
+                ? transaction.date || transaction.completedAt || transaction.createdAt
+                : status === 'completed'
+                  ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
+                  : transaction.createdAt || transaction.date
+    return source ? new Date(source) : undefined
+}
 
 /** Which label a bank-account row carries. Callers map it to display text —
  *  this module stays copy-free. */

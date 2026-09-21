@@ -1,15 +1,17 @@
 'use client'
-import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
-import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import CardPinSetupFlow from '@/components/Card/CardPinSetupFlow'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
 
@@ -111,16 +113,17 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         return (
             <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
-                <ScreenMark icon="credit-card" color="brand" />
-                <div className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-heading-xs">{t('noPinTitle')}</h1>
-                        <p className="text-foreground-secondary">{t('noPinBody')}</p>
-                    </div>
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={() => void setMode('set')}>
-                        {t('setPin')}
-                    </Button>
-                </div>
+                <EmptyState
+                    icon="credit-card"
+                    iconColor="brand"
+                    title={t('noPinTitle')}
+                    description={t('noPinBody')}
+                    cta={
+                        <Button variant="primary" className="mt-4 w-full" onClick={() => void setMode('set')}>
+                            {t('setPin')}
+                        </Button>
+                    }
+                />
             </PageStack>
         )
     }
@@ -128,49 +131,41 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
-            <ScreenMark icon="credit-card" color="brand" />
-            <div className="flex flex-col gap-6">
-                <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
-                <div className="flex items-center gap-3">
-                    {/* Fixed-height 52px slot keeps the row geometry constant
-                     * across masked / loading / revealed — `****`, the
-                     * skeleton, and the real digits all sit centered in the
-                     * same row and the eye button never jumps. The type token
-                     * (heading-xl, 42px font / 48px line) centers in the
-                     * slot, so the digits never move the row. */}
-                    {/* ph-no-capture: PostHog skips this subtree in session
-                     * replays so the revealed PIN digits never land in
-                     * recordings. The skeleton + masked '****' state are
-                     * also covered, which is fine — they're not sensitive. */}
-                    <div className="ph-no-capture flex h-[52px] items-center">
-                        {loading ? (
-                            <div className="h-[52px] w-32 animate-pulse rounded bg-background-disabled" />
-                        ) : (
-                            <span className="text-heading-xl">{pin ?? '****'}</span>
-                        )}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={pin ? hide : reveal}
-                        disabled={loading}
+            <div className="flex flex-col gap-4">
+                <ListGroup>
+                    {/* the whole row toggles the reveal, so the eye stays a small
+                     * inline glyph while the touch target is the full row — both
+                     * rows keep the stock ListItem anatomy (visual-qa verdict).
+                     * ph-no-capture: PostHog skips the value in session replays
+                     * so revealed PIN digits never land in recordings. */}
+                    <ListItem
+                        title={t('rowLabel')}
+                        leading={<Icon name="credit-card" size={24} />}
+                        trailing={
+                            loading ? (
+                                <span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="ph-no-capture text-body-m-semibold">{pin ?? '****'}</span>
+                                    <Icon name={pin ? 'eye-slash' : 'eye'} size={20} />
+                                </div>
+                            )
+                        }
+                        onClick={loading ? undefined : pin ? hide : () => void reveal()}
                         aria-label={pin ? t('hidePin') : t('showPin')}
-                        className="p-1"
-                    >
-                        {/* Icon reflects current state: slashed eye while hidden, open eye while visible. */}
-                        <Icon name={pin ? 'eye' : 'eye-slash'} size={24} />
-                    </button>
-                </div>
-                {error && <p className="text-body-s text-foreground-error">{error}</p>}
-                <ProfileMenuItem
-                    icon="more-horizontal"
-                    label={t('changePin')}
-                    onClick={() => {
-                        hide()
-                        void setMode('set')
-                    }}
-                    href="/dummy"
-                    position="single"
-                />
+                    />
+                    <ListItem
+                        title={t('changePin')}
+                        leading={<Icon name="edit" size={24} />}
+                        chevron
+                        onClick={() => {
+                            hide()
+                            void setMode('set')
+                        }}
+                    />
+                </ListGroup>
+                {error && <Callout priority="error">{error}</Callout>}
+                <Callout priority="info">{t('hiddenNote')}</Callout>
             </div>
         </PageStack>
     )

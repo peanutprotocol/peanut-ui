@@ -181,17 +181,38 @@ describe('AvatarPicker', () => {
     })
 
     it.each([
-        { locale: 'es-419', messages: es419, expectedName: 'Cazador de bugs' },
-        { locale: 'pt-BR', messages: ptBR, expectedName: 'Caçador de bugs' },
-    ] as const)('localizes the earned badge name in $locale', ({ locale, messages, expectedName }) => {
+        { locale: 'es-419', messages: es419, artName: 'Escarabajo de bugs', expectedName: 'Cazador de bugs' },
+        { locale: 'pt-BR', messages: ptBR, artName: 'Besouro dos bugs', expectedName: 'Caçador de bugs' },
+    ] as const)('localizes the earned badge name and art in $locale', ({ locale, messages, artName, expectedName }) => {
         renderWithIntl(
             <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
                 <AvatarPicker open onOpenChange={jest.fn()} />
             </NextIntlClientProvider>
         )
 
-        expect(tile(/Beetle/)).toHaveTextContent(expectedName)
-        expect(tile(/Beetle/)).not.toHaveTextContent('Bug Whisperer')
+        expect(tile(new RegExp(artName))).toHaveTextContent(expectedName)
+        expect(tile(new RegExp(artName))).not.toHaveTextContent('Bug Whisperer')
+    })
+
+    it('gives simultaneously visible wink artworks distinct Spanish names', () => {
+        mockBadgeParam = 'BETA_TESTER'
+        mockUser.user.avatarKey = 'badge.CARD_FIRST_SWIPE.wink'
+        mockUser.user.badges = [
+            { code: 'BETA_TESTER', name: 'Beta Tester' },
+            { code: 'CARD_FIRST_SWIPE', name: 'First Swipe' },
+        ]
+        ;(Math.random as jest.Mock).mockReturnValue(0.99)
+
+        renderWithIntl(
+            <NextIntlClientProvider locale="es-419" messages={es419} timeZone="UTC">
+                <AvatarPicker open onOpenChange={jest.fn()} />
+            </NextIntlClientProvider>
+        )
+
+        const visibleWinks = tiles().filter((el) => el.textContent?.includes('Guiño'))
+        expect(visibleWinks).toHaveLength(2)
+        expect(visibleWinks.some((el) => el.textContent?.includes('Guiño beta'))).toBe(true)
+        expect(visibleWinks.some((el) => el.textContent?.includes('Guiño del primer swipe'))).toBe(true)
     })
 
     it('deals an earned avatar, tagged, to a user who holds a badge — and none to one who does not', () => {
@@ -353,6 +374,25 @@ describe('AvatarPicker', () => {
         expect(server.committed()).toBe(KEY_B)
         expect(tile(B)).toHaveAttribute('aria-checked', 'true')
         expect(tile(A)).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('keeps the save queue serialized across a close and reopen', async () => {
+        const server = fakeServer()
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(tile(A))
+        rerender(<AvatarPicker open={false} onOpenChange={jest.fn()} />)
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+        fireEvent.click(tile(B))
+
+        // Closing the drawer does not unmount the picker, so B waits for A.
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
+        await server.settle(0)
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B])
+
+        await server.settle(1)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(server.committed()).toBe(KEY_B)
     })
 
     it('a tap during the closing refetch is sent, not dropped', async () => {

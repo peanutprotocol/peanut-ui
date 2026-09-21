@@ -26,6 +26,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Shadows', icon: 'docs', href: '/dev/ds/foundations/shadows' },
         { label: 'Icons', icon: 'search', href: '/dev/ds/foundations/icons' },
         { label: 'Borders', icon: 'docs', href: '/dev/ds/foundations/borders' },
+        { label: 'Motion & haptics', icon: 'meter', href: '/dev/ds/foundations/motion-haptics' },
     ],
     primitives: [
         {
@@ -57,6 +58,20 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'BulletList',
+            icon: 'docs',
+            href: '/dev/ds/primitives/bullet-list',
+            description: 'Unordered text facts with 4px action-primary pink markers and wrapping support',
+            status: 'production',
+        },
+        {
+            label: 'NumberedList',
+            icon: 'docs',
+            href: '/dev/ds/primitives/numbered-list',
+            description: 'Ordered steps with 20px action-primary numbered circles',
+            status: 'production',
+        },
+        {
             label: 'IconBubble',
             icon: 'plus-circle',
             href: '/dev/ds/primitives/icon-bubble',
@@ -74,7 +89,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'FieldError',
             icon: 'alert',
             href: '/dev/ds/primitives/field-error',
-            description: 'Inline field-level error (Body/XS, foreground-error) — flow errors stay Notification',
+            description: 'Inline field-level error (Body/XS, foreground-error) — flow errors stay Callout',
             status: 'production',
         },
         {
@@ -82,6 +97,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: 'docs',
             href: '/dev/ds/primitives/field',
             description: 'Form-field chrome: label + control + helper/error line — error is text only, never borders',
+            status: 'production',
+        },
+        {
+            label: 'FieldColumn',
+            icon: 'alert',
+            href: '/dev/ds/primitives/field-column',
+            description:
+                'Input + FieldError stacked 4px apart, from the form-field board — whether it folds into Field is an open question',
             status: 'production',
         },
         {
@@ -120,6 +143,20 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'PinInput',
+            icon: 'lock',
+            href: '/dev/ds/primitives/pin-input',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            status: 'limited',
+        },
+        {
+            label: 'Tabs',
+            icon: 'docs',
+            href: '/dev/ds/primitives/tabs',
+            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            status: 'production',
+        },
+        {
             label: 'ProgressBar',
             icon: 'meter',
             href: '/dev/ds/primitives/progress-bar',
@@ -137,14 +174,22 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Toast',
             icon: 'bell',
             href: '/dev/ds/primitives/toast',
-            description: 'Context-based toast notification system. 4 types, auto-dismiss',
+            description:
+                'Floating transient feedback over Callout. Four tones, reading-time auto-dismiss, persistent and custom-content options',
             status: 'production',
         },
         {
-            label: 'Notification',
+            label: 'ToastStack',
+            icon: 'bell',
+            href: '/dev/ds/primitives/toast-stack',
+            description: "The toast provider's render surface — product code fires toasts via useToast()",
+            status: 'production',
+        },
+        {
+            label: 'Callout',
             icon: 'alert',
-            href: '/dev/ds/primitives/notification',
-            description: 'Inline notification banner. 5 priorities, title + body, dismiss, up to 2 CTAs',
+            href: '/dev/ds/primitives/callout',
+            description: 'Inline callout banner. 5 priorities, title + body, dismiss, up to 2 CTAs',
             status: 'limited',
         },
         {
@@ -166,6 +211,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: 'minus-circle',
             href: '/dev/ds/primitives/divider',
             description: 'Horizontal divider with optional text label',
+            status: 'production',
+        },
+        {
+            label: 'Breadcrumb',
+            icon: 'chevron-right',
+            href: '/dev/ds/primitives/breadcrumb',
+            description: 'Trail of parent pages for marketing and content pages. Current page never links',
             status: 'production',
         },
         {
@@ -205,12 +257,25 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
-            label: 'Title',
+            label: 'MiniHeader',
             icon: 'docs',
-            href: '/dev/ds/primitives/title',
-            description:
-                'Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it.',
-            status: 'unused',
+            href: '/dev/ds/primitives/mini-header',
+            description: 'Grey uppercase mini-header labelling a block of plain prose. Code-only, ruling pending',
+            status: 'limited',
+        },
+        {
+            label: 'ScreenMark',
+            icon: 'plus-circle',
+            href: '/dev/ds/primitives/screen-mark',
+            description: "Centered IconBubble size l above a screen's content. Code-only, ruling pending",
+            status: 'limited',
+        },
+        {
+            label: 'CloudsBackground',
+            icon: 'bulb',
+            href: '/dev/ds/primitives/clouds-background',
+            description: 'Decorative drifting-clouds backdrop for success and marketing moments. Code-only (brand)',
+            status: 'production',
         },
     ],
     patterns: [

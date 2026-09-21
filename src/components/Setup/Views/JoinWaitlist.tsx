@@ -3,8 +3,9 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
@@ -29,6 +30,9 @@ const JoinWaitlist = () => {
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
+    // flow/api failure — not attributable to the input, so it renders as a
+    // notification banner instead of a field error (design.md error display)
+    const [flowError, setFlowError] = useState('')
 
     const { handleNext } = useSetupFlow()
     const router = useRouter()
@@ -38,7 +42,16 @@ const JoinWaitlist = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_WAITLIST_VIEWED)
     }, [])
 
+    // stale-request guard: only the latest validation may touch the error
+    // channels — a slow request A resolving after fresh request B must not
+    // stack its message next to B's.
+    const validationSeq = useRef(0)
+
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
+        // token first — even the demo early-return must retire any in-flight
+        // validation so a stale resolution cannot write errors for this value
+        const seq = ++validationSeq.current
+        const isCurrent = () => seq === validationSeq.current
         // Demo mode (native): `demo` is a client-only trigger — never hit the invite
         // API. Keeps it from creating accounts / bypassing the waitlist, and lets it
         // work even when the (prod) backend doesn't know the code.
@@ -48,6 +61,7 @@ const JoinWaitlist = () => {
         }
         try {
             setError('')
+            setFlowError('')
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
             const isValid = res.success && res.onboardingResolved
@@ -56,7 +70,7 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            if (!isValid) {
+            if (!isValid && isCurrent()) {
                 setError(t('waitlist.inviterNotFound'))
             }
             return isValid
@@ -66,10 +80,14 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            setError(t('waitlist.inviterNotFound'))
+            if (isCurrent()) {
+                setFlowError(tCommon('genericError'))
+            }
             return false
         } finally {
-            setisLoading(false)
+            if (isCurrent()) {
+                setisLoading(false)
+            }
         }
     }
 
@@ -87,7 +105,15 @@ const JoinWaitlist = () => {
                         setIsValid(isValid)
                         setIsChanging(isChanging)
                         setInviteCode(value)
-                        if (isChanging) setError('')
+                        if (isChanging) {
+                            // retire any in-flight validation: a cleared or
+                            // shortened value skips the next lookup, so a stale
+                            // resolution must not repopulate the channels
+                            validationSeq.current++
+                            setError('')
+                            setFlowError('')
+                            setisLoading(false)
+                        }
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}
@@ -96,8 +122,10 @@ const JoinWaitlist = () => {
                 {error && <FieldError>{error}</FieldError>}
             </div>
 
+            {flowError && <Callout priority="error">{flowError}</Callout>}
+
             <Button
-                variant="purple"
+                variant="primary"
                 disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
                 onClick={() => {
                     // Demo mode: skip signup + passkey. Soft-nav (no reload) so the

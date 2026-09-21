@@ -19,6 +19,13 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
+}))
 // next/image → plain img so jsdom doesn't choke on the optimizer.
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -62,10 +69,12 @@ describe('ApplicationStatusScreen — rejected', () => {
 })
 
 describe('ApplicationStatusScreen — geo-blocked', () => {
-    it('renders the regional copy with the reassurance', () => {
+    it('renders regional availability without promising access to every other feature', () => {
         render(<ApplicationStatusScreen variant="geo-blocked" />)
         expect(screen.getByText("Cards aren't available in your region yet")).toBeInTheDocument()
-        expect(screen.getByText(/regulatory restrictions.*deposit, withdraw, and pay with crypto/)).toBeInTheDocument()
+        expect(
+            screen.getByText(/Card availability depends on where you live.*other features available to you/)
+        ).toBeInTheDocument()
     })
 
     it('never renders a Contact-support CTA — regulation is not a support case', () => {
@@ -85,6 +94,18 @@ describe('ApplicationStatusScreen — geo-blocked', () => {
 
     it('does not show the policy link on other variants', () => {
         render(<ApplicationStatusScreen variant="rejected" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — pending residence block', () => {
+    it('explains the recoverable state and links directly to the residence drawer', () => {
+        render(<ApplicationStatusScreen variant="pending-residence-blocked" />)
+
+        expect(screen.getByText('Review your residence change')).toBeInTheDocument()
+        expect(screen.getByText(/approved residence is still active/i)).toBeInTheDocument()
+        const link = screen.getByRole('link', { name: 'Review residence change' })
+        expect(link).toHaveAttribute('href', '/profile/accounts-and-payments?open=residence')
         expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
     })
 })

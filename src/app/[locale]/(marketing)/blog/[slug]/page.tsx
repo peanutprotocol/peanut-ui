@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
-import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
+import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { availableContentLocales, contentLocaleFor } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
@@ -97,11 +96,6 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]
 
-    const localizedHrefs = Object.fromEntries(SUPPORTED_LOCALES.map((l) => [l, `/${l}/blog/${slug}`])) as Record<
-        Locale,
-        string
-    >
-
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -118,35 +112,23 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={blogPostSchema} />
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
-            <MarketingShell className="max-w-2xl">
-                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
-                <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
-                    <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
-                        {breadcrumbs.map((crumb, i) => (
-                            <li key={crumb.href} className="flex items-center gap-1">
-                                {i > 0 && <span aria-hidden>/</span>}
-                                {i < breadcrumbs.length - 1 ? (
-                                    <Link
-                                        href={crumb.href}
-                                        className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
-                                    >
-                                        {crumb.name}
-                                    </Link>
-                                ) : (
-                                    <span className="max-w-[200px] truncate font-medium text-n-1">{crumb.name}</span>
-                                )}
-                            </li>
-                        ))}
-                    </ol>
-                </nav>
-                <header className="mb-8 border-b border-n-1 pb-6">
-                    <h1 className="text-3xl font-bold md:text-4xl">{post.frontmatter.title}</h1>
-                    <p className="mt-2 text-gray-600">{post.frontmatter.description}</p>
-                    <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
+            {/* No width prop: MarketingShell never merged its className, so blog has
+                always rendered at the shell's own width. Passing max-w-2xl now that
+                the merge works would silently narrow every post. */}
+            <MarketingShell>
+                <header className="mb-8 border-b border-border-default pb-6">
+                    <h1 className="text-heading-m md:text-heading-l">{post.frontmatter.title}</h1>
+                    <p className="mt-2 text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
+                    <time className="mt-3 block text-body-s text-foreground-secondary">{post.frontmatter.date}</time>
                 </header>
-                <article className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none">
-                    {post.content}
-                </article>
+                {/* No `prose` wrapper: the body is compiled through createMdxComponents
+                    like every other content route, and the element map already carries
+                    the type tokens. The plugin classes only layered a second, divergent
+                    set on top. */}
+                <article>{post.content}</article>
+                {/* Foot of the page, not the top: the header already gives the way
+                    back — same placement as every ContentPage route. */}
+                <Breadcrumb items={breadcrumbs} className="pt-8" />
             </MarketingShell>
         </>
     )

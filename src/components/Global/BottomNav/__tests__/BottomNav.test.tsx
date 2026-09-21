@@ -3,6 +3,8 @@ import { BottomNav } from '../index'
 
 const mockPush = jest.fn()
 let mockPathname = '/home'
+let mockSupportOpen = false
+const mockSetSupportOpen = jest.fn()
 
 jest.mock('next/navigation', () => ({
     usePathname: () => mockPathname,
@@ -16,21 +18,21 @@ jest.mock('@/hooks/useSupportUnread', () => ({ useSupportUnread: () => false }))
 jest.mock('@/hooks/useForegroundPushRefresh', () => ({ useForegroundPushRefresh: () => {} }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
-        isSupportModalOpen: false,
-        setIsSupportModalOpen: jest.fn(),
+        isSupportModalOpen: mockSupportOpen,
+        setIsSupportModalOpen: mockSetSupportOpen,
         setIsQRScannerOpen: jest.fn(),
     }),
 }))
 
 let mockShowCardSurface = true
-let mockCardHref: '/card' | '/shhhhh' = '/card'
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
-    useCardSurfaceAccess: () => ({
+    // typed to the real contract so a hook change breaks this suite loudly
+    useCardSurfaceAccess: (): ReturnType<typeof import('@/hooks/useCardSurfaceAccess').useCardSurfaceAccess> => ({
         hasIssuedCard: mockShowCardSurface,
         hasCardRelationship: mockShowCardSurface,
-        hasCardAccess: mockShowCardSurface,
         showCardSurface: mockShowCardSurface,
-        cardHref: mockCardHref,
+        canSpendPathViaCard: mockShowCardSurface,
+        cardHref: '/card',
     }),
 }))
 
@@ -48,7 +50,6 @@ describe('BottomNav pill release', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
@@ -107,6 +108,14 @@ describe('BottomNav pill release', () => {
         expect(icon.className).not.toContain('scale-[0.82]')
     })
 
+    it('no nav control carries the button press translate', () => {
+        // the bar and the QR circle carry shadow-4 for depth, but they are not
+        // Buttons: their press feedback is the squash above. A shadowed Button
+        // would drop 4px into its shadow, which reads as the whole nav moving.
+        const { container } = render(<BottomNav />)
+        expect(container.querySelector('[class*="active:translate"]')).toBeNull()
+    })
+
     it('leaving the tab routes clears the pill', () => {
         const { rerender } = render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
@@ -118,10 +127,9 @@ describe('BottomNav pill release', () => {
 })
 
 /*
- * The middle slot is the card tab only while the card is attainable. Gating it
- * on `hasCardAccess` shipped a card tab to waitlist-released users resident in
- * Rain-prohibited countries, whose only destination is /card's geo-blocked
- * screen; they get the exchange-rates page in that slot instead.
+ * The middle slot is the card tab only while the card is attainable — a user
+ * whose residence prohibits the card gets the exchange-rates page in that
+ * slot instead. Applications are public, so the tab always links /card.
  */
 const stubRect = (el: HTMLElement, left: number) => {
     el.getBoundingClientRect = () => ({ left, width: 68, right: left + 68, top: 0, bottom: 52, height: 52 }) as DOMRect
@@ -143,25 +151,13 @@ describe('BottomNav middle slot', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
-    it('links the middle tab to /card for a user past the waitlist gate', () => {
+    it('links the middle tab to /card', () => {
         render(<BottomNav />)
         expect(screen.getByLabelText('card')).toHaveAttribute('href', '/card')
         expect(screen.queryByLabelText('exchangeRates')).not.toBeInTheDocument()
-    })
-
-    /*
-     * /card notFound()s a user with no flowEarlyAccess stamp, so the tab sends
-     * everyone short of the gate to the /shhhhh door instead — the same rule
-     * the profile menu row follows.
-     */
-    it('links the middle tab to /shhhhh for an eligible user not past the gate', () => {
-        mockCardHref = '/shhhhh'
-        render(<BottomNav />)
-        expect(screen.getByLabelText('card')).toHaveAttribute('href', '/shhhhh')
     })
 
     it('swaps the middle tab to exchange rates when the card is not available', () => {
@@ -201,5 +197,63 @@ describe('BottomNav middle slot', () => {
         fireEvent(pill, pointer('pointerup', 160))
 
         expect(mockPush).toHaveBeenCalledWith('/profile/exchange-rate')
+    })
+})
+
+describe('BottomNav support selection and container response', () => {
+    beforeEach(() => {
+        mockPathname = '/home'
+        mockShowCardSurface = true
+        mockSupportOpen = false
+        mockSetSupportOpen.mockReset()
+        jest.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) {
+            return this.getAttribute('aria-label') === 'support'
+                ? 300
+                : this.getAttribute('aria-label') === 'card'
+                  ? 150
+                  : 0
+        })
+        jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(68)
+    })
+
+    afterEach(() => {
+        mockSupportOpen = false
+        jest.restoreAllMocks()
+    })
+
+    it('selects support while open and restores the underlying route when closed', () => {
+        mockPathname = '/card'
+        const { rerender } = render(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill').style.transform).toBe('translateX(149px)')
+        fireEvent.click(screen.getByRole('button', { name: 'support' }))
+        expect(mockSetSupportOpen).toHaveBeenCalledWith(true)
+
+        mockSupportOpen = true
+        rerender(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill').style.transform).toBe('translateX(299px)')
+        expect(screen.getByRole('button', { name: 'support' })).toHaveAttribute('aria-expanded', 'true')
+
+        mockSupportOpen = false
+        rerender(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill').style.transform).toBe('translateX(149px)')
+    })
+
+    it('removes the support selection when closing above a route without a tab', () => {
+        mockPathname = '/send'
+        mockSupportOpen = true
+        const { rerender } = render(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
+        mockSupportOpen = false
+        rerender(<BottomNav />)
+        expect(screen.queryByTestId('bottom-nav-pill')).not.toBeInTheDocument()
+    })
+
+    it('the bar itself never squashes on press — feedback is the icon pop only', () => {
+        render(<BottomNav />)
+        const pill = screen.getByTestId('bottom-nav-pill')
+        const bar = pill.parentElement!
+        fireEvent.pointerDown(pill, { pointerId: 1, clientX: 10 })
+        expect(bar.className).not.toMatch(/scale-/)
+        expect(bar.getAttribute('style') ?? '').not.toContain('transform-origin')
     })
 })

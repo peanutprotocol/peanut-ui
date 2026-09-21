@@ -15,12 +15,13 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
@@ -28,19 +29,18 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useAuth } from '@/context/authContext'
-import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
+import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
 import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
-import { PeanutCheering } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -48,11 +48,14 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
     username?: string
     fullName?: string
+    /** Their picked profile avatar (TASK-22625); null means the letter fallback. */
+    avatarKey?: string | null
 }
 
 type DirectSuccessViewProps = {
@@ -80,7 +83,7 @@ type DirectSuccessViewProps = {
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
-    chargeDetails?: TRequestChargeResponse | ChargeEntry | null
+    chargeDetails?: TRequestChargeResponse | null
     paymentDetails?: PaymentCreationResponse | null
     parsedPaymentData?: ParsedURL | null
     usdAmount?: string
@@ -164,11 +167,15 @@ const PaymentSuccessView = ({
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            // the drawer selection is `?tx=<id>` in the url — fall back to the
-            // charge uuid so the receipt stays openable when the hash is absent
-            id: paymentDetails?.payerTransactionHash ?? chargeDetails.uuid,
+            // The receipt page and its PDF twin resolve a charge through
+            // GET /history/:id, which matches `transaction_intents.id` (the
+            // charge uuid) AND the intent kind. A tx hash, or the wrong kind,
+            // 404s ("receipt PDF unavailable"). This id is also the `?tx=<id>`
+            // drawer-selection key; the on-chain hash still renders from
+            // `txHash` below.
+            id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as StatusPillType,
+            status: 'completed' as IconStatusType,
             amount: parseFloat(amountValue),
             createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             completedAt: new Date(),
@@ -179,7 +186,7 @@ const PaymentSuccessView = ({
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
-                kind: 'DIRECT_TRANSFER',
+                kind: receiptKindForCharge(chargeDetails),
                 link: receiptLink,
             },
             // external-wallet withdrawals have no username/identifier — fall back to
@@ -206,6 +213,12 @@ const PaymentSuccessView = ({
                 amountDisplay: peanutFeeDisplayValue,
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
+            // The recipient we were handed, or the one the charge names. A
+            // handed-in recipient is authoritative: their explicit null means
+            // "no pick", not "look somewhere else".
+            avatarKey: user
+                ? (user.avatarKey ?? null)
+                : (chargeDetails.requestLink?.recipientAccount?.user?.avatarKey ?? null),
         }
 
         return details as TransactionDetails
@@ -292,21 +305,16 @@ const PaymentSuccessView = ({
     useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
-                </div>
+                <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
-            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
-                <Image
-                    src={PeanutCheering.src}
-                    unoptimized
+            <PageStack.Center className="relative z-10 gap-4">
+                <PeanutMascot
+                    pose="cheering"
                     alt="Peanut Mascot"
-                    width={20}
-                    height={20}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
@@ -314,14 +322,18 @@ const PaymentSuccessView = ({
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-body-s font-normal text-foreground-secondary">
+                        <h1 className="text-body-s text-foreground-secondary">
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
+                                    // inline: keeps the tap-to-pay-again navigation (open problem
+                                    // cant-tap-name-to-open-profile) without LinkButton's 44px
+                                    // hit area bleeding into the amount line below
                                     <AddressLink
-                                        className="text-body-s font-normal text-foreground-secondary no-underline"
+                                        inline
+                                        className="text-body-s text-foreground-secondary no-underline"
                                         address={recipientName}
                                     />
                                 ) : (
@@ -339,7 +351,7 @@ const PaymentSuccessView = ({
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
-                <div className="space-y-4 w-full">
+                <div className="flex w-full flex-col gap-4">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}
@@ -349,7 +361,7 @@ const PaymentSuccessView = ({
                     )}
                     {!isExternalWalletFlow && receiptTransaction && (
                         <Button
-                            variant="primary-soft"
+                            variant="stroke"
                             shadowSize="4"
                             onClick={() => {
                                 if (receiptTransaction) {
@@ -361,7 +373,7 @@ const PaymentSuccessView = ({
                         </Button>
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
@@ -369,7 +381,7 @@ const PaymentSuccessView = ({
                 onClose={closeTransactionDetails}
                 transaction={receiptTransaction}
             />
-        </div>
+        </PageStack>
     )
 }
 export default PaymentSuccessView

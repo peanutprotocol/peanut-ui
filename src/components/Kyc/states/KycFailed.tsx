@@ -68,7 +68,7 @@ export const KycFailed = ({
         <div className="space-y-4">
             <KYCStatusDrawerItem status="failed" />
 
-            <Card position="single" className="py-0">
+            <Card position="solo" className="py-0">
                 <PaymentInfoRow label={t('rejectedOn')} value={rejectedOn} hideBottomBorder={!hasReason} />
                 {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
@@ -76,13 +76,13 @@ export const KycFailed = ({
             <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
 
             {isTerminal ? (
-                <Button variant="purple" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
+                <Button variant="primary" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
                     {tCommon('contactSupport')}
                 </Button>
             ) : (
                 <Button
                     icon="retry"
-                    variant="purple"
+                    variant="primary"
                     className="w-full"
                     shadowSize="4"
                     onClick={() => onRetry()}

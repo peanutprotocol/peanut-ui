@@ -76,6 +76,74 @@ describe('fetchWithSentry — expected-response suppression', () => {
         )
     })
 
+    // A 409 means the code resolves to a campaign only — validateInviteCode
+    // treats it as a success (`typedCampaignOnly`), so it is never a failure.
+    it('does NOT report /invites/validate 409 (campaign-only code is a success here)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'CAMPAIGN_ONLY' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/invites/validate', { method: 'POST', body: '{}' })
+
+        expect(res.status).toBe(409)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    // Deliberately NOT skipped: useGetExchangeRate swallows the failure into a
+    // rate of '1', which bankWithdrawMinUsd turns into a wrong withdrawal
+    // minimum. This 429 is the alert for that, and for the FX stampede behind
+    // it. Do not add a skip rule without fixing the fallback first.
+    it.each([429, 500])('still reports /bridge/exchange-rate %i', async (status) => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(status, { error: 'RATE_LIMITED' }))
+
+        await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
+    // A stale session is the normal way this endpoint 401s — the UI just shows
+    // no perks. Pins the "Expected stale-session 401 on /perks/pending" row.
+    it('does NOT report /perks/pending 401 (stale session)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(401, { error: 'Unauthorized' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/perks/pending')
+
+        expect(res.status).toBe(401)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports /manteca/qr-payment/init 500 (a real payment failure)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/manteca/qr-payment/init failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
+    it('does not report an expected exact-username quota response', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(mockResponse(429, { error: 'Too many username checks', retryAfterSeconds: 60 }))
+
+        const response = await fetchWithSentry('https://api.peanut.me/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'alice' }),
+        })
+
+        expect(response.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports unrelated /users rate limits', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        await fetchWithSentry('https://api.peanut.me/users/interaction-status', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('does not report an unknown public FX pair, but still returns the 404', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'FX_RATE_UNAVAILABLE' }))
 
@@ -184,6 +252,38 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
         expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('timed out — retrying'))
         infoSpy.mockRestore()
+    })
+
+    // A name with no address record 404s, `resolveEns` handles it and the UI
+    // says so inline. The name is a path segment, so reporting it opened one
+    // issue per typed value, each carrying the raw input.
+    it('does NOT report /ens/{name} 404 (unresolved name is expected)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report /ens/{name} 404 when a chainId is forwarded', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth?chainId=42161', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports an /ens 500 and fingerprints it without the name', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'upstream down' }))
+        const setFingerprint = jest.fn()
+        ;(Sentry.withScope as jest.Mock).mockImplementationOnce((cb: (scope: unknown) => void) =>
+            cb({ setFingerprint, setTag: jest.fn() })
+        )
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalled()
+        expect(setFingerprint).toHaveBeenCalledWith(['GET', 'https://api.peanut.me/ens/{value}', '500'])
     })
 
     it('still reports 400s from endpoints without a skip rule', async () => {
@@ -640,5 +740,15 @@ describe('sensitive QR lookup telemetry', () => {
         expect(global.fetch).toHaveBeenCalledTimes(2)
         expect(Sentry.captureException).toHaveBeenCalled()
         assertPrivate()
+    })
+})
+
+describe('the verified address never reaches Sentry', () => {
+    it('is redacted wholesale, request and response alike', () => {
+        const body = JSON.stringify({ streetLine1: '9 Sample Road', city: 'Sampleton', postalCode: '99999' })
+        expect(sanitizeRequestBody('/users/me/verified-address', body)).toBe('[REDACTED: sensitive endpoint]')
+        expect(sanitizeResponseBody('/users/me/verified-address', JSON.parse(body))).toBe(
+            '[REDACTED: sensitive endpoint]'
+        )
     })
 })

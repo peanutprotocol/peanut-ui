@@ -19,16 +19,16 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
     const { setIsSupportModalOpen } = useModalsContext()
     return (
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
-            <Card className="flex w-full flex-col items-center gap-2 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
+            <Card className="flex w-full flex-col items-center gap-2 p-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background-icon-bubble-yellow p-3">
                     <Icon name="alert" size={24} />
                 </div>
                 <span className="text-heading-card">{t('mantecaMaintenance.title')}</span>
-                <p className="text-center font-normal text-foreground-secondary">
+                <p className="font-normal text-foreground-secondary">
                     {t('mantecaMaintenance.description', { action })}
                 </p>
             </Card>
-            <Button onClick={() => router.push('/home')} variant="purple" shadowSize="4">
+            <Button onClick={() => router.push('/home')} variant="primary" shadowSize="4">
                 {t('mantecaMaintenance.goBack')}
             </Button>
             <button

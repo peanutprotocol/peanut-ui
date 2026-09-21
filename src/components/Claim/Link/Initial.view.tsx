@@ -3,7 +3,7 @@
 import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -123,31 +123,28 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
+        <PageStack className="justify-between md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
-                <div>
-                    <NavHeader
-                        title={t('receive')}
-                        onPrev={() => {
-                            if (claimToExternalWallet) {
-                                setClaimToExternalWallet(false)
-                            } else {
-                                router.push('/home')
-                            }
-                        }}
-                    />
-                </div>
+                <NavHeader
+                    title={t('receive')}
+                    onPrev={() => {
+                        if (claimToExternalWallet) {
+                            setClaimToExternalWallet(false)
+                        } else {
+                            router.push('/home')
+                        }
+                    }}
+                />
             ) : (
-                <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
-                </div>
+                <NavHeader title={t('receive')} hideBackBtn />
             )}
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
-                    avatarSize="small"
+                    avatarSize="m"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
+                    avatarKey={claimLinkData.sender?.avatarKey}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
@@ -159,7 +156,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
-                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                {errorState.showError && <Callout priority="error">{errorState.errorMessage}</Callout>}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
@@ -204,7 +201,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -243,6 +239,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 }
                 inviterUsername={claimLinkData?.sender?.username}
             />
-        </div>
+        </PageStack>
     )
 }

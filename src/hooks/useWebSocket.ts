@@ -173,6 +173,15 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // flight when the ping arrives started pre-commit and may lack
                 // the new row — joining it would clear the invalidation with
                 // stale data. Abort-restart guarantees a post-event response.
+                //
+                // The snapshots go with it. They are overlaid on top of the
+                // fetched rows, so an entry the refetch DROPS — a watcher-first
+                // deposit that adoption later cancels — would keep rendering
+                // from the snapshot after REST correctly stopped returning it.
+                // The ping is the authoritative "ask again" signal, so the
+                // answer it produces wins; anything REST still returns comes
+                // straight back with it.
+                setHistoryEntries([])
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 queryClient.invalidateQueries({ queryKey: ['balance'] })
                 return

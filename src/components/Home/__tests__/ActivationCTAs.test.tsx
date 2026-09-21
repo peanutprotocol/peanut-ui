@@ -37,6 +37,19 @@ let mockRails: Array<{
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
+let mockDisableCardPromotion = false
+jest.mock('@/config/underMaintenance.config', () => {
+    const actual = jest.requireActual('@/config/underMaintenance.config').default
+    return {
+        __esModule: true,
+        default: {
+            ...actual,
+            get disableCardPromotion() {
+                return mockDisableCardPromotion
+            },
+        },
+    }
+})
 const mockHeal = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockOpenSupport = jest.fn()
@@ -89,32 +102,13 @@ jest.mock('@/context/ModalsContext', () => ({
         openSupportWithMessage: mockOpenSupport,
     }),
 }))
-jest.mock('@/hooks/useCardInfo', () => ({
-    useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
-}))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: (props: { visible: boolean; title?: string; ctas?: { text: string; onClick: () => void }[] }) =>
-        props.visible ? (
-            <div data-testid="spend-chooser">
-                <p>{props.title}</p>
-                {props.ctas?.map((c) => (
-                    <button key={c.text} onClick={c.onClick}>
-                        {c.text}
-                    </button>
-                ))}
-            </div>
-        ) : null,
+jest.mock('@/hooks/useCardSurfaceAccess', () => ({
+    useCardSurfaceAccess: () => ({ showCardSurface: mockHasCardAccess, canSpendPathViaCard: mockHasCardAccess }),
 }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
-    __esModule: true,
-
-    default: () => null,
-}))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
@@ -168,6 +162,7 @@ beforeEach(() => {
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
+    mockDisableCardPromotion = false
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
 })
@@ -256,8 +251,47 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         mockRails = [bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)
         fireEvent.click(screen.getByText('Upload document'))
-        expect(mockHeal).toHaveBeenCalledWith({ provider: 'BRIDGE', actionKey: null })
+        expect(mockHeal).toHaveBeenCalledWith({ provider: 'BRIDGE', actionKey: null, reasonCode: null })
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('a BRIDGE residence park hands the reason code over, or the heal cannot route it', () => {
+        // The heal sends a residence park to start-action and everything else to
+        // resubmit, and the code is the only thing that distinguishes them. Without
+        // it this CTA falls through to /kyc/resubmit, which 404s for a rail the
+        // residence gate parked before Bridge ever saw the user — so the hook-level
+        // test can pass while every real button still errors (TASK-22286).
+        mockRails = [
+            {
+                id: 'bridge.sepa_eu',
+                provider: 'bridge',
+                channel: 'bank',
+                status: 'requires-info',
+                reason: { userMessage: 'We still need your home address to finish setting up bank transfers.' },
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'residence_unresolved',
+                        userMessage: 'We still need your home address to finish setting up bank transfers.',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: {
+                        key: 'sumsub:address_of_residence',
+                        kind: 'sumsub',
+                        purpose: 'bridge-rfi',
+                        levelKey: 'address_of_residence',
+                    },
+                },
+            },
+        ]
+        render(<ActivationCTAs activationStep="deposit" />)
+        fireEvent.click(screen.getByText('Upload document'))
+        expect(mockHeal).toHaveBeenCalledWith({
+            provider: 'BRIDGE',
+            actionKey: 'sumsub:address_of_residence',
+            reasonCode: 'residence_unresolved',
+        })
     })
 
     it('Manteca RFI (sumsub nextAction on the verdict) hands the action key to the heal, not the generic resubmit', () => {
@@ -287,7 +321,11 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         ]
         render(<ActivationCTAs activationStep="deposit" />)
         fireEvent.click(screen.getByText('Upload document'))
-        expect(mockHeal).toHaveBeenCalledWith({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        expect(mockHeal).toHaveBeenCalledWith({
+            provider: 'MANTECA',
+            actionKey: 'sumsub:source_of_funds',
+            reasonCode: 'source_of_funds',
+        })
     })
 })
 
@@ -367,7 +405,26 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         mockRails = [enabledQrRail]
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
-        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('the card-promotion kill switch mutes every card arm but keeps the QR path', () => {
+        mockDisableCardPromotion = true
+        mockHasCardAccess = true
+        mockRails = [enabledQrRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.queryByText('Spend anywhere Visa is accepted')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    it('the kill switch renders nothing for a card-only user — no dead card tease', () => {
+        mockDisableCardPromotion = true
+        mockHasCardAccess = true
+        mockRails = []
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
     })
 
     it('outbound with neither a card nor a QR rail renders nothing — no spend would clear it', () => {

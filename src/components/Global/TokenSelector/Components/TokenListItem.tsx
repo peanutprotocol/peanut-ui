@@ -31,7 +31,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     balance,
     onClick,
     isSelected,
-    position = 'single',
+    position = 'solo',
     className,
     isPopularToken = false,
     isEnabled = true,
@@ -60,17 +60,18 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
         <div
             className={twMerge(
                 'cursor-pointer rounded-sm shadow-sm',
-                isSelected && 'bg-purple-200',
+                isSelected && 'bg-action-primary/10',
                 !isEnabled && 'cursor-not-allowed opacity-70',
                 className
             )}
-            onClick={isEnabled ? onClick : undefined}
         >
             <Card
                 position={position}
+                onClick={isEnabled ? onClick : undefined}
+                aria-disabled={!isEnabled || undefined}
                 className={twMerge(
-                    '!overflow-visible border border-border-default p-4 shadow-4',
-                    isSelected ? 'bg-purple-200' : 'bg-background-default',
+                    '!overflow-visible border border-border-default p-4 shadow-4 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                    isSelected ? 'bg-action-primary/10' : 'bg-background-default',
                     !isEnabled && 'bg-background-disabled'
                 )}
                 border={true}
@@ -79,7 +80,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                     <div className="space-x-3 flex items-center">
                         <div className="relative flex-shrink-0">
                             {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
-                                <AvatarWithBadge name={balance.symbol} size="extra-small" />
+                                <AvatarWithBadge name={balance.symbol} size="s" />
                             ) : (
                                 <Image
                                     src={balance.logoURI}

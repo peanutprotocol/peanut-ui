@@ -1,7 +1,8 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
-import { PROSE_WIDTH, CARD_HOVER } from './constants'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { PROSE_WIDTH, CARD_HOVER } from '../constants'
 import { getTranslations } from '@/i18n'
 import { resolveContentHref } from '@/lib/content'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -54,13 +55,13 @@ export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: Relat
 
     return (
         <nav className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
-            <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{heading}</h2>
+            <h2 className="mb-4 text-heading-xs text-foreground-primary md:text-heading-s">{heading}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
                     <Link key={link.href} href={resolveContentHref(link.href, locale)} className="flex">
                         <Card shadowSize="4" className={`flex-1 flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
-                            <span className="font-semibold">{link.text}</span>
-                            <span className="ml-auto text-sm text-black/50">&rarr;</span>
+                            <span className="text-body-m-semibold">{link.text}</span>
+                            <Icon name="chevron-right" size={20} className="ml-auto shrink-0" />
                         </Card>
                     </Link>
                 ))}

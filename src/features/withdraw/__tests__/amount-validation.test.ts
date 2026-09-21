@@ -1,5 +1,13 @@
 import { parseUnits } from 'viem'
+import { type Account, AccountType } from '@/interfaces/interfaces'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from '../amount-validation'
+
+const savedAccountWithoutCountry = (type: AccountType): Account =>
+    ({
+        type,
+        details: { countryCode: '', countryName: '' },
+    }) as Account
 
 // The bank-offramp amount arrives via a user-editable URL param — the submit
 // handler revalidates it synchronously (Chip review, PR #2917).
@@ -35,6 +43,20 @@ describe('validateBankOfframpAmount', () => {
         expect(validateBankOfframpAmount('5', undefined)).toEqual({ ok: false, reason: 'balanceLoading' })
     })
 
+    // The provider is promised this exact figure and matches the deposit on
+    // it, while the chain can only carry 6 decimals: viem rounds rather than
+    // throwing, so a longer fraction sent LESS than the provider was told and
+    // the transfer sat awaiting funds with the money already gone.
+    it('rejects a fraction the chain cannot carry', () => {
+        for (const raw of ['5.1234564', '5.12345649', '1.0000001']) {
+            expect(validateBankOfframpAmount(raw, balance)).toEqual({ ok: false, reason: 'invalid' })
+        }
+    })
+
+    it('accepts a fraction of exactly six decimals', () => {
+        expect(validateBankOfframpAmount('5.123456', balance)).toEqual({ ok: true, normalized: '5.123456' })
+    })
+
     it('accepts and normalizes valid amounts — the wire never sees the raw param', () => {
         expect(validateBankOfframpAmount('50', balance)).toEqual({ ok: true, normalized: '50' })
         expect(validateBankOfframpAmount('050.10', balance)).toEqual({ ok: true, normalized: '50.1' })
@@ -64,6 +86,18 @@ describe('bankWithdrawMinUsd', () => {
     it('MX: 50 MXN converts through the sell rate, rounded up', () => {
         expect(bankWithdrawMinUsd('MX', '17')).toBe(3) // ceil(50 / 17)
         expect(bankWithdrawMinNeedsRate('MX')).toBe(true)
+    })
+
+    it.each([
+        [AccountType.GB, '0.79', 4],
+        [AccountType.CLABE, '17', 3],
+    ])('uses the %s rail minimum for a saved account with blank country metadata', (type, rate, minimum) => {
+        const countryIso2 = getCountryFromAccount(savedAccountWithoutCountry(type))?.iso2
+
+        expect(countryIso2).toBeDefined()
+        if (!countryIso2) throw new Error(`No country resolved for ${type}`)
+        expect(bankWithdrawMinUsd(countryIso2, rate)).toBe(minimum)
+        expect(bankWithdrawMinNeedsRate(countryIso2)).toBe(true)
     })
 
     it('falls back to the $1 Bridge floor while the rate loads — callers gate on bankWithdrawMinNeedsRate', () => {

@@ -1,6 +1,5 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -19,14 +18,6 @@ import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
-import { getSkipCelebrationSeen, SKIP_CELEBRATION_SEEN_KEY } from './utils'
-
-// Eligibility-check screen lifetime per Hugo's spec: gate fires every
-// /card mount UNTIL the user has an issued card. Persisting across mount
-// would skip the moment on revisit — wrong. Within a single mount, once
-// the user releases the hold, the in-React state below stays true so
-// they don't re-see the gate after celebration / add-card transitions.
-
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -39,8 +30,8 @@ export function useCardFlow() {
 
     const {
         data: cardInfo,
-        isLoading: pioneerLoading,
-        error: pioneerError,
+        isLoading: cardInfoLoading,
+        error: cardInfoError,
         refetch: refetchCardInfo,
     } = useQuery<CardInfoResponse>({
         queryKey: ['card-info', userId],
@@ -76,63 +67,16 @@ export function useCardFlow() {
     // time). Per-mount — the cardInfo refetch it triggers makes the state
     // machine's geoProhibited path own the block durably.
     const [geoBlocked, setGeoBlocked] = useState(false)
-
-    // Track whether the user has acknowledged the skip-badge celebration.
-    // localStorage on purpose (per-device, replayable via the eligibility
-    // re-hold below) — the celebration is a moment, not durable state.
-    const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
-
-    // Press-and-hold "see if you qualify" gate. Resets per mount: as long
-    // as the user has not been issued a card, every fresh /card visit
-    // re-shows the gate. Within the same mount, this stays true after they
-    // release the hold so they don't get pulled back from celebration /
-    // add-card. State machine ALSO skips the gate when an issued card
-    // exists (see cardState.utils.ts — active-card wins first).
-    const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
-
-    // The old `?press_door=1` auto-stamp was removed alongside the /shhhhh
-    // door rework: the bare door joins the waitlist and grants nothing, so a
-    // shareable URL that silently stamps flowEarlyAccess would have been the
-    // exact bypass the rework forbids. BE now also reports flowEarlyAccess
-    // true whenever hasCardAccess is (inner gate implies outer).
-
-    // Outer gate: pre-public-launch, the card campaign isn't fully online
-    // yet. Users without flow early access get a 404 — the page behaves as
-    // if it doesn't exist. The only ways in are (a) already holding a card
-    // / being mid-application, or (b) holding card access (skip badge /
-    // admin grant — BE reports flowEarlyAccess true whenever hasCardAccess
-    // is). Everyone else belongs on /shhhhh, which joins the waitlist
-    // inline and never routes here.
-    //
-    // IMPORTANT: skip the 404 if the user already has a non-canceled card.
-    // Legacy Pioneers + admin-granted users issued cards before /shhhhh
-    // existed and have no flowEarlyAccess stamp — they must still reach
-    // YourCardScreen. The computeCardState() precedence below mirrors this
-    // rule (active-card before no-flow-access).
-    //
-    // notFound() thrown synchronously inside the effect bubbles to Next's
-    // not-found boundary just like a render-time call.
-    useEffect(() => {
-        if (pioneerLoading || pioneerError) return
-        if (!cardInfo) return
-        if (cardInfo.flowEarlyAccess) return
-        // CR FE#1: wait for overview before checking issued cards — otherwise
-        // legacy card-holders (overview still loading) get incorrectly 404'd
-        // because `overview?.cards.some(...)` returns false on undefined input.
-        if (overviewLoading || !overview) return
-        const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
-        if (hasIssuedCard) return
-        posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
-        notFound()
-    }, [pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
+    // Unlike geoBlocked, this is not a terminal issuer denial: the approved
+    // KYC residence is eligible and only an open residence-change request is
+    // restricting issuance. The recovery screen links to that exact request.
+    const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
 
     const state = computeCardState({
         overview,
         cardInfo,
         overviewLoading,
-        cardInfoLoading: pioneerLoading,
-        skipCelebrationSeen,
-        eligibilityCheckDone,
+        cardInfoLoading: cardInfoLoading,
     })
 
     // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
@@ -149,7 +93,7 @@ export function useCardFlow() {
     }, [state])
 
     // Write-only URL mirror for the computed state. Lets you see at a glance
-    // which screen the user is on (?card_state=eligibility-check, etc.) without
+    // which screen the user is on (?card_state=add-card, etc.) without
     // making the URL the source of truth — manipulating the param has no
     // effect on the rendered screen, the server state still wins. Skips
     // 'loading' to avoid a noisy intermediate value on mount.
@@ -161,39 +105,6 @@ export function useCardFlow() {
         url.searchParams.set('card_state', state)
         window.history.replaceState(window.history.state, '', url.toString())
     }, [state])
-
-    // Re-doing the funnel = re-celebrating. Every time the user lands on
-    // the eligibility-check screen (a fresh /card visit, no card yet
-    // issued, hold not yet completed), clear any stale celebration-seen
-    // flag so the post-hold transition reliably surfaces the celebration.
-    // The flag is set again when the user dismisses celebration via
-    // "Continue to your card", so it still suppresses a re-trigger on
-    // refresh after dismissal — only a fresh hold re-celebrates.
-    useEffect(() => {
-        if (state !== 'eligibility-check') return
-        if (!skipCelebrationSeen) return
-        if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(SKIP_CELEBRATION_SEEN_KEY)
-        }
-        setSkipCelebrationSeen(false)
-    }, [state, skipCelebrationSeen])
-
-    // Refetch the user profile when entering the celebration so the share
-    // asset reflects the user's CURRENT badge collection. Without this,
-    // badges granted (e.g. via auto-award webhooks or admin cheats) after
-    // the auth context's initial /get-user don't appear on the asset —
-    // user.user.badges stays cached as the login-time snapshot. Fires
-    // once per state entry (ref-guarded) so we don't spam the BE.
-    const celebrationFetchedUserRef = useRef(false)
-    useEffect(() => {
-        if (state !== 'waitlist-skip-celebration') {
-            celebrationFetchedUserRef.current = false
-            return
-        }
-        if (celebrationFetchedUserRef.current) return
-        celebrationFetchedUserRef.current = true
-        void fetchUser()
-    }, [state, fetchUser])
 
     const invalidateOverview = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
@@ -305,17 +216,49 @@ export function useCardFlow() {
             if (res.status === 'geo-blocked') {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
+                setPendingResidenceBlocked(false)
                 setGeoBlocked(true)
                 void refetchCardInfo()
+                return
+            }
+            if (res.status === 'pending-residence-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(false)
+                setPendingResidenceBlocked(true)
                 return
             }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
+            // 'pending' promises a card. If the follow-up card-create fails
+            // (e.g. Rain 400 on virtualCardArt during the inline auto-issue)
+            // the backend still answers 'pending', the rail lands ENABLED with
+            // no card, and the state machine routes back to add-card — which
+            // read as a silent reset. Remember the promise so that landing
+            // surfaces a retryable error instead (effect below).
+            if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
         [invalidateOverview, refetchCardInfo]
     )
+
+    // Card-create-after-apply failure detector (see advanceFromApplyResponse).
+    // Waits for the refetched overview to reflect the application, then: back
+    // on the entry screen means the promised card never got created — show the
+    // same retryable notification the entry screen uses for apply errors.
+    // Stays armed through pending/manual-review: an asynchronous approval can
+    // fail auto-issuance too, landing ENABLED-without-card later in the mount.
+    // Disarms only once a card exists or a terminal state (incl. the surfaced
+    // add-card error) is reached.
+    const awaitingIssuanceRef = useRef(false)
+    useEffect(() => {
+        if (!awaitingIssuanceRef.current) return
+        if (!overview?.status?.hasApplication) return
+        if (state === 'loading' || state === 'pending' || state === 'manual-review') return
+        awaitingIssuanceRef.current = false
+        if (state === 'add-card') setApplyError(t('page.issueFailed'))
+    }, [overview, state, t])
 
     // The user picked their residence country on the confirmation screen.
     // Re-apply with the pick — the backend validates it against its own
@@ -532,27 +475,27 @@ export function useCardFlow() {
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
         } else if (res.status === 'geo-blocked') {
+            setPendingResidenceBlocked(false)
             setGeoBlocked(true)
             void refetchCardInfo()
+        } else if (res.status === 'pending-residence-blocked') {
+            setGeoBlocked(false)
+            setPendingResidenceBlocked(true)
         } else {
             invalidateOverview()
         }
         return ''
     }, [invalidateOverview, refetchCardInfo])
 
-    // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
-    // re-apply to mint a fresh token for the same in-progress applicant and
-    // reopen the SDK — same idempotent call the token-refresh path uses. The
-    // card flow takes no initiate arguments, so the persisted state is empty.
+    // Preserve an interrupted Sumsub session for installed Android PWAs that
+    // remain reachable until the native migration cutoff.
     useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             setSumsubToken(res.sumsubAccessToken)
-            // tagged so a resume doesn't read as a fresh open in the card funnel
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
             return true
         }
-        // user advanced past Sumsub while backgrounded — route normally
         advanceFromApplyResponse(res)
         return false
     })
@@ -562,7 +505,7 @@ export function useCardFlow() {
         user,
         fetchUser,
         cardInfo,
-        pioneerError,
+        cardInfoError,
         refetchCardInfo,
         overview,
         overviewError,
@@ -579,12 +522,10 @@ export function useCardFlow() {
         setPendingCountryConfirmation,
         isIssuing,
         geoBlocked,
+        pendingResidenceBlocked,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
-        // eligibility + celebration
-        setEligibilityCheckDone,
-        setSkipCelebrationSeen,
         invalidateOverview,
         // poa self-heal
         poaToken,

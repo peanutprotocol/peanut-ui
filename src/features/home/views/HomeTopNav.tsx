@@ -1,23 +1,16 @@
 'use client'
 
+import { Button } from '@/components/0_Bruddle/Button'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { twMerge } from '@/utils/tw'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
     showRewards: boolean
 }
-
-// Keep the raw Link on the same recipe as Button. The merge removes Button's
-// base w-full so the navigation control stays a 40px circle like NavHeader's
-// back button instead of expanding to the whole header row.
-const menuButton = twMerge(
-    'btn btn-stroke flex w-full items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none',
-    'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
-)
 
 export function HomeTopNav({ showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
@@ -25,9 +18,16 @@ export function HomeTopNav({ showRewards }: HomeTopNavProps) {
 
     return (
         <div className="flex items-center justify-between">
-            <Link href="/profile" onClick={() => triggerHaptic()} className={menuButton} aria-label={t('openProfile')}>
+            {/* link-mode Button — ONE anchor, no nested interactive (the test
+                asserts this). 40px circle like NavHeader's back button. */}
+            <Button
+                variant="transparent"
+                href="/profile"
+                className={NAV_CIRCLE_BUTTON_CLASSES}
+                aria-label={t('openProfile')}
+            >
                 <Icon name="menu" size={20} />
-            </Link>
+            </Button>
             {showRewards && (
                 <Link
                     href="/rewards"

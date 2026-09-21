@@ -24,10 +24,7 @@ export default function CardPage() {
                 name="Card"
                 importPath={`import { Card } from '@/components/0_Bruddle/Card'`}
                 defaults={{ shadowSize: '4' }}
-                controls={[
-                    { type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] },
-                    { type: 'select', prop: 'color', label: 'color', options: ['primary', 'secondary'] },
-                ]}
+                controls={[{ type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] }]}
                 render={(props) => (
                     <Card {...props} className="w-full max-w-xs p-4">
                         <Card.Header>
@@ -42,7 +39,6 @@ export default function CardPage() {
                 codeTemplate={(props) => {
                     const parts = ['<Card']
                     if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
-                    if (props.color && props.color !== 'primary') parts.push(`color="${props.color}"`)
                     parts.push('className="p-4">')
                     return (
                         parts.join(' ') +
@@ -56,7 +52,6 @@ export default function CardPage() {
             <PropsTable
                 rows={[
                     { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
-                    { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
                     { name: 'className', type: 'string', default: '(none)' },
                 ]}
             />
@@ -127,7 +122,7 @@ export default function CardPage() {
                                     </Card.Description>
                                 </div>
                             </div>
-                            <Button variant="purple" className="w-full">
+                            <Button variant="primary" className="w-full">
                                 Verify now
                             </Button>
                         </Card>
@@ -142,7 +137,7 @@ export default function CardPage() {
                                 </div>
                             </div>
                             <div className="flex w-full flex-col gap-3">
-                                <Button variant="purple" className="w-full">
+                                <Button variant="primary" className="w-full">
                                     Path 1
                                 </Button>
                                 <Button variant="stroke" className="w-full">
@@ -174,7 +169,7 @@ export default function CardPage() {
       <Card.Description>Use bank accounts…</Card.Description>
     </div>
   </div>
-  <Button variant="purple" className="w-full">Verify now</Button>
+  <Button variant="primary" className="w-full">Verify now</Button>
 </Card>`}
                     />
                 </DocSection.Code>

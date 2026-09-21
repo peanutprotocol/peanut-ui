@@ -20,6 +20,7 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
+import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -33,6 +34,7 @@ enum EModalType {
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
+    ARGENTINA_ALIAS = 'ARGENTINA_ALIAS',
 }
 
 interface QrResultModalProps {
@@ -159,7 +161,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
         // to trust, so it is reported as unrecognised instead of offered.
         [EModalType.EXTERNAL_URL]: externalUrl
             ? {
-                  tone: 'warning',
+                  tone: 'attention',
                   title: t('qrScannerOverlay.titleExternalUrl'),
                   description: (
                       <>
@@ -186,6 +188,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             ),
             ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
         },
+        [EModalType.ARGENTINA_ALIAS]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleArgentinaAlias'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.argentinaAliasIntro')}</p>
+                    <p>{t('qrScannerOverlay.argentinaAliasBody')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+        },
     }
 
     return (
@@ -202,6 +215,9 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
 export default function QRScannerOverlay() {
     const t = useTranslations('global')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    // camera-permission recovery is a z-50 sheet inside the scanner; the my-QR
+    // peek floats at z-60 and must clear out while it is up
+    const [isCameraRecoveryOpen, setIsCameraRecoveryOpen] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<EModalType | undefined>(undefined)
@@ -237,7 +253,27 @@ export default function QRScannerOverlay() {
         // mode encodes uppercase only, so that case came from the encoder. Any
         // lowercase letter means the case is the user's, and a mixed-case EIP-55
         // checksum must stay rejectable instead of laundered into a payable address.
-        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
+        // `scanned` is the value `recognized` describes — the raw payload, or that
+        // lowercased retry. A Solana address is paid out verbatim from it, so the
+        // two must never drift apart.
+        //
+        // The retry is only sound for the case-INSENSITIVE formats. For base58 it
+        // launders: an all-uppercase payload that fails raw recognition failed
+        // because it holds a character base58 excludes (`O`), and lowercasing
+        // turns that into a legal one — a different account, which nobody
+        // controls. Recognizing it as Solana was harmless while Solana was
+        // refused; it is a wrong payout address now that it is paid. Tron needs
+        // no such guard: its pattern is anchored on an uppercase `T`, which a
+        // lowercased payload can never match.
+        let scanned = data
+        let recognized = recognizeQr(data)
+        if (!recognized && data === data.toUpperCase()) {
+            const retried = recognizeQr(normalized)
+            if (retried && retried !== EQrType.SOLANA_ADDRESS) {
+                recognized = retried
+                scanned = normalized
+            }
+        }
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
         if (!recognized) {
@@ -325,6 +361,13 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
+            // Before ENS and before the generic URL branch: a typed Argentine
+            // alias is not a name to look up, it is a "scan the merchant QR"
+            // answer. No resolver call is made for one.
+            case EQrType.ARGENTINA_ALIAS: {
+                showModal(EModalType.ARGENTINA_ALIAS)
+                return { success: true }
+            }
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {
@@ -358,10 +401,27 @@ export default function QRScannerOverlay() {
                 showModal(EModalType.PIX_RECURRING)
                 return { success: true }
             }
+            case EQrType.SOLANA_ADDRESS:
+            case EQrType.TRON_ADDRESS: {
+                // Both are supported withdrawal destinations, so the scan goes
+                // into the crypto withdrawal flow with the address verbatim —
+                // case is the address in base58. The address is handed over in
+                // process, never in the URL: see stashScannedDestination. It
+                // refuses the hand-off while the ops kill-switch is on, and the
+                // notify-me path is the truth then. The chain ids are
+                // CHAIN_REGISTRY selector ids — non-EVM
+                // chains have a slug where EVM chains have a numeric chain id.
+                const chainId = recognized === EQrType.SOLANA_ADDRESS ? 'solana' : 'tron'
+                const scanId = stashScannedDestination(scanned, chainId)
+                if (!scanId) {
+                    showModal(EModalType.QR_NOT_SUPPORTED)
+                    return { success: true }
+                }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
+                break
+            }
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.TRON_ADDRESS:
-            case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
                 showModal(EModalType.QR_NOT_SUPPORTED)
                 return { success: true }
@@ -425,15 +485,24 @@ export default function QRScannerOverlay() {
 
             {isQRScannerOpen && (
                 <>
-                    <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
-                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) */}
-                    <QRBottomDrawer
-                        url={payUserUrl}
-                        title={t('qrScannerOverlay.myQrTitle')}
-                        text={t('qrScannerOverlay.myQrText')}
-                        buttonText={t('qrScannerOverlay.myQrButtonText')}
-                        className="z-[60]"
+                    <QRScanner
+                        onScan={processQRCode}
+                        onClose={() => setIsQRScannerOpen(false)}
+                        onPermissionDenied={setIsCameraRecoveryOpen}
+                        isOpen={true}
                     />
+                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) —
+                        which also puts it above the z-50 camera-permission recovery
+                        sheet, so it clears out while that sheet is up */}
+                    {!isCameraRecoveryOpen && (
+                        <QRBottomDrawer
+                            url={payUserUrl}
+                            title={t('qrScannerOverlay.myQrTitle')}
+                            text={t('qrScannerOverlay.myQrText')}
+                            buttonText={t('qrScannerOverlay.myQrButtonText')}
+                            className="z-[60]"
+                        />
+                    )}
                 </>
             )}
         </>

@@ -3,16 +3,16 @@
 import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { IS_PRODUCTION } from '@/constants/general.consts'
 import { logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
 
 /**
- * App-wide announcement surface. The old marquee banners (beta feedback,
+ * App-wide announcement surface. The old marquee banners (feedback,
  * GenericBanner) are gone — announcements now render as an inline
- * Notification (maintenance example: figma 17994:21117). Connectivity moved
+ * Callout (maintenance example: figma 17994:21117). Connectivity moved
  * to the toast surface (ConnectivityToast, ruled 2026-09-03) — this banner
  * now only carries maintenance.
  *
@@ -66,15 +66,15 @@ export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerPr
         // scoped banner mode
         if (variant === 'feature' && !maintenanceConfig.enableFullMaintenance) {
             return (
-                <Notification priority="error" title={t('maintenanceTitle')} className={className}>
+                <Callout priority="error" title={t('maintenanceTitle')} className={className}>
                     {t('maintenanceBody')}
-                </Notification>
+                </Callout>
             )
         }
         return (
-            <Notification priority="error" className={className}>
+            <Callout priority="error" className={className}>
                 {t('maintenanceBanner')}
-            </Notification>
+            </Callout>
         )
     }
 

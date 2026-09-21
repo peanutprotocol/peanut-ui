@@ -1,11 +1,11 @@
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
-import { PeanutCheering } from '@/assets/mascot'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
 
 // An underlined text link is ~20px tall; the `after:` pseudo-element grows the
@@ -28,13 +29,8 @@ type PartialRestriction = 'card' | 'banking'
 const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
 const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
-const BULLET_ROW = 'flex items-start gap-2'
-// h-4 is the Body/XS line box, so the dot centres on the first line (and stays
-// put when the row wraps) without an off-scale margin nudge
-const BULLET_MARKER = 'flex h-4 shrink-0 items-center'
-const BULLET_DOT = 'size-1 rounded-round bg-action-primary'
 
-const ResidenceStep = () => {
+const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
@@ -51,6 +47,7 @@ const ResidenceStep = () => {
     // selector is the natural place to change the answer. Forward entry and
     // deep links (direction 1 / 0) always start on the selector.
     const [view, setView] = useState<ResidenceView>(() => {
+        if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
         if (restrictionSets.full.has(residenceCountry)) return 'restricted'
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
@@ -214,7 +211,7 @@ const ResidenceStep = () => {
 
     // celebration illustration for the "Good news" outcome only — the selector
     // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(view === 'congrats' ? PeanutCheering.src : null)
+    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached
@@ -254,7 +251,7 @@ const ResidenceStep = () => {
            no ID check; the bank rail unlocks with verification. The card IS
            named here as of 2026-09-05 (slava's call, reversing the earlier
            product direction that kept it unnamed in onboarding), and the
-           clause states both of its gates — the ID check and the waitlist.
+           clause describes the identity verification needed to apply.
 
            The clause carries no country framing, which is what Rain's
            §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
@@ -458,30 +455,19 @@ const ResidenceStep = () => {
                                         <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>
-                                        {/* Drawn rather than list-disc: an outside marker hangs
-                                                left of the text column and an inside one re-indents
-                                                wrapped lines, and neither puts the dot on the card
-                                                title's own left edge. */}
-                                        <ul className="space-y-2 text-body-xs text-foreground-secondary">
-                                            {summary.available.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span>{t(`residenceStep.compare.items.${item}`)}</span>
-                                                </li>
-                                            ))}
-                                            {summary.unavailable.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span className="line-through">
+                                        <BulletList
+                                            size="xs"
+                                            items={[
+                                                ...summary.available.map((item) =>
+                                                    t(`residenceStep.compare.items.${item}`)
+                                                ),
+                                                ...summary.unavailable.map((item) => (
+                                                    <span key={item} className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                                )),
+                                            ]}
+                                        />
                                         {/* One verification enrols every rail in the region's
                                                 set, but a rail in another currency only pays out
                                                 into an account on that network — so it is stated
@@ -497,13 +483,13 @@ const ResidenceStep = () => {
                         </div>
                         {/* The title slot is a sentence-case Body/S line; this guidance
                                 labels a block of prose, so it takes the mini-header step. */}
-                        <Notification priority="info" hideIcon>
+                        <Callout priority="info" hideIcon>
                             <MiniHeader className="mb-1 text-inherit">
                                 {t('residenceStep.compare.guideTitle')}
                             </MiniHeader>
                             <p>{t('residenceStep.compare.guideDeclaration')}</p>
                             <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
-                        </Notification>
+                        </Callout>
                     </div>
                 )}
             </div>
@@ -515,7 +501,7 @@ const ResidenceStep = () => {
                         <Button
                             key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'purple' : 'stroke'}
+                            variant={iso2 === residenceCountry ? 'primary' : 'stroke'}
                             onClick={() => onSelectPrimary(iso2)}
                             disabled={isLoading}
                             loading={isLoading}

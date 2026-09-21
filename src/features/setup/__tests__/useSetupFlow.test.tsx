@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
-import { setupSteps } from '@/components/Setup/Setup.consts'
+import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -25,7 +25,7 @@ const wrapperFor = (searchParams: Record<string, string>) =>
     function Wrapper({ children }: { children: ReactNode }) {
         return (
             <NuqsTestingAdapter searchParams={searchParams}>
-                <SetupFlowProvider>{children}</SetupFlowProvider>
+                <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
             </NuqsTestingAdapter>
         )
     }
@@ -40,13 +40,24 @@ const renderFlow = (searchParams: Record<string, string> = {}) =>
         { wrapper: wrapperFor(searchParams) }
     )
 
-const seedSteps = async (result: { current: { context: { setSteps: (s: typeof STEPS) => void } } }) => {
+const seedSteps = async (
+    result: { current: { context: { setSteps: (s: typeof setupSteps) => void } } },
+    steps: typeof setupSteps = STEPS
+) => {
     await act(async () => {
-        result.current.context.setSteps(STEPS)
+        result.current.context.setSteps(steps)
     })
 }
 
 describe('useSetupFlow (URL stepper)', () => {
+    it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
+        const { result } = renderFlow({ screen: 'signup' })
+
+        expect(result.current.context.steps).toEqual([])
+        expect(result.current.flow.currentIndex).toBe(setupScreenIds.indexOf('signup'))
+        expect(result.current.flow.step).toBeUndefined()
+    })
+
     it('reads a named screen id from the URL — never an index', async () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
@@ -132,6 +143,32 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('signup')
     })
 
+    /*
+     * The cursor a clean /setup URL means must be a screen the runtime filter
+     * keeps. It must not move with the filtered list or resolve to a screen
+     * absent from the active flow.
+     */
+    it('the default cursor survives every runtime filter the layout applies', () => {
+        for (const list of [setupSteps, STEPS]) {
+            expect(list.some((s) => s.screenId === SETUP_DEFAULT_SCREEN)).toBe(true)
+        }
+    })
+
+    it('a clean URL resolves to a step the filtered list actually has', async () => {
+        const { result } = renderFlow()
+        await seedSteps(result, STEPS)
+        expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
+        expect(result.current.flow.currentIndex).toBeGreaterThanOrEqual(0)
+    })
+
+    it('a filtered-out screen in the URL resolves to the default, never to no step', async () => {
+        const { result } = renderFlow({ screen: 'welcome' })
+        const filteredSteps = setupSteps.filter((step) => step.screenId !== 'welcome')
+        await seedSteps(result, filteredSteps)
+        expect(result.current.flow.step).toBeDefined()
+        expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
+    })
+
     it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
         const { result } = renderFlow({ screen: 'sign-test-transaction' })
         await seedSteps(result)
@@ -172,7 +209,7 @@ describe('useSetupFlow — history mode per platform', () => {
                         onUrlUpdate={onUrlUpdate}
                         rateLimitFactor={0}
                     >
-                        <SetupFlowProvider>{children}</SetupFlowProvider>
+                        <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
                     </NuqsTestingAdapter>
                 ),
             }

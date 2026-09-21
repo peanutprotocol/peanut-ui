@@ -71,8 +71,8 @@ jest.mock('@/components/0_Bruddle/Card', () => ({
     Card: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
-jest.mock('@/components/0_Bruddle/Notification', () => ({
-    Notification: (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>,
+jest.mock('@/components/0_Bruddle/Callout', () => ({
+    Callout: (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>,
 }))
 jest.mock('@/components/0_Bruddle/LinkButton', () => ({ LinkButton: () => null }))
 jest.mock('@/components/0_Bruddle/BaseSelect', () => ({ __esModule: true, default: () => null }))
@@ -96,7 +96,9 @@ jest.mock('@/components/Global/ValidatedInput', () => ({
 }))
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: () => <div data-testid="amount-input" />,
+    default: ({ walletBalance, balanceFillAmount }: { walletBalance?: string; balanceFillAmount?: number }) => (
+        <div data-testid="amount-input" data-wallet-balance={walletBalance} data-balance-fill={balanceFillAmount} />
+    ),
 }))
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => null }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
@@ -117,7 +119,11 @@ jest.mock('next/image', () => ({
 
 let mockBalance: bigint | undefined = 100n * 10n ** 6n // 100 USDC
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ spendableBalance: mockBalance, formattedSpendableBalance: '$100.00' }),
+    useWallet: () => ({
+        spendableBalance: mockBalance,
+        formattedSpendableBalance: '$100.00',
+        spendableBalanceDecimal: mockBalance === undefined ? undefined : Number(mockBalance) / 1e6,
+    }),
 }))
 
 const mockSignSpend = jest.fn()
@@ -292,23 +298,18 @@ const PRICE_LOCK = { priceLockCode: 'lock-1', fiatAmount: '75000.00' }
 
 const render = (ui: React.ReactElement) => rtlRender(ui)
 
-/**
- * Drive the real flow to the review step: the seed consumes ?amount=50 on the
- * amount step (advancing via the mocked stepper), bank-details submits with
- * the ?destination=-prefilled CBU (locks the price), review renders Confirm.
- */
+/** Destination confirmation precedes amount entry and the price lock. */
 const reachReview = async () => {
     mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
-    mockStepper.step = 'amount'
-    const view = render(<MantecaWithdrawFlow />)
-    // the seed consumed ?amount= and asked to advance
-    await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('bank-details'))
-
     mockStepper.step = 'bank-details'
-    view.rerender(<MantecaWithdrawFlow />)
-    // mark the (?destination=-prefilled) CBU valid, then submit for the price lock
+    const view = render(<MantecaWithdrawFlow />)
     fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
-    fireEvent.click(screen.getByText('withdraw.review'))
+    fireEvent.click(screen.getByText('common.continue'))
+    expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+    expect(mockStepperGoTo).toHaveBeenCalledWith('amount')
+    mockStepper.step = 'amount'
+    view.rerender(<MantecaWithdrawFlow />)
+    fireEvent.click(screen.getByText('common.continue'))
     // the price locked and the flow asked for review
     await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '50.00', currency: 'ARS' }))
     await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('review'))
@@ -391,20 +392,36 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
     })
 
-    it('limits still loading at the price-lock boundary: bank-details submit bounces to amount', async () => {
-        mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
-        mockStepper.step = 'amount'
-        const view = render(<MantecaWithdrawFlow />)
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('bank-details'))
-
+    it('does not lock a price while limits are loading', async () => {
         mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
         mockLimitsValidation.isLoading = true
         view.rerender(<MantecaWithdrawFlow />)
-        mockStepperGoTo.mockClear()
-        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
-        fireEvent.click(screen.getByText('withdraw.review'))
-
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('amount'))
+        expect(screen.getByText('common.continue')).toBeDisabled()
         expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-22452: the amount field is in the local currency while the balance row is
+// in USD, so the fill has to cross the same rate the screen quotes — a raw USD
+// number here would offer ~1/1500th of the balance.
+describe('manteca withdraw — balance fill crosses the quoted rate', () => {
+    it('offers the spendable balance converted at currencyPrice.sell', () => {
+        mockStepper.step = 'amount'
+        render(<MantecaWithdrawFlow />)
+
+        // 100 USDC spendable x 1500 ARS/USD = 150000 ARS
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-balance-fill', '150000')
+    })
+
+    it('offers nothing while the balance is still loading', () => {
+        mockBalance = undefined
+        mockStepper.step = 'amount'
+        render(<MantecaWithdrawFlow />)
+
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-balance-fill')
     })
 })

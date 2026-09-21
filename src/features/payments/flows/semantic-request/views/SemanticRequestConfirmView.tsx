@@ -14,7 +14,8 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
@@ -29,17 +30,11 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } 
 import PeanutActionDetailsCard, {
     type PeanutActionDetailsCardRecipientType,
 } from '@/components/Global/PeanutActionDetailsCard'
-import { useSearchParams, useRouter } from 'next/navigation'
-import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
 
 export function SemanticRequestConfirmView() {
-    const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const searchParams = useSearchParams()
-    const context = searchParams.get('context')
-    const isCardPioneer = context === 'card-pioneer'
     const {
         amount,
         usdAmount,
@@ -145,35 +140,23 @@ export function SemanticRequestConfirmView() {
         }
     }
 
-    // handle back navigation - for card pioneer, go back to card flow instead of INITIAL view
-    // TODO: consider using router.back() for normal request flow too instead of goBackToInitial()
-    // which manipulates internal state. router.back() would be more consistent and handle
-    // browser history properly (e.g., if user came from a shared link vs navigating in-app)
-    const handleBack = () => {
-        if (isCardPioneer) {
-            router.push('/card?step=geo')
-        } else {
-            goBackToInitial()
-        }
-    }
-
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
-            <div className="flex min-h-inherit flex-col items-center justify-center">
+            <PageStack className="items-center justify-center">
                 <Loading variant="mascot" />
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
-            <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
+        <PageStack>
+            <NavHeader onPrev={goBackToInitial} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
+            <PageStack.Center className="gap-4 pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
-                        avatarSize="small"
+                        avatarSize="m"
                         transactionType={'REQUEST_PAYMENT'}
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
@@ -185,16 +168,14 @@ export function SemanticRequestConfirmView() {
                 )}
                 {/* payment details card */}
                 <Card className="rounded-sm">
-                    {!isCardPioneer && (
-                        <PaymentInfoRow
-                            label={t('confirm.minReceived')}
-                            loading={!minReceived || isCalculatingRoute}
-                            value={minReceived ?? '-'}
-                            moreInfoText={t('confirm.slippageInfo')}
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label={t('confirm.minReceived')}
+                        loading={!minReceived || isCalculatingRoute}
+                        value={minReceived ?? '-'}
+                        moreInfoText={t('confirm.slippageInfo')}
+                    />
 
-                    {!isCardPioneer && isCrossChainPayment && (
+                    {isCrossChainPayment && (
                         <PaymentInfoRow
                             label={t('confirm.requested')}
                             value={
@@ -210,21 +191,19 @@ export function SemanticRequestConfirmView() {
                         />
                     )}
 
-                    {!isCardPioneer && (
-                        <PaymentInfoRow
-                            label={isCrossChainPayment ? t('confirm.sending') : t('confirm.tokenAndNetwork')}
-                            value={
-                                <TokenChainInfoDisplay
-                                    tokenIconUrl={sendingTokenIconUrl}
-                                    chainIconUrl={sendingChainIconUrl}
-                                    resolvedTokenSymbol={sendingResolvedTokenSymbol}
-                                    fallbackTokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
-                                    resolvedChainName={sendingResolvedChainName}
-                                    fallbackChainName="Arbitrum"
-                                />
-                            }
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label={isCrossChainPayment ? t('confirm.sending') : t('confirm.tokenAndNetwork')}
+                        value={
+                            <TokenChainInfoDisplay
+                                tokenIconUrl={sendingTokenIconUrl}
+                                chainIconUrl={sendingChainIconUrl}
+                                resolvedTokenSymbol={sendingResolvedTokenSymbol}
+                                fallbackTokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                                resolvedChainName={sendingResolvedChainName}
+                                fallbackChainName="Arbitrum"
+                            />
+                        }
+                    />
 
                     <NetworkFeeRow
                         loading={isCalculatingRoute}
@@ -233,10 +212,9 @@ export function SemanticRequestConfirmView() {
                         isCrossChain={isCrossChainPayment}
                         sponsoredGasUsd={calculatedGasCost}
                         estimationFailed={isFeeEstimationError}
-                        hideBottomBorder={isCardPioneer}
                     />
 
-                    {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />
                 </Card>
 
                 {/* buttons and error */}
@@ -253,12 +231,6 @@ export function SemanticRequestConfirmView() {
                         >
                             {tCommon('retry')}
                         </Button>
-                    ) : isCardPioneer ? (
-                        <SendWithPeanutCta
-                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError}
-                            onClick={handleConfirm}
-                            loading={isLoading || isCalculatingRoute}
-                        />
                     ) : (
                         <Button
                             disabled={isLoading || isCalculatingRoute || isFeeEstimationError}
@@ -273,13 +245,13 @@ export function SemanticRequestConfirmView() {
                         </Button>
                     )}
                     {errorMessage && (
-                        <div className="space-y-2">
-                            <Notification priority="error">{errorMessage}</Notification>
+                        <div className="flex flex-col gap-2">
+                            <Callout priority="error">{errorMessage}</Callout>
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }
 
@@ -324,7 +296,7 @@ function TokenChainInfoDisplay({
                                 altText={`${chainName} chain`}
                                 fallbackName={chainName.charAt(0) || 'C'}
                                 sizeClass="h-3.5 w-3.5"
-                                className="rounded-full border-2 border-white dark:border-gray-100"
+                                className="rounded-full border-2 border-background-default"
                             />
                         </div>
                     )}

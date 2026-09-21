@@ -12,7 +12,12 @@
  * enum (`WALLET_EXTERNAL`), which never reaches the FE. Each case below fails
  * on the pre-fix code (where `'address'` fell through to `formatIban`).
  */
-import { getAccountCopyValue, bankAccountLabelKey } from '../transaction-details.utils'
+import {
+    getAccountCopyValue,
+    bankAccountLabelKey,
+    receiptHeadlineAmount,
+    receiptIssuedAt,
+} from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
 // 3rd char is a LETTER (G) — dodges the /^[a-zA-Z]{2}\d/ display heuristic.
@@ -87,5 +92,64 @@ describe('bankAccountLabelKey', () => {
         expect(bankAccountLabelKey('BANK_IBAN')).toBe('iban')
         expect(bankAccountLabelKey('BANK_CLABE')).toBe('clabe')
         expect(bankAccountLabelKey('us')).toBe('accountNumber')
+    })
+})
+
+describe('receiptIssuedAt', () => {
+    const base = {
+        date: '2026-08-01T10:00:00.000Z',
+        createdAt: '2026-08-01T10:00:00.000Z',
+        completedAt: '2026-08-02T12:00:00.000Z',
+        claimedAt: '2026-08-03T09:00:00.000Z',
+        cancelledDate: '2026-08-04T15:00:00.000Z',
+    }
+
+    it('completed receipts date from the claim/settlement', () => {
+        expect(receiptIssuedAt({ ...base, status: 'completed' })?.toISOString()).toBe(base.claimedAt)
+        expect(receiptIssuedAt({ ...base, status: 'completed', claimedAt: undefined })?.toISOString()).toBe(
+            base.completedAt
+        )
+    })
+
+    it('cancelled and closed receipts date from the cancellation', () => {
+        expect(receiptIssuedAt({ ...base, status: 'cancelled' })?.toISOString()).toBe(base.cancelledDate)
+        expect(receiptIssuedAt({ ...base, status: 'closed' })?.toISOString()).toBe(base.cancelledDate)
+    })
+
+    it('refunded receipts date from the refund (the display date)', () => {
+        expect(receiptIssuedAt({ ...base, status: 'refunded' })?.toISOString()).toBe(base.date)
+    })
+
+    it('pending receipts date from creation', () => {
+        expect(receiptIssuedAt({ ...base, status: 'pending' })?.toISOString()).toBe(base.createdAt)
+    })
+})
+
+/**
+ * The receipt screen and the PDF used to answer "how much" differently: a
+ * $100 pot that collected $40 printed $100.00 on one and $40.00 on the other,
+ * and the PDF dropped the sign so a refund read like a spend.
+ */
+describe('receiptHeadlineAmount', () => {
+    it('leads a request pot with what it collected, not with its goal', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 40 }, 100, '+')
+
+        expect(headline).toEqual({ amount: 40, sign: '', isCollectedTotal: true })
+    })
+
+    it('leads a goal-less pot with its collected total', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 47.25 }, 0, '')
+
+        expect(headline.amount).toBe(47.25)
+    })
+
+    it('keeps the direction sign on everything that is not a pot', () => {
+        expect(receiptHeadlineAmount({}, 12.5, '-')).toEqual({ amount: 12.5, sign: '-', isCollectedTotal: false })
+        expect(receiptHeadlineAmount({}, 12.5, '+').sign).toBe('+')
+    })
+
+    it('reads an unusable amount as zero rather than printing NaN', () => {
+        expect(receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: null }, 0, '').amount).toBe(0)
+        expect(receiptHeadlineAmount({}, Number.NaN, '-').amount).toBe(0)
     })
 })

@@ -4,6 +4,7 @@ import {
     selectMantecaCapNudge,
     getGateUserMessage,
     getKycModalVariant,
+    isTerminalRailRejection,
     type CapabilityState,
     type GateState,
 } from './capability-gate'
@@ -111,6 +112,11 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         ]
         const gate = deriveGate(state(rails, [waitAction, sumsubAction]), 'deposit', { channel: 'bank' })
         expect(gate.kind).toBe('fixable-rejection')
+        // The bank CTAs hand this key and the reason code to the shared router,
+        // which is what lets a residence park open the address step instead of the
+        // resubmit route that 404s for it. Dropping it here silently sends every
+        // one of those screens back to the generic path (TASK-22286).
+        expect(gate.kind === 'fixable-rejection' && gate.actionKey).toBe('sumsub:tax_identification_number')
     })
 
     test("priority: ready beats waiting-on-provider (don't block the user from a usable rail)", () => {
@@ -1037,5 +1043,39 @@ describe('selectMantecaCapNudge', () => {
     test('a hint key with no matching descriptor is ignored', () => {
         const rail = mantecaRail({ hintActions: ['sumsub:source_of_funds'] })
         expect(selectMantecaCapNudge([rail], [])).toBeUndefined()
+    })
+})
+
+/**
+ * A terminal rejection must not be offered a retry. The unlock-payments
+ * surface has none of the three Sumsub reject fields, so it read every
+ * rejection as retriable and showed "Try again" to a user only support can
+ * unblock — while two other screens told that same user something else.
+ */
+describe('isTerminalRailRejection', () => {
+    const byKey = (actions: NextAction[]) => new Map(actions.map((action) => [action.key, action]))
+
+    test('a blocked rail with no way back is terminal', () => {
+        const rail = bankRail({ status: 'blocked', reason: { code: 'permanent_rejection', userMessage: 'no' } })
+
+        expect(isTerminalRailRejection(rail, byKey([]))).toBe(true)
+    })
+
+    test('a blocked rail the user can restart identity on is not terminal', () => {
+        const restart: NextAction = { key: 'restart:sumsub', kind: 'restart-identity', purpose: 'kyc' }
+        const rail = bankRail({ status: 'blocked', blockingActions: ['restart:sumsub'] })
+
+        expect(isTerminalRailRejection(rail, byKey([restart]))).toBe(false)
+    })
+
+    test('a blocked rail waiting on an email is fixable, not terminal', () => {
+        const email: NextAction = { key: 'email:bridge', kind: 'provide-email', purpose: 'kyc' }
+        const rail = bankRail({ status: 'blocked', blockingActions: ['email:bridge'] })
+
+        expect(isTerminalRailRejection(rail, byKey([email]))).toBe(false)
+    })
+
+    test.each(['enabled', 'pending', 'requires-info'] as const)('a %s rail is never terminal', (status) => {
+        expect(isTerminalRailRejection(bankRail({ status }), byKey([]))).toBe(false)
     })
 })

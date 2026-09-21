@@ -24,9 +24,8 @@ export default function PageContainerPage() {
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
                         Wraps mobile screens with responsive width constraints. Children inherit full width via the{' '}
-                        <code className="font-mono">*:w-full</code> selector. On desktop (md+), content is offset with{' '}
-                        <code className="font-mono">md:pl-24</code> and capped at{' '}
-                        <code className="font-mono">md:*:max-w-xl</code>.
+                        <code className="font-mono">*:w-full</code> selector. On desktop, content uses the sidebar
+                        offset and is capped at <code className="font-mono">md:*:max-w-xl</code>.
                     </p>
                 </DocSection.Content>
                 <DocSection.Code>

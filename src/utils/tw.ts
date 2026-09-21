@@ -23,20 +23,20 @@ import { extendTailwindMerge } from 'tailwind-merge'
 
 // text-heading-m, text-body-m-semibold, text-label-l, text-button-s, and the
 // bare/legacy entries in the same block: text-heading, text-display, text-0,
-// text-h1..h10, plus the camelCase pair text-headingLarge/text-headingMedium.
+// plus the camelCase display family text-headingLarge/Medium/Small.
 // Tailwind's own names (text-sm, text-6xl…) are re-declared in
 // the block but already sit in the stock font-size group, so they stay out.
 const DS_TYPE_TOKEN =
-    /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:headingLarge|headingMedium|display|0|h(?:10|[1-9]))$/
+    /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:headingLarge|headingMedium|headingSmall|display|0)$/
 
-// `--radius-round` (999px) and `--radius-1` (1px). Stock tailwind-merge only
-// knows its own t-shirt radii, so it leaves `rounded-round` unrecognised: a
-// caller passing `rounded-sm` to a component whose own class is `rounded-round`
-// gets BOTH, and css source order — not the caller — decides the corner. That
-// is the same silent-loss family as the type tokens, just in the other
-// direction (nothing is deleted, the override is ignored instead). Registering
-// them makes the caller win, which is the whole point of merging.
-const DS_RADIUS_TOKEN = /^(?:round|1)$/
+// `--radius-1` (1px) and `--radius-card` (physical-card geometry). Stock
+// tailwind-merge only knows its own t-shirt radii, so it leaves `rounded-card`
+// unrecognised: a caller passing `rounded-sm` to a component whose own class is
+// `rounded-card` gets BOTH, and css source order — not the caller — decides the
+// corner. That is the same silent-loss family as the type tokens, just in the
+// other direction (nothing is deleted, the override is ignored instead).
+// Registering them makes the caller win, which is the whole point of merging.
+const DS_RADIUS_TOKEN = /^(?:1|card)$/
 
 // The remaining custom-token families from globals.css. tw.test.ts parses
 // globals.css and asserts every declared token is covered here, so these lists
@@ -60,11 +60,9 @@ const DS_ANIMATE_TOKENS = [
 ]
 const DS_SAFE_SPACING_TOKENS = ['safe-top', 'safe-right', 'safe-bottom', 'safe-left']
 // the brutalist offset shadows from @layer components / @utility shadow-4
-const DS_SHADOW_TOKENS = ['2', '4', 'primary-4', 'primary-6', 'primary-8', 'secondary-4', 'secondary-6', 'secondary-8']
+const DS_SHADOW_TOKENS = ['2', '4', 'primary-6', 'primary-8']
 
-export const twMerge = extendTailwindMerge<
-    'ds-text-link' | 'ds-text-link-decoration' | 'ds-border-rounded' | 'ds-bg-peanut-repeat'
->({
+export const twMerge = extendTailwindMerge({
     extend: {
         theme: {
             ease: DS_EASE_TOKENS,
@@ -91,16 +89,6 @@ export const twMerge = extendTailwindMerge<
             'rounded-bl': [{ 'rounded-bl': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             'rounded-br': [{ 'rounded-br': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             duration: [{ duration: DS_DURATION_TOKENS }],
-            // component classes whose tailwind-shaped names land in color/bg
-            // groups by default, so a colour class deleted them: text-link lost
-            // to text-foreground-secondary, bg-peanut-repeat-normal lost to bg-white even
-            // though they compose in css. Own group each = no cross-conflicts;
-            // the peanut patterns still conflict among themselves (an exact
-            // class-name entry beats the colour groups' validators).
-            'ds-text-link': ['text-link'],
-            'ds-text-link-decoration': ['text-link-decoration'],
-            'ds-border-rounded': ['border-rounded'],
-            'ds-bg-peanut-repeat': [{ 'bg-peanut-repeat': ['normal', 'large', 'small'] }],
         },
     },
 })

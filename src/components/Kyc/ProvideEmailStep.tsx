@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
@@ -29,15 +30,22 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
     const [email, setEmail] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // flow/api failure — not attributable to the email field, rendered as a
+    // notification banner instead of a field error (design.md error display)
+    const [flowError, setFlowError] = useState<string | null>(null)
 
     useEffect(() => {
         if (visible) {
             setEmail('')
             setError(null)
+            setFlowError(null)
         }
     }, [visible])
 
     const handleSave = useCallback(async () => {
+        // one visible cause at a time: reset both channels before selecting
+        setError(null)
+        setFlowError(null)
         const trimmed = email.trim()
         if (!isValidEmail(trimmed)) {
             setError(t('provideEmail.invalidEmail'))
@@ -45,15 +53,14 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         }
         const userId = user?.user?.userId
         if (!userId) {
-            setError(t('provideEmail.stillLoading'))
+            setFlowError(t('provideEmail.stillLoading'))
             return
         }
         setIsSaving(true)
-        setError(null)
         try {
             const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
-                setError(response.error)
+                setFlowError(response.error)
                 return
             }
             // The BE resubmits the blocked rails on email set; refetch so the
@@ -62,7 +69,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             await fetchUser()
             onComplete()
         } catch {
-            setError(t('provideEmail.saveFailed'))
+            setFlowError(t('provideEmail.saveFailed'))
         } finally {
             setIsSaving(false)
         }
@@ -80,7 +87,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     text: t(isSaving ? 'provideEmail.saving' : 'provideEmail.save'),
                     onClick: handleSave,
                     disabled: isSaving || email.trim().length === 0,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },
@@ -101,6 +108,11 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                         type="email"
                     />
                     {error && <FieldError className="mt-1">{error}</FieldError>}
+                    {flowError && (
+                        <Callout priority="error" className="mt-2">
+                            {flowError}
+                        </Callout>
+                    )}
                 </div>
             }
         />

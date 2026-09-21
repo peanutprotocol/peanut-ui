@@ -9,10 +9,10 @@ interface NumberedListProps {
 /**
  * Ordered steps with filled action-primary circle markers. Use it for a real
  * sequence — a set of unordered claims belongs in minimal bullets instead, and
- * a risk or caveat belongs in the screen's single Notification.
+ * a risk or caveat belongs in the screen's single Callout.
  */
 export const NumberedList = ({ items, className }: NumberedListProps) => (
-    <ol className={twMerge('flex w-full flex-col gap-3 text-left', className)}>
+    <ol role="list" className={twMerge('flex w-full flex-col gap-3 text-left', className)}>
         {items.map((item, index) => (
             <li key={index} className="flex items-start gap-3">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-action-primary text-label-m text-black">

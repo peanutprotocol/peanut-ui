@@ -1,8 +1,9 @@
 'use client'
 
-import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     SELF_DESCRIBING_NAME_KEYS,
@@ -23,7 +24,10 @@ import { twMerge } from '@/utils/tw'
 import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
+import type { TransactionDetails } from './transactionTransformer'
+
 interface TransactionDetailsHeaderCardProps {
+    actionLabelKey?: TransactionDetails['actionLabelKey']
     direction: TransactionDirection
     userName: string
     /** Catalog key when `userName` is an FE-generated label — localized here;
@@ -41,6 +45,15 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    /** Rain-enriched merchant brand logo for a card spend. Shown when there is
+     *  no `avatarUrl`; the generic card badge is the fallback. */
+    merchantLogo?: string | null
+    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+     *  `avatarUrl` still wins — it identifies the payee more precisely. */
+    avatarKey?: string | null
+    /** `false` for a row whose name is system copy (a reaper-failed transfer),
+     *  so the avatar slot does not draw a face for a failure message. */
+    isPeer?: boolean
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
@@ -200,6 +213,7 @@ const amountStateClasses = (status?: StatusType, isOpenRequest?: boolean) => {
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
+    actionLabelKey,
     nameKey,
     nameParams,
     amountDisplay,
@@ -210,6 +224,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    merchantLogo,
+    avatarKey,
+    isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
@@ -234,6 +251,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
+    // The sticker's letter follows the handle instead (same rule as the feed
+    // row), so the receipt and the profile agree. An address counterparty draws
+    // no letter from `userName`, so the display name is the fallback.
+    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -249,8 +270,24 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
     const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
+    const genericBadge = (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={nameForAvatar}
+            avatarName={avatarNameForAvatar}
+            avatarKey={avatarKey}
+            isPeer={isPeer}
+            isLinkTransaction={isLinkTransaction}
+            transactionType={typeForAvatar}
+            status={status}
+            context="header"
+            size="m"
+            countryCode={countryCode}
+        />
+    )
+
     return (
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
                 <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
@@ -284,43 +321,39 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 height={160}
                             />
                         </div>
+                    ) : merchantLogo ? (
+                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="md" />
                     ) : (
-                        <TransactionAvatarBadge
-                            initials={initials}
-                            userName={nameForAvatar}
-                            isLinkTransaction={isLinkTransaction}
-                            transactionType={typeForAvatar}
-                            context="header"
-                            size="small"
-                            countryCode={countryCode}
-                        />
+                        genericBadge
                     )}
                 </div>
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-s text-foreground-secondary">
+                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (
                             <VerifiedUserLabel
                                 username={userName}
                                 name={
-                                    isRequestPotTransaction
-                                        ? // The pot rollup row only ever renders for the request's
-                                          // owner — the generic "Request" label reads as their own
-                                          // ask: "You requested". Named pots keep their name.
-                                          nameKey === TRANSACTION_NAME_KEYS.request
-                                            ? t('title.youRequested')
-                                            : localizedUserName
-                                        : (getTitle(
-                                              t,
-                                              direction,
-                                              resolvedUserName,
-                                              isLinkTransaction,
-                                              status,
-                                              nameKey
-                                          ) as string)
+                                    actionLabelKey
+                                        ? t(actionLabelKey)
+                                        : isRequestPotTransaction
+                                          ? // The pot rollup row only ever renders for the request's
+                                            // owner — the generic "Request" label reads as their own
+                                            // ask: "You requested". Named pots keep their name.
+                                            nameKey === TRANSACTION_NAME_KEYS.request
+                                              ? t('title.youRequested')
+                                              : localizedUserName
+                                          : (getTitle(
+                                                t,
+                                                direction,
+                                                resolvedUserName,
+                                                isLinkTransaction,
+                                                status,
+                                                nameKey
+                                            ) as string)
                                 }
                                 isVerified={isVerified}
                                 className="flex items-center justify-center gap-1"
@@ -333,7 +366,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     {!isTest && (
                         <h1
                             className={twMerge(
-                                'text-heading-l text-foreground-primary',
+                                'text-heading-m text-foreground-primary',
                                 amountStateClasses(status, isOpenRequest)
                             )}
                         >
@@ -342,7 +375,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <StatusBadge status={status!} size="medium" />}
+                {showBadge && <Badge status={status!} size="medium" />}
             </div>
         </div>
     )

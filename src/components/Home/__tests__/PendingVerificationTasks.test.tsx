@@ -14,16 +14,17 @@
 import React from 'react'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import type { NextAction } from '@/types/capabilities'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 
 let mockNextActions: NextAction[] = []
+let mockRails: RailCapability[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails }),
 }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
@@ -64,6 +65,7 @@ const hostedAction: NextAction = {
 describe('PendingVerificationTasks', () => {
     beforeEach(() => {
         mockNextActions = []
+        mockRails = []
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
         mockRouterPush.mockReset()
@@ -74,6 +76,26 @@ describe('PendingVerificationTasks', () => {
 
     it('renders nothing when no bridge task is pending', () => {
         mockNextActions = [{ key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' }]
+        const { container } = render(<PendingVerificationTasks />)
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    it('the hosted task stands down while a Bridge rail carries a native sumsub step (TASK-22818)', () => {
+        // The resolver no longer emits both; an API that still does must not
+        // put the hosted card back on Home beside the upload that can clear it.
+        mockNextActions = [hostedAction, { key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' }]
+        mockRails = [
+            {
+                id: 'bridge.sepa_eu',
+                provider: 'bridge',
+                method: 'SEPA_EU',
+                channel: 'bank',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'requires-info',
+                blockingActions: ['sumsub:proof_of_address'],
+            },
+        ]
         const { container } = render(<PendingVerificationTasks />)
         expect(container).toBeEmptyDOMElement()
     })
@@ -107,7 +129,7 @@ describe('PendingVerificationTasks', () => {
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/identity-verification/additional')
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts-and-payments/additional')
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
@@ -135,6 +157,31 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [tosAction, hostedAction]
         render(<PendingVerificationTasks />)
         expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+        expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+    })
+
+    it('a hosted task with a known currency NAMES the corridor instead of "bank transfers"', () => {
+        // The 2026-09 fix: a blocking hosted task must not read as a generic
+        // "additional verification needed" for the whole account — it names the
+        // corridor the backend scoped it to via NextAction.currency.
+        mockNextActions = [{ ...hostedAction, currency: 'EUR' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Verify to unlock Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('Finish verifying to unlock Euro bank transfers.')).toBeInTheDocument()
+        expect(screen.queryByText('Additional verification needed')).not.toBeInTheDocument()
+    })
+
+    it('an advisory hosted task with a currency keeps-access copy names the corridor', () => {
+        mockNextActions = [{ ...hostedAction, currency: 'MXN', effectiveDate: '2099-09-01' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Finish verifying to keep Mexican peso bank transfers available.')).toBeInTheDocument()
+    })
+
+    it('an unknown currency falls back to the generic copy', () => {
+        // Manteca-only corridors (e.g. BRL) never scope a Bridge hosted task; if
+        // one ever arrives, degrade to the generic copy rather than show nothing.
+        mockNextActions = [{ ...hostedAction, currency: 'BRL' }]
+        render(<PendingVerificationTasks />)
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
     })
 

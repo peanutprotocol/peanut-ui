@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Icon } from '@/components/Global/Icons/Icon'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { SearchInput } from '@/components/SearchInput'
+import { ContentLinkRow } from './ContentLinkRow'
+import { PROSE_WIDTH } from './constants'
 
 interface HelpArticle {
     slug: string
@@ -15,6 +18,8 @@ interface HelpArticle {
 
 interface HelpLandingStrings {
     searchPlaceholder: string
+    clearSearch: string
+    noResults: string
     cantFind: string
     cantFindDesc: string
 }
@@ -22,10 +27,27 @@ interface HelpLandingStrings {
 interface HelpLandingProps {
     articles: HelpArticle[]
     categories: string[]
-    strings?: HelpLandingStrings
+    /** Every label comes from the page, which already holds the locale catalog.
+     *  Reading '@/i18n' here instead would ship all four catalogs to the client. */
+    strings: HelpLandingStrings
 }
 
-const PROSE_WIDTH = 'max-w-[640px]'
+function CategoryRows({ articles }: { articles: HelpArticle[] }) {
+    return (
+        <div className="flex flex-col">
+            {articles.map((article, i) => (
+                <ContentLinkRow
+                    key={article.slug}
+                    href={article.href}
+                    title={article.title}
+                    description={article.description}
+                    index={i}
+                    total={articles.length}
+                />
+            ))}
+        </div>
+    )
+}
 
 export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
@@ -64,19 +86,14 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
         <>
             {/* Search */}
             <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
-                        <Icon name="search" size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        aria-label={strings?.searchPlaceholder ?? 'Search help articles'}
-                        placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
-                    />
-                </div>
+                <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    onClear={() => setSearchTerm('')}
+                    placeholder={strings.searchPlaceholder}
+                    aria-label={strings.searchPlaceholder}
+                    clearLabel={strings.clearSearch}
+                />
             </div>
 
             {/* Articles by category */}
@@ -85,51 +102,21 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (
                             <section key={category}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {category}
                                 </h2>
-                                <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
-                                    {filteredArticles
-                                        .filter((a) => a.category === category)
-                                        .map((article) => (
-                                            <Link
-                                                key={article.slug}
-                                                href={article.href}
-                                                className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
-                                            >
-                                                <div className="flex flex-col gap-0.5">
-                                                    <h3 className="text-base font-semibold text-n-1 group-hover:underline">
-                                                        {article.title}
-                                                    </h3>
-                                                    <p className="line-clamp-1 text-sm leading-[1.75] text-grey-1">
-                                                        {article.description}
-                                                    </p>
-                                                </div>
-                                                <Icon
-                                                    name="arrow-up-right"
-                                                    size={16}
-                                                    className="shrink-0 text-grey-1"
-                                                />
-                                            </Link>
-                                        ))}
-                                </div>
+                                <CategoryRows articles={filteredArticles.filter((a) => a.category === category)} />
                             </section>
                         ))}
                     </div>
                 ) : (
-                    <div className="py-12 text-center text-grey-1">
-                        <p className="text-base">No articles match your search.</p>
-                    </div>
+                    <EmptyState icon="search" title={strings.noResults} />
                 )}
 
                 {/* Contact CTA */}
-                <div className="my-8 border-l-4 border-primary-1 py-1 pl-6">
-                    <p className="font-semibold text-n-1">{strings?.cantFind ?? "Can't find what you need?"}</p>
-                    <p className="mt-1 text-base leading-[1.75] text-grey-1">
-                        {strings?.cantFindDesc ??
-                            'Click the chat bubble in the bottom-right corner to talk to our support team. We typically reply within minutes.'}
-                    </p>
-                </div>
+                <Callout priority="helper" title={strings.cantFind} className="my-8">
+                    {strings.cantFindDesc}
+                </Callout>
             </div>
         </>
     )

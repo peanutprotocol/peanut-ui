@@ -110,6 +110,13 @@ describe('native-fingerprint', () => {
         expect(fingerprint()).toBe(first)
     })
 
+    it('keeps the pre-split v2 fingerprint schema available for immutable attestations', () => {
+        const legacy = fingerprint('--schema', 'v2')
+
+        expect(legacy).toMatch(/^[0-9a-f]{16}$/)
+        expect(legacy).not.toBe(fingerprint('--schema', 'v3'))
+    })
+
     it('covers every native input, hashing it or recording its absence', () => {
         const result = run(fixture.dir, '--manifest')
         const keys = Object.keys(JSON.parse(result.stdout))
@@ -123,7 +130,9 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('capacitor.config.ts')
         expect(keys).toContain('android/app/src/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
-        expect(keys).toContain('native-plugin-versions')
+        expect(keys).toContain('android/native-plugin-versions')
+        expect(keys).toContain('ios/native-plugin-versions')
+        expect(keys).toContain('shared/native-plugin-versions')
         expect(keys).toContain('android/app/src/main/res/**.xml')
         expect(keys).toContain('ios/App/**.{plist,entitlements}')
         expect(keys).toContain('patches/**')
@@ -379,5 +388,58 @@ describe('native-fingerprint', () => {
 
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('needs a directory')
+    })
+})
+
+/*
+ * Every native input must say which platform's binary carries it. A new input
+ * with no `platform` would be skipped by platformDiff for both platforms — the
+ * lenient direction, which is how an unnoticed native change reaches an older
+ * binary. `shared` is a deliberate answer, not a default: capacitor.config.ts,
+ * patches/ and cross-platform plugin versions sit outside android/ and ios/
+ * while describing the native half of both.
+ */
+describe('platform classification', () => {
+    const inputs = () => {
+        const result = spawnSync(process.execPath, [SCRIPT_PATH, '--inputs'], { encoding: 'utf-8' })
+        expect(result.status).toBe(0)
+        return JSON.parse(result.stdout)
+    }
+
+    it('classifies every native input', () => {
+        const unclassified = inputs().filter((input) => !['android', 'ios', 'shared'].includes(input.platform))
+        expect(unclassified.map((input) => input.id)).toEqual([])
+    })
+
+    it('agrees with the path prefix wherever there is one', () => {
+        const mismatched = inputs().filter(
+            (input) =>
+                (input.id.startsWith('android/') && input.platform !== 'android') ||
+                (input.id.startsWith('ios/') && input.platform !== 'ios')
+        )
+        expect(mismatched.map((input) => input.id)).toEqual([])
+    })
+
+    // Shared inputs are the reason platformDiff is not a path-prefix filter.
+    it('keeps the shared inputs shared', () => {
+        const shared = inputs()
+            .filter((input) => input.platform === 'shared')
+            .map((input) => input.id)
+        expect(shared).toEqual(
+            expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'shared/native-plugin-versions'])
+        )
+    })
+
+    it('keeps platform runtime dependency versions on their own platform', () => {
+        const classified = Object.fromEntries(inputs().map(({ id, platform }) => [id, platform]))
+        expect(classified['android/native-plugin-versions']).toBe('android')
+        expect(classified['ios/native-plugin-versions']).toBe('ios')
+    })
+
+    // Named for iOS but not under ios/ — it pins iOS native SDK versions after
+    // `cap sync`, so a prefix rule would have called it shared.
+    it('classifies the iOS post-sync script as iOS', () => {
+        const entry = inputs().find((input) => input.id === 'scripts/native-ios-postsync.js')
+        expect(entry.platform).toBe('ios')
     })
 })

@@ -1,7 +1,7 @@
 /**
  * DeleteAccountButton — modal state-machine tests.
  * Strategy: mock the deps (auth, wallet, router, toast, service, posthog,
- * mascots) and stub ActionModal to a minimal surface that renders the title +
+ * mascot player) and stub ActionModal to a minimal surface that renders the title +
  * CTA buttons, so we can drive blocked / confirm -> loading -> done -> logout
  * and the error-toast branch.
  */
@@ -10,6 +10,7 @@ import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-librar
 import { IntlWrapper } from '@/test-utils/intl'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { AccountHasBalanceError } from '@/services/users'
+import { ApiError } from '@/services/api-error'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -36,12 +37,7 @@ jest.mock('@/services/users', () => ({
     },
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
-jest.mock('@/assets/mascot', () => ({
-    PeanutSad: { src: 'sad' },
-    PeanutCrying: { src: 'cry' },
-    PeanutPointing: { src: 'point' },
-}))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 
 // Minimal ActionModal: render title + CTAs as buttons when visible, and surface
 // the lock props (preventClose / hideModalCloseButton) as data-attributes so we
@@ -106,6 +102,25 @@ describe('DeleteAccountButton', () => {
         await waitFor(() => expect(mockToastError).toHaveBeenCalled())
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
         // still on the confirm step, not signed out
+        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(mockLogout).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        [
+            'DEPOSIT_IN_FLIGHT',
+            'A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.',
+        ],
+        [
+            'DEPOSIT_ACCOUNTS_UNAVAILABLE',
+            'We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.',
+        ],
+    ])('explains %s without logging out or showing success', async (code, message) => {
+        mockRequestDeletion.mockRejectedValueOnce(new ApiError('Backend refusal', { status: 409, code }))
+        render(<DeleteAccountButton />)
+        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByText('Yes, delete it'))
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(message))
         expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
     })

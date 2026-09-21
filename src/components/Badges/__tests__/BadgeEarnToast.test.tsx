@@ -43,8 +43,8 @@ jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
 }))
 
 // Minimal stub: surface the title so we can assert the detail modal opened.
-jest.mock('@/components/Badges/BadgeDetailModal', () => ({
-    BadgeDetailModal: ({ isOpen, title, code }: { isOpen: boolean; title: string; code?: string }) =>
+jest.mock('@/components/Badges/BadgeDetailDrawer', () => ({
+    BadgeDetailDrawer: ({ isOpen, title, code }: { isOpen: boolean; title: string; code?: string }) =>
         isOpen ? (
             <div data-testid="badge-detail-modal" data-code={code}>
                 {title}

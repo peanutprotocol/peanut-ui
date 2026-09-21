@@ -118,7 +118,7 @@ const PeanutIcon = ({ className, label }: { className?: string; label: string })
 
 /**
  * full-page offline screen shown when user loses internet connection
- * displays peanut logo and helpful message about pwa cached content
+ * displays peanut logo and a retry action
  * when connection is restored, page automatically reloads
  */
 export default function OfflineScreen() {
@@ -138,7 +138,7 @@ export default function OfflineScreen() {
     }
 
     return (
-        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background p-6">
+        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background-page p-6">
             <div className="h-32 w-32 opacity-50 grayscale">
                 <PeanutIcon className="h-full w-full" label={tNav('peanutLogoAlt')} />
             </div>

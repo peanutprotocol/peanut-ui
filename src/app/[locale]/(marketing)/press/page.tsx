@@ -5,6 +5,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
@@ -136,24 +137,24 @@ export default async function PressPage({ params }: PageProps) {
                 <div className="flex flex-col gap-10">
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressCompanyDescription}</h2>
+                            <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
                             <div className="grid gap-4 md:grid-cols-3">
                                 {fm.boilerplate.short && (
-                                    <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Short</h3>
-                                        <p className="text-sm text-n-1">{fm.boilerplate.short}</p>
+                                    <Card className="gap-2 p-6" shadowSize="4">
+                                        <h3 className="text-label-l text-foreground-secondary">Short</h3>
+                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.short}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.medium && (
-                                    <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Medium</h3>
-                                        <p className="text-sm text-n-1">{fm.boilerplate.medium}</p>
+                                    <Card className="gap-2 p-6" shadowSize="4">
+                                        <h3 className="text-label-l text-foreground-secondary">Medium</h3>
+                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.medium}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.press && (
-                                    <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Press / Partner</h3>
-                                        <p className="text-sm text-n-1">{fm.boilerplate.press}</p>
+                                    <Card className="gap-2 p-6" shadowSize="4">
+                                        <h3 className="text-label-l text-foreground-secondary">Press / Partner</h3>
+                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.press}</p>
                                     </Card>
                                 )}
                             </div>
@@ -162,48 +163,48 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.tagline && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressTaglineHeadlines}</h2>
-                            <Card className="gap-1 p-6">
-                                <p className="text-lg font-bold text-n-1">{fm.tagline}</p>
-                                {fm.secondary_line && <p className="text-sm text-grey-1">{fm.secondary_line}</p>}
+                            <h2 className="text-heading-xs">{i18n.pressTaglineHeadlines}</h2>
+                            <Card className="gap-1 p-6" shadowSize="4">
+                                <p className="text-heading-card text-foreground-primary">{fm.tagline}</p>
+                                {fm.secondary_line && (
+                                    <p className="text-body-s text-foreground-secondary">{fm.secondary_line}</p>
+                                )}
                             </Card>
                             {fm.headlines && fm.headlines.length > 0 && (
                                 <div className="grid gap-3 md:grid-cols-2">
                                     {fm.headlines.map((h) => (
-                                        <Card key={h.text} className="gap-1 p-4">
-                                            <p className="text-sm font-bold text-n-1">{h.text}</p>
-                                            <p className="text-xs text-grey-1">{h.context}</p>
+                                        <Card key={h.text} className="gap-1 p-4" shadowSize="4">
+                                            <p className="text-label-l text-foreground-primary">{h.text}</p>
+                                            <p className="text-body-xs text-foreground-secondary">{h.context}</p>
                                         </Card>
                                     ))}
                                 </div>
                             )}
-                            {fm.one_liner && <p className="text-sm text-grey-1">{fm.one_liner}</p>}
+                            {fm.one_liner && <p className="text-body-s text-foreground-secondary">{fm.one_liner}</p>}
                         </section>
                     )}
 
                     {fm.brand_assets && fm.brand_assets.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressBrandAssets}</h2>
+                            <h2 className="text-heading-xs">{i18n.pressBrandAssets}</h2>
                             <div className="grid gap-4 md:grid-cols-2">
                                 {fm.brand_assets.map((group) => (
-                                    <Card key={group.label} className="gap-3 p-6">
-                                        <h3 className="text-sm font-bold text-n-1">{group.label}</h3>
+                                    <Card key={group.label} className="gap-3 p-6" shadowSize="4">
+                                        <h3 className="text-label-l text-foreground-primary">{group.label}</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {group.files.map((file) => {
                                                 const href = safeHttpUrl(file.href)
                                                 if (!href) return null
                                                 return (
-                                                    <a
+                                                    <Button
                                                         key={href}
                                                         href={href}
-                                                        target={href.startsWith('http') ? '_blank' : undefined}
-                                                        rel={
-                                                            href.startsWith('http') ? 'noopener noreferrer' : undefined
-                                                        }
-                                                        className="rounded-sm border border-n-1 px-3 py-1.5 text-xs font-medium text-n-1 hover:bg-primary-3"
+                                                        external={href.startsWith('http')}
+                                                        variant="stroke"
+                                                        size="small"
                                                     >
                                                         {file.name}
-                                                    </a>
+                                                    </Button>
                                                 )
                                             })}
                                         </div>
@@ -215,15 +216,15 @@ export default async function PressPage({ params }: PageProps) {
 
                     {members.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressTeam}</h2>
+                            <h2 className="text-heading-xs">{i18n.pressTeam}</h2>
                             <div className="grid gap-6 md:grid-cols-2">
                                 {members.map((member) => (
-                                    <Card key={member.slug} className="gap-3 p-6">
+                                    <Card key={member.slug} className="gap-3 p-6" shadowSize="4">
                                         <div>
-                                            <h3 className="text-lg font-bold">{member.name}</h3>
-                                            <p className="text-sm font-medium text-grey-1">{member.role}</p>
+                                            <h3 className="text-heading-card">{member.name}</h3>
+                                            <p className="text-body-s text-foreground-secondary">{member.role}</p>
                                         </div>
-                                        <p className="text-sm text-n-1">{member.bio}</p>
+                                        <p className="text-body-s text-foreground-primary">{member.bio}</p>
                                     </Card>
                                 ))}
                             </div>
@@ -238,7 +239,7 @@ export default async function PressPage({ params }: PageProps) {
                                                 href={href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="relative aspect-square overflow-hidden rounded-sm border border-n-1 hover:opacity-80"
+                                                className="relative aspect-square overflow-hidden rounded-sm border border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
                                             >
                                                 <Image src={href} alt="Peanut team" fill className="object-cover" />
                                             </a>
@@ -246,15 +247,17 @@ export default async function PressPage({ params }: PageProps) {
                                     })}
                                 </div>
                             )}
-                            {fm.team_photos_note && <p className="text-xs text-grey-1">{fm.team_photos_note}</p>}
+                            {fm.team_photos_note && (
+                                <p className="text-body-xs text-foreground-secondary">{fm.team_photos_note}</p>
+                            )}
                         </section>
                     )}
 
                     {fm.company_facts && fm.company_facts.length > 0 && (
                         <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">{i18n.pressCompany}</h2>
+                            <h2 className="text-heading-xs">{i18n.pressCompany}</h2>
                             {fm.company_facts.map((fact) => (
-                                <p key={fact} className="text-sm text-grey-1">
+                                <p key={fact} className="text-body-s text-foreground-secondary">
                                     {fact}
                                 </p>
                             ))}
@@ -263,8 +266,11 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.media_contact && (
                         <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">{i18n.pressMediaContact}</h2>
-                            <a href={`mailto:${fm.media_contact}`} className="w-fit text-sm text-black underline">
+                            <h2 className="text-heading-xs">{i18n.pressMediaContact}</h2>
+                            <a
+                                href={`mailto:${fm.media_contact}`}
+                                className="w-fit text-body-s text-foreground-primary underline"
+                            >
                                 {fm.media_contact}
                             </a>
                         </section>

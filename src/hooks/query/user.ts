@@ -2,14 +2,12 @@ import { type IUserProfile } from '@/interfaces/interfaces'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
-import { isStandaloneDisplayMode } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_USER } from '@/constants/demo-data'
-import { isNativeBridge } from '@/utils/capacitor'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -66,12 +64,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (payload) {
                 // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
                 // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
-                // For analytics the native app is not a PWA, and a capacitor-
-                // flavored WEB build in a plain browser tab isn't either — use
-                // real display-mode detection, not usePWAStatus's Capacitor
-                // short-circuit (TASK-21782 telemetry fix).
                 posthog.capture(ANALYTICS_EVENTS.LOGIN, {
-                    isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
                     deviceType,
                 })
             }

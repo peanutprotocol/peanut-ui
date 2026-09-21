@@ -2,8 +2,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -23,7 +23,8 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRequestBack } from '@/components/Request/useRequestBack'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -34,9 +35,13 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
-    const onBack = useSafeBack('/home')
+    const onBack = useRequestBack()
+    const tMigration = useTranslations('migration')
+    // a guest on a broken request link is asked to join — during the migration
+    // that means the app, not web signup
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
     const { user: authUser } = useAuth()
-    const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
+    const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -54,7 +59,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     // recipient/amount validation renders as the field's own error under the
-    // recipient input; errorState keeps API failures only (Notification + reset CTA)
+    // recipient input; errorState keeps API failures only (Callout + reset CTA)
     const [fieldError, setFieldError] = useState<string>('')
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
 
@@ -75,12 +80,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             rawFile: undefined,
         })
     }
-
-    // Displayed total spendable, single-sourced + formatted by the hook; empty
-    // while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(() => {
-        return balance === undefined ? '' : formattedSpendableBalance
-    }, [balance, formattedSpendableBalance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
@@ -156,7 +155,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 title:
                     kind === 'invalid' ? t('validation.invalidRecipientTitle') : t('validation.missingRecipientTitle'),
                 message,
-                buttonText: authUser?.user.userId ? t('validation.goToHome') : t('validation.createWallet'),
+                buttonText: authUser?.user.userId
+                    ? t('validation.goToHome')
+                    : handoffActive
+                      ? tMigration('downloadPeanut')
+                      : t('validation.createWallet'),
                 redirectTo: authUser?.user.userId ? '/home' : '/setup',
             }
         }
@@ -172,7 +175,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         }
 
         setValidationError(null)
-    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t])
+    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t, tMigration, handoffActive])
 
     if (isRecipientUserLoading || authUser === undefined) {
         return (
@@ -187,7 +190,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             <div className="flex flex-col items-center justify-center gap-8">
                 {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title={tNav('request')} /> : null}
                 <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center md:w-6/12">
-                    <ValidationErrorView {...validationError} />
+                    <ValidationErrorView
+                        {...validationError}
+                        onButtonClick={!authUser?.user.userId ? () => interceptGuestCta() : undefined}
+                    />
+                    {storeHandoffModal}
                 </div>
             </div>
         )
@@ -230,6 +237,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
+                    avatarKey={recipientUser?.avatarKey}
                     isVerified={recipientUser?.isVerified ?? false}
                     haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
                 />
@@ -240,15 +248,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         initialAmount={currentInputValue}
                         setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
-                        walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
 
-                    <FileUploadInput
+                    <BaseInput
                         placeholder={tCommon('comment')}
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
-                        className="h-11"
+                        value={attachmentOptions.message}
+                        maxLength={140}
+                        onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
                     />
                     {!authUser?.user.userId && (
                         <FieldColumn error={fieldError}>
@@ -282,7 +289,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
                     {errorState.showError ? (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={() => {
                                 setRecipient({ address: '', name: '' })
@@ -307,7 +314,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                    {errorState.errorMessage && <Callout priority="error">{errorState.errorMessage}</Callout>}
                 </div>
             </PageStack.Center>
         </div>

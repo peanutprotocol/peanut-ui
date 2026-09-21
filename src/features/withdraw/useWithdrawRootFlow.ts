@@ -10,12 +10,14 @@ import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { SCAN_ID_PARAM, takeScannedDestination, withdrawTokenForChain } from './destination'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
@@ -37,6 +39,7 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
+    const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
@@ -48,7 +51,11 @@ export function useWithdrawRootFlow() {
         setSelectedBankAccount,
         setSelectedMethod,
         setIsMaxWithdrawal,
+        setRecipient,
+        setIsValidRecipient,
     } = useWithdrawFlow()
+
+    const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -77,16 +84,42 @@ export function useWithdrawRootFlow() {
         },
     })
 
-    // Send → Exchange or Wallet enters as /withdraw?method=crypto: the method
-    // is implied, so commit it and land straight on the amount step.
+    // Send and old amount-step links enter the crypto destination flow directly.
     useEffect(() => {
-        if (!isCryptoFromSend) return
-        if (!selectedMethod) {
+        if (!isCryptoFromSend && !(stepper.step === 'amount' && selectedMethod?.type === 'crypto')) return
+        if (scanIdParam && !supportedChainsAndTokens) return
+        const scanned = takeScannedDestination(scanIdParam)
+        const token = scanned ? withdrawTokenForChain(supportedChainsAndTokens?.[scanned.chainId]?.tokens) : undefined
+        if (scanned && token) {
+            setSelectedChainID(scanned.chainId)
+            setSelectedTokenAddress(token.address)
+            setRecipient({ name: undefined, address: scanned.address })
+            setIsValidRecipient(true)
+        }
+        if (selectedMethod?.type !== 'crypto') {
             setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
         }
-        if (stepper.step === 'method') void stepper.goTo('amount')
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCryptoFromSend, selectedMethod, stepper.step])
+        setSelectedBankAccount(null)
+        const params = new URLSearchParams()
+        if (methodParam) params.set('method', methodParam)
+        if (urlAmount) params.set('amount', urlAmount)
+        router.replace(`/withdraw/crypto${params.size ? `?${params}` : ''}`)
+    }, [
+        isCryptoFromSend,
+        stepper.step,
+        selectedMethod,
+        scanIdParam,
+        supportedChainsAndTokens,
+        methodParam,
+        urlAmount,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setRecipient,
+        setIsValidRecipient,
+        setSelectedBankAccount,
+        setSelectedMethod,
+        router,
+    ])
 
     // flag to know if the user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -117,6 +150,7 @@ export function useWithdrawRootFlow() {
             if (iso2 === 'US') accountType = AccountType.US
             else if (iso2 === 'GB') accountType = AccountType.GB
             else if (iso2 === 'MX') accountType = AccountType.CLABE
+            else if (iso2 === 'CO') accountType = AccountType.CO_BANK_TRANSFER
             return { countryIso2: iso2, rateAccountType: accountType }
         }
         return { countryIso2: '', rateAccountType: AccountType.US }
@@ -316,9 +350,10 @@ export function useWithdrawRootFlow() {
                 setError({ showError: true, errorMessage: t('errors.countryUnresolved') })
             }
         } else if (selectedMethod.countryPath) {
-            // Bridge (and any other) countries go to the country page for the
-            // bank-account form
-            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery()))
+            // A bridge method with no account yet — an old `?step=amount` link,
+            // or flow memory lost to a refresh. The form comes first now, so
+            // send them there with the amount they typed still in the URL.
+            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
         } else {
             // No branch matched the selected method — surface an error rather
             // than leaving the user with a silently-dead Continue button.

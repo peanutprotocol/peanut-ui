@@ -16,7 +16,6 @@ export interface TokenMeta {
     name: string
     symbol: string
     logoURI: string
-    usdPrice: number
 }
 
 /** Canonical chain record as returned by `getSupportedChainsAndTokens` —

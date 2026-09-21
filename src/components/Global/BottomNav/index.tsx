@@ -51,12 +51,12 @@ import { TAB_ORDER, type TabId } from './tab-order'
  * a finger holds the pill the transition is suspended and the transform
  * tracks the pointer 1:1 (clamped to the tab range); release snaps to the
  * nearest tab with the same transition and navigates. Support is an overlay,
- * so releasing on it opens the drawer and the pill glides home.
+ * so its pill stays selected until the drawer closes.
  */
 
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
 const tabClass =
-    'relative flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
+    'relative flex items-center justify-center rounded-full px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
 
 // icons sit above the pill (z) and let pointer events fall through
 const iconClass = 'pointer-events-none relative z-10'
@@ -89,15 +89,7 @@ export const BottomNav = () => {
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
     useForegroundPushRefresh()
-    // The middle slot is the card tab only while the card is attainable. A
-    // resident of a Rain-prohibited country who was released from the waitlist
-    // still has `hasCardAccess`, so gating on that shipped them a tab whose
-    // only destination is /card's geo-blocked screen — the exchange-rates page
-    // is the useful thing to put in a slot the card cannot fill.
-    // The destination follows the profile menu's rule: past the waitlist gate
-    // goes to /card, everyone else to /shhhhh — the canonical card door. The
-    // tab used to link at /card unconditionally, which notFound()s a user with
-    // no flowEarlyAccess stamp.
+    // Existing card relationships stay accessible; prohibited residences get exchange rates.
     const { showCardSurface, cardHref } = useCardSurfaceAccess()
     const middleTab = showCardSurface
         ? ({ href: cardHref, icon: 'credit-card', label: t('card') } as const)
@@ -140,13 +132,7 @@ export const BottomNav = () => {
         return () => observer.disconnect()
     }, [])
 
-    // one active tab at a time so the shared pill has a single home. The pill
-    // tracks the ROUTE only — the support drawer is an overlay, not
-    // navigation, so opening it must not move the pill (it used to slide over
-    // and spring back / vanish on close).
-    // `/card` stays a middle-slot route even when the slot shows exchange
-    // rates: a holder deep-linked there must still light the pill, and the
-    // /card gate is what decides whether they may be there at all.
+    // The route selection survives support, which temporarily owns the pill.
     const isMiddleRoute = (pathname?.startsWith('/card') ?? false) || isSameRoute(pathname, middleTab.href)
     const routeTab: TabId | null = isMiddleRoute ? 'middle' : isSameRoute(pathname, '/home') ? 'home' : null
 
@@ -154,10 +140,7 @@ export const BottomNav = () => {
     // below), and this effect only reconciles EXTERNAL navigation — deep
     // links, hardware back, programmatic pushes.
     const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
-    // which tab a finger is currently down on, for the icon squash. The pill
-    // overlays the ACTIVE tab and captures its pointer events (drag path), so
-    // this only ever fires for the tabs you can switch to — no squash-under-
-    // drag conflict by construction.
+    // The active pill captures pointers, so its drag path also supplies press feedback.
     const [pressedTab, setPressedTab] = useState<TabId | null>(null)
     const releasePress = (id: TabId) => () => setPressedTab((prev) => (prev === id ? null : prev))
     // native timing: feedback lands on finger-down, not after the click resolves
@@ -181,7 +164,8 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const activeBox = activeTab ? boxes[activeTab] : undefined
+    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const activeBox = selectedTab ? boxes[selectedTab] : undefined
 
     const clampX = (x: number) => {
         const first = boxes[TAB_ORDER[0]]
@@ -192,6 +176,8 @@ export const BottomNav = () => {
 
     const onPillPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
         if (!activeBox || !pillRef.current) return
+        triggerHaptic()
+        setPressedTab(selectedTab)
         // optional call: jsdom has no pointer capture
         pillRef.current.setPointerCapture?.(e.pointerId)
         dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, baseX: restingX(activeBox), moved: false }
@@ -211,6 +197,7 @@ export const BottomNav = () => {
         const drag = dragRef.current
         if (!drag || !pillRef.current || e.pointerId !== drag.pointerId) return
         dragRef.current = null
+        setPressedTab(null)
         // hand the transform back to the transition — and RESTORE the resting
         // position imperatively: clearing it left the pill at x=0 on a no-op
         // release (tap, cancel, same-tab), because React saw no prop change
@@ -233,15 +220,15 @@ export const BottomNav = () => {
                 nearest = id
             }
         }
-        if (!nearest || nearest === activeTab) return
+        if (!nearest || nearest === selectedTab) return
         triggerHaptic()
         if (nearest === 'support') {
-            // overlay, not a route — the drawer opens and the pill glides home
             setIsSupportModalOpen(true)
             return
         }
         const targetBox = boxes[nearest]
         if (targetBox) pillRef.current.style.transform = `translateX(${restingX(targetBox)}px)`
+        setIsSupportModalOpen(false)
         setActiveTab(nearest)
         router.push(nearest === 'home' ? '/home' : middleTab.href)
     }
@@ -256,14 +243,20 @@ export const BottomNav = () => {
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4"
+                // press feedback lives on the tapped icon only (iconPopClass) —
+                // the bar itself stays still (kush ruling 2026-09-21, reverting
+                // the whole-bar squash from 78e1848fb)
+                className="relative flex flex-1 items-center justify-between rounded-full border border-border-default bg-background-page shadow-4"
             >
                 <Link
                     href="/home"
                     draggable={false}
                     aria-label={t('home')}
                     {...tabPressHandlers('home')}
-                    onClick={() => setActiveTab('home')}
+                    onClick={() => {
+                        setIsSupportModalOpen(false)
+                        setActiveTab('home')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.home = el
@@ -276,7 +269,10 @@ export const BottomNav = () => {
                     draggable={false}
                     aria-label={middleTab.label}
                     {...tabPressHandlers('middle')}
-                    onClick={() => setActiveTab('middle')}
+                    onClick={() => {
+                        setIsSupportModalOpen(false)
+                        setActiveTab('middle')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.middle = el
@@ -284,14 +280,13 @@ export const BottomNav = () => {
                 >
                     <Icon name={middleTab.icon} size={20} className={iconPopClass(pressedTab === 'middle')} />
                 </Link>
-                {/* while the drawer is open the tab shows a static pressed
-                    state (white fill) instead of borrowing the route pill */}
                 <button
                     type="button"
                     aria-label={t('support')}
+                    aria-expanded={isSupportModalOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
-                    className={`${tabClass} ${isSupportModalOpen ? 'bg-background-default' : ''}`}
+                    className={tabClass}
                     ref={(el) => {
                         tabRefs.current.support = el
                     }}
@@ -324,7 +319,7 @@ export const BottomNav = () => {
                         onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
+                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-full border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
                         style={{
                             transform: `translateX(${restingX(activeBox)}px)`,
                             width: activeBox.width + 2,
@@ -341,7 +336,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 transition-transform duration-instant active:scale-95 disabled:opacity-40"
+                className="flex size-13 shrink-0 items-center justify-center rounded-full border border-border-button bg-action-primary text-foreground-primary shadow-4 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>

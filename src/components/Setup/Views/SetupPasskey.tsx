@@ -1,5 +1,6 @@
 import DocsLink from '@/components/Global/DocsLink'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
@@ -17,7 +18,7 @@ import {
     withWebAuthnRetry,
 } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
-import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
+import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -269,14 +270,14 @@ const SetupPasskey = () => {
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-label-l text-orange-400">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-label-l text-foreground-attention">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <Notification priority="error">{t('passkey.usernameTaken')}</Notification>
+                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
-                                variant="primary-soft"
+                                variant="stroke"
                                 onClick={onLogInClick}
                                 className="text-nowrap"
                                 shadowSize="4"
@@ -285,11 +286,12 @@ const SetupPasskey = () => {
                             </Button>
                         </>
                     )}
-                    {inlineError && <Notification priority="error">{inlineError}</Notification>}
+                    {inlineError && <Callout priority="error">{inlineError}</Callout>}
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
-                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                        <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}
                     </p>
@@ -298,7 +300,7 @@ const SetupPasskey = () => {
 
             {/* help modal for passkey setup issues */}
             {errorName && (
-                <PasskeySetupHelpModal
+                <PasskeySetupHelpDrawer
                     visible={showErrorModal}
                     onClose={() => setShowErrorModal(false)}
                     onRetry={() => {

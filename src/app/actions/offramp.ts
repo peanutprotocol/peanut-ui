@@ -28,6 +28,13 @@ export async function createOfframp(
                 ...params,
                 provider: 'bridge', // note: bridge is currently the only provider
             }),
+            // The first withdraw on a rail grants the endorsement inside this
+            // request, and that grant polls the provider before the transfer
+            // is even created. The default client budget is 20s, so the
+            // browser could abort mid-grant; an abort that lands after the
+            // transfer exists leaves an orphan, and the retry creates a second
+            // one. Same budget confirm already takes, for the same reason.
+            timeoutMs: 60_000,
         })
 
         const data = await response.json()

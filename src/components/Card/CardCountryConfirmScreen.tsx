@@ -78,7 +78,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                             onClick={() => setSelected(iso2)}
                             aria-pressed={selected === iso2}
                             className={`w-full rounded-sm border border-border-default p-4 text-left text-label-l ${
-                                selected === iso2 ? 'bg-purple-200' : 'bg-background-default'
+                                selected === iso2 ? 'bg-action-primary/10' : 'bg-background-default'
                             }`}
                         >
                             {localizedCountryName(locale, iso2, iso2)}
@@ -90,7 +90,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
             <Button
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="mt-auto w-full"
                 onClick={handleContinue}

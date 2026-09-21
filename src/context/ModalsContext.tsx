@@ -4,15 +4,11 @@ import { createContext, useContext, useState, useCallback, useMemo, type ReactNo
 import { redactSupportText } from '@/utils/support-context'
 
 interface ModalsContextType {
-    // iOS PWA Install Modal
-    isIosPwaInstallModalOpen: boolean
-    setIsIosPwaInstallModalOpen: (isOpen: boolean) => void
-
     // Guest Login/Sign In Modal
     isSignInModalOpen: boolean
     setIsSignInModalOpen: (isOpen: boolean) => void
 
-    // Get-the-app scan-to-download modal (pwa-sunset, desktop surfaces)
+    // Get-the-app scan-to-download modal for desktop surfaces
     isGetAppModalOpen: boolean
     setIsGetAppModalOpen: (isOpen: boolean) => void
 
@@ -33,6 +29,25 @@ interface ModalsContextType {
     isSecurityVerificationOpen: boolean
     securityVerificationVariant: SecurityVerificationVariant
     setIsSecurityVerificationOpen: (isOpen: boolean, variant?: SecurityVerificationVariant) => void
+
+    // legal re-consent priority gate: ReConsentModal writes it, the download
+    // prompt defers while it is not 'clear' FOR THE CURRENT ACCOUNT. the gate
+    // carries the userId it was resolved for, so account A's 'clear' can
+    // never release account B before B's own check publishes. 'checking'
+    // also covers the status request in flight, so the prompt cannot flash
+    // before legal resolves. starts 'checking' — the modal settles it on
+    // every terminal path (incl. no user / failed check) and on unmount.
+    legalConsentGate: LegalConsentGate
+    setLegalConsentGate: (gate: LegalConsentGate) => void
+}
+
+/** status: 'checking' = request pending · 'prompting' = the legal modal is
+ *  showing · 'clear' = resolved (accepted, snoozed, nothing to show, failed
+ *  open, or no user). userId: the account the status belongs to; null means
+ *  account-independent (logged out, or no consent surface mounted). */
+export interface LegalConsentGate {
+    status: 'checking' | 'prompting' | 'clear'
+    userId: string | null
 }
 
 /** 'next-passkey' tells the user a second passkey sheet follows (mixed spend tap #2). */
@@ -41,9 +56,6 @@ export type SecurityVerificationVariant = 'default' | 'next-passkey'
 const ModalsContext = createContext<ModalsContextType | undefined>(undefined)
 
 export function ModalsProvider({ children }: { children: ReactNode }) {
-    // iOS PWA Install Modal
-    const [isIosPwaInstallModalOpen, setIsIosPwaInstallModalOpen] = useState(false)
-
     // Guest Login/Sign In Modal
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
 
@@ -67,6 +79,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     // QR Scanner
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+
+    // legal re-consent gate — 'checking' until ReConsentModal reports, so a
+    // first render can never race the download prompt past legal
+    const [legalConsentGate, setLegalConsentGate] = useState<LegalConsentGate>({ status: 'checking', userId: null })
 
     // Security Verification Overlay
     const [securityVerification, setSecurityVerification] = useState<{
@@ -95,10 +111,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     const value = useMemo(
         () => ({
-            // iOS PWA Install Modal
-            isIosPwaInstallModalOpen,
-            setIsIosPwaInstallModalOpen,
-
             // Guest Login/Sign In Modal
             isSignInModalOpen,
             setIsSignInModalOpen,
@@ -122,9 +134,12 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSecurityVerificationOpen,
             securityVerificationVariant,
             setIsSecurityVerificationOpen,
+
+            // Legal re-consent gate
+            legalConsentGate,
+            setLegalConsentGate,
         }),
         [
-            isIosPwaInstallModalOpen,
             isSignInModalOpen,
             isGetAppModalOpen,
             isSupportModalOpen,
@@ -135,6 +150,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSecurityVerificationOpen,
             securityVerificationVariant,
             setIsSecurityVerificationOpen,
+            legalConsentGate,
         ]
     )
 

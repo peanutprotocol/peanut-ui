@@ -4,7 +4,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -145,14 +147,16 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             onClose={handleClose}
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
             hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
-            tone="warning"
+            tone={isConfirm ? 'error' : 'attention'}
             icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
             description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
             content={
                 isConfirm ? (
+                    // visual-qa verdict: cancel keeps the slide friction — a
+                    // terminal money action commits only at full travel.
                     <>
-                        {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                        {error && <Callout priority="error">{error}</Callout>}
                         <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
                             onConfirm={runCancel}
@@ -160,10 +164,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                         />
                     </>
                 ) : isFeedback ? (
-                    <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="cancel-feedback" className="text-label-l">
-                            {t('cancel.feedbackLabel')}
-                        </label>
+                    <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
                         <textarea
                             id="cancel-feedback"
                             value={feedback}
@@ -171,10 +172,10 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             placeholder={t('cancel.feedbackPlaceholder')}
                             rows={4}
                             maxLength={2000}
-                            className="w-full resize-none rounded-sm border border-border-default bg-background-default p-3 text-body-s focus:outline-none"
+                            className="input h-auto resize-y py-3"
                             disabled={phase === 'submitting-feedback'}
                         />
-                    </div>
+                    </Field>
                 ) : undefined
             }
             ctas={
@@ -182,8 +183,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     ? [
                           {
                               text: t('cancel.submit'),
-                              variant: 'purple',
-                              shadowSize: '4',
+                              variant: 'primary',
                               onClick: submitFeedback,
                               loading: phase === 'submitting-feedback',
                               disabled: phase === 'submitting-feedback',
@@ -193,12 +193,19 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                       ? [
                             {
                                 text: tCommon('close'),
-                                variant: 'purple',
-                                shadowSize: '4',
+                                variant: 'primary',
                                 onClick: handleClose,
                             },
                         ]
-                      : undefined
+                      : [
+                            {
+                                text: t('cancel.keepCard'),
+                                variant: 'stroke',
+                                className: 'w-full',
+                                onClick: handleClose,
+                                disabled: phase === 'canceling',
+                            },
+                        ]
             }
         />
     )

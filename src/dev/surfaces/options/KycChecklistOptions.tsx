@@ -8,6 +8,7 @@
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 
@@ -46,19 +47,16 @@ export function KycChecklistA() {
         <Shell>
             <div className="flex w-full flex-col gap-3 text-left">
                 <p className="text-body-s">{t('intro.standard')}</p>
-                <ul className="flex flex-col gap-3">
-                    {ITEMS.map((item) => (
-                        <li key={item} className="flex items-start gap-2">
-                            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground-primary" />
-                            <span>
-                                <span className="block text-label-l">{t(`items.${item}.title`)}</span>
-                                <span className="block text-body-xs text-foreground-secondary">
-                                    {t(`items.${item}.body`)}
-                                </span>
+                <BulletList
+                    items={ITEMS.map((item) => (
+                        <span key={item}>
+                            <span className="block text-label-l">{t(`items.${item}.title`)}</span>
+                            <span className="block text-body-xs text-foreground-secondary">
+                                {t(`items.${item}.body`)}
                             </span>
-                        </li>
+                        </span>
                     ))}
-                </ul>
+                />
                 <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>
                 <div className="flex flex-col gap-0.5">
                     <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
@@ -76,7 +74,7 @@ export function KycChecklistB() {
         <Shell>
             <div className="flex w-full flex-col gap-3 text-left">
                 <p className="text-body-s">{t('intro.standard')}</p>
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {ITEMS.map((item) => (
                         <DataRow key={item} label={t(`items.${item}.title`)} value={t(`items.${item}.body`)} />
                     ))}

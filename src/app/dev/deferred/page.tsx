@@ -20,6 +20,13 @@ import {
 import { getFromCookie } from '@/utils/general.utils'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { Section } from '@/components/0_Bruddle/Section'
+import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 
 export default function DeferredLinkDevPage() {
     const [state, setState] = useState<Record<string, string>>({})
@@ -65,87 +72,93 @@ export default function DeferredLinkDevPage() {
     if (BASE_URL === 'https://peanut.me' && !isCapacitor()) notFound()
 
     return (
-        <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-mono text-body-s">
-            <h1 className="text-heading-card">deferred deep link — dev</h1>
-
-            <section>
-                <h2 className="font-bold">state</h2>
-                <pre className="border border-border-default p-2 whitespace-pre-wrap">
-                    {JSON.stringify(state, null, 2)}
-                </pre>
-                <div className="flex gap-2">
-                    <button className="border border-border-default px-2 py-1" onClick={refresh}>
-                        refresh
-                    </button>
-                    <button
-                        className="border border-border-default px-2 py-1"
+        <DevPageShell
+            title="Deferred deep link"
+            description="Inspect the hand-off state, build store payloads, and simulate a restore from a raw referrer."
+            width="prose"
+        >
+            <Section title="State">
+                <Card className="p-3">
+                    <pre className="overflow-auto font-mono text-body-xs whitespace-pre-wrap">
+                        {JSON.stringify(state, null, 2)}
+                    </pre>
+                </Card>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button variant="stroke" size="small" onClick={refresh}>
+                        Refresh
+                    </Button>
+                    <Button
+                        variant="stroke"
+                        size="small"
                         onClick={() => {
                             localStorage.removeItem(CONSUMED_KEY)
                             refresh()
                         }}
                     >
-                        reset consumed flag
-                    </button>
+                        Reset consumed flag
+                    </Button>
                 </div>
-            </section>
+            </Section>
 
-            <section>
-                <h2 className="font-bold">web → store hand-off</h2>
-                <button
-                    className="border border-border-default px-2 py-1"
+            <Section title="Web to store hand-off">
+                <Button
+                    variant="stroke"
                     onClick={() => {
                         setPayload(buildDeferredPayload('/home'))
                         setCopied(false)
                     }}
                 >
-                    build payload from current context (dest=/home)
-                </button>
+                    Build payload for /home
+                </Button>
                 {payload && (
-                    <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">
-                        payload: {payload}
-                        {'\n\n'}play url: {playStoreUrlWithReferrer(payload)}
-                        {'\n\n'}ios hand-off: {iosHandoffString(payload)}
-                    </pre>
+                    <Card className="p-3">
+                        <pre className="overflow-auto font-mono text-body-xs break-all whitespace-pre-wrap">
+                            payload: {payload}
+                            {'\n\n'}play url: {playStoreUrlWithReferrer(payload)}
+                            {'\n\n'}ios hand-off: {iosHandoffString(payload)}
+                        </pre>
+                    </Card>
                 )}
                 {payload && (
-                    <button
-                        className="border border-border-default px-2 py-1"
+                    <Button
+                        variant="stroke"
+                        icon="copy"
                         onClick={async () => {
                             await copyIOSHandoff(payload)
                             setCopied(true)
                         }}
                     >
-                        {copied ? 'copied ✓' : 'copy ios hand-off to clipboard'}
-                    </button>
+                        {copied ? 'Copied' : 'Copy iOS hand-off'}
+                    </Button>
                 )}
-            </section>
+            </Section>
 
-            <section>
-                <h2 className="font-bold">native: raw install referrer</h2>
-                <button className="border border-border-default px-2 py-1" onClick={readReferrer}>
-                    read raw referrer (android native only)
-                </button>
-                <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">{rawReferrer}</pre>
-            </section>
-
-            <section>
-                <h2 className="font-bold">simulate restore</h2>
-                <textarea
-                    className="w-full border border-border-default p-2"
-                    rows={3}
-                    placeholder="pnutdl=1&lang=es-419&invite=test&dest=%2Fhome — or a full hand-off url"
-                    value={simulateInput}
-                    onChange={(e) => setSimulateInput(e.target.value)}
-                />
-                <button className="border border-border-default px-2 py-1" onClick={simulate}>
-                    parse + apply
-                </button>
-                {simulateResult && (
-                    <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">
-                        {simulateResult}
+            <Section title="Native install referrer">
+                <Button variant="stroke" onClick={readReferrer}>
+                    Read raw Android referrer
+                </Button>
+                <Card className="p-3">
+                    <pre className="overflow-auto font-mono text-body-xs break-all whitespace-pre-wrap">
+                        {rawReferrer}
                     </pre>
+                </Card>
+            </Section>
+
+            <Section title="Simulate restore">
+                <Field label="Raw referrer or hand-off URL">
+                    <BaseInput
+                        placeholder="pnutdl=1&lang=es-419&invite=test&dest=%2Fhome — or a full hand-off url"
+                        value={simulateInput}
+                        onChange={(event) => setSimulateInput(event.target.value)}
+                    />
+                </Field>
+                <Button onClick={simulate}>Parse and apply</Button>
+                {simulateResult && (
+                    <Callout priority={simulateResult.startsWith('rejected') ? 'error' : 'success'}>
+                        <span className="font-mono break-all">{simulateResult}</span>
+                    </Callout>
                 )}
-            </section>
-        </div>
+            </Section>
+        </DevPageShell>
     )
 }

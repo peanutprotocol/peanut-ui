@@ -2,48 +2,68 @@
 
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
+import { type ScreenId } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
+import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { toInviteCode } from '@/utils/general.utils'
+import { getStoredRedirect, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import * as Sentry from '@sentry/nextjs'
 import { EInviteType } from '@/services/services.types'
+import {
+    badgeCampaignsFromSearchParams,
+    getPendingBadgeCampaigns,
+    queuePendingBadgeCampaigns,
+} from '@/components/Invites/badge-campaign-context'
+import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
+import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
+import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
+
+function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
+    if (!target) return false
+    try {
+        const targetUrl = new URL(target, 'https://peanut.me')
+        if (targetUrl.pathname !== '/setup') return false
+        const normalize = (params: URLSearchParams) =>
+            Array.from(params.entries()).sort(
+                ([keyA, valueA], [keyB, valueB]) => keyA.localeCompare(keyB) || valueA.localeCompare(valueB)
+            )
+        return (
+            JSON.stringify(normalize(targetUrl.searchParams)) ===
+            JSON.stringify(normalize(new URLSearchParams(searchParamsString)))
+        )
+    } catch {
+        return false
+    }
+}
 
 function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
+    const { steps, resetSetupFlow, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
-    const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
-    const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
+    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const [canInstall, setCanInstall] = useState(false)
-    const [deviceType, setDeviceType] = useState<DeviceType>(DeviceType.WEB)
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
     const setScreenIdRef = useRef(setScreenId)
@@ -67,37 +87,83 @@ function SetupPageContent() {
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
+    const searchParamsString = searchParams.toString()
+    const signupEntryFlow = useMemo(() => {
+        const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+        return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
+    }, [searchParamsString])
+    useEffect(() => setSignupEntryFlow(signupEntryFlow), [setSignupEntryFlow, signupEntryFlow])
+    const urlBadgeCampaigns = useMemo(
+        () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
+        [searchParamsString]
+    )
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+    /*
+     * A completed session is on its way to /home (see the session effect
+     * below), but the soft nav takes a beat and this page keeps rendering and
+     * resolving its entry step meanwhile. Nothing here is a fault the user
+     * should see: an authenticated pop back into /setup — the signup flow
+     * leaves a history entry per step — showed the recovery screen instead of
+     * the bounce it was already performing.
+     */
+    const [isLeavingForHome, setIsLeavingForHome] = useState(false)
+    const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
+    const [deepLinkGeneration, setDeepLinkGeneration] = useState(() => getDeepLinkGeneration())
+    const isSetupMountedRef = useRef(false)
+    const currentBadgeCampaignsKeyRef = useRef(urlBadgeCampaigns.join('\u0000'))
+    const nativeClaimCampaignsKeyRef = useRef<string | null>(null)
+    const nativeClaimGenerationRef = useRef<number | null>(null)
+    const nativeClaimRunIdRef = useRef(0)
+    const lastHandledDeepLinkGenerationRef = useRef(deepLinkGeneration)
+    currentBadgeCampaignsKeyRef.current = urlBadgeCampaigns.join('\u0000')
 
-    const recoveryReason =
-        initializationError ??
-        (!isLoading &&
-        sessionChecked &&
-        !step &&
-        !existingSessionUsername &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
-            ? 'missing_step'
-            : null)
+    useEffect(() => subscribeToDeepLinkGeneration(() => setDeepLinkGeneration(getDeepLinkGeneration())), [])
 
     useEffect(() => {
-        if (recoveryReason) {
-            Sentry.captureMessage('Setup recovery required', {
-                level: 'warning',
-                tags: { reason: recoveryReason },
-            })
+        isSetupMountedRef.current = true
+        return () => {
+            isSetupMountedRef.current = false
         }
+    }, [])
+
+    const recoveryReason = isLeavingForHome
+        ? null
+        : (initializationError ??
+          (!isLoading &&
+          sessionChecked &&
+          !step &&
+          !existingSessionUsername &&
+          !showDeviceNotSupportedModal &&
+          !showBrowserNotSupportedModal
+              ? 'missing_step'
+              : null))
+
+    useEffect(() => {
+        if (!recoveryReason) return
+        if (recoveryReason === 'missing_step') {
+            Sentry.addBreadcrumb({
+                category: 'setup.recovery',
+                level: 'info',
+                message: 'Setup recovery required',
+                data: { reason: recoveryReason },
+            })
+            return
+        }
+        Sentry.captureMessage('Setup initialization failed', {
+            level: 'error',
+            tags: { reason: recoveryReason },
+        })
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
     // only count steps that actually render: not while the entry step is
     // being determined, and not behind the existing-session interstitial
@@ -126,6 +192,7 @@ function SetupPageContent() {
         enabled: stepRendered,
         step,
         steps,
+        signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
 
@@ -134,13 +201,30 @@ function SetupPageContent() {
      * earlier signup leaves durable credentials (jwt cookie in the native jar,
      * web-authn-key cookie), and running signup on top of them silently no-ops
      * — the passkey step would skip and the freshly chosen username would be
-     * discarded. Check once, at entry only: `sessionChecked` stays true for the
-     * rest of the flow, so the user becoming authenticated mid-signup (after
-     * registration) never re-triggers the prompt.
+     * discarded. Check once, at entry: `sessionChecked` stays true for the rest
+     * of the flow, while newer accepted native /setup generations are handled
+     * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
-        if (sessionChecked || isFetchingUser) return
-        setSessionChecked(true)
+        if (isFetchingUser) return
+        const isInitialSessionCheck = !sessionChecked
+        const isNewSetupDeepLink =
+            !isInitialSessionCheck &&
+            deepLinkGeneration !== lastHandledDeepLinkGenerationRef.current &&
+            setupTargetMatchesSearchParams(getDeepLinkTarget(), searchParamsString)
+        if (!isInitialSessionCheck && !isNewSetupDeepLink) return
+        if (isInitialSessionCheck) setSessionChecked(true)
+        lastHandledDeepLinkGenerationRef.current = deepLinkGeneration
+
+        // Native /invite links are rewritten to /setup because the invite page is
+        // not part of the static export. Queue the campaign before the completed
+        // session redirect can discard the query string, and settle it below for
+        // users who are already authenticated.
+        const pendingBadgeCampaigns =
+            urlBadgeCampaigns.length > 0
+                ? queuePendingBadgeCampaigns(urlBadgeCampaigns, 30)
+                : getPendingBadgeCampaigns()
+
         if (user?.user?.username) {
             /*
              * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
@@ -149,7 +233,68 @@ function SetupPageContent() {
              * written for (durable credentials, setup never completed).
              */
             if (user.user.hasAppAccess) {
+                const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+                const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
+                const shouldSettleNativeBadgeCampaigns =
+                    isCapacitor() &&
+                    pendingBadgeCampaigns.length > 0 &&
+                    (nativeClaimCampaignsKeyRef.current !== nativeClaimCampaignsKey ||
+                        nativeClaimGenerationRef.current !== nativeClaimDeepLinkGeneration)
+                if (shouldSettleNativeBadgeCampaigns) {
+                    const nativeClaimRunId = nativeClaimRunIdRef.current + 1
+                    nativeClaimRunIdRef.current = nativeClaimRunId
+                    nativeClaimCampaignsKeyRef.current = nativeClaimCampaignsKey
+                    nativeClaimGenerationRef.current = nativeClaimDeepLinkGeneration
+                    const isCurrentNativeClaim = () =>
+                        isSetupMountedRef.current &&
+                        nativeClaimRunIdRef.current === nativeClaimRunId &&
+                        getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
+                        currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
+                    setIsSettlingNativeBadgeCampaigns(true)
+                    void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
+                        .then(async (batch) => {
+                            if (!isCurrentNativeClaim()) return
+
+                            const hasConfirmedClaim = batch.claims.some(
+                                ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
+                            )
+                            if (hasConfirmedClaim) {
+                                try {
+                                    await fetchUser()
+                                    if (!isCurrentNativeClaim()) return
+                                } catch (error) {
+                                    Sentry.captureException(error, {
+                                        tags: { error_type: 'native_campaign_profile_refresh_failed' },
+                                    })
+                                }
+                            }
+                        })
+                        .catch((error) => {
+                            if (!isCurrentNativeClaim()) return
+                            Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
+                        })
+                        .finally(() => {
+                            if (isCurrentNativeClaim()) {
+                                setIsSettlingNativeBadgeCampaigns(false)
+                                router.replace('/home')
+                            } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
+                                // A newer native link may keep this setup instance
+                                // mounted while Next transitions to its new URL.
+                                // Release the old loader until the latest URL's
+                                // effect starts its replacement settlement.
+                                setIsSettlingNativeBadgeCampaigns(false)
+                            }
+                        })
+                    return
+                }
+                if (isNewSetupDeepLink) {
+                    setIsSettlingNativeBadgeCampaigns(false)
+                    router.replace('/home')
+                    return
+                }
+                if (!isInitialSessionCheck) return
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+                setIsLeavingForHome(true)
                 router.replace('/home')
                 return
             }
@@ -158,15 +303,19 @@ function SetupPageContent() {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user, router])
+    }, [
+        sessionChecked,
+        isFetchingUser,
+        user,
+        router,
+        fetchUser,
+        urlBadgeCampaigns,
+        deepLinkGeneration,
+        searchParamsString,
+    ])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
-        // Mounting the (setup) layout armed the post-setup iOS install wall
-        // (setShowIosPwaInstallScreen in (setup)/layout.tsx). This visit was not a
-        // setup session, so disarm it — otherwise /home renders the no-escape
-        // ForceIOSPWAInstall screen.
-        setShowIosPwaInstallScreen(false)
         router.push('/home')
     }
 
@@ -206,16 +355,15 @@ function SetupPageContent() {
             /*
              * ?code= arrives from an /invite deep link (native maps
              * peanut.me/invite?code=X here — see native-routes.ts). Persist it
-             * as the same session cookie the web InvitesPage and the
-             * deferred-install hand-off write, so it survives the multi-step
-             * signup and reaches registration.
+             * as the same session cookie the web InvitesPage writes, so it
+             * survives the multi-step signup and reaches registration.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
                 stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
-            // pwa-sunset notice window: web signups are closed (Landing hides
+            // During the native-app cutover, web signups are closed (Landing hides
             // Sign up), so the ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app keeps the fast path.
@@ -229,16 +377,21 @@ function SetupPageContent() {
 
             const localDeviceType = detectedDeviceType
 
-            // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
-            // and go straight to the landing (signup) flow
+            // The web-signup sunset is a product-access decision, not a
+            // capability check. Resolve it before legacy passkey, OS, and
+            // webview gates so every browser can reach Landing's Log In and
+            // native-store actions, including devices that cannot onboard.
+            if (webSignupClosed) {
+                const targetStep = resolveSetupEntryStep(entryInput)
+                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
+                setScreenIdRef.current(targetStep, { history: 'replace' })
+                setIsLoading(false)
+                return
+            }
+
+            // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
             if (isCapacitor()) {
-                setDeviceType(localDeviceType)
-                const targetStep = resolveSetupEntryStep({
-                    ...entryInput,
-                    isCapacitor: true,
-                    deviceType: localDeviceType,
-                    isStandalonePWA: false,
-                })
+                const targetStep = resolveSetupEntryStep(entryInput)
                 // replace, not push: the entry step overwrites any stale
                 // ?screen= from a reload or shared link — the URL is only the
                 // source of truth for IN-FLOW navigation (TASK-21460)
@@ -250,14 +403,19 @@ function SetupPageContent() {
 
             // check if device has a platform authenticator (biometric/pin).
             // capacitor already returned above — this only runs on web.
+            // The harness browser has no authenticator and signs with its own
+            // key, so the probe there only walls the QA run off its first
+            // screen. Production has neither harness signal.
             let passkeySupport = true
-            try {
-                if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
-                    passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            if (!harnessPasskeyBypass()) {
+                try {
+                    if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+                        passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                    }
+                } catch (e) {
+                    passkeySupport = false
+                    console.error('Error checking passkey support:', e)
                 }
-            } catch (e) {
-                passkeySupport = false
-                console.error('Error checking passkey support:', e)
             }
 
             if (isObsolete()) return
@@ -276,19 +434,14 @@ function SetupPageContent() {
                 )
             }
 
-            const unsupportedBrowserStepExists = masterSetupSteps.find(
-                (s: ISetupStep) => s.screenId === 'unsupported-browser'
-            )
             let determinedSetupInitialStepId: ScreenId | undefined = undefined
 
             // main decision logic for showing modals or proceeding with setup
             if (effectiveCurrentlyInWebview) {
-                // if in a webview and passkeys aren't supported (and the unsupported browser step is defined),
-                // show the unsupported browser modal
-                if (!passkeySupport && unsupportedBrowserStepExists) {
+                // If a webview does not support passkeys, show the unsupported browser modal.
+                if (!passkeySupport) {
                     setShowBrowserNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 }
             } else {
@@ -297,35 +450,18 @@ function SetupPageContent() {
                     // if os version is too old, show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 } else if (!passkeySupport) {
                     // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
                     // show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 }
             }
 
             // if no modal was triggered, proceed to determine actual setup step
-            setDeviceType(localDeviceType)
-
-            const isStandalonePWA =
-                typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
-
-            if (localDeviceType === 'android' && !isStandalonePWA) {
-                setCanInstall(true)
-                setDeferredPrompt({} as BeforeInstallPromptEvent)
-            }
-
-            determinedSetupInitialStepId = resolveSetupEntryStep({
-                ...entryInput,
-                isCapacitor: false,
-                deviceType: localDeviceType,
-                isStandalonePWA,
-            })
+            determinedSetupInitialStepId = resolveSetupEntryStep(entryInput)
 
             // Entry always REPLACES — a stale ?screen= must never survive a
             // fresh load into a step whose prerequisite state is gone.
@@ -343,23 +479,15 @@ function SetupPageContent() {
             setIsLoading(false)
         })
 
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault()
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
-            setCanInstall(true)
-        }
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-
         return () => {
             cancelled = true
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
     }, [steps, inviteCodeParam, legacyStepParam])
 
     if (recoveryReason) {
         return (
             <div className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 p-6">
-                <h1 className="text-heading-2 text-center">{tCommon('somethingWentWrong')}</h1>
+                <h1 className="text-center text-heading-m">{tCommon('somethingWentWrong')}</h1>
                 <p className="text-center">{tCommon('genericError')}</p>
                 <div className="flex w-full max-w-sm flex-col gap-3">
                     <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>
@@ -371,7 +499,7 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked)
+    if (isLoading || !sessionChecked || isLeavingForHome || isSettlingNativeBadgeCampaigns)
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />
@@ -383,7 +511,7 @@ function SetupPageContent() {
             <SetupWrapper
                 layoutType="signup"
                 screenId="welcome"
-                image={PeanutWavingHello.src}
+                image={{ pose: 'waving-hello' }}
                 title={t('existingSession.title')}
                 description={t('existingSession.description', { username: existingSessionUsername })}
                 contentClassName="flex flex-col items-center justify-center gap-6"
@@ -430,9 +558,6 @@ function SetupPageContent() {
             isLoggingOut={isLoggingOut}
             step={currentStepIndex}
             direction={direction}
-            deferredPrompt={deferredPrompt}
-            canInstall={canInstall}
-            deviceType={deviceType}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >

@@ -516,3 +516,14 @@ describe('cross-chain disabled by account policy (XCHAIN_WITHDRAW_DISABLED)', ()
         expect(en.errors.xchainPaymentDisabled).not.toContain('Arbitrum')
     })
 })
+
+test('corporate rejection codes select localized availability guidance without matching provider prose', () => {
+    expect(
+        friendlyError(
+            new ApiError('Company has exceeded their debt limit', {
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+    ).toEqual({ kind: 'code', code: 'transferTemporarilyUnavailable' })
+})

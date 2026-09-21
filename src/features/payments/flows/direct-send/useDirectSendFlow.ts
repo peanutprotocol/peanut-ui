@@ -72,6 +72,7 @@ export function useDirectSendFlow() {
         address: walletAddress,
         sendMoney,
         formattedSpendableBalance,
+        spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
@@ -283,6 +284,7 @@ export function useDirectSendFlow() {
         isConnected,
         walletAddress,
         formattedBalance: formattedSpendableBalance,
+        balanceFillAmount: spendableBalanceDecimal,
 
         // actions
         setAmount: handleSetAmount,

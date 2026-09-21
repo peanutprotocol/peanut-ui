@@ -15,34 +15,11 @@ import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
 
-function taskCopy(task: NextAction): { title: string; description: string } {
-    // Advisory tasks (future-dated, rails still usable) are about KEEPING
-    // access; blocking tasks are about ENABLING it — don't tell a blocked
-    // user their transfers are "available".
-    const advisory = !!task.effectiveDate
-    if (task.kind === 'accept-tos') {
-        if (task.key === 'accept-tos:sepa') {
-            return {
-                title: 'Accept updated bank transfer provider terms',
-                description: advisory
-                    ? "Accept our bank transfer provider's updated Terms of Service to keep euro and British pound bank transfers available."
-                    : "Accept our bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
-            }
-        }
-        return {
-            title: 'Accept Terms of Service',
-            description: advisory
-                ? "Accept our payment partner's terms to keep bank transfers available."
-                : "Accept our payment partner's terms to enable bank transfers.",
-        }
-    }
-    return {
-        title: 'Additional verification needed',
-        description: advisory
-            ? 'Complete a quick verification with our payment partner to keep bank transfers available.'
-            : 'Complete a quick verification with our payment partner to enable bank transfers.',
-    }
-}
+// Currencies whose corridor a hosted-verification task can NAME. The backend
+// sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
+// this set falls back to the generic "bank transfers" copy.
+type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN'
+const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
@@ -50,7 +27,9 @@ function taskCopy(task: NextAction): { title: string; description: string } {
  * top-level capability `nextActions` (NOT rail gates), so it also catches the
  * orphan actions no rail references (both blocking hosted tasks and advisory
  * future-dated ones) and sidesteps ActivationCTAs' can-already-transact
- * stand-down. Renders nothing when no task is pending. Multiple tasks render
+ * stand-down. A blocking hosted task itself stands down while a Bridge rail
+ * carries a native step (selectBridgeTasks) — the native step is the one that
+ * can clear the requirement. Renders nothing when no task is pending. Multiple tasks render
  * as full-width horizontal carousel slides (same embla setup as
  * HomeCarouselCTA); a single task looks identical to a static card.
  *
@@ -71,7 +50,7 @@ function taskCopy(task: NextAction): { title: string; description: string } {
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const t = useTranslations('home')
-    const { nextActions } = useCapabilities()
+    const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
     const router = useRouter()
@@ -84,7 +63,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const tasks = selectBridgeTasks(nextActions)
+    const tasks = selectBridgeTasks(nextActions, rails ?? [])
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
@@ -141,12 +120,60 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
-            router.push('/profile/identity-verification/additional')
+            router.push('/profile/accounts-and-payments/additional')
         },
         [router]
     )
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
+
+    // Advisory tasks (future-dated, rails still usable) are about KEEPING
+    // access; blocking tasks are about ENABLING it — don't tell a blocked user
+    // their transfers are "available". A hosted task carries the rail currency,
+    // so name the corridor ("unlock euro bank transfers") instead of the generic
+    // "bank transfers" when we know it.
+    const corridorLabel = (currency: CorridorCurrency): string => {
+        switch (currency) {
+            case 'USD':
+                return t('pendingTasks.corridors.USD')
+            case 'EUR':
+                return t('pendingTasks.corridors.EUR')
+            case 'GBP':
+                return t('pendingTasks.corridors.GBP')
+            case 'MXN':
+                return t('pendingTasks.corridors.MXN')
+        }
+    }
+    const taskCopy = (task: NextAction): { title: string; description: string } => {
+        const advisory = !!task.effectiveDate
+        if (task.kind === 'accept-tos') {
+            if (task.key === 'accept-tos:sepa') {
+                return {
+                    title: t('pendingTasks.tosSepaTitle'),
+                    description: advisory
+                        ? t('pendingTasks.tosSepaDescriptionAdvisory')
+                        : t('pendingTasks.tosSepaDescription'),
+                }
+            }
+            return {
+                title: t('pendingTasks.tosTitle'),
+                description: advisory ? t('pendingTasks.tosDescriptionAdvisory') : t('pendingTasks.tosDescription'),
+            }
+        }
+        if (task.currency && CORRIDOR_CURRENCIES.has(task.currency)) {
+            const corridor = corridorLabel(task.currency as CorridorCurrency)
+            return {
+                title: t('pendingTasks.verifyTitleCorridor', { corridor }),
+                description: advisory
+                    ? t('pendingTasks.verifyDescriptionCorridorAdvisory', { corridor })
+                    : t('pendingTasks.verifyDescriptionCorridor', { corridor }),
+            }
+        }
+        return {
+            title: t('pendingTasks.verifyTitle'),
+            description: advisory ? t('pendingTasks.verifyDescriptionAdvisory') : t('pendingTasks.verifyDescription'),
+        }
+    }
 
     if (visibleTasks.length === 0 && !activeTosTask) return null
 
@@ -160,7 +187,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             const isHosted = task.kind === 'bridge-hosted'
                             const deadline = formatEffectiveDate(task.effectiveDate)
                             return (
-                                <Card key={task.key} position="single" className="embla__slide relative p-0">
+                                <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
                                         {dismissible && !!task.effectiveDate && (
                                             <button
@@ -172,7 +199,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 <Icon name="cancel" size={16} />
                                             </button>
                                         )}
-                                        <div className="flex size-10 items-center justify-center rounded-full bg-action-secondary">
+                                        <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
@@ -187,7 +214,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             )}
                                         </div>
                                         <Button
-                                            variant="purple"
+                                            variant="primary"
                                             shadowSize="4"
                                             className="mt-1 w-full"
                                             onClick={() => handleOpenTask(task)}

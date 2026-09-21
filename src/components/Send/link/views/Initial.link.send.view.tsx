@@ -2,7 +2,7 @@
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -20,7 +20,7 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
-import FileUploadInput from '../../../Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
@@ -56,7 +56,7 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -258,14 +258,15 @@ const LinkSendInitialView = () => {
     // Client-side validation errors carry an errorCode ('invalidAmount' /
     // 'notEnoughBalanceAddFunds') — they render as the amount field's own
     // error. Submit-time failures (createLink, cooldown, settling copy) have
-    // no code and stay in the flow-level Notification with the retry CTA.
+    // no code and stay in the flow-level Callout with the retry CTA.
     const isFieldError =
         !!errorState?.showError &&
         (errorState.errorCode === 'invalidAmount' || errorState.errorCode === 'notEnoughBalanceAddFunds')
     const isFlowError = !!errorState?.showError && !isFieldError
 
     return (
-        <div className="space-y-4 w-full">
+        // ponytail: no wrapper — PageStack.Center's gap-4 owns the spacing
+        <>
             <PeanutActionCard type="send" />
 
             <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
@@ -274,20 +275,21 @@ const LinkSendInitialView = () => {
                     setPrimaryAmount={handleAmountChange}
                     onSubmit={handleOnNext}
                     walletBalance={peanutWalletBalance}
+                    balanceFillAmount={spendableBalanceDecimal}
                 />
             </FieldColumn>
 
-            <FileUploadInput
-                className="h-11"
+            <BaseInput
                 placeholder={tCommon('comment')}
-                attachmentOptions={attachmentOptions}
-                setAttachmentOptions={setAttachmentOptions}
+                value={attachmentOptions.message}
+                maxLength={140}
+                onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
             />
 
             {isBelowFiatClaimMinimum && (
-                <Notification priority="attention" data-testid="info-card">
+                <Callout priority="attention" data-testid="info-card">
                     {t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
-                </Notification>
+                </Callout>
             )}
 
             <div className="flex flex-col gap-4">
@@ -308,12 +310,12 @@ const LinkSendInitialView = () => {
                     </Button>
                 )}
                 {isFlowError && (
-                    <Notification priority="error" data-testid="error-alert">
+                    <Callout priority="error" data-testid="error-alert">
                         {errorState.errorMessage}
-                    </Notification>
+                    </Callout>
                 )}
             </div>
-        </div>
+        </>
     )
 }
 

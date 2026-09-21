@@ -1,7 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { Section } from '@/components/0_Bruddle/Section'
 import { JOURNEY_API_BASE } from './journeyData'
 import { inspectParam } from './userLookup'
 import type { JourneyInspectResponse } from './journeyTypes'
@@ -53,36 +58,30 @@ export default function UserInspector() {
 
     return (
         <div className="flex max-w-2xl flex-col gap-3">
-            <div className="flex gap-2">
-                <input
-                    value={term}
-                    onChange={(e) => setTerm(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') void inspect()
-                    }}
-                    placeholder="username or userId"
-                    className="h-10 flex-1 rounded-sm border border-border-default px-3 font-mono text-body-s outline-none"
-                />
-                <Button variant="purple" shadowSize="4" className="w-auto px-6" onClick={() => void inspect()}>
-                    {loading ? 'Looking…' : 'Inspect'}
+            <div className="flex flex-col items-end gap-2 sm:flex-row">
+                <Field label="Username or user ID">
+                    <BaseInput
+                        value={term}
+                        onChange={(event) => setTerm(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') void inspect()
+                        }}
+                    />
+                </Field>
+                <Button className="sm:w-auto" onClick={() => void inspect()} loading={loading}>
+                    Inspect
                 </Button>
             </div>
 
-            {error && (
-                <div className="rounded-sm border border-border-default bg-action-secondary/40 p-3 text-body-s">
-                    {error}
-                </div>
-            )}
+            {error && <Callout priority="error">{error}</Callout>}
 
             {result && (
-                <div className="rounded-sm border border-border-default bg-white p-3">
+                <Card className="p-3">
                     <div className="text-label-l">
                         {result.user.username ?? '(no username)'}{' '}
-                        <span className="font-normal text-foreground-secondary">
-                            {result.user.email ?? '(no email)'}
-                        </span>
+                        <span className="text-foreground-secondary">{result.user.email ?? '(no email)'}</span>
                     </div>
-                    <p className="mt-0.5 font-mono text-[11px] text-foreground-secondary">
+                    <p className="mt-0.5 font-mono text-body-xs text-foreground-secondary">
                         resolved {result.user.username ? `@${result.user.username}` : '(no username)'} →{' '}
                         {result.user.userId}
                     </p>
@@ -92,17 +91,11 @@ export default function UserInspector() {
                             ? new Date(result.user.cardAccessGrantedAt).toLocaleDateString()
                             : 'not granted'}
                     </p>
-                    <p className="mt-2 text-body-s">
-                        <span className="font-bold">Current nudge:</span>{' '}
-                        <span className="rounded-sm bg-purple-200 px-1.5 py-0.5 font-mono text-body-xs">
-                            {dueLabel}
-                        </span>
-                    </p>
+                    <Callout priority="info" className="mt-2" title="Current nudge">
+                        <span className="font-mono text-body-xs">{dueLabel}</span>
+                    </Callout>
 
-                    <div className="mt-3">
-                        <div className="text-label-m tracking-wide text-foreground-secondary uppercase">
-                            Lifecycle email history
-                        </div>
+                    <Section title="Lifecycle email history" className="mt-3">
                         {result.history.length === 0 ? (
                             <p className="mt-1 text-body-s text-foreground-secondary">Nothing sent or attempted yet.</p>
                         ) : (
@@ -110,11 +103,11 @@ export default function UserInspector() {
                                 <table className="w-full text-left text-body-xs">
                                     <thead>
                                         <tr className="border-b border-border-default text-foreground-secondary">
-                                            <th className="py-1 pr-3 font-bold">event</th>
-                                            <th className="py-1 pr-3 font-bold">channel</th>
-                                            <th className="py-1 pr-3 font-bold">status</th>
-                                            <th className="py-1 pr-3 font-bold">skip</th>
-                                            <th className="py-1 font-bold">sent</th>
+                                            <th className="py-1 pr-3 text-label-m">event</th>
+                                            <th className="py-1 pr-3 text-label-m">channel</th>
+                                            <th className="py-1 pr-3 text-label-m">status</th>
+                                            <th className="py-1 pr-3 text-label-m">skip</th>
+                                            <th className="py-1 text-label-m">sent</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -133,8 +126,8 @@ export default function UserInspector() {
                                 </table>
                             </div>
                         )}
-                    </div>
-                </div>
+                    </Section>
+                </Card>
             )}
         </div>
     )

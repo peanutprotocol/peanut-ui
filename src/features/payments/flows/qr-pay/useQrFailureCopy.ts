@@ -37,6 +37,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
             [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
             [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),
+            [QR_INIT_CODE.NOT_FOUND]: t('errors.merchantNotAvailable'),
             [QR_INIT_CODE.EXPIRED]: t('errors.merchantChargeExpired'),
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),

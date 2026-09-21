@@ -12,7 +12,7 @@ import {
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionNameKey } from '@/components/TransactionDetails/transaction-name-keys'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 
 export interface TransactionStrategyOutput {
@@ -31,8 +31,15 @@ export interface TransactionStrategyOutput {
     isLinkTx: boolean
     fullName?: string
     showFullName?: boolean
+    /**
+     * The counterparty's picked profile avatar, taken from whichever account
+     * this strategy already reads for the name. Only set on branches with a
+     * real person behind them; the transformer drops it again whenever
+     * `isPeerActuallyUser` turns out false.
+     */
+    avatarKey?: string | null
     /** Optional override; most strategies leave status mapping to the global mapper. */
-    uiStatus?: StatusPillType
+    uiStatus?: IconStatusType
 }
 
 export type TransactionStrategy = (entry: HistoryEntry) => TransactionStrategyOutput

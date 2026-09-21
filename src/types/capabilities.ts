@@ -28,9 +28,9 @@ export type RailCapabilityStatus =
  * What a user can DO on a rail. A single rail can support a payment to a
  * merchant (`pay`, e.g. a QR code) distinctly from first-party bank movements
  * (`deposit` / `withdraw`) — and these can have different statuses on the SAME
- * rail. Today only Manteca diverges: a Sumsub-approved user pays QR via a pool
- * account, but deposit/withdraw need their own full Manteca account, and BR
- * `pix_br` is both the pay channel and the withdraw channel.
+ * rail. Manteca splits pool QR pay from first-party deposit/withdraw. Rain uses
+ * `pay` to distinguish an enabled application rail from a currently issued,
+ * non-canceled card.
  */
 export type RailOperation = 'pay' | 'deposit' | 'withdraw'
 
@@ -71,7 +71,7 @@ export interface RailCapability {
     status: RailCapabilityStatus
     /**
      * Per-operation refinement of `status`. ABSENT → `status` applies to every
-     * operation (Bridge, Rain — no pay/withdraw split). PRESENT → read the
+     * operation (Bridge). PRESENT → read the
      * specific op, falling back to `status`: `operations?.[op] ?? status`.
      * Only operations the method actually supports are listed.
      */
@@ -170,6 +170,13 @@ export interface NextAction {
     effectiveDate?: string
     /** Advisory actions only — the provider requirement key, for telemetry / FE branching. */
     requirementKey?: string
+    /**
+     * The rail currency this action unlocks (e.g. 'USD' | 'EUR' | 'GBP' | 'MXN'),
+     * set on the `bridge-hosted` catch-all so the task copy can NAME the corridor
+     * ("Finish verifying to unlock euro bank transfers") instead of the generic
+     * "bank transfers". Absent when no single rail scopes the action.
+     */
+    currency?: string
 }
 
 export interface CapabilityRestriction {
