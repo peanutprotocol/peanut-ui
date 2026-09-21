@@ -4,22 +4,22 @@
  * shows searchable list of all supported networks plus "coming soon" networks
  * accessed via the "More networks" link in the network section
  *
- * BACK AFFORDANCE — flagged, design.md law 6. The DS has no in-drawer back: the
- * only precedent was `NavHeader`, which is page chrome (it mounts the
- * maintenance `Banner` INSIDE the sheet and claims global nav-header presence
- * for the shell fallback). It is replaced with the two DS parts that do fit a
- * sheet — a `LinkButton` back, mirroring the `LinkButton` that opens this view,
- * and a `Section` heading. A shared SelectionDrawer (drawer + search + list) is
- * the real fix; it is not built here.
+ * BACK AFFORDANCE — `NavHeader`, by kush's ruling 2026-09-21: the DS has one
+ * back control and a sub-view of a drawer should not invent a second one.
+ * `hideMaintenanceBanner` is what makes it safe here — it suppresses BOTH page
+ * behaviours that made NavHeader wrong inside a sheet: the maintenance `Banner`
+ * mount, and the `useRegisterNavHeader` presence claim that would otherwise
+ * tell the shell a page header exists and suppress its own banner fallback.
+ * design.md scopes NavHeader to pages; this extends it to a drawer sub-view and
+ * the rulebook needs the same line (follow-up, TASK-22839).
  */
 
 import { useTranslations } from 'next-intl'
 import React, { useMemo } from 'react'
 
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { Section } from '@/components/0_Bruddle/Section'
 import { SearchInput } from '@/components/SearchInput'
+import NavHeader from '../../NavHeader'
 import { type ChainWithTokens } from '@/interfaces/chain-meta'
 import EmptyState from '../../EmptyStates/EmptyState'
 import { type NetworkConfig } from '../TokenSelector.consts'
@@ -47,7 +47,6 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     comingSoonNetworks,
 }) => {
     const t = useTranslations('global')
-    const tCommon = useTranslations('common')
 
     const filteredChains = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
@@ -78,16 +77,14 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
 
     return (
         <div className="flex flex-col gap-4">
-            <LinkButton onClick={onBack}>{tCommon('back')}</LinkButton>
+            <NavHeader title={t('tokenSelector.moreNetworksTitle')} onPrev={onBack} hideMaintenanceBanner />
 
-            <Section title={t('tokenSelector.moreNetworksTitle')}>
-                <SearchInput
-                    value={searchValue}
-                    onChange={setSearchValue}
-                    onClear={() => setSearchValue('')}
-                    placeholder={t('tokenSelector.searchNetworkPlaceholder')}
-                />
-            </Section>
+            <SearchInput
+                value={searchValue}
+                onChange={setSearchValue}
+                onClear={() => setSearchValue('')}
+                placeholder={t('tokenSelector.searchNetworkPlaceholder')}
+            />
 
             {/* the px-1/-mx-1 gutter keeps the 3px focus ring off the scroll clip */}
             <div className="-mx-1 max-h-screen-60 overflow-y-auto px-1">

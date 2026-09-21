@@ -401,33 +401,39 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                 <>
                     {/* the search field lives OUTSIDE the tab row, so switching a
                         network tab can never unmount it */}
-                    <div className="sticky -top-1 z-10 flex flex-col gap-2 bg-background-default py-3">
+                    <div className="sticky -top-1 z-10 bg-background-default py-3">
                         <SearchInput
                             value={searchValue}
                             onChange={setSearchValue}
                             onClear={() => setSearchValue('')}
                             placeholder={t('tokenSelector.searchTokenPlaceholder')}
                         />
-                        <span className="text-center text-body-xs text-foreground-secondary">
-                            {t('tokenSelector.sponsoredHint')}
-                        </span>
                     </div>
 
-                    <Section title={t('tokenSelector.selectANetwork')}>
+                    {/* sponsored fees are a fact worth noticing, not grey fine
+                        print — and it sits outside the sticky bar so only the
+                        search field follows the scroll */}
+                    <Notification priority="info">{t('tokenSelector.sponsoredHint')}</Notification>
+
+                    <Section
+                        title={t('tokenSelector.selectANetwork')}
+                        trailing={
+                            // the wrapper reserves the link's full 44px hit area
+                            // (its ::after reaches 14px past the text row) without
+                            // stretching the title row
+                            <div className="flex min-h-11 shrink-0 items-center">
+                                <LinkButton onClick={handleSearchNetwork}>
+                                    {t('tokenSelector.moreNetworksTitle')}
+                                </LinkButton>
+                            </div>
+                        }
+                    >
                         <Tabs
                             aria-label={t('tokenSelector.selectANetwork')}
                             value={activeNetworkTab}
                             onValueChange={handleNetworkTabChange}
                             tabs={networkTabs}
                         />
-                        {/* the wrapper reserves the link's full 44px hit area (its
-                            ::after reaches 14px past the text row) so it can never
-                            reach up into the tab row above */}
-                        <div className="flex min-h-11 items-center">
-                            <LinkButton onClick={handleSearchNetwork}>
-                                {t('tokenSelector.moreNetworksTitle')}
-                            </LinkButton>
-                        </div>
                     </Section>
                 </>
             )}
