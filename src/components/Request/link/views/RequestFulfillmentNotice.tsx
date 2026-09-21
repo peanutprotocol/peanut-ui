@@ -36,12 +36,16 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
     })
 
     const state = data ? requestFulfillmentState(data) : null
-    const lastObservedState = useRef(state)
+    const lastObservedBankPayment = useRef<string | null>(null)
     useEffect(() => {
-        if (!state || state === 'unpaid' || state === lastObservedState.current) return
-        lastObservedState.current = state
+        if (!state || state === 'unpaid') return
+        // The API serializes one request's Decimal amount consistently. Keep
+        // its string form so comparisons never round money through Number.
+        const bankPayment = `${requestId}:${state}:${data?.receivedAmount ?? ''}`
+        if (bankPayment === lastObservedBankPayment.current) return
+        lastObservedBankPayment.current = bankPayment
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-    }, [queryClient, state])
+    }, [data?.receivedAmount, queryClient, requestId, state])
 
     if (!data || !state) return null
 
