@@ -682,7 +682,7 @@
         "needHigherLimits": "¿Necesitas límites más altos? Contacta soporte.",
         "warningCard": {
             "blockingTitle": "Este monto supera tu límite.",
-            "warningTitle": "Estás cerca de tu límite.",
+            "attentionTitle": "Estás cerca de tu límite.",
             "addUpTo": "Puedes agregar hasta {amount}",
             "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción",
             "withdrawUpTo": "Puedes retirar hasta {amount}",

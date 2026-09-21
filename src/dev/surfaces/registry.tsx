@@ -618,8 +618,8 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <LimitsWarningCard
-                    type="warning"
-                    titleKind="warning"
+                    type="attention"
+                    titleKind="attention"
                     title="Transaction limit"
                     items={[{ text: 'You can pay up to $500 today.' }]}
                 />
