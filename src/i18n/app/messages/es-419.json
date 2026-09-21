@@ -254,13 +254,13 @@
         "hideBalance": "Ocultar saldo",
         "drawers": {
             "sendToFriends": "Enviar a amigos",
-            "sendToFriendsDescription": "Link, contactos, banco, cripto",
-            "withdrawToOwnAccounts": "Retirar a tus cuentas",
-            "withdrawToOwnAccountsDescription": "Euros, dólares, cripto y más",
+            "sendToFriendsDescription": "Link, contactos, transferencia bancaria y cripto",
+            "withdrawToOwnAccounts": "Retirar a tus propias cuentas",
+            "withdrawToOwnAccountsDescription": "Transferencia bancaria y cripto",
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos a través de tus cuentas en EUR, USD y otras monedas"
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
         }
     },
     "profile": {
@@ -1005,11 +1005,11 @@
         "methods": {
             "contactsTitle": "Nombre de usuario de Peanut",
             "contactsDescription": "Ingresa un @usuario exacto o elige un contacto",
-            "bankTitle": "Banco",
+            "bankTitle": "Transferencia bancaria",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
-            "exchangeOrWalletTitle": "Exchange o billetera",
-            "exchangeOrWalletDescription": "Binance, Metamask y más"
+            "exchangeOrWalletTitle": "Cripto",
+            "exchangeOrWalletDescription": "Binance, MetaMask y más"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
@@ -1080,7 +1080,7 @@
             "exactNote": "Quien paga por banco en {currency} ve este monto exacto. Los demás ven un estimado."
         },
         "bankInstructions": {
-            "title": "Comparte los datos de tu cuenta bancaria",
+            "title": "Comparte tus datos bancarios",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "anyonePays": "Luego puede pagarte por transferencia bancaria.",
             "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
@@ -1165,7 +1165,7 @@
             "description": "Ya tienes fondos suficientes en tu cuenta de Peanut. Este método es instantáneo y evita demoras.",
             "payWithPeanut": "Pagar con Peanut"
         },
-        "requiresVerification": "REQUIERE VERIFICACIÓN",
+        "requiresVerification": "Requiere verificación",
         "contributors": {
             "seeAll": "Ver todos los contribuyentes",
             "title": "Contribuyentes ({count})"
@@ -1274,7 +1274,7 @@
             "devconnectLogoAlt": "Logo de Devconnect",
             "starAlt": "estrella",
             "invitedBy": "¡{username} te invitó, tienes acceso anticipado!",
-            "requiresVerification": "REQUIERE VERIFICACIÓN"
+            "requiresVerification": "Requiere verificación"
         },
         "minAmount": {
             "title": "Monto mínimo",
@@ -1731,13 +1731,13 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC",
+            "kycRequired": "Requiere verificación",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
             "title": "Elegir red",
-            "description": "Elige la red desde la que quieres depositar:",
-            "evmDescription": "{count} redes - 1 dirección",
+            "description": "Elige la red desde la que quieres agregar:",
+            "evmDescription": "{count} redes, 1 dirección",
             "supportedTokens": "{count, plural, one {# token compatible} other {# tokens compatibles}}",
             "evmTokensOnNetworks": "{tokens, plural, one {# token compatible} other {# tokens compatibles}} en {networks} redes"
         },
@@ -1758,7 +1758,7 @@
             }
         },
         "crypto": {
-            "title": "Depositar cripto",
+            "title": "Agregar cripto",
             "sendTokensToAddress": "Envía tokens a esta dirección de <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, deposita USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
             "tooltipSol": "Tu dirección de depósito de Solana. Los depósitos se puentean a Arbitrum (variación de ±0.1%).",
@@ -1810,13 +1810,13 @@
         "processingDepositTitle": "Procesando tu depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
-            "payWithPix": "Pagar con PIX",
+            "payWithPix": "Pagar con Pix",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "goBack": "Volver",
-            "scanWithBankApp": "Escanea con la app de tu banco o copia el código PIX."
+            "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {
             "title": "Importante",
@@ -1916,7 +1916,7 @@
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave PIX",
+            "placeholder": "Clave Pix",
             "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
@@ -1985,9 +1985,6 @@
             "accountNumberRequired": "El número de cuenta es obligatorio",
             "accountNumberUk": "El número de cuenta debe tener entre 6 y 8 dígitos",
             "accountNumberInvalid": "Número de cuenta inválido",
-            "bic": "BIC",
-            "bicRequired": "El BIC es obligatorio",
-            "bicInvalid": "Código BIC inválido",
             "routingNumber": "Número de ruta",
             "routingNumberRequired": "El número de ruta es obligatorio",
             "routingNumberInvalid": "Número de ruta inválido",
@@ -2034,8 +2031,6 @@
             "pasteAria": "Pegar desde el portapapeles",
             "pasteEmpty": "No hay nada para pegar",
             "pasteUnavailable": "No se pudo leer el portapapeles",
-            "bicAutoFilled": "Completamos esto con tu IBAN. Verifícalo con tu banco y cámbialo si no es correcto.",
-            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN",
             "ownAccount": "Esta es mi propia cuenta",
             "ownAccountFilled": "Completamos lo que ya sabemos. Verifícalo y cambia lo que no sea correcto.",
             "groupBankAccount": "Cuenta bancaria",
@@ -2119,7 +2114,7 @@
             "bank_deposit": "Ingreso",
             "beingReturned": "Volviendo a quien pagó",
             "returnedToSender": "Devuelto a quien pagó",
-            "bank_request_fulfillment": "Solicitud pagada por banco",
+            "bank_request_fulfillment": "Solicitud pagada por transferencia bancaria",
             "card_pay": "Pago",
             "refund": "Reembolso",
             "setup": "Configuración",

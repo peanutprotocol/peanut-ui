@@ -472,6 +472,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             }
         },
     },
+    // The bank form asks for this the moment it opens with "this account is
+    // mine" ticked, so every fixture that mounts the form needs an answer or
+    // the capture harness fails on an unmapped route. An empty body is the
+    // route's own "nothing to prefill" answer: the form asks for the address,
+    // which is what the form fixtures exist to show. A fixture that wants the
+    // prefilled form overrides this key with a synthetic address.
+    { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',

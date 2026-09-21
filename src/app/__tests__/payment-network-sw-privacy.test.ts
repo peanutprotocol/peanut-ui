@@ -109,3 +109,17 @@ describe('payment network service-worker privacy', () => {
         await expect(purgeSensitivePaymentNetworkCacheEntries(storage)).resolves.toBe(0)
     })
 })
+
+describe('the verified-address route is never cached', () => {
+    it.each([
+        ['/users/me/verified-address'],
+        ['https://api.peanut.me/users/me/verified-address'],
+        ['https://api.peanut.me/users/me/verified-address?anything=1'],
+    ])('%s is sensitive', (url) => {
+        expect(isSensitivePaymentNetworkUrl(url)).toBe(true)
+    })
+
+    it('a neighbouring user route is not', () => {
+        expect(isSensitivePaymentNetworkUrl('/users/me')).toBe(false)
+    })
+})

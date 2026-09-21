@@ -17,7 +17,7 @@ describe('usePaymentMethodLabels', () => {
         const { result } = renderHook(() => usePaymentMethodLabels(), { wrapper })
         const labels = Object.fromEntries(ACTION_METHODS.map((method) => [method.id, result.current(method)]))
 
-        expect(labels.bank).toEqual({ title: 'Banco', description: 'EUR, USD, MXN, ARS e mais' })
+        expect(labels.bank).toEqual({ title: 'Transferência bancária', description: 'EUR, USD, MXN, ARS e mais' })
         expect(labels['exchange-or-wallet'].title).toBe(ptMessages.send.methods.exchangeOrWalletTitle)
         // brand names stay; their description does not
         expect(labels.pix.title).toBe('Pix')

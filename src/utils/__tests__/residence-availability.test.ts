@@ -128,7 +128,7 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
         return buildUnlockGroups({
             regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-            qrOnly: { brazil: false, argentina: false },
+            canPayQr: false,
             restrictions,
             card: 'get',
             residenceIso2: iso2,

@@ -14,7 +14,6 @@ import {
 export type PasteFieldKind =
     | 'evmAddress'
     | 'iban'
-    | 'bic'
     | 'routingNumber'
     | 'usAccount'
     | 'ukSortCode'
@@ -23,8 +22,6 @@ export type PasteFieldKind =
     | 'cbuCvuAlias'
     | 'pixKey'
     | 'recipient'
-
-const BIC_REGEX = /^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/
 
 const firstMatch = (text: string, regex: RegExp, accept: (candidate: string) => string | null): string | null => {
     for (const match of text.matchAll(regex)) {
@@ -70,12 +67,6 @@ export function extractPaymentValue(text: string, kind: PasteFieldKind): string 
                 }
                 return null
             })
-
-        case 'bic':
-            // BICs are conventionally uppercase; requiring uppercase avoids matching prose words.
-            return firstMatch(text, /\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?\b/g, (c) =>
-                BIC_REGEX.test(c) ? c : null
-            )
 
         case 'routingNumber':
             return digitGroups(text).find((g) => g.length === 9 && isValidRoutingNumber(g)) ?? null

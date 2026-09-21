@@ -94,8 +94,8 @@ describe('deposit screen copy', () => {
     const EXPECTED = {
         en: {
             howToDeposit: 'How to deposit',
-            supportedNetworks: 'Supported Networks',
-            supportedTokens: 'Supported Tokens',
+            supportedNetworks: 'Supported networks',
+            supportedTokens: 'Supported tokens',
             bridgingNote:
                 'USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).',
         },

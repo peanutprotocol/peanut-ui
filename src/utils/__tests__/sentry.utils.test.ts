@@ -742,3 +742,13 @@ describe('sensitive QR lookup telemetry', () => {
         assertPrivate()
     })
 })
+
+describe('the verified address never reaches Sentry', () => {
+    it('is redacted wholesale, request and response alike', () => {
+        const body = JSON.stringify({ streetLine1: '9 Sample Road', city: 'Sampleton', postalCode: '99999' })
+        expect(sanitizeRequestBody('/users/me/verified-address', body)).toBe('[REDACTED: sensitive endpoint]')
+        expect(sanitizeResponseBody('/users/me/verified-address', JSON.parse(body))).toBe(
+            '[REDACTED: sensitive endpoint]'
+        )
+    })
+})
