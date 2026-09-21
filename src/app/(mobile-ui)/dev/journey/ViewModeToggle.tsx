@@ -18,6 +18,7 @@ export default function ViewModeToggle({
 }) {
     return (
         <Tabs
+            size="sm"
             value={value}
             tabs={OPTIONS}
             onValueChange={(next) => onChange(next as JourneyViewMode)}

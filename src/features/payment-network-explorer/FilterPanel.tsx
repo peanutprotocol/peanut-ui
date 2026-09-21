@@ -80,6 +80,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
                     </InfoTooltip>
                 </legend>
                 <Tabs
+                    size="sm"
                     value={filters.direction}
                     onValueChange={(value) => onChange({ direction: value as EdgeDirectionFilter })}
                     tabs={(Object.keys(DIRECTION_LABELS) as EdgeDirectionFilter[]).map((option) => ({

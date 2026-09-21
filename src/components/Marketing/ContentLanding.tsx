@@ -159,6 +159,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     ALL_VALUE stands in for `type=null` because a radix tab value cannot be
                     empty. */}
                 <Tabs
+                    size="sm"
                     aria-label={strings.filterAll}
                     value={activeType ?? ALL_VALUE}
                     onValueChange={(next) =>

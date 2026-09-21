@@ -129,4 +129,46 @@ describe('Tabs', () => {
         expect(list.className).not.toContain('shadow-')
         expect(tab.className).not.toContain('transition-transform')
     })
+
+    // size changes THREE things and nothing else. If a future edit makes a size
+    // move the radius, the weld, the ring or the track, the shared-class check
+    // at the bottom fails.
+    test.each([
+        ['sm', 'min-h-9', 'px-3', 'text-body-s', 'gap-1'],
+        ['md', 'min-h-11', 'px-4', 'text-body-m', 'gap-1'],
+        ['lg', 'min-h-13', 'px-6', 'text-body-m', 'gap-2'],
+    ] as const)('size=%s resolves to %s %s %s with a %s label gap', (size, height, pad, text, gap) => {
+        const { container } = render(<Tabs tabs={TABS} aria-label="demo" size={size} />)
+        const [tab] = screen.getAllByRole('tab')
+        expect(tab.className).toContain(height)
+        expect(tab.className).toContain(pad)
+        expect(tab.className).toContain(text)
+        expect(container.querySelector('[role="tab"] > span')?.className).toContain(gap)
+    })
+
+    test('md is the default, and size touches nothing but height, padding, text and gap', () => {
+        const { unmount } = render(<Tabs tabs={TABS} aria-label="demo" />)
+        const byDefault = screen.getAllByRole('tab')[0].className
+        expect(byDefault).toContain('min-h-11')
+        expect(byDefault).toContain('px-4')
+        expect(byDefault).toContain('text-body-m')
+        unmount()
+
+        // everything that must NOT vary with size
+        const shared = [
+            'before:-inset-px',
+            'before:rounded-round',
+            'data-[state=active]:before:border-border-default',
+            'data-[state=active]:before:bg-background-page',
+            'focus-visible:outline-action-focus',
+        ]
+        for (const size of ['sm', 'md', 'lg'] as const) {
+            const { unmount: u } = render(<Tabs tabs={TABS} aria-label="demo" size={size} />)
+            const cls = screen.getAllByRole('tab')[0].className
+            for (const c of shared) expect(cls).toContain(c)
+            // the row never grows a weight step — that third channel is unruled
+            expect(cls).not.toContain('text-body-m-semibold')
+            u()
+        }
+    })
 })

@@ -65,6 +65,17 @@ interface TabsProps {
     onValueChange?: (value: string) => void
     /** stretch the tabs to fill the row (network toggles) */
     fullWidth?: boolean
+    /**
+     * Row scale. Changes ONLY height, horizontal padding, the text token and
+     * the icon-to-label gap — the chip weld, the track border, the radius, the
+     * ring, the scroll gutter and the panel spacing are identical in all three.
+     *
+     * `sm` is a 36px row, UNDER the 44px touch minimum. It clears WCAG 2.5.8 AA
+     * (24px) but misses 2.5.5 AAA and Apple's 44pt guidance. Accepted by kush
+     * 2026-09-21 for dense control panels, pending a real-device test — do not
+     * use it for a primary control.
+     */
+    size?: TabsSize
 }
 
 // the full DS ring (design.md law 8 — focus is ruled, never pink). radix
@@ -82,9 +93,24 @@ const scrollWrap = '-m-1 overflow-x-auto p-1'
 
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both
-// states, so switching tabs never shifts anything.
+// states, so switching tabs never shifts anything. Everything here is
+// size-independent; the three size-varying properties live in SIZES.
 const trigger =
-    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary'
+    'relative flex shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary'
+
+/**
+ * `lg` deliberately lands on BottomNav's own 52px / px-6, so a large tab row
+ * and the nav read as one family. Heights are min-h-*, which the spacing
+ * ratchet does not govern; the padding and gap steps are all on the documented
+ * scale (3 / 4 / 6 and 1 / 2).
+ */
+const SIZES = {
+    sm: { row: 'min-h-9 px-3 text-body-s', gap: 'gap-1' },
+    md: { row: 'min-h-11 px-4 text-body-m', gap: 'gap-1' },
+    lg: { row: 'min-h-13 px-6 text-body-m', gap: 'gap-2' },
+} as const
+
+type TabsSize = keyof typeof SIZES
 
 const chip = 'before:absolute before:-inset-px before:rounded-round before:border before:border-transparent'
 
@@ -95,6 +121,7 @@ export const Tabs = ({
     value,
     onValueChange,
     fullWidth = false,
+    size = 'md',
 }: TabsProps) => {
     // no tab carries a panel → render the trigger row alone. A bordered empty
     // panel under a value toggle is the reason this branch exists.
@@ -125,6 +152,7 @@ export const Tabs = ({
                             value={tab.value}
                             className={twMerge(
                                 trigger,
+                                SIZES[size].row,
                                 chip,
                                 PILL_TINT_SELECTED_CHIP,
                                 focusRing,
@@ -132,7 +160,9 @@ export const Tabs = ({
                             )}
                         >
                             {/* above the chip, the way BottomNav lifts its icons */}
-                            <span className="relative z-10 flex items-center gap-1">{tab.label}</span>
+                            <span className={twMerge('relative z-10 flex items-center', SIZES[size].gap)}>
+                                {tab.label}
+                            </span>
                         </Trigger>
                     ))}
                 </List>

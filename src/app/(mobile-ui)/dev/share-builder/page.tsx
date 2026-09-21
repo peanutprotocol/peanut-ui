@@ -129,6 +129,7 @@ export default function ShareBuilderPage() {
                         <Section title="Hero message (I got in)">
                             <Field label="Sticker type">
                                 <Tabs
+                                    size="sm"
                                     value={heroVariant}
                                     onValueChange={(value) => setHeroVariant(value as HeroVariant | 'none')}
                                     tabs={(['none', 'burst', 'pill', 'banner'] as const).map((value) => ({
@@ -213,6 +214,7 @@ export default function ShareBuilderPage() {
                         <Section title="Username pill">
                             <Field label="Background">
                                 <Tabs
+                                    size="sm"
                                     value={unameBg}
                                     onValueChange={(value) => setUnameBg(value as UsernameBg)}
                                     tabs={(['white', 'pink', 'blue'] as const).map((value) => ({

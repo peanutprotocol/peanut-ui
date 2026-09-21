@@ -73,6 +73,7 @@ const MantecaLimitsView = () => {
                                             </span>
                                         </div>
                                         <Tabs
+                                            size="sm"
                                             tabs={[
                                                 { value: 'monthly', label: tPeriod('monthly') },
                                                 { value: 'yearly', label: tPeriod('yearly') },
