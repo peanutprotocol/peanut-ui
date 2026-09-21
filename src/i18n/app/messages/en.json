@@ -353,21 +353,17 @@
                 "everywhere": "Peanut",
                 "southAmerica": "South America",
                 "northAmerica": "North America",
-                "europe": "Europe"
+                "europe": "Europe",
+                "spend": "Spend"
             },
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
                 "crypto": "Crypto",
-                "saBank": "PIX (Brazil), QR & bank transfers (Argentina)",
-                "pixBank": "PIX payments & transfers (Brazil)",
-                "pixQr": "PIX QR payments (Brazil)",
-                "brBank": "PIX transfers (Brazil)",
-                "arQrBank": "QR payments & transfers (Argentina)",
-                "arQr": "QR payments (Argentina)",
-                "arBank": "Bank transfers (Argentina)",
-                "naBank": "US dollar and Mexican peso bank transfers",
-                "sepa": "Euro bank transfers"
+                "saBank": "BRL and ARS · Pix and bank transfer",
+                "naBank": "USD and MXN · Bank transfer",
+                "sepa": "EUR · Bank transfer",
+                "qrPay": "QR payments · Brazil and Argentina"
             },
             "chips": {
                 "active": "Available",
@@ -423,37 +419,28 @@
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
                 "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
-                "saBank": "Pay by QR and transfer money through bank accounts in Brazil and Argentina.",
-                "pixBank": "Pay Pix QR codes and transfer money through Brazilian bank accounts.",
-                "pixQr": "Pay Pix QR codes in Brazil.",
-                "arQrBank": "Pay QR codes and transfer money through Argentine bank accounts.",
-                "arQr": "Pay QR codes in Argentina.",
-                "brBank": "Transfer money through Brazilian bank accounts.",
-                "arBank": "Transfer money through Argentine bank accounts.",
+                "saBank": "Add and withdraw money through bank accounts in Brazil and Argentina.",
                 "naBank": "Add or withdraw money using US bank transfers and Mexico’s SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "card": "Pay with your Peanut card."
+                "card": "Pay with your Peanut card.",
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
                 "card": "Spend your Peanut balance in the real world.",
                 "crypto": "Send and receive on-chain, no bank needed.",
-                "saBank": "Bank like a local across Brazil and Argentina.",
-                "pixBank": "Move money across Brazil the instant way.",
-                "pixQr": "Scan, pay, done — anywhere Pix works.",
-                "brBank": "Reach any bank account in Brazil.",
-                "arQrBank": "Pay and get paid anywhere in Argentina.",
-                "arQr": "Scan and pay at any QR in Argentina.",
-                "arBank": "Reach any bank account in Argentina.",
+                "saBank": "Move money with banks in Brazil and Argentina.",
                 "naBank": "Connect your US and Mexican bank money.",
-                "sepa": "Hold and move euros without a local bank."
+                "sepa": "Hold and move euros without a local bank.",
+                "qrPay": "Scan and pay where you live."
             },
             "detailsDrawer": {
                 "aboutTitle": "What you can do",
                 "limitsTitle": "Limits"
             },
-            "waysTitle": "Ways to send yourself money",
-            "waysSubtitle": "Move your own money between Peanut and your bank. You get no account number of your own."
+            "waysTitle": "Add and withdraw money",
+            "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
+            "qrPayNote": "Pay in shops by scanning a QR code. Open to every verified user."
         },
         "backup": {
             "title": "Backup",
@@ -1099,7 +1086,7 @@
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
             "titleOff": "Your bank details stay private",
-            "descriptionOff": "Payers pay with Peanut or crypto. A payer can still add money from their own bank first. It does not arrive in your bank account."
+            "descriptionOff": "Payers can pay you with Peanut or crypto."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",

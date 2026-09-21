@@ -192,6 +192,13 @@ const UnlockPayments = () => {
         ]
     )
 
+    // The three lists this screen shows, named by group id rather than by
+    // position: the bank rows feed the "Add and withdraw money" list, the
+    // other two get their own sections below it.
+    const peanutGroup = groups.find((group) => group.id === 'everywhere')
+    const spendGroup = groups.find((group) => group.id === 'spend')
+    const bankGroups = groups.filter((group) => group.id !== 'everywhere' && group.id !== 'spend')
+
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
@@ -423,7 +430,7 @@ const UnlockPayments = () => {
                 first group is always "everywhere" (buildUnlockGroups), and its
                 own-region-first sort survives into the flattened row order. */}
             <AccountsList
-                bankRows={groups.slice(1).flatMap((group) => group.rows)}
+                bankRows={bankGroups.flatMap((group) => group.rows)}
                 onRowClick={handleRowClick}
                 isKycDegraded={isKycDegraded}
                 mantecaLimits={mantecaLimits}
@@ -431,12 +438,26 @@ const UnlockPayments = () => {
                 locale={locale}
             />
 
-            {groups[0] && (
-                <PeanutSection
-                    group={groups[0]}
+            {/* Spending methods, apart from the ways money moves between a bank
+                and Peanut. The QR row's own limits are the BRL/ARS allowances
+                already stated under the bank list, so they are not repeated. */}
+            {spendGroup && (
+                <RowSection
+                    group={spendGroup}
                     onRowClick={handleRowClick}
                     isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForRows(groups[0].rows, mantecaLimits, bridgeLimits, locale)}
+                    noLimit={false}
+                    limitSummaries={[]}
+                />
+            )}
+
+            {peanutGroup && (
+                <RowSection
+                    group={peanutGroup}
+                    onRowClick={handleRowClick}
+                    isKycDegraded={isKycDegraded}
+                    noLimit
+                    limitSummaries={limitSummariesForRows(peanutGroup.rows, mantecaLimits, bridgeLimits, locale)}
                 />
             )}
 
@@ -675,11 +696,9 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
 }
 
 /**
- * The "Peanut" group only now (2026-09-18 currency-first merge): P2P + card,
- * always-on Peanut-native ways to pay, kept apart from the "Your accounts"
- * list of receiving corridors. The region bank/QR rows moved to
- * `AccountsList`, alongside the held VA rows, so this component only ever
- * renders `groups[0]` (id `everywhere`).
+ * The two icon-led sections under the bank list: "Spend" (card + QR payments)
+ * and "Peanut" (the always-on P2P and crypto rows). The bank/QR corridor rows
+ * live in `AccountsList`, alongside the held account rows.
  */
 /**
  * Peanut-native rows keep their own brand mark instead of the generic
@@ -704,15 +723,17 @@ function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
     return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
 }
 
-const PeanutSection = ({
+const RowSection = ({
     group,
     onRowClick,
     isKycDegraded,
+    noLimit,
     limitSummaries,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
+    noLimit: boolean
     limitSummaries: RowLimitSummary[]
 }) => {
     const t = useTranslations('profile.unlockPayments')
@@ -729,6 +750,11 @@ const PeanutSection = ({
                             disabled={row.chip === 'notAvailable'}
                             leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
+                            // QR payments are the one row people do not
+                            // recognise by name, so it carries the one-line
+                            // explainer under its title.
+                            body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
+                            bodyWrap
                             trailing={rowStatusBadge(row, t)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
@@ -736,7 +762,7 @@ const PeanutSection = ({
                     )
                 })}
             </ListGroup>
-            <MethodLimits noLimit summaries={limitSummaries} />
+            <MethodLimits noLimit={noLimit} summaries={limitSummaries} />
         </Section>
     )
 }

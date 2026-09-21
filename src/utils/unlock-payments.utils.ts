@@ -15,20 +15,8 @@ export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'atte
 export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 
 /** Exact key unions so next-intl's typed t() accepts the derived keys. */
-export type UnlockRowLabelKey =
-    | 'p2p'
-    | 'card'
-    | 'crypto'
-    | 'saBank'
-    | 'pixBank'
-    | 'pixQr'
-    | 'arQrBank'
-    | 'arQr'
-    | 'brBank'
-    | 'arBank'
-    | 'naBank'
-    | 'sepa'
-export type UnlockGroupLabelKey = 'everywhere' | 'southAmerica' | 'northAmerica' | 'europe'
+export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'saBank' | 'naBank' | 'sepa'
+export type UnlockGroupLabelKey = 'everywhere' | 'spend' | 'southAmerica' | 'northAmerica' | 'europe'
 
 export interface UnlockRow {
     id: string
@@ -85,12 +73,6 @@ const CARD_ROW_BASE = { id: 'card', labelKey: 'card', icon: 'credit-card' } as c
 /** The countries each row covers, as flag codes — see `UnlockRow.flag`. `p2p`/`card` carry none. */
 const ROW_FLAGS: Partial<Record<UnlockRowLabelKey, readonly string[]>> = {
     saBank: ['br', 'ar'],
-    pixBank: ['br'],
-    pixQr: ['br'],
-    brBank: ['br'],
-    arQrBank: ['ar'],
-    arQr: ['ar'],
-    arBank: ['ar'],
     naBank: ['us', 'mx'],
     sepa: ['eu'],
 }
@@ -133,6 +115,24 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         ...(cardChip === 'notAvailable' ? {} : { href: '/card' }),
     }
 
+    // QR payments in Brazil and Argentina are a SPENDING method, not a way to
+    // add or withdraw money, so they are their own row in the Spend section
+    // rather than a word inside a bank row. The chip stays derived from the
+    // same capability data the bank rows read: a user holds QR either through
+    // the QR-only overlay (Bridge-verified, no Manteca bank rails) or through
+    // an active LATAM unlock. Anyone else gets the LATAM offer chip, and the
+    // tap lands on the same region intent the merged bank row uses.
+    const hasQrAccess = qrOnly.brazil || qrOnly.argentina || regionChips.latam === 'active'
+    const qrChip: UnlockChip = restrictions.banking ? 'notAvailable' : hasQrAccess ? 'active' : regionChips.latam
+    const qrRow: UnlockRow = {
+        id: 'qr-pay',
+        labelKey: 'qrPay',
+        icon: 'qr-code',
+        chip: qrChip,
+        limitRefs: ['BRL', 'ARS'],
+        ...(qrChip === 'active' || qrChip === 'notAvailable' ? {} : { regionPath: 'latam' as const }),
+    }
+
     const groups: UnlockGroup[] = [
         {
             id: 'everywhere',
@@ -140,55 +140,34 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             isYourRegion: false,
             rows: [
                 { id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' },
-                cardRow,
                 // On-chain, no KYC and no Peanut unlock gates it — same
                 // always-on layer as P2P (regression fix, ui#3271 QA pass 2:
                 // the currency-first merge dropped this row entirely).
                 { id: 'crypto', labelKey: 'crypto', icon: 'coins', chip: 'alwaysOn' },
             ],
         },
+        // Spending, named apart from adding and withdrawing money (2026-09-21):
+        // the card and QR payments both pay a shop, and neither moves money
+        // between a bank and Peanut.
+        {
+            id: 'spend',
+            labelKey: 'spend',
+            isYourRegion: false,
+            rows: [cardRow, qrRow],
+        },
         // Brazil + Argentina share one Manteca verification (one unlock opens
         // both), so they present as a single South America group with ONE
         // merged row — separate country rows would imply two unlocks where
         // there is only one. Mexico is NOT here — it rides Bridge with the US
-        // (LATAM would wrongly claim it). The row only splits per country for
-        // the QR-only overlay, where the two countries genuinely differ
-        // (Bridge-verified users hold AR/BR QR without the Manteca bank rails).
+        // (LATAM would wrongly claim it). The row used to split per country
+        // for the QR-only overlay; QR is now its own Spend row, so the bank
+        // row states the one thing left to state: which currencies move
+        // between a bank and Peanut, behind one unlock.
         {
             id: 'southAmerica',
             labelKey: 'southAmerica',
             isYourRegion: residences.has('BR') || residences.has('AR'),
-            rows:
-                (!qrOnly.brazil && !qrOnly.argentina) || regionChips.latam === 'active'
-                    ? [bankRow('sa-bank', 'saBank', 'qr-code', 'latam', ['BRL', 'ARS'])]
-                    : [
-                          ...(qrOnly.brazil
-                              ? [
-                                    {
-                                        id: 'pix-qr',
-                                        labelKey: 'pixQr',
-                                        icon: 'qr-code',
-                                        chip: bankChip('active'),
-                                        limitRefs: ['BRL'],
-                                        flag: flagFor('pixQr'),
-                                    } as UnlockRow,
-                                    bankRow('br-bank', 'brBank', 'bank', 'latam', ['BRL']),
-                                ]
-                              : [bankRow('pix-bank', 'pixBank', 'qr-code', 'latam', ['BRL'])]),
-                          ...(qrOnly.argentina
-                              ? [
-                                    {
-                                        id: 'ar-qr',
-                                        labelKey: 'arQr',
-                                        icon: 'qr-code',
-                                        chip: bankChip('active'),
-                                        limitRefs: ['ARS'],
-                                        flag: flagFor('arQr'),
-                                    } as UnlockRow,
-                                    bankRow('ar-bank', 'arBank', 'bank', 'latam', ['ARS']),
-                                ]
-                              : [bankRow('ar-qr-bank', 'arQrBank', 'qr-code', 'latam', ['ARS'])]),
-                      ],
+            rows: [bankRow('sa-bank', 'saBank', 'bank', 'latam', ['BRL', 'ARS'])],
         },
         // US + Mexico share one Bridge verification (ACH/Wire and SPEI unlock
         // together), so they present as one North America group with one
@@ -207,11 +186,12 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         },
     ]
 
-    // Everywhere leads (the always-on layer is the first thing anyone sees),
-    // then the user's own region, then the rest in catalog order.
-    const [everywhere, ...rest] = groups
+    // Everywhere and Spend lead (the always-on layer and the spending methods
+    // are not regions), then the user's own region, then the rest in catalog
+    // order. The view renders the two lead groups in its own sections.
+    const [everywhere, spend, ...rest] = groups
     rest.sort((a, b) => Number(b.isYourRegion) - Number(a.isYourRegion))
-    return [everywhere, ...rest]
+    return [everywhere, spend, ...rest]
 }
 
 /**
