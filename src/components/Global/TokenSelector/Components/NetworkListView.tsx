@@ -2,18 +2,28 @@
  * full network list view for the token selector
  *
  * shows searchable list of all supported networks plus "coming soon" networks
- * accessed via the "more" button in the popular networks section
+ * accessed via the "More networks" link in the network section
+ *
+ * BACK AFFORDANCE — flagged, design.md law 6. The DS has no in-drawer back: the
+ * only precedent was `NavHeader`, which is page chrome (it mounts the
+ * maintenance `Banner` INSIDE the sheet and claims global nav-header presence
+ * for the shell fallback). It is replaced with the two DS parts that do fit a
+ * sheet — a `LinkButton` back, mirroring the `LinkButton` that opens this view,
+ * and a `Section` heading. A shared SelectionDrawer (drawer + search + list) is
+ * the real fix; it is not built here.
  */
 
 import { useTranslations } from 'next-intl'
 import React, { useMemo } from 'react'
 
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { Section } from '@/components/0_Bruddle/Section'
+import { SearchInput } from '@/components/SearchInput'
 import { type ChainWithTokens } from '@/interfaces/chain-meta'
 import EmptyState from '../../EmptyStates/EmptyState'
-import NavHeader from '../../NavHeader'
 import { type NetworkConfig } from '../TokenSelector.consts'
 import NetworkListItem from './NetworkListItem'
-import { SearchInput } from '@/components/SearchInput'
 
 interface NetworkListViewProps {
     chains: Record<string, ChainWithTokens>
@@ -37,6 +47,8 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     comingSoonNetworks,
 }) => {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
+
     const filteredChains = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
 
@@ -65,28 +77,33 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     }, [chains, searchValue, allowedChainIds, comingSoonNetworks])
 
     return (
-        <div className="relative space-y-4 flex flex-col">
-            <NavHeader title={t('tokenSelector.moreNetworksTitle')} onPrev={onBack} />
-            <SearchInput
-                value={searchValue}
-                onChange={setSearchValue}
-                onClear={() => setSearchValue('')}
-                placeholder={t('tokenSelector.searchNetworkPlaceholder')}
-            />
+        <div className="flex flex-col gap-4">
+            <LinkButton onClick={onBack}>{tCommon('back')}</LinkButton>
 
-            <div className="space-y-2 flex max-h-screen-60 flex-col gap-3 overflow-y-auto pt-2 pr-1">
+            <Section title={t('tokenSelector.moreNetworksTitle')}>
+                <SearchInput
+                    value={searchValue}
+                    onChange={setSearchValue}
+                    onClear={() => setSearchValue('')}
+                    placeholder={t('tokenSelector.searchNetworkPlaceholder')}
+                />
+            </Section>
+
+            {/* the px-1/-mx-1 gutter keeps the 3px focus ring off the scroll clip */}
+            <div className="-mx-1 max-h-screen-60 overflow-y-auto px-1">
                 {filteredChains.length > 0 ? (
-                    filteredChains.map((chain) => (
-                        <NetworkListItem
-                            key={chain.chainId}
-                            chainId={chain.chainId}
-                            name={chain.name}
-                            iconUrl={chain.iconUrl}
-                            isSelected={!chain.isComingSoon && chain.chainId === selectedChainID}
-                            isComingSoon={chain.isComingSoon}
-                            onClick={() => onSelectChain(chain.chainId)}
-                        />
-                    ))
+                    <ListGroup role="listbox" aria-label={t('tokenSelector.selectANetwork')}>
+                        {filteredChains.map((chain) => (
+                            <NetworkListItem
+                                key={chain.chainId}
+                                name={chain.name}
+                                iconUrl={chain.iconUrl}
+                                isSelected={!chain.isComingSoon && chain.chainId === selectedChainID}
+                                isComingSoon={chain.isComingSoon}
+                                onClick={() => onSelectChain(chain.chainId)}
+                            />
+                        ))}
+                    </ListGroup>
                 ) : (
                     <EmptyState
                         icon="search"

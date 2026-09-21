@@ -1,20 +1,30 @@
 /**
- * token list item component for the token selector
+ * token row for the token selector and the recover-funds picker.
  *
- * displays token icon, symbol, chain, and optionally balance/price
- * handles selection state and disabled state for unsupported tokens
+ * one real `0_Bruddle/ListItem`: leading = the token logo ALONE (the chain
+ * moved to the body line — design.md bans the hand-rolled composite, "no
+ * mini-badge overlaid on a logo"), title = symbol, trailing = the wallet
+ * balance when `showBalance` is set, plus a check on the selected row.
+ *
+ * selected = fill + check (kush ruling 2026-09-21): `bg-action-primary` with
+ * `text-foreground-over-color-primary` on BOTH text lines and a trailing 20px
+ * check, so colour never carries the state on its own (WCAG 1.4.1).
+ *
+ * The option semantics ride a wrapper element rather than the ListItem:
+ * `ListItem` forwards neither `role` nor `aria-selected`, and its own
+ * `role="button"` (which `onClick` adds) may not nest inside a `role="option"`.
+ * Flagged per design.md law 6 — the fix is `selected` + ARIA on `ListItem`
+ * itself, which is a DS primitive change this PR deliberately does not make.
  */
 
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import DisplayIcon from '@/components/Global/DisplayIcon'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IUserBalance } from '@/interfaces/interfaces'
-import { formatAmountWithSignificantDigits, formatAmount } from '@/utils/general.utils'
-import Image from 'next/image'
-import { useTranslations } from 'next-intl'
-import React, { useContext, useMemo, useState } from 'react'
+import { formatAmount, formatAmountWithSignificantDigits } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
+import React, { useContext, useMemo } from 'react'
 import { Icon } from '../../Icons/Icon'
 
 interface TokenListItemProps {
@@ -22,9 +32,8 @@ interface TokenListItemProps {
     onClick: () => void
     isSelected: boolean
     position?: CardPosition
-    className?: string
-    isPopularToken?: boolean
-    isEnabled?: boolean
+    /** show the wallet balance and its usd value in the trailing slot (recover-funds) */
+    showBalance?: boolean
 }
 
 const TokenListItem: React.FC<TokenListItemProps> = ({
@@ -32,122 +41,76 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     onClick,
     isSelected,
     position = 'single',
-    className,
-    isPopularToken = false,
-    isEnabled = true,
+    showBalance = false,
 }) => {
-    const t = useTranslations('global')
-    const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
-    const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
-    const [tokenImageError, setTokenImageError] = useState(false)
-    const [chainImageError, setChainImageError] = useState(false)
     const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
-    const chainDetails = useMemo(() => {
-        const chain = supportedChainsAndTokens[String(balance.chainId)]
-        return {
-            name: chain?.networkName || `Chain ${balance.chainId}`,
-            iconURI: chain?.chainIconURI,
-        }
-    }, [supportedChainsAndTokens, balance.chainId])
+    const chainName = useMemo(
+        () => supportedChainsAndTokens[String(balance.chainId)]?.networkName || `Chain ${balance.chainId}`,
+        [supportedChainsAndTokens, balance.chainId]
+    )
 
     const formattedBalance = useMemo(() => {
-        if (isPopularToken || !balance.amount || typeof balance.decimals === 'undefined') return null
+        if (!showBalance || !balance.amount || typeof balance.decimals === 'undefined') return null
         return formatAmountWithSignificantDigits(balance.amount, 4)
-    }, [balance.amount, balance.decimals])
+    }, [showBalance, balance.amount, balance.decimals])
+
+    // one colour for every text line on a filled row; unselected rows inherit
+    // the ListItem's own title/body/trailing colours
+    const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
+    // ListItem only truncates a STRING title, and a filled row needs a node to
+    // carry the colour — so the node re-states the board's one-line rule
+    // (design.md: "list-item titles are single-line")
+    const line = twMerge('block truncate', paint)
 
     return (
         <div
-            className={twMerge(
-                'cursor-pointer rounded-sm shadow-sm',
-                isSelected && 'bg-action-primary/10',
-                !isEnabled && 'cursor-not-allowed opacity-70',
-                className
-            )}
+            role="option"
+            aria-selected={isSelected}
+            tabIndex={0}
+            onClick={onClick}
+            onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                onClick()
+            }}
+            className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
         >
-            <Card
+            <ListItem
                 position={position}
-                onClick={isEnabled ? onClick : undefined}
-                aria-disabled={!isEnabled || undefined}
                 className={twMerge(
-                    '!overflow-visible border border-border-default p-4 shadow-4 focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                    isSelected ? 'bg-action-primary/10' : 'bg-background-default',
-                    !isEnabled && 'bg-background-disabled'
+                    'transition-colors duration-instant active:bg-background-disabled',
+                    isSelected && 'bg-action-primary'
                 )}
-                border={true}
-            >
-                <div className="flex items-center justify-between">
-                    <div className="space-x-3 flex items-center">
-                        <div className="relative flex-shrink-0">
-                            {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
-                                <AvatarWithBadge name={balance.symbol} size="extra-small" />
-                            ) : (
-                                <Image
-                                    src={balance.logoURI}
-                                    alt={`${balance.symbol} logo`}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
-                                    onError={() => {
-                                        setTokenPlaceholder(true)
-                                        setTokenImageError(true)
-                                    }}
-                                />
-                            )}
-                            {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-gray-600">
-                                    <Image
-                                        src={chainDetails.iconURI}
-                                        alt={`${chainDetails.name} logo`}
-                                        width={16}
-                                        height={16}
-                                        className="rounded-full"
-                                        onError={() => {
-                                            setChainLogoPlaceholder(true)
-                                            setChainImageError(true)
-                                        }}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        <div className={twMerge('flex flex-col items-start')}>
-                            <span className="text-body-m-semibold text-foreground-primary">{balance.symbol}</span>
-                            <span
-                                className={
-                                    isPopularToken
-                                        ? 'text-body-xs font-medium text-foreground-secondary'
-                                        : 'ml-1 text-body-s text-foreground-secondary'
-                                }
-                            >
-                                {t.rich('tokenSelector.onChain', {
-                                    chainName: chainDetails.name,
-                                    c: (chunks) => <span className="capitalize">{chunks}</span>,
-                                })}
-                            </span>
-                        </div>
-                    </div>
-
-                    {!isPopularToken && !!formattedBalance ? (
-                        <div className="flex flex-col items-end">
-                            <div className="text-body-m text-foreground-primary">{formattedBalance}</div>
-                            <div className="text-body-xs text-foreground-secondary">
-                                {/* token value in usd */}
-                                {balance.price && balance.price * Number(formattedBalance) > 0
-                                    ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`
-                                    : '-'}
+                leading={
+                    <DisplayIcon
+                        iconUrl={balance.logoURI}
+                        altText={`${balance.symbol} logo`}
+                        fallbackName={balance.symbol}
+                        sizeClass="size-6"
+                    />
+                }
+                title={<span className={line}>{balance.symbol}</span>}
+                body={<span className={line}>{chainName}</span>}
+                trailing={
+                    <>
+                        {!!formattedBalance && (
+                            <div className="flex flex-col items-end">
+                                <span className={twMerge('text-body-m', paint ?? 'text-foreground-primary')}>
+                                    {formattedBalance}
+                                </span>
+                                <span className={twMerge('text-body-xs', paint ?? 'text-foreground-secondary')}>
+                                    {/* token value in usd */}
+                                    {balance.price && balance.price * Number(formattedBalance) > 0
+                                        ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`
+                                        : '-'}
+                                </span>
                             </div>
-                        </div>
-                    ) : (
-                        (isEnabled || isPopularToken) && (
-                            <Icon
-                                name="chevron-up"
-                                size={24}
-                                className="flex-shrink-0 rotate-90 text-foreground-primary"
-                            />
-                        )
-                    )}
-                </div>
-            </Card>
+                        )}
+                        {isSelected && <Icon name="check" size={20} className={paint} />}
+                    </>
+                }
+            />
         </div>
     )
 }

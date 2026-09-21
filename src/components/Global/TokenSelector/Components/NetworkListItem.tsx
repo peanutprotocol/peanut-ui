@@ -1,94 +1,84 @@
-import Image from 'next/image'
-import React, { useState } from 'react'
-import { twMerge } from '@/utils/tw'
+/**
+ * network row for the "More networks" list.
+ *
+ * Same anatomy as the token row: a real `0_Bruddle/ListItem` with the chain
+ * logo as its single leading element, the fill + check selected skin, and the
+ * option semantics on a wrapper (see the TokenListItem docblock for why).
+ *
+ * The old row wrapped a `Card` inside a `Button`, which put ~64px of content
+ * inside `.btn`'s fixed 44px box — the content overflowed the button by ~10px.
+ * `ListItem` owns its own height, so the bug goes with the wrapper.
+ */
 
-import { Button } from '@/components/0_Bruddle/Button'
-import Card from '@/components/Global/Card'
-import NavigationArrow from '@/components/Global/NavigationArrow'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
+import DisplayIcon from '@/components/Global/DisplayIcon'
+import React from 'react'
+import { twMerge } from '@/utils/tw'
+import { Icon } from '../../Icons/Icon'
 import StatusBadge from '../../Badges/StatusBadge'
 
 interface NetworkListItemProps {
-    chainId: string
     name: string
     iconUrl?: string
     isSelected?: boolean
     isComingSoon?: boolean
+    position?: CardPosition
     onClick?: () => void
-    rightContent?: React.ReactNode
-    titleClassName?: HTMLSpanElement['className']
-    iconClassName?: HTMLImageElement['className']
 }
 
 const NetworkListItem: React.FC<NetworkListItemProps> = ({
-    chainId,
     name,
     iconUrl,
     isSelected = false,
     isComingSoon = false,
+    position = 'single',
     onClick,
-    rightContent,
-    titleClassName,
-    iconClassName,
 }) => {
-    const [iconError, setIconError] = useState(false)
+    const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
+    // ListItem only truncates a STRING title, and a filled row needs a node to
+    // carry the colour — so the node re-states the board's one-line rule
+    const line = twMerge('block truncate', paint)
 
     return (
-        <Button
-            key={chainId}
-            type="button"
-            variant="transparent"
-            className={twMerge('w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none')}
+        <div
+            role="option"
+            aria-selected={isSelected}
+            aria-disabled={isComingSoon || undefined}
+            tabIndex={isComingSoon ? undefined : 0}
             onClick={isComingSoon ? undefined : onClick}
-            disabled={isComingSoon}
-            aria-pressed={isSelected}
+            onKeyDown={(event) => {
+                if (isComingSoon) return
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                onClick?.()
+            }}
+            className={twMerge(
+                'focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer'
+            )}
         >
-            <Card
-                position="single"
+            <ListItem
+                position={position}
+                disabled={isComingSoon}
                 className={twMerge(
-                    'w-full !overflow-visible border-border-default p-4',
-                    isSelected && !isComingSoon ? 'bg-action-primary' : 'bg-background-default',
-                    isComingSoon && 'bg-background-disabled'
+                    'transition-colors duration-instant',
+                    !isComingSoon && 'active:bg-background-disabled',
+                    isSelected && !isComingSoon && 'bg-action-primary'
                 )}
-                border={true}
-            >
-                <div className="relative flex items-center justify-between">
-                    <div className="space-x-3 flex items-center">
-                        <div className="relative h-8 w-8">
-                            {iconUrl && !iconError ? (
-                                <Image
-                                    src={iconUrl}
-                                    alt={`${name} logo`}
-                                    width={32}
-                                    height={32}
-                                    className={twMerge('rounded-full', iconClassName)}
-                                    onError={() => setIconError(true)}
-                                />
-                            ) : (
-                                <AvatarWithBadge size="extra-small" name={name} />
-                            )}
-                        </div>
-                        <div className="flex flex-col">
-                            <span
-                                className={twMerge(
-                                    'text-body-m-semibold text-foreground-primary capitalize',
-                                    titleClassName
-                                )}
-                            >
-                                {name}
-                            </span>
-                        </div>
-                    </div>
-                    {isComingSoon ? (
+                leading={
+                    <DisplayIcon iconUrl={iconUrl} altText={`${name} logo`} fallbackName={name} sizeClass="size-6" />
+                }
+                title={<span className={twMerge('capitalize', line)}>{name}</span>}
+                trailing={
+                    isComingSoon ? (
                         <StatusBadge status="soon" />
-                    ) : rightContent ? (
-                        rightContent
                     ) : (
-                        <NavigationArrow size={24} className="text-foreground-primary" />
-                    )}
-                </div>
-            </Card>
-        </Button>
+                        isSelected && <Icon name="check" size={20} className={paint} />
+                    )
+                }
+            />
+        </div>
     )
 }
 

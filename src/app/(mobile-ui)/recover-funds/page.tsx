@@ -4,7 +4,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
 import { useState, useCallback, useContext } from 'react'
@@ -315,11 +315,12 @@ export default function RecoverFundsPage() {
             ) : (
                 <PageStack.Center className="gap-4">
                     <h1>{t('selectToken')}</h1>
-                    <ScrollableList>
+                    <ListGroup role="listbox" aria-label={t('selectToken')}>
                         {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
+                                showBalance
                                 isSelected={
                                     !!selectedBalance &&
                                     areEvmAddressesEqual(balance.address, selectedBalance?.address) &&
@@ -330,7 +331,7 @@ export default function RecoverFundsPage() {
                                 }}
                             />
                         ))}
-                    </ScrollableList>
+                    </ListGroup>
                     <GeneralRecipientInput
                         placeholder={t('recipientPlaceholder')}
                         recipient={recipient}
