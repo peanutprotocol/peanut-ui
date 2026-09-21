@@ -1736,6 +1736,7 @@
             "cta": "Ver mis datos bancarios"
         },
         "list": {
+            "addHeading": "¿Cómo querés agregar dinero?",
             "searchPlaceholder": "Buscá país, moneda o cuenta",
             "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
             "accountCounter": "{used} de {cap} usadas",

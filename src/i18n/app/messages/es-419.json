@@ -1059,6 +1059,11 @@
         "linkCreatedToast": "¡Enlace creado con éxito!",
         "linkCreatedAndCopiedToast": "¡Enlace creado y copiado al portapapeles!",
         "requestUpdatedToast": "¡Solicitud actualizada con éxito!",
+        "created": {
+            "title": "Solicitud creada",
+            "description": "Tu enlace está listo para compartir.",
+            "createAnother": "Crear otra solicitud"
+        },
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "createFailed": "No se pudo crear el enlace",
@@ -1275,6 +1280,7 @@
         },
         "actions": {
             "claimOn": "Reclamar en",
+            "createAccount": "Crear una cuenta de Peanut",
             "continueWith": "Continuar con",
             "devconnectApp": "app de Devconnect",
             "devconnectLogoAlt": "Logo de Devconnect",
@@ -2198,6 +2204,7 @@
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "senderReference": "Referencia del remitente",
+            "paymentReference": "Referencia que enviamos",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "attachment": "Adjunto",
@@ -4014,7 +4021,7 @@
         "title": "Tus datos bancarios",
         "list": {
             "addTitle": "Agregar dinero",
-            "addHeading": "¿De dónde viene el dinero?",
+            "addHeading": "¿Cómo quieres agregar dinero?",
             "searchPlaceholder": "Busca país, moneda o cuenta",
             "noMatchTitle": "Sin resultados para «{query}»",
             "clearSearch": "Borrar búsqueda",
@@ -4098,6 +4105,7 @@
             "accepts": "Acepta",
             "beneficiaryAddress": "Dirección del destinatario",
             "rails": {
+                "ach": "ACH",
                 "ach_push": "ACH",
                 "fednow": "FedNow",
                 "wire": "Transferencia internacional",

@@ -19,8 +19,8 @@ const request = (over: Record<string, unknown>) => ({
     ...over,
 })
 
+let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return (
         <IntlWrapper>
             <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -30,7 +30,10 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 const renderNotice = () => render(<RequestFulfillmentNotice requestId="req-1" bankPayable={true} />, { wrapper })
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+})
 
 describe('RequestFulfillmentNotice', () => {
     it('shows nothing while no deposit has answered the request', async () => {
@@ -60,6 +63,15 @@ describe('RequestFulfillmentNotice', () => {
 
         expect(await screen.findByText('Paid')).toBeInTheDocument()
         expect(screen.getByText('Paid by ANA SILVA')).toBeInTheDocument()
+    })
+
+    it('refreshes activity when polling first observes a bank payment', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest.mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250' }))
+
+        renderNotice()
+
+        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }))
     })
 
     // The bank does not always report a name. The request is still paid, and

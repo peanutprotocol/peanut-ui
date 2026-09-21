@@ -221,6 +221,12 @@ export function useReceiptViewModel(
                 transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.senderReference
             ),
+            // The mirror on the way out: the reference we sent the provider.
+            // The API sets it for the owner of a fiat payout only, and the
+            // public projection withholds it — but the public page renders
+            // this same component tree, so the gate is repeated here rather
+            // than resting on one side alone.
+            paymentReference: !!(!isPublic && transaction.extraDataForDrawer?.paymentReference),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
                     (isPendingBankRequest &&

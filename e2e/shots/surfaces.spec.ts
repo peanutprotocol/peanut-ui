@@ -26,7 +26,11 @@ const FIXTURE = 'profile-edit'
 
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
-const APP_PAGE_SURFACES = new Set(['82-f-choice-card-requires-info', '84-f-choice-public-profile-guest'])
+const APP_PAGE_SURFACES = new Set([
+    '82-f-choice-card-requires-info',
+    '84-f-choice-public-profile-guest',
+    '87-f-request-created',
+])
 
 // Two one-time modals are mounted globally and open themselves on a first
 // visit — the high-balance warning and the "You're unlocked" celebration. Left

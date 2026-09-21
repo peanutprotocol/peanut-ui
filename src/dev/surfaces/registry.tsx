@@ -74,6 +74,7 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -749,6 +750,22 @@ export const SURFACES: Record<string, Surface> = {
     '86-f-choice-not-found': {
         ...SURFACE_META['86-f-choice-not-found'],
         render: () => <NotFoundScreen />,
+    },
+    '87-f-request-created': {
+        ...SURFACE_META['87-f-request-created'],
+        render: () => (
+            <AppPageSurface>
+                <RequestCreatedView
+                    requestId="fixture-request"
+                    generatedLink="https://peanut.me/request/pay?id=fixture-request"
+                    requestAmount="25"
+                    currency="EUR"
+                    bankPayable={false}
+                    onDone={noop}
+                    onCreateAnother={noop}
+                />
+            </AppPageSurface>
+        ),
     },
     '70-d-activationctas-outbound': {
         // the spend chooser opens on the card's CTA tap — the shot spec (or a
