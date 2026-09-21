@@ -402,7 +402,7 @@ const UnlockPayments = () => {
                 </Notification>
             )}
 
-            {isIdentityInReview && !isKycDegraded && (
+            {isIdentityInReview && identity.reviewPending === true && !isKycDegraded && (
                 <Notification
                     priority="helper"
                     title={
