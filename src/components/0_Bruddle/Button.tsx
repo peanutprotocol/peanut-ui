@@ -16,7 +16,7 @@ export type ButtonVariant =
     | 'primary-soft'
 export type ButtonSize = 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
-type ShadowSize = '3' | '4' | '6' | '8'
+export type ShadowSize = '3' | '4' | '6' | '8'
 
 interface ButtonVisualProps {
     variant?: ButtonVariant
