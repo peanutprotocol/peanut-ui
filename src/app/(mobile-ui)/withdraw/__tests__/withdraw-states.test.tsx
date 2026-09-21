@@ -337,7 +337,7 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to cash out?')
+        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
     })
 
     test('Method=bank from send flow shows "Send" title and send heading', () => {
@@ -428,7 +428,7 @@ describe('GROUP 2: Amount Input', () => {
 
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
-        expect(screen.getByText('Amount to cash out')).toBeInTheDocument()
+        expect(screen.getByText('Amount to withdraw')).toBeInTheDocument()
     })
 
     test('?method=crypto entry lands on the amount step without a step param (send hand-off)', async () => {

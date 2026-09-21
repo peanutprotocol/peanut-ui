@@ -72,7 +72,7 @@
         "loggingOut": "Logging out...",
         "dashboard": "Dashboard",
         "pay": "Pay",
-        "cashout": "Cashout",
+        "cashout": "Withdraw",
         "claim": "Claim",
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
@@ -155,7 +155,7 @@
         "history": {
             "activity": "Activity",
             "pendingTransactions": "Pending transactions",
-            "latestTransactions": "Latest Transactions",
+            "latestTransactions": "Latest transactions",
             "networkErrorTitle": "Couldn't load activity",
             "networkErrorDescription": "Check your connection and try again.",
             "errorTitle": "Error loading activity!",
@@ -254,13 +254,13 @@
         "hideBalance": "Hide balance",
         "drawers": {
             "sendToFriends": "Send to friends",
-            "sendToFriendsDescription": "Link, Contacts, Bank, Crypto",
-            "withdrawToOwnAccounts": "Withdraw to own accounts",
-            "withdrawToOwnAccountsDescription": "Euro, Dollars, crypto and more",
+            "sendToFriendsDescription": "Link, contacts, bank transfer and crypto",
+            "withdrawToOwnAccounts": "Withdraw to your own accounts",
+            "withdrawToOwnAccountsDescription": "Bank transfer and crypto",
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid through your EUR, USD and other virtual accounts"
+            "shareBankDetailsDescription": "Get paid in EUR, USD and more with your own bank details"
         }
     },
     "profile": {
@@ -1005,11 +1005,11 @@
         "methods": {
             "contactsTitle": "Peanut username",
             "contactsDescription": "Enter an exact @username or choose a contact",
-            "bankTitle": "Bank",
-            "bankDescription": "EUR, USD, MXN, ARS & more",
+            "bankTitle": "Bank transfer",
+            "bankDescription": "EUR, USD, MXN, ARS and more",
             "instantTransfers": "Instant transfers",
-            "exchangeOrWalletTitle": "Exchange or Wallet",
-            "exchangeOrWalletDescription": "Binance, Metamask and more"
+            "exchangeOrWalletTitle": "Crypto",
+            "exchangeOrWalletDescription": "Binance, MetaMask and more"
         },
         "contacts": {
             "searchPlaceholder": "Recipient",
@@ -1066,8 +1066,8 @@
             "validatingRecipient": "Validating recipient..."
         },
         "validation": {
-            "invalidRecipientTitle": "Invalid Recipient",
-            "missingRecipientTitle": "Missing Recipient",
+            "invalidRecipientTitle": "Invalid recipient",
+            "missingRecipientTitle": "Missing recipient",
             "invalidRecipientMessage": "The user you are trying to request from is not a valid Peanut user or does not exist. Please ensure you have the correct Peanut username.",
             "missingRecipientMessage": "No username provided in the URL. Please check the link and try again.",
             "goToHome": "Go to home",
@@ -1080,7 +1080,7 @@
             "exactNote": "A payer who pays by bank in {currency} sees this exact amount. Other payers see an estimate."
         },
         "bankInstructions": {
-            "title": "Share your bank account details",
+            "title": "Share your bank details",
             "description": "Anyone who opens this link sees your bank details and full name.",
             "anyonePays": "They can then pay you by bank transfer.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
@@ -1113,13 +1113,13 @@
         "errorPage": {
             "title": "Something went wrong!",
             "description": "An error occurred while loading the payment page.",
-            "contactSupport": "Contact Support"
+            "contactSupport": "Contact support"
         },
         "headers": {
             "pay": "Pay",
             "send": "Send",
             "receipt": "Receipt",
-            "confirmPayment": "Confirm Payment",
+            "confirmPayment": "Confirm payment",
             "contribute": "Contribute"
         },
         "actions": {
@@ -1143,7 +1143,7 @@
             "sendWith": "Send with"
         },
         "confirm": {
-            "minReceived": "Min Received",
+            "minReceived": "Min received",
             "requested": "Requested",
             "sending": "Sending",
             "tokenAndNetwork": "Token and network",
@@ -1157,7 +1157,7 @@
             "unableToLoad": "Unable to load receipt details"
         },
         "minAmount": {
-            "title": "Minimum Amount",
+            "title": "Minimum amount",
             "description": "The minimum amount for this payment method is ${minAmount}. Please enter a higher amount or try a different method."
         },
         "usePeanutBalance": {
@@ -1165,7 +1165,7 @@
             "description": "You already have enough funds in your Peanut account. Using this method is instant and avoids delays.",
             "payWithPeanut": "Pay with Peanut"
         },
-        "requiresVerification": "REQUIRES VERIFICATION",
+        "requiresVerification": "Requires verification",
         "contributors": {
             "seeAll": "See all contributors",
             "title": "Contributors ({count})"
@@ -1274,7 +1274,7 @@
             "devconnectLogoAlt": "Devconnect Logo",
             "starAlt": "star",
             "invitedBy": "Invited by {username}, you have early access!",
-            "requiresVerification": "REQUIRES VERIFICATION"
+            "requiresVerification": "Requires verification"
         },
         "minAmount": {
             "title": "Minimum Amount",
@@ -1282,7 +1282,7 @@
             "description": "The minimum amount for {method} is ${amount}. Please try a different method."
         },
         "confirm": {
-            "minReceived": "Min Received",
+            "minReceived": "Min received",
             "slippageInfo": "This transaction may face slippage due to token conversion or cross-chain bridging.",
             "tokenAndNetwork": "Token and network",
             "tokenAlt": "token",
@@ -1715,7 +1715,7 @@
         }
     },
     "addMoney": {
-        "title": "Add Money",
+        "title": "Add money",
         "transferDetails": "Transfer details",
         "selectYourCountry": "Select your country",
         "addMoneyVia": "Add money via",
@@ -1729,20 +1729,20 @@
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
             "crypto": "Crypto",
-            "cryptoDescription": "Deposit from a wallet or exchange",
+            "cryptoDescription": "Add from a wallet or exchange",
             "bankTransfer": "Bank transfer",
-            "kycRequired": "KYC required",
+            "kycRequired": "Verification required",
             "bankTransferDescription": "Reusable bank details to get paid"
         },
         "networkDrawer": {
-            "title": "Choose Network",
-            "description": "Select Network you want to make deposit from:",
-            "evmDescription": "{count} Networks - 1 Address",
+            "title": "Choose network",
+            "description": "Select the network you want to add from:",
+            "evmDescription": "{count} networks, 1 address",
             "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}",
             "evmTokensOnNetworks": "{tokens, plural, one {# supported token} other {# supported tokens}} on {networks} networks"
         },
         "supportedNetworksModal": {
-            "title": "Supported Networks",
+            "title": "Supported networks",
             "description": "One address for all listed below EVM networks. Send from any of them and your funds will be routed correctly.",
             "cta": "Got it, thanks",
             "warning": "Sending to the wrong network or token will result in permanent loss."
@@ -1758,15 +1758,15 @@
             }
         },
         "crypto": {
-            "title": "Deposit Crypto",
+            "title": "Add crypto",
             "sendTokensToAddress": "Send tokens to this <b>{network}</b> address",
             "tooltipEvm": "{count} EVM networks supported. For exact amounts, deposit USDC on Arbitrum. Other chains/tokens are bridged (±0.1%).",
             "tooltipSol": "Your Solana deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
             "tooltipTron": "Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
-            "universalDepositAddress": "Universal Deposit Address",
-            "depositAddress": "Deposit Address",
-            "supportedNetworks": "Supported Networks",
-            "supportedTokens": "Supported Tokens",
+            "universalDepositAddress": "Universal deposit address",
+            "depositAddress": "Deposit address",
+            "supportedNetworks": "Supported networks",
+            "supportedTokens": "Supported tokens",
             "supportedTokensInline": "Supported tokens:",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
@@ -1784,23 +1784,23 @@
             "marketMovedTitle": "Oops! Market moved",
             "marketMovedDescription": "The exchange rate changed too much to complete your deposit.",
             "marketMovedNote": "Your money is on its way back to your wallet.",
-            "depositedCrypto": "Deposited Crypto"
+            "depositedCrypto": "Deposited crypto"
         },
         "manteca": {
             "youreAdding": "You're adding",
             "sendOnlyOwnAccountTitle": "Send only from your own account",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
             "accountDetails": "Account details",
-            "depositAddress": "Deposit Address",
+            "depositAddress": "Deposit address",
             "alias": "Alias",
             "razonSocial": "Razón Social",
             "cuit": "CUIT",
-            "exchangeRate": "Exchange Rate",
+            "exchangeRate": "Exchange rate",
             "providerFees": "Provider fees",
             "providerFeesInfo": "Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
             "flagAlt": "flag",
-            "shareTitle": "Bank Transfer Details",
-            "shareDetails": "Share Details",
+            "shareTitle": "Bank transfer details",
+            "shareDetails": "Share details",
             "shareAmount": "Amount: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
@@ -1810,13 +1810,13 @@
         "processingDepositTitle": "Processing your deposit",
         "processingDepositBody": "We're confirming your deposit.",
         "pix": {
-            "payWithPix": "Pay with PIX",
+            "payWithPix": "Pay with Pix",
             "depositReceived": "Deposit received!",
             "balanceUpdated": "Your balance has been updated.",
             "expiresIn": "Expires in {time}",
             "qrExpired": "This QR code has expired.",
             "goBack": "Go back",
-            "scanWithBankApp": "Scan with your bank app, or copy the PIX code."
+            "scanWithBankApp": "Scan with your bank app, or copy the Pix code."
         },
         "confirmationModal": {
             "title": "Important",
@@ -1835,26 +1835,26 @@
             "sendExactAmount": "Send exactly this amount!",
             "depositReference": "Deposit reference",
             "pasteInReferenceField": "Paste in your bank's reference field",
-            "title": "Bank Details",
-            "accountHolderName": "Account Holder Name",
-            "bankName": "Bank Name",
-            "bankAddress": "Bank Address",
-            "beneficiaryName": "Beneficiary Name",
-            "beneficiaryAddress": "Beneficiary Address",
+            "title": "Bank details",
+            "accountHolderName": "Account holder name",
+            "bankName": "Bank name",
+            "bankAddress": "Bank address",
+            "beneficiaryName": "Recipient name",
+            "beneficiaryAddress": "Recipient address",
             "clabe": "CLABE",
-            "sortCode": "Sort Code",
-            "accountNumber": "Account Number",
+            "sortCode": "Sort code",
+            "accountNumber": "Account number",
             "iban": "IBAN",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Routing number",
             "bic": "BIC",
-            "youllReceive": "You'll Receive",
+            "youllReceive": "You'll receive",
             "doubleCheckTitle": "Double check in your bank before sending:",
             "doubleCheckAmount": "Amount: {amount} (exact)",
             "doubleCheckReference": "Reference: {reference} (included)",
             "sentTransfer": "I've sent the transfer",
-            "shareTitle": "Bank Transfer Details",
-            "shareDetails": "Share Details",
-            "shareIntro": "Bank Transfer Details:",
+            "shareTitle": "Bank transfer details",
+            "shareDetails": "Share details",
+            "shareIntro": "Bank transfer details:",
             "shareOutro": "Please use these details to complete your bank transfer.",
             "shareLine": "{label}: {value}",
             "amountLabel": "Amount",
@@ -1878,11 +1878,11 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
-        "amountToWithdraw": "Amount to cash out",
+        "amountToWithdraw": "Amount to withdraw",
         "amountToSend": "Amount to send",
-        "howWouldYouLikeToWithdraw": "How would you like to cash out?",
+        "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
         "howWouldYouLikeToSend": "How would you like to send?",
-        "chooseWithdrawingMethod": "Choose withdrawing method",
+        "chooseWithdrawingMethod": "Choose a withdrawal method",
         "addAccount": "Add account",
         "selectNewMethod": "Select new method",
         "recentMethods": "Recent methods",
@@ -1916,20 +1916,20 @@
         "pixKey": {
             "title": "Send with Pix",
             "heading": "Enter Pix key",
-            "placeholder": "PIX key",
+            "placeholder": "Pix key",
             "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
             "invalid": "Invalid Pix key"
         },
         "bank": {
             "eurTitle": "We send EUR to your bank",
             "eurDescription": "Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.",
-            "accountOwner": "Account Owner",
+            "accountOwner": "Account owner",
             "iban": "IBAN",
             "bic": "BIC",
             "clabe": "CLABE",
-            "accountNumber": "Account Number",
-            "sortCode": "Sort Code",
-            "routingNumber": "Routing Number",
+            "accountNumber": "Account number",
+            "sortCode": "Sort code",
+            "routingNumber": "Routing number",
             "fee": "Fee",
             "reference": "Reference (optional)",
             "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
@@ -1947,7 +1947,7 @@
             "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
             "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
             "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
-            "bankAccount": "Bank Account",
+            "bankAccount": "Bank account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
         },
@@ -1959,7 +1959,7 @@
             "selectBank": "Select bank",
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "redirecting": "Redirecting...",
-            "exchangeRate": "Exchange Rate",
+            "exchangeRate": "Exchange rate",
             "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
@@ -1968,10 +1968,10 @@
         },
         "bankForm": {
             "heading": "Enter bank account details",
-            "accountOwnerName": "Account Owner Name",
+            "accountOwnerName": "Account owner name",
             "accountOwnerNameRequired": "Account owner name is required",
             "accountOwnerNameFull": "Please enter both first and last name",
-            "email": "E-mail",
+            "email": "Email",
             "emailRequired": "Email is required",
             "clabe": "CLABE",
             "clabeRequired": "CLABE is required",
@@ -1981,24 +1981,24 @@
             "ibanRequired": "IBAN is required",
             "ibanInvalid": "Invalid IBAN",
             "ibanUnsupported": "We cannot send euros to this IBAN. Enter an IBAN from a SEPA country.",
-            "accountNumber": "Account Number",
+            "accountNumber": "Account number",
             "accountNumberRequired": "Account number is required",
             "accountNumberUk": "Account number must be 6-8 digits",
             "accountNumberInvalid": "Invalid account number",
             "bic": "BIC",
             "bicRequired": "BIC is required",
             "bicInvalid": "Invalid BIC code",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Routing number",
             "routingNumberRequired": "Routing number is required",
             "routingNumberInvalid": "Invalid routing number",
-            "sortCode": "Sort Code",
+            "sortCode": "Sort code",
             "sortCodeRequired": "Sort code is required",
             "sortCodeInvalid": "Sort code must be 6 digits",
-            "street": "Your Street Address",
+            "street": "Your street address",
             "streetRequired": "Street address is required",
             "streetMax": "Street address must be 35 characters or less",
             "streetMin": "Street address must be 4 characters or more",
-            "city": "Your City",
+            "city": "Your city",
             "cityRequired": "City is required",
             "state": "Select your state",
             "stateLabel": "State",
@@ -2006,7 +2006,7 @@
             "cityLabel": "City",
             "postalCodeLabel": "Postal code",
             "stateRequired": "State is required",
-            "postalCode": "Your Postal Code",
+            "postalCode": "Your postal code",
             "postalCodeRequired": "Postal code is required",
             "unsupportedCountry": "Unsupported country",
             "accountNumberCo": "Account number must be 5 to 20 digits",
@@ -2077,11 +2077,11 @@
             "searchPlaceholder": "Search currency or country",
             "flagAlt": "{currency} flag",
             "otherCountriesTitle": "Other countries",
-            "otherCountriesPitch": "Find your country and cash out in its local currency"
+            "otherCountriesPitch": "Find your country and withdraw in its local currency"
         }
     },
     "transaction": {
-        "drawerTitle": "Transaction Details",
+        "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",
             "reference": "Reference",
@@ -2110,7 +2110,7 @@
             "receive": "Receive",
             "request": "Request",
             "withdraw": "Withdraw",
-            "cashout": "Cashout",
+            "cashout": "Withdraw",
             "add": "Add",
             "pay": "Pay",
             "claim_external": "Claim",
@@ -2119,7 +2119,7 @@
             "bank_deposit": "Add",
             "beingReturned": "Being returned to the payer",
             "returnedToSender": "Returned to sender",
-            "bank_request_fulfillment": "Request paid via bank",
+            "bank_request_fulfillment": "Request paid by bank transfer",
             "card_pay": "Pay",
             "refund": "Refund",
             "setup": "Setup",
@@ -2128,9 +2128,9 @@
         "title": {
             "sentViaLink": "You sent via link",
             "receivedViaLink": "You received via link",
-            "requestedViaLink": "Requested via Link",
-            "requestViaLink": "Request via Link",
-            "linkTransaction": "Link Transaction",
+            "requestedViaLink": "Requested via link",
+            "requestViaLink": "Request via link",
+            "linkTransaction": "Link transaction",
             "sentTo": "Sent to {name}",
             "sendingTo": "Sending to {name}",
             "isRequesting": "{name} is requesting",
@@ -2154,17 +2154,17 @@
             "cardRefund": "Card refund",
             "refundFrom": "Refund from {name}",
             "refund": "Refund",
-            "depositSource": "Deposit Source",
-            "externalWallet": "External Wallet",
-            "externalAccount": "External Account",
-            "claimedToBank": "Claimed to Bank",
-            "bankAccount": "Bank Account",
+            "depositSource": "Deposit source",
+            "externalWallet": "External wallet",
+            "externalAccount": "External account",
+            "claimedToBank": "Claimed to bank",
+            "bankAccount": "Bank account",
             "recipient": "Recipient",
             "sender": "Sender",
             "request": "Request",
-            "peanutReward": "Peanut Reward",
-            "receivedViaLink": "Received via Link",
-            "sentViaLink": "Sent via Link",
+            "peanutReward": "Peanut reward",
+            "receivedViaLink": "Received via link",
+            "sentViaLink": "Sent via link",
             "transaction": "Transaction",
             "failedQrPayment": "Failed QR payment attempt"
         },
@@ -2202,7 +2202,7 @@
             "attachment": "Attachment",
             "download": "Download",
             "reason": "Reason",
-            "accountNumber": "Account Number",
+            "accountNumber": "Account number",
             "address": "Address",
             "estimateConversion": "Estimate conversion"
         },
@@ -2214,7 +2214,7 @@
             "generic": "You received a Peanut reward!"
         },
         "perk": {
-            "title": "Peanut Reward",
+            "title": "Peanut reward",
             "subtitle": "Earn rewards every time your friends use Peanut.",
             "statusCompleted": "Completed",
             "received": "Received"
@@ -2299,7 +2299,7 @@
             "depositMessageInfo": "Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed.",
             "seeBankDetails": "See bank details",
             "hideBankDetails": "Hide bank details",
-            "accountHolderName": "Account Holder Name",
+            "accountHolderName": "Account holder name",
             "bankName": "Bank Name",
             "bankAddress": "Bank Address",
             "routingNumber": "Routing Number",
@@ -3439,8 +3439,8 @@
         "tokenAndNetworkConfirmationModal": {
             "title": "Send only supported tokens on supported networks",
             "warning": "Sending the wrong token or using the wrong network will result in permanent loss.",
-            "supportedNetworks": "Supported Networks",
-            "supportedTokens": "Supported Tokens",
+            "supportedNetworks": "Supported networks",
+            "supportedTokens": "Supported tokens",
             "slideToProceed": "Slide to Proceed"
         },
         "rainCooldownIntroModal": {
@@ -3596,9 +3596,9 @@
             "noResultsDescription": "Try searching with a different term.",
             "receiveTitle": "Receive",
             "flagAlt": "{country} flag",
-            "cryptoDepositTitle": "Crypto Deposit",
+            "cryptoDepositTitle": "Crypto",
             "cryptoWithdrawTitle": "Crypto",
-            "cryptoDepositDescription": "Use an exchange or your wallet",
+            "cryptoDepositDescription": "Add from a wallet or exchange",
             "cryptoWithdrawDescription": "Withdraw to a wallet or exchange"
         },
         "savedAccounts": {

@@ -72,7 +72,7 @@
         "loggingOut": "Cerrando sesión...",
         "dashboard": "Panel",
         "pay": "Pagar",
-        "cashout": "Retiro",
+        "cashout": "Retirar",
         "claim": "Reclamar",
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
@@ -254,13 +254,13 @@
         "hideBalance": "Ocultar saldo",
         "drawers": {
             "sendToFriends": "Enviar a amigos",
-            "sendToFriendsDescription": "Link, contactos, banco, cripto",
-            "withdrawToOwnAccounts": "Retirar a tus cuentas",
-            "withdrawToOwnAccountsDescription": "Euros, dólares, cripto y más",
+            "sendToFriendsDescription": "Link, contactos, transferencia bancaria y cripto",
+            "withdrawToOwnAccounts": "Retirar a tus propias cuentas",
+            "withdrawToOwnAccountsDescription": "Transferencia bancaria y cripto",
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos a través de tus cuentas en EUR, USD y otras monedas"
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con tus propios datos bancarios"
         }
     },
     "profile": {
@@ -1005,11 +1005,11 @@
         "methods": {
             "contactsTitle": "Nombre de usuario de Peanut",
             "contactsDescription": "Ingresa un @usuario exacto o elige un contacto",
-            "bankTitle": "Banco",
+            "bankTitle": "Transferencia bancaria",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
-            "exchangeOrWalletTitle": "Exchange o billetera",
-            "exchangeOrWalletDescription": "Binance, Metamask y más"
+            "exchangeOrWalletTitle": "Cripto",
+            "exchangeOrWalletDescription": "Binance, MetaMask y más"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
@@ -1080,7 +1080,7 @@
             "exactNote": "Quien paga por banco en {currency} ve este monto exacto. Los demás ven un estimado."
         },
         "bankInstructions": {
-            "title": "Comparte los datos de tu cuenta bancaria",
+            "title": "Comparte tus datos bancarios",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "anyonePays": "Luego puede pagarte por transferencia bancaria.",
             "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
@@ -1113,7 +1113,7 @@
         "errorPage": {
             "title": "¡Algo salió mal!",
             "description": "Ocurrió un error al cargar la página de pago.",
-            "contactSupport": "Contactar a soporte"
+            "contactSupport": "Contactar soporte"
         },
         "headers": {
             "pay": "Pagar",
@@ -1165,7 +1165,7 @@
             "description": "Ya tienes fondos suficientes en tu cuenta de Peanut. Este método es instantáneo y evita demoras.",
             "payWithPeanut": "Pagar con Peanut"
         },
-        "requiresVerification": "REQUIERE VERIFICACIÓN",
+        "requiresVerification": "Requiere verificación",
         "contributors": {
             "seeAll": "Ver todos los contribuyentes",
             "title": "Contribuyentes ({count})"
@@ -1274,7 +1274,7 @@
             "devconnectLogoAlt": "Logo de Devconnect",
             "starAlt": "estrella",
             "invitedBy": "¡{username} te invitó, tienes acceso anticipado!",
-            "requiresVerification": "REQUIERE VERIFICACIÓN"
+            "requiresVerification": "Requiere verificación"
         },
         "minAmount": {
             "title": "Monto mínimo",
@@ -1729,15 +1729,15 @@
         "chainTokenOnly": "{chain} · solo {tokens}",
         "methods": {
             "crypto": "Cripto",
-            "cryptoDescription": "Deposita desde una billetera o exchange",
+            "cryptoDescription": "Agrega desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC",
+            "kycRequired": "Requiere verificación",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
             "title": "Elegir red",
-            "description": "Elige la red desde la que quieres depositar:",
-            "evmDescription": "{count} redes - 1 dirección",
+            "description": "Elige la red desde la que quieres agregar:",
+            "evmDescription": "{count} redes, 1 dirección",
             "supportedTokens": "{count, plural, one {# token compatible} other {# tokens compatibles}}",
             "evmTokensOnNetworks": "{tokens, plural, one {# token compatible} other {# tokens compatibles}} en {networks} redes"
         },
@@ -1758,7 +1758,7 @@
             }
         },
         "crypto": {
-            "title": "Depositar cripto",
+            "title": "Agregar cripto",
             "sendTokensToAddress": "Envía tokens a esta dirección de <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, deposita USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
             "tooltipSol": "Tu dirección de depósito de Solana. Los depósitos se puentean a Arbitrum (variación de ±0.1%).",
@@ -1810,13 +1810,13 @@
         "processingDepositTitle": "Procesando tu depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
-            "payWithPix": "Pagar con PIX",
+            "payWithPix": "Pagar con Pix",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "goBack": "Volver",
-            "scanWithBankApp": "Escanea con la app de tu banco o copia el código PIX."
+            "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {
             "title": "Importante",
@@ -1839,15 +1839,15 @@
             "accountHolderName": "Nombre del titular",
             "bankName": "Nombre del banco",
             "bankAddress": "Dirección del banco",
-            "beneficiaryName": "Nombre del beneficiario",
-            "beneficiaryAddress": "Dirección del beneficiario",
+            "beneficiaryName": "Nombre del destinatario",
+            "beneficiaryAddress": "Dirección del destinatario",
             "clabe": "CLABE",
             "sortCode": "Sort Code",
             "accountNumber": "Número de cuenta",
             "iban": "IBAN",
             "routingNumber": "Número de ruta",
             "bic": "BIC",
-            "youllReceive": "Recibirás",
+            "youllReceive": "Vas a recibir",
             "doubleCheckTitle": "Revisa bien en tu banco antes de enviar:",
             "doubleCheckAmount": "Monto: {amount} (exacto)",
             "doubleCheckReference": "Referencia: {reference} (incluida)",
@@ -1916,7 +1916,7 @@
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave PIX",
+            "placeholder": "Clave Pix",
             "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
@@ -1971,7 +1971,7 @@
             "accountOwnerName": "Nombre del titular de la cuenta",
             "accountOwnerNameRequired": "El nombre del titular es obligatorio",
             "accountOwnerNameFull": "Ingresa nombre y apellido",
-            "email": "E-mail",
+            "email": "Correo electrónico",
             "emailRequired": "El email es obligatorio",
             "clabe": "CLABE",
             "clabeRequired": "La CLABE es obligatoria",
@@ -2119,7 +2119,7 @@
             "bank_deposit": "Ingreso",
             "beingReturned": "Volviendo a quien pagó",
             "returnedToSender": "Devuelto a quien pagó",
-            "bank_request_fulfillment": "Solicitud pagada por banco",
+            "bank_request_fulfillment": "Solicitud pagada por transferencia bancaria",
             "card_pay": "Pago",
             "refund": "Reembolso",
             "setup": "Configuración",
@@ -3596,9 +3596,9 @@
             "noResultsDescription": "Intenta buscar con otro término.",
             "receiveTitle": "Recibir",
             "flagAlt": "Bandera de {country}",
-            "cryptoDepositTitle": "Depósito en cripto",
+            "cryptoDepositTitle": "Cripto",
             "cryptoWithdrawTitle": "Cripto",
-            "cryptoDepositDescription": "Usa un exchange o tu billetera",
+            "cryptoDepositDescription": "Agrega desde una billetera o exchange",
             "cryptoWithdrawDescription": "Retira a una billetera o exchange"
         },
         "savedAccounts": {

@@ -1103,9 +1103,9 @@ describe('GROUP 2: Country Page', () => {
 })
 
 // ============================================================
-// GROUP 3: Crypto Deposit
+// GROUP 3: Crypto deposit
 // ============================================================
-describe('GROUP 3: Crypto Deposit', () => {
+describe('GROUP 3: Crypto deposit', () => {
     test('loading state shows PeanutLoading', () => {
         resetQueryState({ network: 'EVM' })
 
@@ -1145,7 +1145,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         )
 
         expect(screen.getByTestId('qr-code')).toBeInTheDocument()
-        expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
+        expect(screen.getByText('Add crypto')).toBeInTheDocument()
         expect(screen.getAllByText(/EVM/).length).toBeGreaterThan(0)
         expect(screen.getByText('5 USD')).toBeInTheDocument()
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
@@ -1278,8 +1278,8 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 
         renderWithProviders(<AddMoneyCryptoPage />)
 
-        // The component renders CryptoDepositView which shows Deposit Crypto
-        expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
+        // The component renders CryptoDepositView which shows Add crypto
+        expect(screen.getByText('Add crypto')).toBeInTheDocument()
     })
 })
 

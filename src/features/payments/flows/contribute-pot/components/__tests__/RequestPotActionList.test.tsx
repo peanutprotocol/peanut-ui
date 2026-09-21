@@ -31,8 +31,14 @@ jest.mock('@/hooks/useDetermineBankRequestType', () => ({
     useDetermineBankRequestType: () => ({ requestType: 'user-bank-request' }),
 }))
 
-const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false }
-const walletMethod = { id: 'exchange-or-wallet', title: 'Exchange or Wallet', description: '', icons: [], soon: false }
+const bankMethod = {
+    id: 'bank',
+    title: 'Bank transfer',
+    description: 'EUR, USD, MXN, ARS and more',
+    icons: [],
+    soon: false,
+}
+const walletMethod = { id: 'exchange-or-wallet', title: 'Crypto', description: '', icons: [], soon: false }
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [bankMethod, walletMethod], isLoading: false }),
 }))
@@ -88,9 +94,7 @@ function renderList(props: Partial<React.ComponentProps<typeof RequestPotActionL
 
 /** the visible row labels below the Peanut CTA, in document order */
 const rowOrder = () =>
-    screen
-        .getAllByText(/^(Bank|Exchange or Wallet|Pay by bank transfer|Pay in [A-Z]{3})$/)
-        .map((node) => node.textContent)
+    screen.getAllByText(/^(Bank transfer|Crypto|Pay by bank transfer|Pay in [A-Z]{3})$/).map((node) => node.textContent)
 
 const usdRail = { kind: 'peanut_balance', payerAmount: { amount: '108.00', currency: 'USD', isEstimate: false } }
 const bankRail = (currency: string, railId: string, isEstimate: boolean) => ({
@@ -112,20 +116,20 @@ describe('RequestPotActionList', () => {
         mockAuth = signedOut
         renderList()
 
-        expect(rowOrder()).toEqual(['Pay by bank transfer', 'Exchange or Wallet'])
+        expect(rowOrder()).toEqual(['Pay by bank transfer', 'Crypto'])
     })
 
     it('keeps the generic bank method for a signed-out payer when the requester shares no details', () => {
         mockAuth = signedOut
         renderList({ bankPayable: false })
 
-        expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet'])
+        expect(rowOrder()).toEqual(['Bank transfer', 'Crypto'])
     })
 
     it('keeps both bank rows for a signed-in payer, with the requester details last', () => {
         renderList()
 
-        expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay by bank transfer'])
+        expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay by bank transfer'])
     })
 
     // A signed-in payer must not see the rows jump once the session resolves.
@@ -133,7 +137,7 @@ describe('RequestPotActionList', () => {
         mockAuth = { user: null, isFetchingUser: true }
         renderList()
 
-        expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay by bank transfer'])
+        expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay by bank transfer'])
     })
 
     it('hands the drawer the payer amount and what the request still needs', () => {
@@ -160,7 +164,7 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR' })
 
-            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay in EUR', 'Pay in USD'])
+            expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay in EUR', 'Pay in USD'])
             expect(mockDrawer).toHaveBeenCalledWith(
                 expect.objectContaining({ rail: expect.objectContaining({ railId: 'bridge.sepa_eu' }) })
             )
@@ -324,7 +328,7 @@ describe('RequestPotActionList', () => {
             // notice, prefilled with the full amount.
             expect(screen.getByTestId('request-already-covered')).toBeInTheDocument()
             expect(screen.queryByText('Pay with Peanut')).not.toBeInTheDocument()
-            expect(screen.queryAllByText(/^(Bank|Exchange or Wallet)$/)).toHaveLength(0)
+            expect(screen.queryAllByText(/^(Bank transfer|Crypto)$/)).toHaveLength(0)
             expect(mockDrawer).not.toHaveBeenCalled()
         })
 
@@ -349,7 +353,7 @@ describe('RequestPotActionList', () => {
         it('keeps the one generic bank row when the API returns no rails', () => {
             renderList()
 
-            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay by bank transfer'])
+            expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay by bank transfer'])
             expect(mockDrawer.mock.calls[0][0].rail).toBeUndefined()
         })
 
@@ -367,7 +371,7 @@ describe('RequestPotActionList', () => {
             }
             renderList({ bankPayable: false, requestCurrency: 'EUR' })
 
-            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet'])
+            expect(rowOrder()).toEqual(['Bank transfer', 'Crypto'])
         })
     })
 })
