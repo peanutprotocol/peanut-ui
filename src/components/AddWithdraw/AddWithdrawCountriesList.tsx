@@ -27,7 +27,7 @@ import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
-import { SEPA_DESTINATION, SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
+import { hasBridgeBankCorridor, SEPA_DESTINATION, SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -166,6 +166,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         (railListSkipped && bankRail && !bankRail.path?.includes('/manteca'))
             ? 'form'
             : 'list'
+
+    // A URL is not a permission. The form rendered for `?step=form` on ANY
+    // country, so a hand-edited URL reached a form whose submit can only fail
+    // with "unsupported country". The review page one step later already
+    // refuses the same URL — this is that guard, one screen earlier
+    // (useBridgeOfframpFlow: validate country is supported for bank
+    // withdrawals). The euro area passes it: SEPA is a corridor of its own.
+    useEffect(() => {
+        if (flow !== 'withdraw' || view !== 'form') return
+        if (!currentCountry || hasBridgeBankCorridor(currentCountry.id)) return
+        router.replace(`/withdraw${isBankFromSend ? `?method=${methodParam}` : ''}`)
+    }, [flow, view, currentCountry, router, isBankFromSend, methodParam])
 
     useEffect(() => {
         const rail = liveRails.length === 1 ? liveRails[0] : undefined
@@ -445,6 +457,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             </div>
         )
     }
+
+    // The redirect above is in flight. Rendering the form meanwhile would flash
+    // a screen the user cannot complete, which is the thing being prevented.
+    if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
 
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (
