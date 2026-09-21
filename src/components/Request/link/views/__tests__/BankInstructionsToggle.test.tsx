@@ -150,7 +150,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText('Share your bank account details')).toBeInTheDocument()
+            expect(screen.getByText('Share your bank details')).toBeInTheDocument()
             expect(
                 screen.getByText(/Anyone who opens this link sees your bank details and full name\./)
             ).toBeInTheDocument()
@@ -180,7 +180,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(checked)
 
-            expect(screen.getByRole('switch', { name: 'Share your bank account details' })).toBeInTheDocument()
+            expect(screen.getByRole('switch', { name: 'Share your bank details' })).toBeInTheDocument()
         })
     })
 })
