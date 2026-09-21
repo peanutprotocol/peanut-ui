@@ -43,6 +43,20 @@ describe('validateBankOfframpAmount', () => {
         expect(validateBankOfframpAmount('5', undefined)).toEqual({ ok: false, reason: 'balanceLoading' })
     })
 
+    // The provider is promised this exact figure and matches the deposit on
+    // it, while the chain can only carry 6 decimals: viem rounds rather than
+    // throwing, so a longer fraction sent LESS than the provider was told and
+    // the transfer sat awaiting funds with the money already gone.
+    it('rejects a fraction the chain cannot carry', () => {
+        for (const raw of ['5.1234564', '5.12345649', '1.0000001']) {
+            expect(validateBankOfframpAmount(raw, balance)).toEqual({ ok: false, reason: 'invalid' })
+        }
+    })
+
+    it('accepts a fraction of exactly six decimals', () => {
+        expect(validateBankOfframpAmount('5.123456', balance)).toEqual({ ok: true, normalized: '5.123456' })
+    })
+
     it('accepts and normalizes valid amounts — the wire never sees the raw param', () => {
         expect(validateBankOfframpAmount('50', balance)).toEqual({ ok: true, normalized: '50' })
         expect(validateBankOfframpAmount('050.10', balance)).toEqual({ ok: true, normalized: '50.1' })
