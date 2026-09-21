@@ -2,8 +2,15 @@ import React, { useState } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import TokenSelector from '../TokenSelector'
 
+// the shipped config has disableXchainSend ON, which would put every test on
+// the maintenance path. Pinned OFF here; the maintenance test flips it back.
+jest.mock('@/config/underMaintenance.config', () => ({
+    __esModule: true,
+    default: { disableXchainWithdraw: false, disableXchainSend: false },
+}))
 // vaul needs layout apis jsdom lacks; a pass-through keeps the drawer inline
 jest.mock('@/components/Global/Drawer', () => ({
     Drawer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -27,6 +34,9 @@ jest.mock('../Components/NetworkListView', () => ({
     ),
 }))
 
+const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+
 const token = (address: string, symbol: string) => ({
     address,
     name: symbol,
@@ -41,19 +51,27 @@ const CHAINS = {
         chainId: '42161',
         networkName: 'Arbitrum',
         chainIconURI: '',
-        tokens: [token('0xaf88d065e77c8cC2239327C5EDb3A432268e5831', 'USDC')],
+        tokens: [token(USDC_ARB, 'USDC')],
     },
     '1': {
         chainId: '1',
         networkName: 'Ethereum',
         chainIconURI: '',
-        tokens: [token('0xdAC17F958D2ee523a2206206994597C13D831ec7', 'USDT')],
+        tokens: [token(USDT_ETH, 'USDT')],
     },
 }
 
-function Harness({ initialChainID = '' }: { initialChainID?: string }) {
+function Harness({
+    initialChainID = '',
+    initialTokenAddress = '',
+    viewType = 'other',
+}: {
+    initialChainID?: string
+    initialTokenAddress?: string
+    viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+}) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState('')
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
     return (
         <IntlWrapper>
             <tokenSelectorContext.Provider
@@ -67,7 +85,7 @@ function Harness({ initialChainID = '' }: { initialChainID?: string }) {
                     } as never
                 }
             >
-                <TokenSelector viewType="other" />
+                <TokenSelector viewType={viewType} />
                 <output data-testid="chain-probe">{selectedChainID || 'all'}</output>
                 <output data-testid="token-probe">{selectedTokenAddress || 'none'}</output>
             </tokenSelectorContext.Provider>
@@ -75,13 +93,17 @@ function Harness({ initialChainID = '' }: { initialChainID?: string }) {
     )
 }
 
-const openDrawer = () => fireEvent.click(screen.getByRole('button', { name: /select a token/i }))
+// the trigger is a ListItem whose accessible name is the SELECTED token, so it
+// is addressed by test id rather than by a name that changes with the state
+const openDrawer = () => fireEvent.click(screen.getByTestId('token-selector-trigger'))
 
 // radix tabs activate on mousedown, not click, so fire both
 const clickTab = (el: HTMLElement) => {
     fireEvent.mouseDown(el)
     fireEvent.click(el)
 }
+
+const tokenList = () => screen.getByRole('listbox', { name: /select a token/i })
 
 describe('TokenSelector network tabs (TASK-22452)', () => {
     test('renders an All tab plus one tab per popular chain', () => {
@@ -93,26 +115,30 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
         expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute('data-state', 'active')
     })
 
+    test('the tabs are contentless — no tab panel is rendered', () => {
+        render(<Harness />)
+        openDrawer()
+        expect(screen.queryAllByRole('tabpanel')).toHaveLength(0)
+    })
+
     test('selecting a network tab filters the token list; All resets', () => {
         render(<Harness />)
         openDrawer()
 
         clickTab(screen.getByRole('tab', { name: /ETH/ }))
         expect(screen.getByTestId('chain-probe')).toHaveTextContent('1')
-        const activePanel = screen
-            .getAllByRole('tabpanel')
-            .find((panel) => panel.getAttribute('data-state') === 'active')!
-        expect(within(activePanel).getByText('USDT')).toBeInTheDocument()
+        expect(within(tokenList()).getByText('USDT')).toBeInTheDocument()
+        expect(within(tokenList()).queryByText('USDC')).not.toBeInTheDocument()
 
         clickTab(screen.getByRole('tab', { name: 'All' }))
         expect(screen.getByTestId('chain-probe')).toHaveTextContent('all')
+        expect(within(tokenList()).getByText('USDC')).toBeInTheDocument()
     })
 
     test('tab selection keeps the picked token (old tile behavior)', () => {
         render(<Harness />)
         openDrawer()
-        const panel = screen.getAllByRole('tabpanel').find((p) => p.getAttribute('data-state') === 'active')!
-        fireEvent.click(within(panel).getByText('USDC'))
+        fireEvent.click(within(tokenList()).getByText('USDC'))
         expect(screen.getByTestId('token-probe')).not.toHaveTextContent('none')
 
         // the drawer mock keeps content mounted, so switch tabs directly
@@ -124,12 +150,48 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
         render(<Harness />)
         openDrawer()
         clickTab(screen.getByRole('tab', { name: /ETH/ }))
-        const activePanel = screen
-            .getAllByRole('tabpanel')
-            .find((panel) => panel.getAttribute('data-state') === 'active')!
         // usdc lives on arbitrum, not the active eth tab — search finds it anyway
-        fireEvent.change(within(activePanel).getByRole('textbox'), { target: { value: 'USDC' } })
-        expect(within(activePanel).getByText('USDC')).toBeInTheDocument()
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'USDC' } })
+        expect(within(tokenList()).getByText('USDC')).toBeInTheDocument()
+    })
+
+    test('search is substring, not exact match', () => {
+        render(<Harness />)
+        openDrawer()
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'usd' } })
+        expect(within(tokenList()).getByText('USDC')).toBeInTheDocument()
+        expect(within(tokenList()).getByText('USDT')).toBeInTheDocument()
+    })
+
+    test('the search field lives outside the tabs, so a tab switch keeps its value', () => {
+        render(<Harness />)
+        openDrawer()
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'usd' } })
+        clickTab(screen.getByRole('tab', { name: /ETH/ }))
+        expect(screen.getByRole('textbox')).toHaveValue('usd')
+    })
+
+    test('rows are listbox options and only the selected one is aria-selected', () => {
+        render(<Harness initialChainID="42161" initialTokenAddress={USDC_ARB} />)
+        openDrawer()
+        const options = within(tokenList()).getAllByRole('option')
+        expect(options.length).toBeGreaterThan(0)
+        expect(options.filter((option) => option.getAttribute('aria-selected') === 'true')).toHaveLength(1)
+        expect(within(tokenList()).getByRole('option', { name: /USDC/ })).toHaveAttribute('aria-selected', 'true')
+    })
+
+    test('cross-chain disabled: the announcement replaces search and tabs, one token stays', () => {
+        underMaintenanceConfig.disableXchainSend = true
+        try {
+            render(<Harness viewType="claim" />)
+            openDrawer()
+            expect(screen.getByRole('alert')).toHaveTextContent(/temporarily unavailable/i)
+            expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+            expect(screen.queryAllByRole('tab')).toHaveLength(0)
+            expect(within(tokenList()).getAllByRole('option')).toHaveLength(1)
+        } finally {
+            underMaintenanceConfig.disableXchainSend = false
+        }
     })
 
     test('More networks opens the list and a non-popular pick gets its own tab and clears the token', () => {
@@ -141,7 +203,7 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
         fireEvent.click(screen.getByText('pick polygon'))
         expect(screen.getByTestId('chain-probe')).toHaveTextContent('137')
         expect(screen.getByTestId('token-probe')).toHaveTextContent('none')
-        // the non-popular selection keeps an active tab so the panel renders
+        // the non-popular selection keeps an active tab so the row stays visible
         const activeTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('data-state') === 'active')
         expect(activeTab).toBeDefined()
     })
