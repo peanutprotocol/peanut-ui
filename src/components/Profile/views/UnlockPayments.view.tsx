@@ -88,7 +88,7 @@ const UnlockPayments = () => {
     const [openView, setOpenView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
+    const { rails, isKycApproved, railsForProvider, nextActionsForRail, canDo } = useCapabilities()
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
@@ -105,13 +105,28 @@ const UnlockPayments = () => {
     const isSumsubApproved = isKycApproved
 
     // ── list model ──────────────────────────────────────────────────────────
-    const unlockedPaths = useMemo(() => new Set(unlockedRegions.map((region) => region.path)), [unlockedRegions])
+
+    /**
+     * Holding a rail is not being allowed to use it. Every Sumsub-approved
+     * user is enrolled on the QR-tier Manteca rails, whatever their residence:
+     * the rail is `enabled` because `pay` is, while `deposit` and `withdraw`
+     * stay `requires-info` until the full account exists. `deriveRegionAccess`
+     * only tests that a rail EXISTS, so a verified German read "Available" on
+     * a row that adds and withdraws money through Brazilian and Argentine
+     * banks — and, being active, the row carried no tap into the onboarding
+     * that would make it true. A bank row says Available only when the user
+     * can move money on that operation. The QR row keeps reading `pay`.
+     */
+    const canBank = useCallback(
+        (provider: 'bridge' | 'manteca') => canDo('deposit', { provider }) || canDo('withdraw', { provider }),
+        [canDo]
+    )
 
     const regionChipFor = useCallback(
         (path: BankRegionPath): BankRegionChip => {
-            if (unlockedPaths.has(path)) return 'active'
-            if (pendingPaths.has(path)) return 'processing'
             const provider = providerForRegionIntent(getRegionIntent(path))
+            if (provider && canBank(provider)) return 'active'
+            if (pendingPaths.has(path)) return 'processing'
             if (provider) {
                 const rail =
                     railsForProvider(provider).find(
@@ -126,7 +141,7 @@ const UnlockPayments = () => {
             }
             return 'unlock'
         },
-        [unlockedPaths, pendingPaths, railsForProvider, nextActionsForRail]
+        [canBank, pendingPaths, railsForProvider, nextActionsForRail]
     )
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -170,10 +185,14 @@ const UnlockPayments = () => {
                     'north-america': regionChipFor('north-america'),
                     latam: regionChipFor('latam'),
                 },
-                qrOnly: {
-                    brazil: unlockedRegions.some((region) => region.path === 'brazil'),
-                    argentina: unlockedRegions.some((region) => region.path === 'argentina'),
-                },
+                // QR is a `pay` capability, read as one: the pool-tier rails
+                // every verified user holds pay by QR even though they cannot
+                // deposit or withdraw. `unlockedRegions` still covers the
+                // legacy Bridge-only cohort, who pay by QR with no Manteca
+                // rail at all.
+                canPayQr:
+                    canDo('pay', { provider: 'manteca' }) ||
+                    unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
@@ -183,6 +202,7 @@ const UnlockPayments = () => {
             }),
         [
             regionChipFor,
+            canDo,
             unlockedRegions,
             restrictions,
             hasActiveCard,
