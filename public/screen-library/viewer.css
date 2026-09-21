@@ -1013,6 +1013,7 @@ footer {
         flex-basis: 100%;
     }
     #locale-control,
+    #profile-control,
     #flow-control,
     #status-control {
         flex: 1 1 120px;
