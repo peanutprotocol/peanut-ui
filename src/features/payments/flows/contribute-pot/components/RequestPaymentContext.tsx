@@ -21,7 +21,12 @@ export function RequestPaymentContext({
                 <UserAvatar name={recipientUsername} avatarKey={recipientAvatarKey} size="s" decorative />
             )}
             <div className="min-w-0">
-                {recipientUsername && <p className="truncate text-body-m-semibold">@{recipientUsername}</p>}
+                {recipientUsername && (
+                    <p className="truncate text-body-m-semibold">
+                        {'@'}
+                        {recipientUsername}
+                    </p>
+                )}
                 {requestAmount && <p className="text-body-s">{requestAmount}</p>}
                 {requestMessage && (
                     <p className="line-clamp-2 text-body-s text-foreground-secondary">{requestMessage}</p>
