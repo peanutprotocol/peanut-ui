@@ -64,7 +64,7 @@ test.describe('Button press physics', () => {
         }
     })
 
-    test('the nav circle has no shadow, so it never drops on press', async ({ page }) => {
+    test('the nav circle changes fill from hover to press, and never drops', async ({ page }) => {
         // nav board 17802:61534 draws this as a ring on the page background —
         // the ghost icon-only button. A shadow here would make the top nav
         // move 4px under the thumb, which is not a navigation gesture.
@@ -72,12 +72,19 @@ test.describe('Button press physics', () => {
         await expect(back).toBeVisible()
         expect(await boxShadow(back)).toBe('none')
 
+        // the press fill has to DIFFER from the hover fill. A pointer is always
+        // hovering when it clicks, so one colour for both is no press state at
+        // all — and a test that hovers first would pass with :active deleted.
+        await back.hover()
+        const hovered = await background(back)
+
         await press(back)
         try {
-            // pressed fill is the brand pink (states board 17308:13973, ghost)
+            // design.md law 7: ghost presses to action-ghost-hover (#bd33a1)
             await expect
-                .poll(() => background(back), { message: 'pressed fill is the brand pink' })
-                .toBe('rgb(255, 144, 232)')
+                .poll(() => background(back), { message: 'press fill is action-ghost-hover' })
+                .toBe('rgb(189, 51, 161)')
+            expect(await background(back), 'press must not look like hover').not.toBe(hovered)
             expect(await translate(back), 'a shadowless control must not translate').toBe('none')
         } finally {
             await page.mouse.up()
@@ -89,6 +96,10 @@ test.describe('Button press physics', () => {
         await expect(stroke).toBeVisible()
 
         expect(await background(stroke), 'white at rest').toBe('rgb(255, 255, 255)')
+
+        // stroke has no hover fill, so the pink below can only come from :active
+        await stroke.hover()
+        expect(await background(stroke), 'still white on hover').toBe('rgb(255, 255, 255)')
 
         await press(stroke)
         try {
