@@ -189,14 +189,26 @@ export const Tabs = ({
                         'flex w-max items-stretch gap-0 p-0',
                         PILL_TRACK_INVERTED,
                         fullWidth && 'w-full',
-                        // content-sized tabs spread across a full-width track.
+                        // Content-sized tabs spread across a full-width track.
+                        //
                         // `between` and not `around`/`evenly`: it is what
                         // BottomNav does, and it is the only one that keeps the
                         // FIRST and LAST chip against the track's rounded ends,
                         // where the flush weld lives. Any other value insets
                         // them and the end chip floats inside the pill instead
                         // of completing its outline.
-                        fullWidth === 'track' && 'justify-between'
+                        //
+                        // `min-w-max` is the floor under `w-full`, and it is
+                        // what keeps the row honest when the tabs genuinely do
+                        // not fit: the track grows to its content instead of
+                        // letting the chips spill out of a box that cannot hold
+                        // them, so the wrapper scrolls and BOTH rounded ends
+                        // survive. Without it a `w-full` track silently drops
+                        // the scroll fallback — the chips overflow it and the
+                        // scroll box never notices, because a flex child
+                        // overflowing a fixed-width parent does not reach the
+                        // ancestor's `scrollWidth`.
+                        fullWidth === 'track' && 'min-w-max justify-between'
                     )}
                 >
                     {tabs.map((tab) => (

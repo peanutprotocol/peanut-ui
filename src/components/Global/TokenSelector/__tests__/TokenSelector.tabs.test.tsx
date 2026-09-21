@@ -196,26 +196,29 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
 
     // jsdom has no layout, so every width is 0 and the responsive trim never
     // fires in the tests above — they still see the full row. These stubs give
-    // the track a width and every chip a width, which is the pair the trim
-    // compares and what makes the shrink-and-measure-again loop converge.
+    // the row a box width and a width per rendered tab, which is what makes the
+    // shrink-and-measure-again loop converge.
     describe('responsive trim (TASK-22707)', () => {
-        const realRect = Element.prototype.getBoundingClientRect
-
-        const stubWidths = (trackPx: number, perTabPx: number) => {
+        const stubWidths = (boxPx: number, perTabPx: number) => {
             Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
                 configurable: true,
-                get: () => trackPx,
+                get: () => boxPx,
             })
-            Element.prototype.getBoundingClientRect = function (this: Element) {
-                const width = this.getAttribute('role') === 'tab' ? perTabPx : 0
-                return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0, toJSON: () => ({}) }
-            }
+            // the track is `min-w-max`, so the content it cannot fit overflows
+            // the scroll box — which is what `scrollWidth` reports here
+            Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+                configurable: true,
+                get(this: HTMLElement) {
+                    return this.querySelectorAll('[role="tab"]').length * perTabPx
+                },
+            })
         }
 
         afterEach(() => {
-            // @ts-expect-error restoring jsdom's own always-0 property
+            // @ts-expect-error restoring jsdom's own always-0 properties
             delete HTMLElement.prototype.clientWidth
-            Element.prototype.getBoundingClientRect = realRect
+            // @ts-expect-error restoring jsdom's own always-0 properties
+            delete HTMLElement.prototype.scrollWidth
         })
 
         test('a narrow row drops the tabs that do not fit and keeps All', () => {
