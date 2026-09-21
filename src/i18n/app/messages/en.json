@@ -2085,7 +2085,7 @@
         "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",
-            "reference": "Reference",
+            "reference": "Receipt reference",
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
@@ -2197,6 +2197,7 @@
             "fee": "Fee",
             "transferId": "Transfer ID",
             "senderReference": "Sender's reference",
+            "payoutReference": "Reference",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
             "attachment": "Attachment",

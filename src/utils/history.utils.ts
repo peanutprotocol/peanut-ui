@@ -148,6 +148,11 @@ export interface HistoryEntryExtraData {
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null
+    /** The reference we sent out with a bank payout: the user's own text when
+     *  they typed one on the withdraw form, otherwise the default our payment
+     *  partner composed. The API normalises the rail-specific field into this
+     *  one and sends it to the account owner only. */
+    payoutReference?: string | null
 
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.

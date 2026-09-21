@@ -2085,7 +2085,7 @@
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
-            "reference": "Referencia",
+            "reference": "Referencia del recibo",
             "issuedOn": "Fecha de emisión",
             "pdf": {
                 "title": "Comprobante de la transacción",
@@ -2197,6 +2197,7 @@
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "senderReference": "Referencia del remitente",
+            "payoutReference": "Referencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "attachment": "Adjunto",

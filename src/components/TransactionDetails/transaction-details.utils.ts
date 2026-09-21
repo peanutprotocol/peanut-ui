@@ -15,6 +15,7 @@ export type TransactionDetailsRowKey =
     | 'bankAccountDetails'
     | 'transferId'
     | 'senderReference'
+    | 'payoutReference'
     | 'depositInstructions'
     | 'networkFee'
     | 'fee'
@@ -44,6 +45,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'mantecaDepositInfo',
     'exchangeRate',
     'bankAccountDetails',
+    'payoutReference',
     'transferId',
     'senderReference',
     'depositInstructions',
@@ -107,6 +109,31 @@ export const receiptIssuedAt = (transaction: {
                   ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
                   : transaction.createdAt || transaction.date
     return source ? new Date(source) : undefined
+}
+
+/**
+ * Whether the receipt's document-id row says anything the receipt does not
+ * already say.
+ *
+ * The row prints the history-entry id. On a bank rail that same id already
+ * prints as "Transfer ID", and on a crypto entry the id IS the transaction
+ * hash, already printed as "Transaction ID". Both cases used to print the
+ * value twice under two different names. Print the row only when the id
+ * appears nowhere else. One rule for the screen and the pdf.
+ */
+export const showsReceiptReferenceRow = (transaction: {
+    id?: string
+    txHash?: string | null
+    direction?: string
+    status?: string
+}): boolean => {
+    if (!transaction.id) return false
+    const showsTransferIdRow =
+        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
+        transaction.status !== 'cancelled'
+    if (showsTransferIdRow) return false
+    // The ids are case-sensitive lookup keys; telling them apart is not.
+    return !transaction.txHash || transaction.txHash.toLowerCase() !== transaction.id.toLowerCase()
 }
 
 /** Which label a bank-account row carries. Callers map it to display text —

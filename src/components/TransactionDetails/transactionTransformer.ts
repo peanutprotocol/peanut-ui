@@ -428,6 +428,10 @@ export interface TransactionDetails {
         bridgeTransferId?: string
         /** The payer's own reference on a bank deposit, as their bank sent it. */
         senderReference?: string
+        /** The reference we sent out with a bank payout — the user's own text
+         *  when they typed one, otherwise the default our payment partner
+         *  composed. Owner-only: it never reaches a public receipt. */
+        payoutReference?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -721,6 +725,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
             senderReference: entry.extraData?.senderReference?.trim() || undefined,
+            payoutReference: entry.extraData?.payoutReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"
