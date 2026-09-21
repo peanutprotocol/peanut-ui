@@ -56,8 +56,8 @@ export interface UnlockGroup {
 export interface BuildUnlockGroupsInput {
     /** pre-restriction chip per bank region, derived from the capability rails */
     regionChips: { europe: BankRegionChip; 'north-america': BankRegionChip; latam: BankRegionChip }
-    /** QR-only overlay: Bridge-verified users get AR/BR QR without Manteca bank rails */
-    qrOnly: { brazil: boolean; argentina: boolean }
+    /** whether the user can pay by QR in Brazil or Argentina today (the `pay` capability) */
+    canPayQr: boolean
     restrictions: { banking: boolean; card: boolean }
     card: 'active' | 'get' | 'notAvailable'
     /** ISO-2 residence (verified preferred, else declared) for the "Your region" tag */
@@ -78,7 +78,7 @@ const ROW_FLAGS: Partial<Record<UnlockRowLabelKey, readonly string[]>> = {
 }
 
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
-    const { regionChips, qrOnly, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const { regionChips, canPayQr, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
 
     const flagFor = (labelKey: UnlockRowLabelKey): string | undefined => {
@@ -117,13 +117,12 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
 
     // QR payments in Brazil and Argentina are a SPENDING method, not a way to
     // add or withdraw money, so they are their own row in the Spend section
-    // rather than a word inside a bank row. The chip stays derived from the
-    // same capability data the bank rows read: a user holds QR either through
-    // the QR-only overlay (Bridge-verified, no Manteca bank rails) or through
-    // an active LATAM unlock. Anyone else gets the LATAM offer chip, and the
-    // tap lands on the same region intent the merged bank row uses.
-    const hasQrAccess = qrOnly.brazil || qrOnly.argentina || regionChips.latam === 'active'
-    const qrChip: UnlockChip = restrictions.banking ? 'notAvailable' : hasQrAccess ? 'active' : regionChips.latam
+    // rather than a word inside a bank row. It reads its OWN capability:
+    // paying by QR and moving money through a bank are different permissions
+    // on the same rails, and most verified users hold the first without the
+    // second. Anyone without it gets the LATAM offer chip, and the tap lands
+    // on the same region intent the merged bank row uses.
+    const qrChip: UnlockChip = restrictions.banking ? 'notAvailable' : canPayQr ? 'active' : regionChips.latam
     const qrRow: UnlockRow = {
         id: 'qr-pay',
         labelKey: 'qrPay',
