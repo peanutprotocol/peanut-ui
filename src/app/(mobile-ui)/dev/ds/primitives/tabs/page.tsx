@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -12,6 +13,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { Notification } from '@/components/0_Bruddle/Notification'
 
 const historyRows = [
     { icon: 'bank', title: 'Bank deposit', body: '12 Sep 2026', amount: '+$50.00' },
@@ -21,6 +23,8 @@ const historyRows = [
 export default function TabsPage() {
     const [period, setPeriod] = useState('monthly')
     const [network, setNetwork] = useState('evm')
+    const [size, setSize] = useState('md')
+    const [chain, setChain] = useState('arb')
 
     return (
         <DocPage>
@@ -165,6 +169,133 @@ export default function TabsPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Sizes"
+                description="Three, ruled 2026-09-21. `size` changes ONLY the height, the horizontal padding, the text token and the icon-to-label gap. The chip weld, the track border, the radius, the focus ring, the scroll gutter and the panel spacing are identical in all three — a unit test asserts that, so a size can never quietly grow a fourth difference."
+            >
+                <DocSection.Content>
+                    <div className="flex flex-col gap-4">
+                        {(['sm', 'md', 'lg'] as const).map((s) => (
+                            <div key={s} className="flex flex-col gap-1">
+                                <span className="text-label-m text-foreground-secondary uppercase">{s}</span>
+                                <Tabs
+                                    size={s}
+                                    aria-label={`Size ${s}`}
+                                    value={size === s ? 'b' : 'a'}
+                                    onValueChange={() => setSize(s)}
+                                    tabs={[
+                                        { value: 'a', label: 'Monthly' },
+                                        { value: 'b', label: 'Yearly' },
+                                    ]}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 overflow-x-auto">
+                        <table className="w-max min-w-full border border-border-default text-left">
+                            <thead className="bg-background-page">
+                                <tr>
+                                    {['size', 'height', 'padding', 'text', 'gap'].map((h) => (
+                                        <th
+                                            key={h}
+                                            className="border-b border-border-default px-3 py-2 text-label-m text-foreground-secondary uppercase"
+                                        >
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    ['sm', 'min-h-9 · 36px', 'px-3 · 12px', 'text-body-s · 14px', 'gap-1 · 4px'],
+                                    [
+                                        'md (default)',
+                                        'min-h-11 · 44px',
+                                        'px-4 · 16px',
+                                        'text-body-m · 16px',
+                                        'gap-1 · 4px',
+                                    ],
+                                    ['lg', 'min-h-13 · 52px', 'px-6 · 24px', 'text-body-m · 16px', 'gap-2 · 8px'],
+                                ].map((row) => (
+                                    <tr key={row[0]}>
+                                        {row.map((cell, i) => (
+                                            <td
+                                                key={cell}
+                                                className={`border-b border-border-default px-3 py-2 text-body-s ${i === 0 ? 'text-foreground-primary' : 'font-mono text-foreground-secondary'}`}
+                                            >
+                                                {cell}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <Notification priority="attention" title="sm is 36px — under the 44px touch minimum">
+                        It clears WCAG 2.5.8 AA (24px) but misses 2.5.5 AAA and Apple&apos;s 44pt guidance. Accepted by
+                        kush on 2026-09-21 for dense control panels, pending a real-device test. Use it for the Manteca
+                        period toggle, the explorer filter panel, the content-hub filters and the dev panels — never for
+                        a primary control.
+                    </Notification>
+
+                    <p className="mt-4 text-body-s text-foreground-secondary">
+                        <strong className="text-foreground-primary">lg is unused today.</strong> It lands on
+                        BottomNav&apos;s own 52px / px-6 so a large tab row and the nav read as one family. The MDX
+                        article tabs are its natural first home — awaiting kush&apos;s confirmation.
+                    </p>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Sizes"
+                        code={`import { Tabs } from '@/components/0_Bruddle/Tabs'
+
+// md is the default — omit the prop
+<Tabs aria-label="Period" tabs={periodTabs} />
+
+// dense control panels only
+<Tabs size="sm" aria-label="Period" tabs={periodTabs} />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
+            <DocSection
+                title="Icon + text labels, and focus"
+                description="`label` is a ReactNode, so a tab can carry an icon beside its name — that is what the token selector's network row does. Keyboard focus draws the full DS ring (3px `action-focus`, never pink): tab into the row below and use the arrow keys."
+            >
+                <DocSection.Content>
+                    <Tabs
+                        aria-label="Network"
+                        value={chain}
+                        onValueChange={setChain}
+                        tabs={[
+                            { value: 'all', label: 'All' },
+                            {
+                                value: 'arb',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> Arbitrum
+                                    </>
+                                ),
+                            },
+                            {
+                                value: 'base',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> Base
+                                    </>
+                                ),
+                            },
+                        ]}
+                    />
+                </DocSection.Content>
+            </DocSection>
+
+            <SectionDivider />
+
             <PropsTable
                 rows={[
                     {
@@ -173,6 +304,13 @@ export default function TabsPage() {
                         default: '—',
                         description:
                             'Trigger labels and their panels, in order. First tab is active. Omit content on every tab and no panel renders',
+                    },
+                    {
+                        name: 'size',
+                        type: "'sm' | 'md' | 'lg'",
+                        default: "'md'",
+                        description:
+                            'Row scale — height, horizontal padding, text token and icon gap only. sm is 36px, under the 44px touch minimum',
                     },
                     {
                         name: 'fullWidth',
