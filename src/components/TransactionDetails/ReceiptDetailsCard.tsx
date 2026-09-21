@@ -274,12 +274,13 @@ export function ReceiptDetailsCard({
             )}
 
             {/* document rows, last (TASK-22452): the id every receipt can be
-                traced by and its issuance date. uppercase is display-only —
-                the raw id (copyValue) is a case-sensitive lookup key. */}
+                traced by and its issuance date. the id prints in its own case
+                — upper-casing it turned a `0x` hash into `0X` and made a uuid
+                look like a different value from the one you copy. */}
             {rowVisibilityConfig.reference && (
                 <DataRow
                     label={t('officialReceipt.reference')}
-                    value={middleEllipsisAccount(transaction.id, 20).toUpperCase()}
+                    value={middleEllipsisAccount(transaction.id, 20)}
                     allowCopy
                     copyValue={transaction.id}
                 />
