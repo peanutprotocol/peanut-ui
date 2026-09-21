@@ -99,6 +99,10 @@ export default function DesignSystemAuditPage() {
                     title={<h1>Code-level consolidation</h1>}
                     description="A code audit of distinct implementations and their call-site counts."
                 />
+                <p className="mt-2 text-body-xs text-foreground-primary/70">
+                    Snapshot as of 2026-09-18. The numbers are frozen at that date — later PRs (TASK-22817 and after)
+                    have already changed some of them.
+                </p>
             </Card>
 
             {/* Scope caveat + cross-link to the app-usage audit */}

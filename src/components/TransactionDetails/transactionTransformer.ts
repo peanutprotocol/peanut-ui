@@ -1,4 +1,4 @@
-import { type StatusType } from '@/components/Global/Badges/Badge'
+import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
     type TransactionDirection,
     type TransactionType as TransactionCardType,
@@ -13,7 +13,6 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { type IconStatusType } from '../Global/Badges/Badge'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
