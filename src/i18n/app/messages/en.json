@@ -1099,7 +1099,7 @@
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
             "titleOff": "Your bank details stay private",
-            "descriptionOff": "Payers can still pay with Peanut, crypto or their own bank."
+            "descriptionOff": "Payers can pay with Peanut or crypto. They cannot pay you by bank transfer."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",

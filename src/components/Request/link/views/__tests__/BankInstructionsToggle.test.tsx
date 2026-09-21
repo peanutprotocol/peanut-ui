@@ -156,17 +156,27 @@ describe('BankInstructionsToggle', () => {
             ).toBeInTheDocument()
         })
 
-        // OFF says the details stay private, and promises nothing about which
-        // methods the payer sees: the pay screen lists a bank method either way.
-        // It drops the sender-line — there is no live disclosure to qualify.
+        // OFF says the details stay private and states the one thing the
+        // requester wants to know: no transfer can reach their account. It
+        // drops the sender-line — there is no live disclosure to qualify.
         it('shows the opt-out copy while unchecked, with no sender line', () => {
             accounts = { SEPA_EU: account('active', 'business-only') }
 
             renderToggle(false)
 
             expect(screen.getByText('Your bank details stay private')).toBeInTheDocument()
-            expect(screen.getByText('Payers can still pay with Peanut, crypto or their own bank.')).toBeInTheDocument()
+            expect(screen.getByText(/Payers can pay with Peanut or crypto\./)).toBeInTheDocument()
             expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
+        })
+
+        // The complaint this copy came from: the opt-out screen still read as
+        // an offer to pay by bank, on a request whose bank details nobody gets.
+        it('does not offer a bank transfer while unchecked', () => {
+            accounts = { SEPA_EU: account('active') }
+
+            renderToggle(false)
+
+            expect(screen.getByText(/They cannot pay you by bank transfer\./)).toBeInTheDocument()
         })
 
         // A name that flips with the state reads "Don't share…, switch, off".

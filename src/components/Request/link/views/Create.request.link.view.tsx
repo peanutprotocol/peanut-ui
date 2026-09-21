@@ -59,6 +59,7 @@ export const CreateRequestLinkView = () => {
                     currency={currency}
                     onChange={handleCurrencyChange}
                     accountCurrencies={accountCurrencies}
+                    bankPayable={bankInstructionsShared}
                     disabled={!!requestId}
                 />
 
