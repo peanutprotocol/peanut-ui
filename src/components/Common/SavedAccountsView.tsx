@@ -195,7 +195,7 @@ export function SavedAccountsMapping({
                                 }
                                 width={80}
                                 height={80}
-                                className="size-8 min-w-8 rounded-round object-cover"
+                                className="size-8 min-w-8 rounded-full object-cover"
                             />
                         ) : (
                             <IconBubble icon="bank" size="s" color="gray" />

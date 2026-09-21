@@ -23,14 +23,14 @@ export const Toggle = ({ checked, onChange, disabled, className, ...props }: Tog
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={twMerge(
-            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-round border border-border-default bg-background-default transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40',
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-border-default bg-background-default transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40',
             className
         )}
         {...props}
     >
         <span
             className={twMerge(
-                'inline-block size-4 rounded-round transition-transform duration-instant',
+                'inline-block size-4 rounded-full transition-transform duration-instant',
                 checked
                     ? 'translate-x-6 bg-foreground-primary'
                     : 'translate-x-0.5 border border-border-default bg-background-default'

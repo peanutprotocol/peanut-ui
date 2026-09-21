@@ -83,7 +83,7 @@ export const PasskeySetupHelpDrawer = ({
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="alert" className="bg-action-secondary" />
+                        <IconBubble icon="alert" className="bg-background-icon-bubble-yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{title}</DrawerTitle>
                         </DrawerHeader>

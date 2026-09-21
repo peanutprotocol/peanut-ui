@@ -251,7 +251,7 @@ export const Callout = ({
                     aria-label={t('close')}
                     onClick={onDismiss}
                     className={twMerge(
-                        'relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-round transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                        'relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-full transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
                         // -m-1's own -4px is exactly what puts the 24px button's glyph
                         // on the lifted content's centre line (12 - 4 + 12 == 12 - 2 + 10)
                         isFloating ? 'text-foreground-secondary' : 'text-foreground-over-color-secondary'

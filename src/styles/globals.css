@@ -97,7 +97,6 @@
     --color-border-default: #161616;
     --color-border-subtle: #9ca3af;
     --color-border-button: #000000;
-    --color-border-button-secondary: #000000;
     --color-border-brand: #ff90e8; /* figma border.brand (renamed+recolored from border.accent purple) */
     --color-border-error: #ff3b30;
     --color-border-disabled: #e7e8e9;
@@ -236,11 +235,6 @@
     --text-button-s--font-weight: 700;
     --text-display: 3.75rem;
 
-    /* semantic radius (figma). border weights live in @layer base :root —
-       --border-width-* is a live v4 namespace, so defining s/m/l here would
-       emit .border-s/.border-l width utilities that hijack the core logical
-       border-inline-start/left utilities (tooltip arrows use bare border-l). */
-    --radius-round: 999px;
     /* physical-card geometry (CardFace) — deliberately off the ui radius
        scale, like the id-1 aspect ratio. visual-qa verdict ui#3201. */
     --radius-card: 0.75rem;
@@ -750,13 +744,6 @@
     :root {
         color-scheme: light;
 
-        /* figma border-weight tokens (var() consumers only) — kept out of
-           @theme so no border-s/m/l width utilities get generated (border-s
-           and border-l would shadow the core logical-property utilities) */
-        --border-width-s: 1.5px;
-        --border-width-m: 2px;
-        --border-width-l: 2.5px;
-
         /* figma icon-size tokens (Size/*) — plain vars for the same reason */
         --icon-size-xs: 16px;
         --icon-size-s: 20px;
@@ -832,7 +819,7 @@
        (touch-target law), Roboto Flex bold via text-button-*, blue focus ring,
        disabled = 40% opacity (was gray fill). */
     .btn {
-        @apply inline-flex h-11 items-center justify-center rounded-round border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
+        @apply inline-flex h-11 items-center justify-center rounded-full border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
     }
     .btn svg {
         @apply fill-inherit;

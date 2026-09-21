@@ -79,7 +79,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
                         <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
                     </div>
-                    <div className="h-11 w-full animate-pulse rounded-round bg-foreground-primary/10" />
+                    <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">

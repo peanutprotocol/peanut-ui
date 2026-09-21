@@ -51,11 +51,11 @@ export function PerkRewardReceipt({
                     </div>
                     {transaction.status !== 'completed' &&
                         (transaction.status === 'pending' || transaction.status === 'processing' ? (
-                            <span className="rounded-round bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
+                            <span className="rounded-full bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon('status.processing')}
                             </span>
                         ) : (
-                            <span className="rounded-round bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
+                            <span className="rounded-full bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon(
                                     (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
                                 )}

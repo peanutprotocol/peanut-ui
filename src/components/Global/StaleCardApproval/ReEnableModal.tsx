@@ -89,7 +89,7 @@ export default function StaleCardApprovalReEnableModal() {
             visible={visible}
             onClose={close}
             icon="credit-card"
-            iconContainerClassName="bg-action-secondary"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={succeeded ? t('staleCardApprovalModal.successTitle') : t('staleCardApprovalModal.title')}
             description={
                 succeeded

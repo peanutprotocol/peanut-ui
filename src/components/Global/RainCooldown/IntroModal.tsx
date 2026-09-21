@@ -24,7 +24,7 @@ const RainCooldownIntroModal = () => {
             visible={showIntroModal}
             onClose={dismissIntroModal}
             icon="clock"
-            iconContainerClassName="bg-action-secondary"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t('rainCooldownIntroModal.title')}
             description={t('rainCooldownIntroModal.description')}
             ctas={[

@@ -199,7 +199,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 <Icon name="cancel" size={16} />
                                             </button>
                                         )}
-                                        <div className="flex size-10 items-center justify-center rounded-full bg-action-secondary">
+                                        <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">

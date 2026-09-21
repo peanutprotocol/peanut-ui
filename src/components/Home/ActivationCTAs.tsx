@@ -218,7 +218,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             card: {
                 icon: 'credit-card',
-                iconBg: 'bg-action-secondary',
+                iconBg: 'bg-background-icon-bubble-yellow',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),

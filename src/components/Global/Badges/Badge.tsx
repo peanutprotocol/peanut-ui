@@ -94,7 +94,7 @@ const Badge: React.FC<BadgeProps> = ({ status, type = 'text', className, size = 
             <div
                 className={twMerge(
                     // badge board 17479:137743: icon renders in foreground/over-color-secondary
-                    'flex items-center justify-center rounded-round p-[3px] text-foreground-over-color-secondary',
+                    'flex items-center justify-center rounded-full p-[3px] text-foreground-over-color-secondary',
                     STATUS_STYLES[status] ?? 'bg-background-badge-helper',
                     className
                 )}

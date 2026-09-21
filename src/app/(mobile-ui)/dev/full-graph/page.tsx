@@ -716,7 +716,7 @@ export default function FullGraphPage() {
                                                 label={
                                                     <span className="flex items-center gap-1">
                                                         <span
-                                                            className="inline-block size-2 rounded-round"
+                                                            className="inline-block size-2 rounded-full"
                                                             style={{
                                                                 backgroundColor: color,
                                                                 border: border

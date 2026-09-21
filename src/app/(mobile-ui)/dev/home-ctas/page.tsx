@@ -46,7 +46,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
+        iconContainerClassName: 'bg-background-icon-bubble-yellow',
         iconSize: 16,
         title: (
             <span>
@@ -63,7 +63,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'kyc-prompt',
         label: 'KYC prompt — unlock QR (un-verified user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
+        iconContainerClassName: 'bg-background-icon-bubble-yellow',
         iconSize: 16,
         title: (
             <span>

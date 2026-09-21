@@ -234,7 +234,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'qr-code',
                 onClick: () => {
                     setIsQRScannerOpen(true)
@@ -251,7 +251,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'gift',
                 onClick: () => {
                     router.push('/rewards')
@@ -313,7 +313,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'qr-code',
                 iconSize: 16,
                 onClick: () => {

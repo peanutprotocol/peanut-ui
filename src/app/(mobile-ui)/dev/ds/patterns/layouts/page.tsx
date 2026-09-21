@@ -39,7 +39,7 @@ export default function LayoutsPage() {
                             </div>
                             <div className="flex flex-1 items-center justify-center">
                                 <div className="space-y-2 text-center">
-                                    <div className="mx-auto size-8 rounded-round bg-action-primary/30" />
+                                    <div className="mx-auto size-8 rounded-full bg-action-primary/30" />
                                     <div className="text-label-m">Main Content</div>
                                     <div className="text-body-xs text-foreground-secondary">flex-1 + items-center</div>
                                 </div>

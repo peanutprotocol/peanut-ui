@@ -54,7 +54,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-action-secondary',
+            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('wrapper.exit'),

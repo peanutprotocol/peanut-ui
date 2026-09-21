@@ -250,12 +250,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-border-button"
     },
     {
-        "name": "border-button-secondary",
-        "value": "#000000",
-        "section": "semantic",
-        "previewClass": "bg-border-button-secondary"
-    },
-    {
         "name": "border-brand",
         "value": "#ff90e8",
         "section": "semantic",
@@ -993,11 +987,6 @@ export const FONT_TOKENS: FontToken[] = [
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
 export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
     "radius": [
-        {
-            "name": "round",
-            "value": "999px",
-            "section": "semantic"
-        },
         {
             "name": "card",
             "value": "0.75rem",
