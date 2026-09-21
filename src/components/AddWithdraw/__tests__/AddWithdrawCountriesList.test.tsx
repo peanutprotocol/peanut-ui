@@ -49,7 +49,15 @@ jest.mock('next/navigation', () => ({
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
 // Bridge bank withdraw-method (the withdraw path also runs checkBridgeGate). ----
 jest.mock('@/components/AddMoney/consts', () => ({
-    countryData: [{ type: 'country', path: 'testland', id: 'US', title: 'Testland', currency: 'usd' }],
+    countryData: [
+        { type: 'country', path: 'testland', id: 'US', title: 'Testland', currency: 'usd' },
+        // a real catalogue country with NO bank corridor — reachable only by
+        // hand-editing the URL, which is the hole F9 names
+        { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
+        { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+    ],
+    // the corridor table reads this; the real module exports it
+    BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
         US: {
             add: [
@@ -787,5 +795,60 @@ describe('AddWithdrawCountriesList — the euro area', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
 
         expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+    })
+})
+
+/**
+ * A URL is not a permission (QA round 3, F9).
+ *
+ * The bank form rendered for `?step=form` on ANY country, so a hand-edited URL
+ * reached a form whose submit can only fail with "unsupported country". The
+ * review page one step later already refuses the same URL
+ * (`useBridgeOfframpFlow.ts:188-195`); this mirrors that guard at the form.
+ */
+describe('AddWithdrawCountriesList — the form refuses a country with no bank corridor', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockBankFormProps.mockClear()
+        mockNuqsParams = { step: 'form' }
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockNuqsParams = {}
+        mockSearchParams = new URLSearchParams()
+    })
+
+    it('sends a hand-edited URL back to the chooser instead of an uncompletable form', () => {
+        mockParams.country = 'nocorridor'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw')
+        expect(mockBankFormProps).not.toHaveBeenCalled()
+    })
+
+    it('keeps the Send origin when it turns one away', () => {
+        mockParams.country = 'nocorridor'
+        mockSearchParams = new URLSearchParams('method=bank')
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?method=bank')
+    })
+
+    it('the euro area is a corridor, not a country, and still opens', () => {
+        mockParams.country = 'euro-area'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('Åland still opens: it is paid over SEPA like Finland', () => {
+        mockParams.country = 'aland'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })
