@@ -23,7 +23,6 @@ const historyRows = [
 export default function TabsPage() {
     const [period, setPeriod] = useState('monthly')
     const [network, setNetwork] = useState('evm')
-    const [size, setSize] = useState('md')
     const [chain, setChain] = useState('arb')
 
     return (
@@ -178,11 +177,13 @@ export default function TabsPage() {
                         {(['sm', 'md', 'lg'] as const).map((s) => (
                             <div key={s} className="flex flex-col gap-1">
                                 <span className="text-label-m text-foreground-secondary uppercase">{s}</span>
+                                {/* uncontrolled on purpose: each row owns its own
+                                    selection, so clicking a segment activates THAT
+                                    segment. Sharing one `size` state across the three
+                                    rows made Monthly a no-op. */}
                                 <Tabs
                                     size={s}
                                     aria-label={`Size ${s}`}
-                                    value={size === s ? 'b' : 'a'}
-                                    onValueChange={() => setSize(s)}
                                     tabs={[
                                         { value: 'a', label: 'Monthly' },
                                         { value: 'b', label: 'Yearly' },
