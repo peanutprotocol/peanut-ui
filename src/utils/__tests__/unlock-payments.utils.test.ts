@@ -2,7 +2,7 @@ import { buildUnlockGroups, dedupeHeldBankRows, type BuildUnlockGroupsInput } fr
 
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
     regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-    qrOnly: { brazil: false, argentina: false },
+    canPayQr: false,
     restrictions: { banking: false, card: false },
     card: 'get',
     residenceIso2: null,
@@ -35,14 +35,13 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('QR payments read Available for a user who holds them, either way in', () => {
-        const qrOnly = buildUnlockGroups(base({ qrOnly: { brazil: true, argentina: false } }))
-        expect(group(qrOnly, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'active' }))
-
-        const latamUnlocked = buildUnlockGroups(
-            base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'active' } })
+    it('QR payments read Available on the pay capability alone, with no bank access', () => {
+        const payOnly = buildUnlockGroups(base({ canPayQr: true }))
+        expect(group(payOnly, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'active' }))
+        // the bank row is a separate permission and stays an offer
+        expect(group(payOnly, 'southAmerica').rows[0]).toEqual(
+            expect.objectContaining({ chip: 'unlock', regionPath: 'latam' })
         )
-        expect(group(latamUnlocked, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'active' }))
     })
 
     it('QR payments a user does not hold keep the LATAM offer and its tap target', () => {
@@ -103,8 +102,8 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('a QR-only Brazil leaves one bank row: the bank unlock is still an offer', () => {
-        const groups = buildUnlockGroups(base({ qrOnly: { brazil: true, argentina: false } }))
+    it('South America stays one bank row whatever QR says', () => {
+        const groups = buildUnlockGroups(base({ canPayQr: true }))
         expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip])).toEqual([['sa-bank', 'unlock']])
     })
 

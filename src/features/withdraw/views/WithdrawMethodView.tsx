@@ -63,7 +63,13 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
     const [editing, setEditing] = useState<EditableDestination | null>(null)
     const renameAccount = useRenameAccount()
-    const [, startTransition] = useTransition()
+    const [isPending, startTransition] = useTransition()
+    // Which destination the user tapped. `isPending` says a transition is
+    // running but cannot say which row started it, and it is false again the
+    // moment React commits — so the row it belongs to is tracked here. The
+    // spinner then stands until this screen is replaced, which is what a
+    // finished navigation does.
+    const [tappedCountryPath, setTappedCountryPath] = useState<string | null>(null)
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
@@ -120,6 +126,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // A country resolved from the currency list (or its country fallback). The
     // one place withdraw routing lives, shared by both so they cannot disagree.
     const handleCountrySelected = (country: CountryData) => {
+        // A navigation is already under way. A second tap during it either
+        // queues a route the user did not mean to open or re-runs the analytics
+        // capture, so the screen takes the first answer and ignores the rest.
+        if (isPending || tappedCountryPath) return
+        setTappedCountryPath(country.path)
         const isManteca = isMantecaCountry(country.path)
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
             method_type: isManteca ? 'manteca' : 'bridge',
@@ -293,6 +304,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}
                 onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
+                pendingPath={tappedCountryPath}
             />
         </div>
     )

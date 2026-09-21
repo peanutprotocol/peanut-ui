@@ -62,6 +62,14 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isKycApproved: mockIsKycApproved,
         railsForProvider: () => [],
         nextActionsForRail: () => [],
+        // the real per-operation read: `operations?.[op] ?? status`, so a rail
+        // that is enabled for `pay` alone can never answer yes for `deposit`
+        canDo: (op: string, opts?: { provider?: string }) =>
+            (mockRails as Array<Record<string, any>>).some(
+                (rail) =>
+                    (!opts?.provider || rail.provider === opts.provider) &&
+                    ((rail.operations?.[op] as string | undefined) ?? rail.status) === 'enabled'
+            ),
     }),
 }))
 
@@ -563,6 +571,74 @@ describe('UnlockPayments', () => {
 
         expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
         expect(mockFixableRejection).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Holding a rail is not being allowed to use it. Every Sumsub-approved
+     * user is enrolled on the QR-tier Manteca rails whatever their residence:
+     * `pay` is enabled, `deposit` and `withdraw` wait for the full account. A
+     * row that adds and withdraws money must read that operation, or a
+     * verified German is told Brazilian and Argentine bank transfers are
+     * Available — with no tap into the onboarding that would make it true.
+     */
+    describe('a bank row states the operation it names, not the rail behind it', () => {
+        const qrPoolRail = {
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            channel: 'bank',
+            country: 'BR',
+            status: 'enabled',
+            operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+        }
+
+        it('a QR-pool user can pay by QR, and is offered the bank unlock', () => {
+            mockRails = [qrPoolRail]
+            mockIsKycApproved = true
+            render()
+
+            const bankRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
+            const qrRow = screen.getByText('QR payments · Brazil and Argentina')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+
+            // the row is the way into the onboarding that makes it true
+            fireEvent.click(bankRow)
+            expect(screen.getByText('unlock-modal-open:BRL and ARS · Pix and bank transfer')).toBeInTheDocument()
+        })
+
+        it('a full Manteca account reads Available on both rows', () => {
+            mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
+            mockIsKycApproved = true
+            render()
+
+            const bankRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            const qrRow = screen.getByText('QR payments · Brazil and Argentina')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+        })
+
+        // North America and Europe hold the same class of gap: the rail exists,
+        // the operation does not. A mid-flight rail keeps its own Processing
+        // chip (pendingBankRailRegionPaths, unchanged) — what it must never
+        // say is Available.
+        it('a Bridge rail that cannot move money yet never reads Available', () => {
+            mockRails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    channel: 'bank',
+                    country: 'US',
+                    status: 'requires-info',
+                    operations: { deposit: 'requires-info', withdraw: 'requires-info' },
+                },
+            ]
+            mockIsKycApproved = true
+            render()
+
+            const row = screen.getByText('USD and MXN · Bank transfer').closest('.border') as HTMLElement
+            expect(within(row).queryByText('Available')).not.toBeInTheDocument()
+            expect(within(row).getByText('Processing')).toBeInTheDocument()
+        })
     })
 
     /**
