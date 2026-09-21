@@ -128,7 +128,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // the IBAN that BIC was derived from, so a failed lookup can tell "same IBAN" from "new one"
         const derivedForIbanRef = useRef<string | null>(null)
         // the IBAN whose BIC the user corrected by hand, so re-deriving at
-        // submit cannot quietly put our answer back over theirs
+        // submit cannot quietly put our answer back over theirs. Holds one IBAN,
+        // never a set: a correction does not survive a change of IBAN.
         const correctedForIbanRef = useRef<string | null>(null)
         const toast = useToast()
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
@@ -217,6 +218,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
          */
         const syncBicWithIban = async (rawIban: string): Promise<string | null> => {
             const iban = (rawIban ?? '').replace(/\s/g, '')
+
+            // A correction belongs to the IBAN it was made for, and to no other.
+            // Syncing any different IBAN drops it, so coming back to the first
+            // one derives afresh instead of reusing a BIC that by then may name
+            // another bank entirely. Cleared here rather than beside the
+            // overwrite below so that it happens for an IBAN that derives
+            // nothing too.
+            if (correctedForIbanRef.current !== null && correctedForIbanRef.current !== iban) {
+                correctedForIbanRef.current = null
+            }
+
             let derivedBic: string | null = null
             if (iban && (await validateIban(iban))) {
                 try {

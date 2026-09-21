@@ -569,6 +569,59 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: 'SOGEDEFFXXX' })
     })
 
+    it("IBAN A corrected, then B, then back to A: A gets its own BIC, not B's", async () => {
+        // A correction belongs to the IBAN it was made for. Carrying it across a
+        // change of IBAN and back would submit account A with bank B's BIC, and
+        // when both banks sit in one country nothing downstream would catch it:
+        // the shape is valid, the country matches, and the provider is asked
+        // whether the BIC exists, not whether it belongs to this account.
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'DEUTDEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        await typeIban(DE_IBAN_OTHER_BANK, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC_OTHER_BANK))
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: DE_BIC })
+    })
+
+    it('a correction does not survive a detour through an IBAN with no BIC either', async () => {
+        // The same rule as above, on the path where the middle IBAN derives
+        // nothing. Clearing the correction only where a BIC is derived would
+        // leave it standing here, and the two paths should not differ: one
+        // change of IBAN is enough to make a hand-typed BIC stale.
+        const onSuccess = jest.fn(async () => ({}))
+        renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'DEUTDEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        // IT_IBAN is in neither table, so nothing derives for it
+        await typeIban(IT_IBAN, { blur: true })
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+    })
+
     it('clearing the IBAN drops the BIC that was derived from it', async () => {
         const onSuccess = jest.fn(async () => ({}))
         renderIbanForm(onSuccess)
