@@ -54,8 +54,8 @@ const NetworkList = ({ onSelect, showEvmChips = false }: NetworkListProps) => {
                 const item = (
                     <ListItem
                         key={network}
-                        position="single"
-                        leading={<Image src={logo} alt={title} width={32} height={32} className="rounded-round" />}
+                        position="solo"
+                        leading={<Image src={logo} alt={title} width={32} height={32} className="rounded-full" />}
                         title={title}
                         body={body}
                         chevron

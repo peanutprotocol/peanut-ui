@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import React, { useEffect } from 'react'
-import { Notification } from './Notification'
+import { Callout } from './Callout'
 import type { ToastMessage } from './Toast'
 
 /**
@@ -10,15 +10,6 @@ import type { ToastMessage } from './Toast'
  * bundle of every route. ToastProvider loads this on demand the first time a
  * toast is shown — the marketing site never shows one, so it never pays.
  */
-
-// toast tone -> notification priority (board 17369:136904: a toast is the
-// notification component in its floating, dismissible format)
-const TOAST_PRIORITY = {
-    success: 'success',
-    error: 'error',
-    info: 'info',
-    warning: 'attention',
-} as const
 
 const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: ToastMessage['id']) => void }> = ({
     id,
@@ -58,9 +49,9 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: Toas
 
     return (
         <motion.div {...motionProps} className="max-w-[calc(100vw_-_2rem)] md:max-w-md">
-            <Notification
+            <Callout
                 variant="floating"
-                priority={TOAST_PRIORITY[type]}
+                priority={type}
                 onDismiss={onDismiss}
                 className={className}
                 // a 'persistent' toast has no timer to draw — only a numeric
@@ -72,7 +63,7 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: Toas
                 hideIcon={hideIcon || content != null}
             >
                 {content ?? message}
-            </Notification>
+            </Callout>
         </motion.div>
     )
 }

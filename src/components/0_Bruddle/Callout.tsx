@@ -7,21 +7,21 @@ import { Icon, type IconName } from '../Global/Icons/Icon'
 import { Button } from './Button'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
 
-type NotificationPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
-type NotificationVariant = 'inline' | 'floating'
+export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
+export type CalloutVariant = 'inline' | 'floating'
 
-interface NotificationCta {
+interface CalloutCta {
     label: string
     onClick: () => void
 }
 
-interface NotificationProps {
+interface CalloutProps {
     /** Sets the tone, background, and leading icon. */
-    priority?: NotificationPriority
+    priority?: CalloutPriority
     /** `inline` (default) is the tinted in-page banner. `floating` is the toast
      *  surface: bordered card with a hard shadow, the tone carried by an icon
      *  bubble, the countdown bar, and a 5% wash of the tone in the fill. */
-    variant?: NotificationVariant
+    variant?: CalloutVariant
     /** suppress the leading priority icon (self-designed content, e.g. badge toasts) */
     hideIcon?: boolean
     /** Optional bold first line. Body renders indented under it. */
@@ -32,18 +32,18 @@ interface NotificationProps {
     items?: React.ReactNode[]
     /** When set, shows a close button (dismissible variant). */
     onDismiss?: () => void
-    /** ms the notification has left on screen. Draws the tone-colored countdown
+    /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two actions: first renders purple (primary), second stroke (secondary). */
-    ctas?: [NotificationCta] | [NotificationCta, NotificationCta]
+    /** One or two actions: first renders primary, second stroke (secondary). */
+    ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
 }
 
 const PRIORITY_STYLES: Record<
-    NotificationPriority,
+    CalloutPriority,
     { icon: IconName; bg: string; surface: string; bubble: IconBubbleColor; bar: string }
 > = {
     info: {
@@ -83,10 +83,10 @@ const PRIORITY_STYLES: Record<
     },
 }
 
-const CTA_VARIANTS = ['purple', 'stroke'] as const
+const CTA_VARIANTS = ['primary', 'stroke'] as const
 
 /**
- * Inline notification banner from the figma notification board (17802:61535):
+ * Inline callout banner from the figma notification board (17802:61535):
  * priority (info/success/attention/helper/error) sets the tone and icon;
  * supports body or title + body, optional dismiss, and up to two CTAs.
  *
@@ -116,7 +116,7 @@ const CTA_VARIANTS = ['purple', 'stroke'] as const
  * a 5% wash of the fill — light enough that the card stays legible over
  * whatever screen it floats above, and opaque so it never reads as a wash.
  */
-export const Notification = ({
+export const Callout = ({
     priority = 'info',
     variant = 'inline',
     hideIcon = false,
@@ -128,7 +128,7 @@ export const Notification = ({
     ctas,
     className,
     ...props
-}: NotificationProps) => {
+}: CalloutProps) => {
     const t = useTranslations('common')
     const { icon, bg, surface, bubble, bar } = PRIORITY_STYLES[priority]
     const isFloating = variant === 'floating'
@@ -169,7 +169,7 @@ export const Notification = ({
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
             className={twMerge(
                 // text-start is load-bearing: ActionModal centres its content
-                // container, and a notification inside a modal must still read
+                // container, and a callout inside a modal must still read
                 // left-aligned. The deleted InfoCard carried the same guard.
                 // compact-inline (TASK-22121 variant A): tint only, no border,
                 // one type step down — but at the ORIGINAL 12px padding and 8px
@@ -251,7 +251,7 @@ export const Notification = ({
                     aria-label={t('close')}
                     onClick={onDismiss}
                     className={twMerge(
-                        'relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-round transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                        'relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-full transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
                         // -m-1's own -4px is exactly what puts the 24px button's glyph
                         // on the lifted content's centre line (12 - 4 + 12 == 12 - 2 + 10)
                         isFloating ? 'text-foreground-secondary' : 'text-foreground-over-color-secondary'

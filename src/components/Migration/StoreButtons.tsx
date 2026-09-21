@@ -12,7 +12,7 @@ export default function StoreButtons({ surface }: { surface: MigrationSurface })
     const store: StoreKind = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
     return (
         <Button
-            variant="purple"
+            variant="primary"
             shadowSize="4"
             icon={store === 'ios' ? 'apple-logo' : 'google-play'}
             className="h-11 w-full"

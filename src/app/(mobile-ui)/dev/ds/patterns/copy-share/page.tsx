@@ -30,7 +30,7 @@ export default function CopySharePage() {
 
                     <div className="space-y-3">
                         <CopyField text="https://peanut.me/claim/abc123" />
-                        <CopyField text="0x1234...abcd" variant="purple" shadowSize="4" />
+                        <CopyField text="0x1234...abcd" variant="primary" shadowSize="4" />
                     </div>
 
                     <PropsTable
@@ -70,7 +70,7 @@ export default function CopySharePage() {
                     <CodeBlock
                         label="Usage"
                         code={`<CopyField text="https://peanut.me/claim/abc123" />
-<CopyField text={linkUrl} variant="purple" shadowSize="4" />`}
+<CopyField text={linkUrl} variant="primary" shadowSize="4" />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -167,7 +167,7 @@ copyRef.current?.copy()`}
                     <CodeBlock
                         label="Pattern"
                         code={`<Button
-  variant="purple"
+  variant="primary"
   icon="share"
   onClick={() => {
     if (navigator.share) {

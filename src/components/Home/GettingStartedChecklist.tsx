@@ -5,7 +5,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
@@ -167,7 +167,7 @@ const GettingStartedChecklist = () => {
                             leading={<IconBubble icon={item.icon} size="xs" color="yellow" />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
-                            trailing={item.done ? <StatusBadge status="completed" /> : undefined}
+                            trailing={item.done ? <Badge status="completed" /> : undefined}
                             bodyWrap
                             chevron={tappable}
                             disabled={!tappable}

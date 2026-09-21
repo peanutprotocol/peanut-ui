@@ -7,7 +7,7 @@ import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import React, { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
-import StatusBadge from '../Global/Badges/StatusBadge'
+import Badge from '../Global/Badges/Badge'
 import { Icon } from '../Global/Icons/Icon'
 
 interface CurrencySelectProps {
@@ -315,7 +315,7 @@ const CurrencyBox = ({
             </div>
 
             <div className="flex items-center gap-2">
-                {comingSoon && <StatusBadge status="soon" size="small" />}
+                {comingSoon && <Badge status="soon" size="small" />}
                 {selected && !comingSoon && <Icon size={16} name="success" className="text-foreground-secondary" />}
             </div>
         </li>

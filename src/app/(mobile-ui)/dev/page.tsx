@@ -2,7 +2,7 @@
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import Link from 'next/link'
@@ -211,7 +211,7 @@ export default function DevToolsPage() {
                     </Section>
                 ))}
 
-                <Notification
+                <Callout
                     priority="info"
                     title="Info"
                     items={[

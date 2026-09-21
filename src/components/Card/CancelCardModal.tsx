@@ -6,7 +6,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -147,7 +147,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             onClose={handleClose}
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
             hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
-            tone={isConfirm ? 'error' : 'warning'}
+            tone={isConfirm ? 'error' : 'attention'}
             icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
             description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
@@ -156,7 +156,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     // visual-qa verdict: cancel keeps the slide friction — a
                     // terminal money action commits only at full travel.
                     <>
-                        {error && <Notification priority="error">{error}</Notification>}
+                        {error && <Callout priority="error">{error}</Callout>}
                         <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
                             onConfirm={runCancel}
@@ -183,7 +183,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     ? [
                           {
                               text: t('cancel.submit'),
-                              variant: 'purple',
+                              variant: 'primary',
                               onClick: submitFeedback,
                               loading: phase === 'submitting-feedback',
                               disabled: phase === 'submitting-feedback',
@@ -193,7 +193,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                       ? [
                             {
                                 text: tCommon('close'),
-                                variant: 'purple',
+                                variant: 'primary',
                                 onClick: handleClose,
                             },
                         ]

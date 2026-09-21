@@ -33,7 +33,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
             >
                 {/* self surface — it links to /profile — so it shows the same
                     picked sticker as /home, never a bare initial (TASK-22142) */}
-                <UserAvatar size="extra-small" name={username} avatarKey={ownAvatarKey} className="h-[30px] w-[30px]" />
+                <UserAvatar size="s" name={username} avatarKey={ownAvatarKey} className="h-[30px] w-[30px]" />
                 <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>

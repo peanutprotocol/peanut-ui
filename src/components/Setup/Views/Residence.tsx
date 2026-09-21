@@ -1,4 +1,4 @@
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -483,13 +483,13 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                         </div>
                         {/* The title slot is a sentence-case Body/S line; this guidance
                                 labels a block of prose, so it takes the mini-header step. */}
-                        <Notification priority="info" hideIcon>
+                        <Callout priority="info" hideIcon>
                             <MiniHeader className="mb-1 text-inherit">
                                 {t('residenceStep.compare.guideTitle')}
                             </MiniHeader>
                             <p>{t('residenceStep.compare.guideDeclaration')}</p>
                             <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
-                        </Notification>
+                        </Callout>
                     </div>
                 )}
             </div>
@@ -501,7 +501,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                         <Button
                             key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'purple' : 'stroke'}
+                            variant={iso2 === residenceCountry ? 'primary' : 'stroke'}
                             onClick={() => onSelectPrimary(iso2)}
                             disabled={isLoading}
                             loading={isLoading}

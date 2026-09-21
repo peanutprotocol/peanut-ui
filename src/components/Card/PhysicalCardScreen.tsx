@@ -7,7 +7,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
@@ -79,7 +79,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
                         <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
                     </div>
-                    <div className="h-11 w-full animate-pulse rounded-round bg-foreground-primary/10" />
+                    <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
@@ -104,8 +104,8 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         align="center"
                         size="s"
                     />
-                    {error && <Notification priority="error">{error}</Notification>}
-                    <Button variant="purple" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
+                    {error && <Callout priority="error">{error}</Callout>}
+                    <Button variant="primary" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
                         {t('joinCta')}
                     </Button>
                 </div>

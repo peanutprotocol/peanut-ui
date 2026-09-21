@@ -187,7 +187,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             const isHosted = task.kind === 'bridge-hosted'
                             const deadline = formatEffectiveDate(task.effectiveDate)
                             return (
-                                <Card key={task.key} position="single" className="embla__slide relative p-0">
+                                <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
                                         {dismissible && !!task.effectiveDate && (
                                             <button
@@ -199,7 +199,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 <Icon name="cancel" size={16} />
                                             </button>
                                         )}
-                                        <div className="flex size-10 items-center justify-center rounded-full bg-action-secondary">
+                                        <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
@@ -214,7 +214,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             )}
                                         </div>
                                         <Button
-                                            variant="purple"
+                                            variant="primary"
                                             shadowSize="4"
                                             className="mt-1 w-full"
                                             onClick={() => handleOpenTask(task)}

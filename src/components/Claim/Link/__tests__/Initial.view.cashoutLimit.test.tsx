@@ -7,7 +7,7 @@
  * only render site (the FieldColumn under the external-wallet recipient
  * input) is gated behind claimToExternalWallet — the refusal became
  * unrenderable on a money path. Pin the fix: the message must reach the
- * user through the flow Notification, and loading must return to Idle.
+ * user through the flow Callout, and loading must return to Idle.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -243,14 +243,14 @@ beforeEach(() => {
 // ---------- tests ----------
 
 describe('InitialClaimLinkView bank-claim cashout limits', () => {
-    test('below-minimum refusal is user-visible in the flow Notification and loading returns to Idle', async () => {
+    test('below-minimum refusal is user-visible in the flow Callout and loading returns to Idle', async () => {
         renderView()
 
         // the claim CTA (children are stubbed, so this is the only button)
         fireEvent.click(screen.getByRole('button'))
 
         // the refusal must render — on the bank path the recipient-input
-        // FieldColumn is NOT mounted, so only the flow Notification can show it
+        // FieldColumn is NOT mounted, so only the flow Callout can show it
         await waitFor(() => expect(screen.getByText(/below the \$10\.00 minimum for bank payouts/)).toBeInTheDocument())
         // no stuck spinner: the last loading transition is back to Idle
         expect(mockSetLoadingState).toHaveBeenLastCalledWith('Idle')

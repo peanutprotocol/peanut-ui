@@ -1,7 +1,7 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useForm, Controller, type FieldPath, type PathValue, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -648,7 +648,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 {(flow !== 'withdraw' || amountDisplay) && (
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag.toLowerCase()}
-                        avatarSize="small"
+                        avatarSize="m"
                         transactionType={'WITHDRAW_BANK_ACCOUNT'}
                         recipientType={'BANK_ACCOUNT'}
                         recipientName={country}
@@ -945,13 +945,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                          */}
                         <div ref={ctaRef} className="flex flex-col gap-4" data-testid="bank-form-cta">
                             {submissionError ? (
-                                <Notification priority="error">{submissionError}</Notification>
+                                <Callout priority="error">{submissionError}</Callout>
                             ) : (
-                                error && <Notification priority="error">{error}</Notification>
+                                error && <Callout priority="error">{error}</Callout>
                             )}
                             <Button
                                 type="submit"
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full"
                                 loading={isSubmitting || isCheckingBICValid || isValidating}

@@ -80,7 +80,7 @@ export function FixCardSignaturePage() {
                                         : t('fixSignature.undeployed')}
                                 </p>
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     shadowSize="4"
                                     className="w-full"
                                     onClick={handleRepair}
@@ -111,7 +111,7 @@ export function FixCardSignaturePage() {
                                     {t('fixSignature.oneMoreConfirmation')}
                                 </p>
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     shadowSize="4"
                                     className="w-full"
                                     onClick={handleGrant}

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { SearchInput } from '@/components/SearchInput'
 import { ContentLinkRow } from './ContentLinkRow'
 import { PROSE_WIDTH } from './constants'
@@ -114,9 +114,9 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                 )}
 
                 {/* Contact CTA */}
-                <Notification priority="helper" title={strings.cantFind} className="my-8">
+                <Callout priority="helper" title={strings.cantFind} className="my-8">
                     {strings.cantFindDesc}
-                </Notification>
+                </Callout>
             </div>
         </>
     )

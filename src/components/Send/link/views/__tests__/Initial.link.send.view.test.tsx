@@ -104,7 +104,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 }))
 
 // ds: no ErrorAlert/InfoCard mocks — the view renders the real 0_Bruddle
-// Notification with data-testid="error-alert" / "info-card"
+// Callout with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 
 // ---------- helpers ----------

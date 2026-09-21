@@ -3,7 +3,7 @@
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Section } from '@/components/0_Bruddle/Section'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -596,7 +596,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
                                             name={method.title ?? method.id}
-                                            size="extra-small"
+                                            size="s"
                                             inlineStyle={{
                                                 backgroundColor:
                                                     method.icon === ('bank' as IconName)
@@ -619,9 +619,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 }
                                 trailing={
                                     method.isSoon ? (
-                                        <StatusBadge status="soon" size="small" />
+                                        <Badge status="soon" size="small" />
                                     ) : isPixOnrampUnderMaintenance ? (
-                                        <StatusBadge
+                                        <Badge
                                             status="pending"
                                             customText={tAddMoney(PIX_BRAZIL_ONRAMP_MAINTENANCE.badgeKey)}
                                             size="small"

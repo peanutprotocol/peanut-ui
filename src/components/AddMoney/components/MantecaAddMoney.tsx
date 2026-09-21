@@ -76,7 +76,7 @@ const MantecaAddMoney: FC = () => {
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
-    // flow-level failures (API/provider) — rendered in the Notification
+    // flow-level failures (API/provider) — rendered in the Callout
     const [error, setError] = useState<string | null>(null)
     // client-side minimum-amount validation — rendered as the field's own error
     const [validationError, setValidationError] = useState<string | null>(null)

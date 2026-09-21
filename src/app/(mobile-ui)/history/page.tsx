@@ -275,9 +275,9 @@ const HistoryPage = () => {
                         ) !== currentGroupHeaderKey
 
                     let position: CardPosition = 'middle'
-                    if (isFirstInGroup && isLastInGroup) position = 'single'
-                    else if (isFirstInGroup) position = 'first'
-                    else if (isLastInGroup) position = 'last'
+                    if (isFirstInGroup && isLastInGroup) position = 'solo'
+                    else if (isFirstInGroup) position = 'top'
+                    else if (isLastInGroup) position = 'bottom'
 
                     return (
                         <React.Fragment key={item.uuid}>

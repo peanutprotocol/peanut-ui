@@ -161,7 +161,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
         // to trust, so it is reported as unrecognised instead of offered.
         [EModalType.EXTERNAL_URL]: externalUrl
             ? {
-                  tone: 'warning',
+                  tone: 'attention',
                   title: t('qrScannerOverlay.titleExternalUrl'),
                   description: (
                       <>

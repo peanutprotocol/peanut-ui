@@ -423,7 +423,7 @@ describe('AdditionalVerificationView', () => {
 
         startVerification()
         // Scoped by testid, not by role: the single-session banner is an
-        // `attention` Notification, which the DS also gives role="alert".
+        // `attention` Callout, which the DS also gives role="alert".
         const alert = await screen.findByTestId('hosted-start-error')
         expect(alert).toHaveAttribute('role', 'alert')
         expect(alert).toHaveTextContent(/couldn't start the verification/i)

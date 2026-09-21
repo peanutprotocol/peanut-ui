@@ -3,8 +3,8 @@
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { Section } from '@/components/0_Bruddle/Section'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import Badge from '@/components/Global/Badges/Badge'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { canShare, isHeld } from '@/features/deposit-accounts/resolveScreen'
@@ -68,7 +68,7 @@ export default function VaAwareAccountRows({
             leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
             trailing={
                 canShare(accounts[corridor], gates[corridor]) ? (
-                    <StatusBadge status="completed" customText={t('list.badgeReady')} />
+                    <Badge status="completed" customText={t('list.badgeReady')} />
                 ) : undefined
             }
             chevron
@@ -86,9 +86,9 @@ export default function VaAwareAccountRows({
     return (
         <>
             {isError && (
-                <Notification priority="error" ctas={[{ label: t('list.errorRetry'), onClick: refetch }]}>
+                <Callout priority="error" ctas={[{ label: t('list.errorRetry'), onClick: refetch }]}>
                     {t('list.errorBody')}
-                </Notification>
+                </Callout>
             )}
             {!isLoading && held.length > 0 && (
                 <Section title={tRows('accountsTitle')}>

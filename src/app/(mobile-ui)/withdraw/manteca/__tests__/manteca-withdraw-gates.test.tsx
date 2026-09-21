@@ -71,8 +71,8 @@ jest.mock('@/components/0_Bruddle/Card', () => ({
     Card: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
-jest.mock('@/components/0_Bruddle/Notification', () => ({
-    Notification: (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>,
+jest.mock('@/components/0_Bruddle/Callout', () => ({
+    Callout: (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>,
 }))
 jest.mock('@/components/0_Bruddle/LinkButton', () => ({ LinkButton: () => null }))
 jest.mock('@/components/0_Bruddle/BaseSelect', () => ({ __esModule: true, default: () => null }))

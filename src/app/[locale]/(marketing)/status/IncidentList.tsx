@@ -1,13 +1,13 @@
 'use client'
 
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { type Translations } from '@/i18n/types'
 import { formatTime, incidentImpact, incidentReasonLabel, type StatusIncident } from './types'
 
 /**
  * Incident rows under one service.
  *
- * Its own client module only because `StatusBadge` reads its label through
+ * Its own client module only because `Badge` reads its label through
  * next-intl's hook, which this app resolves on the client only — there is no
  * `i18n/request.ts`, so the hook cannot run in a server component. The rows
  * hold no state and still render in full without JS; the rest of the board
@@ -34,7 +34,7 @@ export function IncidentList({
             {incidents.map((incident) => (
                 <li key={incident.id} className="text-body-xs">
                     <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge
+                        <Badge
                             status={incident.resolvedAt ? 'completed' : 'failed'}
                             customText={incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}
                         />

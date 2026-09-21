@@ -21,7 +21,7 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
     return (
         <Link href={href} className="block h-full">
             <ListItem
-                position="single"
+                position="solo"
                 className="h-full cursor-pointer transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
                 leading={icon ? <IconBubble icon={icon} size="s" color="yellow" /> : undefined}
                 title={title}

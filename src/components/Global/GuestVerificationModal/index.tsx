@@ -31,7 +31,7 @@ export const GuestVerificationModal = ({
             onClose={onClose}
             title={t('guestVerificationModal.title')}
             description={description}
-            tone="warning"
+            tone="attention"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {

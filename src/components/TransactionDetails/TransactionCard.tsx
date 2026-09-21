@@ -33,7 +33,7 @@ import Image from 'next/image'
 import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { normalizeEnsName } from '@/utils/ens-name.utils'
-import StatusPill, { type StatusPillType } from '../Global/StatusPill'
+import Badge, { type IconStatusType } from '../Global/Badges/Badge'
 import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
 import { MerchantLogoIcon } from './MerchantLogoIcon'
@@ -57,7 +57,7 @@ interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
-    status?: StatusPillType
+    status?: IconStatusType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
@@ -272,7 +272,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             transactionType={type}
             status={status}
             context="card"
-            size="extra-small"
+            size="s"
             countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
         />
     )
@@ -325,7 +325,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                   ? t('type.reward')
                                   : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
-                        {showStatusChip && status && <StatusPill status={status} />}
+                        {showStatusChip && status && <Badge type="icon" status={status} />}
                         {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                     </div>
                 }
@@ -408,7 +408,7 @@ const TYPE_LABEL_KEYS = {
 
 /** Catalog key for the row's action label — refunded rows read "Refund"
  *  regardless of the underlying type. */
-function getActionLabelKey(type: TransactionType, status?: StatusPillType) {
+function getActionLabelKey(type: TransactionType, status?: IconStatusType) {
     return TYPE_LABEL_KEYS[status === 'refunded' ? 'refund' : type]
 }
 

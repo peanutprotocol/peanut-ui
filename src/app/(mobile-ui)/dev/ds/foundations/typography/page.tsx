@@ -82,8 +82,8 @@ export default function TypographyPage() {
             {/* v3 parity overrides */}
             <DocSection title="v3 Parity Sizes">
                 <p className="text-body-s text-foreground-secondary">
-                    Overrides ported from the v3 config (text-h1…h7 and changed stock sizes). Existing code only —
-                    prefer the semantic scale above.
+                    Overrides ported from the v3 config (changed stock sizes). Existing code only — prefer the semantic
+                    scale above.
                 </p>
                 <div className="space-y-1 rounded-sm border border-border-default p-3 text-body-xs">
                     {PARITY_STYLES.map((t) => (

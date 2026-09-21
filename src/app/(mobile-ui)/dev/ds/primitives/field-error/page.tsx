@@ -16,7 +16,7 @@ export default function FieldErrorPage() {
         <DocPage>
             <DocHeader
                 title="FieldError"
-                description="Inline field-level error from the form-field board (17788:19179): Body/XS in foreground-error, 4px under its input. Field validation only — page/flow-level failures keep Notification."
+                description="Inline field-level error from the form-field board (17788:19179): Body/XS in foreground-error, 4px under its input. Field validation only — page/flow-level failures keep Callout."
                 status="production"
             />
 

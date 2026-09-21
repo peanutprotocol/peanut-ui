@@ -84,7 +84,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
         <div
             ref={trackRef}
             className={twMerge(
-                'relative flex h-12 w-full items-center overflow-hidden rounded-round border border-border-button-secondary bg-background-default shadow-4',
+                'relative flex h-12 w-full items-center overflow-hidden rounded-full border border-border-button bg-background-default shadow-4',
                 disabled && 'opacity-40',
                 className
             )}
@@ -96,7 +96,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
             <motion.div
                 aria-hidden
                 style={{ width: trailWidth, opacity: trailOpacity }}
-                className="pointer-events-none absolute inset-y-0 left-0 rounded-round bg-gradient-to-r from-background-default to-action-primary"
+                className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-background-default to-action-primary"
             />
             <motion.button
                 type="button"
@@ -121,7 +121,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
                     }
                 }}
                 disabled={disabled}
-                className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-round border border-border-button bg-action-primary after:absolute after:-inset-1 focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
+                className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-full border border-border-button bg-action-primary after:absolute after:-inset-1 focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
                 aria-label={label}
             >
                 <Icon name="chevron-right" size={20} className="text-foreground-primary" />

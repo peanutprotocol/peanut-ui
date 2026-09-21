@@ -118,7 +118,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
-                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
+                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
                         </Button>
                         {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
@@ -126,7 +126,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
                     <div className="flex w-full flex-col gap-2">
-                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
+                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
                             {t('uploadIdentityDocuments')}
                         </Button>
                         {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}

@@ -12,7 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -121,9 +121,9 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <Notification priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
                     {t('manteca.sendOnlyOwnAccountDescription')}
-                </Notification>
+                </Callout>
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
@@ -163,7 +163,7 @@ const MantecaDepositShareDetails = ({
             <ShareButton
                 generateText={async () => generateShareText()}
                 title={t('manteca.shareTitle')}
-                variant="purple"
+                variant="primary"
                 className="w-full"
             >
                 {t('manteca.shareDetails')}

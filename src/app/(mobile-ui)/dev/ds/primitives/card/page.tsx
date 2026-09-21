@@ -122,7 +122,7 @@ export default function CardPage() {
                                     </Card.Description>
                                 </div>
                             </div>
-                            <Button variant="purple" className="w-full">
+                            <Button variant="primary" className="w-full">
                                 Verify now
                             </Button>
                         </Card>
@@ -137,7 +137,7 @@ export default function CardPage() {
                                 </div>
                             </div>
                             <div className="flex w-full flex-col gap-3">
-                                <Button variant="purple" className="w-full">
+                                <Button variant="primary" className="w-full">
                                     Path 1
                                 </Button>
                                 <Button variant="stroke" className="w-full">
@@ -169,7 +169,7 @@ export default function CardPage() {
       <Card.Description>Use bank accounts…</Card.Description>
     </div>
   </div>
-  <Button variant="purple" className="w-full">Verify now</Button>
+  <Button variant="primary" className="w-full">Verify now</Button>
 </Card>`}
                     />
                 </DocSection.Code>

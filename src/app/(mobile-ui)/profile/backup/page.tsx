@@ -7,7 +7,7 @@ import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import { BackupFaqDrawers, type BackupFaq } from '@/components/Profile/BackupFaqDrawers'
 import { BackupStep } from '@/components/Profile/BackupStep'
@@ -52,12 +52,12 @@ export default function BackupPage() {
                     <Card>
                         <NumberedList className="py-2" items={backupSteps} />
                     </Card>
-                    <Notification priority="attention" title={t('noBackupWarning.title')}>
+                    <Callout priority="attention" title={t('noBackupWarning.title')}>
                         {t('noBackupWarning.description')}
-                    </Notification>
+                    </Callout>
                     {/* Passkeys saved to a third-party manager back up through
                         that manager, not the platform steps above. */}
-                    <Notification priority="info">{t('thirdPartyNote')}</Notification>
+                    <Callout priority="info">{t('thirdPartyNote')}</Callout>
                 </Section>
 
                 <Section title={t('faqHeading')}>

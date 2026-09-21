@@ -115,7 +115,7 @@ export function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summari
                 replaces the hand-rolled ListItem title/trailing pair. The card owns the
                 dashed dividers; DataRow draws no border of its own. */}
             {bridgeSummaries.length > 0 && (
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {bridgeSummaries.map((summary) => (
                         <DataRow
                             key={summary.direction}

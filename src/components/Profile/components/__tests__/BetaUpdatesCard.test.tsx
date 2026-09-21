@@ -14,7 +14,7 @@ import type { OtaChannelSwitchResult, UseOtaChannel } from '@/hooks/useOtaChanne
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
-const toast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
+const toast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), attention: jest.fn() }
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
 const channel = { current: {} as UseOtaChannel }
@@ -138,7 +138,7 @@ it('asks for a restart only when a bundle is actually waiting', async () => {
 it('says so when the join downloaded nothing', async () => {
     setup(switching('join-no-bundle'))
     fireEvent.click(screen.getByRole('switch'))
-    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining('no beta build')))
+    await waitFor(() => expect(toast.attention).toHaveBeenCalledWith(expect.stringContaining('no beta build')))
     expect(toast.success).not.toHaveBeenCalled()
 })
 

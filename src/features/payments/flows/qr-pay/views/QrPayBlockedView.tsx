@@ -41,7 +41,7 @@ export function QrPayBlockedView() {
                         <IconBubble icon="alert" color="red" size="m" />
                         <p className="text-body-m"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
 
-                        <Button onClick={onBack} variant="purple">
+                        <Button onClick={onBack} variant="primary">
                             {t('maintenance.goBack')}
                         </Button>
                     </Card>
@@ -74,11 +74,11 @@ export function QrPayBlockedView() {
                     </p>
                 </Card>
                 {isMaintenance ? (
-                    <Button onClick={onBack} variant="purple" shadowSize="4">
+                    <Button onClick={onBack} variant="primary" shadowSize="4">
                         {t('maintenance.goBack')}
                     </Button>
                 ) : (
-                    <Button onClick={retryOrderNotReady} variant="purple" shadowSize="4">
+                    <Button onClick={retryOrderNotReady} variant="primary" shadowSize="4">
                         {t('orderNotReady.cta')}
                     </Button>
                 )}

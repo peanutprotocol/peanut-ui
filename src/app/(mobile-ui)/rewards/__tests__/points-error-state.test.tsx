@@ -33,7 +33,7 @@ jest.mock('@/utils/capacitor', () => ({ isIOSNative: () => false }))
 jest.mock('@/utils/format.utils', () => ({ shortenPoints: (n: number) => ({ number: String(n), suffix: '' }) }))
 jest.mock('@/utils/native-routes', () => ({ profileUrl: (u: string) => `/${u}` }))
 jest.mock('@/utils/general.utils', () => ({ getInitialsFromName: () => 'A' }))
-jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'single' }))
+jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'solo' }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => {
     return function MockPageContainer(p: { children?: React.ReactNode }) {
         return <div>{p.children}</div>

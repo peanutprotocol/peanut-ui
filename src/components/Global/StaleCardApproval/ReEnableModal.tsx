@@ -67,11 +67,11 @@ export default function StaleCardApprovalReEnableModal() {
               : null
 
     const ctas: ActionModalButtonProps[] = succeeded
-        ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'purple', shadowSize: '4', onClick: close }]
+        ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'primary', shadowSize: '4', onClick: close }]
         : [
               {
                   text: isGranting ? t('staleCardApprovalModal.workingCta') : t('staleCardApprovalModal.reEnableCta'),
-                  variant: 'purple',
+                  variant: 'primary',
                   shadowSize: '4',
                   disabled: isGranting,
                   onClick: () => void onReEnable(),
@@ -89,7 +89,7 @@ export default function StaleCardApprovalReEnableModal() {
             visible={visible}
             onClose={close}
             icon="credit-card"
-            iconContainerClassName="bg-action-secondary"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={succeeded ? t('staleCardApprovalModal.successTitle') : t('staleCardApprovalModal.title')}
             description={
                 succeeded
