@@ -286,6 +286,8 @@ async function loadJSON(url) {
     return r.json()
 }
 function showAuthGate() {
+    const returnPath = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
+    $('google-sign-in').href = `/screen-data/auth/continue?return=${encodeURIComponent(returnPath)}`
     document.body?.classList?.add('auth-required')
     $('auth-preview').hidden = false
     $('auth-gate').hidden = false
