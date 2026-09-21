@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, type ReactNode } from 'react'
+import { PILL_THUMB_SELECTED, PILL_TINT_SELECTED, PILL_TRACK, PILL_TRACK_INVERTED } from './PillSurface'
 
 /**
  * TASK-22707 scaffolding — the 6 candidate looks for the ONE tabs component,
@@ -19,9 +20,13 @@ import { createContext, useContext, type ReactNode } from 'react'
  * separate PR and this file is deleted with `/dev/tabs-proposals`.
  */
 
-export type TabsLook = 'rule' | 'awning' | 'blush' | 'frame' | 'weight' | 'track'
+export type TabsLook = 'rule' | 'awning' | 'blush' | 'frame' | 'weight' | 'track' | 'navA' | 'navB'
 
+/** the original six, still rendered by /dev/tabs-proposals and its surfaces page */
 export const TABS_LOOK_KEYS: TabsLook[] = ['rule', 'awning', 'blush', 'frame', 'weight', 'track']
+
+/** the bottom-nav look, in its two polarities — /dev/tabs-proposals/nav */
+export const NAV_LOOK_KEYS: TabsLook[] = ['navA', 'navB']
 
 export const TABS_LOOK_NAMES: Record<TabsLook, string> = {
     rule: 'Rule',
@@ -30,6 +35,8 @@ export const TABS_LOOK_NAMES: Record<TabsLook, string> = {
     frame: 'Frame',
     weight: 'Weight',
     track: 'Track',
+    navA: 'A — selected white (matches BottomNav)',
+    navB: 'B — selected page tint',
 }
 
 interface LookStyle {
@@ -124,6 +131,31 @@ export const TAB_LOOKS: Record<TabsLook, LookStyle> = {
         list: 'gap-0.5 rounded-sm bg-background-page p-0.5',
         trigger:
             'rounded-sm border border-transparent px-4 text-body-m text-foreground-secondary active:text-action-ghost-hover data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary',
+    },
+
+    /**
+     * A — the bottom nav, standing still. Same bar as `Global/BottomNav`: a
+     * bordered pill track on the page tint with a bordered WHITE chip on the
+     * selected tab. `shadow-4`, the spring and the sliding thumb are dropped,
+     * so this is the nav's resting geometry and nothing else.
+     * selected token: `bg-background-default` + `border-border-default`,
+     * on a `bg-background-page` track. No new token.
+     */
+    navA: {
+        list: `gap-0 p-0.5 ${PILL_TRACK}`,
+        trigger: `rounded-round border border-transparent px-4 text-body-m text-foreground-secondary active:text-action-ghost-hover ${PILL_THUMB_SELECTED} data-[state=active]:text-foreground-primary`,
+    },
+
+    /**
+     * B — the same bar with the two fills swapped: a white track, and the
+     * selected chip carries the page tint. Every other pixel is identical to A,
+     * so the pair isolates ONE decision — which fill means selected.
+     * selected token: `bg-background-page` + `border-border-default`,
+     * on a `bg-background-default` track. No new token.
+     */
+    navB: {
+        list: `gap-0 p-0.5 ${PILL_TRACK_INVERTED}`,
+        trigger: `rounded-round border border-transparent px-4 text-body-m text-foreground-secondary active:text-action-ghost-hover ${PILL_TINT_SELECTED} data-[state=active]:text-foreground-primary`,
     },
 }
 

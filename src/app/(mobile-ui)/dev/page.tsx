@@ -170,6 +170,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 path: '/dev/tabs-proposals/surfaces',
                 icon: 'switch',
             },
+            {
+                name: 'Tabs — the bottom-nav look',
+                description: 'TASK-22707 — the live proposal: the nav bar standing still, in two polarities',
+                path: '/dev/tabs-proposals/nav',
+                icon: 'switch',
+            },
         ],
     },
 ]

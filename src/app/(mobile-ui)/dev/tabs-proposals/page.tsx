@@ -238,6 +238,13 @@ export default function TabsProposalsPage() {
             width="prose"
         >
             <div className="flex flex-col gap-10">
+                <Notification priority="info" title="Superseded — the bottom-nav look is the live proposal">
+                    Kush reversed the &ldquo;Weight&rdquo; ruling on 2026-09-21. The one proposal now on the table is
+                    the app&rsquo;s own bottom navigation, standing still:{' '}
+                    <LinkButton href="/dev/tabs-proposals/nav">/dev/tabs-proposals/nav</LinkButton>. The six looks below
+                    and on the surfaces page are kept as the record of how that decision was reached.
+                </Notification>
+
                 <Notification priority="info" title="The same 6 looks on the real screens">
                     This page compares the looks on abstract tab rows.{' '}
                     <LinkButton href="/dev/tabs-proposals/surfaces">/dev/tabs-proposals/surfaces</LinkButton> mounts the

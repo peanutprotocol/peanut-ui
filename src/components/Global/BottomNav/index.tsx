@@ -1,5 +1,6 @@
 'use client'
 
+import { PILL_THUMB, PILL_TRACK } from '@/components/0_Bruddle/PillSurface'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -20,7 +21,10 @@ import { TAB_ORDER, type TabId } from './tab-order'
  * 17317:138477): a pill bar with home / card / support tabs plus the pink QR
  * circle button. The middle slot falls back to exchange rates for users the
  * card is not available to — see `middleTab` below and `useCardSurfaceAccess`.
- * Active tab = white pill. Every pressable area is 68x52px
+ * Active tab = white pill. The bar and the pill take their radius, border
+ * and fill from `0_Bruddle/PillSurface`, which the TASK-22707 tab look reads
+ * too — one definition for the shared surface, nothing else shared.
+ * Every pressable area is 68x52px
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
  *
  * The active pill is ONE element that lives in the bar for the whole session
@@ -248,7 +252,7 @@ export const BottomNav = () => {
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4"
+                className={`relative flex flex-1 items-center justify-between ${PILL_TRACK} shadow-4`}
             >
                 <Link
                     href="/home"
@@ -316,7 +320,7 @@ export const BottomNav = () => {
                         onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
+                        className={`absolute -top-px -bottom-px left-0 z-0 touch-none ${PILL_THUMB} motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring`}
                         style={{
                             transform: `translateX(${restingX(activeBox)}px)`,
                             width: activeBox.width + 2,
