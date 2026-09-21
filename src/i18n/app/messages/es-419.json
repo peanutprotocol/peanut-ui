@@ -2441,7 +2441,6 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
-        "toastTapToView": "Toca para ver",
         "unlock": {
             "invites": "Invita a {target, plural, one {# amigo que se una a Peanut} other {# amigos que se unan a Peanut}}.",
             "rewards": "Gana ${targetUsd} en recompensas.",
@@ -2650,8 +2649,7 @@
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
-        "toastChooseAvatar": "Elegir avatar"
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",

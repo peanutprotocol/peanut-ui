@@ -102,7 +102,7 @@ describe('Callout', () => {
         expect(screen.getByText('Heads up')).toBeInTheDocument()
     })
 
-    test.each(['inline', 'floating'] as const)('%s callout renders only link-button actions', (variant) => {
+    test('inline callout renders only link-button actions', () => {
         const first = jest.fn()
         // the tuple type caps ctas at two at compile time; the cast proves the
         // runtime slice also guards plain-js callers
@@ -112,7 +112,7 @@ describe('Callout', () => {
             { label: 'Three', onClick: () => {} },
         ] as unknown as [{ label: string; onClick: () => void }]
         render(
-            <Callout priority="success" variant={variant} ctas={threeCtas}>
+            <Callout priority="success" ctas={threeCtas}>
                 Done
             </Callout>
         )
@@ -125,6 +125,21 @@ describe('Callout', () => {
         expect(screen.queryByRole('button', { name: /Three/ })).not.toBeInTheDocument()
         fireEvent.click(firstAction)
         expect(first).toHaveBeenCalledTimes(1)
+    })
+
+    test('floating toast never renders actions or dismissal controls', () => {
+        const ctas: [{ label: string; onClick: () => void }] = [{ label: 'Retry', onClick: jest.fn() }]
+        const onDismiss = jest.fn()
+        const { rerender, container } = render(
+            <Callout priority="error" variant="floating" ctas={ctas} onDismiss={onDismiss}>
+                Try again later
+            </Callout>
+        )
+        expect(screen.getByRole('alert')).toHaveTextContent('Try again later')
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+
+        rerender(<Callout priority="error" variant="floating" ctas={ctas} />)
+        expect(container).toBeEmptyDOMElement()
     })
 
     // chip flagged the countdown running through prefers-reduced-motion. The bar
@@ -153,21 +168,14 @@ describe('Callout', () => {
         expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
     })
 
-    // chip: overflow-hidden clipped the dismiss button's 44px expansion where it
-    // ran past the card, and the bar painted over the lower edge of that target
-    test('the floating card does not clip its dismiss target, and the bar cannot swallow taps', () => {
-        const onDismiss = jest.fn()
+    test('the floating card has no interactive controls and its timer bar cannot intercept taps', () => {
         const { container } = render(
-            <Callout priority="success" variant="floating" progressMs={2000} onDismiss={onDismiss}>
+            <Callout priority="success" variant="floating" progressMs={2000}>
                 Link cancelled successfully!
             </Callout>
         )
-        const card = container.firstElementChild as HTMLElement
-        // the 24px button reaches 44px through after:-inset-2.5; clipping the
-        // card cuts that expansion off at the corner
-        expect(card).not.toHaveClass('overflow-hidden')
         expect(container.querySelector('span[aria-hidden]')).toHaveClass('pointer-events-none')
-        expect(screen.getByRole('button')).toHaveClass('after:-inset-2.5')
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
     test('the inline banner never draws a countdown, even if a duration is passed', () => {

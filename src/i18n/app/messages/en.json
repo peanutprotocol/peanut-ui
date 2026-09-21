@@ -2441,7 +2441,6 @@
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
-        "toastTapToView": "Tap to view",
         "unlock": {
             "invites": "Invite {target, plural, one {# friend who joins Peanut} other {# friends who join Peanut}}.",
             "rewards": "Earn ${targetUsd} in rewards.",
@@ -2650,8 +2649,7 @@
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
         },
-        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
-        "toastChooseAvatar": "Choose avatar"
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}"
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
