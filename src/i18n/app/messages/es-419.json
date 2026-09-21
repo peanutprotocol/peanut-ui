@@ -434,9 +434,9 @@
                 "card": "Usa tu saldo de Peanut en el mundo real.",
                 "crypto": "Envía y recibe on-chain, sin necesidad de banco.",
                 "brl": "Mueve reales entre tu banco y Peanut.",
-                "ars": "Mueve pesos entre tu banco y Peanut.",
+                "ars": "Mueve pesos argentinos entre tu banco y Peanut.",
                 "usd": "Mueve dólares entre tu banco y Peanut.",
-                "mxn": "Mueve pesos entre tu banco y Peanut.",
+                "mxn": "Mueve pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guarda y mueve euros sin un banco local.",
                 "qrPay": "Escanea y paga donde vives."
             },
