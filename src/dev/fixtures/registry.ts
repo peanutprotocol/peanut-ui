@@ -869,7 +869,14 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'ID upload still required: no in-review notice or support escalation.',
         responses: {
             'GET /users/me': {
-                identityVerification: { status: 'action_required', reviewPending: false },
+                // The demo baseline is verified; clear its prior decision and
+                // submission so this state really represents an unsubmitted upload.
+                identityVerification: {
+                    status: 'action_required',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: null,
+                },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
             },
         },
@@ -883,6 +890,7 @@ export const FIXTURES: Record<string, Fixture> = {
                     status: 'processing',
                     reviewPending: true,
                     submittedAt: '2026-08-20T12:00:00.000Z',
+                    reviewedAt: null,
                 },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
             },

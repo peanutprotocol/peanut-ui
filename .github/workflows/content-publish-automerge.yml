@@ -16,16 +16,15 @@ name: Content publish auto-merge
 #
 #   1. `approve-and-merge` (pull_request_target) — approve, then `--auto --merge`.
 #      GitHub enforces `ci-success` before auto-merge fires. This is the path for
-#      any publish authored by someone other than the chip-peanut-bot app.
+#      any publish authored by someone other than CONTENT_BOT_TOKEN's user.
 #
-#   2. `merge-on-green` (workflow_run) — for publishes the chip-peanut-bot app
-#      authored itself, where GitHub forbids self-approval so path 1 can never
-#      complete. Since `update-content.yml` opens its PRs as the app, this is
-#      the common path, not the exception. It merges via the app's "Protect
-#      Prod" bypass, which skips the review requirement (intended — the diff
-#      guard replaces it) AND the required status check (NOT intended). So this
-#      job re-establishes green `ci-success` ITSELF before merging. Never merge
-#      on the bypass alone.
+#   2. `merge-on-green` (workflow_run) — for publishes that CONTENT_BOT_TOKEN's
+#      own user authored, where GitHub forbids self-approval so path 1 can never
+#      complete. Since `update-content.yml` now opens its PRs as that user, this
+#      is the common path, not the exception. It merges via the org-admin bypass,
+#      which skips the review requirement (intended — the diff guard replaces it)
+#      AND the required status check (NOT intended). So this job re-establishes
+#      green `ci-success` ITSELF before merging. Never merge on the bypass alone.
 #
 # Security model:
 #   - `pull_request_target` and `workflow_run` both run THIS logic from the
@@ -50,26 +49,18 @@ permissions:
 
 jobs:
     approve-and-merge:
-        # Read CONTENT_BOT_APP_PRIVATE_KEY from the `content-publish` environment,
-        # whose deployment branch policy allows `main` only. The key mints tokens
-        # for the chip-peanut-bot app (which carries the "Protect Prod" bypass),
-        # and a dozen workflows in this repo carry `workflow_dispatch`, which runs
-        # a workflow FROM THE DISPATCHED REF. As a plain repo secret it was
-        # therefore readable by anyone with write access: push a branch with a
-        # workflow that echoes it, dispatch that branch, done. Scoped to the
-        # environment it is unreachable from any ref but `main`.
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
         environment: content-publish
         # Same-repo PRs only — never a fork.
         if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         steps:
-            - name: Mint bot token
-              id: bot
-              uses: actions/create-github-app-token@v2
-              with:
-                  app-id: 2915219
-                  private-key: ${{ secrets.CONTENT_BOT_APP_PRIVATE_KEY }}
-
             - name: Guard — diff must be exactly the content submodule pointer
               id: guard
               env:
@@ -94,7 +85,7 @@ jobs:
             - name: Approve + enable auto-merge
               if: steps.guard.outputs.content_only == 'true'
               env:
-                  GH_TOKEN: ${{ steps.bot.outputs.token }}
+                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN }}
                   PR: ${{ github.event.pull_request.number }}
                   REPO: ${{ github.repository }}
               run: |
@@ -111,30 +102,22 @@ jobs:
                   fi
 
     merge-on-green:
-        # Read CONTENT_BOT_APP_PRIVATE_KEY from the `content-publish` environment,
-        # whose deployment branch policy allows `main` only. The key mints tokens
-        # for the chip-peanut-bot app (which carries the "Protect Prod" bypass),
-        # and a dozen workflows in this repo carry `workflow_dispatch`, which runs
-        # a workflow FROM THE DISPATCHED REF. As a plain repo secret it was
-        # therefore readable by anyone with write access: push a branch with a
-        # workflow that echoes it, dispatch that branch, done. Scoped to the
-        # environment it is unreachable from any ref but `main`.
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
         environment: content-publish
         # Self-approval fallback. Fires when `Tests` finishes for any commit; the
         # job itself works out whether there's a content publish to merge.
         if: github.event_name == 'workflow_run'
         runs-on: ubuntu-latest
         steps:
-            - name: Mint bot token
-              id: bot
-              uses: actions/create-github-app-token@v2
-              with:
-                  app-id: 2915219
-                  private-key: ${{ secrets.CONTENT_BOT_APP_PRIVATE_KEY }}
-
             - name: Merge content-only publishes once ci-success is green
               env:
-                  GH_TOKEN: ${{ steps.bot.outputs.token }}
+                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN }}
                   SHA: ${{ github.event.workflow_run.head_sha }}
                   REPO: ${{ github.repository }}
               run: |
@@ -196,17 +179,19 @@ jobs:
                       continue
                     fi
                     echo "Merging #$PR — diff is exactly src/content, ci-success green ($GREEN/$TOTAL) on $SHA."
-                    # A plain REST merge, no --admin: the chip-peanut-bot app is on
-                    # the "Protect Prod" bypass list, so the ruleset waives its
-                    # requirements for this caller. That skips the human review
-                    # (intended — the diff guard replaces it) AND the required
-                    # status check, so note what it is NOT skipping: this job has
-                    # already established, itself, that the diff is exactly
-                    # src/content and that every ci-success run on this commit is
-                    # green. The gate is enforced above, in code, before we get
-                    # here. (`gh pr merge --admin` is not available to an app
-                    # token — --admin asserts repo-admin rights the app lacks.)
-                    if ! MERGE_ERR=$(gh api -X PUT "repos/$REPO/pulls/$PR/merge" -f merge_method=merge 2>&1); then
+                    # `--admin` is required, not optional. Being an OrganizationAdmin
+                    # does NOT make `gh pr merge` bypass "Protect Prod" — gh enforces
+                    # the branch policy and tells you to pass --admin explicitly.
+                    # Without it every merge here fails with "the base branch policy
+                    # prohibits the merge", which is exactly what happened to #2547.
+                    #
+                    # --admin also skips the required status check, so note what it is
+                    # NOT skipping: this job has already established, itself, that the
+                    # diff is exactly src/content and that every ci-success run on this
+                    # commit is green. The gate is enforced above, in code, before we
+                    # get here — --admin only waives the human review, which is the
+                    # whole point of this workflow.
+                    if ! MERGE_ERR=$(gh pr merge "$PR" --repo "$REPO" --merge --admin 2>&1); then
                       # A merge we decided to make and then failed to make is the exact
                       # silent failure this pipeline exists to prevent. Be loud.
                       echo "::error::MERGE FAILED for #$PR — content will NOT reach production. $MERGE_ERR"
