@@ -77,8 +77,6 @@ export default function FieldColumnPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Profile — edit a detail"

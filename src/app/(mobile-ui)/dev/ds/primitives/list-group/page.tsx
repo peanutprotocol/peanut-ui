@@ -43,8 +43,6 @@ export default function ListGroupPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Backup — passkey FAQ"

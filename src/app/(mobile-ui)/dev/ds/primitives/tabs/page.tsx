@@ -368,8 +368,6 @@ export default function TabsPage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Limits — monthly vs yearly"

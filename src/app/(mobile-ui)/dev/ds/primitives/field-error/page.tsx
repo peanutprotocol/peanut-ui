@@ -7,7 +7,6 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
-import { SectionDivider } from '../../_components/SectionDivider'
 import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function FieldErrorPage() {
@@ -46,8 +45,6 @@ export default function FieldErrorPage() {
                     />
                 </DocSection.Code>
             </DocSection>
-
-            <SectionDivider />
 
             <ProductUsage>
                 <ProductUsage.Example

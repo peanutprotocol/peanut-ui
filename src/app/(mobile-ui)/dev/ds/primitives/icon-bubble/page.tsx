@@ -69,8 +69,6 @@ export default function IconBubblePage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Payment success — result badge"

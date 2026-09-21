@@ -64,8 +64,6 @@ export default function CloudsBackgroundPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 {/* both recreations are boxed: in product the host fills the
                     screen's decoration band, which would blow up the doc layout */}

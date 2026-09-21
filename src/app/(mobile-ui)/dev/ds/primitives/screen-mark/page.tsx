@@ -47,8 +47,6 @@ export default function ScreenMarkPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <p className="text-body-s text-foreground-secondary">
                     No product call sites. ScreenMark exists as the named recipe for the centered <code>l</code> bubble,

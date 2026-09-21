@@ -395,8 +395,6 @@ export default function ButtonPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Payment success — back home + receipt"

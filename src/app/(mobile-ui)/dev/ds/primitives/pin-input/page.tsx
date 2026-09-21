@@ -95,8 +95,6 @@ export default function PinInputPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Card — choose your PIN"

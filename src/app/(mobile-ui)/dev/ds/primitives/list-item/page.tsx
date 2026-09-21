@@ -121,8 +121,6 @@ export default function ListItemPage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Withdraw — crypto row above the currency list"

@@ -104,8 +104,6 @@ export default function BulletListPage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Card — choose your PIN"

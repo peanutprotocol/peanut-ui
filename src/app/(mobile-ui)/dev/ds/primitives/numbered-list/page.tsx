@@ -98,8 +98,6 @@ export default function NumberedListPage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Add money — how to deposit drawer"

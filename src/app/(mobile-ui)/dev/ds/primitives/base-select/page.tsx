@@ -80,8 +80,6 @@ export default function BaseSelectPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Bank account form — account type"

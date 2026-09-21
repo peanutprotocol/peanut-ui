@@ -4,6 +4,7 @@ import React from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Section } from '@/components/0_Bruddle/Section'
 import { CodeBlock } from './CodeBlock'
+import { SectionDivider } from './SectionDivider'
 
 // ponytail: static doc chrome — no state, no config. Every DS doc page renders
 // its real-product examples through this so the "Used in product" section
@@ -11,12 +12,16 @@ import { CodeBlock } from './CodeBlock'
 
 function ProductUsageRoot({ children }: { children: React.ReactNode }) {
     return (
-        <Section title="Used in product">
-            <p className="mt-2 text-body-s text-foreground-secondary">
-                Real call sites from the app, rendered with the same props. The file path is where the code lives.
-            </p>
-            <div className="space-y-6 mt-6">{children}</div>
-        </Section>
+        <>
+            {/* the divider belongs to the section, so every page gets exactly one */}
+            <SectionDivider />
+            <Section title="Used in product">
+                <p className="mt-2 text-body-s text-foreground-secondary">
+                    Real call sites from the app, rendered with the same props. The file path is where the code lives.
+                </p>
+                <div className="space-y-6 mt-6">{children}</div>
+            </Section>
+        </>
     )
 }
 

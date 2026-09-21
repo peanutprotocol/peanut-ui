@@ -139,8 +139,6 @@ export default function BaseInputPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Send — the note that rides with the payment"

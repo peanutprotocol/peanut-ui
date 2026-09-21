@@ -188,8 +188,6 @@ export default function CalloutPage() {
                 ]}
             />
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Send — amount step error"

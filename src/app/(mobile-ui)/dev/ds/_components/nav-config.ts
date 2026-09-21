@@ -381,15 +381,22 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
 /**
  * Filters every tier by label and description. An empty query returns the whole
  * nav, so the sidebar renders search results and the full tree the same way.
+ * A query that matches a tier label returns that tier with all of its items.
  */
 export const filterNav = (query: string): NavGroup[] => {
     const q = query.trim().toLowerCase()
-    return TIERS.map((tier) => ({
-        tier,
-        items: q
-            ? (SIDEBAR_CONFIG[tier.key] ?? []).filter(
-                  (item) => item.label.toLowerCase().includes(q) || (item.description ?? '').toLowerCase().includes(q)
-              )
-            : (SIDEBAR_CONFIG[tier.key] ?? []),
-    })).filter((group) => !q || group.items.length > 0 || group.tier.label.toLowerCase().includes(q))
+    return TIERS.map((tier) => {
+        const items = SIDEBAR_CONFIG[tier.key] ?? []
+        // a tier-label hit keeps the whole tier — a heading with no items under it is not a result
+        const wholeTier = !q || tier.label.toLowerCase().includes(q)
+        return {
+            tier,
+            items: wholeTier
+                ? items
+                : items.filter(
+                      (item) =>
+                          item.label.toLowerCase().includes(q) || (item.description ?? '').toLowerCase().includes(q)
+                  ),
+        }
+    }).filter((group) => !q || group.items.length > 0)
 }

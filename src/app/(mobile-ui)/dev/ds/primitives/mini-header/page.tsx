@@ -50,8 +50,6 @@ export default function MiniHeaderPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Withdraw — bank account form groups"

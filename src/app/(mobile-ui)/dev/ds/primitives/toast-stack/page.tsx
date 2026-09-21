@@ -49,8 +49,6 @@ export default function ToastStackPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="The one render site — ToastProvider"

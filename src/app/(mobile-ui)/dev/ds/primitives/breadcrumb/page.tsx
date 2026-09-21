@@ -81,8 +81,6 @@ export default function BreadcrumbPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Blog — post footer trail"

@@ -72,6 +72,13 @@ describe('filterNav', () => {
         expect(groups.map((g) => g.tier.key)).toEqual(['primitives', 'patterns'])
     })
 
+    it('matches a tier label and keeps that tier whole', () => {
+        const groups = filterNav('playground')
+        expect(groups.map((g) => g.tier.key)).toEqual(['playground'])
+        expect(groups[0].items).toEqual(SIDEBAR_CONFIG.playground)
+        expect(groups[0].items.length).toBeGreaterThan(0)
+    })
+
     it('returns nothing when nothing matches', () => {
         expect(filterNav('zzzznotathing')).toEqual([])
     })

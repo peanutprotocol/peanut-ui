@@ -176,8 +176,6 @@ export default function CardPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <SectionDivider />
-
             <ProductUsage>
                 <ProductUsage.Example
                     title="Payment success — summary row"
