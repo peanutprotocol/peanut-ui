@@ -325,36 +325,6 @@
     --text-8xl--line-height: 10rem;
     --text-9xl: 12rem;
     --text-9xl--line-height: 0.9;
-    --text-h1: 3rem;
-    --text-h1--line-height: 3.5rem;
-    --text-h1--font-weight: 800;
-    --text-h2: 2.25rem;
-    --text-h2--line-height: 2.875rem;
-    --text-h2--font-weight: 800;
-    --text-h3: 1.875rem;
-    --text-h3--line-height: 2.375rem;
-    --text-h3--font-weight: 800;
-    --text-h4: 1.5rem;
-    --text-h4--line-height: 2rem;
-    --text-h4--font-weight: 800;
-    --text-h5: 1.25rem;
-    --text-h5--line-height: 1.75rem;
-    --text-h5--font-weight: 800;
-    --text-h6: 1.125rem;
-    --text-h6--line-height: 1.5rem;
-    --text-h6--font-weight: 800;
-    --text-h7: 1rem;
-    --text-h7--line-height: 1.25rem;
-    --text-h7--font-weight: 800;
-    --text-h8: 0.875rem;
-    --text-h8--line-height: 1rem;
-    --text-h8--font-weight: 800;
-    --text-h9: 0.75rem;
-    --text-h9--line-height: 0.875rem;
-    --text-h9--font-weight: 800;
-    --text-h10: 0.625rem;
-    --text-h10--line-height: 0.75rem;
-    --text-h10--font-weight: 800;
     --text-headingLarge: 7rem;
     --text-headingLarge--line-height: 6.5rem;
     --text-headingMedium: 5rem;
@@ -1321,10 +1291,6 @@ Firefox input[type='number'] {
 .perk-shake-intense {
     animation: perkShakeIntense 0.08s ease-in-out infinite;
     transform-origin: center center;
-}
-
-.text-h2 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
 }
 
 /* elements that shouldn't be translated */
