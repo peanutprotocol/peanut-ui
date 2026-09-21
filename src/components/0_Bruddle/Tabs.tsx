@@ -117,7 +117,20 @@ const focusRing =
 // wrapper, not the track: `overflow-x-auto` establishes a clip box even when
 // nothing actually overflows, which would cut the ring off on every row. The
 // 4px gutter keeps the ring clear of the scroll edges.
-const scrollWrap = '-m-1 overflow-x-auto p-1'
+//
+// `isolate` is the lid on this row's z-indices. Every `z-10` inside it is
+// INTERNAL — the label lifting above the chip `::before`, the focus ring
+// lifting above the neighbouring trigger — and none is meant to compete with
+// page chrome. Without a stacking context of its own they escaped into the
+// nearest one and tied with whatever else sat at `z-10` there, and a tie is
+// settled by DOM order: in `TokenSelector` the row comes after the sticky
+// `z-10` search field, so it won and painted the chips straight over the
+// field's placeholder as soon as the token list scrolled under it. Isolating
+// the wrapper contains all of them, and because the wrapper is itself
+// unpositioned it stays under any positioned page chrome. The fix belongs
+// here, not on the one caller: raising that caller to `z-20` would leave the
+// primitive able to climb over the next piece of chrome it meets.
+const scrollWrap = 'isolate -m-1 overflow-x-auto p-1'
 
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both
