@@ -72,7 +72,7 @@
         "loggingOut": "Cerrando sesión...",
         "dashboard": "Panel",
         "pay": "Pagar",
-        "cashout": "Retirar",
+        "cashout": "Retiro",
         "claim": "Reclamar",
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
@@ -260,7 +260,7 @@
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con tus propios datos bancarios"
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
         }
     },
     "profile": {
@@ -1113,7 +1113,7 @@
         "errorPage": {
             "title": "¡Algo salió mal!",
             "description": "Ocurrió un error al cargar la página de pago.",
-            "contactSupport": "Contactar soporte"
+            "contactSupport": "Contactar a soporte"
         },
         "headers": {
             "pay": "Pagar",
@@ -1729,7 +1729,7 @@
         "chainTokenOnly": "{chain} · solo {tokens}",
         "methods": {
             "crypto": "Cripto",
-            "cryptoDescription": "Agrega desde una billetera o exchange",
+            "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
@@ -1839,15 +1839,15 @@
             "accountHolderName": "Nombre del titular",
             "bankName": "Nombre del banco",
             "bankAddress": "Dirección del banco",
-            "beneficiaryName": "Nombre del destinatario",
-            "beneficiaryAddress": "Dirección del destinatario",
+            "beneficiaryName": "Nombre del beneficiario",
+            "beneficiaryAddress": "Dirección del beneficiario",
             "clabe": "CLABE",
             "sortCode": "Sort Code",
             "accountNumber": "Número de cuenta",
             "iban": "IBAN",
             "routingNumber": "Número de ruta",
             "bic": "BIC",
-            "youllReceive": "Vas a recibir",
+            "youllReceive": "Recibirás",
             "doubleCheckTitle": "Revisa bien en tu banco antes de enviar:",
             "doubleCheckAmount": "Monto: {amount} (exacto)",
             "doubleCheckReference": "Referencia: {reference} (incluida)",
@@ -1971,7 +1971,7 @@
             "accountOwnerName": "Nombre del titular de la cuenta",
             "accountOwnerNameRequired": "El nombre del titular es obligatorio",
             "accountOwnerNameFull": "Ingresa nombre y apellido",
-            "email": "Correo electrónico",
+            "email": "E-mail",
             "emailRequired": "El email es obligatorio",
             "clabe": "CLABE",
             "clabeRequired": "La CLABE es obligatoria",
@@ -3591,9 +3591,9 @@
             "noResultsDescription": "Intenta buscar con otro término.",
             "receiveTitle": "Recibir",
             "flagAlt": "Bandera de {country}",
-            "cryptoDepositTitle": "Cripto",
+            "cryptoDepositTitle": "Depósito en cripto",
             "cryptoWithdrawTitle": "Cripto",
-            "cryptoDepositDescription": "Agrega desde una billetera o exchange",
+            "cryptoDepositDescription": "Usa un exchange o tu billetera",
             "cryptoWithdrawDescription": "Retira a una billetera o exchange"
         },
         "savedAccounts": {
