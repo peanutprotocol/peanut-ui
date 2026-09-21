@@ -15,6 +15,7 @@ export type TransactionDetailsRowKey =
     | 'bankAccountDetails'
     | 'transferId'
     | 'senderReference'
+    | 'paymentReference'
     | 'depositInstructions'
     | 'networkFee'
     | 'fee'
@@ -44,6 +45,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'mantecaDepositInfo',
     'exchangeRate',
     'bankAccountDetails',
+    'paymentReference',
     'transferId',
     'senderReference',
     'depositInstructions',

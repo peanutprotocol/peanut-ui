@@ -207,6 +207,18 @@ export function ReceiptDetailsCard({
                 />
             )}
 
+            {/* The reference that left our systems with the payout. Named for
+                who sent it, so it cannot be read as the receipt's own id in
+                the "Receipt reference" row below. */}
+            {rowVisibilityConfig.paymentReference && (
+                <DataRow
+                    label={t('rows.paymentReference')}
+                    value={transaction.extraDataForDrawer!.paymentReference}
+                    allowCopy
+                    copyValue={transaction.extraDataForDrawer!.paymentReference}
+                />
+            )}
+
             {rowVisibilityConfig.transferId && (
                 <DataRow
                     label={t('rows.transferId')}
