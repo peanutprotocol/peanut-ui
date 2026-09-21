@@ -115,6 +115,7 @@ describe('JoinWaitlistPage invite onboarding boundary', () => {
                 success: true,
                 attributionResolved: false,
                 onboardingResolved: false,
+                // retired offramp wire fields on purpose: the page reads only the claim outcome (TASK-21226)
                 legacyAcquisition: {
                     campaignTag: 'offramp',
                     fallback: 'normal_app',
