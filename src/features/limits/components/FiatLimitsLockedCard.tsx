@@ -24,7 +24,7 @@ export default function FiatLimitsLockedCard() {
                         <div className="mt-1 text-body-s text-foreground-secondary">{t('description')}</div>
                     </div>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         size="medium"
                         onClick={() => router.push('/profile/accounts-and-payments')}

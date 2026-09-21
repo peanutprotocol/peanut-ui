@@ -62,7 +62,7 @@ export default function ModalPage() {
                                 },
                                 {
                                     text: 'Confirm',
-                                    variant: 'purple',
+                                    variant: 'primary',
                                     disabled: !actionCheckbox,
                                     onClick: () => {
                                         setShowActionModal(false)
@@ -183,7 +183,7 @@ export default function ModalPage() {
   }}
   ctas={[
     { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
-    { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
+    { text: 'Confirm', variant: 'primary', onClick: handleConfirm },
   ]}
 />`}
                     />

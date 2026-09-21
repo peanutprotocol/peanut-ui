@@ -549,7 +549,7 @@ const UnlockPayments = () => {
                                   }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
@@ -559,7 +559,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             }
                           : {
@@ -568,7 +568,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     setIsSupportModalOpen(true)
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             },
                 ]}
@@ -589,7 +589,7 @@ const UnlockPayments = () => {
                         ? [
                               {
                                   text: tCommon('tryAgain'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
@@ -609,7 +609,7 @@ const UnlockPayments = () => {
                         : [
                               {
                                   text: tCommon('gotIt'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),
                               },

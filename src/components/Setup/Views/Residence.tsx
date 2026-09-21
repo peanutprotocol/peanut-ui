@@ -501,7 +501,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                         <Button
                             key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'purple' : 'stroke'}
+                            variant={iso2 === residenceCountry ? 'primary' : 'stroke'}
                             onClick={() => onSelectPrimary(iso2)}
                             disabled={isLoading}
                             loading={isLoading}

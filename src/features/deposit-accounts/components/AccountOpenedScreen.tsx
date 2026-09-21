@@ -33,7 +33,7 @@ export function AccountOpenedScreen({ currency, onContinue }: { currency: string
                 />
             </div>
             <PageStack.Footer>
-                <Button variant="purple" className="w-full" onClick={onContinue}>
+                <Button variant="primary" className="w-full" onClick={onContinue}>
                     {t('opened.cta')}
                 </Button>
             </PageStack.Footer>

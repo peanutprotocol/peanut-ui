@@ -464,7 +464,7 @@ export default function DebugPage() {
                                                 </div>
                                             </div>
                                             <Button
-                                                variant="purple"
+                                                variant="primary"
                                                 size="small"
                                                 onClick={a.run}
                                                 disabled={busy !== null}
@@ -537,7 +537,7 @@ export default function DebugPage() {
                 ctas={[
                     {
                         text: 'Run action',
-                        variant: 'purple',
+                        variant: 'primary',
                         disabled: !promptValue.trim(),
                         onClick: submitPrompt,
                     },
@@ -558,7 +558,7 @@ export default function DebugPage() {
                 ctas={[
                     {
                         text: 'Reset state',
-                        variant: 'purple',
+                        variant: 'primary',
                         onClick: async () => {
                             setIsResetOpen(false)
                             await call('reset', '/dev/cheats/reset-user', { userId })

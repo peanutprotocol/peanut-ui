@@ -196,7 +196,7 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                             native user loses the paste entry on this screen */}
                         {canDeepLinkToSettings ? (
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 onClick={() => {
@@ -206,7 +206,12 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                                 {t('qrScanner.cameraPermission.native.openSettings')}
                             </Button>
                         ) : (
-                            <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onRetry}>
+                            <Button
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={onRetry}
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
                         )}

@@ -221,7 +221,7 @@ export default function InitialWithdrawView({
                 )}
 
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={handleContinue}
                     disabled={

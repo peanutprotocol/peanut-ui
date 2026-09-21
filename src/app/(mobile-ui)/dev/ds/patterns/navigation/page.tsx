@@ -113,7 +113,7 @@ export default function NavigationPage() {
                         </div>
                         {flowStep < 3 ? (
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full"
                                 onClick={() => setFlowStep((s) => s + 1)}
@@ -121,7 +121,7 @@ export default function NavigationPage() {
                                 Next
                             </Button>
                         ) : (
-                            <Button variant="purple" shadowSize="4" className="w-full" onClick={() => setFlowStep(1)}>
+                            <Button variant="primary" shadowSize="4" className="w-full" onClick={() => setFlowStep(1)}>
                                 Restart
                             </Button>
                         )}

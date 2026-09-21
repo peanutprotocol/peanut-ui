@@ -39,7 +39,7 @@ export function ReceiptUnavailable({
                 <div className="mt-2 flex flex-col items-center gap-2 print:hidden">
                     {!isGone && (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             size="small"
                             onClick={() => (onRetry ? onRetry() : window.location.reload())}
@@ -47,7 +47,7 @@ export function ReceiptUnavailable({
                             {tCommon('retry')}
                         </Button>
                     )}
-                    <Button href="/home" variant={isGone ? 'purple' : 'stroke'} shadowSize="4" size="small">
+                    <Button href="/home" variant={isGone ? 'primary' : 'stroke'} shadowSize="4" size="small">
                         {tCommon('goToHome')}
                     </Button>
                 </div>

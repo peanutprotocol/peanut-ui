@@ -193,7 +193,7 @@ export default function RecoverFundsPage() {
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={recoverFunds}
                         disabled={isLoading || isSigning}
@@ -252,7 +252,7 @@ export default function RecoverFundsPage() {
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             router.push('/home')
@@ -301,7 +301,7 @@ export default function RecoverFundsPage() {
                         description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
@@ -341,7 +341,7 @@ export default function RecoverFundsPage() {
                         }}
                     />
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             setStatus('review')

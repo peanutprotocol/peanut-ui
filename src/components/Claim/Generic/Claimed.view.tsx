@@ -52,7 +52,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                     </div>
                 </Card>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="w-full"
                     onClick={() => {

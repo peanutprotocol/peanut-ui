@@ -289,7 +289,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
                     {errorState.showError ? (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={() => {
                                 setRecipient({ address: '', name: '' })

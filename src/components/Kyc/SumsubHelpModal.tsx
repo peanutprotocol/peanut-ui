@@ -37,7 +37,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     {
                         text: t('wrapper.chatWithSupport'),
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'purple' as ButtonVariant,
+                        variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
@@ -62,7 +62,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                         onDismiss()
                         onExit()
                     },
-                    variant: 'purple' as ButtonVariant,
+                    variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
                 {

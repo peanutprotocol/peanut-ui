@@ -183,7 +183,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     ? [
                           {
                               text: t('cancel.submit'),
-                              variant: 'purple',
+                              variant: 'primary',
                               onClick: submitFeedback,
                               loading: phase === 'submitting-feedback',
                               disabled: phase === 'submitting-feedback',
@@ -193,7 +193,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                       ? [
                             {
                                 text: tCommon('close'),
-                                variant: 'purple',
+                                variant: 'primary',
                                 onClick: handleClose,
                             },
                         ]

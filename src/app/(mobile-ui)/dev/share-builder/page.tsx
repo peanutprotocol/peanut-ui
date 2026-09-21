@@ -339,7 +339,7 @@ export default function ShareBuilderPage() {
                             </Field>
                             <div className="flex gap-2">
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     className="flex-1"
                                     onClick={() => {
                                         // Remounts ShareAssetD3 (key) → card face repaints; re-gate Save.
@@ -448,7 +448,7 @@ export default function ShareBuilderPage() {
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <Button variant="purple" className="w-full">
+                        <Button variant="primary" className="w-full">
                             Share
                         </Button>
                         <Button

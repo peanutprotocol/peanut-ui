@@ -76,13 +76,13 @@ export const KycFailed = ({
             <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
 
             {isTerminal ? (
-                <Button variant="purple" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
+                <Button variant="primary" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
                     {tCommon('contactSupport')}
                 </Button>
             ) : (
                 <Button
                     icon="retry"
-                    variant="purple"
+                    variant="primary"
                     className="w-full"
                     shadowSize="4"
                     onClick={() => onRetry()}

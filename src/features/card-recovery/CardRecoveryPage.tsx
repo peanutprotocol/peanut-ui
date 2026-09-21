@@ -82,7 +82,7 @@ export function CardRecoveryPage() {
                             </Card>
 
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full"
                                 disabled={

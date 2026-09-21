@@ -87,7 +87,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     text: t(isSaving ? 'provideEmail.saving' : 'provideEmail.save'),
                     onClick: handleSave,
                     disabled: isSaving || email.trim().length === 0,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },

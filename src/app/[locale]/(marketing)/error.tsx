@@ -55,7 +55,7 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
         <div className="mx-auto max-w-2xl px-6 py-16">
             <TitleBlock align="center" size="s" title={i18n.title} description={i18n.body} />
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Button variant="purple" onClick={reset}>
+                <Button variant="primary" onClick={reset}>
                     {i18n.tryAgain}
                 </Button>
                 <Button variant="stroke" href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}>

@@ -165,7 +165,7 @@ const ResidenceChangeDrawer = ({
                         )}
                         {error && <Notification priority="error">{error}</Notification>}
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
                             disabled={isSaving || !selected || !userId}

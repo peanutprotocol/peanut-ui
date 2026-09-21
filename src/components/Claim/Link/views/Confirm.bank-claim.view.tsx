@@ -106,7 +106,7 @@ export function ConfirmBankClaimView({
                 <div className="space-y-4">
                     {error ? (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={onConfirm}
                             disabled={false}
@@ -118,7 +118,7 @@ export function ConfirmBankClaimView({
                         </Button>
                     ) : (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={onConfirm}
                             disabled={isProcessing}

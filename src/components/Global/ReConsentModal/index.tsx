@@ -225,7 +225,7 @@ const ReConsentModal = () => {
             ctas={[
                 {
                     text: submitting ? t('reConsent.saving') : t('reConsent.acceptCta'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     disabled: !checked || submitting,
                     onClick: handleAccept,

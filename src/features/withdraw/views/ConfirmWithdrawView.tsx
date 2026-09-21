@@ -246,7 +246,7 @@ export default function ConfirmWithdrawView({
 
                 {error ? (
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             if (error === ROUTE_NOT_FOUND_ERROR) {
@@ -273,7 +273,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 ) : (
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={onConfirm}
                         disabled={

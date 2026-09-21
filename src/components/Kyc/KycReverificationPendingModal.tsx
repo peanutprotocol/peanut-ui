@@ -38,7 +38,7 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
                         onClose()
                         router.push('/home')
                     },
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },

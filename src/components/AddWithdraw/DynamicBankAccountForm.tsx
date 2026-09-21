@@ -854,7 +854,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             )}
                             <Button
                                 type="submit"
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full"
                                 loading={isSubmitting || isCheckingBICValid || isValidating}

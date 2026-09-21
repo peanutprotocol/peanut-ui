@@ -109,7 +109,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                     />
                 </div>
 
-                <Button variant="purple" className="w-full" onClick={onNext}>
+                <Button variant="primary" className="w-full" onClick={onNext}>
                     {isLast ? tCommon('done') : tCommon('next')}
                 </Button>
             </div>

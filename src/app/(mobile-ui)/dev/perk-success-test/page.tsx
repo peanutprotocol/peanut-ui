@@ -119,7 +119,7 @@ export default function PerkSuccessTestPage() {
 
                 {/* Trigger Button */}
                 {!showSuccess && (
-                    <Button variant="purple" onClick={handleShowSuccess} className="w-full">
+                    <Button variant="primary" onClick={handleShowSuccess} className="w-full">
                         Trigger Success
                     </Button>
                 )}

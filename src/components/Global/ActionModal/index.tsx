@@ -223,7 +223,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                         {
                                             text,
                                             onClick,
-                                            variant = 'purple',
+                                            variant = 'primary',
                                             className: btnClassName,
                                             icon: btnIcon,
                                             iconPosition,

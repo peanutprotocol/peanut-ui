@@ -34,11 +34,11 @@ export function CorridorUnavailableScreen({ rail, onBack }: { rail: DepositRail;
                         topUpHref ? (
                             // a closed corridor still has a real way in — send
                             // them to it rather than back
-                            <Button variant="purple" className="mt-4 w-full" href={topUpHref}>
+                            <Button variant="primary" className="mt-4 w-full" href={topUpHref}>
                                 {t('details.topUpCta', { currency: rail.currency })}
                             </Button>
                         ) : (
-                            <Button variant="purple" className="mt-4 w-full" onClick={onBack}>
+                            <Button variant="primary" className="mt-4 w-full" onClick={onBack}>
                                 {t('details.unavailableCta')}
                             </Button>
                         )

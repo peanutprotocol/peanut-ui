@@ -172,7 +172,7 @@ export function ClaimAccountScreen({
                 )}
                 {!isUnavailable && (
                     <Button
-                        variant="purple"
+                        variant="primary"
                         className="w-full"
                         loading={isClaiming}
                         disabled={isClaiming}

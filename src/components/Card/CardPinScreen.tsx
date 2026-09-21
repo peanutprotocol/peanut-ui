@@ -119,7 +119,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                     title={t('noPinTitle')}
                     description={t('noPinBody')}
                     cta={
-                        <Button variant="purple" className="mt-4 w-full" onClick={() => void setMode('set')}>
+                        <Button variant="primary" className="mt-4 w-full" onClick={() => void setMode('set')}>
                             {t('setPin')}
                         </Button>
                     }

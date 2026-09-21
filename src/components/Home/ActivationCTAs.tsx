@@ -437,7 +437,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     <div className="text-body-s text-foreground-secondary">{step.description}</div>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {

@@ -86,7 +86,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     align="center"
                     size="s"
                 />
-                <Button variant="purple" className="w-full" onClick={onDone}>
+                <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('close')}
                 </Button>
             </div>
@@ -109,7 +109,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                 </div>
                 {flowError && <Notification priority="error">{flowError}</Notification>}
                 <Button
-                    variant="purple"
+                    variant="primary"
                     className="w-full"
                     onClick={onConfirm}
                     loading={step === 'saving'}
@@ -144,7 +144,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
             </div>
             <BulletList items={[t('pin.ruleSequential'), t('pin.ruleRepeating'), t('pin.ruleChangeLater')]} />
             <Button
-                variant="purple"
+                variant="primary"
                 className="w-full"
                 onClick={onContinueFromChoose}
                 disabled={!choosePinValidation || !choosePinValidation.valid}

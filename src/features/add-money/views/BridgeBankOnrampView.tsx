@@ -199,7 +199,7 @@ export function BridgeBankOnrampView() {
                         </Notification>
                     )}
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={

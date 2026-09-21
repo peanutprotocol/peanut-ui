@@ -155,7 +155,7 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
                             />
                         </Field>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             className="w-full justify-center"
                             onClick={save}
                             loading={saving}

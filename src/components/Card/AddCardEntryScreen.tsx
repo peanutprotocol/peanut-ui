@@ -55,7 +55,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 onClick={handleClick}
                 loading={isApplying}
                 disabled={isApplying}
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="w-full"
             >

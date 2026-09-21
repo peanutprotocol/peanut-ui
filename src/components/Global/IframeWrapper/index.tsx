@@ -112,7 +112,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         onClick: () => {
                             handleCopy(src)
                         },
-                        variant: 'purple' as ButtonVariant,
+                        variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
@@ -144,7 +144,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         setIsHelpModalOpen(false)
                         onClose('manual')
                     },
-                    variant: 'purple' as ButtonVariant,
+                    variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
                 {

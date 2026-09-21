@@ -71,7 +71,7 @@ export const KycVerificationInProgressModal = ({
                     {
                         text: t('progress.closeAndNotify'),
                         onClick: handleGoHome,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },
@@ -126,7 +126,7 @@ export const KycVerificationInProgressModal = ({
                               {
                                   text: tCommon('goToHome'),
                                   onClick: handleGoHome,
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   className: 'w-full',
                                   shadowSize: '4',
                               },
@@ -155,7 +155,7 @@ export const KycVerificationInProgressModal = ({
                         text: tosError ? tCommon('continue') : t('progress.acceptTerms'),
                         onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
                         disabled: isLoadingTos,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },
@@ -183,7 +183,7 @@ export const KycVerificationInProgressModal = ({
                 {
                     text: tCommon('continue'),
                     onClick: onContinue ?? onClose,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },

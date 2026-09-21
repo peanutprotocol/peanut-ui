@@ -52,7 +52,7 @@ export default function CardSessionApprovePage() {
             </Card>
 
             <Button
-                variant="purple"
+                variant="primary"
                 className="w-full"
                 onClick={handleClick}
                 disabled={isGranting || !card}

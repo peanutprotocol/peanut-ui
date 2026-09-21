@@ -241,7 +241,7 @@ export const InitiateKycModal = ({
                             <DrawerDescription>{t('degraded.description')}</DrawerDescription>
                         </DrawerHeader>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="mt-2 w-full justify-center"
                             onClick={() => {
@@ -324,7 +324,7 @@ export const InitiateKycModal = ({
                     <div className="w-full text-body-s text-foreground-secondary">{description}</div>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={cta.onClick}
                     disabled={isLoading && !isBlocked}
@@ -363,7 +363,7 @@ export const InitiateKycModal = ({
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
                         <div className="w-full text-body-s text-foreground-secondary">{description}</div>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="w-full justify-center"
                             disabled={isLoading && !isBlocked}

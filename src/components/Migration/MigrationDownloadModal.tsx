@@ -153,7 +153,7 @@ export default function MigrationDownloadModal({
                     : [
                           {
                               text: STORE_NAME[store],
-                              variant: 'purple',
+                              variant: 'primary',
                               shadowSize: '4',
                               icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
                               onClick: () => {

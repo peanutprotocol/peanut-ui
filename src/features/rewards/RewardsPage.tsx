@@ -118,7 +118,7 @@ export function RewardsPage() {
                             )
                         })()}
 
-                    <Button variant="purple" shadowSize="4" onClick={openInviteModal} className="w-full">
+                    <Button variant="primary" shadowSize="4" onClick={openInviteModal} className="w-full">
                         {t('inviteNow')}
                     </Button>
 
@@ -317,7 +317,7 @@ export function RewardsPage() {
                             containerClassName="!mt-8"
                             cta={
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     shadowSize="4"
                                     size="small"
                                     className="mt-2"

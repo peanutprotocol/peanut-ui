@@ -214,7 +214,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             )}
                                         </div>
                                         <Button
-                                            variant="purple"
+                                            variant="primary"
                                             shadowSize="4"
                                             className="mt-1 w-full"
                                             onClick={() => handleOpenTask(task)}

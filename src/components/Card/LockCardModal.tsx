@@ -161,7 +161,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     ? [
                           {
                               text: t('lockModal.unlockCta'),
-                              variant: 'purple',
+                              variant: 'primary',
                               onClick: run,
                               loading: phase === 'loading',
                               disabled: phase === 'loading',

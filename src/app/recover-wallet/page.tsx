@@ -251,7 +251,7 @@ function RecoverWalletInner() {
                             }}
                         />
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={recover}
                             disabled={!!recipientError || inputChanging || !isAddress(recipient.address) || isSigning}

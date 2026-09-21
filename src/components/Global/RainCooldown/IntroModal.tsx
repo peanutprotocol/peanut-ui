@@ -30,7 +30,7 @@ const RainCooldownIntroModal = () => {
             ctas={[
                 {
                     text: tCommon('gotIt'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     onClick: dismissIntroModal,
                 },

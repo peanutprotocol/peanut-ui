@@ -86,7 +86,7 @@ const InvitesPage = () => {
                         description={t('shareInviteLinkPrompt')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"

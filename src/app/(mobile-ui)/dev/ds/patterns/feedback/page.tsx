@@ -180,7 +180,7 @@ export default function FeedbackPage() {
                             title="No transactions yet"
                             description="Your transaction history will appear here."
                             cta={
-                                <Button variant="purple" shadowSize="4" size="small" className="mt-2">
+                                <Button variant="primary" shadowSize="4" size="small" className="mt-2">
                                     Send Money
                                 </Button>
                             }
@@ -227,7 +227,7 @@ export default function FeedbackPage() {
   icon="wallet"
   title="No transactions yet"
   description="Your history will appear here."
-  cta={<Button variant="purple" size="small">Send Money</Button>}
+  cta={<Button variant="primary" size="small">Send Money</Button>}
 />`}
                     />
                 </DocSection.Code>

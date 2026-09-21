@@ -79,7 +79,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={onContinue}
                     disabled={continueDisabled}

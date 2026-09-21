@@ -125,7 +125,7 @@ const JoinWaitlist = () => {
             {flowError && <Notification priority="error">{flowError}</Notification>}
 
             <Button
-                variant="purple"
+                variant="primary"
                 disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
                 onClick={() => {
                     // Demo mode: skip signup + passkey. Soft-nav (no reload) so the

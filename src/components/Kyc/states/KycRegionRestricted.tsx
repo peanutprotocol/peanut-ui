@@ -37,7 +37,7 @@ export const KycRegionRestricted = ({ reviewedAt, onNavigate }: { reviewedAt?: s
 
             <KycRegionRestrictedContent />
 
-            <Button variant="purple" className="w-full" shadowSize="4" onClick={cta.onClick}>
+            <Button variant="primary" className="w-full" shadowSize="4" onClick={cta.onClick}>
                 {cta.label}
             </Button>
         </div>

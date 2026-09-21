@@ -133,7 +133,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
     // One element, two doors — the guest card and the Request-gate modal.
     const joinCtaButton = (
-        <Button variant="purple" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
+        <Button variant="primary" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
             {t('joinCta')}
         </Button>
     )
@@ -196,7 +196,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div className="flex items-center justify-normal gap-4">
                         <Button
                             onClick={handleSend}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             icon="arrow-up-right"
                             className="w-1/2"
@@ -212,7 +212,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                     setShowInviteModal(true)
                                 }
                             }}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             icon="arrow-down-left"
                             className="w-1/2"

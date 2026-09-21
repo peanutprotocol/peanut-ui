@@ -163,7 +163,7 @@ const MantecaDepositShareDetails = ({
             <ShareButton
                 generateText={async () => generateShareText()}
                 title={t('manteca.shareTitle')}
-                variant="purple"
+                variant="primary"
                 className="w-full"
             >
                 {t('manteca.shareDetails')}

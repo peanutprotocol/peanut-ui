@@ -46,7 +46,7 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                                 </DocsLink>
                             </p>
                         </div>
-                        <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {tCommon('gotIt')}
                         </Button>
                     </div>

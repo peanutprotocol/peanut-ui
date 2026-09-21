@@ -802,7 +802,7 @@ function MantecaBankWithdrawFlow() {
                                     resetState()
                                     void stepper.reset()
                                 }}
-                                variant="purple"
+                                variant="primary"
                             >
                                 {tCommon('tryAgain')}
                             </Button>
@@ -944,7 +944,7 @@ function MantecaBankWithdrawFlow() {
                     )}
 
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={handlePrepareReview}
                         loading={isLockingPrice}

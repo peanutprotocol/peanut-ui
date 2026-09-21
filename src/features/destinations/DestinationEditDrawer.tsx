@@ -89,7 +89,7 @@ export default function DestinationEditDrawer({ destination, onClose }: Destinat
                         />
                     </label>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         className="w-full"
                         disabled={!canSave || !!busy}

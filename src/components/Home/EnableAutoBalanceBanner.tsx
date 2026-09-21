@@ -104,7 +104,7 @@ export default function EnableAutoBalanceBanner() {
                 : hardError || stuckAfterSuccess
                   ? tCommon('tryAgain')
                   : tCommon('continue'),
-            variant: 'purple',
+            variant: 'primary',
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {

@@ -28,7 +28,7 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
                     {t('mantecaMaintenance.description', { action })}
                 </p>
             </Card>
-            <Button onClick={() => router.push('/home')} variant="purple" shadowSize="4">
+            <Button onClick={() => router.push('/home')} variant="primary" shadowSize="4">
                 {t('mantecaMaintenance.goBack')}
             </Button>
             <button

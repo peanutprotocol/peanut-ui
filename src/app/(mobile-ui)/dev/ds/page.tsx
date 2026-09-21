@@ -120,7 +120,7 @@ export default function DesignSystemPage() {
                 <p className="text-body-m-semibold">Quick rules</p>
                 <BulletList
                     items={[
-                        'Use Button variant="purple" for primary actions. Its standard shadow is built in.',
+                        'Use Button variant="primary" for primary actions. Its standard shadow is built in.',
                         'Use LinkButton for standalone links. Underline links that sit inside a sentence.',
                         'Use semantic color tokens in new UI. Legacy palette names remain migration-only.',
                         'Button sizes are large 48px, medium 44px, and small 40px with a 44px hit area.',

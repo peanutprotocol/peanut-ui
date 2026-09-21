@@ -15,7 +15,7 @@ interface CTAProps {
 /**
  * MDX call-to-action.
  *
- * - primary: standalone purple button within prose column (default)
+ * - primary: standalone primary button within prose column (default)
  * - secondary: subtle inline text link with arrow — for mid-content CTAs
  * - card: bordered card with button + subtitle — for final/end-of-page CTAs
  *
@@ -51,7 +51,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                             href={href}
                             plainAnchor={plainAnchor}
                             shadowSize="4"
-                            variant="purple"
+                            variant="primary"
                             className="w-full justify-center px-8 sm:w-auto md:px-12"
                         >
                             {text}
@@ -69,7 +69,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                 href={href}
                 plainAnchor={plainAnchor}
                 shadowSize="4"
-                variant="purple"
+                variant="primary"
                 className="mx-auto w-full justify-center px-8 sm:w-auto md:px-12"
             >
                 {text}

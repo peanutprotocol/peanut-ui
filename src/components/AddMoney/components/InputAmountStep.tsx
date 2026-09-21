@@ -128,7 +128,7 @@ const InputAmountStep = ({
                     <span>{t('mustMatchBankTransfer')}</span>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={onSubmit}
                     disabled={

@@ -105,7 +105,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         size="s"
                     />
                     {error && <Notification priority="error">{error}</Notification>}
-                    <Button variant="purple" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
+                    <Button variant="primary" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
                         {t('joinCta')}
                     </Button>
                 </div>

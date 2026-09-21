@@ -64,7 +64,7 @@ export default function LayoutsPage() {
   </div>
 
   {/* Bottom CTA */}
-  <Button variant="purple" shadowSize="4" className="w-full">
+  <Button variant="primary" shadowSize="4" className="w-full">
     Continue
   </Button>
 </div>`}
@@ -120,7 +120,7 @@ export default function LayoutsPage() {
   <div className="flex-1" />
 
   {/* Pinned CTA */}
-  <Button variant="purple" shadowSize="4" className="w-full">
+  <Button variant="primary" shadowSize="4" className="w-full">
     Save Changes
   </Button>
 </div>`}

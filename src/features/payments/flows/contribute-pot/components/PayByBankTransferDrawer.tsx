@@ -139,7 +139,7 @@ export function PayByBankTransferDrawer({
                             <div className="flex flex-col gap-4 py-4">
                                 <p className="text-body-s text-foreground-secondary">{t('bankTransfer.unavailable')}</p>
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     className="w-full"
                                     onClick={() => {
                                         setIsOpen(false)

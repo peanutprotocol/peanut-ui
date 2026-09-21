@@ -88,7 +88,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
                         <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="mt-1"
                             onClick={() => router.replace(IDENTITY_ROUTE)}
@@ -134,7 +134,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         </Notification>
                     )}
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         icon="check-circle"
                         iconPosition="left"

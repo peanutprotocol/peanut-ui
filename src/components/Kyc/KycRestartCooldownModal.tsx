@@ -28,7 +28,7 @@ export const KycRestartCooldownModal = ({
                     : t('short')
             }
             tone="warning"
-            ctas={[{ text: t('dismiss'), variant: 'purple', onClick: onClose }]}
+            ctas={[{ text: t('dismiss'), variant: 'primary', onClick: onClose }]}
         />
     )
 }
