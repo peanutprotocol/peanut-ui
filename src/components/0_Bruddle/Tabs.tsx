@@ -54,6 +54,14 @@ interface TabsProps {
     onValueChange?: (value: string) => void
     /** stretch the tabs to fill the row (network toggles) */
     fullWidth?: boolean
+    /**
+     * Which foreground pair the labels use. Same look either way — this swaps
+     * the two TEXT COLOUR tokens and nothing else, so a row on a brand fill
+     * stays readable. `on-color` exists because `foreground-secondary` is
+     * 3.85:1 on `yellow-500` (under AA); `foreground-over-color-secondary` is
+     * 5.02:1 there.
+     */
+    tone?: 'default' | 'on-color'
 }
 
 // the one focus treatment (matches .btn in globals.css). radix Content has
@@ -67,8 +75,17 @@ const focusRing =
 // a 4px inner gutter (>=3px ring) and a negative margin to keep the layout.
 const scrollWrap = '-m-1 overflow-x-auto p-1'
 
+// shape + type. The two type tokens sit across mutually exclusive data-state
+// selectors so a type token never stacks with a font-weight utility (ds-lint
+// `fontWeightOnTypeToken`).
 const trigger =
-    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-0 text-foreground-secondary whitespace-nowrap transition-colors duration-instant active:text-action-ghost-hover data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold data-[state=active]:text-foreground-primary'
+    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-0 whitespace-nowrap transition-colors duration-instant active:text-action-ghost-hover data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold'
+
+// the ONLY thing `tone` changes: which foreground pair the labels use.
+const toneClasses = {
+    default: 'text-foreground-secondary data-[state=active]:text-foreground-primary',
+    'on-color': 'text-foreground-over-color-secondary data-[state=active]:text-foreground-over-color-primary',
+} as const
 
 export const Tabs = ({
     tabs,
@@ -77,6 +94,7 @@ export const Tabs = ({
     value,
     onValueChange,
     fullWidth = false,
+    tone = 'default',
 }: TabsProps) => {
     // no tab carries a panel → render the trigger row alone. A bordered empty
     // panel under a value toggle is the reason this branch exists.
@@ -100,7 +118,7 @@ export const Tabs = ({
                         <Trigger
                             key={tab.value}
                             value={tab.value}
-                            className={twMerge(trigger, focusRing, fullWidth && 'flex-1')}
+                            className={twMerge(trigger, toneClasses[tone], focusRing, fullWidth && 'flex-1')}
                         >
                             {tab.label}
                         </Trigger>

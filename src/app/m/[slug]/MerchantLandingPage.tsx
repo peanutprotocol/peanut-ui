@@ -303,13 +303,14 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                 </h2>
                 <p className="font-roboto-flex mx-auto mt-6 max-w-2xl text-body-l">{fold.tagline}</p>
 
-                {/* TASK-22707: the one tabs look. This was a 2-button pill and is NOT on
-                    the original task list — it is here because the ruling was "one tabs UI
-                    everywhere". Weight is type-only, so on this yellow fold the inactive
-                    label is quieter than the pill was. Easy to revert on its own. */}
+                {/* TASK-22707: the one tabs look. This was a 2-button pill.
+                    `tone="on-color"` because the row sits on yellow-500:
+                    foreground-secondary is 3.85:1 there (under AA), the
+                    over-color pair is 5.02:1. Same look, adapted colours. */}
                 <div className="mt-10 inline-block">
                     <Tabs
                         aria-label="Currency"
+                        tone="on-color"
                         value={currency}
                         onValueChange={(v) => setCurrency(v as Currency)}
                         tabs={[

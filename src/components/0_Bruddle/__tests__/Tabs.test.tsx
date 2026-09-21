@@ -109,4 +109,30 @@ describe('Tabs', () => {
         expect(active.className).not.toMatch(/\b(border|bg)-/)
         expect(inactive.className).toContain('focus-visible:outline-action-focus')
     })
+
+    // `tone` swaps the two foreground tokens and NOTHING else — same Weight look,
+    // colour-adapted to a brand fill. on-color exists because foreground-secondary
+    // is 3.85:1 on yellow-500 (under AA) and the over-color pair is 5.02:1.
+    test('tone="on-color" swaps only the two foreground tokens', () => {
+        const { unmount } = render(<Tabs tabs={TABS} aria-label="demo" />)
+        const byDefault = screen.getAllByRole('tab')[0].className
+        expect(byDefault).toContain('text-foreground-secondary')
+        expect(byDefault).toContain('data-[state=active]:text-foreground-primary')
+        expect(byDefault).not.toContain('over-color')
+        unmount()
+
+        render(<Tabs tabs={TABS} aria-label="demo" tone="on-color" />)
+        const onColor = screen.getAllByRole('tab')[0].className
+        expect(onColor).toContain('text-foreground-over-color-secondary')
+        expect(onColor).toContain('data-[state=active]:text-foreground-over-color-primary')
+        // the default pair must be gone, not merely overridden
+        expect(onColor).not.toMatch(/(^|\s)text-foreground-secondary(\s|$)/)
+        expect(onColor).not.toContain('data-[state=active]:text-foreground-primary')
+        // everything else is identical: same type tokens, same ring, still no box
+        expect(onColor).toContain('data-[state=inactive]:text-body-m')
+        expect(onColor).toContain('data-[state=active]:text-body-m-semibold')
+        expect(onColor).toContain('focus-visible:outline-action-focus')
+        expect(onColor).not.toMatch(/\bfont-(semibold|bold|medium)\b/)
+        expect(onColor).not.toMatch(/\b(border|bg)-/)
+    })
 })
