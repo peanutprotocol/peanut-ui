@@ -121,7 +121,7 @@ export default function TabsPage() {
 
             <DocSection
                 title="Value toggles — no panel"
-                description="Period, network and view-mode switches. Same look as content tabs; the only difference is that the switched content lives elsewhere on the screen, so no tab carries `content` and the component renders the trigger row alone. `fullWidth` stretches the tabs."
+                description="Period, network and view-mode switches. Same look as content tabs; the only difference is that the switched content lives elsewhere on the screen, so no tab carries `content` and the component renders the trigger row alone. `fullWidth` of `stretch` fills the row and grows every tab to an equal share; `track` fills the row but leaves the tabs content-sized."
             >
                 <DocSection.Content>
                     <div className="flex flex-col gap-4">
@@ -135,7 +135,7 @@ export default function TabsPage() {
                             ]}
                         />
                         <Tabs
-                            fullWidth
+                            fullWidth="stretch"
                             aria-label="Network"
                             value={network}
                             onValueChange={setNetwork}
@@ -153,7 +153,7 @@ export default function TabsPage() {
                         code={`import { Tabs } from '@/components/0_Bruddle/Tabs'
 
 <Tabs
-    fullWidth
+    fullWidth="stretch"
     aria-label="Network"
     value={network}
     onValueChange={setNetwork}
@@ -336,9 +336,10 @@ export default function TabsPage() {
                     },
                     {
                         name: 'fullWidth',
-                        type: 'boolean',
-                        default: 'false',
-                        description: 'Stretch the tabs to fill the row',
+                        type: "'stretch' | 'track'",
+                        default: '—',
+                        description:
+                            'What the row does with the width it is given. Omitted, the track is content-width. stretch fills the row and grows every tab to an equal share. track fills the row but keeps the tabs at their content width, spread across it the way BottomNav spreads its slots — for rows whose tab count is decided at runtime, where a content-width track would end early and leave a ragged gap',
                     },
                     {
                         name: 'value / onValueChange',

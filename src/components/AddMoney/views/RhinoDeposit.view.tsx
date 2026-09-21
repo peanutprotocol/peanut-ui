@@ -130,7 +130,7 @@ const RhinoDepositView = ({
                     ]}
                     value={chainType}
                     onValueChange={(v) => setChainType(v as RhinoChainType)}
-                    fullWidth
+                    fullWidth="stretch"
                     aria-label={t('selectNetworkType')}
                 />
 

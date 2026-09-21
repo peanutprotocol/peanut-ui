@@ -88,7 +88,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
                         label: DIRECTION_LABELS[option],
                     }))}
                     aria-label="Direction"
-                    fullWidth
+                    fullWidth="stretch"
                 />
             </fieldset>
 

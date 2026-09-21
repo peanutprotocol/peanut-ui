@@ -67,8 +67,31 @@ interface TabsProps {
      *  omit both and the first tab is the uncontrolled default */
     value?: string
     onValueChange?: (value: string) => void
-    /** stretch the tabs to fill the row (network toggles) */
-    fullWidth?: boolean
+    /**
+     * What the row does with the width it is given. Omit it — the default — and
+     * the track is content-width (`w-max`), which is what every surface with a
+     * fixed, known set of tabs wants.
+     *
+     * - `stretch` — the track fills the row AND every tab grows to an equal
+     *   share of it. The old `fullWidth` boolean, unchanged.
+     * - `track` — the track fills the row and the tabs keep their CONTENT
+     *   width, spreading inside it. This is `BottomNav`'s own arrangement
+     *   (`flex flex-1 … justify-between`, content-sized slots spread across a
+     *   full-width bar), which is the consistent answer for a look whose whole
+     *   brief is the bottom nav standing still.
+     *
+     * Reach for `track` when the NUMBER of tabs is decided at runtime: a
+     * content-width track then ends wherever the tabs happen to end and leaves
+     * a ragged gap to the container edge. `stretch` would fix the gap too, but
+     * it hands `All` the same room as `⬡ ARB` and the row reads unevenly
+     * weighted (kush, 2026-09-21, choosing `track` over `stretch` for the token
+     * selector).
+     *
+     * An enum, not two booleans: both values fill the row and differ only in
+     * whether the tabs stretch with it, so they are one question with two
+     * answers and cannot be set in contradiction.
+     */
+    fullWidth?: 'stretch' | 'track'
     /**
      * Row scale. Changes ONLY height, horizontal padding, the text-token pair
      * (inactive / active-semibold) and the icon-to-label gap — the chip weld,
@@ -142,7 +165,7 @@ export const Tabs = ({
     forceMount,
     value,
     onValueChange,
-    fullWidth = false,
+    fullWidth,
     size = 'md',
 }: TabsProps) => {
     // no tab carries a panel → render the trigger row alone. A bordered empty
@@ -165,7 +188,15 @@ export const Tabs = ({
                         // gap-0 and no padding: the chips meet the track edge
                         'flex w-max items-stretch gap-0 p-0',
                         PILL_TRACK_INVERTED,
-                        fullWidth && 'w-full'
+                        fullWidth && 'w-full',
+                        // content-sized tabs spread across a full-width track.
+                        // `between` and not `around`/`evenly`: it is what
+                        // BottomNav does, and it is the only one that keeps the
+                        // FIRST and LAST chip against the track's rounded ends,
+                        // where the flush weld lives. Any other value insets
+                        // them and the end chip floats inside the pill instead
+                        // of completing its outline.
+                        fullWidth === 'track' && 'justify-between'
                     )}
                 >
                     {tabs.map((tab) => (
@@ -178,7 +209,7 @@ export const Tabs = ({
                                 chip,
                                 PILL_TINT_SELECTED_CHIP,
                                 focusRing,
-                                fullWidth && 'flex-1'
+                                fullWidth === 'stretch' && 'flex-1'
                             )}
                         >
                             {/* above the chip, the way BottomNav lifts its icons */}

@@ -417,9 +417,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         if (!node) setFit({ width: 0, dropped: 0 })
     }, [])
 
-    // the Tabs primitive's own scroll box around the tablist — the element
-    // whose overflow decides whether the row clips
-    const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]')?.parentElement ?? null
+    // the tablist is the bordered track; its parent is the Tabs primitive's own
+    // scroll box, whose width is the space the row has to live in
+    const tabsTrack = tabsRow?.querySelector('[role="tablist"]') ?? null
+    const tabsScrollBox = tabsTrack?.parentElement ?? null
 
     // Every drop re-renders this component, so the next pass runs here until
     // the row fits. A LAYOUT effect with no dependency list: each intermediate
@@ -427,7 +428,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
     // never seen full and then collapsing, and any other cause of a width
     // change is caught without a dependency list that has to name them all.
     useLayoutEffect(() => {
-        if (!tabsScrollBox) return
+        if (!tabsTrack || !tabsScrollBox) return
         const width = tabsScrollBox.clientWidth
         // a different box than the one the current answer was measured against
         // — ask again from the full row
@@ -436,8 +437,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
             return
         }
         if (fit.dropped >= droppableTabCount) return
+        // The chips' own total against the track's inner width — NOT the scroll
+        // box's `scrollWidth`. The track is `fullWidth="track"`, so it is as
+        // wide as its box by construction and the chips overflow INSIDE it; the
+        // browser does not carry that out to the scroll box, which reported a
+        // clean `scrollWidth === clientWidth` while the last chip poked 3px past
+        // the track's rounded end at 320px. Measured, not reasoned.
+        let chips = 0
+        for (const tab of tabsTrack.querySelectorAll('[role="tab"]')) chips += tab.getBoundingClientRect().width
         // the +1 absorbs sub-pixel rounding, which would drop a tab that fits
-        if (tabsScrollBox.scrollWidth > width + 1) setFit({ width, dropped: fit.dropped + 1 })
+        if (chips > tabsTrack.clientWidth + 1) setFit({ width, dropped: fit.dropped + 1 })
     })
 
     // The row's box changes with no render of this component behind it — the
@@ -535,6 +544,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                                 value={activeNetworkTab}
                                 onValueChange={handleNetworkTabChange}
                                 tabs={networkTabs}
+                                // the tab COUNT here is decided at runtime by
+                                // the trim above, so a content-width track
+                                // would end wherever the tabs happen to end
+                                // and leave a ragged gap to the container edge.
+                                // `track` keeps the pill full width with the
+                                // chips content-sized inside it (kush,
+                                // 2026-09-21, rejecting `stretch`: it would
+                                // hand `All` the same room as `⬡ ARB`).
+                                fullWidth="track"
                             />
                         </div>
                     </Section>

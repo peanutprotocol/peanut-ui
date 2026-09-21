@@ -137,7 +137,7 @@ export default function ShareBuilderPage() {
                                         label: value,
                                     }))}
                                     aria-label="Hero sticker type"
-                                    fullWidth
+                                    fullWidth="stretch"
                                 />
                             </Field>
                             <Field label="Copy" htmlFor="share-hero-copy">
@@ -222,7 +222,7 @@ export default function ShareBuilderPage() {
                                         label: value,
                                     }))}
                                     aria-label="Username pill background"
-                                    fullWidth
+                                    fullWidth="stretch"
                                 />
                             </Field>
                             <Field label={`"peanut.me/" size (${unamePrefix.toFixed(2)}× of handle)`}>
