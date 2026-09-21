@@ -2048,7 +2048,11 @@
             "pasteEmpty": "No hay nada para pegar",
             "pasteUnavailable": "No se pudo leer el portapapeles",
             "bicAutoFilled": "Completamos esto con tu IBAN. Verifícalo con tu banco y cámbialo si no es correcto.",
-            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN"
+            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN",
+            "ownAccount": "Esta es mi propia cuenta",
+            "ownAccountFilled": "Completamos lo que ya sabemos. Verifícalo y cambia lo que no sea correcto.",
+            "groupBankAccount": "Cuenta bancaria",
+            "groupAccountOwner": "Titular de la cuenta"
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",

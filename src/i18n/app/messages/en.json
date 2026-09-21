@@ -2048,7 +2048,11 @@
             "pasteEmpty": "Nothing to paste",
             "pasteUnavailable": "Can't read the clipboard",
             "bicAutoFilled": "We filled this in from your IBAN. Check it against your bank and change it if it is wrong.",
-            "bicCountryMismatch": "This BIC belongs to a bank in another country than the IBAN"
+            "bicCountryMismatch": "This BIC belongs to a bank in another country than the IBAN",
+            "ownAccount": "This is my own account",
+            "ownAccountFilled": "We filled in what we already know. Check it and change anything that is wrong.",
+            "groupBankAccount": "Bank account",
+            "groupAccountOwner": "Account owner"
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",
