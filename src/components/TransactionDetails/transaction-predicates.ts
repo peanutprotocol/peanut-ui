@@ -68,6 +68,45 @@ export function hasReceiptPage(transaction: TransactionDetails): boolean {
     return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
 }
 
+/** The keys `GET /history/:id` resolves a crypto deposit by. */
+const RECEIPT_UUID_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const RECEIPT_EVM_TX_KEY = /^tx:0x[0-9a-f]{64}$/
+/** `<txHash>-<logIndex>`, the uuid a deposit history row carries. */
+const RECEIPT_DEPOSIT_ROW_KEY = /^0x[0-9a-f]{64}-\d{1,10}$/i
+
+/**
+ * Can a document for this entry actually be fetched?
+ *
+ * Every other kind carries the id the history route resolves. A crypto
+ * deposit carries one of three: the intent uuid, the `tx:` surrogate the
+ * success screen builds, or its history row's `<hash>-<logIndex>` uuid. The
+ * row key 404'd until the route learned to read it, which is why Share and
+ * Download were withheld from deposits opened from history.
+ *
+ * Solana and Tron were where that was reported, but the chain never changed
+ * the key. A deposit on either is bridged to Arbitrum and the watcher records
+ * that settlement transfer, so its receipt is keyed on an EVM hash like every
+ * other deposit's. Nothing here needs to know which chain the money came from,
+ * and a base58 id is still not lowercased anywhere on the way in.
+ */
+export function hasResolvableReceiptDocument(transaction: TransactionDetails): boolean {
+    if (kindOf(transaction) !== 'CRYPTO_DEPOSIT') return true
+    const id = transaction.id ?? ''
+    return RECEIPT_UUID_KEY.test(id) || RECEIPT_EVM_TX_KEY.test(id) || RECEIPT_DEPOSIT_ROW_KEY.test(id)
+}
+
+/**
+ * Kinds a receipt serves to a reader with no session.
+ *
+ * The dedicated page already serves a crypto deposit anonymously, and the API
+ * treats it as public, but the document gates read `hasReceiptPage` — which
+ * does not list it. So the page rendered with no Download affordance and its
+ * PDF twin answered 404: a receipt page carrying no document.
+ */
+export function servesAnonymousReceipt(transaction: TransactionDetails): boolean {
+    return hasReceiptPage(transaction) || kindOf(transaction) === 'CRYPTO_DEPOSIT'
+}
+
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
 // One-shot bank/onchain flows.
 export function usesCompletedTimestampLabel(transaction: TransactionDetails): boolean {

@@ -64,7 +64,7 @@ export function QrPayProviderRejectionView() {
                                       provider: 'MANTECA',
                                       actionKey: qrKycActionKey,
                                   }),
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                               icon: 'upload-cloud' satisfies IconName,
                           }
@@ -72,7 +72,7 @@ export function QrPayProviderRejectionView() {
                           ? {
                                 text: t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                                 icon: 'upload-cloud' satisfies IconName,
                             }

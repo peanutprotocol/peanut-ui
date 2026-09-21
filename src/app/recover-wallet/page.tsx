@@ -22,7 +22,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
@@ -187,7 +187,7 @@ function RecoverWalletInner() {
             <PageStack>
                 <PageStack.Center>
                     <h1 className="text-heading-s">Wallet recovery</h1>
-                    <Notification priority="error">{fatal}</Notification>
+                    <Callout priority="error">{fatal}</Callout>
                 </PageStack.Center>
             </PageStack>
         )
@@ -238,7 +238,7 @@ function RecoverWalletInner() {
                 </Card>
 
                 {nothingToRecover ? (
-                    <Notification priority="error">This wallet has no recoverable balance.</Notification>
+                    <Callout priority="error">This wallet has no recoverable balance.</Callout>
                 ) : (
                     <>
                         <GeneralRecipientInput
@@ -251,7 +251,7 @@ function RecoverWalletInner() {
                             }}
                         />
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={recover}
                             disabled={!!recipientError || inputChanging || !isAddress(recipient.address) || isSigning}
@@ -260,7 +260,7 @@ function RecoverWalletInner() {
                         >
                             {isSigning ? 'Confirm on your device…' : 'Recover funds'}
                         </Button>
-                        {!!signError && <Notification priority="error">{signError}</Notification>}
+                        {!!signError && <Callout priority="error">{signError}</Callout>}
                     </>
                 )}
             </PageStack.Center>

@@ -8,7 +8,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import Loading from '@/components/Global/Loading'
@@ -80,7 +80,7 @@ export default function FullGraphPage() {
                         title="Full graph"
                         description="Enter the admin API key to visualize the network."
                     />
-                    {error && <Notification priority="error">{error}</Notification>}
+                    {error && <Callout priority="error">{error}</Callout>}
                     <Field label="Admin API key">
                         <BaseInput
                             type="password"
@@ -440,7 +440,7 @@ export default function FullGraphPage() {
                                             )}
                                     </div>
                                     {externalNodesError && externalNodesConfig.enabled && (
-                                        <Notification priority="error">Failed to load. Check the console.</Notification>
+                                        <Callout priority="error">Failed to load. Check the console.</Callout>
                                     )}
                                     {!externalNodesError && externalNodesConfig.enabled && (
                                         <div className="space-y-2 pl-4">
@@ -716,7 +716,7 @@ export default function FullGraphPage() {
                                                 label={
                                                     <span className="flex items-center gap-1">
                                                         <span
-                                                            className="inline-block size-2 rounded-round"
+                                                            className="inline-block size-2 rounded-full"
                                                             style={{
                                                                 backgroundColor: color,
                                                                 border: border

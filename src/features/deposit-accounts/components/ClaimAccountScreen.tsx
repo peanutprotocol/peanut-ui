@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -20,7 +20,7 @@ import { DepositRuleList } from './DepositRuleList'
  *
  * It sells the outcome (a real account, not a lookup) before it asks for the
  * tap: three benefit rows for what the account actually buys them, and the
- * conditions — a bank's rules, not ours — held to one Notification above the
+ * conditions — a bank's rules, not ours — held to one Callout above the
  * CTA rather than stacked into the page.
  *
  * Who may pay in is stated here, in the same three lines the details screen
@@ -40,6 +40,7 @@ export function ClaimAccountScreen({
     userName,
     isClaiming,
     error,
+    onContactSupport,
     isUnavailable = false,
     onClaim,
     onBack,
@@ -51,18 +52,24 @@ export function ClaimAccountScreen({
     userName: string
     isClaiming: boolean
     error?: string
+    /** set where a retry alone may never clear the error, so the error also offers a person */
+    onContactSupport?: () => void
     /** the backend refused to open an account for this user at all */
     isUnavailable?: boolean
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, arrivalDetail, ruleLines } = useDepositAccountCopy()
+    const { t, arrivalDetail, ruleLines, minimumDeposit } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
 
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
+    // The floor renders in the payer rules too; the "good to know" aside repeats
+    // it because that is where a user looks for "what should I know before I
+    // open this", and the smallest deposit is one of those facts.
+    const minimum = minimumDeposit(terms?.rules)
     // The terms were resolved without one input, and only the dollar rail
     // reads it: the state on the user's residence can forbid a third-party
     // payment outright. The lines below are the rail's published terms without
@@ -113,13 +120,13 @@ export function ClaimAccountScreen({
              * The CTA is the LAST child, and that is load-bearing rather than
              * taste. The shell reserves 6rem below the scroller to clear the
              * fixed bottom nav, and the reservation clears whatever ends the
-             * page. With the Notification after it the reservation cleared the
-             * Notification instead, and at 375x667 the button first painted at
+             * page. With the Callout after it the reservation cleared the
+             * Callout instead, and at 375x667 the button first painted at
              * y 602 against a nav that owns 597-667 — visibly there, 49px of it
              * behind the nav, and a tap on it switched tabs.
              */}
             <PageStack.Footer>
-                {/* one Notification, max: an error the user must act on replaces
+                {/* one Callout, max: an error the user must act on replaces
                     the general conditions rather than stacking beside them */}
                 {isUnavailable ? (
                     /*
@@ -129,20 +136,33 @@ export function ClaimAccountScreen({
                      * when it is only a wait, and never the backend's own
                      * sentence.
                      */
-                    <Notification priority="attention" title={t('gate.notYetTitle')}>
+                    <Callout priority="attention" title={t('gate.notYetTitle')}>
                         {t('gate.notYetBody')}
-                    </Notification>
+                    </Callout>
                 ) : error ? (
-                    <Notification priority="error" title={t('claim.errorTitle')}>
+                    <Callout
+                        priority="error"
+                        title={t('claim.errorTitle')}
+                        ctas={
+                            onContactSupport ? [{ label: t('gate.supportCta'), onClick: onContactSupport }] : undefined
+                        }
+                    >
                         {error}
-                    </Notification>
+                    </Callout>
                 ) : (
-                    <Notification
+                    <Callout
                         priority="helper"
                         title={tGlobal('balanceWarningModal.goodToKnow')}
                         items={[
                             // what it costs, before the account is opened
                             <DepositFeeLine key="fee" rail={rail} />,
+                            // the smallest deposit the corridor accepts, where it publishes one
+                            ...(minimum ? [t('claim.faqMinimum', { min: minimum })] : []),
+                            // A euro account is a shared SEPA one, so the IBAN can
+                            // be issued in another EU country — said plainly here so
+                            // a user who reached it by picking, say, France is not
+                            // surprised by a non-French IBAN.
+                            ...(rail.corridor === 'SEPA_EU' ? [t('claim.faqSepaShared')] : []),
                             // The terms are on the screen now, so promising
                             // them later would contradict the lines above.
                             ...(rules ? [] : [t('claim.conditionTerms', { currency: rail.currency })]),
@@ -152,7 +172,7 @@ export function ClaimAccountScreen({
                 )}
                 {!isUnavailable && (
                     <Button
-                        variant="purple"
+                        variant="primary"
                         className="w-full"
                         loading={isClaiming}
                         disabled={isClaiming}

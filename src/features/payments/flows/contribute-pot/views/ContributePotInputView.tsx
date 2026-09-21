@@ -15,7 +15,7 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import SupportCTA from '@/components/Global/SupportCTA'
@@ -24,11 +24,14 @@ import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
 
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
     const t = useTranslations('payment')
+    const format = useFormatter()
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -44,6 +47,7 @@ export function ContributePotInputView() {
         isLoading,
         totalAmount,
         totalCollected,
+        remainingAmount,
         contributors,
         sliderDefaults,
         setAmount,
@@ -75,6 +79,19 @@ export function ContributePotInputView() {
         }
     }
 
+    const askedCurrency = request?.currency?.toUpperCase()
+    const askedValue = Number(request?.requestedAmount)
+    const askedAmount =
+        askedCurrency && askedCurrency !== 'USD' && askedValue > 0
+            ? {
+                  currency: askedCurrency,
+                  amount: format.number(askedValue, {
+                      minimumFractionDigits: minorUnitDigits(askedCurrency),
+                      maximumFractionDigits: minorUnitDigits(askedCurrency),
+                  }),
+              }
+            : undefined
+
     // determine button state
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
@@ -100,6 +117,20 @@ export function ContributePotInputView() {
                     />
                 )}
 
+                {/* A request asked in another currency leads with what it asks for.
+                    The card above and the field below are in dollars, because that
+                    is what Peanut settles in; without this line the asked amount
+                    only showed in a grey note under the payment methods. */}
+                {askedAmount && (
+                    <TitleBlock
+                        size="s"
+                        align="center"
+                        title={t('requestAsksFor', askedAmount)}
+                        description={t('requestAsksForDollars', { amount: totalAmount.toFixed(2) })}
+                        data-testid="request-asked-amount"
+                    />
+                )}
+
                 {/* amount input with slider + its field error form one column, 4px apart */}
                 <div className="flex flex-col gap-1">
                     <AmountInput
@@ -110,9 +141,8 @@ export function ContributePotInputView() {
                         balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
-                        showSlider={totalAmount > 0}
-                        maxAmount={totalAmount}
-                        amountCollected={totalCollected}
+                        showSlider={remainingAmount > 0}
+                        maxAmount={remainingAmount}
                         defaultSliderValue={sliderDefaults.percentage}
                         defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
                     />
@@ -120,7 +150,7 @@ export function ContributePotInputView() {
                 </div>
 
                 {/* error display */}
-                {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
+                {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
 
                 {/* payment options */}
                 <RequestPotActionList
@@ -130,6 +160,9 @@ export function ContributePotInputView() {
                     recipientUsername={recipient?.username}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
+                    remainingUsd={totalAmount > 0 ? remainingAmount : undefined}
+                    requestTokenSymbol={request?.tokenSymbol}
+                    requestCurrency={request?.currency}
                     onPayWithPeanut={handlePayWithPeanut}
                     isPaymentLoading={isLoading && !isExternalWalletLoading}
                     isExternalWalletLoading={isExternalWalletLoading}

@@ -250,12 +250,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-border-button"
     },
     {
-        "name": "border-button-secondary",
-        "value": "#000000",
-        "section": "semantic",
-        "previewClass": "bg-border-button-secondary"
-    },
-    {
         "name": "border-brand",
         "value": "#ff90e8",
         "section": "semantic",
@@ -859,86 +853,6 @@ export const TEXT_STYLES: TextStyle[] = [
         "lineHeight": "0.9"
     },
     {
-        "name": "h1",
-        "section": "parity",
-        "previewClass": "text-h1",
-        "fontSize": "3rem",
-        "lineHeight": "3.5rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h2",
-        "section": "parity",
-        "previewClass": "text-h2",
-        "fontSize": "2.25rem",
-        "lineHeight": "2.875rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h3",
-        "section": "parity",
-        "previewClass": "text-h3",
-        "fontSize": "1.875rem",
-        "lineHeight": "2.375rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h4",
-        "section": "parity",
-        "previewClass": "text-h4",
-        "fontSize": "1.5rem",
-        "lineHeight": "2rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h5",
-        "section": "parity",
-        "previewClass": "text-h5",
-        "fontSize": "1.25rem",
-        "lineHeight": "1.75rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h6",
-        "section": "parity",
-        "previewClass": "text-h6",
-        "fontSize": "1.125rem",
-        "lineHeight": "1.5rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h7",
-        "section": "parity",
-        "previewClass": "text-h7",
-        "fontSize": "1rem",
-        "lineHeight": "1.25rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h8",
-        "section": "parity",
-        "previewClass": "text-h8",
-        "fontSize": "0.875rem",
-        "lineHeight": "1rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h9",
-        "section": "parity",
-        "previewClass": "text-h9",
-        "fontSize": "0.75rem",
-        "lineHeight": "0.875rem",
-        "fontWeight": "800"
-    },
-    {
-        "name": "h10",
-        "section": "parity",
-        "previewClass": "text-h10",
-        "fontSize": "0.625rem",
-        "lineHeight": "0.75rem",
-        "fontWeight": "800"
-    },
-    {
         "name": "headingLarge",
         "section": "parity",
         "previewClass": "text-headingLarge",
@@ -993,11 +907,6 @@ export const FONT_TOKENS: FontToken[] = [
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
 export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
     "radius": [
-        {
-            "name": "round",
-            "value": "999px",
-            "section": "semantic"
-        },
         {
             "name": "card",
             "value": "0.75rem",

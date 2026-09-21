@@ -24,10 +24,68 @@ type DepositGateAction =
     | 'account-limit'
     /** the provider is reviewing this corridor; the screen waits and continues by itself */
     | 'pending-review'
+    /** the provider's review of this corridor waits on the user; the hosted check clears it */
+    | 'finish-review'
+    /** the same block, where the app has no way to start the hosted check: a person does */
+    | 'finish-review-support'
     | 'none'
 
 /** The reasons the BACKEND gives, beside the ones the capability gate gives. */
 type DepositBlock = NonNullable<ClaimableCorridor['blockedBy']>
+
+const DEPOSIT_BLOCKS: ReadonlySet<string> = new Set<DepositBlock>([
+    'account-limit',
+    'endorsement-pending',
+    'endorsement-required',
+])
+
+/** Did the backend's terms produce this notice, rather than the capability gate? */
+export function isDepositBlock(kind: GateState['kind'] | DepositBlock): kind is DepositBlock {
+    return DEPOSIT_BLOCKS.has(kind)
+}
+
+/**
+ * Gate kinds where verification is a step THIS user can actually take.
+ *
+ * `needs-identity` is the obvious one and used to be the only one the rows
+ * asked about. It is not the answer a real unverified user gets: their rails
+ * come back `requires-info` with a `sumsub:identity` action on them, and the
+ * resolver answers `fixable-rejection` — a concrete action, with the
+ * provider's own sentence attached. The rows read neither, so four corridors
+ * said "Not set up" on a disabled row while the screen behind them was ready
+ * to say "Verify your identity first" and open the flow that clears it.
+ *
+ * `needs-enrollment` is deliberately absent. There the user IS verified and
+ * simply has no rail for this corridor, so sending them to verification again
+ * cannot open it — that row is correctly closed. `blocked-rejection` is absent
+ * for the opposite reason: it is terminal, and only a person can lift it.
+ */
+const OFFERS_VERIFICATION: ReadonlySet<GateState['kind']> = new Set<GateState['kind']>([
+    'needs-identity',
+    'fixable-rejection',
+    'restart-identity',
+])
+
+/** Does this gate name a verification step the user can take right now? */
+export function offersVerification(gate: GateState | undefined): boolean {
+    return !!gate && OFFERS_VERIFICATION.has(gate.kind)
+}
+
+/**
+ * Gate kinds that only say "this user holds no working rail here yet".
+ *
+ * Two corridors are offered before the user has a rail: the tap asks the
+ * provider for a review, and the rail arrives when the review passes. For those
+ * the capability gate can never be `ready` first, so it must not answer first.
+ * A verified user read `needs-enrollment` there and was sent to identity
+ * verification, which cannot grant a provider review. Once the tap recorded the
+ * request the gate read `pending`, and the screen said "nothing for you to do"
+ * while the backend reported a review waiting on the user.
+ *
+ * `needs-identity` is deliberately absent: a user who has not verified is told
+ * that first.
+ */
+const NO_RAIL_YET: ReadonlySet<GateState['kind']> = new Set(['needs-enrollment', 'pending', 'waiting-on-provider'])
 
 export interface DepositGateView {
     /** rows are tappable */
@@ -42,6 +100,12 @@ export interface DepositGateView {
         /** the terms link, on the one kind that has one */
         tosUrl?: string
     }
+}
+
+const ACTION_BY_BLOCK: Record<DepositBlock, DepositGateAction> = {
+    'account-limit': 'account-limit',
+    'endorsement-pending': 'pending-review',
+    'endorsement-required': 'finish-review',
 }
 
 const ACTION_BY_KIND: Record<GateState['kind'], DepositGateAction> = {
@@ -66,24 +130,13 @@ const ACTION_BY_KIND: Record<GateState['kind'], DepositGateAction> = {
 /**
  * The block the backend put on this corridor, as the same notice shape.
  *
- * Two of them exist that the capability gate cannot know about: the account
- * cap, which is a billing decision, and a provider review that has been asked
- * for and not yet answered. A review waiting on the USER is not a third thing
- * — it is identity verification, so it reuses the kind and the copy that
- * already exist for it rather than inventing a parallel screen.
+ * The capability gate cannot know about any of them: the account cap is a
+ * billing decision, and a provider review is a queue at the provider. A review
+ * that waits on the USER is its own kind. The user is already verified, and
+ * identity verification cannot grant the review, so it never reuses that flow.
  */
 function blockNotice(blockedBy: DepositBlock): DepositGateView {
-    if (blockedBy === 'endorsement-required') {
-        return { claimable: false, notice: { kind: 'needs-identity', message: null, action: 'verify' } }
-    }
-    return {
-        claimable: false,
-        notice: {
-            kind: blockedBy,
-            message: null,
-            action: blockedBy === 'account-limit' ? 'account-limit' : 'pending-review',
-        },
-    }
+    return { claimable: false, notice: { kind: blockedBy, message: null, action: ACTION_BY_BLOCK[blockedBy] } }
 }
 
 /**
@@ -92,11 +145,12 @@ function blockNotice(blockedBy: DepositBlock): DepositGateView {
  *
  * The capability gate is asked first. A user who has not verified is not told
  * about an account cap they are nowhere near, and a corridor is never blocked
- * for two reasons at once.
+ * for two reasons at once. The one exception is a corridor the backend offers
+ * while the gate only says "no rail yet" — see `NO_RAIL_YET`.
  */
 export function depositGateView(gate: GateState, claimable?: ClaimableCorridor): DepositGateView {
     if (gate.kind === 'loading') return { claimable: false }
-    if (gate.kind === 'ready') {
+    if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind))) {
         return claimable?.blockedBy ? blockNotice(claimable.blockedBy) : { claimable: true }
     }
 

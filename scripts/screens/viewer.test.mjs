@@ -46,6 +46,7 @@ const elementIds = [
     'footer',
     'auth-preview',
     'auth-gate',
+    'google-sign-in',
 ]
 
 class Element {
@@ -101,7 +102,10 @@ const versionGroups = (elements) => elements.get('versions').children
 const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
 const imageSources = (element) => [element?.src, ...(element?.children ?? []).flatMap(imageSources)].filter(Boolean)
 
-async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
+async function loadLanding(
+    pathname,
+    { ok = true, redirected = false, index = [], report, search = '', hash = '' } = {}
+) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
     const location = {
@@ -149,8 +153,9 @@ async function loadLanding(pathname, { ok = true, index = [], report, search = '
         filename: 'public/screen-library/viewer.js',
     })
     resolveResponse({
-        ok,
-        status: ok ? 200 : 404,
+        ok: ok && !redirected,
+        type: redirected ? 'opaqueredirect' : undefined,
+        status: redirected ? 0 : ok ? 200 : 404,
         json: async () => report ?? index,
     })
     await new Promise((resolve) => setImmediate(resolve))
@@ -196,6 +201,17 @@ test('root shows the branded sign-in gate when Access redirects the catalogue re
     assert.equal(elements.get('auth-preview').hidden, false)
     assert.equal(elements.get('coverage').textContent, 'Private product library')
     assert.equal(body.classList.value, 'auth-required')
+    assert.equal(elements.get('google-sign-in').href, '/screen-data/auth/continue?return=%2F')
+})
+
+test('sign-in from a collection deep link returns to the same collection, locale and screen', async () => {
+    const pathname = '/collections/multi-action-screens-revised-review-20260921-05ad56c3fe/'
+    const elements = await loadLanding(pathname, { redirected: true, search: '?locale=en', hash: '#fixture-home' })
+    assert.equal(elements.get('auth-gate').hidden, false)
+    assert.equal(
+        elements.get('google-sign-in').href,
+        `/screen-data/auth/continue?return=${encodeURIComponent(`${pathname}?locale=en#fixture-home`)}`
+    )
 })
 
 test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {

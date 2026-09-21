@@ -62,8 +62,8 @@ describe('the claim screen when the backend refuses to open an account', () => {
 /**
  * The CTA has to END the page. The app shell reserves 6rem below the scroller
  * to clear the fixed bottom nav, and that reservation clears whatever the last
- * element is. With a Notification after the button the reservation cleared the
- * Notification, and at 375x667 the button first painted 49px inside the band
+ * element is. With a Callout after the button the reservation cleared the
+ * Callout, and at 375x667 the button first painted 49px inside the band
  * the nav owns — visible, and a tap on it changed tabs.
  */
 describe('the CTA ends the page, so the shell reservation clears it', () => {
@@ -156,7 +156,7 @@ describe('the fee line on the claim screen', () => {
         expect(screen.getByText(messages.depositAccounts.fees.converted)).toBeInTheDocument()
         expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
             'href',
-            '/profile/exchange-rate?from=USD&to=EUR'
+            '/profile/exchange-rate?from=EUR&to=USD'
         )
     })
 
@@ -165,7 +165,7 @@ describe('the fee line on the claim screen', () => {
 
         expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
             'href',
-            '/profile/exchange-rate?from=USD&to=MXN'
+            '/profile/exchange-rate?from=MXN&to=USD'
         )
     })
 })

@@ -100,6 +100,15 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
     })
 
+    it('lists bank before crypto (2026-09-18 decision: bank leads the add drawer)', () => {
+        renderWithUrl('?drawer=add')
+
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     /*
      * The middle link of the returnTo chain (chip P23): bare /add-money
      * redirects to /home?drawer=add&returnTo=X, and choosing an option must
@@ -141,6 +150,35 @@ describe('HomeActionDrawers', () => {
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
         expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    it('opens the request drawer with both share actions and routes each on click', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=request', (e) => urlUpdates.push(e))
+
+        // both ways to be paid are offered on one screen
+        expect(screen.getByText('shareRequestLink')).toBeInTheDocument()
+        expect(screen.getByText('shareBankDetails')).toBeInTheDocument()
+        // A description is a sentence. Cut to one line it lost half of itself in
+        // pt-BR and es-419, so it wraps.
+        expect(screen.getByText('shareBankDetailsDescription')).toHaveClass('whitespace-normal')
+        expect(screen.getByText('shareBankDetailsDescription')).not.toHaveClass('truncate')
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-link'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/request'))
+        // the drawer param is cleared before routing, so browser-back lands on a closed home
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    it('drops the bank-details row from the request drawer while get-paid is off', () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=request')
+
+        expect(screen.getByTestId('home-drawer-request-share-link')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
     })
 
     it('carries a query-bearing returnTo onto the bank destination', async () => {

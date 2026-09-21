@@ -38,19 +38,6 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     }
 }
 
-export async function validateBic(bic: string): Promise<boolean> {
-    const response = await apiFetch('/is-valid-bic', {
-        method: 'POST',
-        body: JSON.stringify({ bic }),
-    })
-
-    if (response.status !== 200) {
-        return false
-    } else {
-        return true
-    }
-}
-
 export function isValidRoutingNumber(routingNumber: string): boolean {
     // a valid routing number must be a 9-digit number
     if (!/^\d{9}$/.test(routingNumber)) {

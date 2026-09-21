@@ -6,9 +6,11 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { beforeSendRouteAwareHandler, beforeSendRouteAwareTransaction } from './sentry.utils'
-import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 
-if (process.env.NODE_ENV !== 'development') {
+// Everything but a local build. Stricter than the NODE_ENV check it replaces:
+// a `next build` on a laptop has NODE_ENV=production and reported as one.
+if (isSentryReportingEnvironment()) {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         environment: inferSentryEnvironment(),
@@ -20,8 +22,10 @@ if (process.env.NODE_ENV !== 'development') {
         beforeSendTransaction: beforeSendRouteAwareTransaction,
 
         integrations: [
+            // `error` only — a console.warn costs the same as an exception, and
+            // the warn-level output of this app is handled conditions, not defects.
             Sentry.captureConsoleIntegration({
-                levels: ['error', 'warn'],
+                levels: ['error'],
             }),
         ],
     })

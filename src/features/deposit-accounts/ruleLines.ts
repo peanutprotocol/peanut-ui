@@ -75,7 +75,7 @@ export function depositRuleLines(
     lines.push(ownAccountLine(rules, formatMoney))
 
     lines.push({ key: businessKey(matching, rules) })
-    lines.push(individualLine(matching, rules, formatMoney))
+    lines.push(...individualLines(matching, rules, formatMoney))
 
     if (rules?.min) {
         lines.push({ key: 'minimum', values: { min: formatMoney(rules.min.amount, rules.min.currency) } })
@@ -133,37 +133,39 @@ function businessKey(matching: DepositSenderTerms, rules: DepositRules | undefin
  * sentences: the first is a per-payment ceiling the payer can plan around, the
  * second is a running total with no period published — so the line says to ask
  * support rather than implying the figure resets every month.
+ *
+ * A cap with the family exemption is two facts, so it is two lines: the
+ * per-payment cap, then the exemption as its own bullet. Crammed into one
+ * string the exemption lost its bullet and ran on as a second sentence.
  */
-function individualLine(
+function individualLines(
     matching: DepositSenderTerms,
     rules: DepositRules | undefined,
     formatMoney: FormatMoney
-): DepositRuleLine {
+): DepositRuleLine[] {
     const individual = rules?.thirdPartyIndividual
     switch (individual?.policy) {
         case 'allowed':
-            return { key: 'individualAny' }
+            return [{ key: 'individualAny' }]
         case 'unavailable':
-            return { key: 'individualNotYet' }
+            return [{ key: 'individualNotYet' }]
         case 'capped': {
             if (individual.capBelow) {
                 const { amount, currency } = individual.capBelow
-                return {
-                    key: individual.familySameSurnameExempt ? 'individualCapFamily' : 'individualCap',
-                    values: { cap: formatMoney(amount, currency) },
-                }
+                const cap: DepositRuleLine = { key: 'individualCap', values: { cap: formatMoney(amount, currency) } }
+                return individual.familySameSurnameExempt ? [cap, { key: 'individualCapFamily' }] : [cap]
             }
             if (individual.volumeLimit) {
                 const { amount, currency } = individual.volumeLimit
-                return { key: 'individualVolume', values: { limit: formatMoney(amount, currency) } }
+                return [{ key: 'individualVolume', values: { limit: formatMoney(amount, currency) } }]
             }
             // capped with no figure states no terms at all
-            return { key: 'individualUnconfirmed' }
+            return [{ key: 'individualUnconfirmed' }]
         }
         case 'unknown':
-            return { key: 'individualUnconfirmed' }
+            return [{ key: 'individualUnconfirmed' }]
     }
-    if (matching.sender === 'anyone') return { key: 'individualAny' }
-    if (matching.sender === 'business-only') return { key: 'individualNotYet' }
-    return { key: 'individualUnconfirmed' }
+    if (matching.sender === 'anyone') return [{ key: 'individualAny' }]
+    if (matching.sender === 'business-only') return [{ key: 'individualNotYet' }]
+    return [{ key: 'individualUnconfirmed' }]
 }

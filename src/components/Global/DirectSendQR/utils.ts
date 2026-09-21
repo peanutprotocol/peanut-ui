@@ -1,6 +1,8 @@
 import { BASE_URL, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
 import { validatePixKey, isPixEmvcoQr, isPixRecurringCode } from '@/utils/withdraw.utils'
+import { isSupportedEnsName } from '@/lib/validation/ens'
+import { isArgentinePaymentAlias } from '@/lib/validation/argentine-alias'
 import { isAddress, formatUnits } from 'viem'
 
 export enum EQrType {
@@ -11,6 +13,7 @@ export enum EQrType {
     EIP_681 = 'EIP_681',
     MERCADO_PAGO = 'MERCADO_PAGO',
     ARGENTINA_QR3 = 'ARGENTINA_QR3',
+    ARGENTINA_ALIAS = 'ARGENTINA_ALIAS',
     BITCOIN_ONCHAIN = 'BITCOIN_ONCHAIN',
     BITCOIN_INVOICE = 'BITCOIN_INVOICE',
     PIX = 'PIX',
@@ -120,6 +123,20 @@ export function recognizeQr(data: string): QrType | null {
         }
 
         if (regex.test(data)) {
+            // The ENS pattern matches any dotted alphanumeric string, so both
+            // a typed payment alias and a QR fragment used to be read as a
+            // name. Keep this position in the order and split the three cases.
+            if (type === EQrType.ENS_NAME) {
+                // PIX keys win first: a formatted CPF (123.456.789-01) fits
+                // the alias shape too and keeps its own branch below.
+                if (!validatePixKey(data).valid && isArgentinePaymentAlias(data)) {
+                    return EQrType.ARGENTINA_ALIAS
+                }
+                // Anything else that is not a name the resolver can be asked
+                // about falls through to the later types.
+                if (!isSupportedEnsName(data)) continue
+            }
+
             return type as QrType
         }
     }

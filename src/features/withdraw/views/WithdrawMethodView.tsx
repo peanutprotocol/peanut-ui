@@ -2,12 +2,14 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
-import { CountryList } from '@/components/Common/CountryList'
+import { WithdrawCurrencyList } from '@/features/withdraw/components/WithdrawCurrencyList'
+import { type CountryData } from '@/components/AddMoney/consts'
 import SavedAccountsView from '@/components/Common/SavedAccountsView'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
+import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
@@ -61,7 +63,13 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
     const [editing, setEditing] = useState<EditableDestination | null>(null)
     const renameAccount = useRenameAccount()
-    const [, startTransition] = useTransition()
+    const [isPending, startTransition] = useTransition()
+    // Which destination the user tapped. `isPending` says a transition is
+    // running but cannot say which row started it, and it is false again the
+    // moment React commits — so the row it belongs to is tracked here. The
+    // spinner then stands until this screen is replaced, which is what a
+    // finished navigation does.
+    const [tappedCountryPath, setTappedCountryPath] = useState<string | null>(null)
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
@@ -69,7 +77,16 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // if currencyCode is present, show all methods
     const showAll = showAllParam || !!currencyCode
 
+    // The rail the user already picked, if any. Its own parameter on purpose:
+    // `method` is the Send-flow origin marker (useSendFlowOrigin), and reusing it
+    // here would rewrite this screen's copy into the Send wording.
+    const [railParam, setRail] = useQueryState('rail', parseAsString)
+
     const isBankFromSend = useSendFlowOrigin().isBankFromSend
+    // Bank was chosen before this screen — on the hub's "Withdraw to a bank
+    // account" row, or as Send → Bank. Offering Crypto again reads as the app
+    // not having registered that tap, and taking it abandons the bank flow.
+    const bankRailChosen = isBankFromSend || railParam === 'bank'
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -104,6 +121,74 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         setRecipient({ name: undefined, address: saved.address })
         setIsValidRecipient(true)
         openCryptoDestination()
+    }
+
+    // A country resolved from the currency list (or its country fallback). The
+    // one place withdraw routing lives, shared by both so they cannot disagree.
+    const handleCountrySelected = (country: CountryData) => {
+        // A navigation is already under way. A second tap during it either
+        // queues a route the user did not mean to open or re-runs the analytics
+        // capture, so the screen takes the first answer and ignores the rest.
+        if (isPending || tappedCountryPath) return
+        setTappedCountryPath(country.path)
+        const isManteca = isMantecaCountry(country.path)
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+            method_type: isManteca ? 'manteca' : 'bridge',
+            country: country.path,
+        })
+
+        // The euro area is one destination with one rail, and it is not a member
+        // of the country catalogue, so the rail lookup below cannot answer for
+        // it. Send it to the euro bank form, which reads the country off the
+        // IBAN (QA round 2, Q2).
+        if (country.path === SEPA_PATH) {
+            setSelectedMethod({
+                type: 'bridge',
+                countryPath: SEPA_PATH,
+                currency: 'EUR',
+                // same internal rail title the saved-account and one-rail paths set
+                title: 'To Bank',
+            })
+            startTransition(() => {
+                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null))
+            })
+            return
+        }
+
+        // A country with one live rail has nothing to choose — the per-country
+        // list would be a one-row screen, so skip it and go straight to the
+        // destination (mirrors useAddMoneyFlow). Countries with several live
+        // rails still show them, once.
+        const rail = soleLiveRailForCountry(country.id, 'withdraw')
+        if (!rail) {
+            startTransition(() => {
+                router.push(withdrawCountryUrl(country.path))
+            })
+            return
+        }
+
+        if (isManteca) {
+            // the manteca flow collects the amount in local currency
+            startTransition(() => {
+                router.push(
+                    rewriteMethodPath(
+                        rail.path ?? '',
+                        isBankFromSend && methodParam ? `sendMethod=${methodParam}` : undefined
+                    )
+                )
+            })
+            return
+        }
+
+        setSelectedMethod({
+            type: 'bridge',
+            countryPath: country.path,
+            currency: country.currency,
+            title: rail.title,
+        })
+        startTransition(() => {
+            router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
+        })
     }
 
     // the plain "Exchange or Wallet" tile is a fresh destination — drop anything
@@ -159,7 +244,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         }
                         onMethodChosen()
                     }}
-                    onSelectNewMethodClick={() => setShowAll(true)}
+                    onSelectNewMethodClick={() => {
+                        void setShowAll(true)
+                        void setRail('bank')
+                    }}
                     savedAddresses={savedAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
                     onSavedAddressEdit={(saved) =>
@@ -202,60 +290,21 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     // toggle back to saved accounts when the user navigated to "select new method"
                     if (showAllParam && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
                         void setShowAll(null)
+                        // back on the hub the user has picked nothing again
+                        void setRail(null)
                     } else {
                         onExit()
                     }
                 }}
             />
 
-            <CountryList
-                inputTitle={mainHeading}
-                viewMode="add-withdraw"
+            <WithdrawCurrencyList
+                heading={mainHeading}
                 enforceSupportedCountries={isBankFromSend}
-                onCountryClick={(country) => {
-                    const isManteca = isMantecaCountry(country.path)
-                    posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                        method_type: isManteca ? 'manteca' : 'bridge',
-                        country: country.path,
-                    })
-
-                    // A country with one live rail has nothing to choose — the
-                    // per-country list would be a one-row screen, so skip it and
-                    // go straight to the destination (mirrors useAddMoneyFlow).
-                    // Countries with several live rails still show them, once.
-                    const rail = soleLiveRailForCountry(country.id, 'withdraw')
-                    if (!rail) {
-                        startTransition(() => {
-                            router.push(withdrawCountryUrl(country.path))
-                        })
-                        return
-                    }
-
-                    if (isManteca) {
-                        // the manteca flow collects the amount in local currency
-                        startTransition(() => {
-                            router.push(
-                                rewriteMethodPath(
-                                    rail.path ?? '',
-                                    isBankFromSend && methodParam ? `sendMethod=${methodParam}` : undefined
-                                )
-                            )
-                        })
-                        return
-                    }
-
-                    setSelectedMethod({
-                        type: 'bridge',
-                        countryPath: country.path,
-                        currency: country.currency,
-                        title: rail.title,
-                    })
-                    startTransition(() => {
-                        router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
-                    })
-                }}
-                onCryptoClick={handleCryptoTileClick}
-                flow="withdraw"
+                initialQuery={currencyCode ?? ''}
+                onCountryClick={handleCountrySelected}
+                onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
+                pendingPath={tappedCountryPath}
             />
         </div>
     )

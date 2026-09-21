@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -128,7 +128,7 @@ export function CancelDepositActions({
     const withError = (button: ReactNode) => (
         <div className="flex w-full flex-col gap-2">
             {button}
-            {error && <Notification priority="error">{error}</Notification>}
+            {error && <Callout priority="error">{error}</Callout>}
             <Drawer
                 nested={!!setIsModalOpen}
                 open={confirmOpen}

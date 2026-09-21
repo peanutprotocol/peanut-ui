@@ -8,7 +8,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
-    | 'purple'
+    | 'primary'
     | 'stroke'
     | 'transparent-light'
     | 'transparent-dark'
@@ -43,11 +43,12 @@ interface ButtonVisualProps {
  * haptics — never wrap a Button in a <Link> (nested interactive) and never
  * hand-roll `.btn` classes on an anchor.
  *
- * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
- *   secondary, 'transparent' = board ghost. Others are legacy.
+ * @prop variant - Visual style. 'primary' is the default CTA, 'stroke' is
+ *   the secondary and 'transparent' the ghost. 'primary-soft' and the two
+ *   'transparent-light|dark' are legacy.
  * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
  * @prop shadowSize - Shadow depth override; '4' is already the default on
- *   purple/stroke, so passing it is a no-op kept for compatibility.
+ *   primary/stroke, so passing it is a no-op kept for compatibility.
  * @prop longPress - Hold-to-confirm behavior with progress bar animation.
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVisualProps {
@@ -88,7 +89,7 @@ export interface ButtonLinkProps
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
-    purple: 'btn-purple',
+    primary: 'btn-primary',
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
@@ -124,7 +125,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             children,
             className,
             loading,
-            variant = 'purple',
+            variant = 'primary',
             size,
             shape,
             shadowSize,
@@ -178,7 +179,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
         // ponytail: string-sniffing className for shadow-none; misses responsive
         // variants like sm:shadow-none — none exist today.
         const hasShadow =
-            (shadowSize !== undefined || variant === 'purple' || variant === 'stroke') &&
+            (shadowSize !== undefined || variant === 'primary' || variant === 'stroke') &&
             !/(?:^|\s)shadow-none(?:\s|$)/.test(className ?? '')
 
         const isLink = href !== undefined
@@ -193,10 +194,10 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             variant === 'transparent' && disabled && 'disabled:bg-transparent disabled:border-transparent',
             // anchors never match :disabled, so a disabled link paints the
             // button's disabled look explicitly: 40% opacity (.btn), the 1px
-            // residual shadow (.btn-purple/.btn-stroke), no hover/press
+            // residual shadow (.btn-primary/.btn-stroke), no hover/press
             linkDisabled && 'pointer-events-none opacity-40',
             linkDisabled &&
-                (variant === 'purple' || variant === 'stroke') &&
+                (variant === 'primary' || variant === 'stroke') &&
                 'shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)]',
             size && buttonSizes[size],
             // board icon/label gap: S is XS/4, L and M are S/8. It has to sit

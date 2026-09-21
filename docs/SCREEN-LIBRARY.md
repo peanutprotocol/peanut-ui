@@ -29,6 +29,12 @@ states for the combined direct-send, semantic-request and request-pot row, so th
 review has 16 ordered screenshots rather than collapsing three distinct choices
 into one label.
 
+The revised `docs/screen-collections/multi-action-screens.json` focuses on
+simultaneous action controls. It excludes menus and repeated option lists and
+adds a Home fixture with the additional bank-transfer verification card beside
+Add, Send and Request. The new fixture must be captured from the revision that
+adds it before it can appear in a hosted collection.
+
 Create a self-contained local review from capture directories:
 
 ```sh
@@ -86,12 +92,13 @@ Browser Rendering possible without changing the collection API.
 
 Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL`,
 `SCREEN_LIBRARY_ACCESS_AUD`, and `SCREEN_LIBRARY_MCP_URL`; the two URL variables
-are custom HTTPS origins and the audience is the expected Cloudflare Access
-application audience for both control-plane Workers. Both generated Workers set
-`workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
-Google and an `@peanut.me` allow rule for the collection origin and the MCP
-origin. Configure the MCP Access application as the OAuth provider for remote
-MCP clients.
+are either custom HTTPS origins or the Workers' configured `workers.dev`
+origins, and the audience is the expected Cloudflare Access application audience
+for both control-plane Workers. Custom-domain deployments set
+`workers_dev = false`; `workers.dev` deployments omit custom routes. Both modes
+disable preview URLs. Configure Cloudflare Access with Google and an
+`@peanut.me` allow rule for the collection origin and the MCP origin. Configure
+the MCP Access application as the OAuth provider for remote MCP clients.
 
 Two Worker secrets are configured once, outside GitHub logs:
 
@@ -214,8 +221,10 @@ DevOps setup:
    - a deployment token with Workers Scripts Edit scoped to this gallery's
      Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
      `screen-library-deploy` environment. The publisher token is not passed to
-     this job. The publisher verifies its token ID and derives the S3 secret from
-     its SHA-256 hash at runtime; no separate R2 keys are stored.
+     this job. The publisher accepts account-owned or user-owned API token values,
+     verifies them at the matching Cloudflare endpoint, and derives the S3 secret
+     from the SHA-256 hash at runtime. Do not store an already-derived R2 Secret
+     Access Key in `CLOUDFLARE_API_TOKEN`; no separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,

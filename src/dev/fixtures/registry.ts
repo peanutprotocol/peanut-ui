@@ -322,26 +322,6 @@ const DEPOSIT_ACCOUNT_MXN = {
 } satisfies DepositAccount
 
 /**
- * Reais: a standing Pix account, so the details are a Pix key rather than a
- * code minted for one payment. A business may pay in, another person may not.
- */
-const DEPOSIT_ACCOUNT_BRL = {
-    id: 'fixture-deposit-brl',
-    railId: 'bridge.bank_transfer_br',
-    country: 'BRA',
-    currency: 'BRL',
-    status: 'active',
-    isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_BR.sender },
-    rules: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_BR.rules,
-    instructions: {
-        accountHolderName: HOLDER,
-        brCode: '00020126580014br.gov.bcb.pix0136f3a9c0e2-7b41-4d55-9c18-2f0ab6d47e9152040000530398654040.005802BR5913PEANUT6009SAO PAULO62070503***6304A1B2',
-        paymentRails: ['pix'],
-    },
-} satisfies DepositAccount
-
-/**
  * Pesos colombianos: Bre-B names the account by a key the payer types, which
  * is a row of its own beside the bank and the holder.
  */
@@ -441,23 +421,6 @@ const MANTECA_AR_CAPABILITIES = {
     restrictions: [],
 }
 
-/** A Brazilian user, on the standing Pix corridor rather than the one-off top-up. */
-const BRIDGE_BR_CAPABILITIES = {
-    rails: [
-        {
-            id: 'bridge.bank_transfer_br',
-            provider: 'bridge',
-            method: 'BANK_TRANSFER_BR',
-            channel: 'bank',
-            country: 'BR',
-            currency: 'BRL',
-            status: 'enabled',
-        },
-    ],
-    nextActions: [],
-    restrictions: [],
-}
-
 /** A Colombian user: one Bre-B corridor and nothing else. */
 const BRIDGE_CO_CAPABILITIES = {
     rails: [
@@ -478,6 +441,15 @@ const BRIDGE_CO_CAPABILITIES = {
 /** Every verified-user deposit-account fixture answers the gate the same way. */
 const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
 
+/** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
+const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
+const REQUEST_PAY_EUR = {
+    amount: '230.00',
+    currency: 'EUR',
+    isEstimate: true,
+    rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -493,6 +465,37 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'home-verification-needed': {
+        route: '/home',
+        about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'requires-info',
+                            blockingActions: ['bridge-hosted:proof-of-address'],
+                        },
+                    ],
+                    nextActions: [
+                        {
+                            key: 'bridge-hosted:proof-of-address',
+                            kind: 'bridge-hosted',
+                            purpose: 'unlock-bridge-ach',
+                            requirementKey: 'proof_of_address',
+                        },
+                    ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
         route: '/profile/edit',
@@ -508,7 +511,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-verification': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Unlocked regions for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
@@ -852,7 +855,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // fully unlocked user whatever the status says.
     // ---------------------------------------------------------------------
     unverified: {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'ID check never started: no region unlocked, all four locked.',
         responses: {
             'GET /users/me': {
@@ -862,7 +865,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'kyc-action-required': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
         responses: {
             'GET /users/me': {
@@ -1099,14 +1102,6 @@ export const FIXTURES: Record<string, Fixture> = {
         fullPage: true,
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
-    'get-paid-brl': {
-        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_BR',
-        about: 'Brazil: standing Pix details a payer can use again, not a code minted for one payment.',
-        responses: {
-            'GET /users/me': { capabilities: BRIDGE_BR_CAPABILITIES },
-            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_BRL] },
-        },
-    },
     'get-paid-cop': {
         route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_CO',
         about: 'Colombia: the Bre-B key the payer types, beside the bank and the holder.',
@@ -1128,6 +1123,10 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home?drawer=add',
         about: 'The Add drawer — where bank transfer now leads to the standing account.',
     },
+    'home-request-drawer': {
+        route: '/home?drawer=request',
+        about: 'The Request drawer — share a request link, or share standing bank details.',
+    },
     'request-with-bank-alternative': {
         route: '/request',
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
@@ -1143,9 +1142,28 @@ export const FIXTURES: Record<string, Fixture> = {
         fullPage: true,
         responses: {
             'GET /requests/demo-request': { bankInstructionsShared: true, tokenAmount: '250' },
+            // What is left to pay on every rail the requester can receive on.
+            // The screen waits for this read before it draws the bank rows, so
+            // a fixture without it never settles.
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'USD',
+                requestAmount: '250.00',
+                remainingAmount: '250.00',
+                rails: [
+                    { kind: 'peanut_balance', payerAmount: REQUEST_PAY_USD },
+                    {
+                        kind: 'bank',
+                        railId: 'bridge.sepa_eu',
+                        country: 'DE',
+                        reference: 'demo-req',
+                        payerAmount: REQUEST_PAY_EUR,
+                    },
+                ],
+            },
             'GET /requests/demo-request/deposit-instructions': {
                 depositAccount: DEPOSIT_ACCOUNT_EUR,
                 paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
             },
         },
     },

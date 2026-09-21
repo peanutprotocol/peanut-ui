@@ -7,7 +7,7 @@
  *   abd71b882 (2026-03-20) "you're withdrawing" -> "you're sending"
  *   d532b6a65 (2026-07-13) "You're sending"     -> "You're withdrawing"
  *
- * Both were right about the flow in front of them: Send -> Exchange or Wallet /
+ * Both were right about the flow in front of them: Send -> Crypto /
  * Bank navigates into the withdraw routes, so this one card serves two user
  * intents. With a single transactionType it can only ever be correct for one of
  * them, and the word gets flipped again. `isFromSendFlow` is that missing

@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useRef, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -122,10 +122,10 @@ const JoinWaitlist = () => {
                 {error && <FieldError>{error}</FieldError>}
             </div>
 
-            {flowError && <Notification priority="error">{flowError}</Notification>}
+            {flowError && <Callout priority="error">{flowError}</Callout>}
 
             <Button
-                variant="purple"
+                variant="primary"
                 disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
                 onClick={() => {
                     // Demo mode: skip signup + passkey. Soft-nav (no reload) so the

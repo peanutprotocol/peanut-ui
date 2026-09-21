@@ -4,8 +4,10 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 
-/** the exchange-rate page, which takes its pair from the URL */
-const ratesHref = (currency: string) => `/profile/exchange-rate?from=USD&to=${currency}`
+/** the exchange-rate page, which takes its pair from the URL. The account's
+ *  own currency is the source: a payer sends euros and they arrive as dollars,
+ *  so the rate the user wants is <account currency> → USD, not the reverse. */
+const ratesHref = (currency: string) => `/profile/exchange-rate?from=${currency}&to=USD`
 
 /**
  * What the corridor costs, on the claim screen and on the details screen.

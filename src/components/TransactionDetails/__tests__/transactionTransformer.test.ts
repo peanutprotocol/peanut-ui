@@ -876,4 +876,79 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.avatarKey).toBeNull()
         })
     })
+
+    describe('sender reference on a bank deposit', () => {
+        const deposit = (senderReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', senderReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(deposit('  INVOICE 4471 ').extraDataForDrawer?.senderReference).toBe('INVOICE 4471')
+        })
+
+        it('is absent when the API sends none or blank', () => {
+            expect(deposit().extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('   ').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+    })
+
+    describe('Bridge wire status (QA ledger AL6: deposit stuck on "Processing")', () => {
+        const bridgeDeposit = (status: string, overrides: Partial<HistoryEntry> = {}) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    status: status as HistoryEntry['status'],
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+                    ...overrides,
+                })
+            ).transactionDetails
+
+        beforeEach(() => jest.mocked(pipelineAlert).mockClear())
+
+        it('COMPLETED, the word a deposit-account deposit arrives with, reads completed', () => {
+            const details = bridgeDeposit('COMPLETED')
+            expect(details.direction).toBe('bank_deposit')
+            expect(details.status).toBe('completed')
+            expect(pipelineAlert).not.toHaveBeenCalled()
+        })
+
+        it('PAYMENT_PROCESSED still reads completed', () => {
+            expect(bridgeDeposit('PAYMENT_PROCESSED').status).toBe('completed')
+        })
+
+        it.each([
+            ['FAILED', 'failed'],
+            ['EXPIRED', 'failed'],
+            ['CANCELLED', 'cancelled'],
+        ])('the intent word %s reads %s, not processing', (status, expected) => {
+            expect(bridgeDeposit(status).status).toBe(expected)
+        })
+
+        it('an unknown word defers to the completion stamp and is reported once', () => {
+            const stamped = { completedAt: '2026-09-18T12:09:36.000Z' }
+            expect(bridgeDeposit('SETTLED_V2', stamped).status).toBe('completed')
+            expect(bridgeDeposit('SETTLED_V2', stamped).status).toBe('completed')
+            expect(pipelineAlert).toHaveBeenCalledTimes(1)
+            expect(pipelineAlert).toHaveBeenCalledWith(
+                'projection_drift',
+                expect.stringContaining('SETTLED_V2'),
+                expect.any(Object),
+                'warning'
+            )
+        })
+
+        it('an unknown word defers to the cancellation stamp', () => {
+            expect(bridgeDeposit('VOIDED_V2', { cancelledAt: '2026-09-18T12:09:36.000Z' }).status).toBe('cancelled')
+        })
+
+        it('an unknown word with no terminal stamp stays processing', () => {
+            expect(bridgeDeposit('SOMETHING_NEW').status).toBe('processing')
+        })
+    })
 })

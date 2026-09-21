@@ -18,21 +18,9 @@ const RAIL_NAME_KEYS = {
     FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.railName',
     ACH_US: 'corridors.ACH_US.railName',
     SPEI_MX: 'corridors.SPEI_MX.railName',
-    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.railName',
     BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.railName',
     PIX_BR: 'corridors.PIX_BR.railName',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.railName',
-} as const satisfies Record<DepositCorridor, string>
-
-const ARRIVAL_KEYS = {
-    SEPA_EU: 'corridors.SEPA_EU.arrival',
-    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrival',
-    ACH_US: 'corridors.ACH_US.arrival',
-    SPEI_MX: 'corridors.SPEI_MX.arrival',
-    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.arrival',
-    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrival',
-    PIX_BR: 'corridors.PIX_BR.arrival',
-    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrival',
 } as const satisfies Record<DepositCorridor, string>
 
 const ARRIVAL_DETAIL_KEYS = {
@@ -40,25 +28,10 @@ const ARRIVAL_DETAIL_KEYS = {
     FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrivalDetail',
     ACH_US: 'corridors.ACH_US.arrivalDetail',
     SPEI_MX: 'corridors.SPEI_MX.arrivalDetail',
-    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.arrivalDetail',
     BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrivalDetail',
     PIX_BR: 'corridors.PIX_BR.arrivalDetail',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalDetail',
 } as const satisfies Record<DepositCorridor, string>
-
-/** only the corridors a provider opens for residents alone carry these */
-const RESIDENCE_KEYS = {
-    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR',
-    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR',
-} as const
-
-/**
- * The corridors whose country takes QR payments. Only Brazil is left: Colombia
- * has no QR flow, and Argentina no longer has a screen of its own to say it on.
- */
-const QR_PAY_KEYS = {
-    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.qrPay',
-} as const
 
 /**
  * Every payment rail a corridor can name, written out for the same reason as
@@ -165,38 +138,16 @@ export function useDepositAccountCopy() {
         return { text: t('fees.converted'), ratesFor: rail.currency }
     }
 
-    const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
-    const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
-    const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
     /**
-     * What a residence-gated corridor says: `caveat` in the row body, so the
-     * rule is read before the tap, and `title` + `requirement` on the screen
-     * that explains the tap that did not open an account.
-     *
-     * The title belongs to the corridor because the corridors do not ask for
-     * the same thing: BRL asks for a CPF, and residence is only the pre-check
-     * we can make for it.
+     * The smallest deposit a corridor accepts, already formatted, or undefined
+     * where the rail publishes no floor. The claim screen surfaces it in its
+     * "good to know" aside so the amount is not buried in the payer rules.
      */
-    const residenceLine = (
-        corridor: DepositCorridor
-    ): { title: string; caveat: string; requirement: string } | undefined => {
-        const key = RESIDENCE_KEYS[corridor as keyof typeof RESIDENCE_KEYS]
-        if (!key) return undefined
-        return {
-            title: t(`${key}.residenceTitle`),
-            caveat: t(`${key}.residenceOnly`),
-            requirement: t(`${key}.residenceRequired`),
-        }
-    }
+    const minimumDeposit = (rules: DepositRules | undefined): string | undefined =>
+        rules?.min ? formatCurrencyAmount(rules.min.amount, rules.min.currency) : undefined
 
-    /**
-     * What a non-resident can still do there: pay a QR code from their
-     * balance. Only the rails whose country takes them say it.
-     */
-    const qrPayLine = (rail: DepositRail): string | undefined => {
-        const key = QR_PAY_KEYS[rail.corridor as keyof typeof QR_PAY_KEYS]
-        return rail.qrPay && key ? t(key) : undefined
-    }
+    const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
+    const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
 
     return {
         t,
@@ -204,11 +155,9 @@ export function useDepositAccountCopy() {
         railLabels,
         ruleLines,
         railName,
-        arrival,
         arrivalDetail,
-        residenceLine,
-        qrPayLine,
         claimErrorBody,
         feeLine,
+        minimumDeposit,
     }
 }

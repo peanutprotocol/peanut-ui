@@ -27,7 +27,7 @@ export default function ShadowsPage() {
                     <div className="flex flex-wrap gap-4">
                         {(['3', '4', '6', '8'] as const).map((s) => (
                             <div key={s} className="text-center">
-                                <Button variant="purple" shadowSize={s}>
+                                <Button variant="primary" shadowSize={s}>
                                     shadow {s}
                                 </Button>
                                 <p className="mt-1 text-body-xs text-foreground-secondary">
@@ -44,7 +44,7 @@ export default function ShadowsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Button shadow" code={`<Button variant="purple">Label</Button>`} />
+                    <CodeBlock label="Button shadow" code={`<Button variant="primary">Label</Button>`} />
                 </DocSection.Code>
             </DocSection>
 

@@ -74,7 +74,7 @@ export function KycChecklistB() {
         <Shell>
             <div className="flex w-full flex-col gap-3 text-left">
                 <p className="text-body-s">{t('intro.standard')}</p>
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {ITEMS.map((item) => (
                         <DataRow key={item} label={t(`items.${item}.title`)} value={t(`items.${item}.body`)} />
                     ))}

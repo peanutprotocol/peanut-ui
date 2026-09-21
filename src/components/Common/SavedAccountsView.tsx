@@ -79,9 +79,11 @@ export default function SavedAccountsView({
                                 />
                             )}
                             <ListItem
-                                position="single"
+                                position="solo"
                                 leading={<IconBubble icon="bank" size="s" color="gray" />}
-                                title={tWithdraw('withdrawToBank')}
+                                // a ReactNode title wraps; a bare string is cut to one
+                                // line, and the pt-BR label does not fit at 375
+                                title={<span>{tWithdraw('withdrawToBank')}</span>}
                                 body={tSend('methods.bankDescription')}
                                 trailing={plusTrailing}
                                 onClick={onSelectNewMethodClick}
@@ -97,7 +99,7 @@ export default function SavedAccountsView({
                                 />
                             )}
                             <ListItem
-                                position="single"
+                                position="solo"
                                 leading={<IconBubble icon="credit-card" size="s" color="blue" />}
                                 title={tWithdraw('withdrawToCrypto')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
@@ -161,7 +163,7 @@ export function SavedAccountsMapping({
                     key={account.id}
                     title={destinationLabel(destination)}
                     body={destination.identifier}
-                    position="single"
+                    position="solo"
                     onClick={() => onItemClick(account, path)}
                     className="p-4 py-2"
                     chevron={!onItemEdit}
@@ -193,7 +195,7 @@ export function SavedAccountsMapping({
                                 }
                                 width={80}
                                 height={80}
-                                className="size-8 min-w-8 rounded-round object-cover"
+                                className="size-8 min-w-8 rounded-full object-cover"
                             />
                         ) : (
                             <IconBubble icon="bank" size="s" color="gray" />
@@ -234,7 +236,16 @@ function describeAccount(account: Account, locale: string) {
 
     return {
         destination: accountDestination(account, { countryName }),
-        countryCodeForFlag: twoLetterCountryCode.toLowerCase() ?? '',
+        // The alpha-3 table covers the SEPA and Manteca countries alone, so a
+        // Mexican account kept its "MEX" and asked for /flags/mex.svg, which does
+        // not exist. The catalogue entry knows the two-letter code; a code that
+        // is still not two letters shows no flag, not a broken image.
+        countryCodeForFlag: (twoLetterCountryCode.length === 2
+            ? twoLetterCountryCode
+            : (countryInfo?.iso2 ??
+              ALL_METHODS_DATA.find((country) => country.iso3 === threeLetterCountryCode)?.iso2 ??
+              '')
+        ).toLowerCase(),
         countryName,
         path: countryInfo ? `/withdraw/${countryInfo.path}/bank` : '/withdraw',
     }

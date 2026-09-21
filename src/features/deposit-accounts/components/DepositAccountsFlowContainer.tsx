@@ -2,10 +2,25 @@
 
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
+import { useRouter } from 'next/navigation'
 import { DepositAccountsFlow } from './DepositAccountsFlow'
+import type { DepositSupportReason } from '../types'
 import { useDepositAccounts } from '../useDepositAccounts'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
+import { useResidenceIso2s } from '../useResidenceIso2s'
+import { useEndorsementReview } from '../useEndorsementReview'
+
+/** What support reads first. English on purpose: it is for the agent, not the user. */
+const SUPPORT_SUBJECT: Record<DepositSupportReason, string> = {
+    'account-limit': 'Another deposit account',
+    blocked: "Couldn't open deposit account",
+    revoked: 'Revoked deposit details',
+    review: 'Extra check needed for deposit account',
+}
 
 interface DepositAccountsFlowContainerProps {
     /** leaving the flow entirely — each entry point decides where that goes */
@@ -26,11 +41,27 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
     // While standing accounts are dark, the hub is the country list alone —
     // asking the backend for accounts nobody can open yet buys nothing.
     const accountsEnabled = useDepositAccountsEnabled()
-    const { corridors, accounts, claimable, gates, isLoading, isError, claimingCorridor, claimError, claim, refetch } =
-        useDepositAccounts({ enabled: accountsEnabled })
+    const {
+        corridors,
+        accounts,
+        claimable,
+        unavailable,
+        slotsHeld,
+        accountLimit,
+        gates,
+        isLoading,
+        isError,
+        claimingCorridor,
+        claimError,
+        claim,
+        refetch,
+    } = useDepositAccounts({ enabled: accountsEnabled })
     const { user } = useAuth()
+    const router = useRouter()
+    const residenceIso2s = useResidenceIso2s()
     const { resolveGate, modals } = useDepositGateRemediation()
     const { openSupportWithMessage } = useModalsContext()
+    const review = useEndorsementReview()
 
     return (
         <>
@@ -38,6 +69,9 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}
+                unavailable={unavailable}
+                slotsHeld={slotsHeld}
+                accountLimit={accountLimit}
                 gates={gates}
                 isLoading={isLoading}
                 isError={isError}
@@ -50,20 +84,26 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 onClaim={claim}
                 onResolveGate={resolveGate}
                 onRetry={refetch}
-                // Two conversations the app cannot settle itself, through the
-                // one support door every other screen uses. Revoked details
-                // have no self-service fix — claiming again returns the same
-                // dead account, because the provider's create call is
-                // idempotent per customer and currency. More accounts than we
-                // open by default is a billing decision a person makes. The
-                // corridor rides along so support does not have to ask which.
+                // The conversations the app cannot settle itself, through the one
+                // support door every other screen uses. Revoked details have no
+                // self-service fix — claiming again returns the same dead
+                // account, because the provider's create call is idempotent per
+                // customer and currency. More accounts than we open by default is
+                // a billing decision a person makes. The corridor rides along so
+                // support does not have to ask which.
                 onContactSupport={(corridor, reason) =>
-                    openSupportWithMessage(
-                        reason === 'account-limit'
-                            ? `Another deposit account: ${corridor}`
-                            : `Revoked deposit details: ${corridor}`
-                    )
+                    openSupportWithMessage(`${SUPPORT_SUBJECT[reason]}: ${corridor}`)
                 }
+                // The other way into a corridor, when the standing account
+                // cannot take the money: a transfer the user sends themselves.
+                // It is a page of its own, so it carries where it came from —
+                // leaving verification must not strand the user on a bare
+                // amount route they never knowingly opened.
+                onTopUp={(corridor) => {
+                    const href = corridorTopUpHref(corridor, residenceIso2s)
+                    if (href) router.push(withReturnTo(rewriteMethodPath(href), '/add-money?method=bank'))
+                }}
+                review={review}
             />
             {modals}
         </>

@@ -1,18 +1,19 @@
 'use client'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
-import Link from 'next/link'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { useRef } from 'react'
+import type { AmountInputSides } from '../requestCurrency'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
-import { withReturnTo } from '@/utils/return-to.utils'
 import { BankInstructionsToggle } from './BankInstructionsToggle'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
+import { RequestCurrencyPicker } from './RequestCurrencyPicker'
 import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 import { useCreateRequestLink } from './useCreateRequestLink'
 
@@ -23,7 +24,10 @@ export const CreateRequestLinkView = () => {
     const onBack = useRequestBack()
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
-        tokenValue,
+        requestAmount,
+        currency,
+        accountCurrencies,
+        exchangeRate,
         attachmentOptions,
         errorState,
         generatedLink,
@@ -33,11 +37,16 @@ export const CreateRequestLinkView = () => {
         qrCodeLink,
         bankInstructionsShared,
         setBankInstructionsShared,
-        handleTokenValueChange,
+        handleAmountInputChange,
+        handleCurrencyChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
     } = useCreateRequestLink()
+    // The amount field reports its sides through three setters in one pass,
+    // `setSecondaryAmount` last. They are collected here and handed on once,
+    // from that last one, so the hook always reads a matching set.
+    const sides = useRef<AmountInputSides>({ primary: '', secondary: '', displayed: '' })
 
     return (
         <PageStack>
@@ -46,24 +55,53 @@ export const CreateRequestLinkView = () => {
                 {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
                 <PeanutActionCard type="request" />
 
-                <AmountInput
-                    className="w-full"
-                    initialAmount={tokenValue}
-                    setPrimaryAmount={handleTokenValueChange}
-                    onSubmit={handleTokenAmountSubmit}
+                <RequestCurrencyPicker
+                    currency={currency}
+                    onChange={handleCurrencyChange}
+                    accountCurrencies={accountCurrencies}
+                    bankPayable={bankInstructionsShared}
                     disabled={!!requestId}
                 />
 
+                {/* Keyed on the currency: AmountInput reads its denominations
+                    once, so a new currency needs a new input. A non-USD request
+                    shows its dollar side as the secondary line, as add-money
+                    does; with no rate yet it shows the amount alone. */}
+                <AmountInput
+                    key={currency}
+                    className="w-full"
+                    initialAmount={requestAmount}
+                    setDisplayedAmount={(value) => {
+                        sides.current.displayed = value
+                    }}
+                    setPrimaryAmount={(value) => {
+                        sides.current.primary = value || ''
+                    }}
+                    setSecondaryAmount={(value) => {
+                        sides.current.secondary = value
+                        handleAmountInputChange({ ...sides.current })
+                    }}
+                    onSubmit={handleTokenAmountSubmit}
+                    disabled={!!requestId}
+                    // `disabled` does not cover the swap button, and a swap
+                    // after creation shows a figure the request does not carry
+                    hideCurrencyToggle={!!requestId}
+                    {...(currency !== 'USD' && {
+                        primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
+                        secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
+                    })}
+                />
+
                 {/* only meaningful while the amount is empty (coderabbit #2780) */}
-                {(!tokenValue || Number(tokenValue) === 0) && (
-                    <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                {(!requestAmount || Number(requestAmount) === 0) && (
+                    <Callout priority="helper">{t('leaveEmptyHint')}</Callout>
                 )}
 
                 {/* Before a request exists the QR already encodes the profile
                     payment link for the entered amount, so it only stays
                     blurred while there's neither a request nor an amount. */}
                 <QRCodeWrapper
-                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
+                    isBlurred={!requestId && !(parseFloat(requestAmount) > 0)}
                     url={qrCodeLink}
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />
@@ -92,29 +130,10 @@ export const CreateRequestLinkView = () => {
                     generatedLink={generatedLink}
                     isCreatingLink={isCreatingLink}
                     isUpdatingRequest={isUpdatingRequest}
-                    tokenValue={tokenValue}
+                    requestAmount={requestAmount}
+                    currency={currency}
                     onGenerate={generateLink}
                 />
-
-                {/*
-                    The other way to be paid. A request asks one person for one
-                    amount and is answered inside Peanut; standing bank details
-                    take any amount from anybody through their own bank. Both
-                    are money coming in, so the screen for one names the other
-                    rather than leaving the user to find it under Add — once
-                    the flow it points at is open for business.
-                */}
-                {depositAccountsEnabled && (
-                    <Link
-                        // name the origin rather than leaving it to history:
-                        // a user who reached /request by deep link has none, and
-                        // the hub's back would drop them on /home instead of here
-                        href={withReturnTo('/add-money?method=bank', '/request')}
-                        className="text-center text-body-s text-foreground-secondary underline underline-offset-4"
-                    >
-                        {t('bankDetailsAlternative')}
-                    </Link>
-                )}
 
                 {errorState.showError && (
                     <div className="text-start">

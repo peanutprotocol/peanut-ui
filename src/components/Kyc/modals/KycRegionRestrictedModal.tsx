@@ -41,7 +41,7 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
                         <KycRegionRestrictedContent />
                     </div>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         className="mt-4 w-full justify-center"
                         onClick={cta.onClick}

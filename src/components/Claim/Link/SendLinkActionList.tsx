@@ -19,7 +19,7 @@
  * note: request payment flows use RequestPotActionList instead
  */
 
-import StatusBadge from '../../Global/Badges/StatusBadge'
+import Badge from '../../Global/Badges/Badge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -328,7 +328,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                tone="warning"
+                tone="attention"
                 ctas={[
                     {
                         text: tCommon('close'),
@@ -378,13 +378,13 @@ const MethodCard = ({
     const showSoon = method.soon || soon
     return (
         <ListItem
-            position="single"
+            position="solo"
             body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
                     {(showSoon || requiresVerification) && (
-                        <StatusBadge
+                        <Badge
                             status={requiresVerification ? 'custom' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />

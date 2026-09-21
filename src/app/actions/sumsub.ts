@@ -4,6 +4,7 @@ import {
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import type { paths } from '@/types/api.generated'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -313,6 +314,29 @@ export const startHostedVerification = async (
         return { url: responseJson.verificationUrl }
     } catch (e: unknown) {
         return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
+    }
+}
+
+/**
+ * Ask the API to poll the caller's Bridge customer soon (POST
+ * /users/kyc/refresh): it puts the pending KYC row back on the poller's fresh
+ * cadence instead of the hours-long one a months-old row sits in. Called on
+ * the way back from a hosted flow: the user has just done something at the
+ * vendor, and the app should reflect it within a minute, not hours. Best
+ * effort by design — a missing route (an API that predates it), a rate-limit
+ * answer or a network error all read as "not expedited", and the caller falls
+ * back to plain refetching.
+ */
+type KycRefreshResponse = paths['/users/kyc/refresh']['post']['responses'][200]['content']['application/json']
+
+export const refreshKycState = async (): Promise<KycRefreshResponse> => {
+    try {
+        const response = await serverFetch('/users/kyc/refresh', { method: 'POST' })
+        if (!response.ok) return { expedited: false }
+        const responseJson = await response.json()
+        return { expedited: responseJson?.expedited === true }
+    } catch {
+        return { expedited: false }
     }
 }
 

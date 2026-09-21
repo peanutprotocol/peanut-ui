@@ -31,7 +31,6 @@ export type DepositCorridor =
     | 'SEPA_EU'
     | 'FASTER_PAYMENTS_GB'
     | 'SPEI_MX'
-    | 'BANK_TRANSFER_BR'
     | 'BANK_TRANSFER_CO'
     | 'PIX_BR'
     | 'BANK_TRANSFER_AR'
@@ -73,6 +72,19 @@ export type DepositMatching = DepositAccount['matching']
  * yet.
  */
 export type ClaimableCorridor = DepositAccountsResponse['claimable'][number]
+
+/**
+ * A corridor the backend is NOT offering this user, and why. It answers for
+ * every corridor in the catalogue, so a corridor sits in exactly one of
+ * `depositAccounts`, `claimable` and `unavailable` — or, when the provider read
+ * failed, in none of them, and the app keeps whatever it rendered before.
+ *
+ * Optional because an API that predates the field sends nothing.
+ */
+export type UnavailableCorridor = NonNullable<DepositAccountsResponse['unavailable']>[number]
+
+/** why a corridor is withheld: `identity-required`, `support-required`, `not-offered` */
+export type UnavailableReason = UnavailableCorridor['reason']
 
 /**
  * What the rule resolver needs to state a corridor's terms: the sender policy
@@ -144,26 +156,14 @@ export interface DepositRail {
     detailRowCount: number
     /** false where the corridor cannot be held as a reusable account */
     claimable?: false
-    /**
-     * Where this corridor tops up when no standing account is open on it —
-     * because it never has one (Argentina, the one-off Pix code), or because
-     * this user holds none and cannot claim one yet.
-     */
+    /** Where a corridor with no standing account tops up: Argentina, and the one-off Pix code. */
     topUpHref?: string
     /**
-     * The country a user must legally reside in to open this corridor.
-     *
-     * The provider opens these for residents alone, so the row says the rule
-     * and the screen behind it explains the tap. Residence decides it, never
-     * nationality.
+     * The country a user must legally reside in to use this corridor. The row
+     * is shown to everybody, and the top-up flow behind it states the rule.
+     * Residence decides it, never nationality.
      */
     residenceIso2?: string
-    /**
-     * The country takes QR payments from a Peanut balance — Pix in Brazil. A
-     * non-resident cannot open the account and can still pay there, so the
-     * explainer says both.
-     */
-    qrPay?: true
 }
 
 /** every row a corridor can show; the label for each lives in the catalog */
@@ -191,3 +191,10 @@ export interface DepositDetailRow {
     /** informational rows opt out of the copy button */
     copyable?: boolean
 }
+
+/**
+ * Why the flow hands the user to support: details the provider revoked, more
+ * accounts than the limit, a claim the app cannot explain, or a provider review
+ * the app cannot start. It rides along so support does not have to ask.
+ */
+export type DepositSupportReason = 'revoked' | 'account-limit' | 'blocked' | 'review'

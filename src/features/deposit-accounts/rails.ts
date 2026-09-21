@@ -43,18 +43,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'mx',
         detailRowCount: 3,
     },
-    BANK_TRANSFER_BR: {
-        corridor: 'BANK_TRANSFER_BR',
-        currency: 'BRL',
-        provider: 'bridge',
-        flagIso2: 'br',
-        detailRowCount: 3,
-        residenceIso2: 'BR',
-        qrPay: true,
-        // A Brazilian resident with no standing account and no endorsement is
-        // not stuck: the Pix top-up is the same money in, minted per payment.
-        topUpHref: '/add-money/brazil/manteca',
-    },
     BANK_TRANSFER_CO: {
         corridor: 'BANK_TRANSFER_CO',
         currency: 'COP',
@@ -88,11 +76,19 @@ export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
     'FASTER_PAYMENTS_GB',
     'ACH_US',
     'SPEI_MX',
-    'BANK_TRANSFER_BR',
     'BANK_TRANSFER_CO',
     'PIX_BR',
     'BANK_TRANSFER_AR',
 ]
+
+/**
+ * How many bank accounts the backend opens for a user by default
+ * (`MAX_ACTIVE_DEPOSIT_ACCOUNTS`). It is NOT this user's limit: support can
+ * raise that per user, and the accounts response carries the real one as
+ * `accountLimit`. This default is read only against an API deployed before
+ * that field, and only where no answer from the backend contradicts it.
+ */
+export const DEFAULT_ACCOUNT_LIMIT = 2
 
 /**
  * A record with a slot for every corridor, built from the catalogue.

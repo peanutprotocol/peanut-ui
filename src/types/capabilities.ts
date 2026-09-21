@@ -170,6 +170,13 @@ export interface NextAction {
     effectiveDate?: string
     /** Advisory actions only — the provider requirement key, for telemetry / FE branching. */
     requirementKey?: string
+    /**
+     * The rail currency this action unlocks (e.g. 'USD' | 'EUR' | 'GBP' | 'MXN'),
+     * set on the `bridge-hosted` catch-all so the task copy can NAME the corridor
+     * ("Finish verifying to unlock euro bank transfers") instead of the generic
+     * "bank transfers". Absent when no single rail scopes the action.
+     */
+    currency?: string
 }
 
 export interface CapabilityRestriction {

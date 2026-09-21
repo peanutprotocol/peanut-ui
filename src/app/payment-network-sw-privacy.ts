@@ -1,12 +1,17 @@
 const PAYMENT_GRAPH_PAGE_PATH = '/dev/payment-graph'
 const PAYMENT_GRAPH_API_PATH = '/invites/graph'
+// The user's own verified postal address. Answered with `no-store` and never
+// written down anywhere; a cached copy in the browser would outlive the session
+// that was allowed to read it.
+const VERIFIED_ADDRESS_API_PATH = '/users/me/verified-address'
 
 export function isSensitivePaymentNetworkPathname(pathname: string): boolean {
     return (
         pathname === PAYMENT_GRAPH_PAGE_PATH ||
         pathname.startsWith(`${PAYMENT_GRAPH_PAGE_PATH}/`) ||
         pathname === PAYMENT_GRAPH_API_PATH ||
-        pathname.startsWith(`${PAYMENT_GRAPH_API_PATH}/`)
+        pathname.startsWith(`${PAYMENT_GRAPH_API_PATH}/`) ||
+        pathname === VERIFIED_ADDRESS_API_PATH
     )
 }
 

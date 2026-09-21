@@ -37,7 +37,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                     return (
                         <ListItem
                             key={saved.id}
-                            position="single"
+                            position="solo"
                             className="p-4 py-2"
                             onClick={() => onSelect(saved)}
                             title={

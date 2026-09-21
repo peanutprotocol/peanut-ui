@@ -1,21 +1,29 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
-import { useQueryStates } from 'nuqs'
+import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
-import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
+import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
+import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
-import { depositGateView } from '../depositGate'
-import { isResidenceGated, residenceAllows } from '../residenceGate'
+import { depositGateView, isDepositBlock } from '../depositGate'
+import { isResidenceGated } from '../residenceGate'
+import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
+import type {
+    ClaimableCorridor,
+    UnavailableCorridor,
+    DepositAccountView,
+    DepositCorridor,
+    DepositSupportReason,
+} from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
+import type { EndorsementReview } from '../useEndorsementReview'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
-import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
 import { CorridorGateScreen } from './CorridorGateScreen'
 import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
@@ -34,6 +42,12 @@ export interface DepositAccountsFlowProps {
      * none, and the claim step then states no terms rather than inventing them.
      */
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /** why a corridor is withheld, where the backend says so */
+    unavailable?: Record<DepositCorridor, UnavailableCorridor | undefined>
+    /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
+    slotsHeld?: number
+    /** this user's account limit, where the backend sends it */
+    accountLimit?: number
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until the corridors and the held accounts are known */
@@ -49,12 +63,25 @@ export interface DepositAccountsFlowProps {
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
     /**
-     * The one shared support door, for the two things the app cannot settle
-     * itself: details the provider revoked, and a user who wants more accounts
-     * than we open by default. The reason rides along so support does not have
-     * to ask which conversation this is.
+     * The one shared support door, for the things the app cannot settle
+     * itself: details the provider revoked, a user who wants more accounts than
+     * we open by default, and a provider review the app cannot start. The
+     * reason rides along so support does not have to ask which conversation
+     * this is.
      */
-    onContactSupport: (corridor: DepositCorridor, reason: 'revoked' | 'account-limit') => void
+    onContactSupport: (corridor: DepositCorridor, reason: DepositSupportReason) => void
+    /**
+     * The other way into a corridor: the bank transfer the user sends
+     * themselves. Navigation lives with the caller, as every other way out of
+     * this flow does. Absent on a caller that cannot open one.
+     */
+    onTopUp?: (corridor: DepositCorridor) => void
+    /**
+     * The provider's hosted page for a corridor review that waits on the user.
+     * Absent on a caller that cannot open one: the screen then says what is
+     * needed and offers support.
+     */
+    review?: EndorsementReview
 }
 
 /**
@@ -71,6 +98,9 @@ export function DepositAccountsFlow({
     corridors,
     accounts,
     claimable,
+    unavailable,
+    slotsHeld = 0,
+    accountLimit,
     gates,
     isLoading = false,
     isError = false,
@@ -82,8 +112,16 @@ export function DepositAccountsFlow({
     onResolveGate,
     onRetry,
     onContactSupport,
+    onTopUp,
+    review,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
+    // The typed parser answers its default for a corridor it does not know, so a
+    // link naming one that has left the catalogue (`BANK_TRANSFER_BR`) opened
+    // the euro account. Read raw, a named corridor that is not one lands on the
+    // list instead.
+    const [namedCorridor] = useQueryState('corridor', parseAsString)
+    const namesUnknownCorridor = namedCorridor !== null && !(DEPOSIT_CORRIDORS as string[]).includes(namedCorridor)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
     // Links minted while the cursor was called `?screen=` still open the flow
     // where they meant to. Rewritten once, in place, so back does not land on
@@ -92,7 +130,6 @@ export function DepositAccountsFlow({
         if (legacyStep) setParams({ step: legacyStep, screen: null })
     }, [legacyStep, setParams])
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
-    const residenceIso2s = useResidenceIso2s()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate = gates[corridor]
@@ -109,7 +146,8 @@ export function DepositAccountsFlow({
     // every user, and the screen behind it is what explains the rule.
     const offered = isLoading || corridors.includes(corridor) || isResidenceGated(corridor)
     const terms = claimable?.[corridor]
-    const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate, terms)
+    const resolved =
+        isError || !offered || namesUnknownCorridor ? 'list' : resolveScreen(screen, rail, account, gate, terms)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
@@ -151,13 +189,6 @@ export function DepositAccountsFlow({
         )
     }
 
-    // The corridor exists and the user does not live there. Said before any
-    // claim, because the claim would fail at the provider with a sentence
-    // written for us rather than for them.
-    if (screen !== 'list' && isClaimable(rail) && !residenceAllows(corridor, residenceIso2s)) {
-        return <CorridorUnavailableScreen rail={rail} requiresResidence onBack={() => setParams({ step: 'list' })} />
-    }
-
     /**
      * The gate, where the user asked for a corridor they cannot open yet.
      *
@@ -165,18 +196,98 @@ export function DepositAccountsFlow({
      * Ready accounts to verify their identity. It belongs here: one corridor,
      * its own reason, and the button that clears it.
      */
-    const gateNotice = depositGateView(gate, terms).notice
-    if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
+    // A failed claim can leave the backend briefly reporting an account cap for
+    // a user who holds nothing: on staging the shared provider customer already
+    // has accounts this user never opened, so the read right after a failure can
+    // say "at the limit". "You already have two accounts" is provably wrong to a
+    // user looking at zero, so the cap screen only renders when the client can
+    // see the accounts it names; otherwise the honest "we couldn't open an
+    // account" support screen shows. "Names" means takes a slot: a revoked
+    // account is held and the cap does not count it.
+    const rawGateNotice = depositGateView(gate, terms).notice
+    /*
+     * The other way into this corridor: a transfer the user sends themselves,
+     * which needs no account and no free account slot. It is what the gate
+     * screen offers beside the block, because a user at the account cap can
+     * deposit on this rail today and the screen used to send them to support
+     * instead.
+     *
+     * It needs a country live for the corridor AND a `ready` gate. The gate is
+     * not about the account — it is whether this user's verification permits
+     * the corridor at all, and the deposit route refuses a user with no enabled
+     * rail for it.
+     */
+    const hasTopUp = corridorHasTopUp(corridor) && gate.kind === 'ready'
+    // The provider hands out its page only for a review it still takes from the
+    // user. One it rejected or revoked has none, and the claim says so by
+    // answering without a link; the preview names those two in its issues.
+    const reviewClosed = (terms?.requirements?.issues ?? []).some((issue) =>
+        ['rejected', 'revoked'].includes(issue.toLowerCase())
+    )
+    const canFinishReview = !!review && !reviewClosed && !review.needsSupport.has(corridor)
+    /**
+     * Why the BACKEND withholds this corridor, where it said so.
+     *
+     * It answers for this user. The capability gate answers for the rail, and
+     * `needs-enrollment` is its answer both for "no rail here yet" and for a
+     * user whose identity check ended terminally. The hub badges that second
+     * case "Contact support" and the row leads here, so without this the
+     * destination offered a verification run that cannot help them, under a
+     * badge that said otherwise — a row naming an action the user cannot take
+     * (design.md, "rows the user cannot act on").
+     *
+     * Only the identity-shaped answers are replaced. A terms block or a missing
+     * email is a precise, actionable reason, and the backend's coarser one must
+     * not overwrite it.
+     */
+    const withheld = unavailable?.[corridor]?.reason
+    const withheldAction =
+        (withheld === 'support-required' || withheld === 'identity-required') &&
+        (!rawGateNotice || rawGateNotice.action === 'verify' || rawGateNotice.action === 'none')
+            ? withheld === 'support-required'
+                ? ('support' as const)
+                : ('verify' as const)
+            : undefined
+    const gateNotice = withheldAction
+        ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+        : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+          ? { ...rawGateNotice, action: 'support' as const }
+          : rawGateNotice?.action === 'finish-review' && !canFinishReview
+            ? { ...rawGateNotice, action: 'finish-review-support' as const }
+            : rawGateNotice
+    if (
+        screen !== 'list' &&
+        !namesUnknownCorridor &&
+        !isLoading &&
+        !isError &&
+        isClaimable(rail) &&
+        !isHeld(account) &&
+        gateNotice
+    ) {
         return (
             <CorridorGateScreen
                 rail={rail}
                 notice={gateNotice}
+                slotsHeld={slotsHeld}
+                isActing={review?.startingCorridor === corridor}
+                actFailed={review?.failedCorridor === corridor}
+                onTopUp={hasTopUp && onTopUp ? () => onTopUp(corridor) : undefined}
                 onBack={() => setParams({ step: 'list' })}
-                onAct={() =>
-                    gateNotice.action === 'account-limit'
-                        ? onContactSupport(corridor, 'account-limit')
-                        : onResolveGate(gate)
-                }
+                onAct={() => {
+                    // A corridor the backend withheld for support is not
+                    // something the capability gate can resolve: its own answer
+                    // here is a verification run that cannot lift the block.
+                    if (withheldAction === 'support') return onContactSupport(corridor, 'blocked')
+                    // A block from the backend's own terms has nothing for the
+                    // capability gate to resolve, whatever that gate reads.
+                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
+                    if (gateNotice.action === 'finish-review') return void review?.start(corridor)
+                    if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
+                    return onContactSupport(
+                        corridor,
+                        gateNotice.action === 'account-limit' ? 'account-limit' : 'blocked'
+                    )
+                }}
             />
         )
     }
@@ -198,18 +309,22 @@ export function DepositAccountsFlow({
     }
 
     if (resolved === 'claim') {
+        // a failure on another corridor is not this screen's news
+        const failure = claimError?.corridor === corridor ? claimError : undefined
         return (
             <ClaimAccountScreen
                 rail={rail}
                 terms={terms}
                 userName={userName}
                 isClaiming={claimingCorridor === corridor}
-                // a failure on another corridor is not this screen's news
                 // the localized sentence for the wire code, never the backend's own
-                error={
-                    claimError?.corridor === corridor ? claimErrorBody(claimError.code, claimError.status) : undefined
+                error={failure && claimErrorBody(failure.code, failure.status)}
+                onContactSupport={
+                    failure && claimErrorOffersSupport(claimErrorKey(failure.code, failure.status))
+                        ? () => onContactSupport(corridor, 'blocked')
+                        : undefined
                 }
-                isUnavailable={claimError?.corridor === corridor && claimError.unavailable}
+                isUnavailable={failure?.unavailable}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere
@@ -261,6 +376,9 @@ export function DepositAccountsFlow({
             corridors={corridors}
             accounts={accounts}
             claimable={claimable}
+            unavailable={unavailable}
+            slotsHeld={slotsHeld}
+            accountLimit={accountLimit}
             gates={gates}
             isLoading={isLoading}
             isError={isError}

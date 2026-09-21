@@ -2,7 +2,7 @@
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
@@ -112,7 +112,7 @@ export default function BalanceWarningDrawer({ visible, onCloseAction }: Balance
                             </p>
                             {/* the two self-custody facts read as a checklist, not flowing prose —
                                 same structure the passkey-help surface uses for its fixes */}
-                            <Notification
+                            <Callout
                                 priority="info"
                                 className="w-full text-left"
                                 items={[t('balanceWarningModal.selfCustody'), t('balanceWarningModal.passkey')]}

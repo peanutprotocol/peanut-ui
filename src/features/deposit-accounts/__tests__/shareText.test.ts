@@ -1,21 +1,10 @@
 import messages from '@/i18n/app/messages/en.json'
-import { t } from '@/i18n/interpolate'
 import { instructionRows, type RailLabels } from '../instructionRows'
-import { depositRuleLines } from '../ruleLines'
 import { buildShareText } from '../shareText'
 import type { DepositAccount, DepositRowLabels, DepositRules, SenderPolicy } from '../types'
 
 const ROW_LABELS = messages.depositAccounts.rows as unknown as DepositRowLabels
 const RAIL_LABELS = messages.depositAccounts.rows.rails as RailLabels
-const RULES = messages.depositAccounts.rules
-
-const money = (amount: string, currency: string) => `${currency} ${amount}`
-
-/** the same resolver the screens use, with the catalog they read */
-const payerLines = (account: DepositAccount, user: string) =>
-    depositRuleLines(account.matching, account.rules, money).map(({ key, values }) =>
-        t(RULES[key].payer, { user, ...values })
-    )
 
 const account = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}): DepositAccount => ({
     id: 'a',
@@ -30,82 +19,67 @@ const account = (sender: SenderPolicy, rules?: DepositRules, over: Partial<Depos
     ...over,
 })
 
-const text = (sender: SenderPolicy, rules?: DepositRules) => {
-    const acc = account(sender, rules)
-    return buildShareText(
-        acc,
-        {
-            introOwn: 'Here are my bank details to get paid in GBP:',
-            introPooled: 'Bank details to pay Ana in GBP:',
-            rules: payerLines(acc, 'Ana Pérez'),
-            outro: 'Sent from Peanut · peanut.me',
-        },
-        ROW_LABELS,
-        RAIL_LABELS
-    )
+const copy = {
+    introOwn: 'Here are my bank details to get paid in GBP:',
+    introPooled: 'Bank details to pay Ana in GBP:',
+    outro: 'Sent from Peanut · peanut.me',
+    payerLine: { 'business-only': 'Pay from a business account.', unknown: 'A transfer may be returned.' },
 }
 
+const text = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}) =>
+    buildShareText(account(sender, rules, over), copy, ROW_LABELS, RAIL_LABELS)
+
 /**
- * The in-app screen can say who may pay in beside the details. The copied text
- * cannot — it is read in a payroll inbox with no Peanut screen anywhere near
- * it. So the rules travel with the numbers, or the payer learns them when
- * their transfer comes back weeks later.
+ * The copied text is the account fields, the footer, and at most one line on
+ * who may pay. The holder's full terms render on their own screen and stay out
+ * of the message a payer pastes into a transfer form.
  */
-describe('the shared text carries the account rules', () => {
-    it('answers every payer, so the holder never has to', () => {
-        const out = text('business-only')
-        expect(out).toContain("From the account holder's own account: yes")
-        expect(out).toContain('From a business: any amount')
-        expect(out).toContain('From another person: not yet')
+describe('the shared text is the account fields and the footer', () => {
+    it('carries the intro, the account numbers and the footer', () => {
+        const out = text('anyone')
+        expect(out).toContain('Here are my bank details to get paid in GBP:')
+        expect(out).toContain('04-00-53')
+        expect(out).toContain('Sent from Peanut · peanut.me')
     })
 
-    it('states the euro terms the backend published, and no more', () => {
+    it('adds nothing where anyone may pay', () => {
+        expect(text('anyone')).not.toContain('Pay from a business account.')
+        expect(text('anyone')).not.toContain('A transfer may be returned.')
+    })
+
+    /**
+     * A friend who pays business-only details from a personal account gets the
+     * transfer returned, and this message is the only place they can learn it.
+     */
+    it.each([
+        ['business-only', 'Pay from a business account.'],
+        ['unknown', 'A transfer may be returned.'],
+    ] as const)('says who may pay, once, where the policy is %s', (sender, line) => {
+        const out = text(sender)
+        expect(out.split(line)).toHaveLength(2)
+        // after the account numbers and before the footer
+        expect(out.indexOf('04-00-53')).toBeLessThan(out.indexOf(line))
+        expect(out.indexOf(line)).toBeLessThan(out.indexOf('Sent from Peanut'))
+    })
+
+    it('keeps the holder terms out of the copied text', () => {
         const out = text('business-only', {
             ownAccount: { allowed: true },
             thirdPartyBusiness: 'unlimited',
             thirdPartyIndividual: { policy: 'unavailable' },
             min: { amount: '1', currency: 'EUR' },
         })
-        expect(out).toContain('From a business: any amount')
-        expect(out).toContain('From another person: not yet')
-        expect(out).toContain('Minimum deposit: EUR 1')
+        // the rules the screen states must not travel with the numbers
+        expect(out).not.toContain('From a business')
+        expect(out).not.toContain('From another person')
+        expect(out).not.toContain('own account')
+        expect(out).not.toContain('Minimum deposit')
     })
 
-    it('gives a dollar payer the cap as a strict limit, and the exemptions', () => {
-        const out = text('anyone', {
-            ownAccount: { allowed: true },
-            thirdPartyBusiness: 'unlimited',
-            thirdPartyIndividual: {
-                policy: 'capped',
-                capBelow: { amount: '4000', currency: 'USD' },
-                familySameSurnameExempt: true,
-            },
-        })
-        expect(out).toContain('less than USD 4000 each time')
-        expect(out).not.toContain('up to USD 4000')
-        expect(out).toContain('Family who share the account holder surname: any amount')
-    })
-
-    it('sends the peso volume limit out with the numbers, period and all', () => {
-        const out = text('anyone', {
-            ownAccount: { allowed: true, max: { amount: '1000000', currency: 'MXN' } },
-            thirdPartyBusiness: 'unlimited',
-            thirdPartyIndividual: { policy: 'capped', volumeLimit: { amount: '15000', currency: 'MXN' } },
-        })
-        expect(out).toContain("From the account holder's own account: up to MXN 1000000")
-        expect(out).toContain('up to MXN 15000 in total')
-        // a volume limit is not a per-payment cap, and the text must not read as one
-        expect(out).not.toContain('less than MXN 15000')
-    })
-
-    it('warns the payer where nothing is published, rather than going quiet', () => {
-        const out = text('unknown')
-        expect(out).toContain('04-00-53')
-        // the text is read by somebody who will never see a Peanut screen, so
-        // the one thing we cannot promise has to travel with the numbers
-        expect(out).toContain('From a business: not confirmed')
-        expect(out).toContain('From another person: not confirmed. The transfer may be returned.')
-        expect(out).toContain('From a business: not confirmed. The transfer may be returned.')
+    it('names a pooled account with the payer intro, never the possessive', () => {
+        const out = text('anyone', undefined, { matching: { nameOnAccount: 'provider', sender: 'anyone' } })
+        expect(out).toContain('Bank details to pay Ana in GBP:')
+        expect(out).not.toContain('Here are my bank details')
     })
 })
 

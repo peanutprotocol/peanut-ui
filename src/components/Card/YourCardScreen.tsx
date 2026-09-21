@@ -11,7 +11,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
@@ -80,7 +80,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
-            {revealError && <Notification priority="error">{revealError}</Notification>}
+            {revealError && <Callout priority="error">{revealError}</Callout>}
 
             <CardFace
                 last4={card.last4}
@@ -92,27 +92,23 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             />
 
             {showAutoRenew && (
-                <Notification
-                    priority="attention"
-                    title={t('autoRenewTitle')}
-                    onDismiss={() => setAutoRenewDismissed(true)}
-                >
+                <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
                     {t('autoRenewBody', { days: daysLeft })}
-                </Notification>
+                </Callout>
             )}
 
             {balanceDueCents > 0 && (
-                <Notification
+                <Callout
                     priority="attention"
                     title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
                 >
                     {t('balanceDueBody')}
-                </Notification>
+                </Callout>
             )}
 
-            <Notification priority="info" title={t('payAsCreditTitle')}>
+            <Callout priority="info" title={t('payAsCreditTitle')}>
                 {t('payAsCreditBody')}
-            </Notification>
+            </Callout>
 
             <div className="flex flex-col gap-4">
                 <Section title={t('managementTitle')}>

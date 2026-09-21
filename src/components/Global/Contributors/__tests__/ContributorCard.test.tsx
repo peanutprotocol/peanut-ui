@@ -31,7 +31,7 @@ const contributor = (overrides: Partial<Contributor>): Contributor => ({
 describe('ContributorCard avatar', () => {
     it('renders the picked avatar of a Peanut contributor', () => {
         const { container } = renderWithIntl(
-            <ContributorCard contributor={contributor({ avatarKey: 'basic.frog' })} position="single" />
+            <ContributorCard contributor={contributor({ avatarKey: 'basic.frog' })} position="solo" />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
@@ -39,7 +39,7 @@ describe('ContributorCard avatar', () => {
 
     it('falls back to the username letter without a pick', () => {
         const { container } = renderWithIntl(
-            <ContributorCard contributor={contributor({ avatarKey: null })} position="single" />
+            <ContributorCard contributor={contributor({ avatarKey: null })} position="solo" />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/s.webp')
@@ -53,7 +53,7 @@ describe('ContributorCard avatar', () => {
                     isPeanutUser: false,
                     avatarKey: null,
                 })}
-                position="single"
+                position="solo"
             />
         )
 
@@ -62,7 +62,7 @@ describe('ContributorCard avatar', () => {
     })
 
     it('leaves the avatar out of the accessibility tree — the row names the contributor', () => {
-        renderWithIntl(<ContributorCard contributor={contributor({ avatarKey: 'basic.frog' })} position="single" />)
+        renderWithIntl(<ContributorCard contributor={contributor({ avatarKey: 'basic.frog' })} position="solo" />)
 
         expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })

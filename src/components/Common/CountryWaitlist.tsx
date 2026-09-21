@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -71,7 +71,7 @@ export function CountryWaitlist({
                             {data?.joinedAt ? t('joinedBody', { country: countryName }) : t('body')}
                         </DrawerDescription>
                     </DrawerHeader>
-                    {(failed || isError) && <Notification priority="error">{t('error')}</Notification>}
+                    {(failed || isError) && <Callout priority="error">{t('error')}</Callout>}
                     {data?.joinedAt ? (
                         <Button className="w-full" onClick={onClose}>
                             {tCommon('gotIt')}

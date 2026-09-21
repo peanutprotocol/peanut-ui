@@ -1,6 +1,6 @@
 'use client'
 
-import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
@@ -281,7 +281,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             transactionType={typeForAvatar}
             status={status}
             context="header"
-            size="small"
+            size="m"
             countryCode={countryCode}
         />
     )
@@ -375,7 +375,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <StatusBadge status={status!} size="medium" />}
+                {showBadge && <Badge status={status!} size="medium" />}
             </div>
         </div>
     )

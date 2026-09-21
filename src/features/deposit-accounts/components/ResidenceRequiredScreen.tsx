@@ -12,16 +12,14 @@ import { useTranslations } from 'next-intl'
  *
  * The account cannot open, so the screen states the rule and offers the one
  * thing that changes it — the residence on the account — and, where the country
- * still takes QR payments, the way in that works without an account. Both the
- * Bridge corridors (BRL) and the Manteca top-ups (ARS) reach this screen, so
- * the copy is keyed by the residence country rather than by any one provider's
- * flow.
+ * still takes QR payments, the way in that works without an account. The
+ * Manteca top-up for Argentina reaches this screen. The copy is keyed by the
+ * residence country, not by one provider's flow.
  */
 
 /** the residence-gated corridors, by the country each one opens for */
 const CORRIDOR_COPY_BASE = {
     AR: 'corridors.BANK_TRANSFER_AR',
-    BR: 'corridors.BANK_TRANSFER_BR',
 } as const
 
 export function ResidenceRequiredScreen({
@@ -60,7 +58,7 @@ export function ResidenceRequiredScreen({
                     cta={
                         <div className="mt-4 flex w-full flex-col items-center gap-4">
                             {/* the residence row on Unlock payments, opened on arrival */}
-                            <Button variant="purple" className="w-full" href={residenceChangeHref}>
+                            <Button variant="primary" className="w-full" href={residenceChangeHref}>
                                 {t('details.residenceCta')}
                             </Button>
                             {qrPayHref && (

@@ -1,10 +1,8 @@
 /**
- * Brazil opens only for a legal resident of that country.
- *
- * The row is there for everybody, so the tap has to explain the rule and point
- * at the one thing that changes it — the residence on the account. Nationality
- * never decides this: a Brazilian living in Berlin gets the euro account, and
- * a German living in São Paulo gets the Brazilian one.
+ * Residence decides one corridor, Argentina, and its top-up flow states the
+ * rule. No account a user can open is residence-gated: reais stay on the Pix
+ * top-up, and Colombia is gated by a provider review. Nationality never
+ * decides anything here.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -25,14 +23,10 @@ jest.mock('next/navigation', () => ({
     useParams: () => ({}),
 }))
 
-let residenceIso2s: string[] = []
-jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => residenceIso2s }))
-
 jest.mock('../components/DepositAccountsListScreen', () => ({
     DepositAccountsListScreen: () => <div data-testid="hub" />,
 }))
 
-const BR_TITLE = messages.depositAccounts.corridors.BANK_TRANSFER_BR.residenceTitle
 const READY: GateState = { kind: 'ready' }
 const NONE = emptyCorridorRecord<DepositAccountView>()
 
@@ -64,13 +58,12 @@ const onResolveGate = jest.fn()
 
 beforeEach(() => {
     jest.clearAllMocks()
-    residenceIso2s = []
 })
 
 describe('residenceAllows', () => {
     it('answers on residence alone, and lets an ungated corridor through', () => {
-        expect(residenceAllows('BANK_TRANSFER_BR', ['BR'])).toBe(true)
-        expect(residenceAllows('BANK_TRANSFER_BR', ['DE'])).toBe(false)
+        expect(residenceAllows('BANK_TRANSFER_AR', ['AR'])).toBe(true)
+        expect(residenceAllows('BANK_TRANSFER_AR', ['DE'])).toBe(false)
         // a dual resident passes on either country
         expect(residenceAllows('BANK_TRANSFER_AR', ['DE', 'AR'])).toBe(true)
         expect(residenceAllows('SEPA_EU', [])).toBe(true)
@@ -80,90 +73,33 @@ describe('residenceAllows', () => {
     })
 })
 
-describe('tapping a residence-gated corridor', () => {
-    it('names the CPF to a non-resident and offers the residence flow', () => {
-        residenceIso2s = ['DE']
-        flow('BANK_TRANSFER_BR')
-
-        expect(screen.getByText(BR_TITLE)).toBeInTheDocument()
-        // What Bridge asks for is the tax ID; the residence is our pre-check.
-        expect(screen.getByText(/tax id \(cpf\)/i)).toBeInTheDocument()
-
-        const cta = screen.getByRole('link', { name: messages.depositAccounts.details.residenceCta })
-        expect(cta).toHaveAttribute('href', expect.stringContaining('/profile/identity-verification?open=residence'))
-    })
-
+describe('opening a corridor', () => {
     /**
-     * Residence closes the account, not the country. Brazil and Argentina take
-     * QR payments from any Peanut balance, so the screen that says no to the
-     * account says yes to the thing the user can still do there.
+     * Bridge opened a Bre-B account for a resident of Portugal, so COP behaves
+     * like MXN: the rail decides, never the residence.
      */
-    it('offers the QR payment a non-resident can still make in Brazil', () => {
-        residenceIso2s = ['DE']
-        flow('BANK_TRANSFER_BR')
-
-        expect(screen.getByText(/pay pix codes in brazil/i)).toBeInTheDocument()
-        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
-    })
-
-    /**
-     * Colombia is not one of these corridors. Bridge opened a Bre-B account for
-     * a resident of Portugal, so COP behaves like MXN: the rail decides.
-     */
-    it('opens the COP claim for a non-resident whose rail names the corridor', () => {
-        residenceIso2s = ['DE']
+    it('opens the COP claim for a user whose rail names the corridor', () => {
         flow('BANK_TRANSFER_CO', ['SEPA_EU', 'BANK_TRANSFER_CO'])
 
-        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /open cop account/i })).toBeInTheDocument()
     })
 
+    /**
+     * The typed parser answers its default for an id it does not know, so a
+     * link naming a corridor that has left the catalogue opened the euro
+     * account's screens.
+     */
+    it.each([['claim'], ['details']])('sends a %s link naming a removed corridor to the list', (step) => {
+        flow('BANK_TRANSFER_BR' as DepositCorridor, ['SEPA_EU'], { step })
+
+        expect(screen.getByTestId('hub')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /open eur account/i })).not.toBeInTheDocument()
+    })
+
     it('sends a COP link back to the list where the user has no such rail', () => {
-        residenceIso2s = ['CO']
         flow('BANK_TRANSFER_CO')
 
         expect(screen.getByTestId('hub')).toBeInTheDocument()
-    })
-
-    it('opens the claim for a resident, like any other corridor', () => {
-        residenceIso2s = ['BR']
-        flow('BANK_TRANSFER_BR', ['SEPA_EU', 'BANK_TRANSFER_BR'])
-
-        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /open brl account/i })).toBeInTheDocument()
-    })
-
-    /**
-     * The country list opens Brazil on its corridor now, the same way Portugal
-     * opens the euro account. A non-resident arriving that way has to read the
-     * rule, not a claim screen that would fail at the provider.
-     */
-    it('answers a Brazilian country pick with the rule, for a non-resident', () => {
-        residenceIso2s = ['DE']
-        flow('BANK_TRANSFER_BR', ['SEPA_EU'], { step: 'details' })
-
-        expect(screen.getByText(BR_TITLE)).toBeInTheDocument()
-    })
-
-    /**
-     * A Brazilian resident whose rail is not enabled yet is not stuck: the Pix
-     * top-up is the same money in, minted per payment. Reaching it from the
-     * gate screen is what keeps the country pick to one destination.
-     */
-    it('offers the Pix top-up to a resident waiting on the gate', () => {
-        residenceIso2s = ['BR']
-        flow('BANK_TRANSFER_BR', ['SEPA_EU'], { step: 'details', gate: { kind: 'needs-enrollment' } })
-
-        expect(screen.getByText(messages.depositAccounts.gate.verifyTitle)).toBeInTheDocument()
-        expect(screen.getByTestId('corridor-top-up')).toHaveAttribute('href', '/add-money/brazil/manteca')
-    })
-
-    it('leaves an ungated corridor alone whatever the residence says', () => {
-        residenceIso2s = ['CO']
-        flow('SEPA_EU')
-
-        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /open eur account/i })).toBeInTheDocument()
     })
 })
 

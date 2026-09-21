@@ -21,7 +21,9 @@ export function AccountOpenedScreen({ currency, onContinue }: { currency: string
 
     return (
         <PageStack>
-            <NavHeader title={t('title')} onPrev={onContinue} />
+            {/* Terminal success screen: the only forward action is Continue.
+                Hide the back control so the chevron cannot step back into the flow. */}
+            <NavHeader title={t('title')} hideBackBtn />
             <div className="flex flex-col items-center gap-6 text-center">
                 <PeanutMascot pose="cheering" alt="" className="size-[200px]" />
                 <TitleBlock
@@ -31,7 +33,7 @@ export function AccountOpenedScreen({ currency, onContinue }: { currency: string
                 />
             </div>
             <PageStack.Footer>
-                <Button variant="purple" className="w-full" onClick={onContinue}>
+                <Button variant="primary" className="w-full" onClick={onContinue}>
                     {t('opened.cta')}
                 </Button>
             </PageStack.Footer>

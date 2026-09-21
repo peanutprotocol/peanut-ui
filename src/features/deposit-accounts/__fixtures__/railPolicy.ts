@@ -81,20 +81,9 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
             min: { amount: '50', currency: 'MXN' },
         },
     },
-    BANK_TRANSFER_BR: {
-        sender: 'business-only',
-        rules: {
-            ownAccount: { allowed: true },
-            // "supported", not "unlimited": §3 names no ceiling and no volume
-            thirdPartyBusiness: 'allowed',
-            thirdPartyIndividual: { policy: 'unavailable' },
-            min: { amount: '10', currency: 'BRL' },
-            monthlyLimit: { amount: '500000', currency: 'USD' },
-        },
-    },
     // §3 now carries a Colombian row: the `cop` endorsement covers Bre-B both
     // ways, a business is supported, another person unavailable. "supported",
-    // not "unlimited", for the same reason as BRL — §3 names no ceiling.
+    // not "unlimited": §3 names no ceiling and no volume.
     BANK_TRANSFER_CO: {
         sender: 'business-only',
         rules: {

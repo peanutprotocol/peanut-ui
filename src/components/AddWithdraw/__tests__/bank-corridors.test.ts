@@ -1,4 +1,4 @@
-import { bankCorridorFor, hasBridgeBankCorridor } from '../bank-corridors'
+import { bankCorridorFor, corridorAcceptsAddressCountry, hasBridgeBankCorridor } from '../bank-corridors'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
@@ -153,5 +153,37 @@ describe('the withdraw picker and the withdraw form agree on every country', () 
             }
         }
         expect(disagreements).toEqual([])
+    })
+})
+
+/**
+ * A prefilled address has to belong to the corridor it lands in. The provider
+ * would take a French address on a US payout and pay against a beneficiary who
+ * does not live there.
+ */
+describe('which country an address may come from', () => {
+    it.each([
+        ['a Spanish address, euro corridor', 'SEPA', 'ES', true],
+        ['an alpha-3 Spanish address, euro corridor', 'SEPA', 'ESP', true],
+        ['a US address, euro corridor', 'SEPA', 'US', false],
+        ['a UK address, euro corridor', 'SEPA', 'GB', false],
+        ['a US address, US corridor', 'USA', 'US', true],
+        ['a French address, US corridor', 'USA', 'FR', false],
+        ['a UK address, UK corridor', 'GB', 'GBR', true],
+        ['a Mexican address, Mexican corridor', 'MX', 'MEX', true],
+        ['a Mexican address, US corridor', 'USA', 'MX', false],
+    ])('%s', (_, country, addressCountry, expected) => {
+        const corridor = bankCorridorFor(country)!
+        expect(corridorAcceptsAddressCountry(corridor, addressCountry)).toBe(expected)
+    })
+
+    it.each([[null], [undefined], ['']])('an unnamed country is allowed through (%s)', (value) => {
+        // the form asked for the address before any of this existed; refusing to
+        // fill one in because we cannot name its country is the worse answer
+        expect(corridorAcceptsAddressCountry(bankCorridorFor('SEPA')!, value)).toBe(true)
+    })
+
+    it('Colombia asks for no address, so the question never arises', () => {
+        expect(bankCorridorFor('CO')!.needsAddress).toBe(false)
     })
 })

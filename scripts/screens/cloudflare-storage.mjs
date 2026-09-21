@@ -21,30 +21,59 @@ export function r2Endpoint(env = process.env) {
     if (!/^[a-f0-9]{32}$/.test(env.CLOUDFLARE_ACCOUNT_ID ?? '')) throw new Error('Invalid Cloudflare account ID')
     return `https://${env.CLOUDFLARE_ACCOUNT_ID}${jurisdiction === 'default' ? '' : `.${jurisdiction}`}.r2.cloudflarestorage.com`
 }
-export async function tokenCredentials(token, request = fetch) {
-    const response = await request('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(30000),
-    })
-    if (!response.ok) throw new Error('Cloudflare token verification failed')
-    const data = await response.json()
-    if (!data.success || data.result?.status !== 'active' || !/^[a-f0-9]{32}$/.test(data.result?.id ?? ''))
-        throw new Error('Cloudflare token is not active or has no valid ID')
-    return {
-        accessKeyId: data.result.id,
-        secretAccessKey: createHash('sha256').update(token).digest('hex'),
+export async function tokenCredentials(token, accountId, request = fetch) {
+    if (!/^[a-f0-9]{32}$/.test(accountId ?? '')) throw new Error('Invalid Cloudflare account ID')
+
+    // R2 supports both account-owned and legacy user-owned API tokens. Their
+    // verification endpoints are distinct even though both token types derive
+    // the same S3 credentials.
+    const endpoints = [
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/tokens/verify`,
+        'https://api.cloudflare.com/client/v4/user/tokens/verify',
+    ]
+    const statuses = []
+    for (const endpoint of endpoints) {
+        const response = await request(endpoint, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(30000),
+        })
+        if (!response.ok) {
+            statuses.push(response.status)
+            continue
+        }
+        const data = await response.json()
+        // Cloudflare may return an unsuccessful v4 envelope for the wrong
+        // ownership-scoped endpoint without making the HTTP request fail.
+        if (!data.success) {
+            statuses.push(response.status)
+            continue
+        }
+        if (data.result?.status !== 'active' || !/^[a-f0-9]{32}$/.test(data.result?.id ?? ''))
+            throw new Error('Cloudflare token is not active or has no valid ID')
+        return {
+            accessKeyId: data.result.id,
+            secretAccessKey: createHash('sha256').update(token).digest('hex'),
+        }
     }
+    throw new Error(`Cloudflare token verification failed (HTTP ${statuses.join(', ')})`)
 }
-export async function createStorage(env = process.env) {
+export async function createStorage(
+    env = process.env,
+    { request = fetch, loadS3 = () => import('@aws-sdk/client-s3') } = {}
+) {
     const config = configuration(env)
-    const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3')
+    const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await loadS3()
     const client = new S3Client({
         region: 'auto',
         endpoint: r2Endpoint(config),
-        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN),
+        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN, config.CLOUDFLARE_ACCOUNT_ID, request),
     })
     const Bucket = config.SCREEN_LIBRARY_R2_BUCKET
     const url = (key) => `${config.SCREEN_LIBRARY_PUBLIC_URL}/screen-data/${key}`
+    const readWithMetadata = async (key) => {
+        const result = await client.send(new GetObjectCommand({ Bucket, Key: key }))
+        return { body: Buffer.from(await result.Body.transformToByteArray()), etag: result.ETag }
+    }
     return {
         async put(key, body, options = {}) {
             await client.send(
@@ -60,12 +89,9 @@ export async function createStorage(env = process.env) {
             )
             return { url: url(key), pathname: key }
         },
-        async readWithMetadata(key) {
-            const result = await client.send(new GetObjectCommand({ Bucket, Key: key }))
-            return { body: Buffer.from(await result.Body.transformToByteArray()), etag: result.ETag }
-        },
+        readWithMetadata,
         async read(key) {
-            return (await this.readWithMetadata(key)).body
+            return (await readWithMetadata(key)).body
         },
         async list({ prefix, cursor, limit = 1000 }) {
             const result = await client.send(

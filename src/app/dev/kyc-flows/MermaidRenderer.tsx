@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 
 interface Props {
@@ -67,16 +67,16 @@ export function MermaidRenderer({ diagrams, source }: Props) {
                 description={`${diagrams.length} diagrams loaded from the Mono repository.`}
             >
                 <div ref={containerRef} className="flex min-w-0 flex-col gap-8">
-                    <Notification priority="info" title="Source">
+                    <Callout priority="info" title="Source">
                         <code className="font-mono text-body-xs break-all">{source}</code>
-                    </Notification>
+                    </Callout>
 
                     {diagrams.map((d, i) => (
                         <Section key={i} title={d.title}>
                             {errors[i] ? (
-                                <Notification priority="error" title="Diagram render failed">
+                                <Callout priority="error" title="Diagram render failed">
                                     <pre className="font-mono text-body-xs whitespace-pre-wrap">{errors[i]}</pre>
-                                </Notification>
+                                </Callout>
                             ) : (
                                 <Card
                                     className="mermaid-diagram min-h-50 items-center justify-center overflow-auto p-4 text-body-s text-foreground-secondary"

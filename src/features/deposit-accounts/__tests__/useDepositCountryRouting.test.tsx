@@ -26,7 +26,8 @@ jest.mock('@/features/destinations/country-rails', () => ({
             AR: { id: 'bank-transfer-add', path: '/add-money/argentina/manteca' },
             DE: { id: 'bank-transfer-add', path: '/add-money/germany/bank' },
         })[id] ?? null,
-    liveRailsForCountry: (id: string) => (id === 'DEU' ? [{ id: 'bank-transfer-add' }] : []),
+    liveRailsForCountry: (id: string) =>
+        id === 'DEU' ? [{ id: 'bank-transfer-add', path: '/add-money/germany/bank' }] : [],
 }))
 
 jest.mock('@/utils/native-routes', () => ({
@@ -55,10 +56,20 @@ import { useDepositCountryRouting } from '../useDepositCountryRouting'
 const PORTUGAL = { id: 'PRT', type: 'country', title: 'Portugal', path: 'portugal', iso2: 'PT', currency: 'EUR' }
 const ARGENTINA = { id: 'AR', type: 'country', title: 'Argentina', path: 'argentina', iso2: 'AR', currency: 'ARS' }
 const BRAZIL = { id: 'BRA', type: 'country', title: 'Brazil', path: 'brazil', iso2: 'BR', currency: 'BRL' }
+// a euro member whose own bank flow is live — the mock answers for DEU alone
+const GERMANY = { id: 'DEU', type: 'country', title: 'Germany', path: 'germany', iso2: 'DE', currency: 'EUR' }
 const NIGERIA = { id: 'NG', type: 'country', title: 'Nigeria', path: 'nigeria', iso2: 'NG', currency: 'NGN' }
 
-const renderRouting = (onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
-    renderHook(() => useDepositCountryRouting(), { wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }) })
+type RoutingArgs = Parameters<typeof useDepositCountryRouting>[0]
+
+const renderRouting = (onUrlUpdate?: (e: UrlUpdateEvent) => void, args?: RoutingArgs) =>
+    renderHook(() => useDepositCountryRouting(args), {
+        wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }),
+    })
+
+/** the corridor terms the backend returns, with the block it carries */
+const blocked = (blockedBy?: string) =>
+    ({ SEPA_EU: { railId: 'bridge.sepa_eu', blockedBy } }) as unknown as NonNullable<RoutingArgs>['claimable']
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -95,28 +106,14 @@ describe('useDepositCountryRouting', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
     })
 
-    /**
-     * Brazil has two Pix products, and the country pick used to have to choose
-     * between them. It opens the BRL corridor instead, whether or not the user
-     * has the rail yet: the flow behind it resolves the claim, the gate, the
-     * residence and the Pix top-up in one place.
-     */
-    it('opens the Brazilian corridor in place, offered rail or not', async () => {
-        mockOfferedCorridors.mockReturnValue(['BANK_TRANSFER_BR'])
-        const updates: UrlUpdateEvent[] = []
-        const { result } = renderRouting((e) => updates.push(e))
+    // Brazil has one bank way in, the Pix top-up, so the country pick goes
+    // straight to it like Argentina.
+    it('sends Brazil to the Pix top-up', () => {
+        const { result } = renderRouting()
 
         act(() => result.current.openCountry(BRAZIL as any))
-        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_BR'))
-        expect(updates.at(-1)?.searchParams.get('step')).toBe('details')
-        expect(mockRouterPush).not.toHaveBeenCalled()
 
-        mockOfferedCorridors.mockReturnValue([])
-        const without: UrlUpdateEvent[] = []
-        const { result: notOffered } = renderRouting((e) => without.push(e))
-        act(() => notOffered.current.openCountry(BRAZIL as any))
-        await waitFor(() => expect(without.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_BR'))
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
     })
 
     it('keeps the bank flow for a corridor the user has no rail for, and while the flag is off', () => {
@@ -130,6 +127,77 @@ describe('useDepositCountryRouting', () => {
         const { result: dark } = renderRouting()
         act(() => dark.current.openCountry({ id: 'DE', type: 'country', path: 'germany' } as any))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+    })
+
+    /**
+     * The regression this branch exists for. The user IS offered the euro
+     * corridor, so "one country, one destination" answered with the standing
+     * account and dropped the country's own bank flow from the routes — and at
+     * the account cap there is no standing account to open, so the tap led
+     * nowhere. The transfer they send themselves needs no account and was
+     * working the whole time.
+     */
+    it('sends a capped user to the transfer that needs no account', () => {
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((e) => updates.push(e), { claimable: blocked('account-limit') })
+
+        act(() => result.current.openCountry(GERMANY as any))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+        expect(updates.at(-1)?.searchParams.get('corridor')).not.toBe('SEPA_EU')
+    })
+
+    it.each([['endorsement-required'], ['endorsement-pending']])(
+        'sends a user blocked by %s to the same transfer',
+        (blockedBy) => {
+            mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+            const { result } = renderRouting(undefined, { claimable: blocked(blockedBy) })
+
+            act(() => result.current.openCountry(GERMANY as any))
+
+            expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+        }
+    )
+
+    // The preference still holds where it can be acted on: an account they can
+    // open on this tap is the better answer, because it is reusable.
+    it('keeps the standing account where the user can open one', async () => {
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((e) => updates.push(e), { claimable: blocked(undefined) })
+
+        act(() => result.current.openCountry(PORTUGAL as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('keeps the standing account where the user already holds a working one', async () => {
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((e) => updates.push(e), {
+            accounts: { SEPA_EU: { status: 'active' } } as any,
+            claimable: blocked('account-limit'),
+        })
+
+        act(() => result.current.openCountry(PORTUGAL as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    // Nothing is known yet, so nothing contradicts the account: the account
+    // screens have their own loading state and resolve to the right one.
+    it('keeps the standing account while the accounts are still being read', async () => {
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((e) => updates.push(e), { isLoading: true })
+
+        act(() => result.current.openCountry(PORTUGAL as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('offers the waitlist only where a country has no corridor and no live rail', () => {

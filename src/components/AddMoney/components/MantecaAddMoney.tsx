@@ -76,7 +76,7 @@ const MantecaAddMoney: FC = () => {
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
-    // flow-level failures (API/provider) — rendered in the Notification
+    // flow-level failures (API/provider) — rendered in the Callout
     const [error, setError] = useState<string | null>(null)
     // client-side minimum-amount validation — rendered as the field's own error
     const [validationError, setValidationError] = useState<string | null>(null)
@@ -303,7 +303,7 @@ const MantecaAddMoney: FC = () => {
                 residenceIso2="AR"
                 qrPayHref="/qr-pay"
                 residenceChangeHref={withReturnTo(
-                    '/profile/identity-verification?open=residence',
+                    '/profile/accounts-and-payments?open=residence',
                     '/add-money?method=bank'
                 )}
                 onBack={onBack}
@@ -398,7 +398,10 @@ const MantecaAddMoney: FC = () => {
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
-                onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Settled screen: the deposit is already created. Leave the flow the
+                // way the input step does, not back to `inputAmount` (which would let
+                // the user start a second deposit).
+                onBack={onBack}
             />
         )
     }
@@ -411,7 +414,10 @@ const MantecaAddMoney: FC = () => {
             <MantecaPixQrDeposit
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
-                onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Settled screen: the deposit is already created. Back leaves the flow
+                // the way the input step does, not to `inputAmount` (which would let the
+                // user start a second deposit).
+                onBack={onBack}
                 // Terminal exit — `replace` so device/browser back can't pop into the
                 // finished deposit (whose step=showQR would redirect to a new one).
                 onDone={() => router.replace('/home')}
