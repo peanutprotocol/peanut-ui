@@ -11,6 +11,7 @@ import { SearchInput } from '@/components/SearchInput'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Icon } from '@/components/Global/Icons/Icon'
+import Loading from '@/components/Global/Loading'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { SEPA_DESTINATION } from '@/components/AddWithdraw/bank-corridors'
@@ -36,6 +37,12 @@ interface WithdrawCurrencyListProps {
     enforceSupportedCountries?: boolean
     /** Search the list opens with — `/withdraw?currencyCode=EUR` lands on the EUR row. */
     initialQuery?: string
+    /**
+     * The country path a tap is currently navigating to, or null when nothing
+     * is in flight. That row loads in place, so the wait is shown on the row
+     * the user pressed. The caller ignores any further tap while it is set.
+     */
+    pendingPath?: string | null
 }
 
 /**
@@ -57,6 +64,7 @@ export function WithdrawCurrencyList({
     onCryptoClick,
     enforceSupportedCountries,
     initialQuery = '',
+    pendingPath = null,
 }: WithdrawCurrencyListProps) {
     const t = useTranslations('withdraw')
     const tGlobal = useTranslations('global')
@@ -77,16 +85,24 @@ export function WithdrawCurrencyList({
         [currencies, query, locale]
     )
 
-    const handleCurrencyClick = (currency: WithdrawCurrency) => {
+    /**
+     * The destination a tap on this row opens, or null when the row only
+     * expands in place. Both the tap and the row's pending state read it, so
+     * the spinner cannot end up on a different row from the navigation.
+     */
+    const routedDestination = (currency: WithdrawCurrency): CountryData | null => {
         // One country behind the currency: nothing to disambiguate — route it.
-        if (currency.countries.length === 1) {
-            onCountryClick(currency.countries[0])
-            return
-        }
+        if (currency.countries.length === 1) return currency.countries[0]
         // The IBAN answers the country question, so it is never asked: the euro
         // area is one destination and the form reads the country off the IBAN.
-        if (currencyRoutesByIban(currency)) {
-            onCountryClick(SEPA_DESTINATION)
+        if (currencyRoutesByIban(currency)) return SEPA_DESTINATION
+        return null
+    }
+
+    const handleCurrencyClick = (currency: WithdrawCurrency) => {
+        const destination = routedDestination(currency)
+        if (destination) {
+            onCountryClick(destination)
             return
         }
         // Any other shared currency: reveal its countries as the secondary step.
@@ -127,14 +143,19 @@ export function WithdrawCurrencyList({
                         // a currency the IBAN decides routes straight through, so
                         // it gets the plain chevron, not the expand affordance
                         const isMulti = currency.countries.length > 1 && !currencyRoutesByIban(currency)
+                        // the row the user tapped carries the wait, and takes no
+                        // second tap while it does
+                        const isNavigating = !!pendingPath && routedDestination(currency)?.path === pendingPath
                         return (
                             <div key={currency.code}>
                                 <ListItem
                                     title={currency.code}
                                     body={localizedCurrencyName(locale, currency.code, currency.name)}
-                                    chevron={!isMulti}
+                                    chevron={!isMulti && !isNavigating}
                                     trailing={
-                                        isMulti ? (
+                                        isNavigating ? (
+                                            <Loading />
+                                        ) : isMulti ? (
                                             <Icon
                                                 name="chevron-down"
                                                 size={20}
@@ -147,6 +168,7 @@ export function WithdrawCurrencyList({
                                     }
                                     position={getCardPosition(index, filteredCurrencies.length)}
                                     aria-expanded={isMulti ? expanded : undefined}
+                                    disabled={isNavigating}
                                     onClick={() => handleCurrencyClick(currency)}
                                     data-testid={`withdraw-currency-${currency.code}`}
                                     leading={
