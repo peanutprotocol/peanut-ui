@@ -11,12 +11,9 @@ import BaseSelect, { type BaseSelectOption } from '@/components/0_Bruddle/BaseSe
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-accounts.utils'
+import { validateIban, validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
-import { bicCountryDiffersFromIban } from './bicIbanCountry.utils'
-import { ISO_9362_BIC } from '@/constants/iban-bic.consts'
 import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
-import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryFromIban, getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
@@ -32,7 +29,6 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useOwnAccountIdentity } from '@/hooks/useOwnAccountIdentity'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
-import { useDebounce } from '@/hooks/useDebounce'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 
@@ -43,7 +39,8 @@ export type IBankAccountDetails = {
     accountOwnerName?: string // single field for withdraw flow
     email: string
     accountNumber: string
-    bic: string
+    /** Only ever read back from a saved account or the provider; the form no longer collects one. */
+    bic?: string
     routingNumber: string
     sortCode: string // uk bank accounts
     clabe: string
@@ -118,22 +115,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const { isFromSendFlow } = useSendFlowOrigin()
         const framedAsSend = isFromSendFlow && flow === 'withdraw'
         const savedAccounts = useSavedAccounts()
-        const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
-        // The provider needs a BIC with every IBAN. Where the bundled table knows
-        // the bank (AT/BE/DE/ES/FR/LU/NL) the form derives the BIC and hides the
-        // field; for every other IBAN the field shows and is required. See
-        // syncBicWithIban.
-        const [bicAutoFilled, setBicAutoFilled] = useState(false)
-        // The BIC the form derived, so a change of IBAN can tell a derived BIC
-        // (now stale) from one the user typed.
         const ctaRef = useRef<HTMLDivElement>(null)
-        const derivedBicRef = useRef<string | null>(null)
-        // the IBAN that BIC was derived from, so a failed lookup can tell "same IBAN" from "new one"
-        const derivedForIbanRef = useRef<string | null>(null)
-        // the IBAN whose BIC the user corrected by hand, so re-deriving at
-        // submit cannot quietly put our answer back over theirs. Holds one IBAN,
-        // never a set: a correction does not survive a change of IBAN.
-        const correctedForIbanRef = useRef<string | null>(null)
         const toast = useToast()
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
@@ -152,9 +134,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             control,
             handleSubmit,
             setValue,
-            setError,
             getValues,
-            watch,
             formState: { errors, isValid, isValidating, touchedFields, dirtyFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -163,7 +143,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 accountOwnerName: defaultAccountOwnerName,
                 email: flow === 'claim' ? (user?.user.email ?? '') : '', // only pre-fill email in claim flow
                 accountNumber: '',
-                bic: '',
                 routingNumber: '',
                 sortCode: '', // uk bank accounts
                 clabe: '',
@@ -247,21 +226,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             writtenByPrefill.current = []
         }, [canPrefill, isOwnAccount, prefillValues, setValue])
 
-        // Watch BIC field value for debouncing
-        const bicValue = watch('bic')
-        const debouncedBicValue = useDebounce(bicValue, 500) // 500ms delay
-
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
         }))
-
-        // Trigger BIC validation when debounced value changes
-        useEffect(() => {
-            if (isIban && debouncedBicValue && debouncedBicValue.trim().length > 0) {
-                // Trigger validation for the BIC field
-                setValue('bic', debouncedBicValue, { shouldValidate: true })
-            }
-        }, [debouncedBicValue, isIban, setValue])
 
         // The form is taller than a small phone, and at 375x667 its button rests
         // half behind the bottom nav: on screen, and a tap on it switches tabs.
@@ -272,66 +239,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         useEffect(() => {
             if (canSubmit) scrollClearOfBottomNav(ctaRef.current)
         }, [canSubmit])
-
-        /**
-         * Keeps the BIC in step with the IBAN and returns the derived BIC, if any.
-         * An IBAN the table knows fills the field in and says so. Any other IBAN
-         * (unknown bank, invalid, empty) leaves it empty and drops a BIC derived
-         * from an earlier IBAN, so the form never holds a pair that does not match.
-         *
-         * The field stays on screen either way. A derived BIC is a lookup, not a
-         * fact about this account: the tables behind it carry retired codes and
-         * banks that renamed, so the person whose money it is has to be able to
-         * see it and correct it.
-         */
-        const syncBicWithIban = async (rawIban: string): Promise<string | null> => {
-            const iban = (rawIban ?? '').replace(/\s/g, '')
-
-            // A correction belongs to the IBAN it was made for, and to no other.
-            // Syncing any different IBAN drops it, so coming back to the first
-            // one derives afresh instead of reusing a BIC that by then may name
-            // another bank entirely. Cleared here rather than beside the
-            // overwrite below so that it happens for an IBAN that derives
-            // nothing too.
-            if (correctedForIbanRef.current !== null && correctedForIbanRef.current !== iban) {
-                correctedForIbanRef.current = null
-            }
-
-            let derivedBic: string | null = null
-            if (iban && (await validateIban(iban))) {
-                try {
-                    derivedBic = (await getBicFromIban(iban)) || null
-                } catch {
-                    // The lookup FAILED, which is not "the table does not know
-                    // this bank". A BIC already derived for this same IBAN is
-                    // still right; dropping it made a network blip at submit
-                    // demand a BIC by hand from a user who never saw the field.
-                    derivedBic = derivedForIbanRef.current === iban ? derivedBicRef.current : null
-                }
-            }
-
-            if (derivedBic) {
-                // The user corrected this IBAN's BIC, so ours lost. Re-deriving
-                // runs again at submit, and without this it would overwrite the
-                // correction with the value they had just rejected.
-                if (correctedForIbanRef.current === iban) {
-                    return (getValues('bic') ?? '').trim() || null
-                }
-                derivedBicRef.current = derivedBic
-                derivedForIbanRef.current = iban
-                setValue('bic', derivedBic, { shouldValidate: true })
-                setBicAutoFilled(true)
-                return derivedBic
-            }
-
-            if (derivedBicRef.current !== null && getValues('bic') === derivedBicRef.current) {
-                setValue('bic', '', { shouldValidate: true })
-            }
-            derivedBicRef.current = null
-            derivedForIbanRef.current = null
-            setBicAutoFilled(false)
-            return null
-        }
 
         const onSubmit = async (data: IBankAccountDetails) => {
             // If validation is still running, don't proceed
@@ -385,23 +292,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const iban = data.iban || getValues('iban')
 
-                // Enter submits without a blur, so the BIC may still belong to the
-                // IBAN typed before this one. Derive again from the IBAN that is
-                // about to be sent; a BIC the user typed survives only when nothing
-                // derives.
-                let bic = data.bic || getValues('bic')
-                if (isIban) {
-                    const derivedBic = await syncBicWithIban(data.accountNumber || iban || '')
-                    bic = derivedBic ?? getValues('bic')
-                    if (!bic) {
-                        // The field was hidden until now, and the form skips the rules
-                        // of a field that is not mounted, so set its error by hand.
-                        setValue('bic', '', { shouldTouch: true })
-                        setError('bic', { type: 'required', message: t('bicRequired') })
-                        return
-                    }
-                }
-
                 // uk account numbers may be 6-7 digits, pad to 8 for bridge api
                 const cleanedAccountNumber = isUk
                     ? accountNumber.replace(/\s/g, '').padStart(8, '0')
@@ -444,7 +334,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             country: resolvedCountryCode,
                         },
                     }),
-                    ...(bic && { bic }),
                 }
 
                 // The corridor names its own extra fields, so a new one needs no
@@ -459,7 +348,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     ...data,
                     iban: isIban ? data.accountNumber || iban || '' : '',
                     accountNumber: isIban ? '' : data.accountNumber,
-                    bic: bic,
                     sortCode: isUk ? data.sortCode : '',
                     country,
                     firstName: firstName.trim(),
@@ -483,8 +371,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             switch (name) {
                 case 'clabe':
                     return 'clabe'
-                case 'bic':
-                    return 'bic'
                 case 'routingNumber':
                     return 'routingNumber'
                 case 'sortCode':
@@ -696,11 +582,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                               return true
                                           },
                                       },
-                                      'text',
-                                      undefined,
-                                      async (value) => {
-                                          await syncBicWithIban(value)
-                                      }
+                                      'text'
                                   )
                                 : corridor &&
                                   renderInput(
@@ -714,66 +596,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                       'text'
                                   )}
 
-                            {isIban &&
-                                renderInput(
-                                    'bic',
-                                    t('bic'),
-                                    {
-                                        // Always on screen: the provider rejects an IBAN
-                                        // account without a BIC, and a derived one still
-                                        // has to be visible to be correctable.
-                                        required: t('bicRequired'),
-                                        validate: async (value: string) => {
-                                            if (!value || value.trim().length === 0) return t('bicRequired')
-                                            // Shape first, and for a derived BIC too. A
-                                            // lookup that returns something malformed must
-                                            // not reach the provider unchallenged.
-                                            if (!ISO_9362_BIC.test(value.trim().toUpperCase())) return t('bicInvalid')
-                                            // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
-                                            if (value.trim() !== debouncedBicValue?.trim()) {
-                                                return true // Skip validation until debounced value is ready
-                                            }
-
-                                            setisCheckingBICValid(true)
-                                            const isValid = await validateBic(value.trim())
-                                            setisCheckingBICValid(false)
-                                            return isValid || t('bicInvalid')
-                                        },
-                                    },
-                                    'text',
-                                    undefined,
-                                    (value) => {
-                                        // Once the user changes it the value is theirs: the
-                                        // note goes, and re-derivation stops overwriting it.
-                                        if (value.trim() && value.trim() !== derivedBicRef.current) {
-                                            correctedForIbanRef.current = (getValues('accountNumber') ?? '').replace(
-                                                /\s/g,
-                                                ''
-                                            )
-                                        }
-                                        setBicAutoFilled(false)
-                                        if (value.length > 0 && submissionError) {
-                                            setSubmissionError(null)
-                                        }
-                                    },
-                                    undefined,
-                                    undefined,
-                                    // Two notes, never a refusal. The first says where a
-                                    // value the user did not type came from. The second
-                                    // flags a BIC registered in another member state than
-                                    // the IBAN, which is routine — Revolut issues Spanish
-                                    // IBANs under a Lithuanian BIC — and which the provider
-                                    // is the only authority on, asked by `validateBic`.
-                                    [
-                                        bicAutoFilled ? t('bicAutoFilled') : undefined,
-                                        !!bicValue &&
-                                        bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
-                                            ? t('bicCountryMismatch')
-                                            : undefined,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' ') || undefined
-                                )}
                             {corridor?.fields.map((field: BankCorridorField) =>
                                 field.kind === 'select' ? (
                                     <div key={field.name}>
@@ -954,8 +776,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 variant="primary"
                                 shadowSize="4"
                                 className="w-full"
-                                loading={isSubmitting || isCheckingBICValid || isValidating}
-                                disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
+                                loading={isSubmitting || isValidating}
+                                disabled={isSubmitting || !isValid || isValidating}
                             >
                                 {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
                             </Button>
