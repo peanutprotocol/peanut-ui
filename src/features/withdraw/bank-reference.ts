@@ -31,6 +31,16 @@ export interface BankReferenceSpec {
         | 'referenceHelperCoBankTransfer'
     /** `withdraw.bank` message key that names the allowed characters. */
     invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch' | 'referenceInvalidCharsSpei'
+    /**
+     * `withdraw.bank` key warning that the rail rewrites the text.
+     *
+     * Set only where we have seen it happen. On SEPA the spec allows a space
+     * and the provider still strips it and capitalises the result
+     * ("hello world" arrives as "Helloworld"), measured on a real transfer
+     * 2026-09-21. We do not echo the final value back at submit time, so the
+     * receipt's reference row is where the user reads what was really sent.
+     */
+    rewrittenKey?: 'referenceFormattingMayChange'
 }
 
 const SPECS: Record<string, BankReferenceSpec> = {
@@ -41,6 +51,7 @@ const SPECS: Record<string, BankReferenceSpec> = {
         allowed: /^[a-zA-Z0-9 &\-./]*$/,
         helperKey: 'referenceHelperSepa',
         invalidCharsKey: 'referenceInvalidCharsSepa',
+        rewrittenKey: 'referenceFormattingMayChange',
     },
     ach: {
         field: 'achReference',
@@ -109,57 +120,61 @@ export function bankReferenceDestinationFields(
 }
 
 /**
- * Whose name the receiving bank shows as the sender of a withdrawal.
+ * The note under the review screen's amount block.
  *
- * It is not the user, on any rail we offer. The provider sets this per rail as
- * account configuration — we cannot set it per payment — so the honest thing is
- * to say what each rail actually does. Read from the provider's payout
- * configuration for our own account (2026-09-21):
- * - `sepa`: the provider's own entity. The user's name reaches the recipient
- *   only inside the reference line.
+ * Two different facts share one slot, because only one of them is true per
+ * rail.
+ *
+ * On `sepa` we no longer say who the recipient's bank shows as the sender. Our
+ * own round trip contradicts the old claim: a real SEPA payout landed with the
+ * user's own legal name as `sender_name`, not our payment partner's. That
+ * payout went into the user's own euro account at the same provider, so it is
+ * not proof of what an unrelated bank records either — which is exactly why we
+ * say nothing about the sender there. What we DID measure is what the
+ * reference does, so that is what the note states.
+ *
+ * On the other rails the sender fact is read from the provider's payout
+ * configuration for our own account (2026-09-21) and is unchanged:
  * - `ach`: the provider's own entity, under a Peanut descriptor.
  * - `spei`: the provider's upstream local bank.
  * - `wire`: Peanut itself.
  *
  * `faster_payments` and `co_bank_transfer` are absent from that configuration,
  * so we do not know and say nothing rather than guess.
- *
- * On `sepa` the user's name rides inside the reference, so there is a second
- * sentence that holds ONLY while the user typed no reference of their own —
- * see `payoutSenderDefaultReferenceNoteForRail`.
  */
-export type PayoutSenderNoteKey = 'payoutSenderSepa' | 'payoutSenderAch' | 'payoutSenderSpei' | 'payoutSenderWire'
+export type PayoutSenderNoteKey = 'payoutSenderAch' | 'payoutSenderSpei' | 'payoutSenderWire'
+export type PayoutReferenceNoteKey = 'payoutReferenceReplacesDefaultSepa'
+export type PayoutNoteKey = PayoutSenderNoteKey | PayoutReferenceNoteKey
 
-const SENDER_NOTES: Record<string, PayoutSenderNoteKey> = {
-    sepa: 'payoutSenderSepa',
+const PAYOUT_NOTES: Record<string, PayoutNoteKey> = {
+    sepa: 'payoutReferenceReplacesDefaultSepa',
     ach: 'payoutSenderAch',
     spei: 'payoutSenderSpei',
     wire: 'payoutSenderWire',
 }
 
 /** The `withdraw.bank` message key for this rail, or null when we cannot say. */
-export function payoutSenderNoteForRail(paymentRail: string | undefined): PayoutSenderNoteKey | null {
-    return (paymentRail && SENDER_NOTES[paymentRail]) || null
+export function payoutNoteForRail(paymentRail: string | undefined): PayoutNoteKey | null {
+    return (paymentRail && PAYOUT_NOTES[paymentRail]) || null
 }
 
 /**
- * The extra sentence that holds only on the DEFAULT reference.
+ * The extra sentence that holds only while the user has typed no reference.
  *
- * On `sepa` the provider composes the reference itself and its template carries
- * the user's legal name, so with no reference of our own the user's name does
- * reach the recipient. Whether a reference we send REPLACES that default is not
- * known (TD-37), so as soon as the user types one we stop making the promise
- * rather than restate it as a loss we have not proven.
+ * On `sepa` the default reference our payment partner composes carries the
+ * user's legal name. A reference the user types replaces that whole line —
+ * measured on a real transfer, 2026-09-21 (TD-37) — so the sentence goes as
+ * soon as they type one, and the note above it says what they gave up.
  */
-export type PayoutSenderDefaultReferenceNoteKey = 'payoutSenderSepaDefaultReference'
+export type PayoutDefaultReferenceNoteKey = 'payoutDefaultReferenceCarriesNameSepa'
 
-const SENDER_DEFAULT_REFERENCE_NOTES: Record<string, PayoutSenderDefaultReferenceNoteKey> = {
-    sepa: 'payoutSenderSepaDefaultReference',
+const DEFAULT_REFERENCE_NOTES: Record<string, PayoutDefaultReferenceNoteKey> = {
+    sepa: 'payoutDefaultReferenceCarriesNameSepa',
 }
 
 /** The `withdraw.bank` key for this rail's default-reference sentence, or null. */
-export function payoutSenderDefaultReferenceNoteForRail(
+export function payoutDefaultReferenceNoteForRail(
     paymentRail: string | undefined
-): PayoutSenderDefaultReferenceNoteKey | null {
-    return (paymentRail && SENDER_DEFAULT_REFERENCE_NOTES[paymentRail]) || null
+): PayoutDefaultReferenceNoteKey | null {
+    return (paymentRail && DEFAULT_REFERENCE_NOTES[paymentRail]) || null
 }

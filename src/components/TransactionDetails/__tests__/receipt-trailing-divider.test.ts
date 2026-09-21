@@ -2,8 +2,9 @@
  * The details card underlines every row with a dashed rule and drops it on the
  * last one, so the rule doesn't double up with the card's own black border.
  *
- * Since TASK-22452 the card always ends on the document rows (reference, then
- * issued-on): both render directly in the card with no extra runtime gate, so
+ * Since TASK-22452 the card always ends on the document rows (an optional
+ * reference, then issued-on): issued-on renders directly in the card with no
+ * runtime gate, so
  * a delegated sub-component row (MantecaDepositInfo, BridgeDepositInstructions)
  * can never be the DOM's last row and the `[&>*:last-child]:border-b-0`
  * container rule is only a belt for the delegated rows' own internals. If a
@@ -39,10 +40,28 @@ describe('receipt details card — trailing dashed rule', () => {
         }
     })
 
-    it('the reference row precedes issued-on on every fixture', () => {
+    it('the receipt-reference row, when it shows, sits directly before issued-on', () => {
+        // The row is gated now: it drops out when the Transfer ID or the
+        // Transaction ID row already prints the same id. issued-on stays
+        // ungated, so the trailing-rule analysis above still holds.
         for (const c of cases) {
             const rows = visibleRows(c.entry)
-            expect(rows[rows.length - 2]).toBe('reference')
+            if (!rows.includes('reference')) continue
+            expect({ name: c.name, secondLast: rows[rows.length - 2] }).toEqual({
+                name: c.name,
+                secondLast: 'reference',
+            })
+        }
+    })
+
+    it('a bank rail never prints its id twice — Transfer ID wins, reference drops out', () => {
+        const bankRails = cases.filter((c) => visibleRows(c.entry).includes('transferId'))
+        expect(bankRails.length).toBeGreaterThan(0)
+        for (const c of bankRails) {
+            expect({ name: c.name, reference: visibleRows(c.entry).includes('reference') }).toEqual({
+                name: c.name,
+                reference: false,
+            })
         }
     })
 })

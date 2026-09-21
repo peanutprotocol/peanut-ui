@@ -5,6 +5,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
     receiptIssuedAt,
+    showsReceiptReferenceRow,
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
@@ -253,10 +254,10 @@ export function useReceiptViewModel(
             // document rows: the entry id ties any shared or printed receipt
             // back to the source activity, and the issuance date follows the
             // shared status-branched rule (receiptIssuedAt) — both render
-            // only from real source fields, never fabricated. the Transfer ID
-            // row shows the same id under its own label for bank rails; the
-            // user ruled the Reference fact stays regardless.
-            reference: !!transaction.id,
+            // only from real source fields, never fabricated. the row drops
+            // out when the Transfer ID or Transaction ID row above already
+            // prints the same id, which is what made it read as a duplicate.
+            reference: showsReceiptReferenceRow(transaction),
             issuedOn: !!receiptIssuedAt(transaction),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
