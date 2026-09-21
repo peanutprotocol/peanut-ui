@@ -465,6 +465,37 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'home-verification-needed': {
+        route: '/home',
+        about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'requires-info',
+                            blockingActions: ['bridge-hosted:proof-of-address'],
+                        },
+                    ],
+                    nextActions: [
+                        {
+                            key: 'bridge-hosted:proof-of-address',
+                            kind: 'bridge-hosted',
+                            purpose: 'unlock-bridge-ach',
+                            requirementKey: 'proof_of_address',
+                        },
+                    ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
         route: '/profile/edit',
