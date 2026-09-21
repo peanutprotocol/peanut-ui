@@ -2,7 +2,12 @@ import React from 'react'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { WithdrawBankReviewView } from '../WithdrawBankReviewView'
-import { bankReferenceProblem, bankReferenceSpecForRail, payoutSenderNoteForRail } from '../../bank-reference'
+import {
+    bankReferenceProblem,
+    bankReferenceSpecForRail,
+    payoutSenderDefaultReferenceNoteForRail,
+    payoutSenderNoteForRail,
+} from '../../bank-reference'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
@@ -49,6 +54,7 @@ const Harness = ({
             confirmPendingCopy="processing"
             referenceSpec={spec}
             payoutSenderNoteKey={payoutSenderNoteForRail(rail)}
+            payoutSenderDefaultReferenceNoteKey={payoutSenderDefaultReferenceNoteForRail(rail)}
             reference={reference}
             referenceProblem={spec ? bankReferenceProblem(reference, spec) : null}
             onReferenceChange={setReference}
@@ -172,6 +178,24 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         renderWithIntl(<Harness rail="sepa" showError />)
         fireEvent.change(referenceInput()!, { target: { value: 'rent' } })
         expect(screen.getByText('Use at least 6 characters, or leave it empty.')).toBeInTheDocument()
+    })
+
+    it('SEPA: promises the name is in the reference only while the user typed none', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
+
+        // The provider's default reference carries the user's legal name. A
+        // reference the user types may replace it, so the promise must go.
+        fireEvent.change(referenceInput()!, { target: { value: 'RENT SEPTEMBER' } })
+        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
+        expect(screen.queryByText(/Your name is in the payment reference/)).not.toBeInTheDocument()
+    })
+
+    it('SEPA: whitespace alone is not a reference, so the promise stays', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        fireEvent.change(referenceInput()!, { target: { value: '   ' } })
+        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
     })
 })
 

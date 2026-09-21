@@ -123,6 +123,10 @@ export function bankReferenceDestinationFields(
  *
  * `faster_payments` and `co_bank_transfer` are absent from that configuration,
  * so we do not know and say nothing rather than guess.
+ *
+ * On `sepa` the user's name rides inside the reference, so there is a second
+ * sentence that holds ONLY while the user typed no reference of their own —
+ * see `payoutSenderDefaultReferenceNoteForRail`.
  */
 export type PayoutSenderNoteKey = 'payoutSenderSepa' | 'payoutSenderAch' | 'payoutSenderSpei' | 'payoutSenderWire'
 
@@ -136,4 +140,26 @@ const SENDER_NOTES: Record<string, PayoutSenderNoteKey> = {
 /** The `withdraw.bank` message key for this rail, or null when we cannot say. */
 export function payoutSenderNoteForRail(paymentRail: string | undefined): PayoutSenderNoteKey | null {
     return (paymentRail && SENDER_NOTES[paymentRail]) || null
+}
+
+/**
+ * The extra sentence that holds only on the DEFAULT reference.
+ *
+ * On `sepa` the provider composes the reference itself and its template carries
+ * the user's legal name, so with no reference of our own the user's name does
+ * reach the recipient. Whether a reference we send REPLACES that default is not
+ * known (TD-37), so as soon as the user types one we stop making the promise
+ * rather than restate it as a loss we have not proven.
+ */
+export type PayoutSenderDefaultReferenceNoteKey = 'payoutSenderSepaDefaultReference'
+
+const SENDER_DEFAULT_REFERENCE_NOTES: Record<string, PayoutSenderDefaultReferenceNoteKey> = {
+    sepa: 'payoutSenderSepaDefaultReference',
+}
+
+/** The `withdraw.bank` key for this rail's default-reference sentence, or null. */
+export function payoutSenderDefaultReferenceNoteForRail(
+    paymentRail: string | undefined
+): PayoutSenderDefaultReferenceNoteKey | null {
+    return (paymentRail && SENDER_DEFAULT_REFERENCE_NOTES[paymentRail]) || null
 }
