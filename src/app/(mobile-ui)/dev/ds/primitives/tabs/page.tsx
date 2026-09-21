@@ -29,7 +29,7 @@ export default function TabsPage() {
         <DocPage>
             <DocHeader
                 title="Tabs"
-                description="The ONE tab component for product and marketing — one look, no variants. It is the app's own bottom navigation standing still (ruled 2026-09-21, TASK-22707, which also absorbed SegmentedControl): a bordered white pill track carrying a bordered page-tint chip, sharing its resting surface with BottomNav through 0_Bruddle/PillSurface. The chip is welded FLUSH — the track has no padding and the chip is drawn 1px outside the trigger, so its border lands on the track's. Static: no shadow, no slide, no spring. Code-first, figma board pending."
+                description="The ONE tab component for product and marketing — one look, no variants. It is the app's own bottom navigation standing still (ruled 2026-09-21, TASK-22707, which also absorbed SegmentedControl): a bordered white pill track carrying a bordered page-tint chip, sharing its resting surface with BottomNav through 0_Bruddle/PillSurface. The chip is welded FLUSH — the track has no padding and the chip is drawn 1px outside the trigger, so its border lands on the track's. The two fills are only 1.09:1 apart, so selection is carried by that 1px border, the label colour, and — ruled 2026-09-21 — the label weight: active steps from 500 to 600 on the matching semibold type token. Static: no shadow, no slide, no spring. Code-first, figma board pending."
                 status="production"
             />
 
@@ -170,7 +170,7 @@ export default function TabsPage() {
 
             <DocSection
                 title="Sizes"
-                description="Three, ruled 2026-09-21. `size` changes ONLY the height, the horizontal padding, the text token and the icon-to-label gap. The chip weld, the track border, the radius, the focus ring, the scroll gutter and the panel spacing are identical in all three — a unit test asserts that, so a size can never quietly grow a fourth difference."
+                description="Three, ruled 2026-09-21. `size` changes ONLY the height, the horizontal padding, the text-token PAIR and the icon-to-label gap. Every size carries two type tokens on mutually exclusive state selectors — inactive at weight 500, active at 600 — never a type token plus a raw `font-semibold`. The chip weld, the track border, the radius, the focus ring, the scroll gutter and the panel spacing are identical in all three — a unit test asserts that, so a size can never quietly grow a fourth difference."
             >
                 <DocSection.Content>
                     <div className="flex flex-col gap-4">
@@ -197,27 +197,44 @@ export default function TabsPage() {
                         <table className="w-max min-w-full border border-border-default text-left">
                             <thead className="bg-background-page">
                                 <tr>
-                                    {['size', 'height', 'padding', 'text', 'gap'].map((h) => (
-                                        <th
-                                            key={h}
-                                            className="border-b border-border-default px-3 py-2 text-label-m text-foreground-secondary uppercase"
-                                        >
-                                            {h}
-                                        </th>
-                                    ))}
+                                    {['size', 'height', 'padding', 'text (inactive)', 'text (active)', 'gap'].map(
+                                        (h) => (
+                                            <th
+                                                key={h}
+                                                className="border-b border-border-default px-3 py-2 text-label-m text-foreground-secondary uppercase"
+                                            >
+                                                {h}
+                                            </th>
+                                        )
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {[
-                                    ['sm', 'min-h-9 · 36px', 'px-3 · 12px', 'text-body-s · 14px', 'gap-1 · 4px'],
+                                    [
+                                        'sm',
+                                        'min-h-9 · 36px',
+                                        'px-3 · 12px',
+                                        'text-body-s · 14px/500',
+                                        'text-body-s-semibold · 14px/600',
+                                        'gap-1 · 4px',
+                                    ],
                                     [
                                         'md (default)',
                                         'min-h-11 · 44px',
                                         'px-4 · 16px',
-                                        'text-body-m · 16px',
+                                        'text-body-m · 16px/500',
+                                        'text-body-m-semibold · 16px/600',
                                         'gap-1 · 4px',
                                     ],
-                                    ['lg', 'min-h-13 · 52px', 'px-6 · 24px', 'text-body-m · 16px', 'gap-2 · 8px'],
+                                    [
+                                        'lg',
+                                        'min-h-13 · 52px',
+                                        'px-6 · 24px',
+                                        'text-body-m · 16px/500',
+                                        'text-body-m-semibold · 16px/600',
+                                        'gap-2 · 8px',
+                                    ],
                                 ].map((row) => (
                                     <tr key={row[0]}>
                                         {row.map((cell, i) => (
@@ -242,9 +259,10 @@ export default function TabsPage() {
                     </Callout>
 
                     <p className="mt-4 text-body-s text-foreground-secondary">
-                        <strong className="text-foreground-primary">lg is unused today.</strong> It lands on
-                        BottomNav&apos;s own 52px / px-6 so a large tab row and the nav read as one family. The MDX
-                        article tabs are its natural first home — awaiting kush&apos;s confirmation.
+                        <strong className="text-foreground-primary">lg is the MDX article tabs</strong> (ruled
+                        2026-09-21). It lands on BottomNav&apos;s own 52px / px-6 so a large tab row and the nav read as
+                        one family, and the marketing article tabs are the surface that earns it: panelled, `forceMount`
+                        for crawlers, and read on a desktop. Product controls stay on the 44px `md` default.
                     </p>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -256,7 +274,10 @@ export default function TabsPage() {
 <Tabs aria-label="Period" tabs={periodTabs} />
 
 // dense control panels only
-<Tabs size="sm" aria-label="Period" tabs={periodTabs} />`}
+<Tabs size="sm" aria-label="Period" tabs={periodTabs} />
+
+// lg — marketing article tabs (Marketing/mdx/Tabs)
+<Tabs size="lg" aria-label="Content tabs" tabs={articleTabs} forceMount />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -311,7 +332,7 @@ export default function TabsPage() {
                         type: "'sm' | 'md' | 'lg'",
                         default: "'md'",
                         description:
-                            'Row scale — height, horizontal padding, text token and icon gap only. sm is 36px, under the 44px touch minimum',
+                            'Row scale — height, horizontal padding, the text-token pair (inactive 500 / active 600) and icon gap only. sm is 36px, under the 44px touch minimum; lg is the MDX article tabs',
                     },
                     {
                         name: 'fullWidth',
