@@ -16,7 +16,7 @@ const PERSISTENT_ID = 'ds-persistent-toast'
 const CUSTOM_CONTENT_ID = 'ds-custom-content-toast'
 
 export default function ToastPage() {
-    const { toast, success, error, info, warning, dismiss } = useToast()
+    const { toast, success, error, info, attention, dismiss } = useToast()
 
     return (
         <DocPage>
@@ -41,8 +41,8 @@ export default function ToastPage() {
                         <Button variant="stroke" size="small" onClick={() => info('Did you know?')}>
                             info
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => warning('Check this out')}>
-                            warning
+                        <Button variant="stroke" size="small" onClick={() => attention('Check this out')}>
+                            attention
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -92,14 +92,14 @@ export default function ToastPage() {
                         label="Import + hook"
                         code={`import { useToast } from '@/components/0_Bruddle/Toast'
 
-const { success, error, info, warning } = useToast()`}
+const { success, error, info, attention } = useToast()`}
                     />
                     <CodeBlock
                         label="Trigger"
                         code={`success('Done!')
 error('Failed!')
 info('FYI...')
-warning('Be careful!')`}
+attention('Be careful!')`}
                     />
                     <CodeBlock
                         label="Persistent"
@@ -147,7 +147,7 @@ dismiss(id)`}
                 <DocSection.Content>
                     <ul className="space-y-2 text-body-s text-foreground-secondary">
                         <li>
-                            success, error, info, and warning are the caller-facing tones; warning uses Callout's
+                            success, error, info, and attention are the caller-facing tones; attention uses Callout's
                             attention tone.
                         </li>
                         <li>
@@ -193,7 +193,7 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                         description: 'Low-level API for custom type, ID, content, timing, and one-off classes',
                     },
                     {
-                        name: 'success | error | info | warning',
+                        name: 'success | error | info | attention',
                         type: '(message, options?) => ToastId',
                         default: '(hook methods)',
                         description: 'Convenience methods that set the corresponding tone',
@@ -218,7 +218,7 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                     },
                     {
                         name: 'type',
-                        type: "'success' | 'error' | 'info' | 'warning'",
+                        type: "'success' | 'error' | 'info' | 'attention'",
                         default: "'info'",
                         description: 'Caller-facing tone',
                     },

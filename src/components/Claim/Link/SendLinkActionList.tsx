@@ -328,7 +328,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                tone="warning"
+                tone="attention"
                 ctas={[
                     {
                         text: tCommon('close'),

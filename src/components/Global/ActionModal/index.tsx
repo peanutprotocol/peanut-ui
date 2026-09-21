@@ -21,13 +21,13 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
-export type ActionModalTone = 'error' | 'warning' | 'success' | 'info'
+export type ActionModalTone = 'error' | 'attention' | 'success' | 'info'
 
-// mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for warnings
+// mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for attention
 // only, red for errors, green for success, blue for plain information
 const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
     error: { icon: 'ban', color: 'red' },
-    warning: { icon: 'alert', color: 'yellow' },
+    attention: { icon: 'alert', color: 'yellow' },
     success: { icon: 'check', color: 'green' },
     info: { icon: 'info', color: 'blue' },
 }

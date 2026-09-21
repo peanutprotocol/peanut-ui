@@ -60,7 +60,7 @@ export const BetaUpdatesCard = () => {
                 toast.success(t('joined'))
                 break
             case 'join-no-bundle':
-                toast.warning(t('joinedWithoutBundle'))
+                toast.attention(t('joinedWithoutBundle'))
                 break
             case 'closed':
                 toast.error(t('closed', { channel: BETA_OTA_CHANNEL }))

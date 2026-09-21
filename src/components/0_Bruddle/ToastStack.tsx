@@ -11,15 +11,6 @@ import type { ToastMessage } from './Toast'
  * toast is shown — the marketing site never shows one, so it never pays.
  */
 
-// toast tone -> notification priority (board 17369:136904: a toast is the
-// notification component in its floating, dismissible format)
-const TOAST_PRIORITY = {
-    success: 'success',
-    error: 'error',
-    info: 'info',
-    warning: 'attention',
-} as const
-
 const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: ToastMessage['id']) => void }> = ({
     id,
     type = 'info',
@@ -60,7 +51,7 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: Toas
         <motion.div {...motionProps} className="max-w-[calc(100vw_-_2rem)] md:max-w-md">
             <Callout
                 variant="floating"
-                priority={TOAST_PRIORITY[type]}
+                priority={type}
                 onDismiss={onDismiss}
                 className={className}
                 // a 'persistent' toast has no timer to draw — only a numeric

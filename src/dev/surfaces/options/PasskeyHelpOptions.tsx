@@ -40,7 +40,7 @@ function Shell({ children, footer }: { children: React.ReactNode; footer?: React
         <ActionModal
             visible
             onClose={() => {}}
-            tone="warning"
+            tone="attention"
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             content={children}

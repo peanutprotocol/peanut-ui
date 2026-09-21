@@ -375,7 +375,7 @@ export function RequestPotActionList({
                 onClose={() => setShowMinAmountError(false)}
                 title={t('minAmount.title')}
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
-                tone="warning"
+                tone="attention"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 preventClose={false}
             />

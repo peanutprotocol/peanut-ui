@@ -220,7 +220,7 @@ export const useHomeCarouselCTAs = () => {
                     // 'default' = browser suppressed prompt (policy/Shields) or
                     // user dismissed it — calling again won't help this session.
                     if (result === 'default') {
-                        toast.warning(t('notifications.blockedToast'))
+                        toast.attention(t('notifications.blockedToast'))
                         dismissCTA('notification-prompt')
                     }
                 },

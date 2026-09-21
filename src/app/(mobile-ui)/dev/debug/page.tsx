@@ -552,7 +552,7 @@ export default function DebugPage() {
             <ActionModal
                 visible={isResetOpen}
                 onClose={() => setIsResetOpen(false)}
-                tone="warning"
+                tone="attention"
                 title="Reset provider state?"
                 description="This removes your provider IDs, KYC verifications, and ledger intents. Your passkey and user account stay."
                 ctas={[

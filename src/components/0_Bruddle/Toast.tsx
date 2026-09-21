@@ -6,7 +6,7 @@ import { isAndroidNative } from '@/utils/capacitor'
 import { twMerge } from '@/utils/tw'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
-type ToastType = 'success' | 'error' | 'info' | 'warning'
+export type ToastType = 'success' | 'error' | 'info' | 'attention'
 type ToastId = string | number
 
 const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
@@ -52,7 +52,7 @@ interface ToastOptions {
      *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
     id?: ToastId
     /** Extra classes merged into the toast container — for one-off accents like
-     *  `border-action-secondary` that don't fit the standard success/error/info/warning. */
+     *  `border-action-secondary` that don't fit the standard success/error/info/attention. */
     className?: string
     /** Self-designed toast content (badge celebrations): suppress the priority icon
      *  so Callout chrome doesn't stack onto the content's own artwork. */
@@ -71,7 +71,7 @@ interface ToastContextType {
     success: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
     error: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
     info: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
-    warning: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
+    attention: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
     /** Remove a toast by id. No-op if not present. Used for `'persistent'` toasts. */
     dismiss: (id: ToastId) => void
 }
@@ -169,7 +169,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             success: (message, options) => createToast({ ...options, type: 'success', message }),
             error: (message, options) => createToast({ ...options, type: 'error', message }),
             info: (message, options) => createToast({ ...options, type: 'info', message }),
-            warning: (message, options) => createToast({ ...options, type: 'warning', message }),
+            attention: (message, options) => createToast({ ...options, type: 'attention', message }),
             dismiss,
         }),
         [createToast, dismiss]
