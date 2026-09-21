@@ -135,7 +135,9 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors'
+    // min-h-11 is the 44px touch-target law (globals.css `.btn`); focus ring matches LocaleSwitcher
+    const chipBase =
+        'inline-flex min-h-11 items-center rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid'
 
     return (
         <>

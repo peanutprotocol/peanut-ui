@@ -78,14 +78,20 @@ export function FAQsPanel({ heading, questions, learnMoreLabel }: FAQsProps) {
                             </summary>
                             <div className="mt-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
+                                {/* english-only label, and latent: nothing sets calModal
+                                    today. cal.com binds [data-cal-link] on any element,
+                                    so a button keeps the behaviour and is keyboard
+                                    reachable — the hrefless anchor was neither focusable
+                                    nor exposed as a link. */}
                                 {faq.calModal && (
-                                    <a
+                                    <button
+                                        type="button"
                                         data-cal-link="kkonrad+hugo0/15min?duration=30"
                                         data-cal-config='{"layout":"month_view"}'
-                                        className="underline"
+                                        className="cursor-pointer underline"
                                     >
                                         Let&apos;s talk!
-                                    </a>
+                                    </button>
                                 )}
                                 {faq.redirectUrl && faq.redirectText && (
                                     <a
