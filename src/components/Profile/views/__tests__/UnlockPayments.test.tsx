@@ -136,7 +136,11 @@ describe('UnlockPayments', () => {
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
-        mockIdentity = { status: 'processing', reviewPending: true, submittedAt: new Date(Date.now() - 2 * 86400000).toISOString() }
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        }
         render()
         expect(screen.getByText(/ID check in review since/)).toBeInTheDocument()
         expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
@@ -150,7 +154,11 @@ describe('UnlockPayments', () => {
     })
 
     it('escalates the in-review line after 7 days', () => {
-        mockIdentity = { status: 'processing', reviewPending: true, submittedAt: new Date(Date.now() - 8 * 86400000).toISOString() }
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+        }
         render()
         expect(screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
         const supportLink = screen.getByRole('button', { name: "Message us and we'll chase it" })
