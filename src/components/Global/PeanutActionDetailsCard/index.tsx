@@ -69,7 +69,7 @@ export default function PeanutActionDetailsCard({
     viewType = 'NORMAL',
     className,
     fileUrl,
-    avatarSize = 'medium',
+    avatarSize = 'l',
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
@@ -202,7 +202,7 @@ export default function PeanutActionDetailsCard({
         const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
         return (
             <AvatarWithBadge
-                size="small"
+                size="m"
                 logo={imgSrc}
                 icon="bank"
                 inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}

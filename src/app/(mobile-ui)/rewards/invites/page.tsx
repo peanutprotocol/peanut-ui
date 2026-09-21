@@ -172,7 +172,7 @@ const InvitesPage = () => {
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
-                                            size="small"
+                                            size="m"
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">

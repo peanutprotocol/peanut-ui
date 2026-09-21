@@ -65,7 +65,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     onError={() => setIconError(true)}
                                 />
                             ) : (
-                                <AvatarWithBadge size="extra-small" name={name} />
+                                <AvatarWithBadge size="s" name={name} />
                             )}
                         </div>
                         <div className="flex flex-col">

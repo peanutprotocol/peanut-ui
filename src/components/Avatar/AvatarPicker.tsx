@@ -174,7 +174,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     <UserAvatar
                                         name={initial ? username : undefined}
                                         avatarKey={initial ? initialKey : key}
-                                        size="medium"
+                                        size="l"
                                     />
                                     {/* Two fixed lines keep tile heights equal at 320px. */}
                                     <span className="mt-1 line-clamp-2 h-8 text-label-m">{name}</span>

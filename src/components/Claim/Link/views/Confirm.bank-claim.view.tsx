@@ -73,7 +73,7 @@ export function ConfirmBankClaimView({
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
-                    avatarSize="small"
+                    avatarSize="m"
                     transactionType="CLAIM_LINK_BANK_ACCOUNT"
                     recipientType="BANK_ACCOUNT"
                     recipientName={bankDetails.country}

@@ -596,7 +596,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
                                             name={method.title ?? method.id}
-                                            size="extra-small"
+                                            size="s"
                                             inlineStyle={{
                                                 backgroundColor:
                                                     method.icon === ('bank' as IconName)

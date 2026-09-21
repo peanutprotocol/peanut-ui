@@ -580,7 +580,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 {(flow !== 'withdraw' || amountDisplay) && (
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag.toLowerCase()}
-                        avatarSize="small"
+                        avatarSize="m"
                         transactionType={'WITHDRAW_BANK_ACCOUNT'}
                         recipientType={'BANK_ACCOUNT'}
                         recipientName={country}

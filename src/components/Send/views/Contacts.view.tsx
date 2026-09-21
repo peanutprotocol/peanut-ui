@@ -222,7 +222,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                 body={`@${contact.username}`}
                                                 leading={
                                                     <UserAvatar
-                                                        size="extra-small"
+                                                        size="s"
                                                         name={contact.username}
                                                         avatarKey={contact.avatarKey}
                                                         decorative

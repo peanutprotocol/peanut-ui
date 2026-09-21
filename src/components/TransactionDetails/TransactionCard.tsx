@@ -272,7 +272,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             transactionType={type}
             status={status}
             context="card"
-            size="extra-small"
+            size="s"
             countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
         />
     )

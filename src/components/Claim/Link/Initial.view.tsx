@@ -140,7 +140,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             )}
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
-                    avatarSize="small"
+                    avatarSize="m"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}

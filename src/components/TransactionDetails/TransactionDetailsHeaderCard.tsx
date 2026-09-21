@@ -281,7 +281,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             transactionType={typeForAvatar}
             status={status}
             context="header"
-            size="small"
+            size="m"
             countryCode={countryCode}
         />
     )

@@ -141,7 +141,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     viewType={isSuccess ? 'SUCCESS' : 'NORMAL'}
-                    avatarSize="medium"
+                    avatarSize="l"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
                     recipientName={

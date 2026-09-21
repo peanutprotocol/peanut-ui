@@ -143,7 +143,7 @@ export default function ConfirmWithdrawView({
 
             <div className="space-y-4 pb-4">
                 <PeanutActionDetailsCard
-                    avatarSize="small"
+                    avatarSize="m"
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
