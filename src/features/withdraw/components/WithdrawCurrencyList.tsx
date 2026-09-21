@@ -201,7 +201,7 @@ export function WithdrawCurrencyList({
                             )}
                         />
                     }
-                    position={otherCountriesOpen ? 'first' : 'single'}
+                    position={otherCountriesOpen ? 'top' : 'solo'}
                     aria-expanded={otherCountriesOpen}
                     onClick={() => setOtherCountriesOpen((open) => !open)}
                     data-testid="withdraw-other-countries-toggle"

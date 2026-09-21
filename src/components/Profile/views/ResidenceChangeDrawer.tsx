@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -163,9 +163,9 @@ const ResidenceChangeDrawer = ({
                                       : t('bankingRestrictionNote')}
                             </p>
                         )}
-                        {error && <Notification priority="error">{error}</Notification>}
+                        {error && <Callout priority="error">{error}</Callout>}
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
                             disabled={isSaving || !selected || !userId}

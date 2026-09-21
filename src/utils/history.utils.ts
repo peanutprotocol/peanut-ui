@@ -9,7 +9,7 @@ import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
 import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
@@ -318,10 +318,10 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
 // `pending` rows — notably Rain card AUTHs that sit unsettled for hours —
 // stay consistent with their completed siblings instead of rendering a bare
 // `$30.24` next to a peer's `-$30.24`.
-// An exhaustive Record (not a Set) on purpose: adding a StatusPillType forces
+// An exhaustive Record (not a Set) on purpose: adding a IconStatusType forces
 // an explicit sign decision here at compile time, keeping this in lockstep
 // with the status styling in TransactionCard.
-const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
+const STATUS_SHOWS_SIGN: Record<IconStatusType, boolean> = {
     completed: true,
     pending: true,
     processing: true,
@@ -335,8 +335,8 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
 // Status families for the states-board amount treatment (board 17966:12128).
 // One source next to STATUS_SHOWS_SIGN so sign, strikethrough, and grey-out
 // stay in lockstep — TransactionCard consumes these instead of re-listing.
-export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
-export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
+export const PENDING_AMOUNT_STATUSES: ReadonlySet<IconStatusType> = new Set(['pending', 'processing', 'soon'])
+export const STRUCK_AMOUNT_STATUSES: ReadonlySet<IconStatusType> = new Set(['cancelled', 'failed', 'refunded'])
 
 /**
  * Open requests — unfulfilled request links (direction `request_sent` /

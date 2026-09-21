@@ -24,7 +24,7 @@ export const KycProcessing = ({ submittedAt }: { submittedAt?: string }) => {
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="processing" />
-            <Card position="single">
+            <Card position="solo">
                 <PaymentInfoRow label={t('submitted')} value={submittedOn} />
                 <PaymentInfoRow label={t('status')} value={t('processingStatusValue')} hideBottomBorder />
             </Card>

@@ -2,7 +2,7 @@
 
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import Card from '@/components/Global/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import type { RequestDepositInstructions } from '@/services/services.types'
@@ -108,9 +108,7 @@ export function RequestBankInstructions({
 
     return (
         <div className="flex flex-col gap-4">
-            {senderNoteKey && (
-                <Notification priority="attention">{t(senderNoteKey as Parameters<typeof t>[0])}</Notification>
-            )}
+            {senderNoteKey && <Callout priority="attention">{t(senderNoteKey as Parameters<typeof t>[0])}</Callout>}
 
             <Section title={tDeposit('details.sectionTitle')}>
                 <DepositDetailsCard rows={rows} />
@@ -119,7 +117,7 @@ export function RequestBankInstructions({
             {/* Amount and reference share one card: they are the two values the
                 payer types into their bank, and two cards read as two tasks. */}
             <Section title={t('bankTransfer.transferSection')}>
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {amountRow && (
                         <DataRow
                             label={t('bankTransfer.amountLabel')}
@@ -135,7 +133,7 @@ export function RequestBankInstructions({
                     />
                 </Card>
                 {amountRow?.note && <p className="text-body-s text-foreground-secondary">{amountRow.note}</p>}
-                <Notification priority="attention">{t('bankTransfer.referenceNote')}</Notification>
+                <Callout priority="attention">{t('bankTransfer.referenceNote')}</Callout>
             </Section>
 
             {corridor && <p className="text-body-s text-foreground-secondary">{arrivalDetail(corridor)}</p>}

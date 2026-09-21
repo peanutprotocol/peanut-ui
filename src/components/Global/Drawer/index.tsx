@@ -119,7 +119,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 // pull-to-refresh ignores drawer touches itself (usePullToRefresh).
             >
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
-                <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
+                <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-full bg-foreground-secondary" />
                 <div className="flex w-full justify-center">
                     {/* The scroll wrapper owns the horizontal L/16 container
                      * padding (design.md spacing table). It must live HERE,

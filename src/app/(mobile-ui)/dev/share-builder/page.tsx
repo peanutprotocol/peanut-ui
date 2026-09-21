@@ -20,7 +20,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
@@ -201,10 +201,10 @@ export default function ShareBuilderPage() {
                                 />
                             </Field>
                             {username.length > 12 && (
-                                <Notification priority="error">
+                                <Callout priority="error">
                                     Username exceeds the 12-character production limit. The preview shrinks it only to
                                     expose caller regressions.
-                                </Notification>
+                                </Callout>
                             )}
                         </Section>
                     </Card>
@@ -339,7 +339,7 @@ export default function ShareBuilderPage() {
                             </Field>
                             <div className="flex gap-2">
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     className="flex-1"
                                     onClick={() => {
                                         // Remounts ShareAssetD3 (key) → card face repaints; re-gate Save.
@@ -448,7 +448,7 @@ export default function ShareBuilderPage() {
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <Button variant="purple" className="w-full">
+                        <Button variant="primary" className="w-full">
                             Share
                         </Button>
                         <Button

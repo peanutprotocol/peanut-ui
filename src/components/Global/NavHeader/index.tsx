@@ -10,7 +10,7 @@ import { Banner } from '@/components/Global/Banner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
 
-interface NavHeaderProps {
+export interface NavHeaderProps {
     onPrev?: () => void
     disableBackBtn?: boolean
     title?: string
@@ -69,7 +69,7 @@ const NavHeader = ({
                     {hideBackBtn ? null : !onPrev ? (
                         // link-mode Button: one anchor, no Link>Button nested interactive
                         <Button
-                            variant="stroke"
+                            variant="transparent"
                             href={href ?? '/home'}
                             className={NAV_CIRCLE_BUTTON_CLASSES}
                             aria-label={tCommon('back')}
@@ -83,7 +83,7 @@ const NavHeader = ({
                         </Button>
                     ) : (
                         <Button
-                            variant="stroke"
+                            variant="transparent"
                             className={NAV_CIRCLE_BUTTON_CLASSES}
                             onClick={onPrev}
                             disabled={disableBackBtn}

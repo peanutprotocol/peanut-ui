@@ -4,7 +4,7 @@
  * Recipient validation errors are field-level: they render under the recipient
  * input and must NOT flip the primary Request CTA to the Reset/retry state
  * (which wipes the typed recipient). Only flow errors (create-request API
- * failures) keep the Notification + Reset CTA.
+ * failures) keep the Callout + Reset CTA.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -146,13 +146,13 @@ describe('DirectRequestInitialView error routing', () => {
 
         fireEvent.click(screen.getByTestId('fire-invalid-recipient'))
 
-        // field-level message, no flow Notification, no Reset flip
+        // field-level message, no flow Callout, no Reset flip
         expect(screen.getByText('Invalid recipient address')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Request' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument()
     })
 
-    test('create-request API failure keeps the Notification and flips to Reset', async () => {
+    test('create-request API failure keeps the Callout and flips to Reset', async () => {
         mockRequestByUsername.mockRejectedValue(new Error('Request failed'))
         renderView()
 

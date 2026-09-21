@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
 import { RequestBankInstructions } from '@/features/deposit-accounts/components/RequestBankInstructions'
@@ -94,12 +94,12 @@ export function PayByBankTransferDrawer({
     return (
         <>
             <ListItem
-                position="single"
+                position="solo"
                 title={
                     <div className="flex flex-wrap items-center gap-2">
                         {title}
                         {figure && (
-                            <StatusBadge
+                            <Badge
                                 status={figure.approx ? 'custom' : 'completed'}
                                 customText={t(figure.approx ? 'bankTransfer.estimateBadge' : 'bankTransfer.exactBadge')}
                             />
@@ -139,7 +139,7 @@ export function PayByBankTransferDrawer({
                             <div className="flex flex-col gap-4 py-4">
                                 <p className="text-body-s text-foreground-secondary">{t('bankTransfer.unavailable')}</p>
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     className="w-full"
                                     onClick={() => {
                                         setIsOpen(false)

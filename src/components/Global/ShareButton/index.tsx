@@ -19,7 +19,7 @@ type ShareButtonProps = ShareActionOptions & {
 const ShareButton = ({
     children,
     className = '',
-    variant = 'purple',
+    variant = 'primary',
     iconPosition = 'left',
     showIcon = true,
     ...shareOptions

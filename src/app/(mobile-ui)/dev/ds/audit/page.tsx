@@ -6,7 +6,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { DocPage } from '../_components/DocPage'
@@ -99,10 +99,14 @@ export default function DesignSystemAuditPage() {
                     title={<h1>Code-level consolidation</h1>}
                     description="A code audit of distinct implementations and their call-site counts."
                 />
+                <p className="mt-2 text-body-xs text-foreground-primary/70">
+                    Snapshot as of 2026-09-18. The numbers are frozen at that date — later PRs (TASK-22817 and after)
+                    have already changed some of them.
+                </p>
             </Card>
 
             {/* Scope caveat + cross-link to the app-usage audit */}
-            <Notification priority="attention" title="This is a code audit, not an app-usage audit.">
+            <Callout priority="attention" title="This is a code audit, not an app-usage audit.">
                 Counts here are raw call-sites across <code>src/</code> — they include the <code>/dev</code> showcase
                 and tests, so a high count does <span className="text-body-s-semibold">not</span> mean the live product
                 renders it. For &ldquo;what the real app actually shows&rdquo; (and what&rsquo;s dead-in-product despite
@@ -110,7 +114,7 @@ export default function DesignSystemAuditPage() {
                 <Link href="/dev/ds/audit/app" className="text-body-s-semibold underline">
                     App Divergences →
                 </Link>
-            </Notification>
+            </Callout>
 
             {/* Quick stats */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">

@@ -1,6 +1,6 @@
 'use client'
 
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import type { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import type { UnlockChip, UnlockRow } from '@/utils/unlock-payments.utils'
 
@@ -18,15 +18,15 @@ export function rowStatusBadge(row: UnlockRow, t: (key: any) => string) {
     switch (row.chip) {
         case 'active':
         case 'alwaysOn':
-            return <StatusBadge status="completed" customText={t(`chips.${row.chip}`)} />
+            return <Badge status="completed" customText={t(`chips.${row.chip}`)} />
         case 'processing':
-            return <StatusBadge status="processing" customText={t('chips.processing')} />
+            return <Badge status="processing" customText={t('chips.processing')} />
         case 'attention':
-            return <StatusBadge status="pending" customText={t('chips.attention')} />
+            return <Badge status="pending" customText={t('chips.attention')} />
         case 'notAvailable':
             if (row.labelKey === 'card') {
                 return (
-                    <StatusBadge
+                    <Badge
                         status="custom"
                         customText={t('chips.notAvailable')}
                         className="bg-background-badge-helper"

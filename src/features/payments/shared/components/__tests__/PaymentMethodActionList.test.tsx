@@ -35,7 +35,7 @@ jest.mock('@/utils/general.utils', () => ({ saveRedirectUrl: jest.fn() }))
 jest.mock('@/components/0_Bruddle/Divider', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/IconStack', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({ __esModule: true, default: () => <div /> }))
+jest.mock('@/components/Global/Badges/Badge', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: { title: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
         <button onClick={props.onClick} disabled={props.disabled}>

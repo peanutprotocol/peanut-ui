@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import StatusBadge from '../../Badges/StatusBadge'
+import Badge from '../../Badges/Badge'
 
 interface NetworkListItemProps {
     chainId: string
@@ -44,7 +44,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             aria-pressed={isSelected}
         >
             <Card
-                position="single"
+                position="solo"
                 className={twMerge(
                     'w-full !overflow-visible border-border-default p-4',
                     isSelected && !isComingSoon ? 'bg-action-primary' : 'bg-background-default',
@@ -65,7 +65,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     onError={() => setIconError(true)}
                                 />
                             ) : (
-                                <AvatarWithBadge size="extra-small" name={name} />
+                                <AvatarWithBadge size="s" name={name} />
                             )}
                         </div>
                         <div className="flex flex-col">
@@ -80,7 +80,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                         </div>
                     </div>
                     {isComingSoon ? (
-                        <StatusBadge status="soon" />
+                        <Badge status="soon" />
                     ) : rightContent ? (
                         rightContent
                     ) : (

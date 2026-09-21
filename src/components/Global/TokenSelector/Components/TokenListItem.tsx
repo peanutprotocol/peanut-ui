@@ -31,7 +31,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     balance,
     onClick,
     isSelected,
-    position = 'single',
+    position = 'solo',
     className,
     isPopularToken = false,
     isEnabled = true,
@@ -80,7 +80,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                     <div className="space-x-3 flex items-center">
                         <div className="relative flex-shrink-0">
                             {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
-                                <AvatarWithBadge name={balance.symbol} size="extra-small" />
+                                <AvatarWithBadge name={balance.symbol} size="s" />
                             ) : (
                                 <Image
                                     src={balance.logoURI}

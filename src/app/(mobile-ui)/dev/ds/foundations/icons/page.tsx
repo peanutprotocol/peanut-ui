@@ -162,7 +162,7 @@ export default function IconsPage() {
                     />
                     <CodeBlock
                         label="Flag URL pattern"
-                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-round object-cover" />`}
+                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
                     />
                 </DocSection.Code>
             </DocSection>

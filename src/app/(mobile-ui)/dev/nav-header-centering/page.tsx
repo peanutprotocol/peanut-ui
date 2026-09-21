@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -99,7 +99,13 @@ const TITLE_CASES: TitleCase[] = [
         title: 'More networks',
         // the real trailing control, from Profile: a circle Button in the slot
         rightElement: (
-            <Button variant="stroke" href="/dev" icon="edit" aria-label="Edit" className={NAV_CIRCLE_BUTTON_CLASSES} />
+            <Button
+                variant="transparent"
+                href="/dev"
+                icon="edit"
+                aria-label="Edit"
+                className={NAV_CIRCLE_BUTTON_CLASSES}
+            />
         ),
     },
 ]
@@ -232,14 +238,14 @@ export default function NavHeaderCenteringPage() {
             width="prose"
         >
             <div className="flex flex-col gap-10">
-                <Notification priority="info" title="How to read the numbers">
+                <Callout priority="info" title="How to read the numbers">
                     Each header reports the gap from the title INK to the back circle, the gap from the ink to the
                     container&rsquo;s right edge, and the difference between them. Delta 0 means the title sits centred
                     between the two things a reader can actually see. The last pair is the title COLUMN&rsquo;s own
                     inset from each container edge — that is where the trade-off shows up, not in the delta. Variant 2
                     never posts a non-zero delta at any title length, so the long title does not invert the problem; it
                     spends clearance instead.
-                </Notification>
+                </Callout>
 
                 {VARIANTS.map((variant, index) => (
                     <Section key={variant.key} title={`${index + 1} — ${variant.name}`} className="gap-4">
@@ -260,7 +266,7 @@ export default function NavHeaderCenteringPage() {
                             </Demo>
                         ))}
 
-                        <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                             <NoteRow label="Trailing track">
                                 {variant.shimClass
                                     ? '0px when no rightElement is passed. The two 24px gaps stay, so the title column spans from 64px to 24px-from-the-right.'
@@ -285,11 +291,11 @@ export default function NavHeaderCenteringPage() {
                     </Section>
                 ))}
 
-                <Notification priority="info" title="Scope">
+                <Callout priority="info" title="Scope">
                     This page lives only under /dev/nav-header-centering. NavHeader and all 103 files that render it are
                     untouched by this PR — variant 2 is a page-local CSS shim, not a component change. The winner is
                     applied to NavHeader in a separate PR, and this directory is deleted then.
-                </Notification>
+                </Callout>
             </div>
         </DevPageShell>
     )

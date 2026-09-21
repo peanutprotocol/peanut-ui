@@ -71,7 +71,7 @@ export function useBridgeBankFlow() {
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
     // client-side amount validation renders as the field's own error, never in
-    // the flow-level Notification (which keeps backend/API failures only)
+    // the flow-level Callout (which keeps backend/API failures only)
     const [validationError, setValidationError] = useState<string>('')
 
     const { balance } = useWallet()

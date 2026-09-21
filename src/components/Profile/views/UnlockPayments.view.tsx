@@ -7,11 +7,11 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import AccountsList from './AccountsList'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
@@ -339,7 +339,7 @@ const UnlockPayments = () => {
     const showBankRestrictionNote = restrictions.banking
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
-        <StatusBadge status="completed" customText={t('residence.verified')} />
+        <Badge status="completed" customText={t('residence.verified')} />
     ) : (
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
@@ -378,7 +378,7 @@ const UnlockPayments = () => {
             </div>
 
             {isKycDegraded && (
-                <Notification
+                <Callout
                     priority="attention"
                     title={t('degraded.title')}
                     ctas={[
@@ -392,11 +392,11 @@ const UnlockPayments = () => {
                     ]}
                 >
                     {t('degraded.body')}
-                </Notification>
+                </Callout>
             )}
 
             {isIdentityInReview && !isKycDegraded && (
-                <Notification
+                <Callout
                     priority="helper"
                     title={
                         reviewSubmittedDate
@@ -410,7 +410,7 @@ const UnlockPayments = () => {
                     }
                 >
                     {reviewEscalation ? t('review.escalation') : t('review.body')}
-                </Notification>
+                </Callout>
             )}
 
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
@@ -570,7 +570,7 @@ const UnlockPayments = () => {
                                   }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
@@ -580,7 +580,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             }
                           : {
@@ -589,7 +589,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     setIsSupportModalOpen(true)
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             },
                 ]}
@@ -610,7 +610,7 @@ const UnlockPayments = () => {
                         ? [
                               {
                                   text: tCommon('tryAgain'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
@@ -630,7 +630,7 @@ const UnlockPayments = () => {
                         : [
                               {
                                   text: tCommon('gotIt'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),
                               },

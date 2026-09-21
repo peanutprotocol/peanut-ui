@@ -38,13 +38,13 @@ export default function ButtonPage() {
 
             <DoDont
                 doExample={
-                    <Button variant="purple" className="w-full">
+                    <Button variant="primary" className="w-full">
                         Continue
                     </Button>
                 }
                 doLabel="Default (medium, 44px) for primary CTAs — shadow is built in"
                 dontExample={
-                    <Button variant="purple" size="small" className="w-full">
+                    <Button variant="primary" size="small" className="w-full">
                         Continue
                     </Button>
                 }
@@ -57,14 +57,14 @@ export default function ButtonPage() {
                 <Playground
                     name="Button"
                     importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    defaults={{ variant: 'purple', children: 'Continue' }}
+                    defaults={{ variant: 'primary', children: 'Continue' }}
                     controls={[
                         {
                             type: 'select',
                             prop: 'variant',
                             label: 'variant',
                             options: [
-                                'purple',
+                                'primary',
                                 'stroke',
                                 'primary-soft',
                                 'transparent',
@@ -104,7 +104,7 @@ export default function ButtonPage() {
                     }}
                     codeTemplate={(props) => {
                         const parts = ['<Button']
-                        if (props.variant && props.variant !== 'purple') parts.push(`variant="${props.variant}"`)
+                        if (props.variant && props.variant !== 'primary') parts.push(`variant="${props.variant}"`)
                         if (props.size) parts.push(`size="${props.size}"`)
                         if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
                         if (props.icon) parts.push(`icon="${props.icon}"`)
@@ -123,7 +123,7 @@ export default function ButtonPage() {
                     <div className="space-y-4">
                         {(
                             [
-                                ['purple', '59 usages', 'production'],
+                                ['primary', '59 usages', 'production'],
                                 ['stroke', '27 usages', 'production'],
                                 ['primary-soft', '18 usages', 'production'],
                                 ['transparent', '12 usages', 'production'],
@@ -154,7 +154,7 @@ export default function ButtonPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Variants"
-                        code={`<Button variant="purple">Primary</Button>
+                        code={`<Button variant="primary">Primary</Button>
 <Button variant="stroke">Stroke</Button>
 <Button variant="primary-soft">Soft</Button>
 <Button variant="transparent">Transparent</Button>`}
@@ -249,7 +249,7 @@ export default function ButtonPage() {
             <DocSection title="Props">
                 <PropsTable
                     rows={[
-                        { name: 'variant', type: 'ButtonVariant', default: "'purple'", description: 'Visual style' },
+                        { name: 'variant', type: 'ButtonVariant', default: "'primary'", description: 'Visual style' },
                         {
                             name: 'size',
                             type: "'small' | 'medium' | 'large'",
@@ -310,7 +310,7 @@ export default function ButtonPage() {
                         area. The old &quot;large is shorter than default&quot; trap is gone.
                     </DesignNote>
                     <DesignNote type="info">
-                        Primary CTA pattern: variant=&quot;purple&quot; className=&quot;w-full&quot; — no size prop, no
+                        Primary CTA pattern: variant=&quot;primary&quot; className=&quot;w-full&quot; — no size prop, no
                         shadowSize (the 4px shadow is built into purple/stroke).
                     </DesignNote>
                 </div>
@@ -321,7 +321,7 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-label-l">Primary CTA (most common)</p>
-                            <Button variant="purple" className="mt-2 w-full">
+                            <Button variant="primary" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
@@ -334,7 +334,7 @@ export default function ButtonPage() {
                         <div>
                             <p className="text-label-l">With icon</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" icon="share">
+                                <Button variant="primary" icon="share">
                                     Share
                                 </Button>
                                 <Button variant="stroke" icon="copy">
@@ -345,10 +345,10 @@ export default function ButtonPage() {
                         <div>
                             <p className="text-label-l">States</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" disabled>
+                                <Button variant="primary" disabled>
                                     Disabled
                                 </Button>
-                                <Button variant="purple" loading>
+                                <Button variant="primary" loading>
                                     Loading
                                 </Button>
                             </div>
@@ -359,7 +359,7 @@ export default function ButtonPage() {
                     <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
-                        code={`<Button variant="purple" className="w-full">
+                        code={`<Button variant="primary" className="w-full">
   Continue
 </Button>`}
                     />
@@ -371,7 +371,7 @@ export default function ButtonPage() {
                     />
                     <CodeBlock
                         label="With icon"
-                        code={`<Button variant="purple" icon="share">
+                        code={`<Button variant="primary" icon="share">
   Share
 </Button>`}
                     />

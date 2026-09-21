@@ -2,7 +2,7 @@
 
 import { DepositAccountsFlow } from '@/features/deposit-accounts/components/DepositAccountsFlow'
 import { useState } from 'react'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import DevPageShell from '../_components/DevPageShell'
 import { Section } from '@/components/0_Bruddle/Section'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -46,24 +46,24 @@ export default function DepositAccountsPrototypePage() {
                         </div>
                     </Section>
                     <Button onClick={sandbox.reset}>Reset claims</Button>
-                    <Notification title="Where the data comes from">
+                    <Callout title="Where the data comes from">
                         Every USD, EUR, GBP and MXN value is a Bridge sandbox response, captured by mono
                         projects/virtual-accounts/capture-sandbox-vas.sh and read through the same adapters a product
                         build would use. Sandbox banks have placeholder names — &quot;Bank of Nowhere&quot; is
                         Bridge&apos;s fixture, not a real correspondent.
-                    </Notification>
-                    <Notification title="What the data decided">
+                    </Callout>
+                    <Callout title="What the data decided">
                         GBP comes back in Bridge&apos;s own name while EUR, USD and MXN come back in the
                         customer&apos;s, so whose name a payer reads is per corridor and is derived by comparing the
                         returned holder against the user. No corridor carries a reference. Mexican SPEI returns a CLABE
                         and no bank name at all, so rows follow field presence, never currency.
-                    </Notification>
-                    <Notification title="Argentina and Brazil">
+                    </Callout>
+                    <Callout title="Argentina and Brazil">
                         Manteca, not Bridge, and not claimable: the Argentine CVU belongs to Sixalime Sas and only
                         credits transfers from an account in the user&apos;s own name, and Brazil mints a Pix code per
                         payment. Both render honestly through the same contract — pooled holder, own-name-only sender —
                         with the share surface off.
-                    </Notification>
+                    </Callout>
                 </aside>
 
                 <main className="flex flex-1 flex-col items-center gap-4">

@@ -191,8 +191,8 @@ export const SendRouterView = () => {
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
             <div className="space-y-4 w-full">
                 {/* link card per the SendLink board (17832:79996): icon bubble,
-                    centered title + sub, full-width purple cta */}
-                <Card position="single" className="flex flex-col items-center gap-6 p-6">
+                    centered title + sub, full-width primary cta */}
+                <Card position="solo" className="flex flex-col items-center gap-6 p-6">
                     <div className="flex flex-col items-center gap-2">
                         <IconBubble icon="link" size="m" color="blue" />
                         <div className="space-y-1 text-center">
@@ -201,7 +201,7 @@ export const SendRouterView = () => {
                         </div>
                     </div>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         icon="chevron-right"
                         iconPosition="right"
                         className="w-full"
@@ -223,7 +223,7 @@ export const SendRouterView = () => {
                         <ListItem
                             key={option.id}
                             leading={option.identifierIcon}
-                            position="single"
+                            position="solo"
                             title={option.title}
                             body={option.description}
                             onClick={() => handleMethodClick(option.id)}

@@ -17,7 +17,7 @@ import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -148,7 +148,7 @@ describe('TransactionCard — clickable counterparty name', () => {
 // TASK-22452 moved the leading bubble off a fixed direction arrow onto the
 // link's own state, so the arrow it used to draw is now the state glyph.
 describe('TransactionCard — received request renders as inbound', () => {
-    function requestTx(status: StatusPillType = 'pending'): TransactionDetails {
+    function requestTx(status: IconStatusType = 'pending'): TransactionDetails {
         const tx = eligibleTx()
         tx.direction = 'request_received'
         tx.status = status
@@ -156,7 +156,7 @@ describe('TransactionCard — received request renders as inbound', () => {
         return tx
     }
 
-    function renderRequest(status: StatusPillType) {
+    function renderRequest(status: IconStatusType) {
         return render(
             <TransactionCard
                 type="request"
@@ -320,7 +320,7 @@ describe('TransactionCard — failed strike-through and the refund carve-out', (
 // the pending treatment in the feed row — no pending chip, no greyed amount.
 // A settling request FULFILMENT (direction receive/send) keeps both.
 describe('TransactionCard — open-request pending exemption', () => {
-    // the icon-only StatusPill has no text; its pending background class is
+    // the icon-only Badge has no text; its pending background class is
     // the stable hook to assert presence/absence
     const pendingPill = (container: HTMLElement) => container.querySelector('.bg-background-badge-attention')
 

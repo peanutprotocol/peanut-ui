@@ -48,7 +48,7 @@ export default function PageStackPage() {
                                     <div className="text-center text-body-m">centered content</div>
                                 </PageStack.Center>
                                 <PageStack.Footer>
-                                    <Button variant="purple" shadowSize="4" className="w-full">
+                                    <Button variant="primary" shadowSize="4" className="w-full">
                                         Continue
                                     </Button>
                                 </PageStack.Footer>
@@ -64,7 +64,7 @@ export default function PageStackPage() {
   <NavHeader title={t('title')} onPrev={goBack} />
   <PageStack.Center>…</PageStack.Center>
   <PageStack.Footer>
-    <Button variant="purple" shadowSize="4" className="w-full">…</Button>
+    <Button variant="primary" shadowSize="4" className="w-full">…</Button>
   </PageStack.Footer>
 </PageStack>`}
                     />

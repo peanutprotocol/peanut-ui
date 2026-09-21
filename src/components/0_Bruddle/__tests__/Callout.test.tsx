@@ -1,38 +1,38 @@
 import { fireEvent, screen } from '@testing-library/react'
 // the dismiss aria-label comes from the common catalog via useTranslations
 import { renderWithIntl as render } from '@/test-utils/intl'
-import { Notification } from '../Notification'
+import { Callout } from '../Callout'
 
-describe('Notification', () => {
+describe('Callout', () => {
     test('body-only renders as a status with the body text', () => {
-        render(<Notification priority="info">Just letting you know</Notification>)
+        render(<Callout priority="info">Just letting you know</Callout>)
         expect(screen.getByRole('status')).toHaveTextContent('Just letting you know')
     })
 
     test('error and attention priorities render as alerts', () => {
-        render(<Notification priority="error">Something went wrong</Notification>)
+        render(<Callout priority="error">Something went wrong</Callout>)
         expect(screen.getByRole('alert')).toBeInTheDocument()
     })
 
     test('attention renders role=alert too (the branch every warning toast rides)', () => {
-        render(<Notification priority="attention">Careful now</Notification>)
+        render(<Callout priority="attention">Careful now</Callout>)
         expect(screen.getByRole('alert')).toHaveTextContent('Careful now')
     })
 
     test('hideIcon suppresses the leading priority icon for self-designed content', () => {
         const { container } = render(
-            <Notification priority="success" hideIcon>
+            <Callout priority="success" hideIcon>
                 badge content
-            </Notification>
+            </Callout>
         )
         expect(container.querySelector('svg')).not.toBeInTheDocument()
     })
 
     test('title + body renders both, no dismiss button unless onDismiss is set', () => {
         render(
-            <Notification priority="attention" title="Heads up">
+            <Callout priority="attention" title="Heads up">
                 Body text
-            </Notification>
+            </Callout>
         )
         expect(screen.getByText('Heads up')).toBeInTheDocument()
         expect(screen.getByText('Body text')).toBeInTheDocument()
@@ -42,9 +42,9 @@ describe('Notification', () => {
     test('dismiss button calls onDismiss', () => {
         const onDismiss = jest.fn()
         render(
-            <Notification priority="info" onDismiss={onDismiss}>
+            <Callout priority="info" onDismiss={onDismiss}>
                 Bye
-            </Notification>
+            </Callout>
         )
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
         expect(onDismiss).toHaveBeenCalledTimes(1)
@@ -55,16 +55,16 @@ describe('Notification', () => {
     // `children` anyway, which typechecked, passed every other test, and showed
     // an empty blue box in the modal.
     test('items renders one row per entry, with no children', () => {
-        render(<Notification priority="info" items={['Europe SEPA transfers', 'UK Faster payments']} />)
+        render(<Callout priority="info" items={['Europe SEPA transfers', 'UK Faster payments']} />)
         expect(screen.getByText('Europe SEPA transfers')).toBeInTheDocument()
         expect(screen.getByText('UK Faster payments')).toBeInTheDocument()
     })
 
     test('items wins over children, and renders under a title too', () => {
         render(
-            <Notification priority="info" title="What you'll unlock" items={['Mexico SPEI transfers']}>
+            <Callout priority="info" title="What you'll unlock" items={['Mexico SPEI transfers']}>
                 ignored
-            </Notification>
+            </Callout>
         )
         expect(screen.getByText("What you'll unlock")).toBeInTheDocument()
         expect(screen.getByText('Mexico SPEI transfers')).toBeInTheDocument()
@@ -76,29 +76,29 @@ describe('Notification', () => {
     // "a checklist has no leading icon" — asserted by svg count: one check mark
     // per row and nothing else.
     test('a checklist renders no leading priority icon, only the check marks', () => {
-        const { container: withItems } = render(<Notification priority="info" items={['One', 'Two']} />)
+        const { container: withItems } = render(<Callout priority="info" items={['One', 'Two']} />)
         expect(withItems.querySelectorAll('svg')).toHaveLength(2)
 
-        const { container: withBody } = render(<Notification priority="info">Plain body</Notification>)
+        const { container: withBody } = render(<Callout priority="info">Plain body</Callout>)
         expect(withBody.querySelectorAll('svg')).toHaveLength(1)
     })
 
     test('an empty items list renders nothing, not a bare icon box', () => {
-        const { container } = render(<Notification priority="info" items={[]} />)
+        const { container } = render(<Callout priority="info" items={[]} />)
         expect(container).toBeEmptyDOMElement()
     })
 
     test('an empty items list suppresses children rather than falling back to them', () => {
         const { container } = render(
-            <Notification priority="info" items={[]}>
+            <Callout priority="info" items={[]}>
                 should not appear
-            </Notification>
+            </Callout>
         )
         expect(container).toBeEmptyDOMElement()
     })
 
     test('a title alone still renders', () => {
-        render(<Notification priority="info" title="Heads up" items={[]} />)
+        render(<Callout priority="info" title="Heads up" items={[]} />)
         expect(screen.getByText('Heads up')).toBeInTheDocument()
     })
 
@@ -112,9 +112,9 @@ describe('Notification', () => {
             { label: 'Three', onClick: () => {} },
         ] as unknown as [{ label: string; onClick: () => void }]
         render(
-            <Notification priority="success" ctas={threeCtas}>
+            <Callout priority="success" ctas={threeCtas}>
                 Done
-            </Notification>
+            </Callout>
         )
         expect(screen.getByRole('button', { name: /One/ })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Two/ })).toBeInTheDocument()
@@ -129,9 +129,9 @@ describe('Notification', () => {
     // for. Under motion-reduce it stays as a static tone strip.
     test('the countdown bar animates only under motion-safe, and is absent without a duration', () => {
         const { container, rerender } = render(
-            <Notification priority="success" variant="floating" progressMs={2000}>
+            <Callout priority="success" variant="floating" progressMs={2000}>
                 Link cancelled successfully!
-            </Notification>
+            </Callout>
         )
         const bar = container.querySelector('span[aria-hidden]')
         expect(bar).toBeInTheDocument()
@@ -142,9 +142,9 @@ describe('Notification', () => {
 
         // a persistent toast has no lifetime to draw
         rerender(
-            <Notification priority="success" variant="floating">
+            <Callout priority="success" variant="floating">
                 Link cancelled successfully!
-            </Notification>
+            </Callout>
         )
         expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
     })
@@ -154,9 +154,9 @@ describe('Notification', () => {
     test('the floating card does not clip its dismiss target, and the bar cannot swallow taps', () => {
         const onDismiss = jest.fn()
         const { container } = render(
-            <Notification priority="success" variant="floating" progressMs={2000} onDismiss={onDismiss}>
+            <Callout priority="success" variant="floating" progressMs={2000} onDismiss={onDismiss}>
                 Link cancelled successfully!
-            </Notification>
+            </Callout>
         )
         const card = container.firstElementChild as HTMLElement
         // the 24px button reaches 44px through after:-inset-2.5; clipping the
@@ -168,9 +168,9 @@ describe('Notification', () => {
 
     test('the inline banner never draws a countdown, even if a duration is passed', () => {
         const { container } = render(
-            <Notification priority="success" progressMs={2000}>
+            <Callout priority="success" progressMs={2000}>
                 Link cancelled successfully!
-            </Notification>
+            </Callout>
         )
         expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
     })

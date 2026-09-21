@@ -80,14 +80,14 @@ describe('twMerge (DS-configured)', () => {
 
     // The other direction of the same bug: nothing is dropped, the caller's
     // override is silently ignored because stock tailwind-merge does not know
-    // `rounded-round` is a radius, so both classes survive and css order wins.
+    // `rounded-card` is a radius, so both classes survive and css order wins.
     describe('custom radius tokens', () => {
         test('a caller radius overrides a component radius, both ways', () => {
-            expect(twMerge('rounded-round rounded-sm')).toBe('rounded-sm')
-            expect(twMerge('rounded-sm rounded-round')).toBe('rounded-round')
-            expect(twMerge('rounded-round rounded-full')).toBe('rounded-full')
+            expect(twMerge('rounded-card rounded-sm')).toBe('rounded-sm')
+            expect(twMerge('rounded-sm rounded-card')).toBe('rounded-card')
+            expect(twMerge('rounded-card rounded-full')).toBe('rounded-full')
             // proves the test would have caught the original behaviour
-            expect(stockTwMerge('rounded-round rounded-sm')).toBe('rounded-round rounded-sm')
+            expect(stockTwMerge('rounded-card rounded-sm')).toBe('rounded-card rounded-sm')
         })
 
         test('every --radius-* token in globals.css merges as a radius', () => {
@@ -100,12 +100,12 @@ describe('twMerge (DS-configured)', () => {
 
         // side-specific radii still win over the shorthand, as in stock
         test('keeps the corner-specific radii working', () => {
-            expect(twMerge('rounded-round rounded-t-sm')).toBe('rounded-round rounded-t-sm')
-            expect(twMerge('rounded-t-sm rounded-round')).toBe('rounded-round')
+            expect(twMerge('rounded-card rounded-t-sm')).toBe('rounded-card rounded-t-sm')
+            expect(twMerge('rounded-t-sm rounded-card')).toBe('rounded-card')
             // side-specific DS tokens merge within their own side group (F-16)
-            expect(twMerge('rounded-t-round rounded-t-sm')).toBe('rounded-t-sm')
-            expect(twMerge('rounded-t-sm rounded-t-round')).toBe('rounded-t-round')
-            expect(twMerge('rounded-br-round rounded-br-sm')).toBe('rounded-br-sm')
+            expect(twMerge('rounded-t-card rounded-t-sm')).toBe('rounded-t-sm')
+            expect(twMerge('rounded-t-sm rounded-t-card')).toBe('rounded-t-card')
+            expect(twMerge('rounded-br-card rounded-br-sm')).toBe('rounded-br-sm')
         })
     })
 

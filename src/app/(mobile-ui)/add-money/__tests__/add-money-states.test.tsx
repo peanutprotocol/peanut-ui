@@ -1820,7 +1820,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
     })
 
     // TASK-22121 #26: client-side validation renders as the field's own error
-    // under the amount input, not in the flow-level Notification
+    // under the amount input, not in the flow-level Callout
     test('validationError renders as a field error and disables Continue', () => {
         renderWithProviders(
             <InputAmountStep

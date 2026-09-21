@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import AmountInput from '@/components/Global/AmountInput'
@@ -188,18 +188,16 @@ export function BridgeBankOnrampView() {
                     {/* limits warning/error card */}
                     {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
-                    {!limitsValidation.isBlocking && (
-                        <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
-                    )}
+                    {!limitsValidation.isBlocking && <Callout priority="attention">{t('amountMustMatchBank')}</Callout>}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
-                        <Notification priority="info" title={t('eurAccountsOnlyTitle')}>
+                        <Callout priority="info" title={t('eurAccountsOnlyTitle')}>
                             {t('eurAccountsOnlyDescription')}
-                        </Notification>
+                        </Callout>
                     )}
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
@@ -222,7 +220,7 @@ export function BridgeBankOnrampView() {
                         showError: error.showError && !!error.errorMessage,
                         showsLimitsCard: !!limitsCardProps,
                         limitsBlocking: limitsValidation.isBlocking,
-                    }) && <Notification priority="error">{error.errorMessage}</Notification>}
+                    }) && <Callout priority="error">{error.errorMessage}</Callout>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
                 </div>
 

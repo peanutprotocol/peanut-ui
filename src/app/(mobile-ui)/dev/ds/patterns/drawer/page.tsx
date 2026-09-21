@@ -48,7 +48,7 @@ export default function DrawerPage() {
                                 </p>
                                 <div className="mt-4">
                                     <DrawerClose asChild>
-                                        <Button variant="purple" shadowSize="4" className="w-full">
+                                        <Button variant="primary" shadowSize="4" className="w-full">
                                             Close Drawer
                                         </Button>
                                     </DrawerClose>
@@ -88,7 +88,7 @@ export default function DrawerPage() {
     </div>
     <DrawerFooter>
       <DrawerClose asChild>
-        <Button variant="purple" shadowSize="4" className="w-full">
+        <Button variant="primary" shadowSize="4" className="w-full">
           Done
         </Button>
       </DrawerClose>

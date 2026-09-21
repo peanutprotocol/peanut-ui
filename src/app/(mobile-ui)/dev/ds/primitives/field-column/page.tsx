@@ -14,7 +14,7 @@ export default function FieldColumnPage() {
         <DocPage>
             <DocHeader
                 title="FieldColumn"
-                description="An input and its FieldError stacked 4px apart — the form-field column from the form-field board. Field validation only; page/flow failures stay Notification. Whether it folds into Field is an open question."
+                description="An input and its FieldError stacked 4px apart — the form-field column from the form-field board. Field validation only; page/flow failures stay Callout. Whether it folds into Field is an open question."
                 status="production"
             />
 

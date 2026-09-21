@@ -923,7 +923,6 @@ describe('offScaleRadius (countOffScaleRadius)', () => {
     it('accepts the scale classes, bare rounded and sides included', () => {
         for (const cls of [
             'rounded-sm',
-            'rounded-round',
             'rounded-full',
             'rounded-none',
             'rounded',

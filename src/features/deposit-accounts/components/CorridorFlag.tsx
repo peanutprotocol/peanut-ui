@@ -17,7 +17,7 @@ export function CorridorFlag({ iso2 }: { iso2: string }) {
             alt=""
             width={32}
             height={32}
-            className="size-8 shrink-0 rounded-round object-cover"
+            className="size-8 shrink-0 rounded-full object-cover"
         />
     )
 }

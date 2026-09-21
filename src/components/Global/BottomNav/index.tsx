@@ -56,7 +56,7 @@ import { TAB_ORDER, type TabId } from './tab-order'
 
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
 const tabClass =
-    'relative flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
+    'relative flex items-center justify-center rounded-full px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
 
 // icons sit above the pill (z) and let pointer events fall through
 const iconClass = 'pointer-events-none relative z-10'
@@ -166,7 +166,6 @@ export const BottomNav = () => {
 
     const selectedTab = isSupportModalOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
-    const pressOrigin = (pressedTab ? boxes[pressedTab] : undefined) ?? activeBox
 
     const clampX = (x: number) => {
         const first = boxes[TAB_ORDER[0]]
@@ -244,14 +243,10 @@ export const BottomNav = () => {
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
-                className={`relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4 motion-safe:transition-transform ${
-                    pressedTab
-                        ? 'motion-safe:scale-x-[0.985] motion-safe:scale-y-[0.96] motion-safe:duration-instant motion-safe:ease-out'
-                        : 'motion-safe:scale-100 motion-safe:duration-nav-pop motion-safe:ease-nav-pop'
-                }`}
-                style={{
-                    transformOrigin: pressOrigin ? `${pressOrigin.left + pressOrigin.width / 2}px center` : undefined,
-                }}
+                // press feedback lives on the tapped icon only (iconPopClass) —
+                // the bar itself stays still (kush ruling 2026-09-21, reverting
+                // the whole-bar squash from 78e1848fb)
+                className="relative flex flex-1 items-center justify-between rounded-full border border-border-default bg-background-page shadow-4"
             >
                 <Link
                     href="/home"
@@ -324,7 +319,7 @@ export const BottomNav = () => {
                         onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
+                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-full border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
                         style={{
                             transform: `translateX(${restingX(activeBox)}px)`,
                             width: activeBox.width + 2,
@@ -341,7 +336,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 disabled:opacity-40"
+                className="flex size-13 shrink-0 items-center justify-center rounded-full border border-border-button bg-action-primary text-foreground-primary shadow-4 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>

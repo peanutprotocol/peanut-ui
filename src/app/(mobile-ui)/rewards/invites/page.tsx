@@ -86,7 +86,7 @@ const InvitesPage = () => {
                         description={t('shareInviteLinkPrompt')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
@@ -172,7 +172,7 @@ const InvitesPage = () => {
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
-                                            size="small"
+                                            size="m"
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">

@@ -44,7 +44,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 {
                     text: '',
                     shadowSize: '4',
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'sm:flex-none',
                     onClick: handleContinueWithPeanut,
                     children: (

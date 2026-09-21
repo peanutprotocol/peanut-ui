@@ -37,7 +37,7 @@ const UserCard = ({
     username,
     fullName,
     recipientType,
-    size = 'extra-small',
+    size = 's',
     message,
     fileUrl,
     isVerified,
