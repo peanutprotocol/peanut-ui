@@ -18,8 +18,8 @@ export type SurfaceMeta = {
      *  surfaces that mount closed and open on an in-surface action. The spec
      *  asserts a dialog is open before capturing. */
     shotClick?: string
-    /** Stable test id for a translated trigger. Prefer this when its accessible
-     *  name changes with the locale under capture. */
+    /** Stable test id for a translated trigger that opens a dialog. The capture
+     *  runner proves that the dialog opened before it records the surface. */
     shotClickTestId?: string
 }
 
