@@ -353,21 +353,17 @@
                 "everywhere": "Peanut",
                 "southAmerica": "América del Sur",
                 "northAmerica": "América del Norte",
-                "europe": "Europa"
+                "europe": "Europa",
+                "spend": "Gastar"
             },
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
-                "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
-                "pixBank": "Pagos y transferencias PIX (Brasil)",
-                "pixQr": "Pagos QR con PIX (Brasil)",
-                "brBank": "Transferencias PIX (Brasil)",
-                "arQrBank": "Pagos QR y transferencias (Argentina)",
-                "arQr": "Pagos QR (Argentina)",
-                "arBank": "Transferencias bancarias (Argentina)",
-                "naBank": "Transferencias bancarias en dólares y pesos mexicanos",
-                "sepa": "Transferencias bancarias en euros"
+                "saBank": "BRL y ARS · Pix y transferencia bancaria",
+                "naBank": "USD y MXN · Transferencia bancaria",
+                "sepa": "EUR · Transferencia bancaria",
+                "qrPay": "Pagos con QR · Brasil y Argentina"
             },
             "chips": {
                 "active": "Disponible",
@@ -423,37 +419,28 @@
             "details": {
                 "p2p": "Envía y recibe dinero de otros usuarios de Peanut.",
                 "crypto": "Agrega o retira cripto desde cualquier billetera o exchange, sin verificación.",
-                "saBank": "Paga con QR y transfiere dinero a través de cuentas bancarias en Brasil y Argentina.",
-                "pixBank": "Paga códigos QR Pix y transfiere dinero a través de cuentas bancarias brasileñas.",
-                "pixQr": "Paga códigos QR Pix en Brasil.",
-                "arQrBank": "Paga códigos QR y transfiere dinero a través de cuentas bancarias argentinas.",
-                "arQr": "Paga códigos QR en Argentina.",
-                "brBank": "Transfiere dinero a través de cuentas bancarias brasileñas.",
-                "arBank": "Transfiere dinero a través de cuentas bancarias argentinas.",
+                "saBank": "Agrega o retira dinero a través de cuentas bancarias en Brasil y Argentina.",
                 "naBank": "Agrega o retira dinero mediante transferencias bancarias de Estados Unidos y la red SPEI de México.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "card": "Paga con tu tarjeta Peanut."
+                "card": "Paga con tu tarjeta Peanut.",
+                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Divide cuentas y paga a tus amigos en un toque.",
                 "card": "Usa tu saldo de Peanut en el mundo real.",
                 "crypto": "Envía y recibe on-chain, sin necesidad de banco.",
-                "saBank": "Maneja tu dinero como local en Brasil y Argentina.",
-                "pixBank": "Mueve dinero por Brasil al instante.",
-                "pixQr": "Escanea, paga y listo, donde funcione Pix.",
-                "brBank": "Llega a cualquier cuenta bancaria en Brasil.",
-                "arQrBank": "Paga y cobra en cualquier lugar de Argentina.",
-                "arQr": "Escanea y paga en cualquier QR de Argentina.",
-                "arBank": "Llega a cualquier cuenta bancaria en Argentina.",
+                "saBank": "Mueve dinero con bancos de Brasil y Argentina.",
                 "naBank": "Conecta tu dinero de bancos de EE. UU. y México.",
-                "sepa": "Guarda y mueve euros sin un banco local."
+                "sepa": "Guarda y mueve euros sin un banco local.",
+                "qrPay": "Escanea y paga donde vives."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué puedes hacer",
                 "limitsTitle": "Límites"
             },
-            "waysTitle": "Formas de enviarte dinero",
-            "waysSubtitle": "Mueve tu propio dinero entre Peanut y tu banco. No recibes un número de cuenta propio."
+            "waysTitle": "Agregar y retirar dinero",
+            "waysSubtitle": "Mueve dinero entre tu banco y Peanut en estas monedas.",
+            "qrPayNote": "Paga en comercios escaneando un código QR. Disponible para toda persona verificada."
         },
         "backup": {
             "title": "Respaldo",
@@ -1099,7 +1086,7 @@
             "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
             "unknownPays": "Una transferencia de alguien que no seas tú no está confirmada en esta cuenta y puede devolverse.",
             "titleOff": "Tus datos bancarios quedan privados",
-            "descriptionOff": "Quien paga usa Peanut o cripto. Puede agregar dinero desde su propio banco primero. Ese dinero no llega a tu cuenta bancaria."
+            "descriptionOff": "Quien te paga puede hacerlo con Peanut o cripto."
         },
         "paidByBank": {
             "rowLabel": "Transferencia bancaria",
@@ -2048,7 +2035,11 @@
             "pasteEmpty": "No hay nada para pegar",
             "pasteUnavailable": "No se pudo leer el portapapeles",
             "bicAutoFilled": "Completamos esto con tu IBAN. Verifícalo con tu banco y cámbialo si no es correcto.",
-            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN"
+            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN",
+            "ownAccount": "Esta es mi propia cuenta",
+            "ownAccountFilled": "Completamos lo que ya sabemos. Verifícalo y cambia lo que no sea correcto.",
+            "groupBankAccount": "Cuenta bancaria",
+            "groupAccountOwner": "Titular de la cuenta"
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",
