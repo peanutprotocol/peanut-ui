@@ -3,7 +3,7 @@
 import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -156,7 +156,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
-                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                {errorState.showError && <Callout priority="error">{errorState.errorMessage}</Callout>}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay

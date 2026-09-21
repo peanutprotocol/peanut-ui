@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -94,9 +94,9 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                     showsLimitsCard: !isCryptoWithdraw,
                     limitsBlocking: limitsValidation?.isBlocking ?? false,
                 }) && (
-                    <Notification priority="error" data-testid="error-alert">
+                    <Callout priority="error" data-testid="error-alert">
                         {error.errorMessage}
-                    </Notification>
+                    </Callout>
                 )}
             </PageStack.Center>
         </PageStack>

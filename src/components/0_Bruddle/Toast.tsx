@@ -55,7 +55,7 @@ interface ToastOptions {
      *  `border-action-secondary` that don't fit the standard success/error/info/warning. */
     className?: string
     /** Self-designed toast content (badge celebrations): suppress the priority icon
-     *  so Notification chrome doesn't stack onto the content's own artwork. */
+     *  so Callout chrome doesn't stack onto the content's own artwork. */
     hideIcon?: boolean
 }
 

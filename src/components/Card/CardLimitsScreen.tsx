@@ -3,7 +3,7 @@ import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
@@ -53,9 +53,9 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                         chevron
                     />
                 ) : error ? (
-                    <Notification priority="error" ctas={[{ label: tCommon('retry'), onClick: () => void refetch() }]}>
+                    <Callout priority="error" ctas={[{ label: tCommon('retry'), onClick: () => void refetch() }]}>
                         {t('loadFailed')}
-                    </Notification>
+                    </Callout>
                 ) : (
                     <ListItem
                         position="single"
@@ -75,7 +75,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
              * notification. no utilization bar — rain's limits endpoint returns
              * only {amount, frequency}, and our program is per-authorization
              * only, so there is no period spend to display. */}
-            <Notification priority="info">{t('explainer')}</Notification>
+            <Callout priority="info">{t('explainer')}</Callout>
 
             <CardLimitEditDrawer
                 cardId={cardId}

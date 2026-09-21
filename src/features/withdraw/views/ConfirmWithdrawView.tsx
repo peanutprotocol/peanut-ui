@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -242,7 +242,7 @@ export default function ConfirmWithdrawView({
 
                 {saveAddressPrompt}
 
-                {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
+                {showHighFeeWarning && <Callout priority="info">{t('confirm.highFeeWarning')}</Callout>}
 
                 {error ? (
                     <Button
@@ -293,12 +293,12 @@ export default function ConfirmWithdrawView({
                 )}
 
                 {insufficientBalance && !error && (
-                    <Notification priority="error">{tErrors('notEnoughBalanceAddFunds')}</Notification>
+                    <Callout priority="error">{tErrors('notEnoughBalanceAddFunds')}</Callout>
                 )}
                 {belowMinimumMessage && !insufficientBalance && !error && (
-                    <Notification priority="error">{belowMinimumMessage}</Notification>
+                    <Callout priority="error">{belowMinimumMessage}</Callout>
                 )}
-                {error && <Notification priority="error">{error}</Notification>}
+                {error && <Callout priority="error">{error}</Callout>}
             </div>
         </div>
     )

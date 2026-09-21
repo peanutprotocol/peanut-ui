@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
@@ -109,7 +109,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'notification-prompt',
-        label: 'Notification prompt',
+        label: 'Callout prompt',
         icon: 'bell',
         title: 'Stay in the loop!',
         description: 'Turn on notifications and get alerts for all your wallet activity.',
@@ -166,12 +166,12 @@ export default function HomeCTAsPreviewPage() {
                     ))}
                 </Section>
 
-                <Notification priority="info" title="Preview behavior">
+                <Callout priority="info" title="Preview behavior">
                     Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
                     defaults when logged out, so every step renders here regardless of real KYC state — except the spend
                     step, which needs card access or a QR rail to have an activating spend to route to, and so stays
                     empty in a logged-out preview.
-                </Notification>
+                </Callout>
             </div>
         </DevPageShell>
     )

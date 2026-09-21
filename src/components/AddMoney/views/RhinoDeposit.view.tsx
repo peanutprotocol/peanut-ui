@@ -6,7 +6,7 @@ import CopyField from '@/components/Global/CopyField'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import Loading from '@/components/Global/Loading'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
@@ -163,14 +163,14 @@ const RhinoDepositView = ({
 
                         <CopyField text={depositAddressData.depositAddress} />
 
-                        <Notification priority="attention">
+                        <Callout priority="attention">
                             <div className="flex items-center gap-2">
                                 <p>{t('supportedTokensInline')}</p>
                                 {getSupportedTokens(chainType).map((token) => (
                                     <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                                 ))}
                             </div>
-                        </Notification>
+                        </Callout>
 
                         <div className="flex w-full flex-col gap-1">
                             <div className="flex w-full items-center justify-between">

@@ -35,7 +35,7 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
 import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useFormatter, useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 import { usdRemainingOf } from '../collected'
@@ -313,15 +313,15 @@ export function RequestPotActionList({
     // cannot get it back.
     if (alreadyCovered) {
         return (
-            <Notification priority="attention" data-testid="request-already-covered">
+            <Callout priority="attention" data-testid="request-already-covered">
                 {t('requestAlreadyCovered')}
-            </Notification>
+            </Callout>
         )
     }
 
     return (
         <div className="space-y-2">
-            {otherCurrencyNote && <Notification priority="helper">{otherCurrencyNote}</Notification>}
+            {otherCurrencyNote && <Callout priority="helper">{otherCurrencyNote}</Callout>}
 
             {/* pay with peanut button */}
             <SendWithPeanutCta

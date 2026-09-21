@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -165,7 +165,7 @@ export default function LimitsWarningCard({
     }
 
     return (
-        <Notification
+        <Callout
             priority={type === 'error' ? 'error' : 'attention'}
             hideIcon
             title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
@@ -237,6 +237,6 @@ export default function LimitsWarningCard({
                     </div>
                 )}
             </div>
-        </Notification>
+        </Callout>
     )
 }

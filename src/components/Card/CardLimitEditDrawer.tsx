@@ -7,7 +7,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
@@ -139,7 +139,7 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        {apiError && <Notification priority="error">{apiError}</Notification>}
+                        {apiError && <Callout priority="error">{apiError}</Callout>}
                         <Field label={label} htmlFor="card-limit-input" error={validationError} className="text-left">
                             <BaseInput
                                 id="card-limit-input"

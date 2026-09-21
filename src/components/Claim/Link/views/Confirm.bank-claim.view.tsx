@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -130,7 +130,7 @@ export function ConfirmBankClaimView({
                         </Button>
                     )}
 
-                    {error && <Notification priority="error">{error}</Notification>}
+                    {error && <Callout priority="error">{error}</Callout>}
                 </div>
             </PageStack.Center>
         </PageStack>

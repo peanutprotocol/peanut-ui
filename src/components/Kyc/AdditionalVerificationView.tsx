@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -115,23 +115,23 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>
                     <KycPrepChecklist path="hosted" />
-                    {/* Notification, not a bare <p>: it carries role="alert", so a
+                    {/* Callout, not a bare <p>: it carries role="alert", so a
                         screen reader hears the failure instead of leaving focus on
                         a CTA that silently did nothing. */}
                     {error && (
-                        <Notification priority="error" data-testid="hosted-start-error">
+                        <Callout priority="error" data-testid="hosted-start-error">
                             {error}
-                        </Notification>
+                        </Callout>
                     )}
                     {isSettling && (
-                        <Notification priority="info" data-testid="hosted-settling">
+                        <Callout priority="info" data-testid="hosted-settling">
                             {t('checking')}
-                        </Notification>
+                        </Callout>
                     )}
                     {stillPendingAfterReturn && !isSettling && (
-                        <Notification priority="attention" data-testid="hosted-still-pending">
+                        <Callout priority="attention" data-testid="hosted-still-pending">
                             {t('stillPending')}
-                        </Notification>
+                        </Callout>
                     )}
                     <Button
                         variant="primary"

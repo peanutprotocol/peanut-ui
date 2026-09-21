@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
@@ -57,15 +57,11 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
                 ))}
             </Card>
             {isHosted && (
-                <Notification
-                    priority="attention"
-                    title={t('singleSession.title')}
-                    data-testid="kyc-prep-single-session"
-                >
+                <Callout priority="attention" title={t('singleSession.title')} data-testid="kyc-prep-single-session">
                     {/* The banner's own body step is text-body-m, which reads
                         louder than the requirement titles right above it. */}
                     <span className="text-body-s">{t('singleSession.body')}</span>
-                </Notification>
+                </Callout>
             )}
             {/* Above "how long": the note is about WHAT may still be asked for,
                 so it belongs with the requirements list it qualifies. Duration

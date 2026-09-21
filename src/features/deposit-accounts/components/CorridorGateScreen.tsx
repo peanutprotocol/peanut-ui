@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -152,12 +152,12 @@ export function CorridorGateScreen({
                         <StatusBadge status="pending" />
                     </div>
                 )}
-                {/* a flow-level failure, so a Notification: it carries role="alert"
+                {/* a flow-level failure, so a Callout: it carries role="alert"
                     and the button below is the retry */}
                 {actFailed && (
-                    <Notification priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
+                    <Callout priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
                         {t('gate.actFailed')}
-                    </Notification>
+                    </Callout>
                 )}
                 <EmptyState
                     icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}

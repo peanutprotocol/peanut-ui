@@ -24,7 +24,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 
@@ -154,9 +154,9 @@ export default function DeferredLinkDevPage() {
                 </Field>
                 <Button onClick={simulate}>Parse and apply</Button>
                 {simulateResult && (
-                    <Notification priority={simulateResult.startsWith('rejected') ? 'error' : 'success'}>
+                    <Callout priority={simulateResult.startsWith('rejected') ? 'error' : 'success'}>
                         <span className="font-mono break-all">{simulateResult}</span>
-                    </Notification>
+                    </Callout>
                 )}
             </Section>
         </DevPageShell>

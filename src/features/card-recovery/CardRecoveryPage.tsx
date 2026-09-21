@@ -1,7 +1,7 @@
 'use client'
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -45,7 +45,7 @@ export function CardRecoveryPage() {
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <PageStack.Center>
-                {error && <Notification priority="error">{error}</Notification>}
+                {error && <Callout priority="error">{error}</Callout>}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">

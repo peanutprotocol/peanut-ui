@@ -3,7 +3,7 @@
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { Section } from '@/components/0_Bruddle/Section'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
@@ -86,9 +86,9 @@ export default function VaAwareAccountRows({
     return (
         <>
             {isError && (
-                <Notification priority="error" ctas={[{ label: t('list.errorRetry'), onClick: refetch }]}>
+                <Callout priority="error" ctas={[{ label: t('list.errorRetry'), onClick: refetch }]}>
                     {t('list.errorBody')}
-                </Notification>
+                </Callout>
             )}
             {!isLoading && held.length > 0 && (
                 <Section title={tRows('accountsTitle')}>

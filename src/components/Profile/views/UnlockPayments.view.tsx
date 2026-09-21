@@ -11,7 +11,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
@@ -371,7 +371,7 @@ const UnlockPayments = () => {
             </div>
 
             {isKycDegraded && (
-                <Notification
+                <Callout
                     priority="attention"
                     title={t('degraded.title')}
                     ctas={[
@@ -385,11 +385,11 @@ const UnlockPayments = () => {
                     ]}
                 >
                     {t('degraded.body')}
-                </Notification>
+                </Callout>
             )}
 
             {isIdentityInReview && !isKycDegraded && (
-                <Notification
+                <Callout
                     priority="helper"
                     title={
                         reviewSubmittedDate
@@ -403,7 +403,7 @@ const UnlockPayments = () => {
                     }
                 >
                     {reviewEscalation ? t('review.escalation') : t('review.body')}
-                </Notification>
+                </Callout>
             )}
 
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}

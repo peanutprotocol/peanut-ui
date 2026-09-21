@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { rainApi } from '@/services/rain'
@@ -130,7 +130,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const hasBody = showError || showSlide
     const bodyContent = (
         <>
-            {showError && <Notification priority="error">{error}</Notification>}
+            {showError && <Callout priority="error">{error}</Callout>}
             {showSlide && (
                 <SlideToConfirm
                     label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}

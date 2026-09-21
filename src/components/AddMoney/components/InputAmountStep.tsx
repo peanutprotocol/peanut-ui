@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import RateUnavailable from '@/components/Global/RateUnavailable'
@@ -22,7 +22,7 @@ interface InputAmountStepProps {
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
-    // flow-level failure (API/provider/sumsub) — renders in the Notification
+    // flow-level failure (API/provider/sumsub) — renders in the Callout
     error: string | null
     // client-side amount validation — renders as the field's own error under the input
     validationError?: string | null
@@ -146,9 +146,9 @@ const InputAmountStep = ({
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && (
-                    <Notification priority="error" data-testid="error-alert">
+                    <Callout priority="error" data-testid="error-alert">
                         {error}
-                    </Notification>
+                    </Callout>
                 )}
                 {/* not gated on `error`/limits like the alert above: the retry is the only
                     way to clear the rate block that disables Continue (dev #2843) */}

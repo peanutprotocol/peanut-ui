@@ -1,7 +1,7 @@
 'use client'
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
@@ -156,7 +156,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-                {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
+                {sumsubFlow.error && <Callout priority="error">{sumsubFlow.error}</Callout>}
             </PageStack.Center>
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}

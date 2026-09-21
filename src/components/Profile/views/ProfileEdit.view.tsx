@@ -1,6 +1,6 @@
 'use client'
 import { updateUserById, requestEmailChange } from '@/app/actions/users'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
@@ -244,7 +244,7 @@ export const ProfileEditView = () => {
                     />
                 )}
                 <div className="flex flex-col gap-4">
-                    {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    {errorMessage && <Callout priority="error">{errorMessage}</Callout>}
                     <Button
                         type="submit"
                         disabled={disabled || !isDirty}

@@ -12,7 +12,7 @@
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import Link from 'next/link'
@@ -167,10 +167,10 @@ export default function RewardSurfaces() {
             description="Every reward, celebration and achievement overlay — what opens it in production, how it is presented today, and a link to the live surface. For the drawer-vs-modal-vs-full-screen decision (TASK-22680)."
             width="prose"
         >
-            <Notification priority="info" title="The App Store review prompt is not ours">
+            <Callout priority="info" title="The App Store review prompt is not ours">
                 It is the native OS sheet (src/utils/app-review.ts → CapgoInAppReview.requestReview). Guideline 5.6.1
                 forbids a custom prompt, so nothing we choose about drawer size can affect it.
-            </Notification>
+            </Callout>
 
             {GROUPS.map((group) => (
                 <Section key={group.title} title={group.title}>
@@ -205,7 +205,7 @@ export default function RewardSurfaces() {
                 </Section>
             ))}
 
-            <Notification
+            <Callout
                 priority="helper"
                 title="Already removed"
                 items={[

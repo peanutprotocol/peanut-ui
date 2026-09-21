@@ -283,7 +283,7 @@ counts.classNameSitesInPages = files
 // composition-drift metrics (2026-09-01 sweep). design.md laws the token
 // metrics above cannot see: stacked weights mint off-ramp type styles, the
 // spacing/radius/motion scales ban off-scale values, icons have three sizes.
-// deliberate holds (geometry-driven indents like Notification's pl-7, boards
+// deliberate holds (geometry-driven indents like Callout's pl-7, boards
 // pending a ruling) live inside the baseline, not an allowlist — a ruling
 // drives the count down, new drift pushes it up and fails.
 counts.fontWeightOnTypeToken = files

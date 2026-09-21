@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import React, { useEffect } from 'react'
-import { Notification } from './Notification'
+import { Callout } from './Callout'
 import type { ToastMessage } from './Toast'
 
 /**
@@ -58,7 +58,7 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: Toas
 
     return (
         <motion.div {...motionProps} className="max-w-[calc(100vw_-_2rem)] md:max-w-md">
-            <Notification
+            <Callout
                 variant="floating"
                 priority={TOAST_PRIORITY[type]}
                 onDismiss={onDismiss}
@@ -72,7 +72,7 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: Toas
                 hideIcon={hideIcon || content != null}
             >
                 {content ?? message}
-            </Notification>
+            </Callout>
         </motion.div>
     )
 }

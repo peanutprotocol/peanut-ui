@@ -14,7 +14,7 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -246,7 +246,7 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="flex flex-col gap-2">
-                            <Notification priority="error">{errorMessage}</Notification>
+                            <Callout priority="error">{errorMessage}</Callout>
                         </div>
                     )}
                 </div>

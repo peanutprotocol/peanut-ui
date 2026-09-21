@@ -8,7 +8,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
@@ -135,7 +135,7 @@ function MantecaBankWithdrawFlow() {
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
     // client-side destination/bank-details validation renders as the field's
     // own error under the inputs; errorMessage keeps flow failures (rate lock,
-    // provider, signing) in the Notification
+    // provider, signing) in the Callout
     const [fieldError, setFieldError] = useState<string | null>(null)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     // Companion code for `errorMessage` so the retry-vs-block gate compares a
@@ -1040,7 +1040,7 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                         )}
                     </div>
                 </div>
@@ -1107,7 +1107,7 @@ function MantecaBankWithdrawFlow() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
                     {(errorMessage || sumsubFlow.error) && (
-                        <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                     )}
                 </div>
             )}

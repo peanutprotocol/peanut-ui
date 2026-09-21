@@ -3,7 +3,7 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
@@ -358,7 +358,7 @@ export default function RecoverFundsPage() {
                     >
                         {t('review')}
                     </Button>
-                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    {!!errorMessage && <Callout priority="error">{errorMessage}</Callout>}
                 </PageStack.Center>
             )}
         </PageStack>

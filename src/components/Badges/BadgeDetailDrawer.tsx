@@ -9,7 +9,7 @@ import { captureBadgeShare, getBadgeShareLink, getBadgeShareText } from './badge
 import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { twMerge } from '@/utils/tw'
 
 type BadgeDetailDrawerProps = {
@@ -92,9 +92,9 @@ export const BadgeDetailDrawer = ({
                             {t('shareAchievement')}
                         </ShareButton>
                     ) : (
-                        <Notification priority="helper" title={t('howToUnlock')} className="w-full">
+                        <Callout priority="helper" title={t('howToUnlock')} className="w-full">
                             {unlockText}
-                        </Notification>
+                        </Callout>
                     )}
                 </div>
             </DrawerContent>

@@ -15,7 +15,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { clearCeremonyLog, getCeremonyLog, type CeremonyRecord } from '@/utils/webauthn-ceremony-telemetry'
 import DevPageShell from '../_components/DevPageShell'
@@ -100,10 +100,10 @@ export default function CeremonyLogPage() {
                 </>
             )}
 
-            <Notification priority="attention" title="About overlapping ceremonies">
+            <Callout priority="attention" title="About overlapping ceremonies">
                 An overlap label is a guess, not evidence. Extra sheets without log rows come from the native passkey
                 plugin or the OS credential manager.
-            </Notification>
+            </Callout>
         </DevPageShell>
     )
 }

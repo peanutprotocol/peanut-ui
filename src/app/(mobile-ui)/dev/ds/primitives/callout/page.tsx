@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
@@ -10,31 +10,31 @@ import { CodeBlock } from '../../_components/CodeBlock'
 
 const noop = () => {}
 
-export default function NotificationPage() {
+export default function CalloutPage() {
     return (
         <DocPage>
             <DocHeader
-                title="Notification"
-                description="Inline notification banner from the figma notification board (17802:61535). Priority sets tone and icon; supports body or title + body, a checklist body, optional dismiss, and up to two CTAs. It backs every inline banner and error in the app, plus Toast and the Banner announcement surface."
+                title="Callout"
+                description="Inline callout banner from the figma notification board (17802:61535). Priority sets tone and icon; supports body or title + body, a checklist body, optional dismiss, and up to two CTAs. It backs every inline banner and error in the app, plus Toast and the Banner announcement surface."
                 status="limited"
             />
 
             <DocSection title="Priority">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
-                        <Notification priority="info">Just letting you know about this</Notification>
-                        <Notification priority="success">Success, details changed</Notification>
-                        <Notification priority="attention">Pay attention, this is important</Notification>
-                        <Notification priority="helper">Leave empty to let payers choose amount</Notification>
-                        <Notification priority="error">Ups, something went wrong</Notification>
+                        <Callout priority="info">Just letting you know about this</Callout>
+                        <Callout priority="success">Success, details changed</Callout>
+                        <Callout priority="attention">Pay attention, this is important</Callout>
+                        <Callout priority="helper">Leave empty to let payers choose amount</Callout>
+                        <Callout priority="error">Ups, something went wrong</Callout>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
-                        label="Notification"
-                        code={`import { Notification } from '@/components/0_Bruddle/Notification'
+                        label="Callout"
+                        code={`import { Callout } from '@/components/0_Bruddle/Callout'
 
-<Notification priority="success">Success, details changed</Notification>`}
+<Callout priority="success">Success, details changed</Callout>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -44,18 +44,18 @@ export default function NotificationPage() {
             <DocSection title="Build: body vs title + body">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
-                        <Notification priority="helper">Body text only, no separate title</Notification>
-                        <Notification priority="attention" title="Title">
+                        <Callout priority="helper">Body text only, no separate title</Callout>
+                        <Callout priority="attention" title="Title">
                             Body text can be longer, but try not to go over two lines.
-                        </Notification>
+                        </Callout>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Title + body"
-                        code={`<Notification priority="attention" title="Title">
+                        code={`<Callout priority="attention" title="Title">
     Body text can be longer, but try not to go over two lines.
-</Notification>`}
+</Callout>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -65,7 +65,7 @@ export default function NotificationPage() {
             <DocSection title="Checklist (items)">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
-                        <Notification
+                        <Callout
                             priority="info"
                             items={[
                                 'Europe SEPA transfers (+30 countries)',
@@ -74,7 +74,7 @@ export default function NotificationPage() {
                                 'Mexico SPEI transfers',
                             ]}
                         />
-                        <Notification
+                        <Callout
                             priority="info"
                             title="What you'll unlock"
                             items={['Bank transfers in your country']}
@@ -86,7 +86,7 @@ export default function NotificationPage() {
                         label="Checklist"
                         code={`// a checklist carries its own check marks, so it renders
 // no leading priority icon, and rows use the dense text step
-<Notification
+<Callout
     priority="info"
     items={['Europe SEPA transfers (+30 countries)', 'UK Faster payments (GBP)']}
 />`}
@@ -99,18 +99,18 @@ export default function NotificationPage() {
             <DocSection title="Dismiss">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
-                        <Notification priority="info">Not dismissible, no close button</Notification>
-                        <Notification priority="info" onDismiss={noop}>
+                        <Callout priority="info">Not dismissible, no close button</Callout>
+                        <Callout priority="info" onDismiss={noop}>
                             Dismissible, includes a close button
-                        </Notification>
+                        </Callout>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Dismissible"
-                        code={`<Notification priority="info" onDismiss={() => setShown(false)}>
+                        code={`<Callout priority="info" onDismiss={() => setShown(false)}>
     Dismissible, includes a close button
-</Notification>`}
+</Callout>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -120,10 +120,10 @@ export default function NotificationPage() {
             <DocSection title="CTAs">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
-                        <Notification priority="attention" ctas={[{ label: 'CTA1', onClick: noop }]}>
+                        <Callout priority="attention" ctas={[{ label: 'CTA1', onClick: noop }]}>
                             Single call-to-action button
-                        </Notification>
-                        <Notification
+                        </Callout>
+                        <Callout
                             priority="attention"
                             title="Title"
                             onDismiss={noop}
@@ -133,13 +133,13 @@ export default function NotificationPage() {
                             ]}
                         >
                             Two buttons: a primary and a secondary action.
-                        </Notification>
+                        </Callout>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="CTAs"
-                        code={`<Notification
+                        code={`<Callout
     priority="attention"
     title="Title"
     onDismiss={dismiss}
@@ -149,7 +149,7 @@ export default function NotificationPage() {
     ]}
 >
     Two buttons: a primary and a secondary action.
-</Notification>`}
+</Callout>`}
                     />
                 </DocSection.Code>
             </DocSection>

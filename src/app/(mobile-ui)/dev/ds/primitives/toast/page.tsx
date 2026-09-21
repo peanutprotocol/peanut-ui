@@ -22,7 +22,7 @@ export default function ToastPage() {
         <DocPage>
             <DocHeader
                 title="Toast"
-                description="Provider-based, non-blocking feedback for transient events. Toast renders the Notification primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and custom content."
+                description="Provider-based, non-blocking feedback for transient events. Toast renders the Callout primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and custom content."
                 status="production"
             />
 
@@ -142,12 +142,12 @@ dismiss(id)`}
 
             <DocSection
                 title="Behavior"
-                description={'The visual surface is Notification variant="floating"; Toast owns delivery and lifetime.'}
+                description={'The visual surface is Callout variant="floating"; Toast owns delivery and lifetime.'}
             >
                 <DocSection.Content>
                     <ul className="space-y-2 text-body-s text-foreground-secondary">
                         <li>
-                            success, error, info, and warning are the caller-facing tones; warning uses Notification's
+                            success, error, info, and warning are the caller-facing tones; warning uses Callout's
                             attention tone.
                         </li>
                         <li>
@@ -178,8 +178,8 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
             </DocSection>
 
             <DesignNote type="info">
-                Keep toast copy short and user-facing. Use the flow's inline Notification or a full-page error surface
-                when the user must keep seeing the message or take action before continuing.
+                Keep toast copy short and user-facing. Use the flow's inline Callout or a full-page error surface when
+                the user must keep seeing the message or take action before continuing.
             </DesignNote>
 
             <SectionDivider />

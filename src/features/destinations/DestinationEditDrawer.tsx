@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 
@@ -98,7 +98,7 @@ export default function DestinationEditDrawer({ destination, onClose }: Destinat
                     >
                         {tCommon('save')}
                     </Button>
-                    {failed && <Notification priority="error">{t('savedDestinations.editFailed')}</Notification>}
+                    {failed && <Callout priority="error">{t('savedDestinations.editFailed')}</Callout>}
                     {destination?.remove && (
                         <Button
                             variant="stroke"

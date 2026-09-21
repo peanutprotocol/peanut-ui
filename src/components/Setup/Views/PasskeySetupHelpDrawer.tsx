@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
@@ -88,7 +88,7 @@ export const PasskeySetupHelpDrawer = ({
                             <DrawerTitle>{title}</DrawerTitle>
                         </DrawerHeader>
                     </div>
-                    {/* One Notification on the screen, and it is the device-security
+                    {/* One Callout on the screen, and it is the device-security
                        caveat — the only line here that is a real warning. The fixes
                        are a sequence, so they read as a numbered list (the same
                        shape CameraPermissionDrawer uses for the same job), and their
@@ -103,7 +103,7 @@ export const PasskeySetupHelpDrawer = ({
                             <NumberedList items={troubleshootingSteps} />
                         </div>
 
-                        {warning && <Notification priority="attention">{warning}</Notification>}
+                        {warning && <Callout priority="attention">{warning}</Callout>}
 
                         <div className="flex w-full flex-col items-center gap-4">
                             <Button icon="retry" shadowSize="4" onClick={onRetry} className="w-full justify-center">

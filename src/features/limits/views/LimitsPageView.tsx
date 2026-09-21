@@ -26,7 +26,7 @@ import { useRegionLabel } from '@/hooks/useRegionLabel'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
@@ -82,7 +82,7 @@ const LimitsPageView = () => {
             <NavHeader title={t('title')} onPrev={goBack} />
 
             {/* page description */}
-            <Notification priority="info">{t('pageDescription')}</Notification>
+            <Callout priority="info">{t('pageDescription')}</Callout>
 
             {/* fiat limits section */}
             {!hasAnyKyc && <FiatLimitsLockedCard />}

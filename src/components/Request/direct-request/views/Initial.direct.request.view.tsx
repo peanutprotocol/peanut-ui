@@ -2,7 +2,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -59,7 +59,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     // recipient/amount validation renders as the field's own error under the
-    // recipient input; errorState keeps API failures only (Notification + reset CTA)
+    // recipient input; errorState keeps API failures only (Callout + reset CTA)
     const [fieldError, setFieldError] = useState<string>('')
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
 
@@ -314,7 +314,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                    {errorState.errorMessage && <Callout priority="error">{errorState.errorMessage}</Callout>}
                 </div>
             </PageStack.Center>
         </div>

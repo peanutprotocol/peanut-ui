@@ -15,7 +15,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import DevPageShell from '../_components/DevPageShell'
 
 export default function CardSessionApprovePage() {
@@ -61,7 +61,7 @@ export default function CardSessionApprovePage() {
                 Grant permission (one tap)
             </Button>
 
-            {status && <Notification priority={status.ok ? 'success' : 'error'}>{status.message}</Notification>}
+            {status && <Callout priority={status.ok ? 'success' : 'error'}>{status.message}</Callout>}
         </DevPageShell>
     )
 }

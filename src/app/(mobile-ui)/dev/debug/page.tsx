@@ -23,7 +23,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
@@ -473,7 +473,7 @@ export default function DebugPage() {
                                             </Button>
                                         </div>
                                         {r && (
-                                            <Notification
+                                            <Callout
                                                 className="mt-2"
                                                 priority={r.ok ? 'success' : 'error'}
                                                 title={r.ok ? `Completed in ${r.ms}ms` : `Failed after ${r.ms}ms`}
@@ -481,7 +481,7 @@ export default function DebugPage() {
                                                 <pre className="max-h-48 overflow-auto font-mono text-body-xs leading-tight break-words whitespace-pre-wrap">
                                                     {JSON.stringify(r.raw, null, 2)}
                                                 </pre>
-                                            </Notification>
+                                            </Callout>
                                         )}
                                     </Card>
                                 )

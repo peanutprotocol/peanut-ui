@@ -4,7 +4,7 @@ import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusB
 import StatusPill, { type StatusPillType } from '@/components/Global/StatusPill'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -145,23 +145,20 @@ export default function FeedbackPage() {
             <DocSection title="Inline errors">
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
-                        Inline errors render the Notification primitive with priority=&quot;error&quot; (ErrorAlert was
-                        deleted). See the Notification page under primitives for all variants.
+                        Inline errors render the Callout primitive with priority=&quot;error&quot; (ErrorAlert was
+                        deleted). See the Callout page under primitives for all variants.
                     </p>
 
                     <div className="space-y-2 rounded-sm border border-border-default p-3">
-                        <Notification priority="error">Insufficient balance to complete this transaction.</Notification>
+                        <Callout priority="error">Insufficient balance to complete this transaction.</Callout>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import { Notification } from '@/components/0_Bruddle/Notification'`}
-                    />
+                    <CodeBlock label="Import" code={`import { Callout } from '@/components/0_Bruddle/Callout'`} />
 
                     <CodeBlock
                         label="Usage"
-                        code={`<Notification priority="error">Something went wrong. Please try again.</Notification>`}
+                        code={`<Callout priority="error">Something went wrong. Please try again.</Callout>`}
                     />
                 </DocSection.Code>
             </DocSection>

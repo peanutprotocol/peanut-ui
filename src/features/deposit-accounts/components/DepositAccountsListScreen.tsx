@@ -3,7 +3,7 @@
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -463,13 +463,13 @@ export function DepositAccountsListScreen({
                  * failed read, and the notice returns when the field clears.
                  */}
                 {accountsEnabled && !term && isError && (
-                    <Notification
+                    <Callout
                         priority="error"
                         title={t('list.errorTitle')}
                         ctas={[{ label: t('list.errorRetry'), onClick: onRetry }]}
                     >
                         {t('list.errorBody')}
-                    </Notification>
+                    </Callout>
                 )}
 
                 {nothingMatches && (
