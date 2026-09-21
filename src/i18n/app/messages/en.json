@@ -360,10 +360,12 @@
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
                 "crypto": "Crypto",
-                "saBank": "BRL and ARS · Pix and bank transfer",
-                "naBank": "USD and MXN · Bank transfer",
+                "brl": "BRL · Pix",
+                "ars": "ARS · Bank transfer",
+                "usd": "USD · Bank transfer",
+                "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments · Brazil and Argentina"
+                "qrPay": "QR payments"
             },
             "chips": {
                 "active": "Available",
@@ -418,19 +420,23 @@
             "accountsSubtitle": "Bank details in your name. Give them to someone else and the money arrives in Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
-                "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
-                "saBank": "Add and withdraw money through bank accounts in Brazil and Argentina.",
-                "naBank": "Add or withdraw money using US bank transfers and Mexico’s SPEI network.",
-                "sepa": "Add or withdraw euros using SEPA bank transfers.",
                 "card": "Pay with your Peanut card.",
+                "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
+                "brl": "Add and withdraw Brazilian reais with Pix.",
+                "ars": "Add and withdraw Argentine pesos through your bank.",
+                "usd": "Add and withdraw dollars using US bank transfers.",
+                "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
+                "sepa": "Add or withdraw euros using SEPA bank transfers.",
                 "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
                 "card": "Spend your Peanut balance in the real world.",
                 "crypto": "Send and receive on-chain, no bank needed.",
-                "saBank": "Move money with banks in Brazil and Argentina.",
-                "naBank": "Connect your US and Mexican bank money.",
+                "brl": "Move reais between your bank and Peanut.",
+                "ars": "Move Argentine pesos between your bank and Peanut.",
+                "usd": "Move dollars between your bank and Peanut.",
+                "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
                 "qrPay": "Scan and pay where you live."
             },
@@ -440,7 +446,7 @@
             },
             "waysTitle": "Add and withdraw money",
             "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
-            "qrPayNote": "Pay in shops by scanning a QR code. Open to every verified user."
+            "qrPayNote": "Brazil and Argentina. Pay in shops by scanning a QR code."
         },
         "backup": {
             "title": "Backup",

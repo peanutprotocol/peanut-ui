@@ -68,26 +68,31 @@ export function hasReceiptPage(transaction: TransactionDetails): boolean {
     return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
 }
 
-/** The two keys `GET /history/:id` resolves a crypto deposit by. */
+/** The keys `GET /history/:id` resolves a crypto deposit by. */
 const RECEIPT_UUID_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const RECEIPT_EVM_TX_KEY = /^tx:0x[0-9a-f]{64}$/
+/** `<txHash>-<logIndex>`, the uuid a deposit history row carries. */
+const RECEIPT_DEPOSIT_ROW_KEY = /^0x[0-9a-f]{64}-\d{1,10}$/i
 
 /**
  * Can a document for this entry actually be fetched?
  *
  * Every other kind carries the id the history route resolves. A crypto
- * deposit does too once it is a history row, but the deposit success screen
- * builds its receipt from the transaction hash, and only an EVM hash has a
- * `tx:` form the route matches. A Solana hash is base58 and a Tron hash has no
- * `0x`, so Share and Download there are buttons that always answer 404.
+ * deposit carries one of three: the intent uuid, the `tx:` surrogate the
+ * success screen builds, or its history row's `<hash>-<logIndex>` uuid. The
+ * row key 404'd until the route learned to read it, which is why Share and
+ * Download were withheld from deposits opened from history.
  *
- * Extending the route to resolve the other two chains is the real fix; until
- * then the screen offers no document rather than a failing one.
+ * Solana and Tron were where that was reported, but the chain never changed
+ * the key. A deposit on either is bridged to Arbitrum and the watcher records
+ * that settlement transfer, so its receipt is keyed on an EVM hash like every
+ * other deposit's. Nothing here needs to know which chain the money came from,
+ * and a base58 id is still not lowercased anywhere on the way in.
  */
 export function hasResolvableReceiptDocument(transaction: TransactionDetails): boolean {
     if (kindOf(transaction) !== 'CRYPTO_DEPOSIT') return true
     const id = transaction.id ?? ''
-    return RECEIPT_UUID_KEY.test(id) || RECEIPT_EVM_TX_KEY.test(id)
+    return RECEIPT_UUID_KEY.test(id) || RECEIPT_EVM_TX_KEY.test(id) || RECEIPT_DEPOSIT_ROW_KEY.test(id)
 }
 
 /**
