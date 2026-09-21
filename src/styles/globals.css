@@ -823,7 +823,7 @@
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-stroke {
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-square {
         @apply !px-0;

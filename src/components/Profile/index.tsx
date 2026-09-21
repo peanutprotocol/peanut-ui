@@ -97,7 +97,7 @@ export const Profile = () => {
                     // profile earns the top-right slot instead: it's the one
                     // action worth reaching without scrolling.
                     <Button
-                        variant="stroke"
+                        variant="transparent"
                         href="/profile/edit"
                         icon="edit"
                         aria-label={t('menu.personalDetails')}

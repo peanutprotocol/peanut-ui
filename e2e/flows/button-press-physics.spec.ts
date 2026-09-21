@@ -8,10 +8,10 @@
  * unit test cannot see this: the bug lives in which state wins in the
  * cascade, so it has to be read off computed style in a real browser.
  *
- * /pricing is the target because it renders a real primary and a real stroke
- * Button and needs no backend. The /dev/ds button page would be the obvious
- * home, but every /dev route sits behind a session gate that never resolves
- * in this harness, so the page stays on "Loading...".
+ * /shhhhh is the target because it renders a real primary and a real stroke
+ * Button with no caller overrides, and needs no backend. The /dev/ds button
+ * page would be the obvious home, but every /dev route sits behind a session
+ * gate that never resolves in this harness, so it stays on "Loading...".
  *
  * Run: NEXT_PUBLIC_VERCEL_ENV=preview npm run build && npm run test:e2e:regression
  */
@@ -38,7 +38,7 @@ async function press(el: Locator) {
 
 test.describe('Button press physics', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/pricing', { waitUntil: 'domcontentloaded' })
+        await page.goto('/shhhhh', { waitUntil: 'domcontentloaded' })
     })
 
     test('primary keeps its shadow on hover and drops into it on press', async ({ page }) => {
@@ -64,17 +64,39 @@ test.describe('Button press physics', () => {
         }
     })
 
-    test('stroke stays white while pressed', async ({ page }) => {
+    test('the nav circle has no shadow, so it never drops on press', async ({ page }) => {
+        // nav board 17802:61534 draws this as a ring on the page background —
+        // the ghost icon-only button. A shadow here would make the top nav
+        // move 4px under the thumb, which is not a navigation gesture.
+        const back = page.getByTestId('nav-back')
+        await expect(back).toBeVisible()
+        expect(await boxShadow(back)).toBe('none')
+
+        await press(back)
+        try {
+            // pressed fill is the brand pink (states board 17308:13973, ghost)
+            await expect
+                .poll(() => background(back), { message: 'pressed fill is the brand pink' })
+                .toBe('rgb(255, 144, 232)')
+            expect(await translate(back), 'a shadowless control must not translate').toBe('none')
+        } finally {
+            await page.mouse.up()
+        }
+    })
+
+    test('stroke turns brand pink while pressed', async ({ page }) => {
         const stroke = pressable(page, 'btn-stroke')
         await expect(stroke).toBeVisible()
 
-        const rest = await background(stroke)
-        expect(rest).toBe('rgb(255, 255, 255)')
+        expect(await background(stroke), 'white at rest').toBe('rgb(255, 255, 255)')
 
         await press(stroke)
         try {
             await expect.poll(() => translate(stroke), { message: 'press moves 4px into the shadow' }).toBe('4px 4px')
-            expect(await background(stroke), 'the secondary button must not flash a fill on press').toBe(rest)
+            // states board 17308:13973 — pink is the pressed fill, action/primary
+            await expect
+                .poll(() => background(stroke), { message: 'pressed fill is the brand pink' })
+                .toBe('rgb(255, 144, 232)')
         } finally {
             await page.mouse.up()
         }

@@ -108,6 +108,14 @@ describe('BottomNav pill release', () => {
         expect(icon.className).not.toContain('scale-[0.82]')
     })
 
+    it('no nav control carries the button press translate', () => {
+        // the bar and the QR circle carry shadow-4 for depth, but they are not
+        // Buttons: their press feedback is the squash above. A shadowed Button
+        // would drop 4px into its shadow, which reads as the whole nav moving.
+        const { container } = render(<BottomNav />)
+        expect(container.querySelector('[class*="active:translate"]')).toBeNull()
+    })
+
     it('leaving the tab routes clears the pill', () => {
         const { rerender } = render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
