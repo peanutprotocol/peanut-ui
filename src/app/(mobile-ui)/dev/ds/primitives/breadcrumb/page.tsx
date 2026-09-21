@@ -1,6 +1,7 @@
 'use client'
 
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { PropsTable } from '../../_components/PropsTable'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
@@ -111,7 +112,7 @@ export default function BreadcrumbPage() {
                     code={`<Breadcrumb items={breadcrumbs} className={\`mx-auto \${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4\`} />`}
                 >
                     <Breadcrumb
-                        className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4"
+                        className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`}
                         items={[
                             { name: 'Home', href: '/en' },
                             { name: 'Argentina', href: '/en/receive-money-from/argentina' },

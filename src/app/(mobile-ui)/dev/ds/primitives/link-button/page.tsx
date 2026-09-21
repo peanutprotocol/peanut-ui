@@ -104,12 +104,12 @@ at any time.`}
                     description="External link with its own trailing icon as a child instead of the built-in arrow."
                     code={`<LinkButton href={transaction.attachmentUrl} external>
     {t('rows.download')}
-    <Icon name="download" size={14} className="shrink-0" />
+    <Icon name="download" size={16} className="shrink-0" />
 </LinkButton>`}
                 >
                     <LinkButton href="https://peanut.me" external>
                         Download
-                        <Icon name="download" size={14} className="shrink-0" />
+                        <Icon name="download" size={16} className="shrink-0" />
                     </LinkButton>
                 </ProductUsage.Example>
 

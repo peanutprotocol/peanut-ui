@@ -166,7 +166,7 @@ export default function BaseInputPage() {
   value={value}
   onChange={(e) => onChange(e.target.value)}
   placeholder={placeholder}
-  className="h-10 w-full px-10 text-body-s font-normal"
+  className="h-10 w-full px-10 text-body-s"
 />`}
                 >
                     <div className="relative">
@@ -174,7 +174,7 @@ export default function BaseInputPage() {
                             type="text"
                             placeholder="Search a country or currency"
                             defaultValue="argentina"
-                            className="h-10 w-full px-10 text-body-s font-normal"
+                            className="h-10 w-full px-10 text-body-s"
                         />
                         <Icon
                             name="search"

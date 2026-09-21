@@ -4,6 +4,7 @@ import Badge, { type IconStatusType, type StatusType } from '@/components/Global
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -267,10 +268,13 @@ export default function FeedbackPage() {
   trailing={<Badge status="custom" customText={tCommon('comingSoon')} />}
 />`}
                 >
-                    <div className="flex items-center justify-between gap-3 rounded-sm border border-border-default bg-background-default p-4">
-                        <span className="text-body-m text-foreground-secondary">Rest of the world</span>
-                        <Badge status="custom" customText="Coming soon" />
-                    </div>
+                    <ListItem
+                        position="solo"
+                        title="Rest of the world"
+                        onClick={() => {}}
+                        disabled
+                        trailing={<Badge status="custom" customText="Coming soon" />}
+                    />
                 </ProductUsage.Example>
 
                 <ProductUsage.Example

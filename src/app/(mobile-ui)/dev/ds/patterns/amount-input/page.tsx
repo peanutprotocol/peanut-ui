@@ -1,5 +1,6 @@
 'use client'
 
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -247,7 +248,7 @@ export default function AmountInputPage() {
                             <span className="text-heading-big-input">25.00</span>
                         </div>
                         <span className="text-body-s text-foreground-secondary">Balance: $ 42.50</span>
-                        <span className="text-body-xs text-foreground-error">Not enough balance</span>
+                        <FieldError>Not enough balance</FieldError>
                     </div>
                 </ProductUsage.Example>
 

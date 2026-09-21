@@ -53,11 +53,8 @@ export default function ToastStackPage() {
                 <ProductUsage.Example
                     title="The one render site — ToastProvider"
                     path="src/components/0_Bruddle/Toast.tsx"
-                    description="ToastProvider mounts the stack inside its fixed bottom-right container, and only once a toast has been asked for. AppFlowProviders (src/context/appFlowProviders.tsx) wraps every app route in that provider, so the marketing site never loads the chunk. Recreated here with a static list, un-fixed, inside the box."
-                    code={`<div className={twMerge(
-    'fixed right-4 z-[99999] flex flex-col items-end gap-2 motion-safe:transition-[bottom] motion-safe:duration-fast',
-    toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
-)}>
+                    description="ToastProvider mounts the stack inside its own fixed container — bottom right, above every overlay, sliding between a raised and a normal bottom offset — and only once a toast has been asked for. AppFlowProviders (src/context/appFlowProviders.tsx) wraps every app route in that provider, so the marketing site never loads the chunk. Recreated here with a static list, un-fixed, inside the box."
+                    code={`<div className={twMerge(CONTAINER, toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM)}>
     {rendererWanted && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
 </div>`}
                 >

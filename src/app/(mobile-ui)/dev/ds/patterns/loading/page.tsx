@@ -152,8 +152,8 @@ export default function LoadingPage() {
                     title="Home — balance while it refetches"
                     path="src/features/home/views/BalanceSection.tsx"
                     description="Default spinner standing in for the amount. The wrapper keeps the heading line height, so the page does not jump when the number arrives."
-                    code={`{/* Keep the amount's line height while its smaller spinner is visible. */}
-<div className="flex min-h-[var(--text-heading-xl--line-height)] items-center justify-center gap-2">
+                    code={`{/* 48px = the heading-xl line height, so the page does not jump when the number arrives. */}
+<div className="flex min-h-12 items-center justify-center gap-2">
   {isFetching || balance === undefined ? (
     <Loading />
   ) : (
@@ -165,10 +165,10 @@ export default function LoadingPage() {
 </div>`}
                 >
                     <div className="flex flex-col items-center gap-4">
-                        <div className="flex min-h-[var(--text-heading-xl--line-height)] items-center justify-center gap-2">
+                        <div className="flex min-h-12 items-center justify-center gap-2">
                             <Loading />
                         </div>
-                        <div className="flex min-h-[var(--text-heading-xl--line-height)] items-center justify-center gap-2">
+                        <div className="flex min-h-12 items-center justify-center gap-2">
                             <span className="text-heading-s text-foreground-primary">$</span>
                             <span className="text-heading-xl text-foreground-primary">42.50</span>
                         </div>
