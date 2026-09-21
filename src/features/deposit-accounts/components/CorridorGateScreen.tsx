@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import type { DepositGateView } from '../depositGate'
@@ -149,7 +149,7 @@ export function CorridorGateScreen({
             <PageStack.Center>
                 {notice.action === 'pending-review' && (
                     <div className="mb-4 flex justify-center">
-                        <StatusBadge status="pending" />
+                        <Badge status="pending" />
                     </div>
                 )}
                 {/* a flow-level failure, so a Callout: it carries role="alert"

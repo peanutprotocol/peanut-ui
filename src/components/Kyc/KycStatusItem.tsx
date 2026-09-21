@@ -3,7 +3,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { type HTMLAttributes } from 'react'
-import StatusPill from '../Global/StatusPill'
+import Badge from '../Global/Badges/Badge'
 import { KYCStatusIcon } from './KYCStatusIcon'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
@@ -77,7 +77,7 @@ export const KycStatusItem = ({
                 body={
                     <div className="flex items-center gap-2">
                         <span>{subtitle}</span>
-                        <StatusPill status={pill} />
+                        <Badge type="icon" status={pill} />
                     </div>
                 }
             />

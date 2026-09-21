@@ -2,7 +2,7 @@
 
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import Card from '@/components/Global/Card'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { requestsApi } from '@/services/requests'
 import { formatTokenAmount } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
@@ -68,7 +68,7 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
                 label={t('paidByBank.rowLabel')}
                 value={value}
                 trailing={
-                    <StatusBadge
+                    <Badge
                         status={owesNothing ? 'completed' : 'pending'}
                         customText={owesNothing ? t('paidByBank.badgePaid') : t('paidByBank.badgePartial')}
                     />

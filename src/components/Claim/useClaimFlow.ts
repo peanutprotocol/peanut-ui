@@ -4,7 +4,7 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { fetchTokenPrice } from '@/services/tokens-price'
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type StatusType } from '@/components/Global/Badges/Badge'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'

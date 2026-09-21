@@ -19,7 +19,7 @@
  * note: request payment flows use RequestPotActionList instead
  */
 
-import StatusBadge from '../../Global/Badges/StatusBadge'
+import Badge from '../../Global/Badges/Badge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -384,7 +384,7 @@ const MethodCard = ({
                 <div className="flex items-center gap-2">
                     {method.title}
                     {(showSoon || requiresVerification) && (
-                        <StatusBadge
+                        <Badge
                             status={requiresVerification ? 'custom' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />

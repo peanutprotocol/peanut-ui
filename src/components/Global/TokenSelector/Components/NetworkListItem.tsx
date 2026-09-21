@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import StatusBadge from '../../Badges/StatusBadge'
+import Badge from '../../Badges/Badge'
 
 interface NetworkListItemProps {
     chainId: string
@@ -80,7 +80,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                         </div>
                     </div>
                     {isComingSoon ? (
-                        <StatusBadge status="soon" />
+                        <Badge status="soon" />
                     ) : rightContent ? (
                         rightContent
                     ) : (

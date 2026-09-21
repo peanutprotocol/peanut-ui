@@ -10,7 +10,7 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { countryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
 import { matchesCountryQuery } from '@/components/Common/country-search'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -298,11 +298,9 @@ export function DepositAccountsListScreen({
          * because the flow behind the row states its own rule.
          */
         if (topUpOnlyHref(rail))
-            return canTopUp(rail.corridor) ? (
-                <StatusBadge status="custom" customText={t('list.badgeAvailable')} />
-            ) : null
+            return canTopUp(rail.corridor) ? <Badge status="custom" customText={t('list.badgeAvailable')} /> : null
         if (isResidenceGated(rail.corridor) && !account)
-            return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
+            return <Badge status="custom" customText={t('list.badgeNotSetUp')} />
         // A claimable corridor the user has no rail for, shown because identity
         // verification comes first. The badge states the requirement and promises
         // nothing: verifying opens the corridors the user's region has, not all.
@@ -313,36 +311,35 @@ export function DepositAccountsListScreen({
         // is not offered to them.
         if (!account && (reasonFor(rail.corridor) !== undefined || offersVerification(gate))) {
             const reason = reasonFor(rail.corridor)
-            if (reason === 'not-offered') return <StatusBadge status="custom" customText={t('list.badgeNotOffered')} />
+            if (reason === 'not-offered') return <Badge status="custom" customText={t('list.badgeNotOffered')} />
             // the app's one "contact support" string, so the badge cannot
             // drift from the buttons that do the same thing
-            if (reason === 'support-required')
-                return <StatusBadge status="custom" customText={tCommon('contactSupport')} />
+            if (reason === 'support-required') return <Badge status="custom" customText={tCommon('contactSupport')} />
             // `identity-required`, and the same for a corridor the backend said
             // nothing about whose gate names a verification step
-            return <StatusBadge status="custom" customText={t('list.badgeVerify')} />
+            return <Badge status="custom" customText={t('list.badgeVerify')} />
         }
         if (!isClaimable(rail) || account?.status === 'unavailable')
-            return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
+            return <Badge status="custom" customText={t('list.badgeUnavailable')} />
         // A read that failed says nothing about what the user holds. "Not set
         // up" is a claim about their account, and the fallback map cannot make
         // it — the notice above owns this state.
         if (isError) return null
-        if (account?.timedOut) return <StatusBadge status="failed" />
+        if (account?.timedOut) return <Badge status="failed" />
         // No account yet, and one is on its way: the provider is reviewing the
         // corridor and the row says so rather than "Not set up", which reads as
         // "nothing is happening" to a user who just asked for it.
         if (claimable?.[rail.corridor]?.blockedBy === 'endorsement-pending' && !account)
-            return <StatusBadge status="pending" />
+            return <Badge status="pending" />
         // The review waits on the user. The user is verified already, so the row
         // says something is needed and the screen behind it says what.
         if (claimable?.[rail.corridor]?.blockedBy === 'endorsement-required' && !account)
-            return <StatusBadge status="pending" customText={t('list.badgeActionNeeded')} />
+            return <Badge status="pending" customText={t('list.badgeActionNeeded')} />
         switch (account?.status) {
             case 'active':
             case 'retiring':
                 return (
-                    <StatusBadge
+                    <Badge
                         status="completed"
                         // "Ready" means a payer can be handed these details
                         // today — the same answer the details footer gives
@@ -350,9 +347,9 @@ export function DepositAccountsListScreen({
                     />
                 )
             case 'provisioning':
-                return <StatusBadge status="pending" />
+                return <Badge status="pending" />
             case 'revoked':
-                return <StatusBadge status="closed" customText={t('list.badgeRevoked')} />
+                return <Badge status="closed" customText={t('list.badgeRevoked')} />
             default:
                 // "Not set up" claims the user can set one up. Where they
                 // cannot — the account cap is reached, the provider is still
@@ -362,8 +359,8 @@ export function DepositAccountsListScreen({
                 // that said "Not set up" on a corridor accepting money that
                 // same second, with no way in behind it.
                 if (!view.claimable && canTopUp(rail.corridor))
-                    return <StatusBadge status="custom" customText={t('list.badgeAvailable')} />
-                return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
+                    return <Badge status="custom" customText={t('list.badgeAvailable')} />
+                return <Badge status="custom" customText={t('list.badgeNotSetUp')} />
         }
     }
 
@@ -490,7 +487,7 @@ export function DepositAccountsListScreen({
                                 {t('list.sectionTitle')}
                                 {showCounter && (
                                     <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
-                                        <StatusBadge
+                                        <Badge
                                             status="custom"
                                             customText={
                                                 overCap

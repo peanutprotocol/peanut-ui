@@ -1,6 +1,6 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type StatusType } from '@/components/Global/Badges/Badge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'

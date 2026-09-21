@@ -7,7 +7,7 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import AccountsList from './AccountsList'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -332,7 +332,7 @@ const UnlockPayments = () => {
     const showBankRestrictionNote = restrictions.banking
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
-        <StatusBadge status="completed" customText={t('residence.verified')} />
+        <Badge status="completed" customText={t('residence.verified')} />
     ) : (
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )

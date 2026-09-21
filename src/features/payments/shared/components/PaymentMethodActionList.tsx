@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import IconStack from '@/components/Global/IconStack'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
@@ -115,7 +115,7 @@ export function PaymentMethodActionList({
                                 <div className="flex items-center gap-2">
                                     {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
-                                        <StatusBadge
+                                        <Badge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />

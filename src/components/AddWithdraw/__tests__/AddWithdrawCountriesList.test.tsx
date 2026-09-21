@@ -223,7 +223,7 @@ jest.mock('@/components/Global/NavHeader', () => ({
         </button>
     ),
 }))
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({
+jest.mock('@/components/Global/Badges/Badge', () => ({
     __esModule: true,
     default: (props: any) => <span data-testid="status-badge">{props.customText ?? props.status}</span>,
 }))

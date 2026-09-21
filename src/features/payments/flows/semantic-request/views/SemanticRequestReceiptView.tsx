@@ -11,7 +11,7 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useMemo } from 'react'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
@@ -62,7 +62,7 @@ export function SemanticRequestReceiptView() {
             // resolves; a tx hash is not a receipt key
             id: charge.uuid,
             txHash: successfulPayment.payerTransactionHash,
-            status: 'completed' as StatusPillType,
+            status: 'completed' as IconStatusType,
             amount: parseFloat(charge.tokenAmount),
             createdAt: new Date(charge.createdAt),
             completedAt: new Date(successfulPayment.createdAt),

@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
@@ -352,7 +352,7 @@ export function RequestPotActionList({
                                 <div className="flex items-center gap-2">
                                     {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
-                                        <StatusBadge
+                                        <Badge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />

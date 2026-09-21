@@ -7,7 +7,7 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import {
     deriveRegionAccess,
     pendingBankRailRegionPaths,
@@ -114,7 +114,7 @@ const LimitsPageView = () => {
                         title={restOfWorldName}
                         onClick={() => {}}
                         disabled={true}
-                        trailing={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
+                        trailing={<Badge status="custom" customText={tCommon('comingSoon')} />}
                     />
                 </Section>
             )}
@@ -223,7 +223,7 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                             }}
                             disabled={isPending}
                             body={<div className="text-body-xs">{label.description}</div>}
-                            trailing={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
+                            trailing={isPending && <Badge status="pending" customText={tCommon('pending')} />}
                             chevron={!isPending}
                         />
                     )
