@@ -207,19 +207,6 @@ export function ReceiptDetailsCard({
                 />
             )}
 
-            {/* What the recipient's bank shows as the payment reference —
-                the text the user typed on the withdraw form, or the default
-                our payment partner composed when they typed none. Sits with
-                the account row it belongs to. */}
-            {rowVisibilityConfig.payoutReference && (
-                <DataRow
-                    label={t('rows.payoutReference')}
-                    value={transaction.extraDataForDrawer!.payoutReference}
-                    allowCopy
-                    copyValue={transaction.extraDataForDrawer!.payoutReference}
-                />
-            )}
-
             {rowVisibilityConfig.transferId && (
                 <DataRow
                     label={t('rows.transferId')}

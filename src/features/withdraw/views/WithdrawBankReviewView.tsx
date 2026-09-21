@@ -17,8 +17,8 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import {
     type BankReferenceProblem,
     type BankReferenceSpec,
-    type PayoutSenderDefaultReferenceNoteKey,
-    type PayoutSenderNoteKey,
+    type PayoutDefaultReferenceNoteKey,
+    type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
@@ -37,10 +37,10 @@ interface WithdrawBankReviewViewProps {
     confirmPendingCopy: string
     /** The limits of the rail's reference field; null when the rail takes none. */
     referenceSpec: BankReferenceSpec | null
-    /** `withdraw.bank` key naming who the recipient's bank shows as sender; null when unknown. */
-    payoutSenderNoteKey: PayoutSenderNoteKey | null
+    /** `withdraw.bank` key for the rail's payout note; null when we have nothing true to say. */
+    payoutNoteKey: PayoutNoteKey | null
     /** Extra sentence that holds only while the user typed no reference; null when the rail has none. */
-    payoutSenderDefaultReferenceNoteKey: PayoutSenderDefaultReferenceNoteKey | null
+    payoutDefaultReferenceNoteKey: PayoutDefaultReferenceNoteKey | null
     reference: string
     referenceProblem: BankReferenceProblem | null
     onReferenceChange: (reference: string) => void
@@ -60,8 +60,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     balanceErrorMessage,
     confirmPendingCopy,
     referenceSpec,
-    payoutSenderNoteKey,
-    payoutSenderDefaultReferenceNoteKey,
+    payoutNoteKey,
+    payoutDefaultReferenceNoteKey,
     reference,
     referenceProblem,
     onReferenceChange,
@@ -179,14 +179,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 
-            {payoutSenderNoteKey && (
+            {payoutNoteKey && (
                 <p className="text-body-xs text-foreground-secondary">
-                    {t(`bank.${payoutSenderNoteKey}`)}
-                    {/* The provider's default reference carries the user's name.
-                        A reference they type may replace it, so the promise is
-                        made only while they have typed none. */}
-                    {payoutSenderDefaultReferenceNoteKey && !reference.trim() && (
-                        <> {t(`bank.${payoutSenderDefaultReferenceNoteKey}`)}</>
+                    {t(`bank.${payoutNoteKey}`)}
+                    {/* The default reference carries the user's name, and a
+                        reference they type replaces it. Say so only while they
+                        have typed none — after that the note above is the whole
+                        story. */}
+                    {payoutDefaultReferenceNoteKey && !reference.trim() && (
+                        <> {t(`bank.${payoutDefaultReferenceNoteKey}`)}</>
                     )}
                 </p>
             )}
@@ -195,7 +196,14 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Field
                     label={t('bank.reference')}
                     htmlFor="withdraw-bank-reference"
-                    helper={t(`bank.${referenceSpec.helperKey}`)}
+                    helper={
+                        <>
+                            {t(`bank.${referenceSpec.helperKey}`)}
+                            {/* The rail rewrites the text on some rails — the
+                                receipt is where the user reads the final value. */}
+                            {referenceSpec.rewrittenKey && <> {t(`bank.${referenceSpec.rewrittenKey}`)}</>}
+                        </>
+                    }
                     // After a failed submit there is nothing left to finish
                     // typing, so the reason shows without waiting for a blur.
                     error={
