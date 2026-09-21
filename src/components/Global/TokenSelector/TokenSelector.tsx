@@ -15,7 +15,7 @@
  */
 
 import { useTranslations } from 'next-intl'
-import React, { useCallback, useContext, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -357,9 +357,71 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         </span>
     )
     const isPopularSelected = popularChainsForTabs.some((chain) => chain.chainId === selectedChainID)
+
+    // RESPONSIVE TRIM (kush, 2026-09-21: "only keep entries that can fit based
+    // on device/parent-container width"). At 375px the full row — All plus four
+    // popular chains, each an icon beside a name — ran past the right edge: the
+    // last label was cut mid-word and the track's rounded right end was sliced
+    // flat. The row now keeps only what fits. Nothing becomes unreachable: the
+    // "More networks" list covers every chain in `allowedChainIds`, which is a
+    // superset of these four.
+    //
+    // It drops ONE tab and measures again, instead of adding up label widths.
+    // The browser is the only thing that knows how wide a translated label with
+    // an icon really is, and a width table would have to be re-derived per
+    // locale — the repo has an i18n overflow gate because of exactly that.
+    //
+    // Two tabs are never dropped: `All`, the default state, and the selected
+    // chain, whose tab is the only thing that shows what is selected. If even
+    // those two overflow, the row keeps the scroll it already had — clipping
+    // and wrapping are both worse.
+    //
+    // `popularChainsForTabs` stays the full list everywhere else: dropping a
+    // TAB must not change which tokens `All` shows.
+    const tabsRowRef = useRef<HTMLDivElement>(null)
+    const [droppedTabCount, setDroppedTabCount] = useState(0)
+    const droppableTabCount = popularChainsForTabs.length - (isPopularSelected ? 1 : 0)
+
+    const visiblePopularChains = useMemo(() => {
+        if (droppedTabCount <= 0) return popularChainsForTabs
+        const kept = new Set(popularChainsForTabs.map((chain) => chain.chainId))
+        let toDrop = droppedTabCount
+        // from the right — the leftmost chains are the most used ones
+        for (let i = popularChainsForTabs.length - 1; i >= 0 && toDrop > 0; i--) {
+            const { chainId } = popularChainsForTabs[i]
+            if (chainId === selectedChainID) continue
+            kept.delete(chainId)
+            toDrop--
+        }
+        return popularChainsForTabs.filter((chain) => kept.has(chain.chainId))
+    }, [popularChainsForTabs, droppedTabCount, selectedChainID])
+
+    // A LAYOUT effect, and no dependency list on purpose. React commits each
+    // intermediate row and runs this before the browser paints, so the row is
+    // never seen full and then collapsing; running it after every commit means
+    // a later width change (a loaded chain list, a longer label) is caught
+    // without a dependency list that has to list every cause.
+    useLayoutEffect(() => {
+        // the Tabs primitive's own scroll box around the tablist — the element
+        // whose overflow decides whether the row clips
+        const scrollBox = tabsRowRef.current?.querySelector('[role="tablist"]')?.parentElement
+        if (!scrollBox || droppedTabCount >= droppableTabCount) return
+        // the +1 absorbs sub-pixel rounding, which would drop a tab that fits
+        if (scrollBox.scrollWidth > scrollBox.clientWidth + 1) setDroppedTabCount((count) => count + 1)
+    })
+
+    // a narrower row needs another pass; a wider one may fit a dropped tab back.
+    // The drawer is viewport-wide, so the viewport is the only thing that
+    // resizes it — use a ResizeObserver if that stops being true.
+    useEffect(() => {
+        const remeasure = () => setDroppedTabCount(0)
+        window.addEventListener('resize', remeasure)
+        return () => window.removeEventListener('resize', remeasure)
+    }, [])
+
     const networkTabs = [
         { value: 'all', label: t('tokenSelector.allNetworks') },
-        ...popularChainsForTabs.map((chain) => ({
+        ...visiblePopularChains.map((chain) => ({
             value: chain.chainId,
             label: chainTabLabel(chain.name, chain.iconURI),
         })),
@@ -428,12 +490,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                             </div>
                         }
                     >
-                        <Tabs
-                            aria-label={t('tokenSelector.selectANetwork')}
-                            value={activeNetworkTab}
-                            onValueChange={handleNetworkTabChange}
-                            tabs={networkTabs}
-                        />
+                        {/* the ref anchor the responsive trim measures through */}
+                        <div ref={tabsRowRef}>
+                            <Tabs
+                                aria-label={t('tokenSelector.selectANetwork')}
+                                value={activeNetworkTab}
+                                onValueChange={handleNetworkTabChange}
+                                tabs={networkTabs}
+                            />
+                        </div>
                     </Section>
                 </>
             )}

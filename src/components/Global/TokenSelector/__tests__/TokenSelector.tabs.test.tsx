@@ -194,6 +194,63 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
         }
     })
 
+    // jsdom has no layout, so every width is 0 and the responsive trim never
+    // fires in the tests above — they still see the full row. These stubs give
+    // the tab row a width per rendered tab, which is what makes the
+    // shrink-and-measure-again loop converge.
+    describe('responsive trim (TASK-22707)', () => {
+        const stubWidths = (containerPx: number, perTabPx: number) => {
+            Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+                configurable: true,
+                get: () => containerPx,
+            })
+            Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+                configurable: true,
+                get(this: HTMLElement) {
+                    return this.querySelectorAll('[role="tab"]').length * perTabPx
+                },
+            })
+        }
+
+        afterEach(() => {
+            // @ts-expect-error restoring jsdom's own always-0 properties
+            delete HTMLElement.prototype.clientWidth
+            // @ts-expect-error restoring jsdom's own always-0 properties
+            delete HTMLElement.prototype.scrollWidth
+        })
+
+        test('a narrow row drops the tabs that do not fit and keeps All', () => {
+            stubWidths(220, 100) // two tabs fit, three do not
+            render(<Harness />)
+            openDrawer()
+
+            expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument()
+            expect(screen.getAllByRole('tab')).toHaveLength(2)
+            expect(screen.queryByRole('tab', { name: /ETH/ })).not.toBeInTheDocument()
+            // the dropped chain is still reachable — nothing becomes unpickable
+            expect(screen.getByRole('button', { name: /more networks/i })).toBeInTheDocument()
+        })
+
+        test('the selected chain survives the trim, a wider neighbour is dropped instead', () => {
+            stubWidths(220, 100)
+            render(<Harness initialChainID="1" />)
+            openDrawer()
+
+            expect(screen.getByRole('tab', { name: /ETH/ })).toHaveAttribute('data-state', 'active')
+            expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument()
+            expect(screen.queryByRole('tab', { name: /ARB/ })).not.toBeInTheDocument()
+        })
+
+        test('last resort: All and the selected chain stay even when they cannot fit', () => {
+            stubWidths(50, 100) // nothing fits; the row falls back to scrolling
+            render(<Harness initialChainID="1" />)
+            openDrawer()
+
+            expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument()
+            expect(screen.getByRole('tab', { name: /ETH/ })).toBeInTheDocument()
+        })
+    })
+
     test('More networks opens the list and a non-popular pick gets its own tab and clears the token', () => {
         render(<Harness initialChainID="" />)
         openDrawer()
