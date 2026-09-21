@@ -26,7 +26,7 @@ export default function TabsPage() {
         <DocPage>
             <DocHeader
                 title="Tabs"
-                description="The ONE tab component for product and marketing — one look, no variants. 'Weight' from the six-look proposals, ruled 2026-09-18 (TASK-22707, which also absorbed SegmentedControl). Type only: no rule, no border, no fill. The active label is the strong foreground token at semibold, the rest are secondary. Code-first, figma board pending."
+                description="The ONE tab component for product and marketing — one look, no variants. It is the app's own bottom navigation standing still (ruled 2026-09-21, TASK-22707, which also absorbed SegmentedControl): a bordered white pill track carrying a bordered page-tint chip, sharing its resting surface with BottomNav through 0_Bruddle/PillSurface. The chip is welded FLUSH — the track has no padding and the chip is drawn 1px outside the trigger, so its border lands on the track's. Static: no shadow, no slide, no spring. Code-first, figma board pending."
                 status="production"
             />
 
