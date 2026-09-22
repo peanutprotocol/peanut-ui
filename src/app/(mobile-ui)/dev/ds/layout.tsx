@@ -24,16 +24,28 @@ export default function DesignSystemLayout({ children }: { children: React.React
                 <NavHeader title="Design System" href="/dev" rightElement={<DocNavDrawer />} />
             </div>
 
-            {/* Content area */}
-            <div className="flex min-h-0 min-w-0 flex-1 gap-6 px-4 py-8 md:px-6 lg:px-10">
+            {/* Content area. The scrolling columns own the padding on the sides
+                they clip — right and bottom — and the row keeps only left and
+                top. An overflow box clips painting at its OWN padding edge, so
+                padding on the row leaves a full-width button's 4px offset
+                shadow (.btn-primary / .btn-stroke) outside the clip box, cut in
+                a straight line. Same fix as the drawer scroll wrapper in
+                Global/Drawer. Nothing paints up or left, so those two sides can
+                stay on the row. The split is invisible: each column simply
+                grows into the padding it now owns.
+                Rule for anything added here: a container that clips must carry
+                at least the biggest shadow offset used inside it (8px today —
+                shadow-primary-8) as padding on its right and bottom.
+                e2e/flows/ds-shadow-clip.spec.ts fails if one does not. */}
+            <div className="flex min-h-0 min-w-0 flex-1 gap-6 pt-8 pl-4 md:pl-6 lg:pl-10">
                 {/* Desktop sidebar — a full-height column that scrolls on its own,
                     so a nav longer than the viewport never pushes the page. */}
-                <div className="hidden shrink-0 md:block md:overflow-y-auto">
+                <div className="hidden shrink-0 pb-8 md:block md:overflow-y-auto">
                     <DocSidebar />
                 </div>
 
                 {/* Main content — the only part of the page that scrolls */}
-                <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+                <div className="min-w-0 flex-1 overflow-y-auto pr-4 pb-8 md:pr-6 lg:pr-10">{children}</div>
             </div>
         </div>
     )
