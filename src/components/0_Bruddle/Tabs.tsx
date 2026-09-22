@@ -90,12 +90,15 @@ interface TabsProps {
      *   full-width bar), which is the consistent answer for a look whose whole
      *   brief is the bottom nav standing still.
      *
-     * Reach for `track` when the NUMBER of tabs is decided at runtime: a
-     * content-width track then ends wherever the tabs happen to end and leaves
-     * a ragged gap to the container edge. `stretch` would fix the gap too, but
-     * it hands `All` the same room as `⬡ ARB` and the row reads unevenly
-     * weighted (kush, 2026-09-21, choosing `track` over `stretch` for the token
-     * selector).
+     * Reach for `stretch` whenever the row is meant to FILL its container —
+     * it is what every product row does today (add-money network type, the
+     * explorer filters, the token selector's network row). `track` exists for
+     * a full-width bar whose slots must stay content-sized, the way the bottom
+     * nav is built; no product surface asks for that yet. `track` was tried on
+     * the token selector (kush, 2026-09-21) on the theory that `All` should not
+     * get the same room as `⬡ ARB`, and reverted 2026-09-22: at the widths that
+     * row really gets, content-sized chips read as three islands scattered in
+     * an empty pill, which is worse than an over-wide `All`.
      *
      * An enum, not two booleans: both values fill the row and differ only in
      * whether the tabs stretch with it, so they are one question with two

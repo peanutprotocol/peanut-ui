@@ -11,9 +11,11 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { WhenToUse } from '../../_components/WhenToUse'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 const PERSISTENT_ID = 'ds-persistent-toast'
 const CUSTOM_CONTENT_ID = 'ds-custom-content-toast'
+const COOLDOWN_ID = 'ds-cooldown-toast'
 
 export default function ToastPage() {
     const { toast, success, error, info, attention, dismiss } = useToast()
@@ -248,6 +250,63 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                     },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Receipt — copy link"
+                    path="src/components/TransactionDetails/ReceiptActions.tsx"
+                    description="The most common shape in the app: one line, success or error from the same call, no ID."
+                    code={`if (await copyTextToClipboard(receiptPageUrl)) toast.success(t('actions.linkCopied'))
+else toast.error(t('actions.linkCopyFailed'))`}
+                >
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="small" onClick={() => success('Link copied')}>
+                            copy succeeded
+                        </Button>
+                        <Button variant="secondary" size="small" onClick={() => error('Could not copy the link')}>
+                            copy failed
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Rain cooldown pill"
+                    path="src/context/RainCooldownContext.tsx"
+                    description="A persistent toast with custom content and a stable ID. Re-firing mid-cooldown is a no-op, so the pill never re-animates; the context dismisses it when the cooldown ends."
+                    code={`toast({
+    id: COOLDOWN_TOAST_ID,
+    duration: 'persistent',
+    content: <CooldownPillContent endsAt={cooldownEndsAt} />,
+})
+
+// later, when the cooldown elapses
+dismiss(COOLDOWN_TOAST_ID)`}
+                >
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() =>
+                                toast({
+                                    id: COOLDOWN_ID,
+                                    duration: 'persistent',
+                                    content: (
+                                        <span className="flex items-center gap-2">
+                                            <Icon name="clock" size={16} />
+                                            Card is cooling down — 4m 12s left
+                                        </span>
+                                    ),
+                                })
+                            }
+                        >
+                            start cooldown
+                        </Button>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(COOLDOWN_ID)}>
+                            end cooldown
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }
