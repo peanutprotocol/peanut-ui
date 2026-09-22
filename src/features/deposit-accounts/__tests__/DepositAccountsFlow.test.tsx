@@ -99,3 +99,25 @@ describe('account opening celebration', () => {
         expect(existing.onClaim).not.toHaveBeenCalled()
     })
 })
+
+/**
+ * The rollout flag gates opening an account, never reading one. With claims
+ * off a link to the claim step lands on the list, and the details of an
+ * account the user already holds render as they always do.
+ */
+describe('the flow while claims are off', () => {
+    it('refuses the claim step and never opens an account', () => {
+        const closed = { ...props(), claimsEnabled: false }
+        render(<DepositAccountsFlow {...closed} />)
+
+        expect(screen.getByText('Account list')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Open account' })).not.toBeInTheDocument()
+        expect(closed.onClaim).not.toHaveBeenCalled()
+    })
+
+    it('still serves the details of an account the user holds', () => {
+        render(<DepositAccountsFlow {...{ ...props(active), claimsEnabled: false }} />)
+
+        expect(screen.getByText('Account details')).toBeInTheDocument()
+    })
+})

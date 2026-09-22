@@ -4062,6 +4062,7 @@
             "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
             "conditionNoReference": "Sem referência nem código para lembrar.",
+            "conditionReference": "Toda transfer\u00eancia precisa da refer\u00eancia mostrada com seus dados; sem ela n\u00e3o d\u00e1 para associ\u00e1-la \u00e0 sua conta.",
             "cta": "Abrir conta em {currency}",
             "errorTitle": "Não conseguimos abrir a conta",
             "faqMinimum": "O depósito mínimo é {min}.",
@@ -4082,6 +4083,8 @@
             "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e fale com o suporte para substituí-los.",
             "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
+            "referenceRequired": "Toda transfer\u00eancia precisa desta refer\u00eancia. Sem ela o dinheiro n\u00e3o pode ser associado \u00e0 sua conta.",
+            "eurOwnName": "Transfer\u00eancias em euros de uma conta em outro nome podem ser devolvidas. Se puder, deposite de uma conta no seu nome.",
             "whoCanPay": "Quem pode te pagar",
             "residenceCta": "Atualizar sua residência",
             "qrPayCta": "Pagar um código QR"
@@ -4096,6 +4099,8 @@
             "sheetTitleOwn": "Meus dados bancários",
             "sheetTitlePooled": "Dados bancários para pagar {user}",
             "payerBusinessOnly": "Pague a partir de uma conta empresarial. Uma transferência de conta pessoal é devolvida.",
+            "referenceRequired": "Inclua a refer\u00eancia em toda transfer\u00eancia. Sem ela o dinheiro n\u00e3o pode ser associado.",
+            "eurOwnName": "Uma transfer\u00eancia em euros de uma conta em outro nome pode ser devolvida. Se puder, pague de uma conta no seu nome.",
             "payerUnconfirmed": "Esta conta pode devolver uma transferência de outra pessoa ou empresa. Fale comigo antes de enviar."
         },
         "rows": {
@@ -4124,6 +4129,7 @@
                 "bre_b": "Bre-B"
             },
             "brCode": "Código Pix",
+            "reference": "Refer\u00eancia",
             "breBKey": "Chave Bre-B"
         },
         "corridors": {

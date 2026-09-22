@@ -1757,6 +1757,7 @@
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
         },
         "details": {
+            "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si pod\u00e9s, deposit\u00e1 desde una cuenta a tu nombre.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
@@ -1767,6 +1768,8 @@
         "share": {
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
             "payerBusinessOnly": "Pagá desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
+            "referenceRequired": "Inclu\u00ed la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
+            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si pod\u00e9s, pag\u00e1 desde una cuenta a tu nombre.",
             "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consultame antes de enviar."
         },
         "gate": {

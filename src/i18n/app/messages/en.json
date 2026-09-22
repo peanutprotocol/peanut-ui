@@ -4062,6 +4062,7 @@
             "benefitStable": "Hand these details over once — they stay the same for every payment after.",
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
             "conditionNoReference": "No reference or memo to remember.",
+            "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
             "faqMinimum": "Minimum deposit is {min}.",
@@ -4082,6 +4083,8 @@
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
+            "referenceRequired": "Every transfer needs this reference. Without it the money cannot be matched to your account.",
+            "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
@@ -4096,6 +4099,8 @@
             "sheetTitleOwn": "My bank details",
             "sheetTitlePooled": "Bank details to pay {user}",
             "payerBusinessOnly": "Please pay from a business account. A transfer from a personal account is returned.",
+            "referenceRequired": "Add the reference to every transfer. Without it the money cannot be matched.",
+            "eurOwnName": "A euro transfer from an account in another name can be returned. If you can, pay from an account in your own name.",
             "payerUnconfirmed": "This account may return a transfer from another person or business. Check with me before you send."
         },
         "rows": {
@@ -4124,6 +4129,7 @@
                 "bre_b": "Bre-B"
             },
             "brCode": "Pix code",
+            "reference": "Reference",
             "breBKey": "Bre-B key"
         },
         "corridors": {

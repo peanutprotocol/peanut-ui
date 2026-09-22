@@ -114,10 +114,12 @@ export function DepositAccountsListScreen({
     const [query, setQuery] = useState('')
     const term = query.trim().toLowerCase()
     const { openCountry, isCountrySupported } = useDepositCountryRouting({ accounts, claimable, isLoading })
-    // While standing accounts are dark, this screen is the bank country list
-    // and nothing else — an empty "Your accounts" section under a feature
-    // nobody can use yet would only ask a question it cannot answer.
-    const accountsEnabled = useDepositAccountsEnabled()
+    // The flag gates opening an account, not reading one. While it is off the
+    // rows are the accounts the user already holds and nothing else: their
+    // details are in payers' records and money keeps landing on them, so they
+    // stay readable; a corridor on offer, the counter and the cap note are
+    // about opening more, and go dark with the flag.
+    const claimsEnabled = useDepositAccountsEnabled()
     // The home drawer already asked bank or crypto, and `?method=bank` is that
     // answer. Offering crypto again here is the question the user just settled.
     const [{ method }] = useQueryStates({ method: parseAsStringEnum(['bank']) })
@@ -182,8 +184,10 @@ export function DepositAccountsListScreen({
      */
     const hubCorridors = useMemo(() => {
         const shown = new Set([...corridors, ...RESIDENCE_GATED_CORRIDORS])
-        return DEPOSIT_RAIL_ORDER.filter((corridor) => shown.has(corridor))
-    }, [corridors])
+        return DEPOSIT_RAIL_ORDER.filter(
+            (corridor) => shown.has(corridor) && (claimsEnabled || isHeld(accounts[corridor]))
+        )
+    }, [corridors, claimsEnabled, accounts])
 
     /**
      * Why the backend withholds a corridor, where it said so.
@@ -432,9 +436,9 @@ export function DepositAccountsListScreen({
     const overCap = accountLimit !== undefined && slotsHeld > accountLimit
 
     // A corridor with no row left after the search has nothing to label.
-    const showAccounts = accountsEnabled && views.length > 0
+    const showAccounts = views.length > 0
     // hidden while the read is in flight or has failed — a count then is a guess
-    const showCounter = !isLoading && !isError && accountLimit !== undefined
+    const showCounter = claimsEnabled && !isLoading && !isError && accountLimit !== undefined
     const showCountries = !term || matchingCountries.length > 0
     const nothingMatches = !!term && views.length === 0 && !matchesCrypto && !showCountries
     // Two characters is where a search stops matching half the world, so it is
@@ -463,7 +467,7 @@ export function DepositAccountsListScreen({
                  * A search hides it: filtering is not the moment to explain a
                  * failed read, and the notice returns when the field clears.
                  */}
-                {accountsEnabled && !term && isError && (
+                {!term && isError && (
                     <Callout
                         priority="error"
                         title={t('list.errorTitle')}

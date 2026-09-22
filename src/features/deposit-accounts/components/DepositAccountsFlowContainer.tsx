@@ -38,9 +38,12 @@ interface DepositAccountsFlowContainerProps {
  * state down.
  */
 export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowContainerProps) {
-    // While standing accounts are dark, the hub is the country list alone —
-    // asking the backend for accounts nobody can open yet buys nothing.
-    const accountsEnabled = useDepositAccountsEnabled()
+    // The flag gates opening an account, never reading one. Money keeps landing
+    // on an account the user already handed out whatever the flag says — the
+    // webhook and the poller are not gated — so the details and the revoked
+    // state stay readable when the flag is off, which is also the rollback
+    // lever. Only the claim step and the corridors on offer go dark.
+    const claimsEnabled = useDepositAccountsEnabled()
     const {
         corridors,
         accounts,
@@ -55,7 +58,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
         claimError,
         claim,
         refetch,
-    } = useDepositAccounts({ enabled: accountsEnabled })
+    } = useDepositAccounts()
     const { user } = useAuth()
     const router = useRouter()
     const residenceIso2s = useResidenceIso2s()
@@ -75,6 +78,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 gates={gates}
                 isLoading={isLoading}
                 isError={isError}
+                claimsEnabled={claimsEnabled}
                 // the name a payer reads next to the details; the share copy only
                 // uses it where the account is NOT in the user's own name
                 userName={user?.user.fullName || user?.user.username || ''}
