@@ -87,7 +87,7 @@ test('a signed-out visitor to /card is redirected to /setup — public access is
 test('the public landing sends a guest to signup with the card destination', async ({ page }) => {
     await stubSignedOutApi(page)
     await page.goto('/shhhhh')
-    await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Go Pink.' })).toBeVisible()
     await shot(page, 'landing')
     await page.getByRole('button', { name: 'Get your card', exact: true }).first().click()
     await expect(page).toHaveURL(/\/setup\?redirect_uri=%2Fcard/)
