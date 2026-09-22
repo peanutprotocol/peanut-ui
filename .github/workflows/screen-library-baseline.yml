@@ -91,6 +91,9 @@ jobs:
         needs: [revision, capture]
         # Incomplete captures remain browsable with their gaps marked. A
         # missing artifact still fails the publisher's all-profile preflight.
+        # Recovery for a failed capture: use "Re-run all jobs". "Re-run failed
+        # jobs" increments run_attempt only for failed legs, leaving successful
+        # artifacts under the older attempt and failing the matrix preflight.
         if: always() && needs.revision.result == 'success' && github.repository == 'peanutprotocol/peanut-ui'
         environment: screen-library-deploy
         runs-on: ubuntu-24.04

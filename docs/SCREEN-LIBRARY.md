@@ -291,6 +291,12 @@ baseline is unavailable or the capture harness changed, publication fails
 closed instead of comparing against an arbitrary revision; run the baseline
 workflow manually after enabling it.
 
+The four-viewport baseline publisher requires all 16 locale and viewport
+artifacts from one run attempt. If a capture leg fails, choose **Re-run all
+jobs** in GitHub Actions. Re-running only failed jobs leaves the successful
+artifacts under the earlier attempt and cannot pass the publisher's matrix
+check.
+
 `Publish screen library` is a reusable `workflow_call` job invoked after the
 capture jobs finish. The caller resolves the reusable workflow from `dev`, and
 the publisher checks out `dev`; PR checkout code never runs in that job. It
