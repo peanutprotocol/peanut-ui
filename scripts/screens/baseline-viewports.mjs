@@ -24,7 +24,9 @@ export function verifyBaselineMatrix({ sha, attempt, artifacts, readCapture }) {
             const name = baselineArtifactName(sha, locale, profile, attempt)
             const artifact = artifacts.find((item) => item.name === name && !item.expired)
             if (!artifact || artifacts.filter((item) => item.name === name).length !== 1)
-                throw new Error(`Missing or duplicate baseline artifact: ${name}`)
+                throw new Error(
+                    `Missing or duplicate baseline artifact: ${name}. Re-run all jobs to create the full matrix under one run attempt; Re-run failed jobs leaves successful captures under an earlier attempt.`
+                )
             const capture = validateCapture(readCapture(name))
             if (capture.commit !== sha || capture.locale !== locale || capture.profile !== `${locale}-${profile}`)
                 throw new Error(`Baseline capture identity mismatch: ${name}`)

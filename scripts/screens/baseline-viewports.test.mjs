@@ -51,7 +51,7 @@ test('publisher requires exactly four locales by four viewport profiles at one i
                 artifacts: artifacts.slice(1),
                 readCapture: (name) => captures.get(name),
             }),
-        /Missing/
+        /Re-run all jobs to create the full matrix under one run attempt/
     )
     captures.get(baselineArtifactName(sha, 'en', '440x956', 2)).commit = 'd'.repeat(40)
     assert.throws(
