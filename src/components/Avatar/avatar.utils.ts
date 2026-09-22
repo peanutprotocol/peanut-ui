@@ -36,9 +36,13 @@ export const avatarPool = (heldCodes: readonly string[]): string[] => [
     ...badgeAvatarKeys(heldCodes),
 ]
 
-// slots 2-5 of the hand; slot 1 is the initial and slot 6 is the die. Four
-// dealt stickers keep the drawer to one 2x3 screen on every phone (TASK-22677).
-const DEALT = 4
+/**
+ * Stickers dealt after the initial. The grid is two tiles wide with the initial
+ * first and the die last (TASK-22677): a phone under 390px shows one 2x2 screen
+ * (initial, two dealt, die), a wider one a 2x3 screen (initial, four dealt, die).
+ */
+export const HAND_NARROW = 2
+export const HAND_WIDE = 4
 
 /**
  * The given keys, each drawing once: a key whose art this bundle does not know
@@ -57,14 +61,16 @@ const distinctArt = (keys: readonly string[]): string[] => {
 
 /**
  * The hand the picker deals: index 0 is always the initial (null) and never
- * re-deals, then four keys from the deck — the basics plus what the user's
+ * re-deals, then `dealt` keys from the deck — the basics plus what the user's
  * badges unlocked. One is guaranteed to be an earned badge avatar whenever the
  * user holds a badge with art (`prefer` narrows that draw to one badge, for the
- * badge-earned toast's deep link), the current pick stays in the hand so the
- * selected state is on screen, and the rest fills the four. Slots 2-5 are
- * shuffled together and no two of them draw the same art. Rolling deals again
- * and never changes the pick (Split's semantics: the die changes what is
- * offered, not who you are).
+ * badge-earned toast's deep link), the current pick stays in the hand while
+ * `keepPick` holds so the selected state is on screen, and the rest fills the
+ * hand. The dealt slots are shuffled together and no two of them draw the same
+ * art. Rolling never changes the pick (Split's semantics: the die changes what
+ * is offered, not who you are); on the 2x2 hand the roll passes `keepPick:
+ * false`, because pinning the pick beside the earned sticker would leave the
+ * die nothing to change.
  *
  * A pick outside the deck is not dealt: a letter is slot 1's own art, and a key
  * this bundle's manifest does not know (a lagging native bundle after the API
@@ -73,7 +79,12 @@ const distinctArt = (keys: readonly string[]): string[] => {
 export function dealHand(
     pick: string | null,
     unlocked: readonly string[],
-    { prefer, random = Math.random }: { prefer?: string; random?: () => number } = {}
+    {
+        prefer,
+        dealt = HAND_NARROW,
+        keepPick = true,
+        random = Math.random,
+    }: { prefer?: string; dealt?: number; keepPick?: boolean; random?: () => number } = {}
 ): (string | null)[] {
     const draw = (pool: string[]) => pool.splice(Math.floor(random() * pool.length), 1)[0]
     const deck = distinctArt([...basicAvatarKeys(), ...unlocked])
@@ -81,9 +92,9 @@ export function dealHand(
     const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
     const hand: string[] = []
     if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
-    if (pick && deck.includes(pick)) hand.push(pick)
+    if (keepPick && pick && deck.includes(pick)) hand.push(pick)
     const rest = deck.filter((key) => !hand.includes(key))
-    while (hand.length < DEALT && rest.length) hand.push(draw(rest))
+    while (hand.length < dealt && rest.length) hand.push(draw(rest))
     for (let i = hand.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1))
         ;[hand[i], hand[j]] = [hand[j], hand[i]]

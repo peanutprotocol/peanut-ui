@@ -13,10 +13,10 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
-import { badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
+import { HAND_NARROW, badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarKey } from './useAvatarKey'
-import { roveAvatarTiles } from './avatarPicker.utils'
+import { handSize, roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
 interface AvatarPickerProps {
@@ -26,7 +26,11 @@ interface AvatarPickerProps {
 
 const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
-/** Six cells in a 2x3 grid: the user's initial, four dealt stickers, the die. Taps save; rolls only deal. */
+/**
+ * Two tiles per row, the user's initial first and the die last: a 2x2 screen on
+ * a phone under 390px (two dealt stickers), a 2x3 screen from there (four).
+ * Taps save; rolls only deal.
+ */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
     const badgeCopy = useBadgeCopy()
@@ -98,7 +102,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const [turns, setTurns] = useState(0)
     useEffect(() => {
         // Deal on open and when auth resolves. Keep an in-flight pick when reopening.
-        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined, dealt: handSize() }))
         // Taps and ordinary user refetches must not reshuffle the hand.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, userId])
@@ -108,12 +112,17 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         const earned = badgeAvatarKeys((user?.user.badges ?? []).map((badge) => badge.code))
         if (!basicAvatarKeys().includes(saved) && !earned.includes(saved)) return
         // A failed save after a roll can restore a saved sticker that is no longer in the hand.
-        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned) : current))
+        setHand((current) =>
+            current.length && !current.includes(saved) ? dealHand(saved, earned, { dealt: handSize() }) : current
+        )
     }, [open, pending, saved, user?.user.badges])
 
     const roll = () => {
         setTurns((n) => n + 1)
-        setHand(dealHand(pick, unlocked))
+        // The 2x2 hand has two dealt slots: pinning the pick beside the earned
+        // sticker would deal the same hand again, so the roll lets the pick go.
+        const dealt = handSize()
+        setHand(dealHand(pick, unlocked, { dealt, keepPick: dealt > HAND_NARROW }))
     }
 
     // A legacy pick of another letter has no matching tile; do not mark the user's initial instead.

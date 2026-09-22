@@ -1004,7 +1004,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'avatar-picker': {
         route: AVATAR_PICKER_PATH,
-        about: 'Avatar picker open: a hand of five with the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
+        about: 'Avatar picker open: 2x2 on a narrow phone, 2x3 from 390px, the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
         responses: {
             'GET /users/me': {
                 user: {

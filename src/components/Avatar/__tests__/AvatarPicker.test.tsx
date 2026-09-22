@@ -64,13 +64,22 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockHasUser ? mockUser : undefined, fetchUser: mockFetchUser }),
 }))
 
+// The picker reads the viewport through matchMedia: true deals the 2x3 hand
+// (four stickers), false the 2x2 hand (two). The suite runs wide by default.
+const matchMediaStub = (matches: boolean) => (query: string) =>
+    ({
+        matches,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+    }) as unknown as MediaQueryList
 const tiles = () => screen.getAllByRole('radio')
 const tile = (name: RegExp) => screen.getByRole('radio', { name })
 const die = () => screen.getByRole('button', { name: 'Roll the die' })
 
-// Math.random is pinned to 0 for the suite, which deals a fixed hand of five:
-// the initial, one earned beetle, then apple, avocado and cactus. The cast
-// copy is what a tile prints, so the tiles are named by it.
+// Math.random is pinned to 0 for the suite, which deals a fixed 2x3 hand: the
+// initial, one earned beetle, then apple, avocado and cactus. The cast copy is
+// what a tile prints, so the tiles are named by it.
 const A = /Jackpot Cherry/
 const B = /Watermelon Slice/
 const KEY_A = 'basic.apple'
@@ -107,6 +116,7 @@ beforeEach(() => {
     window.localStorage.clear()
     resetLetterAvatarCache()
     jest.spyOn(Math, 'random').mockReturnValue(0)
+    jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(true))
     mockBadgeParam = null
     mockHasUser = true
     mockUpdateUserById.mockResolvedValue({ data: {} })
@@ -128,6 +138,15 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tiles()).toHaveLength(5)
+        expect(die()).toBeInTheDocument()
+    })
+
+    // 2x2 under 390px: the initial, two stickers, the die
+    it('deals three tiles and the die on a phone under 390px', () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles()).toHaveLength(3)
         expect(die()).toBeInTheDocument()
     })
 
@@ -233,7 +252,7 @@ describe('AvatarPicker', () => {
 
     // a radiogroup may only hold radios, so the die sits beside the tiles in
     // the same grid rather than inside the group
-    it('puts the five tiles in the radiogroup and the die outside it', () => {
+    it('puts the tiles in the radiogroup and the die outside it', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
