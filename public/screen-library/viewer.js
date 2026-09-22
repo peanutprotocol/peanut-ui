@@ -28,6 +28,7 @@ const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
+const entryProfile = (entry) => entry?.profile ?? '393x852'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -131,8 +132,10 @@ function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
+    const profile = overrides.profile ?? $('profile').value
     if (source) params.set('source', source)
     if (locale) params.set('locale', locale)
+    if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
         const date = overrides.date ?? $('date-strip').dataset.selectedDate
         if (parseIsoDate(date)) params.set('date', date)
@@ -369,6 +372,22 @@ function populateLocale(entries, selected) {
     $('locale').value = value ?? ''
     return value
 }
+function populateProfile(entries, selected, source) {
+    const profiles = ['393x852', '440x956', '360x800', '320x712'].filter((profile) =>
+        entries.some((entry) => entryProfile(entry) === profile)
+    )
+    $('profile-control').hidden = source !== 'synthetic' || profiles.length <= 1
+    $('profile').replaceChildren(
+        ...profiles.map((value) => {
+            const option = el('option', value.replace('x', ' × '))
+            option.value = value
+            return option
+        })
+    )
+    const value = profiles.includes(selected) ? selected : profiles.includes('393x852') ? '393x852' : profiles[0]
+    $('profile').value = value ?? ''
+    return value
+}
 function updateDateNavigation() {
     const strip = $('date-strip')
     const scrollLeft = Number(strip.scrollLeft) || 0
@@ -442,9 +461,18 @@ function renderDateStrip(availableEntries) {
 function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
+    const selectedProfile = populateProfile(
+        sourceEntries,
+        $('profile').value || requestedFilter('profile'),
+        selectedSource
+    )
+    const profileEntries =
+        selectedSource === 'synthetic'
+            ? sourceEntries.filter((entry) => entryProfile(entry) === selectedProfile)
+            : sourceEntries
     const current = $('locale').value
-    const selected = populateLocale(sourceEntries, current || requestedFilter('locale'))
-    const localeEntries = sourceEntries.filter((entry) => entry.locale === selected)
+    const selected = populateLocale(profileEntries, current || requestedFilter('locale'))
+    const localeEntries = profileEntries.filter((entry) => entry.locale === selected)
     const selectedDate = renderDateStrip(localeEntries)
     const visible = localeEntries.filter((entry) => !selectedDate || entry.date === selectedDate)
     const real = selectedSource === 'nutcracker'
@@ -453,7 +481,7 @@ function renderLanding() {
         ? 'Screens captured while Nutcracker drives the real Peanut backend and provider sandboxes.'
         : 'Browse app states and compare versions of Peanut.'
     $('coverage').textContent =
-        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : 'app-state'} ${visible.length === 1 ? 'run' : 'runs'}${selectedDate ? ` on ${formatCaptureDate(selectedDate)}` : ''}`
+        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : `${selectedProfile.replace('x', ' × ')} app-state`} ${visible.length === 1 ? 'run' : 'runs'}${selectedDate ? ` on ${formatCaptureDate(selectedDate)}` : ''}`
     $('versions').replaceChildren()
     const grouped = new Map()
     for (const entry of visible) {
@@ -472,7 +500,11 @@ function renderLanding() {
             const top = el('div', undefined, 'version-top')
             top.append(
                 el('span', formatCaptureDate(v.date), 'version-card-date'),
-                el('span', details.kind, 'version-kind')
+                el(
+                    'span',
+                    `${details.kind}${selectedSource === 'synthetic' && details.kind === 'Full library' ? ` · ${entryProfile(v).replace('x', ' × ')}` : ''}`,
+                    'version-kind'
+                )
             )
             const branch = el('strong', details.branch || 'Unknown branch', 'version-branch')
             const meta = el('div', undefined, 'version-meta')
@@ -521,6 +553,7 @@ async function configureReportLocales(reportPath) {
         reportSourceEntries = []
         populateLocale(reportLocaleEntries, $('locale').value || requestedCollectionLocale(report))
         $('source-control').hidden = true
+        $('profile-control').hidden = true
         $('dashboard-filters').hidden = report.locales.length <= 1
         $('date-filter').hidden = true
         return
@@ -529,6 +562,7 @@ async function configureReportLocales(reportPath) {
         reportLocaleEntries = []
         reportSourceEntries = []
         $('dashboard-filters').hidden = true
+        $('profile-control').hidden = true
         $('date-filter').hidden = true
         return
     }
@@ -542,6 +576,7 @@ async function configureReportLocales(reportPath) {
     if (!reportSourceEntries.some((entry) => entry.path === reportPath))
         reportSourceEntries.push({ path: reportPath, locale: report.locale ?? 'en', source: currentSource })
     populateSource([...indexEntries, ...reportSourceEntries], currentSource)
+    $('profile-control').hidden = true
     const basePath = withoutLocale(reportPath)
     reportLocaleEntries = reportSourceEntries.filter((entry) => withoutLocale(entry.path) === basePath)
     const currentLocale = report.locale ?? 'en'
@@ -628,7 +663,7 @@ async function start() {
             ? `${localeLabel(requestedCollectionLocale(report))} · Curated collection · Synthetic app states`
             : report.type === 'journeys'
               ? `${localeLabel(report.locale)} · ${report.width} × ${report.height} viewport · Nutcracker sandbox backend`
-              : `${localeLabel(report.locale)} · 393 × 852 · Synthetic data`
+              : `${localeLabel(report.locale)} · ${after.width} × ${after.height} viewport · Synthetic data`
     if (report.type === 'collection') {
         for (const locale of report.locales) {
             const source = report.source?.[locale]
@@ -761,6 +796,7 @@ $('source').addEventListener('change', () => {
     }
     renderLanding()
 })
+$('profile').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''

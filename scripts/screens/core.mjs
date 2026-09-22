@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
+import { captureProfile } from './capture-profiles.mjs'
 
 export const hash = (data) => createHash('sha256').update(data).digest('hex')
 const sha = /^[a-f0-9]{40}$/
@@ -24,10 +25,10 @@ export function validateCapture(input) {
     assert(digest.test(input.harness) && digest.test(input.fixtures), 'Missing harness/fixture identity')
     const captureLocale = input.locale ?? 'en'
     assert(supportedLocales.has(captureLocale), 'Invalid capture locale')
-    assert(
-        input.profile === `${captureLocale}-393x852` && input.width === 393 && input.height === 852,
-        'Unsupported capture profile'
-    )
+    const size = `${input.width}x${input.height}`
+    assert(input.profile === `${captureLocale}-${size}`, 'Unsupported capture profile')
+    const profile = captureProfile(size)
+    assert(input.width === profile.width && input.height === profile.height, 'Unsupported capture profile')
     assert(
         Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
         'Invalid catalogue'
@@ -203,18 +204,22 @@ export function sameEnvironment(a, b) {
         (k) => a[k] === b[k]
     )
 }
-export function verifyAsset(dir, name, { variableDimensions = false } = {}) {
+export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {
     assert(asset.test(name), 'Unsafe asset name')
     const data = readFileSync(join(dir, name))
     assert(data.length < 8 * 1024 * 1024 && hash(data) === name.split('.')[0], 'Asset integrity failure')
     if (name.endsWith('.png')) {
         assert(data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), 'Invalid PNG')
-        const width = data.readUInt32BE(16),
-            height = data.readUInt32BE(20)
+        const imageWidth = data.readUInt32BE(16),
+            imageHeight = data.readUInt32BE(20)
         assert(
             variableDimensions
-                ? width >= 240 && width <= 2400 && height >= 240 && height <= 12000 && width * height <= 16_000_000
-                : width === 393 && height === 852,
+                ? imageWidth >= 240 &&
+                      imageWidth <= 2400 &&
+                      imageHeight >= 240 &&
+                      imageHeight <= 12000 &&
+                      imageWidth * imageHeight <= 16_000_000
+                : imageWidth === width && imageHeight === height,
             'Unexpected PNG dimensions'
         )
         PNG.sync.read(data)
@@ -271,18 +276,18 @@ export function compare(beforeInput, afterInput, assetsDir) {
         }
         if (!a) return { ...row, status: before.complete ? 'added' : 'unavailable' }
         if (!b) return { ...row, status: after.complete ? 'removed' : 'unavailable' }
-        const ad = verifyAsset(assetsDir, a.image),
-            bd = verifyAsset(assetsDir, b.image)
+        const ad = verifyAsset(assetsDir, a.image, after),
+            bd = verifyAsset(assetsDir, b.image, after)
         if (a.image === b.image) return { ...row, status: 'unchanged', pixels: 0, percent: 0 }
         const ap = PNG.sync.read(ad),
             bp = PNG.sync.read(bd),
-            diff = new PNG({ width: 393, height: 852 })
-        const pixels = pixelmatch(ap.data, bp.data, diff.data, 393, 852, { threshold: 0.1 })
+            diff = new PNG({ width: after.width, height: after.height })
+        const pixels = pixelmatch(ap.data, bp.data, diff.data, after.width, after.height, { threshold: 0.1 })
         return {
             ...row,
             status: pixels ? 'changed' : 'unchanged',
             pixels,
-            percent: (pixels / (393 * 852)) * 100,
+            percent: (pixels / (after.width * after.height)) * 100,
             ...(pixels ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)) } : {}),
         }
     })

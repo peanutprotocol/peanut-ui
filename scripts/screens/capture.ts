@@ -9,6 +9,7 @@ import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { captureExitCode } from './capture-status.mjs'
+import { captureProfile } from './capture-profiles.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
 import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
@@ -24,6 +25,7 @@ async function main() {
         localeArg = arg('locale', 'en')
     if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
     const captureLocale = localeArg as AppLocale
+    const profile = captureProfile(arg('profile', '393x852'))
     const captureText = localizedCaptureText(captureLocale, source)
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
@@ -96,7 +98,7 @@ async function main() {
     }
     if (!browser) throw launchError
     const contextOptions = {
-        viewport: { width: 393, height: 852 },
+        viewport: { width: profile.width, height: profile.height },
         deviceScaleFactor: 1,
         isMobile: true,
         hasTouch: true,
@@ -144,9 +146,9 @@ async function main() {
             adapter: ADAPTER_VERSION,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
-            profile: `${captureLocale}-393x852`,
-            width: 393,
-            height: 852,
+            profile: `${captureLocale}-${profile.name}`,
+            width: profile.width,
+            height: profile.height,
             screens: materializeCatalogue(SCREENS, results),
             inventory: inventory(source, SCREENS),
             adapterFiles: [
@@ -585,11 +587,11 @@ async function main() {
             })
         )
         if (requireFullCatalogue && !report.complete) {
-            console.error('Full catalogue capture is incomplete; refusing to publish this baseline')
+            console.error('Full catalogue capture is incomplete; PR comparisons cannot use this baseline')
         }
         // Incomplete captures are valid gallery reports: the manifest records
-        // expected gaps and the publisher can still expose them. A caught
-        // Runtime failures on either revision remain red capture jobs.
+        // expected gaps and the publisher can still expose them. Runtime
+        // failures on either revision remain red capture jobs.
         process.exitCode = Math.max(captureExitCode(results), requireFullCatalogue && !report.complete ? 1 : 0)
     } finally {
         await browser.close()

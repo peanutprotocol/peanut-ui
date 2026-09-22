@@ -14,6 +14,8 @@ const elementIds = [
     'source',
     'source-control',
     'locale',
+    'profile',
+    'profile-control',
     'title',
     'description',
     'provenance',
@@ -262,6 +264,33 @@ test('landing locale selector filters published versions', async () => {
     assert.equal(versionLinks(elements).length, 1)
     assert.equal(versionLinks(elements)[0].children[1].textContent, 'pr-1')
     assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
+})
+
+test('landing viewport selector makes each published capture size independently browsable', async () => {
+    const commit = 'a'.repeat(40)
+    const defaultPath = `2026-09-21/dev/en/${commit}/run-1-1`
+    const smallPath = `2026-09-21/dev/en/320x712/${commit}/run-2-1`
+    const entries = [
+        { path: defaultPath, date: '2026-09-21', locale: 'en', source: 'synthetic', reportType: 'capture' },
+        {
+            path: smallPath,
+            date: '2026-09-21',
+            locale: 'en',
+            profile: '320x712',
+            source: 'synthetic',
+            reportType: 'capture',
+        },
+    ]
+    const elements = await loadLanding('/', { index: entries })
+    assert.equal(elements.get('profile-control').hidden, false)
+    assert.equal(elements.get('profile').children.length, 2)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${defaultPath}/?source=synthetic&locale=en`)
+    elements.get('profile').value = '320x712'
+    elements.get('profile').dispatch('change')
+    assert.equal(versionLinks(elements).length, 1)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${smallPath}/?source=synthetic&locale=en&profile=320x712`)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&profile=320x712')
+    assert.equal(versionLinks(elements)[0].children[0].children[1].textContent, 'Full library · 320 × 712')
 })
 
 test('landing source selector restores and shares deterministic or real journey filters', async () => {

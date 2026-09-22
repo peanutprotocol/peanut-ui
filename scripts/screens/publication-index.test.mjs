@@ -98,6 +98,24 @@ test('latest prefers the English locale when the dev catalogue has a locale matr
     assert.equal(selectLatest(matrix).locale, 'en')
 })
 
+test('additional viewport entries remain browsable without replacing default latest or inheriting comparison counts', async () => {
+    const commit = sha('f')
+    const defaultPath = `2026-09-15/dev/en/${commit}/run-70-1`
+    const viewportPath = `2026-09-15/dev/en/320x712/${commit}/run-71-1`
+    const comparisonPath = `2026-09-15/pr-3166/en/${commit}/run-71-1`
+    const storage = memoryStorage({
+        sourceEntries: [
+            { path: defaultPath, locale: 'en', complete: true, sequence: 70 },
+            { path: viewportPath, locale: 'en', complete: true, sequence: 71 },
+            { path: comparisonPath, locale: 'en', complete: true, sequence: 71, changedScreens: 5 },
+        ],
+    })
+    const { entries, latest } = await updateIndexes(storage)
+    assert.equal(latest.path, defaultPath)
+    assert.equal(entries.find((entry) => entry.path === viewportPath).profile, '320x712')
+    assert.equal(entries.find((entry) => entry.path === viewportPath).changedScreens, undefined)
+})
+
 test('a newer Nutcracker run does not replace the latest deterministic app catalogue', () => {
     const nutcracker = {
         path: `2026-09-14/nutcracker/en/${sha('a')}/run-99-1`,
