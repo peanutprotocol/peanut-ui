@@ -359,6 +359,7 @@ jest.mock('@/hooks/useSavedAddresses', () => ({
 import WithdrawCryptoPage from '../page'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -769,6 +770,37 @@ describe('crypto withdraw confirm — charge completion', () => {
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
         expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
         expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+})
+
+/**
+ * The spend engine checks the card controller before it prepares or signs
+ * anything, and that check can end the attempt: the re-approval prompt was
+ * dismissed, or the screen was left. Nothing was broadcast and no charge was
+ * paid, so the review screen must not read as a failed withdrawal.
+ */
+describe('crypto withdraw — card re-approval cancelled before the broadcast', () => {
+    it('leaves the review screen clean: no error, no failure report, no success step', async () => {
+        mockSendMoney.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+
+        await confirm()
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
+    it('a real broadcast failure still surfaces and is reported', async () => {
+        mockSendMoney.mockRejectedValue(new Error('bundler 502'))
+
+        await confirm()
+
+        await waitFor(() =>
+            expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        )
+        expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
     })
 })
 
