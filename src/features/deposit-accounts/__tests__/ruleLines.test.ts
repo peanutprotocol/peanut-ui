@@ -122,6 +122,16 @@ describe('depositRuleLines', () => {
             'minimum',
         ])
     })
+
+    it('unknown ownership makes no holder claim and preserves the sender terms', () => {
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
+        expect(keysOf(matching({ nameOnAccount: 'unknown', sender }), rules)).toEqual([
+            'ownAccount',
+            'businessAny',
+            'individualNotYet',
+            'minimum',
+        ])
+    })
 })
 
 it('states business support with separate per-payment and monthly limits', () => {
