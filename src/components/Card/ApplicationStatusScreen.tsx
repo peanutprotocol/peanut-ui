@@ -122,28 +122,27 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && hasBothUploadActions ? (
-                    <div className="w-full text-left">
-                        <ListGroup data-testid="card-upload-list">
-                            <ListItem title={t('uploadProofOfAddress')} chevron onClick={onUploadProofOfAddress} />
-                            <ListItem title={t('uploadIdentityDocuments')} chevron onClick={onUploadIdentity} />
-                        </ListGroup>
-                        {uploadError && <p className="mt-2 text-body-s text-foreground-error">{uploadError}</p>}
-                    </div>
-                ) : null}
-                {SUPPORT_VARIANTS.has(variant) && !hasBothUploadActions && onUploadProofOfAddress && (
+                {SUPPORT_VARIANTS.has(variant) && hasUploadAction && (
                     <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                            {t('uploadProofOfAddress')}
-                        </Button>
-                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
-                    </div>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && !hasBothUploadActions && onUploadIdentity && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
-                            {t('uploadIdentityDocuments')}
-                        </Button>
+                        {hasBothUploadActions ? (
+                            <ListGroup data-testid="card-upload-list">
+                                <ListItem title={t('uploadProofOfAddress')} chevron onClick={onUploadProofOfAddress} />
+                                <ListItem title={t('uploadIdentityDocuments')} chevron onClick={onUploadIdentity} />
+                            </ListGroup>
+                        ) : onUploadProofOfAddress ? (
+                            <Button
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={onUploadProofOfAddress}
+                            >
+                                {t('uploadProofOfAddress')}
+                            </Button>
+                        ) : (
+                            <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
+                                {t('uploadIdentityDocuments')}
+                            </Button>
+                        )}
                         {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
                 )}

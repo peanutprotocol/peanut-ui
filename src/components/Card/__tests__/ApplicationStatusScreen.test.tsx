@@ -157,6 +157,7 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
                 onContactSupport={jest.fn()}
                 onUploadProofOfAddress={onUploadProofOfAddress}
                 onUploadIdentity={onUploadIdentity}
+                uploadError="Could not start the upload. Please try again."
             />
         )
 
@@ -167,6 +168,7 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
         expect(onUploadProofOfAddress).toHaveBeenCalledTimes(1)
         expect(onUploadIdentity).toHaveBeenCalledTimes(1)
         expect(screen.getByText(en.card.status.requiresInfoUploadBody)).toBeInTheDocument()
+        expect(screen.getByText('Could not start the upload. Please try again.')).toBeInTheDocument()
     })
 
     it('shows the review message without asking for a new upload or support contact after PoA submission', () => {
