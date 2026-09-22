@@ -9,7 +9,14 @@ import { expect, test } from '@playwright/test'
 import { findOverflows, type Overflow } from './overflow-check'
 
 async function detect(page: import('@playwright/test').Page, html: string): Promise<Overflow[]> {
-    await page.setContent(`<body style="margin:0;font-family:sans-serif">${html}</body>`)
+    // the viewport meta matters: the base config emulates mobile, and without
+    // it the layout viewport falls back to 980px — real app pages always ship
+    // the meta, so the synthetic ones must too or document-level overflow
+    // (anything under 980px wide) is invisible here
+    await page.setContent(
+        `<head><meta name="viewport" content="width=device-width, initial-scale=1"></head>` +
+            `<body style="margin:0;font-family:sans-serif">${html}</body>`
+    )
     return page.evaluate(findOverflows, ['.exempt-me'])
 }
 
@@ -58,6 +65,13 @@ test('flags vertically clipped text in a fixed-height box', async ({ page }) => 
     )
     expect(found).toHaveLength(1)
     expect(found[0].kind).toBe('clip-y')
+})
+
+test('flags a document that scrolls horizontally with nothing clipped', async ({ page }) => {
+    // no element clips, so the per-element scan is blind to this by design
+    const found = await detect(page, `<div style="position:absolute;left:0;top:0;width:400px;height:10px"></div>`)
+    expect(found).toHaveLength(1)
+    expect(found[0].kind).toBe('document-horizontal-scroll')
 })
 
 test('stays quiet on deliberate truncation, scrollers, hidden text and exemptions', async ({ page }) => {

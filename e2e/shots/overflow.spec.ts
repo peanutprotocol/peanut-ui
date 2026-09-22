@@ -167,13 +167,34 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
     })
 }
 
-// ---- landing / marketing: locale comes from the route, so each project
-// checks its own locale's routes (the table-heavy marketing templates render
-// through the same mdx components — one representative slug each) ----
+// ---- landing / marketing: the locale comes from the ROUTE, not the browser,
+// so the key below only says which project runs the route. The English pages
+// ride in the es-419 project rather than paying for a whole extra English run
+// of every fixture and setup test. /careers lives outside [locale] and is
+// English-only. (the table-heavy marketing templates render through the same
+// mdx components — one representative slug each) ----
 
 const LANDING_ROUTES: Record<string, string[]> = {
-    'es-419': ['/es-419', '/es-419/pricing', '/es-419/compare/wise'],
-    'pt-BR': ['/pt-br', '/pt-br/argentina'],
+    'es-419': [
+        '/es-419',
+        '/es-419/pricing',
+        '/es-419/compare/wise',
+        '/en/press',
+        '/en/content',
+        '/en/help',
+        '/en/status',
+        '/en/stories',
+        '/careers',
+    ],
+    'pt-BR': [
+        '/pt-br',
+        '/pt-br/argentina',
+        '/pt-br/press',
+        '/pt-br/content',
+        '/pt-br/help',
+        '/pt-br/status',
+        '/pt-br/stories',
+    ],
     'es-AR': ['/es-ar'],
 }
 
