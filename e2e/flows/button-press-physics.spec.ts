@@ -36,6 +36,37 @@ async function press(el: Locator) {
     await el.page().mouse.down()
 }
 
+/** `.btn` transitions in 100ms — long enough for a hover fill to land */
+const HOVER_SETTLE_MS = 250
+
+/**
+ * prove that the press assertion below can only be reading :active.
+ *
+ * `press()` is no guard on its own for a control whose hover fill and press
+ * fill are the same colour: a pointer has to hover the control to press it, so
+ * the hover fill alone would satisfy the assertion and deleting the `active:`
+ * class would keep the test green.
+ *
+ * What rules the hover fill out is the Pixel 7 device in the config: it sets
+ * `isMobile`, so Chromium re-emits the mouse as touch and never sets :hover.
+ * That is one line in a config file away from silently un-proving both nav
+ * circle tests, so assert it here instead of trusting it — point the config at
+ * a desktop device and this fails loudly on the hover fill, rather than the
+ * press assertion passing on it.
+ *
+ * A synthesized touch gesture used to carry this instead, on the reasoning that
+ * a finger brings no hover with it. It does not survive CI: on the GitHub
+ * runner `Input.synthesizeTapGesture` returns after its full hold and :active
+ * never turns on, so both nav circle tests failed there on correct CSS while
+ * every mouse-driven test in this file passed. The mouse is the portable press;
+ * this assertion is what makes it mean something.
+ */
+async function expectNoHoverFill(el: Locator) {
+    await el.hover()
+    await el.page().waitForTimeout(HOVER_SETTLE_MS)
+    expect(await background(el), 'no hover fill, so a press fill can only be :active').toBe('rgba(0, 0, 0, 0)')
+}
+
 test.describe('Button press physics', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/shhhhh', { waitUntil: 'domcontentloaded' })
@@ -74,9 +105,12 @@ test.describe('Button press physics', () => {
 
         // the board (17308:13973) draws ONE colour, action-primary pink, for
         // hover AND press (kush ruling 2026-09-21 — a two-colour press shipped
-        // briefly and read as a purple back button). So the press is asserted
-        // WITHOUT hovering first: transparent at rest, pink only from :active.
+        // briefly and read as a purple back button). One colour for both states
+        // is what would make a mouse press prove nothing here — so the circle is
+        // read at rest, then under hover, then under press: three states, and
+        // only the third may be pink.
         expect(await background(back), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
+        await expectNoHoverFill(back)
 
         await press(back)
         try {
@@ -102,6 +136,10 @@ test.describe('Button press physics', () => {
 
         expect(await background(circle), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
         expect(await boxShadow(circle), 'a nav circle carries no shadow').toBe('none')
+
+        // same const, same one-colour contract as the circle above, so the same
+        // hover assertion carries the press assertion under it
+        await expectNoHoverFill(circle)
 
         await press(circle)
         try {
