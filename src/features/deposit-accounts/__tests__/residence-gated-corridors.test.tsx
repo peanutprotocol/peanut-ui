@@ -66,8 +66,8 @@ describe('residenceAllows', () => {
         expect(residenceAllows('BANK_TRANSFER_AR', ['DE'])).toBe(false)
         // a dual resident passes on either country
         expect(residenceAllows('BANK_TRANSFER_AR', ['DE', 'AR'])).toBe(true)
-        // Brazil mirrors the backend's own pre-check (`isDepositResidenceSupported`):
-        // a Brazilian residence stands in for the CPF, and an unknown one fails closed
+        // Brazil: a client-side pre-check where a Brazilian residence stands in
+        // for the CPF the account needs; an unknown residence fails closed
         expect(residenceAllows('PIX_BR', ['BR'])).toBe(true)
         expect(residenceAllows('PIX_BR', ['PT'])).toBe(false)
         expect(residenceAllows('PIX_BR', [])).toBe(false)

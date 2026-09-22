@@ -1,3 +1,4 @@
+import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import { buildUnlockGroups, dedupeHeldBankRows, type BuildUnlockGroupsInput } from '@/utils/unlock-payments.utils'
 
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
@@ -177,8 +178,8 @@ describe('buildUnlockGroups', () => {
 })
 
 /**
- * The Manteca corridors open a first-party account to a legal resident of that
- * country alone, and the backend refuses the flow for anyone else. A row that
+ * The Manteca corridors open a first-party account to residents of that
+ * country (Brazil through a client-side CPF-by-residence pre-check). A row that
  * is not an offer must not say Unlock — and must not carry another country's
  * Processing either (the abandoned Argentine ghost on a Portuguese resident's
  * screen, 2026-09-22).
@@ -278,5 +279,27 @@ describe('dedupeHeldBankRows', () => {
 
     it('is a no-op with no active accounts', () => {
         expect(dedupeHeldBankRows(bankRows, new Set())).toEqual(bankRows)
+    })
+})
+
+/**
+ * One residence derivation for every residence gate: the Unlock payments rows
+ * and the top-up flows behind them read the same countries, verified first.
+ */
+describe('gatingResidenceIso2s', () => {
+    it('a verified residence outranks a declared one, as on the backend', () => {
+        expect(gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })).toEqual(['PT'])
+    })
+
+    it('a declared residence counts while nothing is verified, and a second one beside it', () => {
+        expect(gatingResidenceIso2s({ verified: null, declared: 'br', second: 'AR' })).toEqual(['BR', 'AR'])
+        expect(gatingResidenceIso2s({})).toEqual([])
+    })
+
+    it('the row and the top-up agree: verified PT + declared BR reads not offered on both', () => {
+        const residences = gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })
+        expect(residenceAllows('PIX_BR', residences)).toBe(false)
+        const groups = buildUnlockGroups(base({ residenceIso2: 'PT' }))
+        expect(group(groups, 'southAmerica').rows[0].chip).toBe('notAvailable')
     })
 })

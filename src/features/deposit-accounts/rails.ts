@@ -57,9 +57,12 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'br',
         detailRowCount: 3,
         claimable: false,
-        // The backend's own rule: a Brazilian residence stands in for the CPF
-        // the provider asks for (`isDepositResidenceSupported`), and the
-        // Manteca onboarding behind the top-up collects that same CPF.
+        // A frontend pre-check, not a mirror of a server rule: the backend
+        // does not gate the Manteca Pix corridor on residence. The account
+        // behind the top-up needs a CPF, and a Brazilian residence is the
+        // stand-in we can check before the user types an amount — the same
+        // proxy the backend uses for the Bridge BRL corridor
+        // (`isDepositResidenceSupported`, BANK_TRANSFER_BR only).
         residenceIso2: 'BR',
         topUpHref: '/add-money/brazil/manteca',
     },

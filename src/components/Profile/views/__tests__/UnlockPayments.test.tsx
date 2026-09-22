@@ -874,9 +874,10 @@ describe("a row's modal reads the rails of its own country", () => {
 })
 
 /**
- * The Manteca corridors are for legal residents of Brazil and Argentina — the
- * backend refuses the verification for anyone else (`target_country_required`),
- * and the provider the account. A Portuguese resident was offered "BRL · Pix",
+ * The Manteca corridors are for legal residents of Brazil and Argentina: the
+ * Argentine account opens to residents alone, and the Brazilian one needs a CPF,
+ * checked here through a Brazilian residence (a client-side pre-check). A
+ * Portuguese resident was offered "BRL · Pix",
  * tapped it, and met the Argentine ghost's drawer; now the row is not offered,
  * and says why.
  */

@@ -353,9 +353,9 @@ describe('residence gate — Argentina', () => {
 
 /**
  * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
- * Manteca account, which asks for a CPF, and the backend's own pre-check is a
- * Brazilian residence. A Portuguese resident used to sail into a flow both
- * sides refuse.
+ * Manteca account, which asks for a CPF, and a Brazilian residence is the
+ * stand-in the app checks first. The rule is client-side; the backend does not
+ * gate this corridor on residence.
  */
 describe('residence gate — Brazil', () => {
     test('a non-resident sees the residence screen, with the Pix QR way in', () => {
