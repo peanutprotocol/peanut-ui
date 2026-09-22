@@ -104,22 +104,29 @@ describe('Tabs', () => {
     test('the chip is welded flush to the track, and the border carries selection', () => {
         render(<Tabs tabs={TABS} aria-label="demo" />)
         const list = screen.getByRole('tablist')
-        // track: bordered white pill, NO padding of its own
-        expect(list.className).toContain('rounded-full')
-        expect(list.className).toContain('border-border-default')
-        expect(list.className).toContain('bg-background-default')
-        expect(list.className).toContain('p-0')
+        // track: bordered white pill on the WRAPPER, not on the scrolling list —
+        // a scroll container clips at its padding box and could never let the
+        // chip paint over its own border
+        const track = list.parentElement!
+        expect(track.className).toContain('rounded-full')
+        expect(track.className).toContain('border-border-default')
+        expect(track.className).toContain('bg-background-default')
+        // the list itself carries no track surface, only the 1px weld gutter
+        expect(list.className).not.toContain('border-border-default')
+        expect(list.className).not.toContain('bg-background-default')
+        expect(list.className).toContain('-m-px')
+        expect(list.className).toContain('p-px')
         expect(list.className).toContain('gap-0')
 
         const [tab] = screen.getAllByRole('tab')
-        // the weld: the chip is a ::before pinned 1px outside the trigger at top
-        // and bottom, so it lands on the track's border instead of floating
-        // inside it. The left/right edges sit ON the trigger — a ::before that
-        // hangs over the right edge is real scrollable overflow, and it gave the
-        // row 1px of horizontal scroll whenever the last tab was active.
+        // the weld: the chip is a ::before pinned 1px outside the trigger on all
+        // four sides, so it lands ON the track's border instead of floating
+        // inside it. The overlap survives the scroll box because the list's
+        // -m-px/p-px gutter puts its padding ring over that border — the
+        // overhang renders inside the scrollport and adds no scrollable
+        // overflow, so the row still has nothing to scroll at rest.
         expect(tab.className).toContain('before:absolute')
-        expect(tab.className).toContain('before:-inset-y-px')
-        expect(tab.className).toContain('before:inset-x-0')
+        expect(tab.className).toContain('before:-inset-px')
         expect(tab.className).toContain('before:rounded-full')
         // selection is carried by a border, never by fill alone
         expect(tab.className).toContain('data-[state=active]:before:border-border-default')
@@ -178,8 +185,7 @@ describe('Tabs', () => {
 
         // everything that must NOT vary with size
         const shared = [
-            'before:-inset-y-px',
-            'before:inset-x-0',
+            'before:-inset-px',
             'before:rounded-full',
             'data-[state=active]:before:border-border-default',
             'data-[state=active]:before:bg-background-page',

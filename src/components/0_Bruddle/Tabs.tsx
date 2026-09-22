@@ -19,16 +19,22 @@ import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
  *
  * FLUSH, not inset (kush: "there should be no padding between the active pill
  * and the main container"). The track has NO padding, and the chip is NOT the
- * trigger's own border box — it is a `::before` pinned at `inset-x-0
- * -inset-y-px`, the model `BottomNav` uses for its thumb (`absolute -top-px
- * -bottom-px`). That draws the chip 1px outside the trigger at top and bottom,
- * so its border lands ON TOP of the track's border and the two read as one
- * complete outline instead of a chip floating in a box. 1px, not 2px, because
- * the track's border is 1px. The overhang is VERTICAL ONLY: an out-of-flow box
- * sticking out to the right adds real scrollable overflow, and the last tab
- * being active was enough to give the row 1px of horizontal scroll with
- * nothing to scroll. Left and right now sit exactly on the trigger edges — the
- * same trimmed weld the scroll clip already costs us at top and bottom.
+ * trigger's own border box — it is a `::before` pinned at `-inset-px`, the
+ * model `BottomNav` uses for its thumb (`absolute -top-px -bottom-px`). That
+ * draws the chip 1px outside the trigger on all four sides, so its border lands
+ * ON TOP of the track's border and the two read as one complete outline instead
+ * of a chip floating in a box. 1px, not 2px, because the track's border is 1px.
+ *
+ * The border therefore lives on a WRAPPER, not on the scrolling List: a scroll
+ * container clips at its PADDING box, so it can never let a child paint over
+ * its own border — with border and scroll on one element the chip's overhang
+ * was trimmed away and the two curves read as a crescent gap at the rounded
+ * ends. The List sits inside that wrapper and takes a 1px gutter (`-m-px
+ * p-px`): its padding ring lands exactly over the track's border, so the chip's
+ * overhang renders INSIDE the scrollport — over the border line — instead of
+ * being clipped. And because padding is inside the scroll box, the gutter adds
+ * zero scrollable overflow, which is what keeps the phantom-1px-scroll fix
+ * (`scrollWidth === clientWidth` at rest) alive with the weld restored.
  *
  * Why a pseudo-element and not a negative margin: a negative margin would make
  * every trigger overlap its neighbour by 2px and would spend a point of the
@@ -124,16 +130,18 @@ const focusRing =
 // track. Panels keep the outer ring: they are not inside a scroll box.
 const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 
-// The List is the track AND the scroll box (kush, 2026-09-21: when a row
-// overflows, "only internal items should scroll" — with the old outer scroll
-// wrapper the whole bordered pill scrolled, and a rounded end sliding out of
-// view read as a broken, cut-off box). Border, radius and overflow-x live on
-// one element, so the track's rounded ends never move; the chips slide inside
-// and clip against the curve, and at either rest position the end chip still
-// welds into the rounded cap. Accepted cost: the clip box trims the chip's
-// 1px `-inset-px` overlap at top and bottom, so the active chip reads as its
-// own line beside the track's instead of one welded line — minor, ruled with
-// the scroll change.
+// The List is the scroll box INSIDE the track wrapper (kush, 2026-09-21: when
+// a row overflows, "only internal items should scroll" — with the old outer
+// scroll wrapper the whole bordered pill scrolled, and a rounded end sliding
+// out of view read as a broken, cut-off box). The border, radius and fill sit
+// on the wrapper and never move; the chips slide inside the List and clip
+// against its own `rounded-full` curve, which coincides with the track's.
+//
+// `-m-px p-px` is the weld gutter: it pulls the List's box 1px outward on all
+// sides so its PADDING ring sits exactly over the track's 1px border. A scroll
+// container clips at its padding box, so the chip's 1px overhang renders inside
+// that padding — on the border line — instead of being trimmed. Padding is
+// inside the scroll box, so this adds no scrollable overflow.
 //
 // `overflow-y-hidden` is written out because `overflow-x: auto` forces a
 // `visible` y to `auto` on its own, and the chip's 1px vertical overhang then
@@ -152,7 +160,7 @@ const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 // it stays under any positioned page chrome. The fix belongs here, not on the
 // one caller: raising that caller to `z-20` would leave the primitive able to
 // climb over the next piece of chrome it meets.
-const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden p-0'
+const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden rounded-full -m-px p-px'
 
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both
@@ -192,8 +200,7 @@ const SIZES = {
 
 type TabsSize = keyof typeof SIZES
 
-const chip =
-    'before:absolute before:inset-x-0 before:-inset-y-px before:rounded-full before:border before:border-transparent'
+const chip = 'before:absolute before:-inset-px before:rounded-full before:border before:border-transparent'
 
 export const Tabs = ({
     tabs,
@@ -217,50 +224,52 @@ export const Tabs = ({
             defaultValue={value === undefined ? tabs[0]?.value : undefined}
             className={fullWidth ? 'w-full' : undefined}
         >
-            <List
-                aria-label={ariaLabel}
-                className={twMerge(
-                    // gap-0 and no padding: the chips meet the track edge
-                    listBox,
-                    PILL_TRACK_INVERTED,
-                    // default: the track hugs its content, capped at the row —
-                    // past the cap the chips scroll inside it. fullWidth: the
-                    // box is the row, fixed; overflowing chips scroll the same
-                    // way, because the triggers are `shrink-0` and the List's
-                    // own `scrollWidth` sees them directly now that no wrapper
-                    // sits between.
-                    fullWidth ? 'w-full' : 'w-max max-w-full',
-                    // Content-sized tabs spread across a full-width track.
-                    //
-                    // `between` and not `around`/`evenly`: it is what
-                    // BottomNav does, and it is the only one that keeps the
-                    // FIRST and LAST chip against the track's rounded ends,
-                    // where the flush weld lives. Any other value insets
-                    // them and the end chip floats inside the pill instead
-                    // of completing its outline. (The old `min-w-max` floor
-                    // is gone: it existed so an outer scroll box could see
-                    // the overflow, and the List is its own scroll box now.)
-                    fullWidth === 'track' && 'justify-between'
-                )}
-            >
-                {tabs.map((tab) => (
-                    <Trigger
-                        key={tab.value}
-                        value={tab.value}
-                        className={twMerge(
-                            trigger,
-                            SIZES[size].row,
-                            chip,
-                            PILL_TINT_SELECTED_CHIP,
-                            triggerRing,
-                            fullWidth === 'stretch' && 'flex-1'
-                        )}
-                    >
-                        {/* above the chip, the way BottomNav lifts its icons */}
-                        <span className={twMerge('relative z-10 flex items-center', SIZES[size].gap)}>{tab.label}</span>
-                    </Trigger>
-                ))}
-            </List>
+            {/* the stationary track: border, radius and fill only. It is NOT a
+                scroll container, so the chips inside may paint over its border.
+                default: it hugs its content, capped at the row — past the cap
+                the chips scroll inside it. fullWidth: the box is the row,
+                fixed; overflowing chips scroll the same way, because the
+                triggers are `shrink-0` and the List's `scrollWidth` sees them
+                directly. */}
+            <div className={twMerge(PILL_TRACK_INVERTED, fullWidth ? 'w-full' : 'w-max max-w-full')}>
+                <List
+                    aria-label={ariaLabel}
+                    className={twMerge(
+                        // gap-0 and no padding of its own: the chips meet the
+                        // track edge. The 1px it does carry is the weld gutter.
+                        listBox,
+                        // Content-sized tabs spread across a full-width track.
+                        //
+                        // `between` and not `around`/`evenly`: it is what
+                        // BottomNav does, and it is the only one that keeps the
+                        // FIRST and LAST chip against the track's rounded ends,
+                        // where the flush weld lives. Any other value insets
+                        // them and the end chip floats inside the pill instead
+                        // of completing its outline.
+                        fullWidth === 'track' && 'justify-between'
+                    )}
+                >
+                    {tabs.map((tab) => (
+                        <Trigger
+                            key={tab.value}
+                            value={tab.value}
+                            className={twMerge(
+                                trigger,
+                                SIZES[size].row,
+                                chip,
+                                PILL_TINT_SELECTED_CHIP,
+                                triggerRing,
+                                fullWidth === 'stretch' && 'flex-1'
+                            )}
+                        >
+                            {/* above the chip, the way BottomNav lifts its icons */}
+                            <span className={twMerge('relative z-10 flex items-center', SIZES[size].gap)}>
+                                {tab.label}
+                            </span>
+                        </Trigger>
+                    ))}
+                </List>
+            </div>
             {hasPanels &&
                 tabs.map((tab) => (
                     <Content

@@ -417,9 +417,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         if (!node) setFit({ width: 0, dropped: 0 })
     }, [])
 
-    // the tablist IS the Tabs primitive's scroll box (track and scroll merged,
-    // kush 2026-09-21 — the old wrapper element is gone) — still the element
-    // whose overflow decides whether the row clips
+    // the tablist IS the Tabs primitive's scroll box — the track's border sits
+    // on a wrapper around it (so the active chip can weld over that border),
+    // but the tablist is still the element whose overflow decides the clip. Its
+    // `clientWidth` now includes the 1px weld gutter on each side; `scrollWidth`
+    // is measured against the same box, so the comparison below is unchanged.
     const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]') ?? null
 
     // Every drop re-renders this component, so the next pass runs here until
