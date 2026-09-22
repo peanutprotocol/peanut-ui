@@ -119,6 +119,27 @@ it('follows pagination using exact names', () => {
     expect(result.status).toBe(0)
     expect(result.requests[2].url).toContain('page=1')
 })
+it('accepts Capgo’s empty-page response after an exactly full bundle page', () => {
+    const terminalPage = {
+        status: 400,
+        body: { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    }
+    const rows = [goodBundle, ...Array.from({ length: 49 }, (_, i) => ({ name: `1.6.${i + 100}` }))]
+    const result = invoke('verify-bundle', [{ body: candidate }, { body: rows }, terminalPage])
+    expect(result.status).toBe(0)
+    expect(result.requests[2].url).toContain('page=1')
+    expect(invoke('current-release', [...policyResponses(), { body: rows }, terminalPage]).status).toBe(0)
+})
+it('does not treat other HTTP 400 errors as the end of bundle pagination', () => {
+    const rows = Array.from({ length: 50 }, (_, i) => ({ name: `1.6.${i + 100}` }))
+    for (const body of [
+        { error: 'cannot_get_bundle', message: "You can't access this app", moreInfo: { app_id: env.CAPGO_APP_ID } },
+        { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: { code: 'DB_ERROR' } } },
+        { error: 'some_other_error', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    ]) {
+        expect(invoke('verify-bundle', [{ body: candidate }, { body: rows }, { status: 400, body }]).status).toBe(1)
+    }
+})
 it.each([{ status: 401 }, { status: 500 }, { networkError: true }, { invalidJson: true }])(
     'fails closed on API failure: %j',
     (response) => {
