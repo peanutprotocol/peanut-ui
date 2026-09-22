@@ -7,13 +7,7 @@ import Loading from '../Global/Loading'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useLongPress } from '@/hooks/useLongPress'
 
-export type ButtonVariant =
-    | 'primary'
-    | 'secondary'
-    | 'ghost'
-    | 'transparent-light'
-    | 'transparent-dark'
-    | 'primary-soft'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 export type ButtonSize = 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
 export type ShadowSize = '3' | '4' | '6' | '8'
@@ -45,8 +39,7 @@ interface ButtonVisualProps {
  *
  * @prop variant - Visual style, named after the board rows: 'primary' is the
  *   default CTA, 'secondary' the outlined one and 'ghost' the text-only one.
- *   'primary-soft' and the two 'transparent-light|dark' are legacy — they have
- *   no board row and stay until a page rebuild drops them.
+ *   The union is the board — there is no fourth variant to reach for.
  * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
  * @prop shadowSize - Shadow depth override; '4' is already the default on
  *   primary/secondary, so passing it is a no-op kept for compatibility.
@@ -92,9 +85,6 @@ export interface ButtonLinkProps
 const buttonVariants: Record<ButtonVariant, string> = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
-    'transparent-light': 'btn-transparent-light',
-    'transparent-dark': 'btn-transparent-dark',
-    'primary-soft': 'bg-white active:bg-action-primary',
     ghost: 'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
 }
 

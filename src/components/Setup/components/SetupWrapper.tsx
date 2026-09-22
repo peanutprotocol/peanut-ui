@@ -117,7 +117,7 @@ const Navigation = memo(function Navigation({
                 {showSkipButton && (
                     <Button
                         onClick={onSkip}
-                        variant="transparent-dark"
+                        variant="ghost"
                         className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
                     >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>

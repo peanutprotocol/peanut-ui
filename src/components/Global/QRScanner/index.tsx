@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
@@ -106,21 +107,22 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
         <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
-            {/* ds icon-button recipe: 40px circle + 20px icon */}
+            {/* ds icon-button recipe: the nav circle, inverted for the camera
+                feed — white ring and glyph at rest, pink fill on press */}
             <Button
-                variant="transparent-light"
-                className="mx-auto flex size-10 items-center justify-center border-white p-0"
+                variant="ghost"
+                className={`${NAV_CIRCLE_BUTTON_CLASSES} mx-auto justify-center border-white fill-white text-white`}
                 onClick={onClose}
             >
-                <Icon name="cancel" size={20} fill="white" />
+                <Icon name="cancel" size={20} />
             </Button>
             <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
-                variant="transparent-light"
-                className="mx-auto flex size-10 items-center justify-center border-white p-0"
+                variant="ghost"
+                className={`${NAV_CIRCLE_BUTTON_CLASSES} mx-auto justify-center border-white fill-white text-white`}
                 onClick={onToggleCamera}
             >
-                <Icon name="camera-flip" fill="white" size={20} />
+                <Icon name="camera-flip" size={20} />
             </Button>
         </div>
     )

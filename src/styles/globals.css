@@ -807,15 +807,8 @@
     /* variant classes are deltas on top of .btn (the component always pairs them;
        the few raw call-sites all write "btn btn-primary"). the variant names
        are the board rows: primary = button.type.primary, secondary =
-       button.type.secondary, ghost = button.type.ghost. primary-soft and
-       transparent-light|dark are the off-board tail — shape/type restyle
-       inherited from .btn, colors kept until a rebuild migrates them. */
-    .btn-transparent-light {
-        @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
-    }
-    .btn-transparent-dark {
-        @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
-    }
+       button.type.secondary, ghost = button.type.ghost. The three rows are the
+       whole set — ghost is implemented inline in Button.tsx. */
     /* the offset shadow stays on hover. dropping it there left nothing for the
        press translate in Button.tsx to fall into, so a desktop click moved the
        button 4px with no shadow to replace. */

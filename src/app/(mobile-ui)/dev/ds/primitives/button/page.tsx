@@ -63,14 +63,7 @@ export default function ButtonPage() {
                             type: 'select',
                             prop: 'variant',
                             label: 'variant',
-                            options: [
-                                'primary',
-                                'secondary',
-                                'ghost',
-                                'primary-soft',
-                                'transparent-dark',
-                                'transparent-light',
-                            ],
+                            options: ['primary', 'secondary', 'ghost'],
                         },
                         {
                             type: 'select',
@@ -118,37 +111,24 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
-            <DocSection title="Variants" description="Production variants ordered by usage count.">
+            <DocSection title="Variants" description="The three board rows. There is no fourth variant.">
                 <DocSection.Content>
                     <div className="space-y-4">
                         {(
                             [
-                                ['primary', '59 usages', 'production'],
-                                ['secondary', '27 usages', 'production'],
-                                ['ghost', '12 usages', 'production'],
-                                ['primary-soft', '18 usages', 'production'],
-                                ['transparent-dark', '3 usages', 'limited'],
+                                ['primary', 'the default CTA'],
+                                ['secondary', 'the outlined one'],
+                                ['ghost', 'the text-only one'],
                             ] as const
-                        ).map(([variant, count, status]) => (
+                        ).map(([variant, role]) => (
                             <div key={variant}>
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
-                                    <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <span className="text-label-m text-foreground-secondary">{status}</span>
+                                    <span className="text-body-xs text-foreground-secondary">{role}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
                         ))}
-                        <div>
-                            <div className="mb-2 flex items-center gap-2">
-                                <span className="text-label-l">transparent-light</span>
-                                <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <span className="text-label-m text-foreground-secondary">limited</span>
-                            </div>
-                            <div className="rounded-sm bg-foreground-primary p-3">
-                                <Button variant="transparent-light">transparent-light</Button>
-                            </div>
-                        </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -156,8 +136,7 @@ export default function ButtonPage() {
                         label="Variants"
                         code={`<Button variant="primary">Primary</Button>
 <Button variant="secondary">Secondary</Button>
-<Button variant="ghost">Ghost</Button>
-<Button variant="primary-soft">Soft</Button>`}
+<Button variant="ghost">Ghost</Button>`}
                     />
                 </DocSection.Code>
             </DocSection>

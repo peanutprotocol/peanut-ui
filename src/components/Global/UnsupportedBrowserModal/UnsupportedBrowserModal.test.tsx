@@ -25,6 +25,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         title,
         description,
         ctas,
+        footer,
         onClose,
         hideModalCloseButton,
     }: {
@@ -32,6 +33,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         title: ReactNode
         description: ReactNode
         ctas?: Array<{ text: string; onClick?: () => void }>
+        footer?: ReactNode
         onClose: () => void
         hideModalCloseButton?: boolean
     }) =>
@@ -39,15 +41,12 @@ jest.mock('@/components/Global/ActionModal', () => ({
             <div role="dialog">
                 {title}
                 <p>{description}</p>
-                {ctas?.map(({ text, onClick }) =>
-                    onClick ? (
-                        <button key={text} onClick={onClick}>
-                            {text}
-                        </button>
-                    ) : (
-                        <p key={text}>{text}</p>
-                    )
-                )}
+                {ctas?.map(({ text, onClick }) => (
+                    <button key={text} onClick={onClick}>
+                        {text}
+                    </button>
+                ))}
+                {footer}
                 {!hideModalCloseButton && <button onClick={onClose}>Close</button>}
             </div>
         ) : null,
