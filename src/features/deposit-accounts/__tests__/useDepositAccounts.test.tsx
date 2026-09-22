@@ -513,4 +513,23 @@ describe('deposit-account cache isolation', () => {
         })
         expect(result.current.accounts.SEPA_EU?.id).toBe('account-b')
     })
+
+    // A claim on a corridor whose level the user has not done answers with the
+    // action that opens it. The hook hands the corridor to the caller, which
+    // starts that verification; nothing is recorded as a failure.
+    it('hands a verification_required claim to the caller, with its corridor', async () => {
+        resolveAccounts([])
+        claimDepositAccount.mockResolvedValue({
+            outcome: 'verification_required',
+            nextAction: { key: 'verify-corridor:bank_transfer_co', kind: 'sumsub', purpose: 'x', levelKey: 'bridge' },
+        })
+        const onVerificationRequired = jest.fn()
+
+        const { result } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('BANK_TRANSFER_CO'))
+
+        await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('BANK_TRANSFER_CO'))
+        expect(result.current.claimError).toBeUndefined()
+    })
 })

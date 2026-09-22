@@ -21,6 +21,7 @@ import {
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -174,6 +175,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const levelNameRef = useRef<string | undefined>(undefined)
     // tracks the selected target country across initiate + refresh for country-scoped Manteca actions
     const targetCountryRef = useRef<string | undefined>(undefined)
+    // the deposit corridor being verified for, across initiate + poll + refresh:
+    // the backend reads the level from it, so a refresh without it could open
+    // the wrong one
+    const corridorRef = useRef<DepositCorridor | undefined>(undefined)
     const residenceChangeCountryRef = useRef<string | null>(null)
     // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
     const initiatingRef = useRef(false)
@@ -317,6 +322,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         const pollStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({
+                    corridor: corridorRef.current,
                     regionIntent: regionIntentRef.current,
                     levelName: levelNameRef.current,
                     targetCountry: targetCountryRef.current,
@@ -353,7 +359,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             levelName?: string,
             crossRegion?: boolean,
             rawTargetCountry?: string,
-            correctSession = false
+            correctSession = false,
+            corridor?: DepositCorridor
         ) => {
             // targetCountry is only ever consumed by the BE as a Manteca geo
             // (pendingMantecaGeo stamp + action externalId suffix). Call sites
@@ -391,6 +398,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 const response = await initiateSumsubKyc({
+                    corridor,
                     regionIntent: overrideIntent ?? regionIntent,
                     levelName,
                     crossRegion,
@@ -465,6 +473,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
                 targetCountryRef.current = targetCountry
+                corridorRef.current = corridor
 
                 // cross-region: bridge-direct means no SDK needed — backend is handling
                 // rail enrollment + submission. go straight to the post-approval flow.
@@ -667,6 +676,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
 
         const response = await initiateSumsubKyc({
+            corridor: corridorRef.current,
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
             targetCountry: targetCountryRef.current,

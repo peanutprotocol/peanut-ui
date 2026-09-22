@@ -141,7 +141,7 @@ describe('tapping a corridor the gate has not cleared', () => {
 
         expect(screen.getByText(messages.depositAccounts.gate.verifyTitle)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.verifyCta }))
-        expect(onResolveGate).toHaveBeenCalledWith({ kind: 'needs-identity' })
+        expect(onResolveGate).toHaveBeenCalledWith({ kind: 'needs-identity' }, 'SEPA_EU')
     })
 
     it('offers no button where the user can only wait', () => {

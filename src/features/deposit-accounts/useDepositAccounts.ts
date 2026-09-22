@@ -118,7 +118,18 @@ export interface UseDepositAccountsResult {
  * the end of it. The corridor reads as timed out then, which is the one state
  * with a retry on it.
  */
-export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {}): UseDepositAccountsResult {
+export function useDepositAccounts({
+    enabled = true,
+    onVerificationRequired,
+}: {
+    enabled?: boolean
+    /**
+     * The claim answered that this corridor needs a verification the user has
+     * not done yet. The caller starts it; the claim screen stays where it is,
+     * so the user comes back to the same corridor.
+     */
+    onVerificationRequired?: (corridor: DepositCorridor) => void
+} = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
@@ -185,6 +196,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
             const corridor = method as DepositCorridor
             if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
+            if (result.outcome === 'verification_required') onVerificationRequired?.(corridor)
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor

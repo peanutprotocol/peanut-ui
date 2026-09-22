@@ -113,7 +113,12 @@ export function DepositAccountsListScreen({
     // the URL.
     const [query, setQuery] = useState('')
     const term = query.trim().toLowerCase()
-    const { openCountry, isCountrySupported } = useDepositCountryRouting({ accounts, claimable, isLoading })
+    const { openCountry, isCountrySupported } = useDepositCountryRouting({
+        accounts,
+        claimable,
+        unavailable,
+        isLoading,
+    })
     // The flag gates opening an account, not reading one. While it is off the
     // rows are the accounts the user already holds and nothing else: their
     // details are in payers' records and money keeps landing on them, so they

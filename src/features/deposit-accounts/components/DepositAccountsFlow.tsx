@@ -66,7 +66,8 @@ export interface DepositAccountsFlowProps {
     /** leaving the flow entirely — the list is a destination now, not a tab root */
     onExit: () => void
     onClaim: (corridor: DepositCorridor) => void
-    onResolveGate: (gate: GateState) => void
+    /** the corridor rides along: the verification it starts is that corridor's level */
+    onResolveGate: (gate: GateState, corridor: DepositCorridor) => void
     onRetry: () => void
     /**
      * The one shared support door, for the things the app cannot settle
@@ -294,7 +295,7 @@ export function DepositAccountsFlow({
                     if (withheldAction === 'support') return onContactSupport(corridor, 'blocked')
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
-                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
+                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate, corridor)
                     if (gateNotice.action === 'finish-review') return void review?.start(corridor)
                     if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
                     return onContactSupport(
