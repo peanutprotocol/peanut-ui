@@ -50,7 +50,9 @@ export function verifyBundle(bundle, env) {
     const android = required(env, 'FLOOR_ANDROID')
     const ios = required(env, 'FLOOR_IOS')
     const nativeFloor = required(env, 'NATIVE_FLOOR')
-    const sha = required(env, 'GITHUB_SHA')
+    // A manual dispatch runs the workflow file from dev but builds main in a
+    // separate checkout. Bind the artifact to that pinned main commit.
+    const sha = required(env, env.OTA_SOURCE_SHA === undefined ? 'GITHUB_SHA' : 'OTA_SOURCE_SHA')
     // Native .0 records are shared, so their one server floor must be the
     // stricter of the two compatible platform floors. OTA records are distinct
     // even when their web assets are identical and use their platform floor.
