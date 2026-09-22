@@ -17,6 +17,10 @@ import type { SumsubSdkProps } from './sumsubSdk.types'
  * (Ready/Initial/Incomplete) means the user backed out mid-flow.
  */
 const SUBMITTED_STATES = new Set(['Pending', 'TemporarilyDeclined', 'FinallyRejected', 'Approved', 'ActionCompleted'])
+const STALE_INSTANCE_ERROR = 'Aborted since another instance is in use!'
+
+const isStaleInstanceError = (error: unknown) =>
+    (error instanceof Error ? error.message : String(error)).includes(STALE_INSTANCE_ERROR)
 
 /**
  * Drives the Sumsub Cordova SDK inside the Capacitor shell.
@@ -112,7 +116,22 @@ export const SumsubNativeSdk = ({
 
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
 
-            instance.launch().then(
+            // The Cordova wrapper keeps a module-level instance lock until its
+            // launch promise settles. A backgrounded native screen can disappear
+            // without settling that promise; dismiss() does not clear the lock.
+            // Recover only this exact rejection and retry once after resetting
+            // the wrapper's JavaScript state. Other native failures still surface.
+            const launchWithStaleLockRecovery = async () => {
+                try {
+                    return await instance!.launch()
+                } catch (error) {
+                    if (cancelled || !isStaleInstanceError(error) || !sumsub.reset) throw error
+                    sumsub.reset()
+                    return instance!.launch()
+                }
+            }
+
+            void launchWithStaleLockRecovery().then(
                 (result) => {
                     if (cancelled) return
                     if (result?.success === false) {
@@ -141,9 +160,8 @@ export const SumsubNativeSdk = ({
 
         return () => {
             cancelled = true
-            // Releases the plugin's module-level single-instance lock. Skip it
-            // and the next launch rejects with "Aborted since another instance
-            // is in use!" for the rest of the app's lifetime.
+            // Close the native screen when the React flow ends. The plugin may
+            // leave its JavaScript lock behind; the next launch recovers it above.
             try {
                 instance?.dismiss()
             } catch {

@@ -20760,6 +20760,59 @@
                 }
             }
         },
+        "/users/identity/session-token": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "generation": {
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
+                                    "sessionId": {
+                                        "format": "uuid",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "sessionId",
+                                    "generation"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/identity/sessions/{sessionId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sessionId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/increase-limits": {
             "post": {
                 "responses": {
@@ -20875,6 +20928,9 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "correctSession": {
+                                        "type": "boolean"
+                                    },
                                     "key": {
                                         "description": "A capability nextAction key",
                                         "minLength": 1,
@@ -20901,6 +20957,48 @@
                                         },
                                         "levelName": {
                                             "type": "string"
+                                        },
+                                        "session": {
+                                            "properties": {
+                                                "externalActionId": {
+                                                    "type": "string"
+                                                },
+                                                "generation": {
+                                                    "type": "integer"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "isMultiLevel": {
+                                                    "type": "boolean"
+                                                },
+                                                "reasonCode": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "state": {
+                                                    "type": "string"
+                                                },
+                                                "targetCountry": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "generation",
+                                                "state",
+                                                "reasonCode",
+                                                "targetCountry",
+                                                "externalActionId",
+                                                "isMultiLevel"
+                                            ],
+                                            "type": "object"
                                         },
                                         "sumsubAccessToken": {
                                             "type": "string"

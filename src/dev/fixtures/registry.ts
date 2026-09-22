@@ -502,6 +502,7 @@ export const FIXTURES: Record<string, Fixture> = {
                             kind: 'bridge-hosted',
                             purpose: 'unlock-bridge-ach',
                             requirementKey: 'proof_of_address',
+                            currency: 'USD',
                         },
                     ],
                     restrictions: [],

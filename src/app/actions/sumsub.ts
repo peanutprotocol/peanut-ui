@@ -341,7 +341,8 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
 }
 
 export interface StartKycActionResponse {
-    token: string
+    token?: string
+    session?: VerificationActionSession
     levelName: string
     externalActionId?: string
 }
@@ -367,7 +368,7 @@ export const startKycAction = async (
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to start verification', 'start_action_failed')
         }
-        if (!responseJson.sumsubAccessToken) {
+        if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return {
@@ -375,6 +376,7 @@ export const startKycAction = async (
                 token: responseJson.sumsubAccessToken,
                 levelName: responseJson.levelName,
                 externalActionId: responseJson.externalActionId,
+                session: responseJson.session,
             },
         }
     } catch (e: unknown) {
