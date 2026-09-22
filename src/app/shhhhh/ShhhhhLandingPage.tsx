@@ -135,7 +135,7 @@ export default function ShhhhhLandingPage() {
                     <div className="min-w-0">
                         {/* The star above sits where the eyebrow starts, so the eyebrow
                             steps right of it on phones. */}
-                        <p className="font-roboto-flex-extrabold pl-12 text-body-s font-extraBlack tracking-widest uppercase md:pl-0">
+                        <p className="font-roboto-flex-extrabold pl-12 text-body-s-semibold tracking-widest uppercase md:pl-0">
                             {t('hero.wordmark')}
                         </p>
                         <h1 className="font-roboto-flex-extrabold mt-2 text-headingMedium font-extraBlack md:text-headingLarge">
@@ -183,7 +183,7 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §2 — What it does (yellow) */}
-            <section className="relative overflow-hidden bg-yellow-500 px-4 py-20 text-center text-foreground-primary md:py-28">
+            <section className="relative overflow-hidden bg-yellow-500 px-4 py-16 text-center text-foreground-primary">
                 <div className="mx-auto max-w-5xl">
                     <h2 className={`${sectionTitleClass} mx-auto max-w-3xl`}>
                         {t('whatItDoes.titleLine1')}
@@ -199,10 +199,10 @@ export default function ShhhhhLandingPage() {
                                 key={labelKey}
                                 className="flex flex-col items-center justify-center rounded-sm border-2 border-border-default bg-background-default px-3 py-8 text-center shadow-[4px_4px_0_#000] md:py-10"
                             >
-                                <div className="font-roboto-flex-extrabold text-heading-l font-extraBlack md:text-heading-xl">
+                                <div className="font-roboto-flex-extrabold text-heading-l md:text-heading-xl">
                                     {value}
                                 </div>
-                                <div className="font-roboto-flex mt-3 text-body-xs font-bold tracking-wider uppercase md:text-body-s">
+                                <div className="font-roboto-flex mt-3 text-body-xs tracking-wider uppercase md:text-body-s-semibold">
                                     {t(`whatItDoes.${labelKey}`)}
                                 </div>
                             </div>
@@ -214,7 +214,7 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §3 — Who it's for (pink) */}
-            <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-28">
+            <section className="relative overflow-hidden bg-background-brand px-4 py-16 text-foreground-primary">
                 <motion.img
                     src={Star.src}
                     alt=""
@@ -232,11 +232,11 @@ export default function ShhhhhLandingPage() {
 
             {/* §4 — Probably not for you (black): the honesty beat pairs with §3,
                 so no strip between them. */}
-            <section className="relative overflow-hidden bg-gray-950 px-4 py-20 text-white md:py-28">
+            <section className="relative overflow-hidden bg-gray-950 px-4 py-16 text-white">
                 <div className="mx-auto max-w-3xl">
                     <h2 className={sectionTitleClass}>{t('notForYou.title')}</h2>
                     <p className="font-roboto-flex mt-8 text-body-l opacity-90">{t('notForYou.body1')}</p>
-                    <p className="font-roboto-flex mt-5 border-t-2 border-white/25 pt-5 text-body-l opacity-90">
+                    <p className="font-roboto-flex mt-4 border-t-2 border-white/25 pt-4 text-body-l opacity-90">
                         {t('notForYou.body2')}
                     </p>
                 </div>
@@ -245,16 +245,16 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §5 — How to get it (white) */}
-            <section className="relative overflow-hidden bg-background-default px-4 py-20 text-foreground-primary md:py-28">
+            <section className="relative overflow-hidden bg-background-default px-4 py-16 text-foreground-primary">
                 <div className="mx-auto max-w-3xl">
                     <h2 className={sectionTitleClass}>{t('howToApply.title')}</h2>
                     <ol className="mt-8 grid gap-4 md:grid-cols-3">
                         {steps.map((step) => (
                             <li
                                 key={step}
-                                className="rounded-sm border-2 border-border-default bg-background-default px-5 py-4 shadow-[4px_4px_0_#000]"
+                                className="rounded-sm border-2 border-border-default bg-background-default px-4 py-4 shadow-[4px_4px_0_#000]"
                             >
-                                <div className="font-roboto-flex-extrabold text-heading-s font-extraBlack uppercase">
+                                <div className="font-roboto-flex-extrabold text-heading-s uppercase">
                                     {t(`howToApply.${step}Title`)}
                                 </div>
                                 <p className="font-roboto-flex mt-1 text-body-m">{t(`howToApply.${step}Body`)}</p>
@@ -267,7 +267,7 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §6 — FAQ (white) */}
-            <section className="bg-background-default px-4 py-20 text-foreground-primary md:py-28">
+            <section className="bg-background-default px-4 py-16 text-foreground-primary">
                 <div className="mx-auto max-w-3xl">
                     <h2 className={sectionTitleClass}>{t('faq.title')}</h2>
                     <div className="mt-10 border-y-2 border-border-default">
@@ -295,7 +295,7 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §7 — Ready? (black) */}
-            <section className="relative overflow-hidden bg-gray-950 px-4 py-28 text-center text-white md:py-36">
+            <section className="relative overflow-hidden bg-gray-950 px-4 py-20 text-center text-white md:py-24">
                 <motion.img
                     src={Sparkle.src}
                     alt=""
@@ -318,12 +318,12 @@ export default function ShhhhhLandingPage() {
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium lg:text-headingLarge">
                         {t('ready.title')}
                     </h2>
-                    <p className="font-roboto-flex-extrabold mt-6 text-heading-s font-extraBlack uppercase md:text-heading-m">
+                    <p className="font-roboto-flex-extrabold mt-6 text-heading-s uppercase md:text-heading-m">
                         {t('ready.subtitle')}
                     </p>
-                    {/* Primary here on purpose: purple pops on the black closer
-                        section, while the hero stays secondary — its background is
-                        the same hex as the purple fill. */}
+                    {/* Primary here on purpose: the brand fill pops on the black
+                        closer, while the hero stays secondary because its background
+                        is that same fill. */}
                     <Button
                         className="mx-auto mt-10 sm:w-auto sm:min-w-64 sm:px-10"
                         variant="primary"
