@@ -170,8 +170,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     className={twMerge(
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
                                         // pt-9 clears the Earned tag (20px tall at top-2) by 8px so it never touches the sticker.
-                                        // Under xs (390px) the sticker is 48px and the bottom gap tighter: a near-square tile.
-                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
+                                        // Under xs (390px) the sticker is 48px, which with one reserved text line each
+                                        // makes a 140px tile 138px tall.
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                         checked && 'border-2 border-border-default'
                                     )}
                                 >
@@ -188,9 +189,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         size="l"
                                         className="h-12 w-12 xs:h-16 xs:w-16"
                                     />
-                                    {/* Two fixed lines keep tile heights equal at 320px. */}
-                                    <span className="mt-1 line-clamp-2 h-8 text-label-m">{name}</span>
-                                    <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">
+                                    {/* One line reserved, two allowed: a translated name that wraps grows its
+                                        grid row (rows stretch to the tallest tile), so nothing clips and the
+                                        common one-line case keeps the tile square. */}
+                                    <span className="mt-2 line-clamp-2 min-h-4 text-label-m">{name}</span>
+                                    <span className="line-clamp-2 min-h-4 text-body-xs text-foreground-secondary">
                                         {line}
                                     </span>
                                 </button>
