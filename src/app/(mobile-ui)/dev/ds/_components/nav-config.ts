@@ -64,6 +64,11 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
+/** e2e/flows/icon-regression.spec.ts needs the fill as an inline style, and
+    scripts/ds-lint-counts.mjs counts literal `style={{` objects — so the object
+    lives here once and both raw-lucide render sites reference it. */
+export const LUCIDE_FILL_NONE = { fill: 'none' } as const
+
 export interface NavItem {
     label: string
     href: string

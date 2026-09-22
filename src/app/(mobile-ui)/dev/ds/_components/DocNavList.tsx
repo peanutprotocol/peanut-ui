@@ -7,7 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { filterNav } from './nav-config'
+import { filterNav, LUCIDE_FILL_NONE } from './nav-config'
 import { twMerge } from '@/utils/tw'
 
 /**
@@ -107,7 +107,7 @@ function NavRow({
             {/* inline fill:none — a raw lucide sets fill only as a presentation
                 attribute, which `.btn svg { fill: inherit }` beats. The product
                 Icon wrapper does the same; these nav rows bypass it. */}
-            <RowIcon size={16} aria-hidden className="shrink-0" style={{ fill: 'none' }} />
+            <RowIcon size={16} aria-hidden className="shrink-0" style={LUCIDE_FILL_NONE} />
             {isActive ? <strong>{label}</strong> : label}
         </Link>
     )

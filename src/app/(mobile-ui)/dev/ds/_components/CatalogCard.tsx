@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LUCIDE_FILL_NONE } from './nav-config'
 
 interface CatalogCardProps {
     title: string
@@ -25,7 +26,7 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
     // inline fill:none for the same reason DocNavList sets it: a raw lucide only
     // sets fill as a presentation attribute, which class-level CSS beats.
     const bubbleIcon = LucideGlyph ? (
-        <LucideGlyph size={16} aria-hidden style={{ fill: 'none' }} />
+        <LucideGlyph size={16} aria-hidden style={LUCIDE_FILL_NONE} />
     ) : (
         (icon as IconName | undefined)
     )
