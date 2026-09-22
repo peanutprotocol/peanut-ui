@@ -4,7 +4,6 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Card } from '@/components/0_Bruddle/Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PropsTable } from '../../_components/PropsTable'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { DocHeader } from '../../_components/DocHeader'
@@ -80,18 +79,36 @@ export default function TitleBlockPage() {
                 <ProductUsage.Example
                     title="Empty states — every 'nothing here yet' card"
                     path="src/components/Global/EmptyStates/EmptyState.tsx"
-                    description="The block TitleBlock was extracted from. The optional cta goes through children, so it inherits the block's gap instead of being positioned by the caller. One wrapper, many screens: history, activity, limits."
-                    code={`<Card className="items-center gap-2 px-4 py-6 text-center">
+                    description="The block TitleBlock was extracted from. The optional cta goes through children, so it inherits the block's gap instead of being positioned by the caller — and it is a primary Button, not a text link: recover-funds, rewards invites and the card gate all pass the same small primary. One wrapper, many screens: history, activity, limits."
+                    code={`// EmptyState composes the block
+<Card className="items-center gap-2 px-4 py-6 text-center">
     <IconBubble icon={icon} size="s" color={iconColor} />
     <TitleBlock title={title} description={description}>
         {cta}
     </TitleBlock>
-</Card>`}
+</Card>
+
+// what a call site passes as the cta
+<EmptyState
+    icon="trophy"
+    title={t('noInvitesYet')}
+    description={t('shareInviteLinkPrompt')}
+    cta={
+        <Button variant="primary" shadowSize="4" size="small" className="mt-2" onClick={openInviteModal}>
+            {t('shareInviteLink')}
+        </Button>
+    }
+/>`}
                 >
                     <Card className="items-center gap-2 px-4 py-6 text-center">
-                        <IconBubble icon="alert" size="s" color="gray" />
-                        <TitleBlock title="No transactions yet" description="Money you send and receive shows up here.">
-                            <LinkButton onClick={() => {}}>Add money</LinkButton>
+                        <IconBubble icon="trophy" size="s" color="gray" />
+                        <TitleBlock
+                            title="No invites yet"
+                            description="Share your invite link and earn points together."
+                        >
+                            <Button variant="primary" shadowSize="4" size="small" className="mt-2">
+                                Share invite link
+                            </Button>
                         </TitleBlock>
                     </Card>
                 </ProductUsage.Example>

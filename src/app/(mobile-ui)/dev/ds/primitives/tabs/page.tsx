@@ -361,7 +361,7 @@ export default function TabsPage() {
                         type: "'stretch' | 'track'",
                         default: '—',
                         description:
-                            'What the row does with the width it is given. Omitted, the track is content-width. stretch fills the row and grows every tab to an equal share. track fills the row but keeps the tabs at their content width, spread across it the way BottomNav spreads its slots — for rows whose tab count is decided at runtime, where a content-width track would end early and leave a ragged gap',
+                            'What the row does with the width it is given. Omitted, the track is content-width. stretch fills the row and grows every tab to an equal share — what every full-width product row uses. track fills the row but keeps the tabs at their content width, spread across it the way BottomNav spreads its slots; no product surface asks for that today',
                     },
                     {
                         name: 'value / onValueChange',
@@ -447,7 +447,7 @@ export default function TabsPage() {
                 <ProductUsage.Example
                     title="Token selector — network row"
                     path="src/components/Global/TokenSelector/TokenSelector.tsx"
-                    description="fullWidth='track': the tab count is trimmed at runtime to what fits, so the track fills the row while the chips stay content-sized. In product each chain label carries its own logo; the Icon here stands in for it."
+                    description="fullWidth='stretch': the tab count is decided at runtime — the row drops the chains that do not fit — and whatever survives shares the row equally, the same row add-money renders above. In product each chain label carries its own logo; the Icon here stands in for it."
                     code={`const networkTabs = [
     { value: 'all', label: t('tokenSelector.allNetworks') },
     ...visiblePopularChains.map((chain) => ({
@@ -461,29 +461,29 @@ export default function TabsPage() {
     value={activeNetworkTab}
     onValueChange={handleNetworkTabChange}
     tabs={networkTabs}
-    fullWidth="track"
+    fullWidth="stretch"
 />`}
                 >
                     <Tabs
                         aria-label="Select a network"
                         value={tokenNetwork}
                         onValueChange={setTokenNetwork}
-                        fullWidth="track"
+                        fullWidth="stretch"
                         tabs={[
                             { value: 'all', label: 'All' },
                             {
                                 value: '42161',
                                 label: (
                                     <>
-                                        <Icon name="arrow-up-right" size={16} /> Arbitrum
+                                        <Icon name="arrow-up-right" size={16} /> ARB
                                     </>
                                 ),
                             },
                             {
-                                value: '8453',
+                                value: '1',
                                 label: (
                                     <>
-                                        <Icon name="arrow-up-right" size={16} /> Base
+                                        <Icon name="arrow-up-right" size={16} /> ETH
                                     </>
                                 ),
                             },

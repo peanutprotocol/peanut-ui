@@ -134,7 +134,7 @@ export default function SectionPage() {
             value={activeNetworkTab}
             onValueChange={handleNetworkTabChange}
             tabs={networkTabs}
-            fullWidth="track"
+            fullWidth="stretch"
         />
     </div>
 </Section>`}
@@ -154,9 +154,9 @@ export default function SectionPage() {
                             tabs={[
                                 { value: 'all', label: 'All' },
                                 { value: 'arb', label: 'ARB' },
-                                { value: 'base', label: 'Base' },
+                                { value: 'eth', label: 'ETH' },
                             ]}
-                            fullWidth="track"
+                            fullWidth="stretch"
                         />
                     </Section>
                 </ProductUsage.Example>

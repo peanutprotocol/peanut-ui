@@ -3,7 +3,7 @@
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Icon } from '@/components/Global/Icons/Icon'
+import Badge from '@/components/Global/Badges/Badge'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
@@ -78,7 +78,7 @@ export default function ListGroupPage() {
                 <ProductUsage.Example
                     title="Home — getting started checklist"
                     path="src/components/Home/GettingStartedChecklist.tsx"
-                    description="Rows come from a map, so the group renumbers when a step drops out. Done rows are disabled and carry a Badge in the trailing slot."
+                    description="Rows come from a map, so the group renumbers when a step drops out. Done rows keep their body line and are disabled, and carry a Badge in the trailing slot — so a finished step is the same height as an open one."
                     code={`<ListGroup className="bg-background-default">
   {items.map((item) => (
     <ListItem
@@ -91,6 +91,7 @@ export default function ListGroupPage() {
       chevron={tappable}
       disabled={!tappable}
       onClick={tappable ? item.onTap : undefined}
+      className={item.done ? 'border-border-default bg-background-default' : undefined}
     />
   ))}
 </ListGroup>`}
@@ -99,13 +100,16 @@ export default function ListGroupPage() {
                         <ListItem
                             leading={<IconBubble icon="user-plus" size="xs" color="yellow" />}
                             title="Create your account"
-                            trailing={<Icon name="check" size={16} />}
+                            body="Done. Your money has a username now"
+                            trailing={<Badge status="completed" />}
+                            bodyWrap
                             disabled
+                            className="border-border-default bg-background-default"
                         />
                         <ListItem
                             leading={<IconBubble icon="arrow-down" size="xs" color="yellow" />}
                             title="Add money"
-                            body="Bank transfer, card or crypto"
+                            body="Bank transfer or crypto"
                             bodyWrap
                             chevron
                             onClick={() => {}}
