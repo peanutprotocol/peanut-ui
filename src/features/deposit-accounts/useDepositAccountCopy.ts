@@ -80,6 +80,7 @@ export function useDepositAccountCopy() {
             clabe: t('rows.clabe'),
             brCode: t('rows.brCode'),
             breBKey: t('rows.breBKey'),
+            reference: t('rows.reference'),
             bankAddress: t('rows.bankAddress'),
             beneficiaryAddress: t('rows.beneficiaryAddress'),
             accepts: t('rows.accepts'),
