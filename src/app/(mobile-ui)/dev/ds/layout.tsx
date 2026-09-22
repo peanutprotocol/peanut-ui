@@ -16,17 +16,12 @@ export default function DesignSystemLayout({ children }: { children: React.React
         // already pads by it, so a plain 100dvh would run past the fold on
         // edge-to-edge iOS/Android and drift the header out of view.
         <div className="flex h-[calc(100dvh_-_var(--spacing-safe-top))] w-full min-w-0 flex-col overflow-hidden">
-            {/* Header */}
+            {/* Header — one row: back left, title centre, Menu in the trailing
+                slot (board navigation.top.trailing, same idiom as Profile). It
+                does not scroll, so Menu stays reachable however long the page
+                is. No background of its own: it sits on the page background. */}
             <div className="shrink-0 px-4 pt-4">
-                <NavHeader title="Design System" href="/dev" />
-            </div>
-
-            {/* Mobile nav bar — a non-scrolling row, so the Menu button stays
-                reachable however long the page is */}
-            <div className="shrink-0 border-b border-border-disabled bg-background-default px-4 py-2 md:hidden">
-                <div className="flex items-center justify-end">
-                    <DocNavDrawer />
-                </div>
+                <NavHeader title="Design System" href="/dev" rightElement={<DocNavDrawer />} />
             </div>
 
             {/* Content area */}

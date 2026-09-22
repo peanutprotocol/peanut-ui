@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
+import { twMerge } from '@/utils/tw'
 import { DocNavList } from './DocNavList'
 
 /**
@@ -15,15 +17,25 @@ export function DocNavDrawer() {
 
     return (
         <>
-            <Button variant="stroke" size="small" icon="menu" className="w-auto" onClick={() => setIsOpen(true)}>
-                Menu
-            </Button>
+            {/* lives in NavHeader's trailing slot, which is a 2.5rem column:
+                the nav circle button, like Profile's edit action. Desktop has
+                the pinned sidebar, so the trigger is mobile-only. */}
+            <Button
+                variant="transparent"
+                icon="menu"
+                aria-label="Open menu"
+                className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'md:hidden')}
+                onClick={() => setIsOpen(true)}
+            />
 
             <Drawer open={isOpen} onOpenChange={setIsOpen}>
                 {/* the sheet fills the screen below the drag handle: the nav is
                     long and its own scroll is what makes it usable at 375x667 */}
                 <DrawerContent className="md:hidden" scrollAreaClassName="max-h-[85vh]">
-                    <DrawerHeader className="flex-row items-center justify-between text-left">
+                    {/* `flex` is load-bearing: DrawerHeader is a grid, and
+                        flex-row alone leaves it one — that dropped the close
+                        button onto its own row under the title. */}
+                    <DrawerHeader className="flex flex-row items-center justify-between text-left">
                         <DrawerTitle>Design System</DrawerTitle>
                         <DrawerClose asChild>
                             <Button
@@ -32,6 +44,10 @@ export function DocNavDrawer() {
                                 size="small"
                                 icon="cancel"
                                 aria-label="Close menu"
+                                // btn-square's w-10 is a component class, so the
+                                // base w-full utility beats it and the button
+                                // spans the row. The utility has to be passed.
+                                className="w-10"
                             />
                         </DrawerClose>
                     </DrawerHeader>
