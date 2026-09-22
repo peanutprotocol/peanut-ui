@@ -20221,6 +20221,12 @@
                                                         "endorsement_required"
                                                     ],
                                                     "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "verification_required"
+                                                    ],
+                                                    "type": "string"
                                                 }
                                             ]
                                         },
@@ -20254,6 +20260,83 @@
                                         },
                                         "verificationUrl": {
                                             "type": "string"
+                                        },
+                                        "nextAction": {
+                                            "properties": {
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "effectiveDate": {
+                                                    "type": "string"
+                                                },
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "kind": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "sumsub"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "accept-tos"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "wait"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "contact-support"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "provide-email"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "bridge-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "rain-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "levelKey": {
+                                                    "type": "string"
+                                                },
+                                                "purpose": {
+                                                    "type": "string"
+                                                },
+                                                "requirementKey": {
+                                                    "type": "string"
+                                                },
+                                                "tosUrl": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "kind",
+                                                "purpose"
+                                            ],
+                                            "type": "object"
                                         }
                                     },
                                     "required": [
