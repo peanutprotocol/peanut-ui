@@ -141,11 +141,8 @@ export const CreateRequestLinkView = () => {
 
                 <CreateRequestLinkCta
                     requestId={requestId}
-                    generatedLink={generatedLink}
                     isCreatingLink={isCreatingLink}
                     isUpdatingRequest={isUpdatingRequest}
-                    requestAmount={requestAmount}
-                    currency={currency}
                     onGenerate={generateLink}
                 />
 
