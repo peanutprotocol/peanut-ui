@@ -24,7 +24,7 @@ export default function BaseInputPage() {
             <Playground
                 name="BaseInput"
                 importPath={`import BaseInput from '@/components/0_Bruddle/BaseInput'`}
-                defaults={{ variant: 'md', placeholder: 'Enter text...' }}
+                defaults={{ size: 'md', placeholder: 'Enter text...' }}
                 controls={[
                     { type: 'select', prop: 'size', label: 'size', options: ['sm', 'md'] },
                     { type: 'text', prop: 'placeholder', label: 'placeholder', placeholder: 'Placeholder text' },
