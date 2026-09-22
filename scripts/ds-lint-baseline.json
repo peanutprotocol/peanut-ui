@@ -3,7 +3,7 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1161,
+    "dsTextScale": 1181,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 35,
@@ -13,13 +13,13 @@
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
-    "fontWeightOnTypeToken": 31,
-    "offScaleSpacing": 81,
+    "fontWeightOnTypeToken": 30,
+    "offScaleSpacing": 85,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 22,
+    "hoverNoActiveFiles": 20,
     "arbitraryFontSize": 20,
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
@@ -93,6 +93,11 @@
             "date": "2026-09-21",
             "metrics": ["inlineStyle 23 -> 22"],
             "reason": "the whole-bar squash is reverted (kush ruling, TASK-22817) — press feedback lives on the tapped icon only, so the measured transform-origin inline style is gone"
+        },
+        {
+            "date": "2026-09-22",
+            "metrics": ["offScaleSpacing 81 -> 85"],
+            "reason": "tabs chip weld: the 1px -m-px/p-px gutter on the tab list is border-overlay geometry (must equal the 1px track border so the active chip can paint over it, bottom-nav model), not box rhythm — the same category the counter already exempts for inset/top/left offsets. 2 sites in Tabs.tsx + their 2 test assertions."
         }
     ]
 }
