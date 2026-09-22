@@ -11835,6 +11835,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/identity/session-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        generation: number;
+                        /** Format: uuid */
+                        sessionId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/increase-limits": {
         parameters: {
             query?: never;
@@ -12002,6 +12078,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        correctSession?: boolean;
                         /** @description A capability nextAction key */
                         key: string;
                     };
@@ -12017,6 +12094,15 @@ export interface paths {
                         "application/json": {
                             externalActionId?: string;
                             levelName?: string;
+                            session?: {
+                                externalActionId: string;
+                                generation: number;
+                                id: string;
+                                isMultiLevel: boolean;
+                                reasonCode: string | null;
+                                state: string;
+                                targetCountry: string;
+                            };
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };
