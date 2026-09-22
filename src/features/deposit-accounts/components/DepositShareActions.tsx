@@ -32,6 +32,8 @@ export function DepositShareActions({
             introPooled: t('share.textIntroPooled', { user: userName, currency: rail.currency }),
             outro: t('share.textOutro'),
             payerLine: { 'business-only': t('share.payerBusinessOnly'), unknown: t('share.payerUnconfirmed') },
+            referenceLine: t('share.referenceRequired'),
+            eurOwnNameLine: t('share.eurOwnName'),
         },
         rowLabels,
         railLabels

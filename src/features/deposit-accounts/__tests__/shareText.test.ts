@@ -24,6 +24,8 @@ const copy = {
     introPooled: 'Bank details to pay Ana in GBP:',
     outro: 'Sent from Peanut · peanut.me',
     payerLine: { 'business-only': 'Pay from a business account.', unknown: 'A transfer may be returned.' },
+    referenceLine: 'Add the reference to every transfer.',
+    eurOwnNameLine: 'A euro transfer from another name can be returned.',
 }
 
 const text = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}) =>
@@ -74,6 +76,43 @@ describe('the shared text is the account fields and the footer', () => {
         expect(out).not.toContain('From another person')
         expect(out).not.toContain('own account')
         expect(out).not.toContain('Minimum deposit')
+    })
+
+    it('carries the reference, and says it is required, where the account has one', () => {
+        const out = text('business-only', undefined, {
+            railId: 'bridge.bank_transfer_co',
+            instructions: {
+                accountHolderName: 'Ana Pérez',
+                breBKey: '@DEMO123',
+                depositMessage: 'PEANUT-7F3A',
+                paymentRails: [],
+            },
+        })
+        expect(out).toContain('Reference: PEANUT-7F3A')
+        expect(out.split('Add the reference to every transfer.')).toHaveLength(2)
+        expect(out.indexOf('PEANUT-7F3A')).toBeLessThan(out.indexOf('Add the reference'))
+    })
+
+    it('says nothing about a reference where there is none', () => {
+        expect(text('anyone')).not.toContain('Reference')
+        expect(text('anyone')).not.toContain('Add the reference')
+    })
+
+    /**
+     * EUR is offered to anyone, and the one third-party SEPA transfer seen so
+     * far was returned as a third-party payment. Until a third-party euro
+     * credit is proven, the payer is told what keeps their transfer safe.
+     */
+    it('carries the own-name caveat on the euro account, and on no other', () => {
+        const eur = text('anyone', undefined, {
+            railId: 'bridge.sepa_eu',
+            currency: 'EUR',
+            instructions: { accountHolderName: 'Ana Pérez', iban: 'DE89', paymentRails: ['sepa'] },
+        })
+        expect(eur.split('A euro transfer from another name can be returned.')).toHaveLength(2)
+        expect(eur.indexOf('DE89')).toBeLessThan(eur.indexOf('A euro transfer'))
+        expect(eur.indexOf('A euro transfer')).toBeLessThan(eur.indexOf('Sent from Peanut'))
+        expect(text('anyone')).not.toContain('A euro transfer')
     })
 
     it('names a pooled account with the payer intro, never the possessive', () => {

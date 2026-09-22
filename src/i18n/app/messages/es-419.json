@@ -4057,6 +4057,7 @@
             "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
             "conditionNoReference": "Sin referencia ni concepto que recordar.",
+            "conditionReference": "Cada transferencia debe incluir la referencia que aparece con tus datos; sin ella no se puede asignar a tu cuenta.",
             "cta": "Abrir cuenta en {currency}",
             "errorTitle": "No pudimos abrir la cuenta",
             "faqMinimum": "El depósito mínimo es {min}.",
@@ -4077,6 +4078,8 @@
             "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y escribe a soporte para reemplazarlos.",
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
+            "referenceRequired": "Cada transferencia debe incluir esta referencia. Sin ella el dinero no se puede asignar a tu cuenta.",
+            "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si puedes, deposita desde una cuenta a tu nombre.",
             "whoCanPay": "Quién puede pagarte",
             "residenceCta": "Actualiza tu residencia",
             "qrPayCta": "Pagar un código QR"
@@ -4091,6 +4094,8 @@
             "sheetTitleOwn": "Mis datos bancarios",
             "sheetTitlePooled": "Datos bancarios para pagarle a {user}",
             "payerBusinessOnly": "Paga desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
+            "referenceRequired": "Incluye la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
+            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si puedes, paga desde una cuenta a tu nombre.",
             "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consúltame antes de enviar."
         },
         "rows": {
@@ -4119,6 +4124,7 @@
                 "bre_b": "Bre-B"
             },
             "brCode": "Código Pix",
+            "reference": "Referencia",
             "breBKey": "Llave Bre-B"
         },
         "corridors": {

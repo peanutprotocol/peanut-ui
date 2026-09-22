@@ -964,6 +964,38 @@ describe('the hub carries the accounts, crypto and the countries together', () =
     })
 
     /**
+     * The flag is the rollback lever, and turning it off must not hide bank
+     * details a user has already handed out: money keeps landing on them, and
+     * the holder has to be able to read them — and the revoked state. Only
+     * opening more goes dark: the corridors on offer, the counter, the cap note.
+     */
+    it('keeps the accounts a user already holds readable while standing accounts are dark', () => {
+        depositAccountsEnabled = false
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            corridors: ['SEPA_EU', 'ACH_US'],
+            accounts: {
+                ...NONE,
+                SEPA_EU: heldAccount('SEPA_EU'),
+                ACH_US: { ...heldAccount('ACH_US'), status: 'revoked' },
+            },
+            claimable: { FASTER_PAYMENTS_GB: offered('FASTER_PAYMENTS_GB') },
+            accountLimit: 2,
+            onOpen,
+        })
+
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeReady)).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
+        // a corridor on offer is a claim, and claims are what the flag gates
+        expect(rowOf(container, 'FASTER_PAYMENTS_GB')).not.toBeInTheDocument()
+        expect(screen.queryByText(/of 2 used/)).not.toBeInTheDocument()
+
+        fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
+    })
+
+    /**
      * Standing accounts are dark in production, so this is the order most users
      * see. Crypto sits below the bank options, not above them: the hub must not
      * lead with crypto.
