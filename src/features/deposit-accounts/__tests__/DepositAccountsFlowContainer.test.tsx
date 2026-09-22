@@ -33,8 +33,9 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { fu
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSupportWithMessage: jest.fn() }) }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => [] }))
+const mockVerifyCorridor = jest.fn()
 jest.mock('../useDepositGateRemediation', () => ({
-    useDepositGateRemediation: () => ({ resolveGate: jest.fn(), modals: null }),
+    useDepositGateRemediation: () => ({ resolveGate: jest.fn(), verifyCorridor: mockVerifyCorridor, modals: null }),
 }))
 jest.mock('../useEndorsementReview', () => ({ useEndorsementReview: () => undefined }))
 // the flow itself has its own tests; here only what the container hands it matters
@@ -67,7 +68,8 @@ describe('DepositAccountsFlowContainer while the rollout flag is off', () => {
         render(<DepositAccountsFlowContainer onExit={() => {}} />)
 
         // the read is not switched off by the flag
-        expect(mockUseDepositAccounts).toHaveBeenCalledWith()
+        // a claim that needs a verification is handed to the one corridor path
+        expect(mockUseDepositAccounts).toHaveBeenCalledWith({ onVerificationRequired: mockVerifyCorridor })
         expect(screen.getByTestId('flow')).toHaveTextContent('SEPA_EU')
         expect(screen.getByTestId('flow')).toHaveAttribute('data-claims-enabled', 'false')
     })

@@ -44,6 +44,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
     // state stay readable when the flag is off, which is also the rollback
     // lever. Only the claim step and the corridors on offer go dark.
     const claimsEnabled = useDepositAccountsEnabled()
+    const { resolveGate, verifyCorridor, modals } = useDepositGateRemediation()
     const {
         corridors,
         accounts,
@@ -58,11 +59,10 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
         claimError,
         claim,
         refetch,
-    } = useDepositAccounts()
+    } = useDepositAccounts({ onVerificationRequired: verifyCorridor })
     const { user } = useAuth()
     const router = useRouter()
     const residenceIso2s = useResidenceIso2s()
-    const { resolveGate, modals } = useDepositGateRemediation()
     const { openSupportWithMessage } = useModalsContext()
     const review = useEndorsementReview()
 

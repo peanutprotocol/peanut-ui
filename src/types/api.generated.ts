@@ -11447,13 +11447,23 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
-                            outcome: "opened" | "endorsement_pending" | "endorsement_required";
+                            outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
                                 issues: string[];
                                 missing: string[];
                                 pending: string[];
                             };
                             verificationUrl?: string;
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                levelKey?: string;
+                                purpose: string;
+                                requirementKey?: string;
+                                tosUrl?: string;
+                            };
                         };
                     };
                 };

@@ -264,6 +264,31 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
     })
 })
 
+describe('useSumsubKycFlow — corridor', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockWs.handler = undefined
+    })
+
+    // The backend reads the level from the corridor, so every call that can
+    // mint or refresh a token for that run has to name it — a poll without it
+    // would resolve the level from whatever intent was stored before.
+    it('names the corridor on the initiate request', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc(undefined, undefined, true, undefined, false, 'BANK_TRANSFER_CO')
+        })
+
+        expect(mockInitiate).toHaveBeenCalledWith(
+            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true })
+        )
+    })
+})
+
 describe('useSumsubKycFlow — terminal-error exits clear the user-initiated guard', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
