@@ -36,7 +36,7 @@ export const BadgeStatusItem = ({ position = 'top', entry }: { position?: CardPo
                         <BadgeImage
                             src={getBadgeIcon(entry.code, entry.iconUrl)}
                             alt={t('iconAlt', { name: displayName })}
-                            className="size-10 object-contain"
+                            className="size-8 object-contain"
                             width={32}
                             height={32}
                         />

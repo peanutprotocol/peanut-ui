@@ -15,7 +15,12 @@ import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
-import { getBankRailCountryFromAccount, getCountryFromAccount, getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import {
+    getBankRailCountryFromAccount,
+    getBridgeRailIdFromAccount,
+    getCountryFromAccount,
+    getOfframpConfigFromAccount,
+} from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
@@ -97,18 +102,22 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [_offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
+    const destinationAccount =
+        localBankDetails ?? (selectedCountry ? { country: selectedCountry.iso2 ?? selectedCountry.id } : undefined)
     const bankRailCountry = useMemo(
-        () =>
-            localBankDetails
-                ? getBankRailCountryFromAccount(localBankDetails)
-                : selectedCountry
-                  ? getBankRailCountryFromAccount({ country: selectedCountry.iso2 ?? selectedCountry.id })
-                  : undefined,
-        [localBankDetails, selectedCountry]
+        () => (destinationAccount ? getBankRailCountryFromAccount(destinationAccount) : undefined),
+        [destinationAccount]
+    )
+    const bridgeRailId = useMemo(
+        () => (destinationAccount ? getBridgeRailIdFromAccount(destinationAccount) : undefined),
+        [destinationAccount]
     )
     const gate = useMemo(
-        () => gateFor('deposit', { channel: 'bank', country: bankRailCountry }),
-        [bankRailCountry, gateFor]
+        // Claiming a send link to a bank creates an OFFRAMP. A deposit gate can
+        // disagree with withdraw on the same rail and another provider's ready
+        // rail must not authorize a Bridge call.
+        () => gateFor('withdraw', { railId: bridgeRailId ?? 'bridge.unsupported_bank_rail' }),
+        [bridgeRailId, gateFor]
     )
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)

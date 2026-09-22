@@ -63,14 +63,7 @@ export default function ButtonPage() {
                             type: 'select',
                             prop: 'variant',
                             label: 'variant',
-                            options: [
-                                'primary',
-                                'stroke',
-                                'primary-soft',
-                                'transparent',
-                                'transparent-dark',
-                                'transparent-light',
-                            ],
+                            options: ['primary', 'secondary', 'ghost'],
                         },
                         {
                             type: 'select',
@@ -118,46 +111,32 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
-            <DocSection title="Variants" description="Production variants ordered by usage count.">
+            <DocSection title="Variants" description="The three board rows. There is no fourth variant.">
                 <DocSection.Content>
                     <div className="space-y-4">
                         {(
                             [
-                                ['primary', '59 usages', 'production'],
-                                ['stroke', '27 usages', 'production'],
-                                ['primary-soft', '18 usages', 'production'],
-                                ['transparent', '12 usages', 'production'],
-                                ['transparent-dark', '3 usages', 'limited'],
+                                ['primary', 'the default CTA'],
+                                ['secondary', 'the outlined one'],
+                                ['ghost', 'the text-only one'],
                             ] as const
-                        ).map(([variant, count, status]) => (
+                        ).map(([variant, role]) => (
                             <div key={variant}>
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
-                                    <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <span className="text-label-m text-foreground-secondary">{status}</span>
+                                    <span className="text-body-xs text-foreground-secondary">{role}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
                         ))}
-                        <div>
-                            <div className="mb-2 flex items-center gap-2">
-                                <span className="text-label-l">transparent-light</span>
-                                <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <span className="text-label-m text-foreground-secondary">limited</span>
-                            </div>
-                            <div className="rounded-sm bg-foreground-primary p-3">
-                                <Button variant="transparent-light">transparent-light</Button>
-                            </div>
-                        </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Variants"
                         code={`<Button variant="primary">Primary</Button>
-<Button variant="stroke">Stroke</Button>
-<Button variant="primary-soft">Soft</Button>
-<Button variant="transparent">Transparent</Button>`}
+<Button variant="secondary">Secondary</Button>
+<Button variant="ghost">Ghost</Button>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -166,23 +145,23 @@ export default function ButtonPage() {
                 <DocSection.Content>
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="text-center">
-                            <Button variant="stroke">default</Button>
+                            <Button variant="secondary">default</Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">medium · 44px</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="small">
+                            <Button variant="secondary" size="small">
                                 small
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">40px (44px hit area)</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="medium">
+                            <Button variant="secondary" size="medium">
                                 medium
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">44px (= default)</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="large">
+                            <Button variant="secondary" size="large">
                                 large
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">48px</p>
@@ -214,7 +193,7 @@ export default function ButtonPage() {
                         <Button href="/home" className="w-full">
                             Internal route (next/link)
                         </Button>
-                        <Button variant="stroke" href="https://peanut.me" external className="w-full">
+                        <Button variant="secondary" href="https://peanut.me" external className="w-full">
                             External (new tab, plain anchor)
                         </Button>
                         <Button href="/home" disabled className="w-full">
@@ -232,12 +211,12 @@ export default function ButtonPage() {
 <Button href="/home">Go home</Button>
 
 {/* external — plain <a>, new tab */}
-<Button variant="stroke" href="https://peanut.me" external>
+<Button variant="secondary" href="https://peanut.me" external>
   Visit site
 </Button>
 
 {/* download — plain <a> with the attribute */}
-<Button variant="stroke" href="/receipt/1/pdf" download icon="download">
+<Button variant="secondary" href="/receipt/1/pdf" download icon="download">
   Download PDF
 </Button>`}
                     />
@@ -311,7 +290,7 @@ export default function ButtonPage() {
                     </DesignNote>
                     <DesignNote type="info">
                         Primary CTA pattern: variant=&quot;primary&quot; className=&quot;w-full&quot; — no size prop, no
-                        shadowSize (the 4px shadow is built into purple/stroke).
+                        shadowSize (the 4px shadow is built into purple/secondary).
                     </DesignNote>
                 </div>
             </DocSection>
@@ -327,7 +306,7 @@ export default function ButtonPage() {
                         </div>
                         <div>
                             <p className="text-label-l">Secondary CTA</p>
-                            <Button variant="stroke" className="mt-2 w-full">
+                            <Button variant="secondary" className="mt-2 w-full">
                                 Go Back
                             </Button>
                         </div>
@@ -337,7 +316,7 @@ export default function ButtonPage() {
                                 <Button variant="primary" icon="share">
                                     Share
                                 </Button>
-                                <Button variant="stroke" icon="copy">
+                                <Button variant="secondary" icon="copy">
                                     Copy
                                 </Button>
                             </div>
@@ -365,7 +344,7 @@ export default function ButtonPage() {
                     />
                     <CodeBlock
                         label="Secondary CTA"
-                        code={`<Button variant="stroke" className="w-full">
+                        code={`<Button variant="secondary" className="w-full">
   Go Back
 </Button>`}
                     />

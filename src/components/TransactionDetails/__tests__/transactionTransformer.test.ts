@@ -897,6 +897,28 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    describe('payment reference on a bank withdrawal', () => {
+        // The API key is `extraData.paymentReference` (peanut-api-ts
+        // `src/db/history.ts`). An earlier attempt read `payoutReference` and
+        // therefore rendered nothing — this test pins the real key.
+        const withdraw = (paymentReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', paymentReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(withdraw('  hello world ').extraDataForDrawer?.paymentReference).toBe('hello world')
+        })
+
+        it('is absent when the API sends none or blank — an older API, or a rail that takes none', () => {
+            expect(withdraw().extraDataForDrawer?.paymentReference).toBeUndefined()
+            expect(withdraw('   ').extraDataForDrawer?.paymentReference).toBeUndefined()
+        })
+    })
+
     describe('Bridge wire status (QA ledger AL6: deposit stuck on "Processing")', () => {
         const bridgeDeposit = (status: string, overrides: Partial<HistoryEntry> = {}) =>
             mapTransactionDataForDrawer(

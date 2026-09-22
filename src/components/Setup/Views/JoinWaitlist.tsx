@@ -152,7 +152,7 @@ const JoinWaitlist = () => {
             <Divider text={tCommon('or')} textClassname="text-body-s text-foreground-secondary" />
 
             <Button
-                variant="stroke"
+                variant="secondary"
                 onClick={() => {
                     handleNext()
                 }}

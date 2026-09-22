@@ -111,6 +111,21 @@ export const getBankRailCountryFromAccount = (account: {
     return railJurisdictionForBank(account.details?.countryCode ?? account.country)
 }
 
+/** The exact Bridge capability rail used for a bank-account destination. */
+export const getBridgeRailIdFromAccount = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+    details?: { countryCode?: string | null } | null
+}): string | undefined => {
+    const country = getBankRailCountryFromAccount(account)
+    if (country === 'US') return 'bridge.ach_us'
+    if (country === 'GB') return 'bridge.faster_payments_gb'
+    if (country === 'MX') return 'bridge.spei_mx'
+    if (country === 'CO') return 'bridge.bank_transfer_co'
+    if (country === 'EU') return 'bridge.sepa_eu'
+    return undefined
+}
+
 /**
  * Derive the offramp destination currency + payment rail from the bank
  * account's actual `type`, falling back to country only when the type is

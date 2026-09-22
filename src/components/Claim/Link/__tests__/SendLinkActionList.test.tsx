@@ -157,6 +157,7 @@ describe('SendLinkActionList — who gets the alternate rails', () => {
     test('an unrecognised recipient keeps every rail, so a bank claim needs no account', () => {
         renderList()
 
+        expect(screen.getByRole('button', { name: /create peanut account/i })).toBeInTheDocument()
         expect(screen.getByText('Bank transfer')).toBeInTheDocument()
         expect(screen.getByText('Crypto')).toBeInTheDocument()
     })

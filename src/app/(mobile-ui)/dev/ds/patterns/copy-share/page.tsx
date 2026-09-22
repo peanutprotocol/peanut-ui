@@ -45,7 +45,7 @@ export default function CopySharePage() {
                             {
                                 name: 'variant',
                                 type: 'ButtonVariant',
-                                default: "'stroke'",
+                                default: "'secondary'",
                                 description: 'Copy button variant',
                             },
                             {

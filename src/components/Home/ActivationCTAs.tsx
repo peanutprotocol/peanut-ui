@@ -536,7 +536,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 {t('spendChooser.payWithCard')}
                             </Button>
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full justify-center"
                                 onClick={() => {
                                     posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {

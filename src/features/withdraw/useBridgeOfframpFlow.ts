@@ -46,8 +46,8 @@ import {
     bankReferenceDestinationFields,
     bankReferenceProblem,
     bankReferenceSpecForRail,
-    payoutSenderDefaultReferenceNoteForRail,
-    payoutSenderNoteForRail,
+    payoutDefaultReferenceNoteForRail,
+    payoutNoteForRail,
 } from './bank-reference'
 
 /**
@@ -106,14 +106,14 @@ export function useBridgeOfframpFlow() {
         [bankAccount]
     )
     const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
-    const payoutSenderNoteKey = useMemo(
-        () => (bankAccount ? payoutSenderNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
+    const payoutNoteKey = useMemo(
+        () => (bankAccount ? payoutNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
         [bankAccount]
     )
-    const payoutSenderDefaultReferenceNoteKey = useMemo(
+    const payoutDefaultReferenceNoteKey = useMemo(
         () =>
             bankAccount
-                ? payoutSenderDefaultReferenceNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail)
+                ? payoutDefaultReferenceNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail)
                 : null,
         [bankAccount]
     )
@@ -522,8 +522,8 @@ export function useBridgeOfframpFlow() {
         reference,
         setReference,
         referenceSpec,
-        payoutSenderNoteKey,
-        payoutSenderDefaultReferenceNoteKey,
+        payoutNoteKey,
+        payoutDefaultReferenceNoteKey,
         referenceProblem,
         pointsData,
         onBack,

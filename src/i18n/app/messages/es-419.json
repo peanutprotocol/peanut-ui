@@ -682,7 +682,7 @@
         "needHigherLimits": "¿Necesitas límites más altos? Contacta soporte.",
         "warningCard": {
             "blockingTitle": "Este monto supera tu límite.",
-            "warningTitle": "Estás cerca de tu límite.",
+            "attentionTitle": "Estás cerca de tu límite.",
             "addUpTo": "Puedes agregar hasta {amount}",
             "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción",
             "withdrawUpTo": "Puedes retirar hasta {amount}",
@@ -1059,6 +1059,11 @@
         "linkCreatedToast": "¡Enlace creado con éxito!",
         "linkCreatedAndCopiedToast": "¡Enlace creado y copiado al portapapeles!",
         "requestUpdatedToast": "¡Solicitud actualizada con éxito!",
+        "created": {
+            "title": "Solicitud creada",
+            "description": "Tu enlace está listo para compartir.",
+            "createAnother": "Crear otra solicitud"
+        },
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "createFailed": "No se pudo crear el enlace",
@@ -1214,7 +1219,8 @@
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Envía el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
             "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse.",
-            "otherWays": "Ver otras formas de pagar"
+            "otherWays": "Ver otras formas de pagar",
+            "chooseCurrency": "Elige una moneda"
         },
         "requestAsksFor": "Se piden {amount} {currency}",
         "requestAsksForDollars": "${amount} en dólares, fijado al crear la solicitud",
@@ -1275,6 +1281,7 @@
         },
         "actions": {
             "claimOn": "Reclamar en",
+            "createAccount": "Crear una cuenta de Peanut",
             "continueWith": "Continuar con",
             "devconnectApp": "app de Devconnect",
             "devconnectLogoAlt": "Logo de Devconnect",
@@ -1948,8 +1955,9 @@
             "referenceInvalidCharsSepa": "Solo letras a-z, números, espacios y & - . /",
             "referenceInvalidCharsAch": "Solo letras a-z, números y espacios.",
             "referenceInvalidCharsSpei": "Solo letras a-z, números y espacios.",
-            "payoutSenderSepa": "El pago llega de nuestro socio de pagos, no a tu nombre.",
-            "payoutSenderSepaDefaultReference": "Tu nombre va en la referencia del pago.",
+            "payoutReferenceReplacesDefaultSepa": "La referencia que escribas reemplaza el texto que enviamos por defecto con el pago.",
+            "payoutDefaultReferenceCarriesNameSepa": "Ese texto por defecto lleva tu nombre.",
+            "referenceFormattingMayChange": "Los espacios y las mayúsculas pueden cambiar en el camino.",
             "payoutSenderAch": "El pago llega de nuestro socio de pagos, no a tu nombre. Tu banco muestra Peanut.",
             "payoutSenderSpei": "El pago llega del banco local de nuestro socio de pagos, no a tu nombre.",
             "payoutSenderWire": "El pago llega de Peanut, no a tu nombre.",
@@ -2085,9 +2093,8 @@
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
-            "reference": "Referencia",
+            "reference": "Referencia del recibo",
             "issuedOn": "Fecha de emisión",
-            "footer": "Comprobante de Peanut · peanut.me",
             "pdf": {
                 "title": "Comprobante de la transacción",
                 "issuedBy": "Emitido por Squirrel Labs Ltd",
@@ -2198,6 +2205,7 @@
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "senderReference": "Referencia del remitente",
+            "paymentReference": "Referencia que enviamos",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "attachment": "Adjunto",
@@ -4012,12 +4020,12 @@
         "title": "Tus datos bancarios",
         "list": {
             "addTitle": "Agregar dinero",
-            "addHeading": "¿De dónde viene el dinero?",
+            "addHeading": "¿Cómo quieres agregar dinero?",
             "searchPlaceholder": "Busca país, moneda o cuenta",
             "noMatchTitle": "Sin resultados para «{query}»",
             "clearSearch": "Borrar búsqueda",
             "countriesTitle": "Formas de enviarte dinero",
-            "countriesPitch": "No necesitas una cuenta. Elige el país de tu banco.",
+            "countriesPitch": "Elige el país de tu banco.",
             "sectionTitle": "Tus números de cuenta",
             "accountsPitch": "Datos bancarios a tu nombre. Compártelos una vez y recibe pagos directo en Peanut.",
             "badgeReady": "Lista",
@@ -4096,6 +4104,7 @@
             "accepts": "Acepta",
             "beneficiaryAddress": "Dirección del destinatario",
             "rails": {
+                "ach": "ACH",
                 "ach_push": "ACH",
                 "fednow": "FedNow",
                 "wire": "Transferencia internacional",

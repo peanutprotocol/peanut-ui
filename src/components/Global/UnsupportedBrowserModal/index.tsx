@@ -50,6 +50,8 @@ const UnsupportedBrowserModalContent = ({
         }
     }
 
+    // the paste hint reads after the copy cta, so it is a footer note. it used
+    // to be a second cta with no onClick — a button that did nothing.
     return (
         <ActionModal
             visible={true}
@@ -60,6 +62,11 @@ const UnsupportedBrowserModalContent = ({
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={modalCopy.kind === 'browser' ? copyLinkActions : undefined}
+            footer={
+                modalCopy.kind === 'browser' ? (
+                    <p className="text-body-xs text-foreground-secondary">{t('unsupportedBrowserModal.pasteHint')}</p>
+                ) : undefined
+            }
             hideModalCloseButton={modalCopy.kind === 'browser' && !allowClose}
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"

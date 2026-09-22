@@ -16,7 +16,7 @@ export function DocSidebar() {
     return (
         <>
             <Button
-                variant="stroke"
+                variant="secondary"
                 size="small"
                 icon="docs"
                 className="w-auto md:hidden"
@@ -30,13 +30,7 @@ export function DocSidebar() {
                     <DrawerHeader className="flex-row items-center justify-between text-left">
                         <DrawerTitle>Design System</DrawerTitle>
                         <DrawerClose asChild>
-                            <Button
-                                variant="transparent"
-                                shape="square"
-                                size="small"
-                                icon="cancel"
-                                aria-label="Close menu"
-                            />
+                            <Button variant="ghost" shape="square" size="small" icon="cancel" aria-label="Close menu" />
                         </DrawerClose>
                     </DrawerHeader>
                     <nav className="pb-6">

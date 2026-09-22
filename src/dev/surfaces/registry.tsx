@@ -74,6 +74,8 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
+import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -618,8 +620,8 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <LimitsWarningCard
-                    type="warning"
-                    titleKind="warning"
+                    type="attention"
+                    titleKind="attention"
                     title="Transaction limit"
                     items={[{ text: 'You can pay up to $500 today.' }]}
                 />
@@ -749,6 +751,52 @@ export const SURFACES: Record<string, Surface> = {
     '86-f-choice-not-found': {
         ...SURFACE_META['86-f-choice-not-found'],
         render: () => <NotFoundScreen />,
+    },
+    '87-f-request-created': {
+        ...SURFACE_META['87-f-request-created'],
+        render: () => (
+            <AppPageSurface>
+                <RequestCreatedView
+                    requestId="fixture-request"
+                    generatedLink="https://peanut.me/request/pay?id=fixture-request"
+                    requestAmount="25"
+                    currency="EUR"
+                    bankPayable={false}
+                    onDone={noop}
+                    onCreateAnother={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
+    '88-f-request-bank-currency': {
+        ...SURFACE_META['88-f-request-bank-currency'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <BankTransferChooserDrawer
+                    requestId="fixture-request"
+                    rails={[
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.sepa_eu',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '25.00', currency: 'EUR', isEstimate: false },
+                        },
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.faster_payments_gb',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '21.50', currency: 'GBP', isEstimate: true },
+                        },
+                    ]}
+                    recipientUsername="ana"
+                    recipientAvatarKey="basic.frog"
+                    requestMessage="Dinner in Berlin"
+                    requestAmount="25.00 EUR"
+                    bankRowProps={{ bankPayable: true, remainingUsd: 27 }}
+                    onUnavailable={noop}
+                />
+            </div>
+        ),
     },
     '70-d-activationctas-outbound': {
         // the spend chooser opens on the card's CTA tap — the shot spec (or a

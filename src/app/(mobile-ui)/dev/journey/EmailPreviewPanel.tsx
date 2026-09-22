@@ -5,7 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { decisionFlagFor, emailPreviewUrl } from './emailReview'
 import StuckBadge from './StuckBadge'
 import type { EmailRenderRef } from './journeyTypes'
@@ -58,7 +58,7 @@ export default function EmailPreviewPanel({
         <div className="fixed inset-0 z-50 flex justify-end">
             <Button
                 type="button"
-                variant="transparent"
+                variant="ghost"
                 disableHaptics
                 aria-label="Close preview"
                 onClick={onClose}
@@ -80,7 +80,7 @@ export default function EmailPreviewPanel({
                             </div>
                         </div>
                         <Button
-                            variant="transparent"
+                            variant="ghost"
                             shape="square"
                             size="small"
                             icon="cancel"
@@ -98,13 +98,15 @@ export default function EmailPreviewPanel({
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         {siblings.length > 1 ? (
-                            <SegmentedControl
+                            <Tabs
+                                size="sm"
+                                aria-label="Copy variant"
                                 value={String(active.example)}
-                                options={siblings.map((sibling) => ({
+                                tabs={siblings.map((sibling) => ({
                                     value: String(sibling.example),
                                     label: sibling.exampleLabel,
                                 }))}
-                                onChange={(next) =>
+                                onValueChange={(next) =>
                                     onSelect(renders.findIndex((render) => render.id === `${active.eventType}#${next}`))
                                 }
                             />
@@ -141,7 +143,7 @@ export default function EmailPreviewPanel({
                             {position}/{renders.length}
                         </span>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             disabled={activeIndex === 0}
                             onClick={() => onSelect(activeIndex - 1)}
@@ -150,7 +152,7 @@ export default function EmailPreviewPanel({
                             Previous
                         </Button>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             disabled={activeIndex >= renders.length - 1}
                             onClick={() => onSelect(activeIndex + 1)}

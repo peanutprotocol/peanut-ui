@@ -139,7 +139,7 @@ const CryptoDepositView = ({
                         </Callout>
                         {onRetry && (
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full bg-background-default"
                                 shadowSize="4"
                                 onClick={onRetry}
@@ -283,7 +283,7 @@ const CryptoDepositView = ({
 
                         {/* how to deposit button */}
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full bg-background-default"
                             shadowSize="4"
                             onClick={() => setShowHowToDeposit(true)}

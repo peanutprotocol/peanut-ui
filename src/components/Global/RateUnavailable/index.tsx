@@ -22,7 +22,7 @@ const RateUnavailable = ({ onRetry, className }: RateUnavailableProps) => {
         <div className={className}>
             {/* dev shipped this on ErrorAlert; that component is retired here — Callout is the branch mapping */}
             <Callout priority="error">{t('rateUnavailable')}</Callout>
-            <Button variant="stroke" shadowSize="4" icon="retry" size="medium" onClick={onRetry} className="mt-4">
+            <Button variant="secondary" shadowSize="4" icon="retry" size="medium" onClick={onRetry} className="mt-4">
                 {tCommon('retry')}
             </Button>
         </div>

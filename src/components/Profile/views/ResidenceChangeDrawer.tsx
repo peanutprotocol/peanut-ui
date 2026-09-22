@@ -175,7 +175,7 @@ const ResidenceChangeDrawer = ({
                         </Button>
                         {differsFromVerified && (
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full justify-center"
                                 disabled={isSaving}
                                 onClick={() => void save(true)}

@@ -113,7 +113,7 @@ export function Careers() {
                             <Button href={NOTION_JOB_BOARD_URL} external shadowSize="4" className="w-full">
                                 Apply on Notion
                             </Button>
-                            <Button variant="stroke" href="/lp" className="w-full">
+                            <Button variant="secondary" href="/lp" className="w-full">
                                 See what we&apos;ve built
                             </Button>
                         </div>

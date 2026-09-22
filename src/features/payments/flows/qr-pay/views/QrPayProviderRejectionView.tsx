@@ -79,7 +79,7 @@ export function QrPayProviderRejectionView() {
                           : {
                                 text: tCommon('contactSupport'),
                                 onClick: () => setIsSupportModalOpen(true),
-                                variant: 'stroke' as const,
+                                variant: 'secondary' as const,
                             },
                 ]}
             />

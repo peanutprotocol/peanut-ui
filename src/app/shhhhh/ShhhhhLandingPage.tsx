@@ -88,7 +88,7 @@ export default function ShhhhhLandingPage() {
                         <p className="font-roboto-flex mt-6 text-body-l">{t('hero.body')}</p>
                         <Button
                             className="mt-8 sm:w-auto sm:min-w-64 sm:px-10"
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             onClick={handleCTA}
                             loading={busy}
@@ -149,7 +149,7 @@ export default function ShhhhhLandingPage() {
                 </h2>
                 <p className="mt-6 text-body-l">{t('ready.subtitle')}</p>
                 {/* Primary here on purpose: purple pops on the black closer
-                    section, while the hero stays stroke — its background is
+                    section, while the hero stays secondary — its background is
                     the same hex as the purple fill. */}
                 <Button
                     className="mx-auto mt-8 sm:w-auto sm:min-w-64 sm:px-10"

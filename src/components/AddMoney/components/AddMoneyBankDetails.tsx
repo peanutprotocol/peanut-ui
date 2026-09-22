@@ -479,7 +479,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 <ShareButton
                     generateText={generateBankDetails}
                     title={t('bankDetails.shareTitle')}
-                    variant="primary-soft"
+                    variant="secondary"
                     className="w-full"
                 >
                     {t('bankDetails.shareDetails')}

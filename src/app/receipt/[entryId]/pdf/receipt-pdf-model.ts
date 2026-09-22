@@ -5,6 +5,7 @@ import {
     bankAccountLabelKey,
     receiptHeadlineAmount,
     receiptIssuedAt,
+    showsReceiptReferenceRow,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
@@ -195,8 +196,12 @@ export function buildReceiptPdfModel(
     // Temporary decision TD-12.
 
     // The history-entry id is the one identifier every receipt can use to tie
-    // a renamed or printed document back to the source activity.
-    push(t('transaction.officialReceipt.reference'), transaction.id)
+    // a renamed or printed document back to the source activity — printed only
+    // when the Transfer ID / Transaction ID row above does not already carry
+    // the same value. Same rule as the screen (showsReceiptReferenceRow).
+    if (showsReceiptReferenceRow(transaction)) {
+        push(t('transaction.officialReceipt.reference'), transaction.id)
+    }
 
     // One rule for both the screen and this document — see receiptHeadlineAmount.
     const headline = receiptHeadlineAmount(transaction, Number(transaction.amount), getTransactionSign(transaction))

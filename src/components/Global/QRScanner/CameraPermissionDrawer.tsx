@@ -215,7 +215,7 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                                 {tCommon('tryAgain')}
                             </Button>
                         )}
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
                             {t('qrScanner.cameraPermission.dismiss')}
                         </Button>
                     </div>
