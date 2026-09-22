@@ -81,6 +81,13 @@ describe('the shared text is the account fields and the footer', () => {
         expect(out).toContain('Bank details to pay Ana in GBP:')
         expect(out).not.toContain('Here are my bank details')
     })
+
+    it('uses neutral framing when the provider identity cannot be verified', () => {
+        const out = text('anyone', undefined, { matching: { nameOnAccount: 'unknown', sender: 'anyone' } })
+        expect(out).toContain('Bank details to pay Ana in GBP:')
+        expect(out).not.toContain('Here are my bank details')
+        expect(out).toContain('Account holder: Ana Pérez')
+    })
 })
 
 /**
