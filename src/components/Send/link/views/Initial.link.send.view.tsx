@@ -10,6 +10,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
@@ -148,6 +149,11 @@ const LinkSendInitialView = () => {
                 }
             }, 0)
         } catch (error) {
+            // Card re-approval dismissed, or the screen left, before the link's
+            // deposit was prepared or signed — no link exists and nothing was
+            // spent. Control flow, not a failed link creation.
+            if (error instanceof SpendRecoveryAbortedError) return
+
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })

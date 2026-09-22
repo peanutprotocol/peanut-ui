@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
@@ -16,17 +16,33 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useModalsContextOptional } from '@/context/ModalsContext'
-import { rainApi, type RainCollateralKind } from '@/services/rain'
+import { RainCooldownError, rainApi, type RainCollateralKind } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
+import { useRainControllerRepair } from './useRainControllerRepair'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
+    ensureCurrentControllerApproval,
+    ensurePreparedControllerApproval,
     InsufficientSpendableError,
+    isUserCancellation,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
+    sameAddress,
+    type CurrentControllerApproval,
     type SpendStrategy,
 } from './spendPreflight'
-import { registerEphemeralArtifact, requiresPasskeyRetry } from './signSpendRetry'
+import {
+    awaitRainCooldownWithinLock,
+    isRainControllerChanged,
+    isSpendRecoveryOutcome,
+    registerEphemeralArtifact,
+    registerSpendArtifactMeta,
+    requiresPasskeyRetry,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+    toQuoteReview,
+} from './signSpendRetry'
 import { buildUsdcTransferCall, type PreparedSmartSpend } from './smartSpendPreparation'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
@@ -36,6 +52,8 @@ import { usdcUnitsToRainCents } from '@/utils/balance.utils'
  * created). Mirrors `/rain/cards/withdraw/submit`'s body.
  */
 export interface SignedRainWithdrawal {
+    /** Classification hint — see `SubmitRainWithdrawalInput`. Never a target. */
+    preparedCoordinatorAddress?: string
     preparationId: string
     amount: string
     recipientAddress: Address
@@ -94,6 +112,14 @@ export interface SignSpendBundleInput {
     preparedSmartSpend?: PreparedSmartSpend | null
     /** Latency telemetry only: fires as the pipeline crosses each boundary. */
     onProgress?: (event: SignSpendProgressEvent) => void
+    /** Set by an internal controller recovery re-sign: a 425 on ITS prepare is
+     *  handled by the recovery (wait or quote review), so the global cooldown
+     *  explainer must not fire for an attempt the user never made. */
+    suppressCooldownEvent?: boolean
+    /** Epoch ms this payment's provider quote dies at. Lets an internal
+     *  recovery wait out a Rain cooldown when it still fits, instead of
+     *  handing back to quote review. */
+    lockExpiresAt?: number
 }
 
 export type SignSpendProgressEvent =
@@ -109,11 +135,16 @@ export type SignSpendProgressEvent =
  * Strategies map to backend behaviour:
  * - smart-only: backend broadcasts the signed UserOp via the bundler.
  * - mixed: backend broadcasts the signed UserOp (which atomically pulls
- *   collateral and forwards the full amount to the recipient).
- * - collateral-only: backend submits the signed Rain withdrawal directly via
- *   the user's session-key UserOp, with `directTransfer=true` so Rain's
- *   coordinator transfers from the collateral proxy straight to the recipient
- *   (1 passkey tap total — admin EIP-712 only).
+ *   collateral — up to and including the FULL amount — and forwards it to the
+ *   recipient). Ordinary collateral funding runs here: it is the pipeline with
+ *   a durable reservation, a precomputed hash, broadcast-first submission and
+ *   definitive failure codes, so a late controller rotation can be replaced on
+ *   the same lock. Cost: the passkey fallback is two taps instead of the direct
+ *   path's one (the ephemeral one-tap path is unchanged where enabled).
+ * - collateral-only: ONLY for `forceStrategy` callers (lock/cancel card).
+ *   Backend submits the signed Rain withdrawal via the user's session-key
+ *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only);
+ *   that handler orders before funding and has no safe resume.
  */
 
 export const useSignSpendBundle = () => {
@@ -121,9 +152,19 @@ export const useSignSpendBundle = () => {
     const { handleSendUserOpEncoded } = useZeroDev()
     const modals = useModalsContextOptional()
     const { signCallsUserOp } = useSignUserOp()
-    const { overview } = useRainCardOverview()
+    const { overview, refetch: refetchOverview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
+    const repairRainController = useRainControllerRepair()
     const queryClient = useQueryClient()
+    // Leaving the screen ends an in-flight recovery wait: nothing may be
+    // prepared, signed or submitted for a flow the user walked away from.
+    const unmountedRef = useRef(false)
+    useEffect(() => {
+        unmountedRef.current = false
+        return () => {
+            unmountedRef.current = true
+        }
+    }, [])
 
     const signSpendInner = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
@@ -137,6 +178,8 @@ export const useSignSpendBundle = () => {
                 onGrantRequired,
                 preparedSmartSpend,
                 onProgress,
+                suppressCooldownEvent,
+                lockExpiresAt,
             } = input
 
             const chainIdNum = PEANUT_WALLET_CHAIN.id
@@ -184,6 +227,24 @@ export const useSignSpendBundle = () => {
                     collateralOnlyAllowed: true,
                     flow: 'sign-only',
                 }))
+                /*
+                 * Ordinary collateral funding EXECUTES through the mixed
+                 * pipeline: it is the one with a durable reservation, a
+                 * precomputed hash, broadcast-first and definitive failure
+                 * codes, so a late controller rotation can be recovered on the
+                 * same lock. The legacy collateral handler creates the provider
+                 * order before funding and cannot be resumed safely.
+                 *
+                 * `smartBalance = 0` (not `collateralOnlyAllowed: false`) keeps
+                 * the funding SOURCE the user's routing already chose: the whole
+                 * amount comes from collateral even when the smart account has a
+                 * balance. Forced collateral-only (lock/cancel card) is exempt —
+                 * it is submitted by the backend's session key, not broadcast.
+                 */
+                if (strategy === 'collateral-only') {
+                    strategy = 'mixed'
+                    smartBalance = 0n
+                }
             }
 
             onStrategyDecided?.(strategy)
@@ -195,21 +256,46 @@ export const useSignSpendBundle = () => {
             // Hoisted so the catch can back the draft out — `prep` itself is
             // block-scoped inside the try.
             let livePreparationId: string | undefined
-            try {
-                // Shared collateral pre-flights (root-validator migration gate +
-                // session-key grant) — ONE ordered sequence for both spend engines;
-                // see runCollateralSpendPreflight. Every signature below MUST come
+            // Tracked at PREPARE time: a rotation can break this attempt before
+            // any artifact (and its metadata) exists.
+            let preparedCoordinator: string | undefined
+            let signRecovered = false
+            /** The failure that authorised the replacement, carried as the
+             *  abort's cause so the call site still knows what happened. */
+            let recoveryTrigger: unknown
+
+            /**
+             * Checkpoint for the REPLACEMENT attempt only: its prepare, grant and
+             * signature can each resolve after the user left, and none of them
+             * may lead to another prompt or a returned artifact the caller would
+             * submit. Nothing already sent is touched — this engine sends nothing.
+             */
+            const abortReplacementIfGone = () => {
+                if (signRecovered && unmountedRef.current) throw new SpendRecoveryAbortedError(recoveryTrigger)
+            }
+
+            // Outcome of the pre-prepare controller gate (run once, below, before
+            // the first attempt). Replacement legs read the controller through
+            // their own recovery and re-check the prep against it.
+            let gate: CurrentControllerApproval = { overview, granted: false }
+
+            const runSignAttempt = async (): Promise<SignedSpendArtifact> => {
+                // Shared collateral pre-flights (root-validator migration gate) —
+                // ONE ordered sequence for both spend engines; see
+                // runCollateralSpendPreflight. Every signature below MUST come
                 // from the account it returns. requireOverview: this engine can't
                 // tell whether the grant exists while the overview is loading, and
                 // signing optimistically would crash on the backend submission.
+                // A grant in the pre-prepare gate can migrate + rebuild the
+                // kernel client (ref-backed cache), so it is re-read when one ran.
+                // The per-prep approval check runs after /prepare, which is what
+                // knows the coordinator the approval has to cover.
                 const activeClient = await runCollateralSpendPreflight({
                     strategy,
                     kind,
-                    kernelClient,
-                    overview,
+                    kernelClient: gate.granted ? getClientForChain(chainIdStr) : kernelClient,
+                    overview: gate.overview,
                     requireOverview: true,
-                    grant,
-                    onGrantRequired,
                     sendNoopUserOp: (call) =>
                         handleSendUserOpEncoded([call], chainIdStr, { returnRevertedReceipt: true }),
                     rebuildClient: () => rebuildClientForChain(chainIdStr),
@@ -245,33 +331,64 @@ export const useSignSpendBundle = () => {
                 if (strategy === 'collateral-only') {
                     // The backend chooses the intent kind from the destination
                     // (TASK-21815) — nothing user-declared goes on the wire.
-                    const prep = await rainApi.prepareWithdrawal({
-                        amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
-                        recipientAddress: recipient,
-                        directTransfer: true,
-                    })
+                    const prep = await rainApi.prepareWithdrawal(
+                        {
+                            amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
+                            recipientAddress: recipient,
+                            directTransfer: true,
+                        },
+                        { suppressCooldownEvent: suppressCooldownEvent === true || signRecovered }
+                    )
                     livePreparationId = prep.preparationId
+                    preparedCoordinator = prep.coordinatorAddress
                     onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
+                    abortReplacementIfGone()
+
+                    // The prep states the coordinator this withdrawal targets;
+                    // make sure the stored approval covers THAT one before signing.
+                    // Already proven by the pre-prepare gate when the prep names
+                    // the controller it just checked; any other coordinator
+                    // (moved since) runs the full check.
+                    const { granted } = sameAddress(prep.coordinatorAddress, gate.approvedCoordinator)
+                        ? { granted: false }
+                        : await ensurePreparedControllerApproval({
+                              preparedCoordinator: prep.coordinatorAddress,
+                              overview: gate.overview,
+                              refetchOverview: async () => (await refetchOverview()).data,
+                              grant,
+                              onGrantRequired,
+                          })
+                    // The grant can migrate + rebuild the kernel client; the
+                    // cache is ref-backed, so re-read it before signing.
+                    abortReplacementIfGone()
+                    const signingAccount = granted
+                        ? (getClientForChain(chainIdStr).account ?? activeAccount)
+                        : activeAccount
 
                     const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
-                        activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
+                        signingAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
+                    abortReplacementIfGone()
 
-                    return {
-                        strategy,
-                        rainWithdrawal: {
-                            preparationId: prep.preparationId,
-                            amount: prep.amount,
-                            recipientAddress: prep.recipientAddress as Address,
-                            directTransfer: prep.directTransfer,
-                            adminSalt: prep.adminSalt as Hex,
-                            adminNonce: prep.adminNonce,
-                            adminSignature,
-                            executorSignature: prep.executorSignature,
-                            executorSalt: prep.executorSalt,
-                            expiresAt: prep.expiresAt,
+                    return registerSpendArtifactMeta(
+                        {
+                            strategy,
+                            rainWithdrawal: {
+                                preparedCoordinatorAddress: prep.coordinatorAddress,
+                                preparationId: prep.preparationId,
+                                amount: prep.amount,
+                                recipientAddress: prep.recipientAddress as Address,
+                                directTransfer: prep.directTransfer,
+                                adminSalt: prep.adminSalt as Hex,
+                                adminNonce: prep.adminNonce,
+                                adminSignature,
+                                executorSignature: prep.executorSignature,
+                                executorSalt: prep.executorSalt,
+                                expiresAt: prep.expiresAt,
+                            },
                         },
-                    }
+                        { coordinatorAddress: prep.coordinatorAddress }
+                    )
                 }
 
                 // ─── mixed ──────────────────────────────────────────────────────
@@ -283,16 +400,21 @@ export const useSignSpendBundle = () => {
                 const adminAddress = kernelAccount.address as Address
 
                 const shortfall = requiredUsdcAmount - smartBalance
-                const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcUnitsToRainCents(shortfall).toString(),
-                    // directTransfer=false sends tokens to the admin (kernel). Same
-                    // semantics as broadcasting useSpendBundle.spend's mixed path.
-                    recipientAddress: adminAddress,
-                    directTransfer: false,
-                    totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
-                })
+                const prep = await rainApi.prepareWithdrawal(
+                    {
+                        amount: usdcUnitsToRainCents(shortfall).toString(),
+                        // directTransfer=false sends tokens to the admin (kernel). Same
+                        // semantics as broadcasting useSpendBundle.spend's mixed path.
+                        recipientAddress: adminAddress,
+                        directTransfer: false,
+                        totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
+                    },
+                    { suppressCooldownEvent: suppressCooldownEvent === true || signRecovered }
+                )
                 livePreparationId = prep.preparationId
+                preparedCoordinator = prep.coordinatorAddress
                 onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
+                abortReplacementIfGone()
 
                 /*
                  * SESSION_KEY_SIGN: one tap instead of two — see mixedEphemeralSign.ts.
@@ -322,9 +444,19 @@ export const useSignSpendBundle = () => {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
                     if (attempt.ok) {
-                        return registerEphemeralArtifact(
-                            { strategy, signedUserOp: attempt.signedUserOp, rainPreparationId: prep.preparationId },
-                            adminAddress
+                        return registerSpendArtifactMeta(
+                            registerEphemeralArtifact(
+                                {
+                                    strategy,
+                                    signedUserOp: attempt.signedUserOp,
+                                    rainPreparationId: prep.preparationId,
+                                },
+                                adminAddress
+                            ),
+                            {
+                                coordinatorAddress: prep.coordinatorAddress,
+                                mixedSpendContract: prep.mixedSpendContract,
+                            }
                         )
                     }
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
@@ -334,9 +466,11 @@ export const useSignSpendBundle = () => {
                     })
                 }
 
+                abortReplacementIfGone()
                 const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                     activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
+                abortReplacementIfGone()
 
                 const withdrawCall = {
                     to: prep.coordinatorAddress as Hex,
@@ -378,21 +512,153 @@ export const useSignSpendBundle = () => {
                 } finally {
                     modals?.setIsSecurityVerificationOpen?.(false)
                 }
-                return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
-            } catch (e) {
-                // Back the abandoned draft out (cancelled passkey prompt, grant
-                // failure, …). Fire-and-forget: the backend refuses while the
-                // Rain signature could still execute, and the TTL sweep is the
-                // guaranteed cleanup either way (TASK-21815).
-                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                return registerSpendArtifactMeta(
+                    { strategy, signedUserOp, rainPreparationId: prep.preparationId },
+                    { coordinatorAddress: prep.coordinatorAddress, mixedSpendContract: prep.mixedSpendContract }
+                )
+            }
+
+            const controllerMovedSincePrepare = async (): Promise<boolean> => {
+                if (!preparedCoordinator) return false
+                const current = await rainApi.refreshControllerAddress().catch(() => null)
+                return !!current && current.coordinatorAddress.toLowerCase() !== preparedCoordinator.toLowerCase()
+            }
+
+            try {
+                // Controller + approval check before anything is prepared or
+                // signed. A cancelled prompt lands in the catch below with
+                // nothing prepared and nothing to back out.
+                gate = await ensureCurrentControllerApproval({
                     strategy,
-                    kind,
-                    flow: 'sign-only',
-                    error_kind: (e as Error)?.name ?? 'unknown',
-                    error_message: (e as Error)?.message,
+                    overview,
+                    refreshController: () => rainApi.refreshControllerAddress(),
+                    // react-query's refetch resolves with an error STATE (and the
+                    // stale data) on failure; the gate must fail closed on it.
+                    refetchOverview: async () => {
+                        const result = await refetchOverview()
+                        if (result.isError) throw result.error
+                        return result.data
+                    },
+                    grant,
+                    onGrantRequired,
+                    isGone: () => unmountedRef.current,
                 })
-                throw e
+                // The check above can hold a passkey sheet open for as long as
+                // the user takes. A quote that died meanwhile must not reserve a
+                // Rain signature or ask for one: hand back to review, where the
+                // call site re-quotes and the user confirms the new terms. The
+                // call sites keep their own pre- and post-signing checks.
+                if (lockExpiresAt !== undefined && Date.now() >= lockExpiresAt) {
+                    throw new SpendRecoveryQuoteReviewError(new Error('Quote expired during the card approval check'))
+                }
+                return await runSignAttempt()
+            } catch (e) {
+                /*
+                 * Nothing here has broadcast anything — this engine only signs
+                 * (the migration no-op and the grant are the sole userOps) — so a
+                 * rotation that killed the prepare/estimate can be re-run once
+                 * with the SAME terms before the user ever sees a failure. A
+                 * dismissed prompt is the user's answer, never a retry.
+                 */
+                const userCancelled = isUserCancellation(e)
+                // Leaving the screen ends the recovery at every boundary: before
+                // it starts, and again after the controller read that decides
+                // it. Only work not yet sent is gated.
+                const abortIfGone = () => {
+                    if (unmountedRef.current) throw new SpendRecoveryAbortedError(e)
+                }
+                const eligible = !signRecovered && !userCancelled && !unmountedRef.current
+                const rotated = eligible && (isRainControllerChanged(e) || (await controllerMovedSincePrepare()))
+
+                /** The replacement attempt. Returns the fresh artifact, or
+                 *  throws what the caller should see — every exit from here
+                 *  lands on the ONE cleanup path below. */
+                const runReplacement = async (): Promise<SignedSpendArtifact> => {
+                    abortIfGone()
+                    signRecovered = true
+                    recoveryTrigger = e
+                    if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
+                    livePreparationId = undefined
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, {
+                        strategy,
+                        kind,
+                        flow: 'sign-only',
+                        recovery: 'controller-changed',
+                    })
+                    try {
+                        const replacement = await runSignAttempt()
+                        // Prepare + grant + signing can outlive the screen; the
+                        // caller would submit whatever comes back.
+                        abortIfGone()
+                        return replacement
+                    } catch (again) {
+                        // The recovery owns its own 425 (the global explainer is
+                        // suppressed for it): wait it out when the payment's own
+                        // quote can still cover the wait plus signing, otherwise
+                        // hand the cooldown to the call site for quote review.
+                        // The user answering "no" to a prompt the RECOVERY put up
+                        // is control flow, not a failed payment.
+                        if (isUserCancellation(again)) throw new SpendRecoveryAbortedError(e)
+                        if (!(again instanceof RainCooldownError)) throw again
+                        const verdict = await awaitRainCooldownWithinLock({
+                            retryAfterSec: again.retryAfterSec,
+                            lockExpiresAt,
+                            cancelled: () => unmountedRef.current,
+                        })
+                        if (verdict === 'exceeds-lock') throw toQuoteReview(again)
+                        if (verdict === 'cancelled') throw new SpendRecoveryAbortedError(again)
+                        try {
+                            abortIfGone()
+                            const replacement = await runSignAttempt()
+                            abortIfGone()
+                            return replacement
+                        } catch (final) {
+                            if (isUserCancellation(final)) throw new SpendRecoveryAbortedError(e)
+                            if (final instanceof RainCooldownError) throw toQuoteReview(final)
+                            throw final
+                        }
+                    }
+                }
+
+                // What the caller ends up seeing: the original failure, or the
+                // one the replacement ended on.
+                let failure: unknown = e
+                if (rotated) {
+                    try {
+                        return await runReplacement()
+                    } catch (recoveryFailure) {
+                        failure = recoveryFailure
+                    }
+                }
+
+                /*
+                 * ONE failure exit for both attempts. Back the abandoned draft
+                 * out — the replacement's prep included, since a recovery that
+                 * ended badly leaves its own standalone draft behind.
+                 * Fire-and-forget: the backend refuses while the Rain signature
+                 * could still execute, and the TTL sweep is the guaranteed
+                 * cleanup either way (TASK-21815). Cancelling is local hygiene,
+                 * never a Rain unlock.
+                 */
+                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
+                // Typed recovery outcomes are control flow — the payment is
+                // still open at the call site, so no cache repair and no
+                // failed-payment telemetry for them.
+                if (!isSpendRecoveryOutcome(failure)) {
+                    // A Rain leg that died client-side may have been built on a
+                    // controller the backend cached before Rain rotated it.
+                    // Cache-only: nothing is re-signed and the error below stands.
+                    void repairRainController({ strategy, error: failure })
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                        strategy,
+                        kind,
+                        flow: 'sign-only',
+                        error_kind: (failure as Error)?.name ?? 'unknown',
+                        error_message: (failure as Error)?.message,
+                        ...(failure === e ? {} : { recovery: 'controller-changed' }),
+                    })
+                }
+                throw failure
             }
         },
         [
@@ -403,7 +669,9 @@ export const useSignSpendBundle = () => {
             modals,
             signCallsUserOp,
             overview,
+            refetchOverview,
             grant,
+            repairRainController,
             queryClient,
         ]
     )

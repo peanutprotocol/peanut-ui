@@ -13,6 +13,7 @@ import { WITHDRAW_CRYPTO_STEPS, type WithdrawData } from '@/features/withdraw/ty
 import { cryptoStepGuards } from '@/features/withdraw/step-guards'
 import { validateCryptoWithdrawAmount } from '@/features/withdraw/amount-validation'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -705,6 +706,12 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
+            // Card re-approval dismissed, or the screen left, before anything
+            // was prepared, signed or broadcast: nothing moved and no order
+            // exists. Control flow, not a failed withdrawal — the review screen
+            // stays as it was, with no error copy and no Sentry report.
+            if (err instanceof SpendRecoveryAbortedError) return
+
             console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
             // Reported here rather than left to the console-capture integration,
