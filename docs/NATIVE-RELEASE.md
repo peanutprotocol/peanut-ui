@@ -213,7 +213,8 @@ and it is fine for it to lag behind what ships.
 
 The native workflows are manual and accept `dev`, `main`, and `release/android-kyc`.
 Production OTA is different: every update to `main` runs **App Release OTA**, and that
-workflow refuses every other ref. Treat merging to `main` as the production OTA decision.
+workflow also supports a manual dispatch on `dev` that builds the current `main` commit.
+No production OTA builds the `dev` app tree.
 
 1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
    its release QA is complete.
@@ -233,8 +234,19 @@ Use the workflow that matches the release:
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
 The native lanes require a manual dispatch. Updating `main` automatically publishes the
-production OTA after all guards pass. The workflows resolve versions; do not create release
-tags by hand.
+production OTA after all guards pass. To publish the existing `main` commit using the newer
+release workflow on `dev`, dispatch **App Release OTA** with the workflow ref set to `dev`:
+
+```sh
+gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref dev
+```
+
+GitHub registers this dispatch because `release-ota.yml` also exists on the default branch.
+The workflow pins `main` at checkout, uses its app source, dependencies and native build
+script, then verifies that `main` remains at that SHA before uploading and before each
+platform promotion. The `dev` checkout supplies only the release tooling. Review the run's
+**Main commit** before treating it as a release of the intended code. The workflows resolve
+versions; do not create release tags by hand.
 
 Use the Android replacement lane only for an Android-only native correction to the
 currently shipped build. It verifies the existing native tag attests both platforms,
@@ -388,12 +400,24 @@ the build is reproducible, the AAB lands on a Play track.
 ## 9. OTA updates (Capgo)
 
 `App Release OTA` builds and publishes a production static export automatically after every
-update to `main`. It has no manual dispatch trigger and refuses every other ref.
+update to `main`. It also accepts a manual dispatch on `dev` to publish the current `main`
+source with the platform-aware release tooling that is already on `dev`. A dispatch on the
+older workflow ref `main` still runs that ref's older workflow and cannot use the newer
+platform channels; select `dev` explicitly until the new workflow reaches `main`.
 
 | trigger | channel | bundle version |
 | ------- | ------- | -------------- |
 | **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
+| **App Release OTA** — manual dispatch on `dev`, app source from `main` | same two production channels | same platform bundle versions |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
+
+The manual main-source path conservatively sets both server delivery floors to the newest
+native release. The updater in the current `main` app bundle compares a candidate's
+major/build to the installed binary and does not read the newer per-platform floor marker.
+Offering a 1.6.x bundle to a 1.5.x install would therefore result in a store-update-required
+decision even if the native surfaces match. Older binaries will not receive this manual
+release. The automatic path retains the per-platform floors once the newer updater is on
+`main`.
 
 ### App-download QR links do not expand the native surface
 
