@@ -126,9 +126,9 @@ export default function ButtonPage() {
                             [
                                 ['primary', '59 usages', 'production'],
                                 ['stroke', '27 usages', 'production'],
-                                ['primary-soft', '18 usages', 'production'],
                                 ['transparent', '12 usages', 'production'],
-                                ['transparent-dark', '3 usages', 'limited'],
+                                ['primary-soft', '5 usages', 'production'],
+                                ['transparent-dark', '4 usages', 'limited'],
                             ] as const
                         ).map(([variant, count, status]) => (
                             <div key={variant}>
