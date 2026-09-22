@@ -875,6 +875,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             verificationSessionRef.current = null
             setVerificationSession(null)
             setShowCorrection(false)
+            setIsTerminalError(false)
+            setIsVerificationProgressModalOpen(false)
+            setShowWrapper(false)
             setIsLoading(true)
             setError(null)
             userInitiatedRef.current = true
@@ -884,6 +887,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 const response = await startKycAction(key)
+                if (response.data?.session) {
+                    userInitiatedRef.current = false
+                    targetCountryRef.current = response.data.session.targetCountry
+                    regionIntentRef.current = 'LATAM'
+                    setIsMultiLevel(false)
+                    acceptSessionView(response.data.session)
+                    if (['CORRECTION_REQUIRED', 'BLOCKED'].includes(response.data.session.state)) return
+                    if (!response.data.token) {
+                        setIsVerificationProgressModalOpen(true)
+                        return
+                    }
+                }
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
                     setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
@@ -902,7 +917,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError]
+        [t, actionErrorMessage, setError, acceptSessionView]
     )
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,

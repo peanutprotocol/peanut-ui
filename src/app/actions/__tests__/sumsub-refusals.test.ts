@@ -14,6 +14,7 @@
 
 import {
     initiateSumsubKyc,
+    startKycAction,
     isTerminalActionCode,
     restartIdentityVerification,
     startResidenceChangeVerification,
@@ -235,5 +236,45 @@ describe('startResidenceChangeVerification — wire shape', () => {
         } finally {
             nowSpy.mockRestore()
         }
+    })
+})
+
+describe('startKycAction — durable session contract', () => {
+    const session = {
+        id: 'session-1',
+        generation: 3,
+        targetCountry: 'BR',
+        externalActionId: 'manteca-user-attempt-3-BR',
+        state: 'SUBMISSION_PENDING',
+        reasonCode: null,
+        isMultiLevel: false,
+    }
+    it.each(['REVIEW_PENDING', 'SUBMISSION_PENDING', 'PROVIDER_PENDING', 'READY', 'CORRECTION_REQUIRED', 'BLOCKED'])(
+        'keeps a %s response without a token',
+        async (state) => {
+            respondWith(200, {
+                levelName: 'manteca-kyc',
+                externalActionId: session.externalActionId,
+                session: { ...session, state },
+            })
+            const result = await startKycAction('manteca-kyc-action:BR')
+            expect(result.error).toBeUndefined()
+            expect(result.data?.session).toEqual({ ...session, state })
+            expect(result.data?.token).toBeUndefined()
+        }
+    )
+    it('keeps generation ownership when collection returns a token', async () => {
+        respondWith(200, {
+            sumsubAccessToken: 'token',
+            levelName: 'manteca-kyc',
+            session: { ...session, state: 'COLLECTING' },
+        })
+        expect(await startKycAction('manteca-kyc-action:BR')).toMatchObject({
+            data: { token: 'token', session: { id: 'session-1', generation: 3 } },
+        })
+    })
+    it('still rejects a success response with neither a token nor a session', async () => {
+        respondWith(200, { levelName: 'manteca-kyc' })
+        expect((await startKycAction('manteca-kyc-action:BR')).code).toBe('invalid_response')
     })
 })

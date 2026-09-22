@@ -27,6 +27,7 @@ jest.mock('@/components/Global/Modal', () => ({
 
 const launch = jest.fn()
 const dismiss = jest.fn()
+const resetSdk = jest.fn()
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
 function installSdk() {
@@ -38,7 +39,7 @@ function installSdk() {
     builder.withLocale = () => builder
     builder.withDebug = () => builder
     builder.build = () => ({ launch, dismiss })
-    ;(window as unknown as { SNSMobileSDK: unknown }).SNSMobileSDK = { init: () => builder }
+    ;(window as unknown as { SNSMobileSDK: unknown }).SNSMobileSDK = { init: () => builder, reset: resetSdk }
 }
 
 const baseProps = () => ({
@@ -52,6 +53,7 @@ describe('SumsubNativeSdk', () => {
     beforeEach(() => {
         launch.mockReset()
         dismiss.mockReset()
+        resetSdk.mockReset()
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined
@@ -202,6 +204,51 @@ describe('SumsubNativeSdk', () => {
         expect(captureException).toHaveBeenCalled()
     })
 
+    it('recovers a stale Cordova instance lock once without showing an error', async () => {
+        launch.mockRejectedValueOnce(new Error('Aborted since another instance is in use!'))
+        launch.mockResolvedValueOnce({ success: true, status: 'Initial' })
+        const props = baseProps()
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props} />)
+        })
+
+        await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1))
+        expect(resetSdk).toHaveBeenCalledTimes(1)
+        expect(launch).toHaveBeenCalledTimes(2)
+        expect(captureException).not.toHaveBeenCalled()
+        expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
+    })
+
+    it('reports a failed retry instead of resetting the lock repeatedly', async () => {
+        launch.mockRejectedValueOnce(new Error('Aborted since another instance is in use!'))
+        launch.mockRejectedValueOnce(new Error('native launch still failed'))
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...baseProps()} />)
+        })
+
+        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        expect(resetSdk).toHaveBeenCalledTimes(1)
+        expect(launch).toHaveBeenCalledTimes(2)
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_sdk_init_failed',
+            expect.objectContaining({ reason: 'launch-rejected', message: 'native launch still failed' })
+        )
+    })
+
+    it('does not reset the lock for unrelated native launch errors', async () => {
+        launch.mockRejectedValue(new Error('network unavailable'))
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...baseProps()} />)
+        })
+
+        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        expect(resetSdk).not.toHaveBeenCalled()
+        expect(launch).toHaveBeenCalledTimes(1)
+    })
+
     it('surfaces and reports a missing plugin instead of opening nothing', async () => {
         delete (window as unknown as { SNSMobileSDK?: unknown }).SNSMobileSDK
         const props = baseProps()
@@ -217,8 +264,8 @@ describe('SumsubNativeSdk', () => {
         )
     })
 
-    // Without this the plugin's module-level lock is never released and every
-    // later launch rejects with "Aborted since another instance is in use!".
+    // Dismiss closes the native screen; a stale JavaScript lock is recovered
+    // on the next launch because this call does not reliably clear it.
     it('dismisses the native SDK when the flow closes', async () => {
         const props = baseProps()
         const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
