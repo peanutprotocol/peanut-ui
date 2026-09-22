@@ -419,7 +419,7 @@ export function RequestPotActionList({
                     {
                         text: tCommon('continue'),
                         shadowSize: '4',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
                             setIsUsePeanutBalanceModalShown(true)

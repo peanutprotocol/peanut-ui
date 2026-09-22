@@ -104,7 +104,7 @@ const Navigation = memo(function Navigation({
             <div>
                 {showBackButton && (
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         onClick={onBack}
                         className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('goBack')}
@@ -117,7 +117,7 @@ const Navigation = memo(function Navigation({
                 {showSkipButton && (
                     <Button
                         onClick={onSkip}
-                        variant="transparent-dark"
+                        variant="ghost"
                         className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
                     >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
@@ -127,7 +127,7 @@ const Navigation = memo(function Navigation({
                     <Button
                         onClick={onLogout}
                         loading={isLoggingOut}
-                        variant="transparent"
+                        variant="ghost"
                         className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('logout')}
                         disabled={isLoggingOut}

@@ -242,7 +242,7 @@ export function QrPaySuccessView() {
                                 </Button>
                             )}
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 shadowSize="4"
                                 disabled={false}
                                 onClick={() => {

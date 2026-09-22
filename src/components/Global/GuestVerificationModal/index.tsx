@@ -53,7 +53,7 @@ export const GuestVerificationModal = ({
                 },
                 {
                     text: secondaryCtaLabel,
-                    variant: 'stroke',
+                    variant: 'secondary',
                     className: 'w-full',
                     onClick: () => {
                         onClose()

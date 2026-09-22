@@ -64,10 +64,10 @@ export function RequestCreatedView({
             </PageStack.Center>
 
             <PageStack.Footer className="gap-3">
-                <ShareButton url={generatedLink} variant="stroke">
+                <ShareButton url={generatedLink} variant="secondary">
                     {shareLabel}
                 </ShareButton>
-                <Button variant="transparent" className="w-full" onClick={onCreateAnother}>
+                <Button variant="ghost" className="w-full" onClick={onCreateAnother}>
                     {t('created.createAnother')}
                 </Button>
                 <Button variant="primary" className="w-full" onClick={onDone}>

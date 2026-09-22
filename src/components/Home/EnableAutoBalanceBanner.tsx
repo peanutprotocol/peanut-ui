@@ -126,7 +126,7 @@ export default function EnableAutoBalanceBanner() {
     if (errorForThisCard || stuckAfterSuccess) {
         ctas.push({
             text: tCommon('skipForNow'),
-            variant: 'stroke',
+            variant: 'secondary',
             disabled: isGranting,
             onClick: () => setDismissedFor(card?.id ?? null),
         })

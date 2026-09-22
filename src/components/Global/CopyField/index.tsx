@@ -41,7 +41,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
             <BaseInput disabled value={text} className="h-10" />
             <Button
                 disabled={disabled && !onDisabledClick}
-                variant={variant ? variant : 'stroke'}
+                variant={variant ? variant : 'secondary'}
                 className="h-10 w-fit"
                 onClick={handleClick}
                 shadowSize={shadowSize}

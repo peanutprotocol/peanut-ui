@@ -167,7 +167,7 @@ export default function LottieProfilePage() {
                         {([1, 3, 10] as const).map((count) => (
                             <Button
                                 key={count}
-                                variant={instances === count ? 'primary' : 'stroke'}
+                                variant={instances === count ? 'primary' : 'secondary'}
                                 size="small"
                                 onClick={() => setInstances(count)}
                             >

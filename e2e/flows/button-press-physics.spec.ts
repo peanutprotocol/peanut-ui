@@ -8,7 +8,7 @@
  * unit test cannot see this: the bug lives in which state wins in the
  * cascade, so it has to be read off computed style in a real browser.
  *
- * /shhhhh is the target because it renders a real primary and a real stroke
+ * /shhhhh is the target because it renders a real primary and a real secondary
  * Button with no caller overrides, and needs no backend. The /dev/ds button
  * page would be the obvious home, but every /dev route sits behind a session
  * gate that never resolves in this harness, so it stays on "Loading...".
@@ -91,7 +91,7 @@ test.describe('Button press physics', () => {
 
     // /shhhhh's back circle is the NavHeader one. The setup flow builds its own
     // navigation row, and its circles were the last call site still drawing a
-    // stroke button with the shadow stripped — a white chip on the #90a8ed
+    // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
     // /setup/finish renders that row with no backend and no login.
     test('the setup nav circle is a ring on the hero, not a white chip', async ({ page }) => {
@@ -114,22 +114,24 @@ test.describe('Button press physics', () => {
         }
     })
 
-    test('stroke turns brand pink while pressed', async ({ page }) => {
-        const stroke = pressable(page, 'btn-stroke')
-        await expect(stroke).toBeVisible()
+    test('secondary turns brand pink while pressed', async ({ page }) => {
+        const secondary = pressable(page, 'btn-secondary')
+        await expect(secondary).toBeVisible()
 
-        expect(await background(stroke), 'white at rest').toBe('rgb(255, 255, 255)')
+        expect(await background(secondary), 'white at rest').toBe('rgb(255, 255, 255)')
 
-        // stroke has no hover fill, so the pink below can only come from :active
-        await stroke.hover()
-        expect(await background(stroke), 'still white on hover').toBe('rgb(255, 255, 255)')
+        // secondary has no hover fill, so the pink below can only come from :active
+        await secondary.hover()
+        expect(await background(secondary), 'still white on hover').toBe('rgb(255, 255, 255)')
 
-        await press(stroke)
+        await press(secondary)
         try {
-            await expect.poll(() => translate(stroke), { message: 'press moves 4px into the shadow' }).toBe('4px 4px')
+            await expect
+                .poll(() => translate(secondary), { message: 'press moves 4px into the shadow' })
+                .toBe('4px 4px')
             // states board 17308:13973 — pink is the pressed fill, action/primary
             await expect
-                .poll(() => background(stroke), { message: 'pressed fill is the brand pink' })
+                .poll(() => background(secondary), { message: 'pressed fill is the brand pink' })
                 .toBe('rgb(255, 144, 232)')
         } finally {
             await page.mouse.up()

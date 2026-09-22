@@ -53,7 +53,7 @@ export const ClaimAddressConfirmationModal = ({
                         }}
                     />
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         className="w-full"
                         onClick={() => {
                             setShowConfirmationModal(false)

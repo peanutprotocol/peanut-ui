@@ -247,7 +247,7 @@ export function ReceiptActions({
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
                                 onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
-                                variant="stroke"
+                                variant="secondary"
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
@@ -271,7 +271,7 @@ export function ReceiptActions({
                     loading={isLoading}
                     disabled={isLoading}
                     onClick={handleCloseRequest}
-                    variant="stroke"
+                    variant="secondary"
                     shadowSize="4"
                     className="flex w-full items-center gap-1"
                 >
@@ -290,7 +290,7 @@ export function ReceiptActions({
                         iconSize={18}
                         disabled={isLoading}
                         onClick={handleRejectRequest}
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
@@ -331,7 +331,7 @@ export function ReceiptActions({
 
                     {showMoreActionsButton && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             className="w-full"
                             onClick={() => setShowMoreActions(true)}

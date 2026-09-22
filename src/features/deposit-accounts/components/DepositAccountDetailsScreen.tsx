@@ -67,7 +67,7 @@ export function DepositAccountDetailsScreen({
                                 <Button variant="primary" className="w-full" onClick={onContactSupport}>
                                     {t('details.revokedCta')}
                                 </Button>
-                                <Button variant="stroke" className="w-full" onClick={onBack}>
+                                <Button variant="secondary" className="w-full" onClick={onBack}>
                                     {t('details.unavailableCta')}
                                 </Button>
                             </div>
@@ -95,7 +95,7 @@ export function DepositAccountDetailsScreen({
                     <Button variant="primary" className="w-full" onClick={onRetry}>
                         {t('details.timedOutRetry')}
                     </Button>
-                    <Button variant="stroke" className="w-full" onClick={onBack}>
+                    <Button variant="secondary" className="w-full" onClick={onBack}>
                         {t('details.unavailableCta')}
                     </Button>
                 </PageStack.Center>

@@ -235,7 +235,7 @@ const ReConsentModal = () => {
                 },
                 {
                     text: t('reConsent.notNow'),
-                    variant: 'stroke',
+                    variant: 'secondary',
                     disabled: submitting,
                     onClick: handlePostpone,
                     className: 'sm:flex-none',

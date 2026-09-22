@@ -158,7 +158,7 @@ export function UsageAudit({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Search">
                     <BaseInput
-                        variant="sm"
+                        size="sm"
                         value={q}
                         onChange={(event) => setQ(event.target.value)}
                         placeholder="Name, divergence, or file"

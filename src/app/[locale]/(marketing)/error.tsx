@@ -58,7 +58,7 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
                 <Button variant="primary" onClick={reset}>
                     {i18n.tryAgain}
                 </Button>
-                <Button variant="stroke" href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}>
+                <Button variant="secondary" href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}>
                     {i18n.goHome}
                 </Button>
             </div>

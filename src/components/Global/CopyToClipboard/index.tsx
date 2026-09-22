@@ -79,8 +79,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     className={className}
                     onClick={handleCopy}
                     icon={copied ? 'check' : 'copy'}
-                    shadowSize="4"
-                    variant="primary-soft"
+                    variant="secondary"
                 >
                     <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
                 </Button>

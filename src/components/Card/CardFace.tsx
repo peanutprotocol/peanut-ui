@@ -51,7 +51,7 @@ const CardCopyButton: FC<CardCopyButtonProps> = ({ value, ariaLabel, onCopy }) =
     return (
         <Button
             type="button"
-            variant="transparent"
+            variant="ghost"
             aria-label={ariaLabel}
             onClick={() => copyRef.current?.copy()}
             disableHaptics
@@ -216,7 +216,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={t('hideDetails')}
@@ -252,7 +252,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={t('showDetails')}

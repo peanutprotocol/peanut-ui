@@ -254,7 +254,7 @@ export const InitiateKycModal = ({
                         >
                             {t('degraded.notifyMe')}
                         </Button>
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
                             {tCommon('gotIt')}
                         </Button>
                     </div>
