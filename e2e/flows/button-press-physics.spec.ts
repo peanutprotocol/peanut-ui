@@ -36,6 +36,47 @@ async function press(el: Locator) {
     await el.page().mouse.down()
 }
 
+/** how long the finger stays down — the assertions under it take ~300ms */
+const TOUCH_HOLD_MS = 5_000
+
+/**
+ * hold a real finger on the element, and give back the lift.
+ *
+ * `press()` above is no guard for a control whose hover fill and press fill are
+ * the same colour: a pointer has to hover the button to click it, so the hover
+ * fill alone would satisfy the assertion and deleting the `active:` class would
+ * keep it green. It survives today only because the config runs an `isMobile`
+ * device, so Chromium re-emits the mouse as touch and no :hover is ever set —
+ * luck, from one line in the config, not a guarantee. A finger brings no hover
+ * with it by construction, so the fill it produces can only be :active.
+ *
+ * It has to be a synthesized GESTURE. Playwright's touchscreen taps and lets go
+ * in one call, and raw `Input.dispatchTouchEvent` delivers a touchstart the page
+ * can see but never reaches Chromium's gesture recognizer — so :active never
+ * turns on. `Input.synthesizeTapGesture` does, and its `duration` is the hold.
+ * The config already runs a `hasTouch` device (Pixel 7), so touch is available
+ * without a context of its own.
+ */
+async function touchPress(el: Locator) {
+    const page = el.page()
+    await el.scrollIntoViewIfNeeded()
+    const box = await el.boundingBox()
+    if (!box) throw new Error('nothing to press: the element has no box')
+
+    const cdp = await page.context().newCDPSession(page)
+    const lifted = cdp.send('Input.synthesizeTapGesture', {
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+        duration: TOUCH_HOLD_MS,
+        gestureSourceType: 'touch',
+    })
+
+    return async () => {
+        await lifted
+        await cdp.detach()
+    }
+}
+
 test.describe('Button press physics', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/shhhhh', { waitUntil: 'domcontentloaded' })
@@ -74,18 +115,20 @@ test.describe('Button press physics', () => {
 
         // the board (17308:13973) draws ONE colour, action-primary pink, for
         // hover AND press (kush ruling 2026-09-21 — a two-colour press shipped
-        // briefly and read as a purple back button). So the press is asserted
-        // WITHOUT hovering first: transparent at rest, pink only from :active.
+        // briefly and read as a purple back button). One colour for both states
+        // is what makes a mouse press unable to prove anything here, so the
+        // press below is a real touch: the circle is transparent at rest and a
+        // finger brings no hover with it, so the pink can only be :active.
         expect(await background(back), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
 
-        await press(back)
+        const release = await touchPress(back)
         try {
             await expect
                 .poll(() => background(back), { message: 'press fill is action-primary' })
                 .toBe('rgb(255, 144, 232)')
             expect(await translate(back), 'a shadowless control must not translate').toBe('none')
         } finally {
-            await page.mouse.up()
+            await release()
         }
     })
 
@@ -103,14 +146,16 @@ test.describe('Button press physics', () => {
         expect(await background(circle), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
         expect(await boxShadow(circle), 'a nav circle carries no shadow').toBe('none')
 
-        await press(circle)
+        // same const, same one-colour contract as the circle above, so the same
+        // touch press — a mouse could not tell the hover fill from the press one
+        const release = await touchPress(circle)
         try {
             await expect
                 .poll(() => background(circle), { message: 'press fill is action-primary' })
                 .toBe('rgb(255, 144, 232)')
             expect(await translate(circle), 'a shadowless control must not translate').toBe('none')
         } finally {
-            await page.mouse.up()
+            await release()
         }
     })
 
