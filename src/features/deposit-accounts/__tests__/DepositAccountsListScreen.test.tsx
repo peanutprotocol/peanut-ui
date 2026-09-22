@@ -392,7 +392,8 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
      * Their own corridors, plus the residence-gated one everybody sees. The ARS
      * row is present for a European user because it is worth knowing about
      * before the move, and the top-up flow behind it states the residence rule.
-     * Brazil has one row, the Pix top-up, for the users whose rails name it.
+     * Brazil's Pix top-up is residence-gated the same way (2026-09-22), so it
+     * is there too, and the flow behind it states the rule.
      */
     it('shows a European user their Bridge corridors plus the residence-gated rows', () => {
         const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
@@ -401,8 +402,9 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'PIX_BR')).toBeInTheDocument()
         // a corridor with neither a rail nor the residence rule stays absent
-        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
     })
 
     /**
@@ -439,8 +441,9 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
             expect(rowOf(container, corridor)).not.toHaveAttribute('aria-disabled', 'true')
         }
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeVerify)).toBeInTheDocument()
-        // a top-up-only corridor is not a standing account, so it stays out
-        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+        // a top-up-only corridor is not a standing account; the two Manteca ones
+        // are residence-gated and shown to everybody, the COP corridor stays out
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
     })
 
     /**
@@ -1042,16 +1045,17 @@ describe('the countries collapsible', () => {
 })
 
 /**
- * Argentina is open to residents alone. Everybody sees the row — it is worth
- * knowing about before you move — and the top-up flow behind the tap states
- * the rule.
+ * Argentina and Brazil are open to residents alone. Everybody sees the rows —
+ * they are worth knowing about before you move — and the top-up flow behind
+ * the tap states the rule.
  */
 describe('the residence-gated rows', () => {
-    it('shows ARS to every user, and no Brazilian row to a user with no Brazilian rail', () => {
+    it('shows ARS and BRL to every user, and a corridor with neither a rail nor the rule to nobody', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
-        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+        expect(rowOf(container, 'PIX_BR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
     })
 
     /**

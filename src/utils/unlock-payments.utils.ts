@@ -9,6 +9,9 @@
  * passes them in, so this stays unit-testable with plain values.
  */
 
+import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
+
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
 /** Chip for a bank region before residence restrictions are applied. */
@@ -92,9 +95,32 @@ const BANK_ROWS: readonly {
     flag: string
     regionPath: NonNullable<UnlockRow['regionPath']>
     limitRefs: NonNullable<UnlockRow['limitRefs']>
+    /**
+     * The deposit corridor whose residence rule the row inherits. The Manteca
+     * rows only: the provider opens a first-party account to a legal resident
+     * of that country alone (`residenceGate`), and the backend refuses the
+     * flow for anyone else, so the row is not an offer to them.
+     */
+    corridor?: DepositCorridor
 }[] = [
-    { key: 'brl', group: 'southAmerica', country: 'BR', flag: 'br', regionPath: 'latam', limitRefs: ['BRL'] },
-    { key: 'ars', group: 'southAmerica', country: 'AR', flag: 'ar', regionPath: 'latam', limitRefs: ['ARS'] },
+    {
+        key: 'brl',
+        group: 'southAmerica',
+        country: 'BR',
+        flag: 'br',
+        regionPath: 'latam',
+        limitRefs: ['BRL'],
+        corridor: 'PIX_BR',
+    },
+    {
+        key: 'ars',
+        group: 'southAmerica',
+        country: 'AR',
+        flag: 'ar',
+        regionPath: 'latam',
+        limitRefs: ['ARS'],
+        corridor: 'BANK_TRANSFER_AR',
+    },
     {
         key: 'usd',
         group: 'northAmerica',
@@ -124,7 +150,17 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
 
     const bankRow = (spec: (typeof BANK_ROWS)[number]): UnlockRow => {
-        const chip: UnlockChip = restrictions.banking ? 'notAvailable' : bankChips[spec.key]
+        const railChip = bankChips[spec.key]
+        // A residence-gated corridor is not offered outside its country: the
+        // backend refuses the verification (and the provider the account) for
+        // a non-resident, so an Unlock here could only end in that refusal —
+        // and a Processing chip would narrate a rail the user can never
+        // finish. Fails closed on an unknown residence, as the backend does;
+        // the residence row above is the way to state one. A rail that already
+        // works stays a fact: the user opened it while they lived there.
+        const residenceGated =
+            spec.corridor !== undefined && railChip !== 'active' && !residenceAllows(spec.corridor, [...residences])
+        const chip: UnlockChip = restrictions.banking || residenceGated ? 'notAvailable' : railChip
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,

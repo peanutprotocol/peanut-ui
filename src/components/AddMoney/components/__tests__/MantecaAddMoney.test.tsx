@@ -68,10 +68,10 @@ let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], isLoading: mockCapabilitiesLoading }),
 }))
-// Default to an Argentine resident so the amount/KYC cases render the amount
-// step; the residence-gate case overrides it. The real hook reads useAuth,
-// which throws with no provider.
-let mockResidenceIso2s: string[] = ['AR']
+// Default to a resident of both countries so the amount/KYC cases render the
+// amount step whichever top-up they open; the residence-gate cases override
+// it. The real hook reads useAuth, which throws with no provider.
+let mockResidenceIso2s: string[] = ['AR', 'BR']
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({
     useResidenceIso2s: () => mockResidenceIso2s,
 }))
@@ -154,7 +154,7 @@ beforeEach(() => {
     mockIsVerifiedForCountry = true
     mockIsIdentityVerified = true
     mockCapabilitiesLoading = false
-    mockResidenceIso2s = ['AR']
+    mockResidenceIso2s = ['AR', 'BR']
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
 })
@@ -345,6 +345,33 @@ describe('residence gate — Argentina', () => {
     test('an Argentine resident reaches the amount step', () => {
         setCountry('argentina')
         mockResidenceIso2s = ['AR']
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
+ * Manteca account, which asks for a CPF, and the backend's own pre-check is a
+ * Brazilian residence. A Portuguese resident used to sail into a flow both
+ * sides refuse.
+ */
+describe('residence gate — Brazil', () => {
+    test('a non-resident sees the residence screen, with the Pix QR way in', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['PT']
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toBeNull()
+        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
+    })
+
+    test('a Brazilian resident reaches the amount step', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['BR']
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()

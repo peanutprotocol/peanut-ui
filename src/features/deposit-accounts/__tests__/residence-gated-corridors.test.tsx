@@ -1,8 +1,8 @@
 /**
- * Residence decides one corridor, Argentina, and its top-up flow states the
- * rule. No account a user can open is residence-gated: reais stay on the Pix
- * top-up, and Colombia is gated by a provider review. Nationality never
- * decides anything here.
+ * Residence decides the two Manteca top-ups, Argentina and Brazil, and the flow
+ * behind each states the rule. No account a user can open is residence-gated:
+ * reais stay on the Pix top-up, and Colombia is gated by a provider review.
+ * Nationality never decides anything here.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -66,6 +66,11 @@ describe('residenceAllows', () => {
         expect(residenceAllows('BANK_TRANSFER_AR', ['DE'])).toBe(false)
         // a dual resident passes on either country
         expect(residenceAllows('BANK_TRANSFER_AR', ['DE', 'AR'])).toBe(true)
+        // Brazil mirrors the backend's own pre-check (`isDepositResidenceSupported`):
+        // a Brazilian residence stands in for the CPF, and an unknown one fails closed
+        expect(residenceAllows('PIX_BR', ['BR'])).toBe(true)
+        expect(residenceAllows('PIX_BR', ['PT'])).toBe(false)
+        expect(residenceAllows('PIX_BR', [])).toBe(false)
         expect(residenceAllows('SEPA_EU', [])).toBe(true)
         // COP is endorsement-gated, not residence-gated: Bridge opened a Bre-B
         // account for a resident of Portugal.

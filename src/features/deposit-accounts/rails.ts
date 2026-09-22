@@ -57,6 +57,10 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'br',
         detailRowCount: 3,
         claimable: false,
+        // The backend's own rule: a Brazilian residence stands in for the CPF
+        // the provider asks for (`isDepositResidenceSupported`), and the
+        // Manteca onboarding behind the top-up collects that same CPF.
+        residenceIso2: 'BR',
         topUpHref: '/add-money/brazil/manteca',
     },
     BANK_TRANSFER_AR: {

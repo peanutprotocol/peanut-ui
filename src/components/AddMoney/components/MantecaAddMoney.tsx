@@ -98,10 +98,13 @@ const MantecaAddMoney: FC = () => {
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
     const residenceIso2s = useResidenceIso2s()
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
-    // non-resident only after amount + KYC. Gate on residence first. The Bridge
-    // BR corridor already gates residence at the hub; the Manteca BRL/PIX top-up
-    // is left as-is here (see the file-top TODO for the full fold-in).
-    const requiresResidenceGate = selectedCountry?.id === 'AR' && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
+    // non-resident only after amount + KYC. Brazil's asks for a CPF the same
+    // way. Gate on residence first, from the corridor's own rule.
+    const residenceGatedCountry =
+        selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
+    const requiresResidenceGate =
+        residenceGatedCountry !== null &&
+        !residenceAllows(residenceGatedCountry === 'AR' ? 'BANK_TRANSFER_AR' : 'PIX_BR', residenceIso2s)
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -294,13 +297,13 @@ const MantecaAddMoney: FC = () => {
 
     if (!selectedCountry) return null
 
-    // A non-resident of Argentina cannot open the Manteca top-up, so the rule
-    // comes before the amount screen and the KYC drawer — with a back to the
-    // hub, and the QR route that still works from any balance.
-    if (requiresResidenceGate) {
+    // A non-resident cannot open the Manteca top-up, so the rule comes before
+    // the amount screen and the KYC drawer — with a back to the hub, and the
+    // QR route that still works from any balance.
+    if (residenceGatedCountry && requiresResidenceGate) {
         return (
             <ResidenceRequiredScreen
-                residenceIso2="AR"
+                residenceIso2={residenceGatedCountry}
                 qrPayHref="/qr-pay"
                 residenceChangeHref={withReturnTo(
                     '/profile/accounts-and-payments?open=residence',
