@@ -1,5 +1,5 @@
 'use client'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { Button, type ButtonVariant, type ShadowSize } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -10,7 +10,7 @@ import { twMerge } from '@/utils/tw'
 interface CopyFieldProps {
     text: string
     variant?: ButtonVariant
-    shadowSize?: '4' | '6' | '8'
+    shadowSize?: ShadowSize
     disabled?: boolean
     onDisabledClick?: () => void
 }
