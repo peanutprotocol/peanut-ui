@@ -26,9 +26,9 @@ export default function BaseInputPage() {
             <Playground
                 name="BaseInput"
                 importPath={`import BaseInput from '@/components/0_Bruddle/BaseInput'`}
-                defaults={{ variant: 'md', placeholder: 'Enter text...' }}
+                defaults={{ size: 'md', placeholder: 'Enter text...' }}
                 controls={[
-                    { type: 'select', prop: 'variant', label: 'variant', options: ['sm', 'md'] },
+                    { type: 'select', prop: 'size', label: 'size', options: ['sm', 'md'] },
                     { type: 'text', prop: 'placeholder', label: 'placeholder', placeholder: 'Placeholder text' },
                     { type: 'boolean', prop: 'disabled', label: 'disabled' },
                 ]}
@@ -42,7 +42,7 @@ export default function BaseInputPage() {
                 )}
                 codeTemplate={(props) => {
                     const parts = ['<BaseInput']
-                    if (props.variant && props.variant !== 'md') parts.push(`variant="${props.variant}"`)
+                    if (props.size && props.size !== 'md') parts.push(`size="${props.size}"`)
                     if (props.placeholder) parts.push(`placeholder="${props.placeholder}"`)
                     if (props.disabled) parts.push('disabled')
                     parts.push('/>')
@@ -55,7 +55,7 @@ export default function BaseInputPage() {
             <PropsTable
                 rows={[
                     {
-                        name: 'variant',
+                        name: 'size',
                         type: "'sm' | 'md'",
                         default: "'md'",
                         description: 'Height: sm=h-10 (40px), md=h-12 (48px, default)',
@@ -78,16 +78,16 @@ export default function BaseInputPage() {
 
             <DocSection title="Sizes">
                 <DocSection.Content>
-                    <BaseInput variant="sm" placeholder="small (sm)" />
-                    <BaseInput variant="md" placeholder="medium (md) — default" />
+                    <BaseInput size="sm" placeholder="small (sm)" />
+                    <BaseInput size="md" placeholder="medium (md) — default" />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import BaseInput from '@/components/0_Bruddle/BaseInput'`} />
                     <CodeBlock label="Basic Usage" code={`<BaseInput placeholder="Enter text..." />`} />
                     <CodeBlock
                         label="Size Variants"
-                        code={`<BaseInput variant="sm" placeholder="Small" />
-<BaseInput variant="md" placeholder="Medium" />`}
+                        code={`<BaseInput size="sm" placeholder="Small" />
+<BaseInput size="md" placeholder="Medium" />`}
                     />
                 </DocSection.Code>
             </DocSection>

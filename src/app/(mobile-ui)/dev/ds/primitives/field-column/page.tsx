@@ -87,7 +87,7 @@ export default function FieldColumnPage() {
     <FieldColumn error={error} errorId={\`\${id}-error\`}>
         <BaseInput
             id={id}
-            variant="sm"
+            size="sm"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             aria-invalid={error ? true : undefined}
@@ -103,7 +103,7 @@ export default function FieldColumnPage() {
                         <FieldColumn error="That username is taken" errorId="field-column-usage-username-error">
                             <BaseInput
                                 id="field-column-usage-username"
-                                variant="sm"
+                                size="sm"
                                 defaultValue="kushagra"
                                 aria-invalid
                                 aria-describedby="field-column-usage-username-error"

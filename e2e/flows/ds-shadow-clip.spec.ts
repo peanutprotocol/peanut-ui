@@ -2,7 +2,7 @@
  * DS showcase — no button shadow may be clipped.
  *
  * Every DS button paints a hard 4px offset shadow (`.btn-primary` /
- * `.btn-stroke`, `shadow-[0.25rem_0.25rem_0_...]`). A box-shadow is NOT part of
+ * `.btn-secondary`, `shadow-[0.25rem_0.25rem_0_...]`). A box-shadow is NOT part of
  * an element's scrollable overflow region, so any ancestor whose overflow is
  * not `visible` paints the button and then cuts its shadow off in a straight
  * line at the padding-box edge. The same defect was fixed in the product drawer

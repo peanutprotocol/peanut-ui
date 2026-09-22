@@ -28,7 +28,7 @@ export default function DesignSystemLayout({ children }: { children: React.React
                 they clip — right and bottom — and the row keeps only left and
                 top. An overflow box clips painting at its OWN padding edge, so
                 padding on the row leaves a full-width button's 4px offset
-                shadow (.btn-primary / .btn-stroke) outside the clip box, cut in
+                shadow (.btn-primary / .btn-secondary) outside the clip box, cut in
                 a straight line. Same fix as the drawer scroll wrapper in
                 Global/Drawer. Nothing paints up or left, so those two sides can
                 stay on the row. The split is invisible: each column simply

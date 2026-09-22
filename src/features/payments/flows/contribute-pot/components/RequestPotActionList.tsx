@@ -33,6 +33,7 @@ import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
+import { BankTransferChooserDrawer } from './BankTransferChooserDrawer'
 import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -45,6 +46,8 @@ interface RequestPotActionListProps {
     usdAmount: string
     recipientUserId?: string
     recipientUsername?: string
+    recipientAvatarKey?: string | null
+    requestMessage?: string
     /** the request being paid — needed to read its bank details */
     requestId?: string
     /** the requester lets this request be settled by bank transfer */
@@ -66,6 +69,8 @@ export function RequestPotActionList({
     usdAmount,
     recipientUserId,
     recipientUsername,
+    recipientAvatarKey,
+    requestMessage,
     requestId,
     bankPayable = false,
     remainingUsd,
@@ -247,6 +252,14 @@ export function RequestPotActionList({
               : remainingUsd,
         serverCountsAllPayments,
     }
+    const requestedAmount = Number(payAmounts?.requestAmount)
+    const requestContextAmount =
+        payAmounts && Number.isFinite(requestedAmount) && requestedAmount > 0
+            ? `${format.number(requestedAmount, {
+                  minimumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
+                  maximumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
+              })} ${payAmounts.requestCurrency.toUpperCase()}`
+            : undefined
     // The generic row, where the backend picks the account, is for one case: the
     // pay-amounts read gave NOTHING, because the API predates the route or the
     // read failed. An answer that lists no bank rail is an answer: a request
@@ -264,17 +277,18 @@ export function RequestPotActionList({
             aria-hidden
         />
     ) : bankRails.length > 0 ? (
-        bankRails.map((rail) => (
-            <PayByBankTransferDrawer
-                key={rail.railId ?? rail.payerAmount.currency}
-                requestId={requestId}
-                rail={rail}
-                onUnavailable={() =>
-                    setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
-                }
-                {...bankRowProps}
-            />
-        ))
+        <BankTransferChooserDrawer
+            requestId={requestId}
+            rails={bankRails}
+            recipientUsername={recipientUsername}
+            recipientAvatarKey={recipientAvatarKey}
+            requestMessage={requestMessage}
+            requestAmount={requestContextAmount}
+            bankRowProps={bankRowProps}
+            onUnavailable={(rail) =>
+                setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
+            }
+        />
     ) : payAmounts ? null : (
         <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
     )
@@ -405,7 +419,7 @@ export function RequestPotActionList({
                     {
                         text: tCommon('continue'),
                         shadowSize: '4',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
                             setIsUsePeanutBalanceModalShown(true)

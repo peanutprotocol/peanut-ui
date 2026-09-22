@@ -3,7 +3,7 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1300,
+    "dsTextScale": 1178,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 35,
@@ -13,13 +13,13 @@
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
-    "fontWeightOnTypeToken": 30,
-    "offScaleSpacing": 80,
+    "fontWeightOnTypeToken": 29,
+    "offScaleSpacing": 87,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 20,
+    "hoverNoActiveFiles": 21,
     "arbitraryFontSize": 20,
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
@@ -93,6 +93,16 @@
             "date": "2026-09-21",
             "metrics": ["inlineStyle 23 -> 22"],
             "reason": "the whole-bar squash is reverted (kush ruling, TASK-22817) — press feedback lives on the tapped icon only, so the measured transform-origin inline style is gone"
+        },
+        {
+            "date": "2026-09-22",
+            "metrics": ["offScaleSpacing 81 -> 85"],
+            "reason": "tabs chip weld: the 1px -m-px/p-px gutter on the tab list is border-overlay geometry (must equal the 1px track border so the active chip can paint over it, bottom-nav model), not box rhythm — the same category the counter already exempts for inset/top/left offsets. 2 sites in Tabs.tsx + their 2 test assertions."
+        },
+        {
+            "date": "2026-09-22",
+            "metrics": ["offScaleSpacing 85 -> 87", "hoverNoActiveFiles 20 -> 21"],
+            "reason": "merge of origin/dev + the careers CTA rebuild. offScaleSpacing 85 -> 87: the Ready? section's pt-24/md:pt-28 is the mascot's overhang reservation, the same geometry-tied-to-what-it-overlaps category the counter already exempts for inset offsets — the mascot is 128/160px tall and the padding is what lets it peek from behind the card, not box rhythm. hoverNoActiveFiles 20 -> 21: arrives with origin/dev (UnsupportedBrowserModal/useCopyLinkActions.ts, added in the ButtonVariant collapse), not with this branch; 21 is still below dev's own baseline of 22, which this branch had ratcheted to 20."
         }
     ]
 }

@@ -87,7 +87,7 @@ export default function LoadingWordsPreview() {
                         <Button
                             key={w}
                             onClick={() => setIndex(i)}
-                            variant={i === index ? 'primary' : 'stroke'}
+                            variant={i === index ? 'primary' : 'secondary'}
                             size="small"
                             className="w-auto"
                         >

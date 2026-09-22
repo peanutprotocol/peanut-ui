@@ -51,7 +51,10 @@ export default function ProgressBarPage() {
 </div>
 <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />`}
                 >
-                    <div className="flex flex-col gap-1.5">
+                    {/* the real file pairs the two with a 6px gap; the showcase
+                        uses the on-scale step so the recreation does not add a
+                        second off-scale spacing site to the ds-lint ratchet */}
+                    <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between text-body-s text-foreground-secondary">
                             <span>2 of 3 done</span>
                             <span>67%</span>

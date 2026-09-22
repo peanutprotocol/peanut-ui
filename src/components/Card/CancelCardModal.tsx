@@ -200,7 +200,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                       : [
                             {
                                 text: t('cancel.keepCard'),
-                                variant: 'stroke',
+                                variant: 'secondary',
                                 className: 'w-full',
                                 onClick: handleClose,
                                 disabled: phase === 'canceling',

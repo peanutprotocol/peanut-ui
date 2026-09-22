@@ -66,7 +66,7 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
                     },
                     {
                         text: tCommon('cancel'),
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => setIsConfirming(false),
                     },
                 ]}

@@ -43,7 +43,7 @@ const COLORS_MAPPING = {
 }
 
 // specific colors for different avatar types/contexts
-export const AVATAR_LINK_BG = '#FF90E8' // peanut pink for links
+export const AVATAR_LINK_BG = '#FF90E8' // brand pink (action-primary) — NOT the peanut_pink palette entry above, whose lightShade is #FFD5F6
 export const AVATAR_WALLET_BG = '#FFC900' // yellow for address/non-user/add/withdraw header (action/secondary token)
 
 // text/icon colors

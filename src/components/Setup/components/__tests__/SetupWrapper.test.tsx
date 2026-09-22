@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 /**
- * Setup chrome: the back chevron must inherit currentColor (the stroke button
+ * Setup chrome: the back chevron must inherit currentColor (the nav circle button
  * inverts on hover/active, and a hard-coded black stroke vanished into it).
  */
 import React from 'react'

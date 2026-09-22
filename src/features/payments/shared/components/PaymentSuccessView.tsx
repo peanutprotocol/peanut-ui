@@ -361,7 +361,7 @@ const PaymentSuccessView = ({
                     )}
                     {!isExternalWalletFlow && receiptTransaction && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             onClick={() => {
                                 if (receiptTransaction) {

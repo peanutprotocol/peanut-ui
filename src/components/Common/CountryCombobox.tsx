@@ -155,7 +155,7 @@ export const CountryCombobox = ({
                 />
                 {open && query ? (
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         // mousedown would blur the input and close the list before the click lands
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
@@ -172,7 +172,7 @@ export const CountryCombobox = ({
                     </Button>
                 ) : onClear && selected ? (
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={onClear}
                         className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"

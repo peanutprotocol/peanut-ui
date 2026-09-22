@@ -37,7 +37,7 @@ export default function DrawerPage() {
                 <DocSection.Content>
                     <Drawer>
                         <DrawerTrigger asChild>
-                            <Button variant="stroke">Open Drawer</Button>
+                            <Button variant="secondary">Open Drawer</Button>
                         </DrawerTrigger>
                         <DrawerContent>
                             <DrawerHeader>
@@ -81,7 +81,7 @@ export default function DrawerPage() {
                         label="Basic Usage"
                         code={`<Drawer>
   <DrawerTrigger asChild>
-    <Button variant="stroke">Open</Button>
+    <Button variant="secondary">Open</Button>
   </DrawerTrigger>
   <DrawerContent>
     <DrawerHeader>
@@ -208,7 +208,7 @@ export default function DrawerPage() {
                 >
                     <Drawer>
                         <DrawerTrigger asChild>
-                            <Button variant="stroke" size="small">
+                            <Button variant="secondary" size="small">
                                 Open example
                             </Button>
                         </DrawerTrigger>
@@ -269,7 +269,7 @@ export default function DrawerPage() {
                 >
                     <Drawer>
                         <DrawerTrigger asChild>
-                            <Button variant="stroke" size="small">
+                            <Button variant="secondary" size="small">
                                 Open example
                             </Button>
                         </DrawerTrigger>

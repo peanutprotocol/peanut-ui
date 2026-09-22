@@ -21,7 +21,7 @@ export function DocNavDrawer() {
                 the nav circle button, like Profile's edit action. Desktop has
                 the pinned sidebar, so the trigger is mobile-only. */}
             <Button
-                variant="transparent"
+                variant="ghost"
                 icon="menu"
                 aria-label="Open menu"
                 className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'md:hidden')}
@@ -39,7 +39,7 @@ export function DocNavDrawer() {
                         <DrawerTitle>Design System</DrawerTitle>
                         <DrawerClose asChild>
                             <Button
-                                variant="transparent"
+                                variant="ghost"
                                 shape="square"
                                 size="small"
                                 icon="cancel"

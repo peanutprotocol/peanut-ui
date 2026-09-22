@@ -215,7 +215,7 @@ export const ProfileEditView = () => {
                         />
                         <Button
                             type="button"
-                            variant="transparent"
+                            variant="ghost"
                             disabled={disabled}
                             onClick={async () => {
                                 setIsSendingCode(true)

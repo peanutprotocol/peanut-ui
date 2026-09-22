@@ -118,7 +118,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Button',
             icon: MousePointerClick,
             href: '/dev/ds/primitives/button',
-            description: 'Primary interaction component. 7 variants, 3 sizes, shadow options, long-press support',
+            description: 'Primary interaction component. 3 variants, 3 sizes, shadow options, long-press support',
             status: 'production',
         },
         {
@@ -167,7 +167,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'BaseInput',
             icon: TextCursorInput,
             href: '/dev/ds/primitives/base-input',
-            description: 'Text input with sm/md variants, component-owned states and right content slot',
+            description: 'Text input with sm/md sizes, component-owned states and right content slot',
             status: 'production',
         },
         {

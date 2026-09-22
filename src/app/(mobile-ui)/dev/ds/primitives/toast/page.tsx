@@ -34,22 +34,22 @@ export default function ToastPage() {
             >
                 <DocSection.Content>
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="stroke" size="small" onClick={() => success('Operation successful!')}>
+                        <Button variant="secondary" size="small" onClick={() => success('Operation successful!')}>
                             success
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => error('Something went wrong')}>
+                        <Button variant="secondary" size="small" onClick={() => error('Something went wrong')}>
                             error
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => info('Did you know?')}>
+                        <Button variant="secondary" size="small" onClick={() => info('Did you know?')}>
                             info
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => attention('Check this out')}>
+                        <Button variant="secondary" size="small" onClick={() => attention('Check this out')}>
                             attention
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             onClick={() =>
                                 toast({
@@ -62,11 +62,11 @@ export default function ToastPage() {
                         >
                             persistent
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => dismiss(PERSISTENT_ID)}>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(PERSISTENT_ID)}>
                             dismiss persistent
                         </Button>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             onClick={() =>
                                 toast({
@@ -84,7 +84,7 @@ export default function ToastPage() {
                         >
                             custom content
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => dismiss(CUSTOM_CONTENT_ID)}>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(CUSTOM_CONTENT_ID)}>
                             dismiss custom
                         </Button>
                     </div>
@@ -260,10 +260,10 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
 else toast.error(t('actions.linkCopyFailed'))`}
                 >
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="stroke" size="small" onClick={() => success('Link copied')}>
+                        <Button variant="secondary" size="small" onClick={() => success('Link copied')}>
                             copy succeeded
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => error('Could not copy the link')}>
+                        <Button variant="secondary" size="small" onClick={() => error('Could not copy the link')}>
                             copy failed
                         </Button>
                     </div>
@@ -284,7 +284,7 @@ dismiss(COOLDOWN_TOAST_ID)`}
                 >
                     <div className="flex flex-wrap gap-2">
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             onClick={() =>
                                 toast({
@@ -301,7 +301,7 @@ dismiss(COOLDOWN_TOAST_ID)`}
                         >
                             start cooldown
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => dismiss(COOLDOWN_ID)}>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(COOLDOWN_ID)}>
                             end cooldown
                         </Button>
                     </div>

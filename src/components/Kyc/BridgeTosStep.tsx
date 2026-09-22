@@ -134,7 +134,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                     {
                         text: t('bridgeTos.notNow'),
                         onClick: onSkip,
-                        variant: 'stroke' as const,
+                        variant: 'secondary' as const,
                         className: 'w-full',
                     },
                 ]}

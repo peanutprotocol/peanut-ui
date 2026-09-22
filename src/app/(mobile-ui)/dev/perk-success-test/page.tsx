@@ -169,14 +169,14 @@ export default function PerkSuccessTestPage() {
                 {/* Quick Actions */}
                 <div className="flex gap-2">
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => setCurrentPerkIndex((prev) => (prev + 1) % MOCK_PERKS.length)}
                         className="flex-1"
                     >
                         Next Perk
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => {
                             setShowSuccess(false)
                             setPlaySound(false)

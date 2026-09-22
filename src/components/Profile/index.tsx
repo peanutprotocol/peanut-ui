@@ -97,7 +97,7 @@ export const Profile = () => {
                     // profile earns the top-right slot instead: it's the one
                     // action worth reaching without scrolling.
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         href="/profile/edit"
                         icon="edit"
                         aria-label={t('menu.personalDetails')}
@@ -197,8 +197,7 @@ export const Profile = () => {
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
-                            variant="primary-soft"
-                            shadowSize="4"
+                            variant="secondary"
                             className="w-full"
                             onClick={logout}
                             icon="logout"

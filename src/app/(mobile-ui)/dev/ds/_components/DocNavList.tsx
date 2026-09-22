@@ -29,7 +29,7 @@ export function DocNavList({ onNavigate }: { onNavigate?: () => void }) {
                 </label>
                 <BaseInput
                     id={searchId}
-                    variant="sm"
+                    size="sm"
                     type="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}

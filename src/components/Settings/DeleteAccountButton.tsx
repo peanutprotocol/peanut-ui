@@ -114,7 +114,7 @@ const DeleteAccountButton: FC = () => {
             description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
             ctas: [
                 { text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney },
-                { text: t('blockedCancelCta'), variant: 'stroke', shadowSize: '4', onClick: close },
+                { text: t('blockedCancelCta'), variant: 'secondary', shadowSize: '4', onClick: close },
             ],
         },
         confirm: {
@@ -131,7 +131,7 @@ const DeleteAccountButton: FC = () => {
                     disabled: isSubmitting,
                     onClick: confirmDelete,
                 },
-                { text: t('cancelCta'), variant: 'stroke', shadowSize: '4', disabled: isSubmitting, onClick: close },
+                { text: t('cancelCta'), variant: 'secondary', shadowSize: '4', disabled: isSubmitting, onClick: close },
             ],
         },
         done: {

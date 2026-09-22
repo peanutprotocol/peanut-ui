@@ -200,8 +200,9 @@ export default async function PressPage({ params }: PageProps) {
                                                         key={href}
                                                         href={href}
                                                         external={href.startsWith('http')}
-                                                        variant="stroke"
+                                                        variant="secondary"
                                                         size="small"
+                                                        className="w-auto whitespace-nowrap"
                                                     >
                                                         {file.name}
                                                     </Button>
@@ -229,8 +230,8 @@ export default async function PressPage({ params }: PageProps) {
                                 ))}
                             </div>
                             {fm.team_photos && fm.team_photos.length > 0 && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    {fm.team_photos.map((src) => {
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                    {fm.team_photos.map((src, i) => {
                                         const href = safeHttpUrl(src)
                                         if (!href) return null
                                         return (
@@ -241,7 +242,13 @@ export default async function PressPage({ params }: PageProps) {
                                                 rel="noopener noreferrer"
                                                 className="relative aspect-square overflow-hidden rounded-sm border border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
                                             >
-                                                <Image src={href} alt="Peanut team" fill className="object-cover" />
+                                                {/* photos are unlabeled in frontmatter — no member name to use */}
+                                                <Image
+                                                    src={href}
+                                                    alt={`Peanut team photo ${i + 1}`}
+                                                    fill
+                                                    className="object-cover"
+                                                />
                                             </a>
                                         )
                                     })}

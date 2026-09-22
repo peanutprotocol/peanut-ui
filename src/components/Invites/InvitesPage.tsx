@@ -332,7 +332,7 @@ function InvitePageContent() {
                             <Button
                                 disabled={isLoggingIn}
                                 loading={isLoggingIn}
-                                variant="stroke"
+                                variant="secondary"
                                 onClick={handleLoginWithBadgeCampaign}
                                 shadowSize="4"
                             >

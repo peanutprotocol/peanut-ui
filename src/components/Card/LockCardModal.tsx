@@ -168,7 +168,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                           },
                           {
                               text: tCommon('cancel'),
-                              variant: 'stroke',
+                              variant: 'secondary',
                               className: 'w-full',
                               onClick: onClose,
                               disabled: phase === 'loading',
@@ -177,7 +177,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     : [
                           {
                               text: tCommon('cancel'),
-                              variant: 'stroke',
+                              variant: 'secondary',
                               className: 'w-full',
                               onClick: onClose,
                               disabled: phase === 'loading',

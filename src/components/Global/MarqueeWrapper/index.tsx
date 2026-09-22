@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import Marquee from 'react-fast-marquee'
+import { twMerge } from '@/utils/tw'
 import type { MarqueeItem } from './marquee.types'
 
 type directionType = 'left' | 'right' | 'up' | 'down' | undefined
@@ -22,8 +23,7 @@ export function MarqueeWrapper({
     direction = 'left',
     className = 'border-b-1 border-black border',
 }: MarqueeWrapperProps) {
-    const baseClass = `${className} ${backgroundColor}`
-    const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
+    const _className = twMerge(className, backgroundColor, onClick && 'cursor-pointer')
 
     return (
         <div className={_className} onClick={onClick}>
@@ -52,12 +52,14 @@ export function MarqueeComp({
     message,
     imageSrc,
     imageAnimationClass = 'animation-thumbsUp',
-    backgroundColor = 'bg-primary',
+    // required, not defaulted: the old `bg-primary` default named a token that
+    // globals.css does not declare, so it painted nothing at all
+    backgroundColor,
 }: {
     message?: string | MarqueeItem[]
     imageSrc: string
     imageAnimationClass?: string
-    backgroundColor?: string
+    backgroundColor: string
 }) {
     return (
         // no wrapper: it carried `border-white shadow`, where border-white set a

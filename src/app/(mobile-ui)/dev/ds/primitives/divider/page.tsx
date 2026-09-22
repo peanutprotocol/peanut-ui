@@ -52,14 +52,14 @@ export default function DividerPage() {
                     description="The default shape: an 'or' label between two CTAs. Highest-traffic divider in the app — every logged-out visitor sees it."
                     code={`<Button shadowSize="4" onClick={onSignupClick}>{t('landing.signUp')}</Button>
 <Divider text={tCommon('or')} />
-<Button loading={isLoggingIn} shadowSize="4" variant="stroke" onClick={onLoginClick}>
+<Button loading={isLoggingIn} shadowSize="4" variant="secondary" onClick={onLoginClick}>
     {t('logIn')}
 </Button>`}
                 >
                     <div className="flex flex-col">
                         <Button shadowSize="4">Sign up</Button>
                         <Divider text="or" />
-                        <Button shadowSize="4" variant="stroke">
+                        <Button shadowSize="4" variant="secondary">
                             Log in
                         </Button>
                     </div>

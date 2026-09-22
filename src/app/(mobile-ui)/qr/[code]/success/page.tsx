@@ -70,7 +70,7 @@ export default function RedirectQrSuccessPage() {
 
                 <div>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         onClick={async () => {
                             try {

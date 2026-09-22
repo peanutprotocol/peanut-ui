@@ -43,7 +43,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     {
                         text: tCommon('cancel'),
                         onClick: () => onDismiss(),
-                        variant: 'stroke' as ButtonVariant,
+                        variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
                 ],
@@ -68,7 +68,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                 {
                     text: tCommon('continue'),
                     onClick: () => onDismiss(),
-                    variant: 'stroke' as ButtonVariant,
+                    variant: 'secondary' as ButtonVariant,
                     className: 'w-full',
                 },
             ],

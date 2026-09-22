@@ -38,7 +38,7 @@ export default function ModalPage() {
                     </p>
 
                     <div>
-                        <Button variant="stroke" onClick={() => setShowActionModal(true)}>
+                        <Button variant="secondary" onClick={() => setShowActionModal(true)}>
                             Open ActionModal
                         </Button>
                         <ActionModal
@@ -58,7 +58,7 @@ export default function ModalPage() {
                             ctas={[
                                 {
                                     text: 'Cancel',
-                                    variant: 'stroke',
+                                    variant: 'secondary',
                                     onClick: () => {
                                         setShowActionModal(false)
                                         setActionCheckbox(false)
@@ -85,7 +85,7 @@ export default function ModalPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {TONES.map((tone) => (
-                                <Button key={tone} variant="stroke" size="small" onClick={() => setToneModal(tone)}>
+                                <Button key={tone} variant="secondary" size="small" onClick={() => setToneModal(tone)}>
                                     tone=&quot;{tone}&quot;
                                 </Button>
                             ))}
@@ -96,7 +96,7 @@ export default function ModalPage() {
                             tone={toneModal ?? 'info'}
                             title={`tone="${toneModal ?? 'info'}"`}
                             description="Icon and bubble color come from the tone, not from a class name."
-                            ctas={[{ text: 'Close', variant: 'stroke', onClick: () => setToneModal(null) }]}
+                            ctas={[{ text: 'Close', variant: 'secondary', onClick: () => setToneModal(null) }]}
                         />
                     </div>
 
@@ -186,7 +186,7 @@ export default function ModalPage() {
     onChange: setChecked,
   }}
   ctas={[
-    { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
+    { text: 'Cancel', variant: 'secondary', onClick: handleCancel },
     { text: 'Confirm', variant: 'primary', onClick: handleConfirm },
   ]}
 />`}
@@ -227,11 +227,11 @@ export default function ModalPage() {
       className: 'w-full',
       shadowSize: '4',
     },
-    { text: t('bridgeTos.notNow'), onClick: onSkip, variant: 'stroke', className: 'w-full' },
+    { text: t('bridgeTos.notNow'), onClick: onSkip, variant: 'secondary', className: 'w-full' },
   ]}
 />`}
                 >
-                    <Button variant="stroke" size="small" onClick={() => setBridgeTosModal(true)}>
+                    <Button variant="secondary" size="small" onClick={() => setBridgeTosModal(true)}>
                         Open example
                     </Button>
                     <ActionModal
@@ -251,7 +251,7 @@ export default function ModalPage() {
                             {
                                 text: 'Not now',
                                 onClick: () => setBridgeTosModal(false),
-                                variant: 'stroke',
+                                variant: 'secondary',
                                 className: 'w-full',
                             },
                         ]}
@@ -274,11 +274,11 @@ export default function ModalPage() {
   content={hasBody ? bodyContent : undefined}
   ctas={[
     { text: t('lockModal.lockCta'), variant: 'primary', onClick: run, loading: phase === 'loading' },
-    { text: tCommon('cancel'), variant: 'stroke', className: 'w-full', onClick: onClose },
+    { text: tCommon('cancel'), variant: 'secondary', className: 'w-full', onClick: onClose },
   ]}
 />`}
                 >
-                    <Button variant="stroke" size="small" onClick={() => setLockCardModal(true)}>
+                    <Button variant="secondary" size="small" onClick={() => setLockCardModal(true)}>
                         Open example
                     </Button>
                     <ActionModal
@@ -292,7 +292,7 @@ export default function ModalPage() {
                             { text: 'Lock card', variant: 'primary', onClick: () => setLockCardModal(false) },
                             {
                                 text: 'Cancel',
-                                variant: 'stroke',
+                                variant: 'secondary',
                                 className: 'w-full',
                                 onClick: () => setLockCardModal(false),
                             },

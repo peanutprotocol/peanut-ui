@@ -1,31 +1,23 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
-import ShareButton from '@/components/Global/ShareButton'
 import { useTranslations } from 'next-intl'
 
 interface CreateRequestLinkCtaProps {
     requestId: string | null
-    generatedLink: string | null
     isCreatingLink: boolean
     isUpdatingRequest: boolean
-    /** what the requester asked for, in `currency` */
-    requestAmount: string
-    currency: string
     onGenerate: () => void
 }
 
 /**
- * Create/share call to action for the request-link screen: the create button
- * before a request exists, then a loading placeholder, then the share button.
+ * Create call to action for the request-link screen. Once both the request and
+ * link exist, the parent replaces this form with RequestCreatedView.
  */
 export const CreateRequestLinkCta = ({
     requestId,
-    generatedLink,
     isCreatingLink,
     isUpdatingRequest,
-    requestAmount,
-    currency,
     onGenerate,
 }: CreateRequestLinkCtaProps) => {
     const t = useTranslations('request')
@@ -44,24 +36,13 @@ export const CreateRequestLinkCta = ({
                 </Button>
             )}
 
-            {/* the share button waits for the link itself, not just the request id:
-                it shares what create produced, it never creates */}
-            {requestId &&
-                (isCreatingLink || isUpdatingRequest || !generatedLink ? (
-                    <Button disabled={true} shadowSize="4">
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {tLoading('loading')}
-                        </div>
-                    </Button>
-                ) : (
-                    <ShareButton url={generatedLink}>
-                        {!(parseFloat(requestAmount) > 0)
-                            ? t('shareOpenRequest')
-                            : currency === 'USD'
-                              ? t('shareAmountRequest', { amount: requestAmount })
-                              : t('shareCurrencyAmountRequest', { amount: requestAmount, currency })}
-                    </ShareButton>
-                ))}
+            {requestId && (
+                <Button disabled={true} shadowSize="4">
+                    <div className="flex w-full flex-row items-center justify-center gap-2">
+                        <Loading /> {tLoading('loading')}
+                    </div>
+                </Button>
+            )}
         </>
     )
 }

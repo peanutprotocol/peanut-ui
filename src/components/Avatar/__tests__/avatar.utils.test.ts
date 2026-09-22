@@ -1,4 +1,4 @@
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
 import en from '@/i18n/app/messages/en.json'
@@ -158,5 +158,37 @@ describe('dealHand', () => {
         expect(rolled).not.toEqual(hand)
         expect(rolled).toContain('basic.sun')
         expect(rolled[0]).toBeNull()
+    })
+})
+
+// TASK-22677: every sticker is a 176x176 WebP, so one slot draws every pick at
+// one size. mono/skills/badges-recraft export-avatar.mjs writes that canvas
+// and refuses strip-shaped art; this keeps a hand-dropped file honest.
+describe('avatar artwork geometry', () => {
+    const STICKER_SIDE = 176
+    // RIFF container: 'VP8 ' lossy, 'VP8L' lossless, 'VP8X' extended (alpha)
+    const webpSize = (webp: Buffer) => {
+        if (webp.toString('ascii', 0, 4) !== 'RIFF' || webp.toString('ascii', 8, 12) !== 'WEBP') return null
+        const chunk = webp.toString('ascii', 12, 16)
+        if (chunk === 'VP8X') return { width: 1 + webp.readUIntLE(24, 3), height: 1 + webp.readUIntLE(27, 3) }
+        if (chunk === 'VP8L') {
+            const bits = webp.readUInt32LE(21)
+            return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >>> 14) & 0x3fff) }
+        }
+        return { width: webp.readUInt16LE(26) & 0x3fff, height: webp.readUInt16LE(28) & 0x3fff }
+    }
+
+    it('ships every sticker on a 176x176 canvas', () => {
+        const paths = [
+            ...'abcdefghijklmnopqrstuvwxyz'.split('').map((letter) => `/avatars/letter/${letter}.webp`),
+            ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),
+            ...Object.entries(badgeAssets.avatars.badges).flatMap(([code, slugs]) =>
+                slugs.map((slug) => `/avatars/badge/${code}/${slug}.webp`)
+            ),
+        ]
+        for (const path of paths) {
+            const size = webpSize(readFileSync(join(process.cwd(), 'public', path)))
+            expect({ path, size }).toEqual({ path, size: { width: STICKER_SIDE, height: STICKER_SIDE } })
+        }
     })
 })

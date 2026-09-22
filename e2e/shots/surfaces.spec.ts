@@ -26,7 +26,11 @@ const FIXTURE = 'profile-edit'
 
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
-const APP_PAGE_SURFACES = new Set(['82-f-choice-card-requires-info', '84-f-choice-public-profile-guest'])
+const APP_PAGE_SURFACES = new Set([
+    '82-f-choice-card-requires-info',
+    '84-f-choice-public-profile-guest',
+    '87-f-request-created',
+])
 
 // Two one-time modals are mounted globally and open themselves on a first
 // visit — the high-balance warning and the "You're unlocked" celebration. Left
@@ -90,8 +94,11 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         // A staged surface mounts closed and opens on an in-surface action —
         // click it and prove the dialog opened, or the shot silently reviews
         // the wrong UI.
-        if (surface.shotClick) {
-            await page.getByRole('button', { name: surface.shotClick }).click()
+        if (surface.shotClick || surface.shotClickTestId) {
+            const trigger = surface.shotClickTestId
+                ? page.getByTestId(surface.shotClickTestId)
+                : page.getByRole('button', { name: surface.shotClick })
+            await trigger.click()
             await expect(page.getByRole('dialog')).toBeVisible()
         }
 

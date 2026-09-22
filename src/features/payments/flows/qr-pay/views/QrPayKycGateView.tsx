@@ -90,7 +90,7 @@ export function QrPayKycGateView() {
                     {
                         text: t('kyc.notNow'),
                         onClick: onBack,
-                        variant: 'stroke',
+                        variant: 'secondary',
                         className: 'w-full',
                     },
                 ]}

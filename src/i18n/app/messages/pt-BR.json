@@ -682,7 +682,7 @@
         "needHigherLimits": "Precisa de limites maiores? Fale com o suporte.",
         "warningCard": {
             "blockingTitle": "Esse valor ultrapassa seu limite.",
-            "warningTitle": "Você está perto do seu limite.",
+            "attentionTitle": "Você está perto do seu limite.",
             "addUpTo": "Você pode adicionar até {amount}",
             "addUpToPerTransaction": "Você pode adicionar até {amount} por transação",
             "withdrawUpTo": "Você pode sacar até {amount}",
@@ -1059,6 +1059,11 @@
         "linkCreatedToast": "Link criado com sucesso!",
         "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
+        "created": {
+            "title": "Cobrança criada",
+            "description": "Seu link está pronto para compartilhar.",
+            "createAnother": "Criar outra cobrança"
+        },
         "recipientPlaceholder": "Usuário, endereço ou ENS",
         "errors": {
             "createFailed": "Não foi possível criar o link",
@@ -1214,7 +1219,8 @@
             "amountNoteBankConverts": "Não há uma estimativa em {currency} agora. Envie o valor em {currency} equivalente a este valor em USD. Seu banco define a cotação.",
             "senderBusinessOnly": "Só uma conta empresarial pode pagar isto. Uma transferência de uma conta pessoal é devolvida.",
             "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida.",
-            "otherWays": "Ver outras formas de pagar"
+            "otherWays": "Ver outras formas de pagar",
+            "chooseCurrency": "Escolha uma moeda"
         },
         "requestAsksFor": "Pedido de {amount} {currency}",
         "requestAsksForDollars": "${amount} em dólar, fixado quando a solicitação foi criada",
@@ -1275,6 +1281,7 @@
         },
         "actions": {
             "claimOn": "Resgatar no",
+            "createAccount": "Criar uma conta Peanut",
             "continueWith": "Continuar com",
             "devconnectApp": "app da Devconnect",
             "devconnectLogoAlt": "Logo da Devconnect",
@@ -2198,6 +2205,7 @@
             "fee": "Taxa",
             "transferId": "ID da transferência",
             "senderReference": "Referência do remetente",
+            "paymentReference": "Referência que enviamos",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
             "attachment": "Anexo",
@@ -4014,12 +4022,12 @@
         "title": "Seus dados bancários",
         "list": {
             "addTitle": "Adicionar dinheiro",
-            "addHeading": "De onde vem o dinheiro?",
+            "addHeading": "Como você quer adicionar dinheiro?",
             "searchPlaceholder": "Busque país, moeda ou conta",
             "noMatchTitle": "Nenhum resultado para “{query}”",
             "clearSearch": "Limpar busca",
             "countriesTitle": "Formas de enviar dinheiro para você",
-            "countriesPitch": "Não precisa de conta. Escolha o país do seu banco.",
+            "countriesPitch": "Escolha o país do seu banco.",
             "sectionTitle": "Seus números de conta",
             "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",
             "badgeReady": "Pronta",
@@ -4098,6 +4106,7 @@
             "accepts": "Aceita",
             "beneficiaryAddress": "Endereço do destinatário",
             "rails": {
+                "ach": "ACH",
                 "ach_push": "ACH",
                 "fednow": "FedNow",
                 "wire": "Transferência internacional",

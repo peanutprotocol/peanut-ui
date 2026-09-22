@@ -417,9 +417,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         if (!node) setFit({ width: 0, dropped: 0 })
     }, [])
 
-    // the Tabs primitive's own scroll box around the tablist — the element
-    // whose overflow decides whether the row clips
-    const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]')?.parentElement ?? null
+    // the tablist IS the Tabs primitive's scroll box — the track's border sits
+    // on a wrapper around it (so the active chip can weld over that border),
+    // but the tablist is still the element whose overflow decides the clip. Its
+    // `clientWidth` now includes the 1px weld gutter on each side; `scrollWidth`
+    // is measured against the same box, so the comparison below is unchanged.
+    const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]') ?? null
 
     // Every drop re-renders this component, so the next pass runs here until
     // the row fits. A LAYOUT effect with no dependency list: each intermediate
@@ -436,11 +439,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
             return
         }
         if (fit.dropped >= droppableTabCount) return
-        // The track is `min-w-max`, so it never lets the chips spill out of it:
-        // it grows to its content and OVERFLOWS THE SCROLL BOX instead, which
-        // is the state this reads. That floor is what keeps one measurement
-        // honest for both jobs — the trim here, and the scroll the row falls
-        // back to once there is nothing left to drop.
+        // The triggers are `shrink-0`, so they never squeeze to fit: they
+        // overflow the tablist's own box and its `scrollWidth` reads their
+        // full demand. That is what keeps one measurement honest for both
+        // jobs — the trim here, and the scroll the row falls back to once
+        // there is nothing left to drop.
         // the +1 absorbs sub-pixel rounding, which would drop a tab that fits
         if (tabsScrollBox.scrollWidth > width + 1) setFit({ width, dropped: fit.dropped + 1 })
     })

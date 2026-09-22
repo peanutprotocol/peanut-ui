@@ -220,7 +220,7 @@ export const SuccessClaimLinkView = ({
                             {tCommon('tryAgain')}
                         </Button>
                     )}
-                    <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
+                    <Button variant="secondary" className="w-full" onClick={() => router.push('/home')}>
                         {t('backToHome')}
                     </Button>
                 </PageStack.Center>
