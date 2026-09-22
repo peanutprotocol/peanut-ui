@@ -52,6 +52,29 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 jest.mock('@/components/Marketing/HeroBackNav', () => ({ HeroBackNav: () => null }))
+jest.mock('@/components/LandingPage/marquee', () => ({
+    Marquee: ({ message }: { message: string[] }) => <div data-testid="marquee">{message.join(' ')}</div>,
+}))
+jest.mock('framer-motion', () => ({
+    motion: new Proxy(
+        {},
+        {
+            get:
+                (_target, tag: string) =>
+                ({ children, ...props }: { children?: React.ReactNode }) => {
+                    const Tag = tag as 'div'
+                    const {
+                        initial: _i,
+                        animate: _a,
+                        transition: _t,
+                        whileInView: _w,
+                        ...rest
+                    } = props as Record<string, unknown>
+                    return <Tag {...rest}>{children}</Tag>
+                },
+        }
+    ),
+}))
 jest.mock('@/components/Card/share-asset/ScaledPixelatedCardFace', () => ({ ScaledPixelatedCardFace: () => null }))
 jest.mock('@/components/Invites/badge-campaign-context', () => {
     const actual = jest.requireActual('@/components/Invites/badge-campaign-context')
@@ -86,8 +109,12 @@ const getCard = () => {
 
 it('offers the public product and keeps a guest card destination through signup', async () => {
     getCard()
-    expect(screen.getByRole('heading', { level: 1, name: 'Peanut Card' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Go Pink.' })).toBeInTheDocument()
     expect(screen.queryByText(/waitlist|closed beta|try the door/i)).not.toBeInTheDocument()
+    // the honesty beat and the door marquee came back from the old page
+    expect(screen.getByRole('heading', { level: 2, name: 'Probably not for you.' })).toBeInTheDocument()
+    expect(screen.getAllByTestId('marquee')).toHaveLength(5)
+    expect(screen.getAllByTestId('marquee')[0]).toHaveTextContent('PEANUT CARD CONTACTLESS GET YOUR CARD')
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/setup?redirect_uri=%2Fcard'))
 })
 

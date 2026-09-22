@@ -3772,18 +3772,37 @@
             "tagline": "Seu dinheiro. Pronto para pagar.",
             "body": "Use seu Peanut Card online e, por aproximação, com Apple Pay ou Google Pay onde estiverem disponíveis, onde Visa é aceita.",
             "cta": "Peça seu cartão",
-            "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular."
+            "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
+            "title": "Go Pink.",
+            "pitch": "Um saldo. 150 milhões de lugares para gastar.",
+            "lead": "Um cartão Visa virtual que paga com seu saldo Peanut. Online e em lojas com Apple Pay ou Google Pay onde estiverem disponíveis."
         },
         "whatItDoes": {
-            "titleLine1": "Um cartão.",
-            "titleLine2": "Seus pagamentos do dia a dia.",
-            "body": "Adicione dinheiro ao Peanut por transferência bancária, saque de corretora ou stablecoins compatíveis. Pague online ou adicione seu cartão ao Apple Pay ou Google Pay onde estiverem disponíveis."
+            "titleLine1": "É um cartão.",
+            "titleLine2": "Esse é o truque todo.",
+            "body": "Recarregue do jeito que você já movimenta dinheiro: transferência bancária, saque de corretora ou stablecoins. Depois, pague onde Visa é aceita.",
+            "statMerchants": "lojas que aceitam Visa",
+            "statBalance": "saldo",
+            "statMonthlyFees": "mensalidade",
+            "statAnnualFees": "anuidade"
+        },
+        "whoItsFor": {
+            "title": "Feito para dinheiro que não fica parado.",
+            "body": "Nômades, expatriados, quem trabalha remoto, quem viaja sempre. Um só saldo para pagar onde Visa é aceita."
+        },
+        "notForYou": {
+            "title": "Talvez não seja para você.",
+            "body1": "Se seu dinheiro vive em um só país e uma só moeda, seu cartão do banco já resolve. Fique com ele.",
+            "body2": "Se seu dinheiro vive em outro lugar, cruza fronteiras, está em dólares ou em mais de um lugar, o Peanut Card foi feito para você."
         },
         "howToApply": {
-            "title": "Como pedir seu cartão",
-            "verify": "Entre na sua conta e conclua a verificação de identidade.",
-            "terms": "Leia e aceite os termos do titular.",
-            "spend": "Após a aprovação, adicione saldo e comece a pagar."
+            "title": "Como pedir.",
+            "signInTitle": "Entre.",
+            "signInBody": "Ou crie sua conta. Leva um minuto.",
+            "verifyTitle": "Verifique.",
+            "verifyBody": "Uma verificação de identidade, mais os termos do titular.",
+            "spendTitle": "Pague.",
+            "spendBody": "Aprovado? Adicione saldo e pague."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -3793,7 +3812,7 @@
             "noMonthlyFee": "SEM MENSALIDADE"
         },
         "faq": {
-            "title": "Perguntas sobre o Peanut Card",
+            "title": "Perguntas.",
             "q1": {
                 "question": "O que é o Peanut Card?",
                 "answer": "Peanut Card é um cartão Visa virtual para usar seu saldo Peanut online e com carteiras digitais compatíveis."
@@ -3824,8 +3843,9 @@
             }
         },
         "ready": {
-            "title": "Peça seu Peanut Card",
-            "subtitle": "Comece sua solicitação hoje."
+            "title": "Pronto?",
+            "subtitle": "Entre, verifique, pague.",
+            "disclaimer": "Sujeito a elegibilidade. Verificação de identidade obrigatória."
         }
     },
     "unsupportedWebView": {

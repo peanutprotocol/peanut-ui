@@ -1685,15 +1685,22 @@
         "hero": {
             "tagline": "Tu plata. Lista para pagar.",
             "body": "Usá tu Peanut Card en línea y, sin contacto, con Apple Pay o Google Pay donde estén disponibles, donde se acepta Visa.",
-            "cta": "Conseguí tu tarjeta"
+            "cta": "Conseguí tu tarjeta",
+            "lead": "Una tarjeta Visa virtual que paga con tu saldo de Peanut. En línea y en tiendas con Apple Pay o Google Pay donde estén disponibles."
         },
         "whatItDoes": {
-            "body": "Agregá dinero a Peanut por transferencia bancaria, desde un exchange o con stablecoins compatibles. Pagá en línea o agregá tu tarjeta a Apple Pay o Google Pay donde estén disponibles."
+            "body": "Cargala como ya movés tu plata: transferencia bancaria, retiro desde un exchange o stablecoins. Después pagá donde se acepta Visa."
+        },
+        "notForYou": {
+            "body1": "Si tu plata vive en un solo país y una sola moneda, tu tarjeta bancaria ya funciona. Quedate con ella.",
+            "body2": "Si tu plata vive en otro lado, cruza fronteras, está en dólares o en más de un lugar, la Peanut Card se hizo para vos."
         },
         "howToApply": {
-            "verify": "Iniciá sesión y completá la verificación de identidad.",
-            "terms": "Revisá y aceptá los términos del titular.",
-            "spend": "Una vez aprobada, agregá fondos y empezá a pagar."
+            "signInTitle": "Iniciá sesión.",
+            "signInBody": "O creá tu cuenta. Toma un minuto.",
+            "verifyTitle": "Verificá.",
+            "spendTitle": "Pagá.",
+            "spendBody": "¿Aprobada? Agregá plata y pagá."
         },
         "marquee": {
             "available": "OBTENÉ TU TARJETA"
@@ -1713,8 +1720,7 @@
             }
         },
         "ready": {
-            "title": "Obtené tu Peanut Card",
-            "subtitle": "Empezá tu solicitud hoy."
+            "subtitle": "Iniciá sesión, verificá, pagá."
         }
     },
     "avatar": {
