@@ -15,7 +15,7 @@ include ':capacitor-camera'
 project(':capacitor-camera').projectDir = new File('../node_modules/.pnpm/@capacitor+camera@8.2.0_@capacitor+core@8.2.0/node_modules/@capacitor/camera/android')
 
 include ':capacitor-clipboard'
-project(':capacitor-clipboard').projectDir = new File('../node_modules/.pnpm/@capacitor+clipboard@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/clipboard/android')
+project(':capacitor-clipboard').projectDir = new File('../node_modules/.pnpm/@capacitor+clipboard@8.0.1_patch_hash=9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993_14f21bd37d5b3c1106d6da5e06e4b742/node_modules/@capacitor/clipboard/android')
 
 include ':capacitor-device'
 project(':capacitor-device').projectDir = new File('../node_modules/.pnpm/@capacitor+device@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/device/android')
