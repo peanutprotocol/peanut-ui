@@ -7,7 +7,7 @@ import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -893,7 +893,7 @@ function MantecaBankWithdrawFlow() {
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
                     {/* the balance error yields to the limits card only when that card renders */}
-                    <FieldColumn
+                    <Field
                         error={
                             shouldShowAmountError({
                                 showError: !!balanceErrorMessage,
@@ -928,7 +928,7 @@ function MantecaBankWithdrawFlow() {
                                     : undefined
                             }
                         />
-                    </FieldColumn>
+                    </Field>
 
                     {/* limits warning/error card - uses centralized helper for props */}
                     {limitsCardProps && (
@@ -971,7 +971,7 @@ function MantecaBankWithdrawFlow() {
                         </h2>
                         <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
                         <div className="space-y-2">
-                            <FieldColumn error={fieldError}>
+                            <Field error={fieldError}>
                                 <ValidatedInput
                                     value={destinationAddress}
                                     placeholder={countryConfig!.accountNumberLabel}
@@ -990,7 +990,7 @@ function MantecaBankWithdrawFlow() {
                                     }}
                                     validate={validateDestinationAddress}
                                 />
-                            </FieldColumn>
+                            </Field>
                             {countryConfig?.needsAccountType && (
                                 <BaseSelect
                                     value={accountType ?? undefined}

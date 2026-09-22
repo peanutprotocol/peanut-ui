@@ -1,7 +1,7 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
@@ -269,7 +269,7 @@ const LinkSendInitialView = () => {
         <>
             <PeanutActionCard type="send" />
 
-            <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+            <Field error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
                 <AmountInput
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleAmountChange}
@@ -277,7 +277,7 @@ const LinkSendInitialView = () => {
                     walletBalance={peanutWalletBalance}
                     balanceFillAmount={spendableBalanceDecimal}
                 />
-            </FieldColumn>
+            </Field>
 
             <BaseInput
                 placeholder={tCommon('comment')}

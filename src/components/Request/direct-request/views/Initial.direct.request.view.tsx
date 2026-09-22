@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -258,7 +258,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
                     />
                     {!authUser?.user.userId && (
-                        <FieldColumn error={fieldError}>
+                        <Field error={fieldError}>
                             <GeneralRecipientInput
                                 placeholder={t('recipientPlaceholder')}
                                 recipient={recipient}
@@ -284,7 +284,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                 }}
                                 showInfoText={false}
                             />
-                        </FieldColumn>
+                        </Field>
                     )}
 
                     {errorState.showError ? (
