@@ -16,7 +16,7 @@ export default function FieldPage() {
         <DocPage>
             <DocHeader
                 title="Field"
-                description="Form-field chrome from the form board (17802:61539): label + control + one helper/error line, gap 4. The error is text only and replaces the helper — Field never paints error borders. react-hook-form owns the state; wrap the control in a Controller."
+                description="Form-field chrome from the form board (17802:61539): an optional label + control + one helper/error line, gap 4. The error is text only and replaces the helper — Field never paints error borders. The one form-field component: FieldColumn folded into it (kush 2026-09-22). react-hook-form owns the state; wrap the control in a Controller."
                 status="production"
             />
 
@@ -62,6 +62,34 @@ export default function FieldPage() {
         </Field>
     )}
 />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Bare control (no label)"
+                description="Omit label and helper to get the control + error column on its own — the shape FieldColumn used to carry. Pass errorId when the control needs aria-describedby, errorTestId when a test looks the error up by name."
+            >
+                <DocSection.Content>
+                    <Field error="Amount is required" errorId="ds-field-bare-error">
+                        <BaseInput
+                            placeholder="Amount"
+                            state="error"
+                            aria-describedby="ds-field-bare-error"
+                            aria-label="Amount"
+                        />
+                    </Field>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Bare control"
+                        code={`<Field error={errors.amount?.message} errorId="amount-error">
+    <BaseInput
+        placeholder="Amount"
+        state={errors.amount ? 'error' : 'default'}
+        aria-describedby={errors.amount ? 'amount-error' : undefined}
+    />
+</Field>`}
                     />
                 </DocSection.Code>
             </DocSection>

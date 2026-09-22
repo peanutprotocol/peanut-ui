@@ -1,7 +1,7 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Badge from '@/components/Global/Badges/Badge'
 import React, { forwardRef, useId } from 'react'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 
 interface ProfileEditFieldProps {
     label: string
@@ -62,7 +62,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                     </label>
                     {badge && <Badge status="soon" size="small" customText={badge} />}
                 </div>
-                <FieldColumn error={error} errorId={`${id}-error`}>
+                <Field error={error} errorId={`${id}-error`}>
                     <BaseInput
                         ref={ref}
                         name={name}
@@ -80,7 +80,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                         placeholder={placeholder}
                         disabled={disabled}
                     />
-                </FieldColumn>
+                </Field>
             </div>
         )
     }
