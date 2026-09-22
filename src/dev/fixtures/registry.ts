@@ -449,8 +449,10 @@ const BRIDGE_CO_CAPABILITIES = {
     restrictions: [],
 }
 
-/** Every verified-user deposit-account fixture answers the gate the same way. */
-const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
+/** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
+const VA_READY_RESPONSE = {
+    'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
+}
 
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
