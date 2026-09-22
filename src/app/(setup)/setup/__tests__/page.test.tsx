@@ -327,20 +327,23 @@ it('does not attribute a stored session-end page to a new signup', async () => {
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'default' }))
 })
 
-it('settles a native badge campaign before redirecting an authenticated user home', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
-    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+it.each([true, false])(
+    'settles a native badge campaign before redirecting home (legacy access=%s)',
+    async (hasAppAccess) => {
+        mockAuth.user = { user: { username: 'alice', hasAppAccess } }
+        mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
 
-    renderWithIntl(<SetupPage />)
+        renderWithIntl(<SetupPage />)
 
-    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
-    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
-    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
-    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
-        mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
-    )
-})
+        await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+        expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
+            mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
+        )
+    }
+)
 
 it('does not redirect home when setup unmounts before the native claim settles', async () => {
     mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }

@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
@@ -27,18 +27,37 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
+import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
-import { useTranslations } from 'next-intl'
+import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
+import { BankTransferChooserDrawer } from './BankTransferChooserDrawer'
+import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { useFormatter, useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
+import { usdRemainingOf } from '../collected'
 
 interface RequestPotActionListProps {
     isAmountEntered: boolean
     usdAmount: string
     recipientUserId?: string
     recipientUsername?: string
+    recipientAvatarKey?: string | null
+    requestMessage?: string
+    /** the request being paid — needed to read its bank details */
+    requestId?: string
+    /** the requester lets this request be settled by bank transfer */
+    bankPayable?: boolean
+    /** what the request still needs, in dollars; undefined on an open-amount request */
+    remainingUsd?: number
+    /** the token the request is denominated in; a bank payer is shown an amount only when it is a dollar token */
+    requestTokenSymbol?: string | null
+    /** the fiat currency the requester asked in; absent or null means USD */
+    requestCurrency?: string | null
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
     isExternalWalletLoading?: boolean
@@ -50,6 +69,13 @@ export function RequestPotActionList({
     usdAmount,
     recipientUserId,
     recipientUsername,
+    recipientAvatarKey,
+    requestMessage,
+    requestId,
+    bankPayable = false,
+    remainingUsd,
+    requestTokenSymbol,
+    requestCurrency,
     onPayWithPeanut,
     isPaymentLoading = false,
     isExternalWalletLoading = false,
@@ -58,7 +84,9 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
+    const methodLabels = usePaymentMethodLabels()
+    const format = useFormatter()
+    const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
@@ -69,6 +97,9 @@ export function RequestPotActionList({
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+    // Bank rails whose details the API could not serve, for as long as this
+    // screen lives. A row that opens onto "not available" is not offered twice.
+    const [unavailableRails, setUnavailableRails] = useState<ReadonlySet<string>>(new Set())
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -148,6 +179,140 @@ export function RequestPotActionList({
         }
     }
 
+    // A signed-out payer who taps the generic "Bank" method is sent to signup,
+    // because that method funds a Peanut balance first. When the requester
+    // shares bank details, a signed-out payer — a business paying an invoice,
+    // say — can pay with no account, so that row leads and the generic one goes.
+    // A signed-in payer keeps both: the transfer asks them to leave the app and
+    // type a reference, so it stays the last option.
+    const requesterBankFirst = bankPayable && !!requestId && !isLoggedIn && !isFetchingUser
+    const visibleMethods = requesterBankFirst ? sortedMethods.filter((method) => method.id !== 'bank') : sortedMethods
+    const isDollarRequest = isUsdPeggedRequest(requestTokenSymbol)
+
+    // Per-rail amounts matter in two cases: the requester shares bank details
+    // (one row per currency they can receive), or asked in another currency
+    // than dollars. Any other request reads nothing.
+    const asksInOtherCurrency = !!requestCurrency && requestCurrency.toUpperCase() !== 'USD'
+    const { payAmounts, isLoading: isPayAmountsLoading } = useRequestPayAmounts(
+        bankPayable || asksInOtherCurrency ? requestId : undefined
+    )
+    // The currency the request asks in leads: it is the one a bank payer can
+    // settle exactly. The rest keep the order the API sent them in.
+    const askedCurrency = (payAmounts?.requestCurrency ?? requestCurrency ?? 'USD').toUpperCase()
+    const bankRails = (bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : [])
+        // a rail whose details turned out to be unavailable is not offered again
+        .filter((rail) => !unavailableRails.has(rail.railId ?? rail.payerAmount.currency))
+        .sort(
+            (a, b) =>
+                Number(b.payerAmount.currency.toUpperCase() === askedCurrency) -
+                Number(a.payerAmount.currency.toUpperCase() === askedCurrency)
+        )
+
+    // The API's own "left to pay" in dollars, when it sent one: the Peanut rail
+    // is always dollars and exact, and it is the figure the bank amounts were
+    // computed from.
+    //
+    // It is only used while it does not exceed what the screen still needs. The
+    // screen counts every contribution it has loaded, wallet and crypto
+    // included. An API remainder above that has missed one of them, and its
+    // bank figures would ask this payer for money somebody already paid — as a
+    // copyable "exact" amount. A smaller one knows of a payment the screen has
+    // not loaded yet, and wins.
+    //
+    // An answer with no Peanut rail — and an unparseable one — is NOT the API
+    // disagreeing: it is no figure at all. Reading `NaN` as a disagreement
+    // downgraded an exact same-currency figure to an estimate, and could turn
+    // the note into dollars-only instructions.
+    const apiRemainingUsd = usdRemainingOf(payAmounts)
+    const serverCountsAllPayments =
+        remainingUsd === undefined ||
+        apiRemainingUsd === undefined ||
+        (apiRemainingUsd > 0 && apiRemainingUsd <= remainingUsd + 0.005)
+    // `remainingAmount` is "0" once everything asked for has arrived. Null means
+    // an open amount or no figure, which is not "covered".
+    //
+    // The screen's own count answers for every request, where the API's does
+    // not: the pay-amounts read only happens for a bank-payable request or one
+    // asked in another currency. A request paid in full from wallets still
+    // reads `status: OPEN` — only a matched bank deposit closes one — so
+    // without this the payer met a live Pay button prefilled with the whole
+    // amount, on a request that needs nothing.
+    const alreadyCovered =
+        (payAmounts?.remainingAmount !== null &&
+            payAmounts?.remainingAmount !== undefined &&
+            Number(payAmounts.remainingAmount) === 0) ||
+        (remainingUsd !== undefined && remainingUsd <= 0)
+    const bankRowProps = {
+        bankPayable,
+        usdAmount: isDollarRequest ? usdAmount : undefined,
+        remainingUsd: !isDollarRequest
+            ? undefined
+            : serverCountsAllPayments && apiRemainingUsd !== undefined && apiRemainingUsd > 0
+              ? apiRemainingUsd
+              : remainingUsd,
+        serverCountsAllPayments,
+    }
+    const requestedAmount = Number(payAmounts?.requestAmount)
+    const requestContextAmount =
+        payAmounts && Number.isFinite(requestedAmount) && requestedAmount > 0
+            ? `${format.number(requestedAmount, {
+                  minimumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
+                  maximumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
+              })} ${payAmounts.requestCurrency.toUpperCase()}`
+            : undefined
+    // The generic row, where the backend picks the account, is for one case: the
+    // pay-amounts read gave NOTHING, because the API predates the route or the
+    // read failed. An answer that lists no bank rail is an answer: a request
+    // whose remainder is zero has none, and its bank details answer 404. The
+    // generic row there opened onto "not available".
+    // While the rails are loading the rows are not known: one generic row, or
+    // one per currency. Rendering the generic row first and swapping it for the
+    // per-rail rows changes their keys, and a drawer the payer had already
+    // opened lost its state. A placeholder holds the place until the read
+    // settles, in success or in failure.
+    const requesterBankRows = !requestId ? null : bankPayable && isPayAmountsLoading ? (
+        <div
+            className="h-16 w-full animate-pulse rounded-sm bg-foreground-primary/10"
+            data-testid="bank-rows-loading"
+            aria-hidden
+        />
+    ) : bankRails.length > 0 ? (
+        <BankTransferChooserDrawer
+            requestId={requestId}
+            rails={bankRails}
+            recipientUsername={recipientUsername}
+            recipientAvatarKey={recipientAvatarKey}
+            requestMessage={requestMessage}
+            requestAmount={requestContextAmount}
+            bankRowProps={bankRowProps}
+            onUnavailable={(rail) =>
+                setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
+            }
+        />
+    ) : payAmounts ? null : (
+        <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
+    )
+
+    // A request asked in euros is paid in dollars on the Peanut and crypto
+    // rails. Say so once, with the asked amount, instead of leaving the payer
+    // to wonder why the screen shows dollars.
+    const otherCurrencyNote = useMemo(() => {
+        if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
+        const currency = payAmounts.requestCurrency.toUpperCase()
+        const digits = minorUnitDigits(currency)
+        const show = (value: number) =>
+            format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+        const asked = Number(payAmounts.requestAmount)
+        const left = Number(payAmounts.remainingAmount)
+        if (!(asked > 0)) return undefined
+        // A part-paid request states what is left: that is what a payer can still
+        // send. Not where the API's remainder missed a payment: the screen has
+        // no figure of its own in this currency, so it states none.
+        return serverCountsAllPayments && left > 0 && left < asked
+            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left), currency })
+            : t('requestCurrencyNote', { amount: show(asked), currency })
+    }, [payAmounts, serverCountsAllPayments, format, t])
+
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -156,8 +321,22 @@ export function RequestPotActionList({
         )
     }
 
+    // Open, and with nothing left to pay. The notice is the whole body: a
+    // helper line above a live Pay button and every payment method is an
+    // invitation to send money into a request that needs none, and the payer
+    // cannot get it back.
+    if (alreadyCovered) {
+        return (
+            <Callout priority="attention" data-testid="request-already-covered">
+                {t('requestAlreadyCovered')}
+            </Callout>
+        )
+    }
+
     return (
         <div className="space-y-2">
+            {otherCurrencyNote && <Callout priority="helper">{otherCurrencyNote}</Callout>}
+
             {/* pay with peanut button */}
             <SendWithPeanutCta
                 onClick={onPayWithPeanut}
@@ -171,7 +350,8 @@ export function RequestPotActionList({
 
             {/* payment methods */}
             <div className="space-y-2">
-                {sortedMethods.map((method) => {
+                {requesterBankFirst && requesterBankRows}
+                {visibleMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
                     if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
@@ -180,13 +360,13 @@ export function RequestPotActionList({
                     return (
                         <ListItem
                             key={method.id}
-                            position="single"
-                            body={<div className="text-body-xs">{method.description}</div>}
+                            position="solo"
+                            body={<div className="text-body-xs">{methodLabels(method).description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
-                                    {method.title}
+                                    {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
-                                        <StatusBadge
+                                        <Badge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
@@ -199,6 +379,8 @@ export function RequestPotActionList({
                         />
                     )
                 })}
+
+                {!requesterBankFirst && requesterBankRows}
             </div>
 
             {/* minimum amount error modal */}
@@ -207,7 +389,7 @@ export function RequestPotActionList({
                 onClose={() => setShowMinAmountError(false)}
                 title={t('minAmount.title')}
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
-                tone="warning"
+                tone="attention"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 preventClose={false}
             />
@@ -237,7 +419,7 @@ export function RequestPotActionList({
                     {
                         text: tCommon('continue'),
                         shadowSize: '4',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
                             setIsUsePeanutBalanceModalShown(true)

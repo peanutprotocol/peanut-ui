@@ -23,12 +23,14 @@ interface ListItemProps {
     className?: string
     'data-testid'?: string
     'aria-label'?: string
+    /** a row that folds a section open below it, rather than navigating */
+    'aria-expanded'?: boolean
 }
 
 /**
  * Row component from the figma list-item board (17802:61530).
  * Anatomy: leading slot + title (16/20 semibold) + body (14/20 secondary),
- * trailing slot / chevron. Grouping via position (top/middle/bottom/solo),
+ * trailing slot / chevron. Grouping via position (solo/top/middle/bottom),
  * pressed = disabled-background fill, disabled (board 17785:14606) =
  * background/disabled fill + border/subtle + secondary title, content at full
  * opacity so badges and checkmarks keep their contrast. Rows compute to
@@ -41,12 +43,13 @@ export const ListItem = ({
     leading,
     trailing,
     chevron,
-    position = 'single',
+    position = 'solo',
     disabled,
     onClick,
     className,
     'data-testid': dataTestId,
     'aria-label': ariaLabel,
+    'aria-expanded': ariaExpanded,
 }: ListItemProps) => {
     const { triggerHaptic } = useAppHaptic()
     const titleColor = disabled ? 'text-foreground-secondary' : 'text-foreground-primary'
@@ -65,6 +68,7 @@ export const ListItem = ({
             tabIndex={onClick && !disabled ? 0 : undefined}
             aria-disabled={disabled || undefined}
             aria-label={ariaLabel}
+            aria-expanded={ariaExpanded}
             data-testid={dataTestId}
             className={twMerge(
                 'flex items-center justify-between gap-3 p-4',

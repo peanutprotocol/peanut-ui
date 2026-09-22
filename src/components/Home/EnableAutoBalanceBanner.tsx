@@ -104,7 +104,7 @@ export default function EnableAutoBalanceBanner() {
                 : hardError || stuckAfterSuccess
                   ? tCommon('tryAgain')
                   : tCommon('continue'),
-            variant: 'purple',
+            variant: 'primary',
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
@@ -126,7 +126,7 @@ export default function EnableAutoBalanceBanner() {
     if (errorForThisCard || stuckAfterSuccess) {
         ctas.push({
             text: tCommon('skipForNow'),
-            variant: 'stroke',
+            variant: 'secondary',
             disabled: isGranting,
             onClick: () => setDismissedFor(card?.id ?? null),
         })
@@ -141,7 +141,7 @@ export default function EnableAutoBalanceBanner() {
             preventClose
             hideModalCloseButton
             icon="credit-card"
-            iconContainerClassName="bg-action-secondary"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
             ctas={ctas}

@@ -19,11 +19,13 @@ import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { remainingToPay } from './collected'
 
 export function useContributePotFlow() {
     const t = useTranslations('payment')
@@ -118,14 +120,25 @@ export function useContributePotFlow() {
         )
     }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingSpendableBalance])
 
+    // What is left to pay. The slider spans it and every suggestion is capped
+    // by it, so the field can never prefill more than the request still needs.
+    const remainingAmount = useMemo(() => remainingToPay(totalAmount, totalCollected), [totalAmount, totalCollected])
+
     // calculate default slider value and suggested amount
     const sliderDefaults = useMemo(() => {
-        if (totalAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
+        if (remainingAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
 
-        // no contributions yet - suggest 100% (full pot)
-        if (contributors.length === 0) {
-            return { percentage: 100, suggestedAmount: totalAmount }
+        // A suggestion is an offer to pay, so it stops at the remainder. Bank
+        // deposits are counted in `totalCollected` and in nothing else the
+        // payer can see, which is why a suggestion read off the charges alone
+        // used to overshoot.
+        const suggest = (amount: number) => {
+            const suggestedAmount = Math.min(amount, remainingAmount)
+            return { percentage: (suggestedAmount / remainingAmount) * 100, suggestedAmount }
         }
+
+        // no contributions yet - suggest the whole remainder
+        if (contributors.length === 0) return suggest(remainingAmount)
 
         // calculate based on existing contributions
         const contributionAmounts = contributors.map((c) => parseFloat(c.amount)).filter((a) => !isNaN(a) && a > 0)
@@ -137,22 +150,18 @@ export function useContributePotFlow() {
         const isOneThirdCollected = Math.abs(collectedPercentage - 100 / 3) < 2
         const isTwoThirdsCollected = Math.abs(collectedPercentage - 200 / 3) < 2
 
-        if (isOneThirdCollected || isTwoThirdsCollected) {
-            const exactThird = 100 / 3
-            return { percentage: exactThird, suggestedAmount: totalAmount * (exactThird / 100) }
-        }
+        if (isOneThirdCollected || isTwoThirdsCollected) return suggest(totalAmount / 3)
 
         // suggest median contribution
         const sortedAmounts = [...contributionAmounts].sort((a, b) => a - b)
         const midIndex = Math.floor(sortedAmounts.length / 2)
-        const suggestedAmount =
+        const median =
             sortedAmounts.length % 2 === 0
                 ? (sortedAmounts[midIndex - 1] + sortedAmounts[midIndex]) / 2
                 : sortedAmounts[midIndex]
 
-        const percentage = Math.min((suggestedAmount / totalAmount) * 100, 100)
-        return { percentage, suggestedAmount }
-    }, [totalAmount, totalCollected, contributors])
+        return suggest(median)
+    }, [totalAmount, totalCollected, contributors, remainingAmount])
 
     // execute the contribution
     const executeContribution = useCallback(
@@ -226,6 +235,13 @@ export function useContributePotFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
+                // Card re-approval dismissed, or the screen left, before
+                // anything was prepared or signed — control flow, not a failed
+                // contribution. The charge stays open for another attempt.
+                if (err instanceof SpendRecoveryAbortedError) {
+                    setIsLoading(false)
+                    return { success: false }
+                }
                 const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
@@ -274,6 +290,7 @@ export function useContributePotFlow() {
         // derived data
         totalAmount,
         totalCollected,
+        remainingAmount,
         contributors,
         sliderDefaults,
 

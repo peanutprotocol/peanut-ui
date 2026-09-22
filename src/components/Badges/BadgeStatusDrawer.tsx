@@ -91,7 +91,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             </DrawerTitle>
                         </button>
 
-                        <Card position="single" className="mb-4 divide-y divide-dashed divide-border-default px-4 py-0">
+                        <Card position="solo" className="mb-4 divide-y divide-dashed divide-border-default px-4 py-0">
                             <DataRow label={t('unlockedAtLabel')} value={dateStr} />
                             <DataRow label={t('reasonLabel')} value={displayDescription} />
                         </Card>

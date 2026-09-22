@@ -7,7 +7,7 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
-import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
+import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/Badge'
 import { useTranslations } from 'next-intl'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
@@ -51,11 +51,11 @@ export function PerkRewardReceipt({
                     </div>
                     {transaction.status !== 'completed' &&
                         (transaction.status === 'pending' || transaction.status === 'processing' ? (
-                            <span className="rounded-round bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
+                            <span className="rounded-full bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon('status.processing')}
                             </span>
                         ) : (
-                            <span className="rounded-round bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
+                            <span className="rounded-full bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon(
                                     (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
                                 )}
@@ -69,7 +69,7 @@ export function PerkRewardReceipt({
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card position="single" className={receiptDataRowCardClassName}>
+            <Card position="solo" className={receiptDataRowCardClassName}>
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
                     label={t('rows.reason')}

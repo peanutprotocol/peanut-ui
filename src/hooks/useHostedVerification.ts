@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { startHostedVerification } from '@/app/actions/sumsub'
+import { refreshKycState, startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 
 /**
@@ -13,6 +14,16 @@ import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/
  *
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
+ *
+ * A Bridge return opens ONE settle window per launch: the app asks the API to
+ * expedite the provider poll, re-arms the shared user poller (the submission
+ * window, 4s refetches with an in-flight guard) and repeats both at 20s and
+ * 40s, until the task clears or a minute passes. Nothing else reports the
+ * result — the provider's page never hands the user back (Bridge issues no
+ * redirect for most customers) and a webhook can arrive hours later or never.
+ * Without the window a finished check looked like nothing had happened, and
+ * users ran it again (TASK-22818). A Rain return, or any signal before a
+ * launch or inside an open window, is one refetch, as before.
  */
 interface HostedVerification {
     /** Call STRAIGHT out of a click — the tab reservation needs the gesture. */
@@ -20,26 +31,117 @@ interface HostedVerification {
     isStarting: boolean
     /** Friendly copy for a failed launch; never the raw server detail. */
     error: string | null
+    /** The user came back from Bridge and the app is still waiting for the result. */
+    isSettling: boolean
+    /** The settle window ended with the task still pending — say so, don't re-offer silently. */
+    stillPendingAfterReturn: boolean
 }
 
+interface HostedVerificationOptions {
+    /**
+     * Whether the task this screen serves is still pending. Ends the settle
+     * window early when it clears. Screens with no task in scope leave it
+     * `true`, so the window runs to its end.
+     */
+    taskPending?: boolean
+}
+
+/** The settle window, and when inside it the app nudges the API and the poller again. */
+const SETTLE_WINDOW_MS = 60_000
+const SETTLE_NUDGES_MS = [20_000, 40_000]
+
 export function useHostedVerification(
-    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted',
+    { taskPending = true }: HostedVerificationOptions = {}
 ): HostedVerification {
     const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isSettling, setIsSettling] = useState(false)
+    const [stillPendingAfterReturn, setStillPendingAfterReturn] = useState(false)
     // Synchronous re-entry guard. `isStarting` is React state, set a tick later,
     // so a fast second tap (Capacitor especially) re-enters start() before the
     // disable takes effect and reserves/opens a SECOND portal tab. The ref
     // blocks the duplicate in the same tick; reset on every exit path via finally.
     const startingRef = useRef(false)
+    // Return-leg bookkeeping. `startedRef`: a launch happened since mount, so a
+    // return signal is a return (a BFCache restore or a tab switch before any
+    // launch is not). `windowOpenRef`: one settle window per launch; later
+    // signals inside it only refetch. `expediteRef`: stop asking the API once
+    // it answers that there is nothing to expedite. `timersRef`: the window's
+    // timers, so unmount and a new launch can clear them.
+    const startedRef = useRef(false)
+    const windowOpenRef = useRef(false)
+    const expediteRef = useRef(true)
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+    const taskPendingRef = useRef(taskPending)
+
+    const clearTimers = useCallback(() => {
+        for (const timer of timersRef.current) clearTimeout(timer)
+        timersRef.current = []
+    }, [])
+    const closeWindow = useCallback(
+        (stillPending: boolean) => {
+            windowOpenRef.current = false
+            clearTimers()
+            setIsSettling(false)
+            setStillPendingAfterReturn(stillPending)
+        },
+        [clearTimers]
+    )
+
+    // One nudge: re-arm the shared user poller, ask the API to expedite the
+    // provider poll unless it already said there is nothing to expedite, then
+    // refetch once right away. All best effort.
+    const nudge = useCallback(async () => {
+        markSubmitted()
+        if (expediteRef.current) {
+            const { expedited } = await refreshKycState()
+            if (!expedited) expediteRef.current = false
+        }
+        await fetchUser().catch(() => undefined)
+    }, [fetchUser])
+
+    const onReturn = useCallback(() => {
+        if (actionKey !== 'bridge-hosted' || !startedRef.current || windowOpenRef.current) {
+            void fetchUser().catch(() => undefined)
+            return
+        }
+        // One window per launch: the launch is consumed here, so a signal after
+        // the window closes is one refetch until the user starts again.
+        startedRef.current = false
+        windowOpenRef.current = true
+        expediteRef.current = true
+        setStillPendingAfterReturn(false)
+        setIsSettling(true)
+        void nudge()
+        timersRef.current = [
+            ...SETTLE_NUDGES_MS.map((ms) => setTimeout(() => void nudge(), ms)),
+            // Wall clock, not round count: a slow request cannot stretch the window.
+            setTimeout(() => {
+                if (windowOpenRef.current) closeWindow(taskPendingRef.current)
+            }, SETTLE_WINDOW_MS),
+        ]
+    }, [actionKey, fetchUser, nudge, closeWindow])
+
+    // The task clearing — capabilities re-derived by any refetch — ends the
+    // window. The ref is written here, after commit, so the wall-clock timer
+    // never reads a value from a render React discarded.
+    useEffect(() => {
+        taskPendingRef.current = taskPending
+        if (windowOpenRef.current && !taskPending) closeWindow(false)
+    }, [taskPending, closeWindow])
+
+    useEffect(() => () => clearTimers(), [clearTimers])
 
     const start = useCallback(async () => {
         if (startingRef.current) return
         startingRef.current = true
         try {
             setError(null)
+            if (windowOpenRef.current) closeWindow(false)
+            setStillPendingAfterReturn(false)
             // NOT an iframe: `bridge.withpersona.com` serves
             // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
             // "refused to connect" for EVERY user. It has to be a real
@@ -103,7 +205,10 @@ export function useHostedVerification(
                     // No usable tab: pop-ups were blocked, or the user closed
                     // the blank tab while we fetched. Same-tab
                     // navigation is never gesture-gated, so it always lands.
+                    // A BFCache restore is this path's return leg, so the
+                    // launch is armed before navigating away.
                     reservedTab?.close()
+                    startedRef.current = true
                     window.location.href = url
                     return
                 }
@@ -113,11 +218,14 @@ export function useHostedVerification(
                 setError("We couldn't open the verification. Please try again in a moment.")
                 return
             }
+            // Armed only by a handoff that happened: a failed launch must not
+            // turn the next tab switch or restore into a settle window.
+            startedRef.current = true
             setAwaitingReturn(true)
         } finally {
             startingRef.current = false
         }
-    }, [fetchUser, actionKey])
+    }, [fetchUser, actionKey, closeWindow])
 
     // The same-tab fallback navigates THIS tab away, so the listener below is
     // never armed for it — and a Back that restores from BFCache re-runs no
@@ -127,11 +235,11 @@ export function useHostedVerification(
     // having the task. `refetch` ignores staleness, which is the point.
     useEffect(() => {
         const onPageShow = (event: PageTransitionEvent) => {
-            if (event.persisted) void fetchUser().catch(() => undefined)
+            if (event.persisted) onReturn()
         }
         window.addEventListener('pageshow', onPageShow)
         return () => window.removeEventListener('pageshow', onPageShow)
-    }, [fetchUser])
+    }, [onReturn])
 
     // Nothing polls for this cohort — the ~4s user auto-refresh only runs
     // while a rail is `pending`, and these are `requires-info` — so pick the
@@ -143,7 +251,7 @@ export function useHostedVerification(
     // so we keep listening for as long as this screen is mounted.
     useEffect(() => {
         if (!awaitingReturn) return
-        const refresh = () => void fetchUser().catch(() => undefined)
+        const refresh = onReturn
 
         if (isNativeBridge()) {
             // Android WebViews don't reliably fire `visibilitychange` on
@@ -173,12 +281,12 @@ export function useHostedVerification(
             }
         }
 
-        const onReturn = () => {
+        const onVisible = () => {
             if (document.visibilityState === 'visible') refresh()
         }
-        document.addEventListener('visibilitychange', onReturn)
-        return () => document.removeEventListener('visibilitychange', onReturn)
-    }, [awaitingReturn, fetchUser, actionKey])
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    }, [awaitingReturn, onReturn, actionKey])
 
-    return { start, isStarting, error }
+    return { start, isStarting, error, isSettling, stillPendingAfterReturn }
 }

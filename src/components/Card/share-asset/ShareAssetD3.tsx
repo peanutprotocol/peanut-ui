@@ -362,7 +362,7 @@ const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSi
     if (variant === 'pill') {
         return (
             <span
-                className="inline-flex items-center justify-center rounded-full border-[6px] border-black bg-action-secondary"
+                className="inline-flex items-center justify-center rounded-full border-[6px] border-black bg-background-icon-bubble-yellow"
                 style={{
                     height: h,
                     padding: `0 ${fontSize * 0.7}px`,

@@ -73,6 +73,28 @@ const SupportDrawer = () => {
     })
 
     /*
+     * Defence in depth, not the fix.
+     *
+     * This drawer IS the app's support surface, and it is mounted by every app
+     * layout, so while it exists the stock Crisp launcher must not be on screen.
+     * The real fix is the marketing layout's own lifecycle
+     * (components/Marketing/CrispLauncher); this marker only makes sure a future
+     * main-window Crisp loader cannot leak a bubble into the app the way the
+     * marketing widget did.
+     *
+     * The rule keys off an attribute the APP sets rather than one marketing
+     * sets, so it can never reach the drawer's `/crisp-proxy` iframe: that is a
+     * separate document, which renders no SupportDrawer and therefore carries no
+     * marker, and the chatbox inside it stays visible.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.crispLauncher = 'hidden'
+        return () => {
+            delete document.documentElement.dataset.crispLauncher
+        }
+    }, [])
+
+    /*
      * The handshake pull happens once at iframe boot; later changes (email/name
      * resolving mid-session, a new prefill) are pushed over the same channel so
      * Crisp never keeps a stale identity. Token/locale changes remount the iframe
@@ -492,7 +514,7 @@ const SupportDrawer = () => {
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
                                 <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
-                                <Button variant="stroke" className="w-full" onClick={handleRetry}>
+                                <Button variant="secondary" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>
                             </div>

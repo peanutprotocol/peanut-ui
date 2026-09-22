@@ -23,7 +23,11 @@ export default function PaymentPage({ recipient }: Props) {
     const requestId = searchParams.get('id')
     const chargeIdFromUrl = searchParams.get('chargeId')
 
-    // request pot flow: ?id=<requestId>
+    // request pot flow: ?id=<requestId>. Every payer — signed-in or not — lands
+    // on the one screen that lists all the ways to pay together (Peanut, bank
+    // transfer, crypto). No bank-first excursion in front of it: leading a
+    // signed-out payer to the bank details alone hid the wallet and crypto
+    // options behind an "other ways to pay" step.
     if (requestId) {
         return <ContributePotPageWrapper requestId={requestId} />
     }

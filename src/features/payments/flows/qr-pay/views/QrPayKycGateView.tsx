@@ -56,7 +56,7 @@ export function QrPayKycGateView() {
                                 isKycApproved || undefined,
                                 targetMantecaCountry
                             ),
-                        variant: 'purple',
+                        variant: 'primary',
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
@@ -83,14 +83,14 @@ export function QrPayKycGateView() {
                                 isKycApproved || undefined,
                                 targetMantecaCountry
                             ),
-                        variant: 'purple',
+                        variant: 'primary',
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
                     {
                         text: t('kyc.notNow'),
                         onClick: onBack,
-                        variant: 'stroke',
+                        variant: 'secondary',
                         className: 'w-full',
                     },
                 ]}

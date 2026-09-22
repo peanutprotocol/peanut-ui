@@ -564,6 +564,8 @@ jobs:
                   # /dev page the regression specs drive. Locally .env sets
                   # it; CI has no .env, so set it here.
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Match the screen-library build: restored Webpack hashes crash WasmHash.
+                  SCREEN_CAPTURE_BUILD: '1'
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -737,6 +739,98 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
+    # The required subset of the regression suite: one spec, the button press
+    # physics. It reads computed style out of a real browser, so it is the only
+    # check that sees which state wins in the cascade — the class-name unit
+    # tests cannot, and this contract has broken twice.
+    #
+    # ds-shots runs the same spec but is advisory by design (see its comment
+    # above), so nothing gated it. This job does, and it stays lean: build,
+    # one spec, no screenshots and no diff machinery.
+    press-contract:
+        name: press-contract
+        runs-on: ubuntu-latest
+        # Build ~4m + one spec. A hang past this is a bug, not a slow day.
+        timeout-minutes: 20
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+            - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: npx playwright install --with-deps chromium
+
+            # The cache holds browsers, not the apt packages they link
+            # against, so system deps still need installing on a cache hit.
+            # Same apt-stall hardening as ds-shots (2026-08-19, PR #2755):
+            # this job gates ci-success, so a transient Azure-mirror stall
+            # must retry, not block merges.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+
+            # The regression config starts `next start`, so the build has to
+            # run first. NEXT_PUBLIC_VERCEL_ENV and NEXT_PUBLIC_BASE_URL are
+            # inlined at build time — without them /dev routes notFound() and
+            # the page gate redirects to /setup.
+            - name: Build
+              env:
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
+              run: pnpm build
+
+            - name: Run the press-physics spec
+              run: npx playwright test e2e/flows/button-press-physics.spec.ts --config=playwright.regression.config.ts
+
+            - name: Upload results on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: press-contract-results-${{ github.run_number }}
                   path: e2e/__results__/
                   retention-days: 7
 
@@ -1055,7 +1149,19 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, screen-tests, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
+        needs:
+            [
+                format,
+                screen-tests,
+                ds-lint,
+                eslint,
+                typecheck,
+                native-export,
+                unit,
+                press-contract,
+                report,
+                human-authors,
+            ]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -1070,6 +1176,7 @@ jobs:
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
+                      echo "  press-contract: ${{ needs['press-contract'].result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

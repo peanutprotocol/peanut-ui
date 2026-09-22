@@ -4,7 +4,7 @@
 // deferred-link.test.ts).
 import { renderHook, waitFor } from '@testing-library/react'
 import { useNativeAppLinks } from '../useNativeAppLinks'
-import { restoreDeferredContext } from '@/utils/deferred-link'
+import { applyDeferredPayload, parseDeferredPayload, restoreDeferredContext } from '@/utils/deferred-link'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
 import { BASE_URL } from '@/constants/general.consts'
@@ -61,9 +61,13 @@ jest.mock('@capacitor/app', () => ({
 
 jest.mock('@/utils/deferred-link', () => ({
     restoreDeferredContext: jest.fn(() => Promise.resolve(null)),
+    parseDeferredPayload: jest.fn(() => null),
+    applyDeferredPayload: jest.fn(() => ({ dest: null, locale: null })),
 }))
 
 const mockRestore = restoreDeferredContext as jest.MockedFunction<typeof restoreDeferredContext>
+const mockParseDeferredPayload = parseDeferredPayload as jest.MockedFunction<typeof parseDeferredPayload>
+const mockApplyDeferredPayload = applyDeferredPayload as jest.MockedFunction<typeof applyDeferredPayload>
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -73,6 +77,33 @@ beforeEach(() => {
     resetDeepLinkStateForTests()
     resetBackHandlersForTests()
     sessionStorage.clear()
+    mockParseDeferredPayload.mockReturnValue(null)
+    mockApplyDeferredPayload.mockReturnValue({ dest: null, locale: null })
+})
+
+describe('app-entry gateway', () => {
+    it('applies a QR handoff and opens its destination without visiting /app', async () => {
+        launchUrl = 'https://peanut.me/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard'
+        const payload = { badgeCampaigns: ['door'], dest: '/card' }
+        mockParseDeferredPayload.mockReturnValue(payload)
+        mockApplyDeferredPayload.mockReturnValue({ dest: '/card', locale: null })
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/card'))
+        expect(mockParseDeferredPayload).toHaveBeenCalledWith('?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard')
+        expect(mockApplyDeferredPayload).toHaveBeenCalledWith(payload)
+        expect(push).not.toHaveBeenCalledWith(expect.stringContaining('/app'))
+    })
+
+    it('opens ordinary home when a generic QR has no deferred payload', async () => {
+        launchUrl = 'https://peanut.me/home?app_entry=1'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/home'))
+        expect(mockApplyDeferredPayload).not.toHaveBeenCalled()
+    })
 })
 
 describe('useNativeAppLinks deferred restore wiring', () => {

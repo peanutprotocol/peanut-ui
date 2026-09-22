@@ -1,5 +1,5 @@
 /**
- * `tone` is the semantic color contract: yellow is for warnings only, red for
+ * `tone` is the semantic color contract: yellow is for attention only, red for
  * errors, green for success, blue for plain information. Call sites used to
  * pick the bubble color through a free-form class, which is how every second
  * modal ended up yellow.
@@ -24,7 +24,7 @@ const bubble = (container: HTMLElement) =>
 describe('ActionModal tone', () => {
     it.each([
         ['error', 'bg-background-icon-bubble-red', 'lucide-ban'],
-        ['warning', 'bg-background-icon-bubble-yellow', 'lucide-triangle-alert'],
+        ['attention', 'bg-background-icon-bubble-yellow', 'lucide-triangle-alert'],
         ['success', 'bg-background-icon-bubble-green', 'lucide-check'],
         ['info', 'bg-background-icon-bubble-blue', 'lucide-info'],
     ] as const)('%s maps to the %s bubble with its default icon', (tone, bg, iconClass) => {

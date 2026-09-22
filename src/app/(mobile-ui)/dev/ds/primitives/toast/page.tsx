@@ -11,18 +11,20 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { WhenToUse } from '../../_components/WhenToUse'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 const PERSISTENT_ID = 'ds-persistent-toast'
 const CUSTOM_CONTENT_ID = 'ds-custom-content-toast'
+const COOLDOWN_ID = 'ds-cooldown-toast'
 
 export default function ToastPage() {
-    const { toast, success, error, info, warning, dismiss } = useToast()
+    const { toast, success, error, info, attention, dismiss } = useToast()
 
     return (
         <DocPage>
             <DocHeader
                 title="Toast"
-                description="Provider-based, non-blocking feedback for transient events. Toast renders the Notification primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and custom content."
+                description="Provider-based, non-blocking feedback for transient events. Toast renders the Callout primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and non-interactive custom content. Toasts have no action buttons or links; the close button only dismisses the toast."
                 status="production"
             />
 
@@ -32,22 +34,22 @@ export default function ToastPage() {
             >
                 <DocSection.Content>
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="stroke" size="small" onClick={() => success('Operation successful!')}>
+                        <Button variant="secondary" size="small" onClick={() => success('Operation successful!')}>
                             success
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => error('Something went wrong')}>
+                        <Button variant="secondary" size="small" onClick={() => error('Something went wrong')}>
                             error
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => info('Did you know?')}>
+                        <Button variant="secondary" size="small" onClick={() => info('Did you know?')}>
                             info
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => warning('Check this out')}>
-                            warning
+                        <Button variant="secondary" size="small" onClick={() => attention('Check this out')}>
+                            attention
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             onClick={() =>
                                 toast({
@@ -60,11 +62,11 @@ export default function ToastPage() {
                         >
                             persistent
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => dismiss(PERSISTENT_ID)}>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(PERSISTENT_ID)}>
                             dismiss persistent
                         </Button>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             onClick={() =>
                                 toast({
@@ -82,7 +84,7 @@ export default function ToastPage() {
                         >
                             custom content
                         </Button>
-                        <Button variant="stroke" size="small" onClick={() => dismiss(CUSTOM_CONTENT_ID)}>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(CUSTOM_CONTENT_ID)}>
                             dismiss custom
                         </Button>
                     </div>
@@ -92,14 +94,14 @@ export default function ToastPage() {
                         label="Import + hook"
                         code={`import { useToast } from '@/components/0_Bruddle/Toast'
 
-const { success, error, info, warning } = useToast()`}
+const { success, error, info, attention } = useToast()`}
                     />
                     <CodeBlock
                         label="Trigger"
                         code={`success('Done!')
 error('Failed!')
 info('FYI...')
-warning('Be careful!')`}
+attention('Be careful!')`}
                     />
                     <CodeBlock
                         label="Persistent"
@@ -142,12 +144,12 @@ dismiss(id)`}
 
             <DocSection
                 title="Behavior"
-                description={'The visual surface is Notification variant="floating"; Toast owns delivery and lifetime.'}
+                description={'The visual surface is Callout variant="floating"; Toast owns delivery and lifetime.'}
             >
                 <DocSection.Content>
                     <ul className="space-y-2 text-body-s text-foreground-secondary">
                         <li>
-                            success, error, info, and warning are the caller-facing tones; warning uses Notification's
+                            success, error, info, and attention are the caller-facing tones; attention uses Callout's
                             attention tone.
                         </li>
                         <li>
@@ -178,8 +180,8 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
             </DocSection>
 
             <DesignNote type="info">
-                Keep toast copy short and user-facing. Use the flow's inline Notification or a full-page error surface
-                when the user must keep seeing the message or take action before continuing.
+                Keep toast copy short and user-facing. Use the flow's inline Callout or a full-page error surface when
+                the user must keep seeing the message or take action before continuing.
             </DesignNote>
 
             <SectionDivider />
@@ -193,7 +195,7 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                         description: 'Low-level API for custom type, ID, content, timing, and one-off classes',
                     },
                     {
-                        name: 'success | error | info | warning',
+                        name: 'success | error | info | attention',
                         type: '(message, options?) => ToastId',
                         default: '(hook methods)',
                         description: 'Convenience methods that set the corresponding tone',
@@ -218,7 +220,7 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                     },
                     {
                         name: 'type',
-                        type: "'success' | 'error' | 'info' | 'warning'",
+                        type: "'success' | 'error' | 'info' | 'attention'",
                         default: "'info'",
                         description: 'Caller-facing tone',
                     },
@@ -248,6 +250,63 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                     },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Receipt — copy link"
+                    path="src/components/TransactionDetails/ReceiptActions.tsx"
+                    description="The most common shape in the app: one line, success or error from the same call, no ID."
+                    code={`if (await copyTextToClipboard(receiptPageUrl)) toast.success(t('actions.linkCopied'))
+else toast.error(t('actions.linkCopyFailed'))`}
+                >
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="small" onClick={() => success('Link copied')}>
+                            copy succeeded
+                        </Button>
+                        <Button variant="secondary" size="small" onClick={() => error('Could not copy the link')}>
+                            copy failed
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Rain cooldown pill"
+                    path="src/context/RainCooldownContext.tsx"
+                    description="A persistent toast with custom content and a stable ID. Re-firing mid-cooldown is a no-op, so the pill never re-animates; the context dismisses it when the cooldown ends."
+                    code={`toast({
+    id: COOLDOWN_TOAST_ID,
+    duration: 'persistent',
+    content: <CooldownPillContent endsAt={cooldownEndsAt} />,
+})
+
+// later, when the cooldown elapses
+dismiss(COOLDOWN_TOAST_ID)`}
+                >
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() =>
+                                toast({
+                                    id: COOLDOWN_ID,
+                                    duration: 'persistent',
+                                    content: (
+                                        <span className="flex items-center gap-2">
+                                            <Icon name="clock" size={16} />
+                                            Card is cooling down — 4m 12s left
+                                        </span>
+                                    ),
+                                })
+                            }
+                        >
+                            start cooldown
+                        </Button>
+                        <Button variant="secondary" size="small" onClick={() => dismiss(COOLDOWN_ID)}>
+                            end cooldown
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

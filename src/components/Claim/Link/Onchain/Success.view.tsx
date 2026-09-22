@@ -22,7 +22,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Loading from '@/components/Global/Loading'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -203,9 +203,9 @@ export const SuccessClaimLinkView = ({
             <PageStack>
                 <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 <PageStack.Center className="gap-4">
-                    <Notification priority="error" data-testid="error-alert">
+                    <Callout priority="error" data-testid="error-alert">
                         {toFriendlyError({ code: claimFailure.code })}
-                    </Notification>
+                    </Callout>
                     {isRetryable && (
                         <Button
                             shadowSize="4"
@@ -220,7 +220,7 @@ export const SuccessClaimLinkView = ({
                             {tCommon('tryAgain')}
                         </Button>
                     )}
-                    <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
+                    <Button variant="secondary" className="w-full" onClick={() => router.push('/home')}>
                         {t('backToHome')}
                     </Button>
                 </PageStack.Center>

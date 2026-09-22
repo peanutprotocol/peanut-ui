@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import EvmChainChips from './EvmChainChips'
 import { useTranslations } from 'next-intl'
@@ -38,7 +38,7 @@ const SupportedNetworksDrawer = ({ visible, onClose }: SupportedNetworksDrawerPr
                         <div className="flex flex-wrap justify-center gap-2">
                             <EvmChainChips />
                         </div>
-                        <Notification priority="attention">{t('warning')}</Notification>
+                        <Callout priority="attention">{t('warning')}</Callout>
                         <Button shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {t('cta')}
                         </Button>

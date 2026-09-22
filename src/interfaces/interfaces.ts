@@ -227,6 +227,7 @@ export enum AccountType {
     US = 'us',
     CLABE = 'clabe',
     GB = 'gb', // uk bank accounts (sort code + account number)
+    CO_BANK_TRANSFER = 'co_bank_transfer', // colombian bank accounts
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     MANTECA = 'manteca',
@@ -238,6 +239,10 @@ export interface Account {
     bridgeAccountId: string
     type: AccountType
     identifier: string
+    /** The name the user gave this account, or null — see destinationLabel. */
+    label?: string | null
+    /** ISO 8601 of the newest withdrawal to this account; null means never used. */
+    lastUsedAt?: string | null
     details: {
         bankName: string | null
         accountOwnerName: string
@@ -304,6 +309,10 @@ export interface IUserProfile {
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
+    // The deposit-accounts rollout as the claim route decides it, from
+    // `app.configurations`. Read via useDepositAccountsEnabled(). Optional for
+    // the window before that API lands; absent reads as off.
+    depositAccounts?: { enabled: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
     // nextChangeAllowedAt: legacy field, ignored for self-declaration.

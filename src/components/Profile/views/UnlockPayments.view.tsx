@@ -1,14 +1,18 @@
 'use client'
 
+import Image from 'next/image'
+import { PEANUTMAN } from '@/assets/mascot'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import Card from '@/components/Global/Card'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import AccountsList from './AccountsList'
+import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
@@ -22,15 +26,15 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
-import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
+import { deriveRegionAccess, isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
-import ProgressBar from '@/components/0_Bruddle/ProgressBar'
-import { getCurrencySymbol, getLimitColorClass, getLimitData } from '@/features/limits/utils'
+import { limitSummariesForRows, MethodLimits } from './MethodLimits'
+import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -38,17 +42,19 @@ import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
-import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
 import {
+    BANK_ROW_COUNTRIES,
     buildUnlockGroups,
     type BankRegionChip,
-    type UnlockChip,
+    type BankRowKey,
     type UnlockGroup,
     type UnlockRow,
+    type UnlockRowLabelKey,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -61,6 +67,15 @@ import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
+
+/** Gate states that mean "a rail is here, it just cannot move money yet". */
+const MID_FLIGHT_GATES: ReadonlySet<string> = new Set([
+    'pending',
+    'waiting-on-provider',
+    'accept-tos',
+    'fixable-rejection',
+    'provide-email',
+])
 
 /** Same derivation the retired UnlockedRegions view used — modal machinery carried over. */
 function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: boolean): ModalVariant {
@@ -78,57 +93,6 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-/**
- * Inline limit summary for an ACTIVE bank row — the limits merge: usage lives
- * on the method it belongs to instead of a separate Limits screen. Manteca
- * (BR/AR) exposes monthly allowances → a usage bar; Bridge (US/MX/EU) only
- * caps per transaction → a plain line.
- */
-type RowLimitSummary =
-    | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
-    | { kind: 'bridge'; perTransaction: string }
-
-// Whole-unit cap with locale grouping ($100,000, not $100000): the shared
-// formatter only abbreviates from seven digits and never groups.
-function formatCap(amount: number, currency: string, locale: string): string {
-    const symbol = getCurrencySymbol(currency)
-    const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
-    return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
-}
-
-function limitSummariesForGroup(
-    group: UnlockGroup,
-    mantecaLimits: MantecaLimit[] | null,
-    bridgeLimits: BridgeLimits | null,
-    locale: string
-): RowLimitSummary[] {
-    const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
-    const summaries: RowLimitSummary[] = []
-    for (const ref of refs) {
-        if (ref === 'bridge') {
-            const cap = Number(bridgeLimits?.onRampPerTransaction)
-            if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                summaries.push({ kind: 'bridge', perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale) })
-            }
-            continue
-        }
-        const limit = mantecaLimits?.find((l) => l.asset === ref)
-        if (limit) {
-            const monthly = getLimitData(limit, 'monthly')
-            summaries.push({
-                kind: 'manteca',
-                asset: ref,
-                remaining: formatCap(monthly.remaining, ref, locale),
-                limit: formatCap(monthly.limit, ref, locale),
-                usedPercent: monthly.limit > 0 ? (monthly.remaining / monthly.limit) * 100 : 0,
-            })
-        }
-    }
-    return summaries
-}
-
-type BankRegionPath = 'europe' | 'north-america' | 'latam'
-
 const UnlockPayments = () => {
     const t = useTranslations('profile.unlockPayments')
     const tRegions = useTranslations('profile.regions')
@@ -138,8 +102,9 @@ const UnlockPayments = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     const [openView, setOpenView] = useQueryState('open', parseAsString)
+    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
+    const { rails, isKycApproved, nextActionsForRail, canDo, gateFor } = useCapabilities()
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
@@ -150,34 +115,39 @@ const UnlockPayments = () => {
     const { setIsSupportModalOpen } = useModalsContext()
 
     const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
-    const pendingPaths = useMemo(() => pendingBankRailRegionPaths(rails), [rails])
-    const bridgeRejection = useMemo(() => deriveProviderRejection(rails, 'BRIDGE'), [rails])
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const isSumsubApproved = isKycApproved
 
     // ── list model ──────────────────────────────────────────────────────────
-    const unlockedPaths = useMemo(() => new Set(unlockedRegions.map((region) => region.path)), [unlockedRegions])
 
-    const regionChipFor = useCallback(
-        (path: BankRegionPath): BankRegionChip => {
-            if (unlockedPaths.has(path)) return 'active'
-            if (pendingPaths.has(path)) return 'processing'
-            const provider = providerForRegionIntent(getRegionIntent(path))
-            if (provider) {
-                const rail =
-                    railsForProvider(provider).find(
-                        (r) => r.status === 'pending' || r.status === 'requires-info' || r.status === 'blocked'
-                    ) ?? railsForProvider(provider)[0]
-                if (rail?.status === 'pending') return 'processing'
-                // requires-info still reads Unlock: the chip is an invitation,
-                // and whatever the provider is waiting on surfaces after the tap
-                // (the action-required modal), not as a scarier chip.
-                if (rail?.status === 'requires-info') return 'unlock'
-                if (rail?.status === 'blocked') return 'attention'
-            }
+    /**
+     * The chip for one currency's bank corridor, read from the rails of that
+     * corridor's own COUNTRY.
+     *
+     * Two separate truths are folded in here. Holding a rail is not being
+     * allowed to use it: every Sumsub-approved user is enrolled on the QR-tier
+     * Manteca rails whatever their residence, so the rail is `enabled` because
+     * `pay` is while `deposit` and `withdraw` stay `requires-info`. A bank row
+     * says Available only when the user can move money on one of those two
+     * operations. And a provider is not a currency: scoping by provider gave
+     * the US and Mexico — both Bridge — one shared verdict, so a user with a
+     * working US rail read "Available" on a row that also named MXN. The gate
+     * is the hook's own country-scoped primitive; nothing here walks rails.
+     */
+    const bankChipFor = useCallback(
+        (key: BankRowKey): BankRegionChip => {
+            const scope = { channel: 'bank' as const, country: BANK_ROW_COUNTRIES[key] }
+            const kinds = [gateFor('deposit', scope).kind, gateFor('withdraw', scope).kind]
+            if (kinds.includes('ready')) return 'active'
+            // Only support can lift a blocked rail, so that one row says so.
+            if (kinds.includes('blocked-rejection') || kinds.includes('restart-identity')) return 'attention'
+            // A rail that exists but cannot move money yet is mid-flight,
+            // whatever it is waiting on — provisioning, a document, a ToS.
+            // Unlock is reserved for a corridor with no rail behind it at all,
+            // because that is the only case where the tap starts something.
+            if (kinds.some((kind) => MID_FLIGHT_GATES.has(kind))) return 'processing'
             return 'unlock'
         },
-        [unlockedPaths, pendingPaths, railsForProvider, nextActionsForRail]
+        [gateFor]
     )
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -216,15 +186,21 @@ const UnlockPayments = () => {
     const groups = useMemo(
         () =>
             buildUnlockGroups({
-                regionChips: {
-                    europe: regionChipFor('europe'),
-                    'north-america': regionChipFor('north-america'),
-                    latam: regionChipFor('latam'),
+                bankChips: {
+                    brl: bankChipFor('brl'),
+                    ars: bankChipFor('ars'),
+                    usd: bankChipFor('usd'),
+                    mxn: bankChipFor('mxn'),
+                    sepa: bankChipFor('sepa'),
                 },
-                qrOnly: {
-                    brazil: unlockedRegions.some((region) => region.path === 'brazil'),
-                    argentina: unlockedRegions.some((region) => region.path === 'argentina'),
-                },
+                // QR is a `pay` capability, read as one: the pool-tier rails
+                // every verified user holds pay by QR even though they cannot
+                // deposit or withdraw. `unlockedRegions` still covers the
+                // legacy Bridge-only cohort, who pay by QR with no Manteca
+                // rail at all.
+                canPayQr:
+                    canDo('pay', { provider: 'manteca' }) ||
+                    unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
@@ -233,7 +209,8 @@ const UnlockPayments = () => {
                 isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(declaredSecondIso2),
             }),
         [
-            regionChipFor,
+            bankChipFor,
+            canDo,
             unlockedRegions,
             restrictions,
             hasActiveCard,
@@ -243,9 +220,22 @@ const UnlockPayments = () => {
         ]
     )
 
+    // The three lists this screen shows, named by group id rather than by
+    // position: the bank rows feed the "Add and withdraw money" list, the
+    // other two get their own sections below it.
+    const peanutGroup = groups.find((group) => group.id === 'everywhere')
+    const spendGroup = groups.find((group) => group.id === 'spend')
+    const bankGroups = groups.filter((group) => group.id !== 'everywhere' && group.id !== 'spend')
+
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
+    // The tapped row, so the modal reads the rails of THAT row's country. A
+    // region intent covers two countries (Brazil and Argentina share LATAM),
+    // and a provider-wide read let a Brazilian row narrate an Argentine rail —
+    // the abandoned awaiting-action ghost, "setting up your account" forever
+    // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
+    const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
     // Card recovery deep-links here when only a pending residence change is
     // blocking issuance. Keep the deep link live rather than snapshotting it,
     // and clear it when the drawer closes so refresh/native restore cannot
@@ -262,18 +252,42 @@ const UnlockPayments = () => {
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
+    // Same scope `bankChipFor` reads the chip from: the QR row has no country
+    // of its own (the pool rails span both), so it keeps the provider-wide read.
+    const clickedRowCountry =
+        selectedRowKey && selectedRowKey in BANK_ROW_COUNTRIES ? BANK_ROW_COUNTRIES[selectedRowKey as BankRowKey] : null
+    const clickedRegionRails = useMemo(() => {
+        if (!selectedRegion || !clickedRegionProvider) return []
+        return rails.filter(
+            (rail) =>
+                rail.provider === clickedRegionProvider && (!clickedRowCountry || rail.country === clickedRowCountry)
+        )
+    }, [selectedRegion, clickedRegionProvider, clickedRowCountry, rails])
     const clickedRegionRail =
-        selectedRegion && clickedRegionProvider
-            ? (railsForProvider(clickedRegionProvider).find(
-                  (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
-              ) ?? railsForProvider(clickedRegionProvider)[0])
-            : undefined
+        clickedRegionRails.find(
+            (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
+        ) ?? clickedRegionRails[0]
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
+    // Only support can unblock a terminally rejected rail. This surface holds
+    // none of the Sumsub reject fields the modal reads, so it always offered
+    // "Try again" — a retry that cannot succeed, on the one screen of three
+    // that did not say so. The rail's own verdict is the answer.
+    const clickedRailIsTerminal = useMemo(() => {
+        if (!clickedRegionRail) return false
+        const byKey = new Map(nextActionsForRail(clickedRegionRail.id).map((action) => [action.key, action]))
+        return isTerminalRailRejection(clickedRegionRail, byKey)
+    }, [clickedRegionRail, nextActionsForRail])
 
-    const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
+    // Scoped like the rail above: a rejection on another country's rail is not
+    // a verdict on this row. A provider-wide restriction marks every rail of
+    // that provider, so it still shows here.
+    const providerRejectionForRegion = useMemo(
+        () => deriveProviderRejection(clickedRegionRails, clickedRegionProvider === 'bridge' ? 'BRIDGE' : 'MANTECA'),
+        [clickedRegionRails, clickedRegionProvider]
+    )
     const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
     const providerRejectionMessage = providerRejectionReasonKey
         ? tIdentity(providerRejectionReasonKey)
@@ -287,6 +301,7 @@ const UnlockPayments = () => {
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
+        setSelectedRowKey(null)
         setActiveRegionIntent(undefined)
     }, [])
 
@@ -295,12 +310,14 @@ const UnlockPayments = () => {
         onKycSuccess: handleFinalKycSuccess,
         onManualClose: () => {
             setSelectedRegion(null)
+            setSelectedRowKey(null)
             setActiveRegionIntent(undefined)
         },
     })
 
     const handleModalClose = useCallback(() => {
         setSelectedRegion(null)
+        setSelectedRowKey(null)
     }, [])
 
     // Deliberately NO card redirect here (the old screen's Europe→/card hijack):
@@ -312,15 +329,25 @@ const UnlockPayments = () => {
         setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
+        setSelectedRowKey(null)
+        // The backend only reads a target country as a Manteca geo (and refuses
+        // any other), so the row's country goes along for the Manteca rows: it
+        // names which of the two LATAM flows the tap meant, where a residence
+        // fallback would guess for a dual resident.
+        const targetCountry = clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined
         // Always cross-region: a locked method has no functional rail behind it,
         // and the flag is a no-op for first-time KYC (retired UnlockedRegions view).
-        await flow.handleInitiateKyc(intent, undefined, true)
-    }, [flow.handleInitiateKyc, selectedRegion])
+        await flow.handleInitiateKyc(intent, undefined, true, targetCountry)
+    }, [flow.handleInitiateKyc, selectedRegion, clickedRegionProvider, clickedRowCountry])
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
             if (row.href) {
                 router.push(row.href)
+                return
+            }
+            if (row.chip === 'active' || row.chip === 'alwaysOn') {
+                setDetailsRow(row)
                 return
             }
             if (!row.regionPath) return
@@ -329,6 +356,7 @@ const UnlockPayments = () => {
             // here the shared UnlockMethodModal is ours, so gate the tap itself.
             if (isKycDegraded) return
             setSelectedMethodLabel(t(`rows.${row.labelKey}`))
+            setSelectedRowKey(row.labelKey)
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
@@ -368,12 +396,26 @@ const UnlockPayments = () => {
     // repeated it. The banking note stays — it covers rails whose rows are
     // absent from the list entirely.
     const showBankRestrictionNote = restrictions.banking
+    // A bank row withheld for residence alone (the Manteca corridors outside
+    // their country) gets its reason in one line under the list, the same way
+    // the restriction note explains rows the restriction hides.
+    const showResidenceNote =
+        !restrictions.banking && bankGroups.some((group) => group.rows.some((row) => row.chip === 'notAvailable'))
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
-        <StatusBadge status="completed" customText={t('residence.verified')} />
+        <Badge status="completed" customText={t('residence.verified')} />
     ) : (
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
+
+    // Detail-drawer facts. Limits live HERE and nowhere else on this screen
+    // (2026-09-21, hugo): three standing cards — the Bridge per-transfer caps,
+    // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
+    // and repeated what a tap already says. Same derivation, same formatting,
+    // one tap down. The Limits block is hidden when a method publishes none.
+    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
+    const showDetailLimits = detailNoLimit || detailSummaries.length > 0
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -402,7 +444,7 @@ const UnlockPayments = () => {
             </div>
 
             {isKycDegraded && (
-                <Notification
+                <Callout
                     priority="attention"
                     title={t('degraded.title')}
                     ctas={[
@@ -416,25 +458,27 @@ const UnlockPayments = () => {
                     ]}
                 >
                     {t('degraded.body')}
-                </Notification>
+                </Callout>
             )}
 
-            {isIdentityInReview && !isKycDegraded && (
-                <Notification
+            {isIdentityInReview && identity.reviewPending === true && !isKycDegraded && (
+                <Callout
                     priority="helper"
                     title={
                         reviewSubmittedDate
                             ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
                             : t('review.since')
                     }
-                    ctas={
-                        reviewEscalation
-                            ? [{ label: t('review.messageUs'), onClick: () => setIsSupportModalOpen(true) }]
-                            : undefined
-                    }
                 >
-                    {reviewEscalation ? t('review.escalation') : t('review.body')}
-                </Notification>
+                    {reviewEscalation ? (
+                        <div className="flex flex-col items-start gap-1">
+                            <span>{t('review.escalation')}</span>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>{t('review.messageUs')}</LinkButton>
+                        </div>
+                    ) : (
+                        t('review.body')
+                    )}
+                </Callout>
             )}
 
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
@@ -448,19 +492,29 @@ const UnlockPayments = () => {
                 />
             )}
 
-            {groups.map((group) => (
-                <UnlockSection
-                    key={group.id}
-                    group={group}
-                    onRowClick={handleRowClick}
-                    isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForGroup(group, mantecaLimits, bridgeLimits, locale)}
-                />
-            ))}
+            {/* Currency-first merge (2026-09-18): every receiving corridor —
+                held VA accounts and the KYC-unlock bank/QR rows alike — in one
+                "Your accounts" list, flag-led, region headers dropped. The
+                first group is always "everywhere" (buildUnlockGroups), and its
+                own-region-first sort survives into the flattened row order. */}
+            <AccountsList
+                bankRows={bankGroups.flatMap((group) => group.rows)}
+                onRowClick={handleRowClick}
+                isKycDegraded={isKycDegraded}
+            />
+
+            {/* Spending methods, apart from the ways money moves between a bank
+                and Peanut. */}
+            {spendGroup && <RowSection group={spendGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />}
+
+            {peanutGroup && (
+                <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
+            )}
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
             )}
+            {showResidenceNote && <p className="text-body-xs text-foreground-secondary">{t('residenceNote')}</p>}
 
             {/* Region-restricted users get the one honest region screen instead
                 of an unlock offer that can only end in the same rejection: the
@@ -504,7 +558,17 @@ const UnlockPayments = () => {
                 }}
             />
 
-            <KycProcessingModal visible={modalVariant === 'processing'} onClose={handleModalClose} />
+            <KycProcessingModal
+                visible={modalVariant === 'processing'}
+                onClose={handleModalClose}
+                pendingSince={clickedRegionRail?.pendingSince}
+                waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                onResume={handleStartKyc}
+                onContactSupport={() => {
+                    handleModalClose()
+                    setIsSupportModalOpen(true)
+                }}
+            />
 
             <KycActionRequiredModal
                 visible={modalVariant === 'action_required'}
@@ -522,6 +586,7 @@ const UnlockPayments = () => {
                 rejectLabels={null}
                 rejectType={null}
                 failureCount={undefined}
+                isTerminal={clickedRailIsTerminal}
             />
 
             <ActionModal
@@ -566,7 +631,7 @@ const UnlockPayments = () => {
                                   }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
@@ -576,7 +641,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             }
                           : {
@@ -585,7 +650,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     setIsSupportModalOpen(true)
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             },
                 ]}
@@ -606,7 +671,7 @@ const UnlockPayments = () => {
                         ? [
                               {
                                   text: tCommon('tryAgain'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
@@ -616,7 +681,7 @@ const UnlockPayments = () => {
                               },
                               {
                                   text: tCommon('contactSupport'),
-                                  variant: 'stroke',
+                                  variant: 'secondary',
                                   onClick: () => {
                                       setErrorAcknowledged(true)
                                       setIsSupportModalOpen(true)
@@ -626,13 +691,55 @@ const UnlockPayments = () => {
                         : [
                               {
                                   text: tCommon('gotIt'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),
                               },
                           ]
                 }
             />
+
+            <Drawer open={!!detailsRow} onOpenChange={(open) => !open && setDetailsRow(null)}>
+                <DrawerContent>
+                    {detailsRow && (
+                        <div className="flex flex-col gap-6 pt-1 pb-6">
+                            {/* Hero: method mark + name + one-line value prop.
+                                Mirrors InitiateKycModal's drawer hero (IconBubble
+                                + DrawerHeader/DrawerTitle + a secondary line). */}
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                {peanutRowLeading(detailsRow, 'm')}
+                                <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                    <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                                    <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
+                                </DrawerHeader>
+                            </div>
+
+                            {/* What you can do: the same Section + ListGroup +
+                                ListItem row vocabulary the page's own row lists
+                                use, with a green check to read as a capability. */}
+                            <Section title={t('detailsDrawer.aboutTitle')}>
+                                <ListGroup>
+                                    <ListItem
+                                        leading={<IconBubble icon="check" size="s" color="green" />}
+                                        title={
+                                            <span className="break-words whitespace-normal">
+                                                {t(`details.${detailsRow.labelKey}`)}
+                                            </span>
+                                        }
+                                    />
+                                </ListGroup>
+                            </Section>
+
+                            {/* Limits: the only place this screen states them. */}
+                            {showDetailLimits && (
+                                <Section title={t('detailsDrawer.limitsTitle')}>
+                                    <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
+                                </Section>
+                            )}
+                        </div>
+                    )}
+                </DrawerContent>
+            </Drawer>
 
             <SumsubKycModals flow={flow} />
         </PageStack>
@@ -648,121 +755,71 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
-type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
-
-const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
-    attention: 'yellow',
-    notAvailable: 'gray',
+/**
+ * The two icon-led sections under the bank list: "Spend" (card + QR payments)
+ * and "Peanut" (the always-on P2P and crypto rows). The bank/QR corridor rows
+ * live in `AccountsList`, alongside the held account rows.
+ */
+/**
+ * Peanut-native rows keep their own brand mark instead of the generic
+ * status-color bubble every other row uses — same assets as elsewhere in the
+ * app (grep, don't invent): the mascot-on-yellow from the Contacts entry row
+ * (SendRouter.view.tsx) and the card-on-yellow avatar background rows use for
+ * a card spend with no merchant logo (TransactionAvatarBadge's AVATAR_WALLET_BG).
+ */
+function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    if (row.labelKey === 'p2p') {
+        return (
+            <IconBubble
+                icon={<Image src={PEANUTMAN} alt="" className={size === 's' ? 'h-5 w-auto' : 'h-8 w-auto'} />}
+                size={size}
+                color="yellow"
+            />
+        )
+    }
+    if (row.labelKey === 'card') {
+        return <IconBubble icon="credit-card" size={size} color="yellow" />
+    }
+    return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
 }
 
-/**
- * One region of the list (option D of the DS rebuild): a Section heading over
- * a ListGroup of method rows, closed by the region's own limits card so the
- * numbers sit next to the methods they govern.
- */
-const UnlockSection = ({
+const RowSection = ({
     group,
     onRowClick,
     isKycDegraded,
-    limitSummaries,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
-    limitSummaries: RowLimitSummary[]
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
-    const rowTrailing = (row: UnlockRow) => {
-        switch (row.chip) {
-            case 'active':
-            case 'alwaysOn':
-                return <StatusBadge status="completed" customText={t(`chips.${row.chip}`)} />
-            case 'processing':
-                return <StatusBadge status="processing" customText={t('chips.processing')} />
-            case 'attention':
-                return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'notAvailable':
-                if (row.labelKey === 'card') {
-                    return (
-                        <StatusBadge
-                            status="custom"
-                            customText={t('chips.notAvailable')}
-                            className="bg-background-badge-helper"
-                        />
-                    )
-                }
-                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
-            case 'unlock':
-                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
-        }
-    }
-
-    const showLimits = group.id === 'everywhere' || limitSummaries.length > 0
-
     return (
-        <Section
-            title={
-                <span className="flex items-center gap-2">
-                    {t(`groups.${group.labelKey}`)}
-                    {group.isYourRegion && <StatusBadge status="custom" customText={t('yourRegion')} />}
-                </span>
-            }
-        >
+        <Section title={t(`groups.${group.labelKey}`)}>
             <ListGroup>
                 {group.rows.map((row) => {
-                    // During a verification outage the unlock path is closed (the tap
-                    // guard would no-op), so render those rows inert instead of
-                    // letting them look actionable under the degraded banner.
-                    const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
+                    const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
                             className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
-                            leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
+                            leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
-                            trailing={rowTrailing(row)}
+                            // QR payments are the one row people do not
+                            // recognise by name, so it carries the explainer
+                            // under its title — including the two countries,
+                            // which used to sit in the title and wrapped it
+                            // over three lines at 375px.
+                            body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
+                            bodyWrap
+                            trailing={rowStatusBadge(row, t)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
                         />
                     )
                 })}
             </ListGroup>
-            {showLimits && (
-                <Card position="single" className="flex flex-col gap-3 px-4 py-3">
-                    {/* P2P has no cap at all (no fiat provider behind it), so the
-                        Everywhere group always states that — it is the one limit
-                        that exists before any unlock. */}
-                    {group.id === 'everywhere' && (
-                        <div className="flex flex-col gap-1">
-                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
-                            <ProgressBar value={100} />
-                        </div>
-                    )}
-                    {limitSummaries.map((summary) =>
-                        summary.kind === 'manteca' ? (
-                            <div key={summary.asset} className="flex flex-col gap-1">
-                                <p className="text-body-s text-foreground-secondary">
-                                    {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
-                                </p>
-                                <ProgressBar
-                                    value={summary.usedPercent}
-                                    fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
-                                />
-                            </div>
-                        ) : (
-                            <p key="bridge" className="text-body-s text-foreground-secondary">
-                                {t('limits.perTransfer', { amount: summary.perTransaction })}
-                            </p>
-                        )
-                    )}
-                </Card>
-            )}
         </Section>
     )
 }

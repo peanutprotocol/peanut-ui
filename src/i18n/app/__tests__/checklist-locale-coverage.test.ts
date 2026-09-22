@@ -17,6 +17,7 @@ const CHECKLIST_KEYS = [
     'addMoney',
     'addMoneyRoutes',
     'addMoneyRoutesKyc',
+    'addMoneyStandingAccounts',
     'getCard',
     'getCardNote',
     'firstPayment',

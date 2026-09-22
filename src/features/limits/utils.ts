@@ -162,9 +162,9 @@ export interface LimitsWarningItem {
 }
 
 export interface LimitsWarningCardPropsResult {
-    type: 'warning' | 'error'
+    type: 'attention' | 'error'
     title: string
-    titleKind: 'blocking' | 'warning'
+    titleKind: 'blocking' | 'attention'
     items: LimitsWarningItem[]
     showSupportLink: boolean
 }
@@ -244,9 +244,9 @@ export function getLimitsWarningCardProps({
     })
 
     return {
-        type: validation.isBlocking ? 'error' : 'warning',
+        type: validation.isBlocking ? 'error' : 'attention',
         title: validation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE,
-        titleKind: validation.isBlocking ? 'blocking' : 'warning',
+        titleKind: validation.isBlocking ? 'blocking' : 'attention',
         items,
         showSupportLink: validation.isMantecaUser ?? false,
     }

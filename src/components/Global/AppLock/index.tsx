@@ -64,10 +64,10 @@ function LockScreen({
                 <p className="mt-2 text-body-s text-foreground-secondary">{failed ? t('promptFailed') : t('prompt')}</p>
             </div>
             <div className="flex w-full max-w-xs flex-col gap-3">
-                <Button variant="purple" shadowSize="4" loading={unlocking} onClick={onUnlock}>
+                <Button variant="primary" shadowSize="4" loading={unlocking} onClick={onUnlock}>
                     {t('unlock')}
                 </Button>
-                <Button variant="stroke" shadowSize="4" onClick={onLogout}>
+                <Button variant="secondary" shadowSize="4" onClick={onLogout}>
                     {t('logOut')}
                 </Button>
             </div>

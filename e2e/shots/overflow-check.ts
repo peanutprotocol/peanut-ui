@@ -7,7 +7,7 @@
 export type Overflow = {
     selector: string
     text: string
-    kind: 'clip-x' | 'clip-y' | 'placeholder'
+    kind: 'clip-x' | 'clip-y' | 'placeholder' | 'document-horizontal-scroll'
     detail: string
 }
 
@@ -24,6 +24,9 @@ export type Overflow = {
  *  - an input/textarea whose placeholder or value is wider than its content
  *    box (inputs clip natively, scrollWidth does not see it — the original
  *    "Usuario*" bug)
+ *  - a document wider than the viewport, which nothing above can see: the
+ *    per-element scan only looks at elements that already clip, so an
+ *    UNCLIPPED positioned child pushing past the right edge is invisible to it
  */
 export function findOverflows(exempt: string[]): Overflow[] {
     const bad: Overflow[] = []
@@ -75,6 +78,22 @@ export function findOverflows(exempt: string[]): Overflow[] {
 
     const hasOwnText = (el: Element): boolean =>
         Array.from(el.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim().length > 0)
+
+    // an unclipped positioned child widens the whole document without any
+    // element reporting a clip, so the per-element scan below cannot see it —
+    // that is how decorative art 16px past the viewport shipped. chromium
+    // books that overflow on html OR body depending on the child's containing
+    // block (abs children of body land only on body.scrollWidth), so read both.
+    const doc = document.documentElement
+    const pageWidth = Math.max(doc.scrollWidth, document.body.scrollWidth)
+    if (pageWidth > doc.clientWidth + 1) {
+        bad.push({
+            selector: 'html',
+            text: 'page scrolls horizontally',
+            kind: 'document-horizontal-scroll',
+            detail: `scrollWidth ${pageWidth} > clientWidth ${doc.clientWidth}`,
+        })
+    }
 
     for (const el of Array.from(document.body.querySelectorAll('*'))) {
         if (!visible(el)) continue

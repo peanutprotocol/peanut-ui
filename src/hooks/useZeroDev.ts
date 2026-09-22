@@ -40,7 +40,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
+import { rescueUserOpReceipt, userOpRevertedError } from '@/utils/userop-rescue.utils'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import {
     ensureSignupAttributionForRegistration,
@@ -408,7 +408,7 @@ export const useZeroDev = () => {
                 // transfer that moved no funds.
                 if (rescued && !rescued.success) {
                     if (opts?.returnRevertedReceipt) return { userOpHash, receipt: rescued.receipt }
-                    throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+                    throw userOpRevertedError(userOpHash, rescued.success)
                 }
                 return { userOpHash, receipt: rescued?.receipt ?? null }
             }
@@ -425,7 +425,7 @@ export const useZeroDev = () => {
             // kernelMigration.utils.ts).
             if (!userOpReceipt.success) {
                 if (opts?.returnRevertedReceipt) return { userOpHash, receipt: userOpReceipt.receipt }
-                throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+                throw userOpRevertedError(userOpHash, userOpReceipt.success)
             }
 
             return {

@@ -83,7 +83,7 @@ jest.mock('@/context/tokenSelector.context', () => ({
     }),
 }))
 
-const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD & more', icons: [], soon: false }
+const bankMethod = { id: 'bank', title: 'Bank transfer', description: 'EUR, USD & more', icons: [], soon: false }
 const mercadoPagoMethod = { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false }
 // An unrecognised recipient — the only case where the rails render at all.
 jest.mock('@/hooks/useKnownPeanutDevice', () => ({ useKnownPeanutDevice: () => false }))
@@ -119,7 +119,7 @@ describe('guest-verification prompt reason', () => {
         mockSenderCanReceiveBankOfframp = false
         renderList()
 
-        fireEvent.click(screen.getByText('Bank'))
+        fireEvent.click(screen.getByText('Bank transfer'))
 
         expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('sender-unverified')
         expect(mockSetShowVerificationModal).toHaveBeenCalledWith(true)
@@ -131,7 +131,7 @@ describe('guest-verification prompt reason', () => {
         mockSenderCanReceiveBankOfframp = null
         renderList()
 
-        fireEvent.click(screen.getByText('Bank'))
+        fireEvent.click(screen.getByText('Bank transfer'))
 
         expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
     })

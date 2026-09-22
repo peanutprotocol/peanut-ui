@@ -376,6 +376,25 @@ describe('AvatarPicker', () => {
         expect(tile(A)).toHaveAttribute('aria-checked', 'false')
     })
 
+    it('keeps the save queue serialized across a close and reopen', async () => {
+        const server = fakeServer()
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(tile(A))
+        rerender(<AvatarPicker open={false} onOpenChange={jest.fn()} />)
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+        fireEvent.click(tile(B))
+
+        // Closing the drawer does not unmount the picker, so B waits for A.
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
+        await server.settle(0)
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B])
+
+        await server.settle(1)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(server.committed()).toBe(KEY_B)
+    })
+
     it('a tap during the closing refetch is sent, not dropped', async () => {
         const server = fakeServer()
         // hold the refetch open so a tap can land while it is in flight

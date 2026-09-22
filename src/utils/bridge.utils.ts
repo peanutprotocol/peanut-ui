@@ -37,6 +37,7 @@ export const railJurisdictionForBank = (countryId: string | null | undefined): s
     if (upper === 'GB' || upper === 'GBR') return 'GB'
     if (upper === 'AR' || upper === 'ARG') return 'AR'
     if (upper === 'BR' || upper === 'BRA') return 'BR'
+    if (upper === 'CO' || upper === 'COL') return 'CO'
     return 'EU'
 }
 
@@ -64,6 +65,15 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
         return {
             currency: 'gbp',
             paymentRail: 'faster_payments', // UK Faster Payments
+        }
+    }
+
+    if (countryId === 'CO' || countryId === 'COL') {
+        return {
+            currency: 'cop',
+            // Colombia also has Bre-B, which carries a per-payment ceiling.
+            // A bank transfer does not, so it is the one rail we name.
+            paymentRail: 'co_bank_transfer',
         }
     }
 
@@ -97,7 +107,23 @@ export const getBankRailCountryFromAccount = (account: {
     if (type === AccountType.CLABE || type?.endsWith('clabe')) return 'MX'
     if (type === AccountType.GB || type?.endsWith('gb')) return 'GB'
     if (type === AccountType.IBAN || type?.endsWith('iban')) return 'EU'
+    if (type === AccountType.CO_BANK_TRANSFER) return 'CO'
     return railJurisdictionForBank(account.details?.countryCode ?? account.country)
+}
+
+/** The exact Bridge capability rail used for a bank-account destination. */
+export const getBridgeRailIdFromAccount = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+    details?: { countryCode?: string | null } | null
+}): string | undefined => {
+    const country = getBankRailCountryFromAccount(account)
+    if (country === 'US') return 'bridge.ach_us'
+    if (country === 'GB') return 'bridge.faster_payments_gb'
+    if (country === 'MX') return 'bridge.spei_mx'
+    if (country === 'CO') return 'bridge.bank_transfer_co'
+    if (country === 'EU') return 'bridge.sepa_eu'
+    return undefined
 }
 
 /**
@@ -124,6 +150,7 @@ export const getOfframpConfigFromAccount = (account: {
     if (t === AccountType.GB || t?.endsWith('gb')) return getCurrencyConfig('GB', 'offramp')
     if (t === AccountType.CLABE || t?.endsWith('clabe')) return getCurrencyConfig('MX', 'offramp')
     if (t === AccountType.IBAN || t?.endsWith('iban')) return getCurrencyConfig('EU', 'offramp')
+    if (t === AccountType.CO_BANK_TRANSFER) return getCurrencyConfig('CO', 'offramp')
     if (t === AccountType.MANTECA || t?.endsWith('manteca')) {
         throw new Error('Manteca accounts route through a separate offramp path, not Bridge.')
     }
@@ -140,6 +167,7 @@ export const currencyToAccountType = (currency: string): AccountType => {
     if (normalized === 'usd') return AccountType.US
     if (normalized === 'mxn') return AccountType.CLABE
     if (normalized === 'gbp') return AccountType.GB
+    if (normalized === 'cop') return AccountType.CO_BANK_TRANSFER
     return AccountType.IBAN
 }
 
@@ -152,6 +180,7 @@ export const getCurrencySymbol = (currency: string): string => {
         eur: '€',
         mxn: 'MX$',
         gbp: '£',
+        cop: 'CO$',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
 }
@@ -218,6 +247,11 @@ export const getMinimumAmount = (countryId: string): number => {
         return 3
     }
 
+    // Colombia has a minimum of 4,000 COP
+    if (countryId === 'CO' || countryId === 'COL') {
+        return 4000
+    }
+
     // Default minimum for all other countries (including US and EU)
     return 1
 }
@@ -233,6 +267,7 @@ export const getPaymentRailDisplayName = (paymentRail: string): string => {
         spei: 'SPEI Transfer',
         wire: 'Wire Transfer',
         faster_payments: 'Faster Payments',
+        co_bank_transfer: 'Bank Transfer',
     }
     return displayNames[paymentRail] || paymentRail.toUpperCase()
 }

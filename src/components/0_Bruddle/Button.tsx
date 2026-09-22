@@ -7,16 +7,10 @@ import Loading from '../Global/Loading'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useLongPress } from '@/hooks/useLongPress'
 
-export type ButtonVariant =
-    | 'purple'
-    | 'stroke'
-    | 'transparent-light'
-    | 'transparent-dark'
-    | 'transparent'
-    | 'primary-soft'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 export type ButtonSize = 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
-type ShadowSize = '3' | '4' | '6' | '8'
+export type ShadowSize = '3' | '4' | '6' | '8'
 
 interface ButtonVisualProps {
     variant?: ButtonVariant
@@ -34,7 +28,7 @@ interface ButtonVisualProps {
 
 /**
  * Primary button component. Styled to the figma button board (17802:61527):
- * pill shape, sizes l=48/m=44 (default)/s=40px, primary + stroke carry the
+ * pill shape, sizes l=48/m=44 (default)/s=40px, primary + secondary carry the
  * 4px shadow by default.
  *
  * Navigation split (ruled): underlined text link -> `LinkButton`;
@@ -43,11 +37,12 @@ interface ButtonVisualProps {
  * haptics — never wrap a Button in a <Link> (nested interactive) and never
  * hand-roll `.btn` classes on an anchor.
  *
- * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
- *   secondary, 'transparent' = board ghost. Others are legacy.
+ * @prop variant - Visual style, named after the board rows: 'primary' is the
+ *   default CTA, 'secondary' the outlined one and 'ghost' the text-only one.
+ *   The union is the board — there is no fourth variant to reach for.
  * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
  * @prop shadowSize - Shadow depth override; '4' is already the default on
- *   purple/stroke, so passing it is a no-op kept for compatibility.
+ *   primary/secondary, so passing it is a no-op kept for compatibility.
  * @prop longPress - Hold-to-confirm behavior with progress bar animation.
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVisualProps {
@@ -88,13 +83,9 @@ export interface ButtonLinkProps
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
-    purple: 'btn-purple',
-    stroke: 'btn-stroke',
-    'transparent-light': 'btn-transparent-light',
-    'transparent-dark': 'btn-transparent-dark',
-    'primary-soft': 'bg-white active:bg-action-primary',
-    transparent:
-        'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    ghost: 'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -124,7 +115,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             children,
             className,
             loading,
-            variant = 'purple',
+            variant = 'primary',
             size,
             shape,
             shadowSize,
@@ -178,7 +169,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
         // ponytail: string-sniffing className for shadow-none; misses responsive
         // variants like sm:shadow-none — none exist today.
         const hasShadow =
-            (shadowSize !== undefined || variant === 'purple' || variant === 'stroke') &&
+            (shadowSize !== undefined || variant === 'primary' || variant === 'secondary') &&
             !/(?:^|\s)shadow-none(?:\s|$)/.test(className ?? '')
 
         const isLink = href !== undefined
@@ -190,13 +181,13 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             'btn w-full flex items-center gap-2 transition-all duration-instant notranslate',
             hasShadow && 'active:translate-x-1 active:translate-y-1 active:shadow-none',
             buttonVariants[variant],
-            variant === 'transparent' && disabled && 'disabled:bg-transparent disabled:border-transparent',
+            variant === 'ghost' && disabled && 'disabled:bg-transparent disabled:border-transparent',
             // anchors never match :disabled, so a disabled link paints the
             // button's disabled look explicitly: 40% opacity (.btn), the 1px
-            // residual shadow (.btn-purple/.btn-stroke), no hover/press
+            // residual shadow (.btn-primary/.btn-secondary), no hover/press
             linkDisabled && 'pointer-events-none opacity-40',
             linkDisabled &&
-                (variant === 'purple' || variant === 'stroke') &&
+                (variant === 'primary' || variant === 'secondary') &&
                 'shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)]',
             size && buttonSizes[size],
             // board icon/label gap: S is XS/4, L and M are S/8. It has to sit

@@ -13,6 +13,7 @@ import ActionModal, { type ActionModalButtonProps } from '@/components/Global/Ac
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountHasBalanceError, usersApi } from '@/services/users'
+import { wireErrorCode } from '@/services/api-error'
 import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
 
 type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
@@ -78,7 +79,14 @@ const DeleteAccountButton: FC = () => {
                 block(error.balanceUsd)
             } else {
                 posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
-                toast.error(t('error'))
+                const code = wireErrorCode(error)
+                toast.error(
+                    code === 'DEPOSIT_IN_FLIGHT'
+                        ? t('depositInFlight')
+                        : code === 'DEPOSIT_ACCOUNTS_UNAVAILABLE'
+                          ? t('depositAccountsUnavailable')
+                          : t('error')
+                )
             }
         } finally {
             setIsSubmitting(false)
@@ -105,8 +113,8 @@ const DeleteAccountButton: FC = () => {
             title: t('blockedTitle'),
             description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
             ctas: [
-                { text: t('blockedCta'), variant: 'purple', shadowSize: '4', onClick: moveMoney },
-                { text: t('blockedCancelCta'), variant: 'stroke', shadowSize: '4', onClick: close },
+                { text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney },
+                { text: t('blockedCancelCta'), variant: 'secondary', shadowSize: '4', onClick: close },
             ],
         },
         confirm: {
@@ -117,13 +125,13 @@ const DeleteAccountButton: FC = () => {
             ctas: [
                 {
                     text: t('confirmCta'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     loading: isSubmitting,
                     disabled: isSubmitting,
                     onClick: confirmDelete,
                 },
-                { text: t('cancelCta'), variant: 'stroke', shadowSize: '4', disabled: isSubmitting, onClick: close },
+                { text: t('cancelCta'), variant: 'secondary', shadowSize: '4', disabled: isSubmitting, onClick: close },
             ],
         },
         done: {
@@ -131,7 +139,7 @@ const DeleteAccountButton: FC = () => {
             mascotAlt: t('cryingPeanutAlt'),
             title: t('doneTitle'),
             description: t('doneDescription'),
-            ctas: [{ text: t('doneCta'), variant: 'purple', shadowSize: '4', onClick: finish }],
+            ctas: [{ text: t('doneCta'), variant: 'primary', shadowSize: '4', onClick: finish }],
         },
     }
 

@@ -85,7 +85,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                         >
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 icon={store === 'ios' ? 'apple-logo' : 'google-play'}
                                 className="w-full uppercase"
@@ -95,7 +95,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         </a>
                     ) : (
                         <Link prefetch={false} href="/setup" className="pointer-events-auto block">
-                            <Button variant="purple" shadowSize="4" className="w-full">
+                            <Button variant="primary" shadowSize="4" className="w-full">
                                 {strings.signUpNow}
                             </Button>
                         </Link>

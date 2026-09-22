@@ -1,13 +1,23 @@
 'use client'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
 import { API_ERROR_CODES } from '@/services/api-error'
 
-import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
+import {
+    isSpendRecoveryOutcome,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+    submitSignedSpend,
+} from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import Image from 'next/image'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
+import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -15,7 +25,8 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance, parseUsdAmountToUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
+import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -29,8 +40,6 @@ import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
-import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import Image from 'next/image'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -68,7 +77,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
-import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -77,6 +85,7 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
@@ -126,13 +135,15 @@ function MantecaBankWithdrawFlow() {
     const [urlAmount] = useWithdrawAmount()
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
-    const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
+    const isSavedAccount =
+        searchParams.get('isSavedAccount') === 'true' && !!paramAddress && validateCbuCvuAlias(paramAddress).valid
+    const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
     // client-side destination/bank-details validation renders as the field's
     // own error under the inputs; errorMessage keeps flow failures (rate lock,
-    // provider, signing) in the Notification
+    // provider, signing) in the Callout
     const [fieldError, setFieldError] = useState<string | null>(null)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     // Companion code for `errorMessage` so the retry-vs-block gate compares a
@@ -147,17 +158,30 @@ function MantecaBankWithdrawFlow() {
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
+    // Neutral notice shown on review after a controller-rotation re-quote.
+    const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
+    /** The replacement quote could not be minted: the review control retries the
+     *  QUOTE only — it can never sign or submit against the dead lock. */
+    const [requoteFailed, setRequoteFailed] = useState(false)
+    const quoteRecoveryCancelledRef = useRef(false)
+    const quoteRecoveryInFlightRef = useRef(false)
+    useEffect(
+        () => () => {
+            quoteRecoveryCancelledRef.current = true
+        },
+        []
+    )
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     // Execution proof for the terminal steps: set only by the withdrawal
     // submission. A hand-edited ?step=success (or =failure) with no completed
     // operation falls back to a working step (Chip review, PR #2917).
     const [outcome, setOutcome] = useState<MantecaOutcome>(null)
-    // amount → bank-details → review → success|failure as named screen ids in
-    // the URL. Guards bounce a refresh/deep-link into a step whose local state
-    // did not survive back to the amount step (which re-seeds from ?amount=).
+    // Destination first; the rate is locked only after the amount is entered.
     const stepper = useFlowStepper({
         steps: WITHDRAW_MANTECA_STEPS,
+        defaultStep: isSavedAccount ? 'amount' : 'bank-details',
         guards: mantecaStepGuards({
+            hasDestination: destinationConfirmed,
             hasAmount: !!usdAmount,
             priceLocked: !!priceLock,
             outcome,
@@ -167,6 +191,8 @@ function MantecaBankWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const repairRainController = useRainControllerRepair()
+    const recoverSignedSpend = useSignedSpendRecovery()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
@@ -186,7 +212,6 @@ function MantecaBankWithdrawFlow() {
     const [showKycModal, setShowKycModal] = useState(false)
 
     // Get method and country from URL parameters
-    const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
     const countryPath = countryFromUrl
 
@@ -196,7 +221,9 @@ function MantecaBankWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
+    const { isFromSendFlow } = useSendFlowOrigin()
+    const backToWithdraw = useSafeBack('/withdraw?showAll=true')
+    const onBack = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
@@ -218,11 +245,18 @@ function MantecaBankWithdrawFlow() {
         amount: usdAmount,
         currency: selectedCountry?.currency,
     })
+    // the card is the only thing that can replace the amount message, so the
+    // message rule reads the same props the card is rendered from
+    const limitsCardProps = getLimitsWarningCardProps({
+        validation: limitsValidation,
+        flowType: 'offramp',
+        currency: limitsValidation.currency,
+    })
 
     // Synchronous twin of the balanceErrorMessage effect below (same
     // minimum/ceiling predicates, live balance). Effect-set state lags the
     // render by a tick, so every decision that must not outrun the balance —
-    // the ?amount= seed advance, the price lock, and the submission itself —
+    // the price lock and the submission itself —
     // asks this instead of the message state (Chip rounds 3+6).
     const isAmountWithinLiveBalance = useCallback(
         (usd: string) => {
@@ -236,31 +270,11 @@ function MantecaBankWithdrawFlow() {
         [balance]
     )
 
-    // Blanket mount reset — registered BEFORE the ?amount= seed below, so a
-    // fresh mount clears leftover flow state FIRST and the seed then arms on
-    // clean state. Registered after, the reset ran after the seed's mount
-    // effects and clobbered the seeded amounts (the hand-off silently died —
-    // caught by manteca-withdraw-gates.test.tsx). resetState is defined below;
-    // the callback runs post-render, when it exists.
-    useEffect(() => {
-        resetState()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // ?amount= hand-off from the shared amount step: seed both denominations
-    // and advance past this flow's amount screen ONLY once its balance/limits
-    // gates pass for the seeded amount (Chip review round 3). A blocked amount
-    // stays on the amount screen, which renders the reason.
-    const { seededFromUrl, resetSeed } = useMantecaAmountSeed({
+    const { resetSeed } = useMantecaAmountSeed({
         urlAmount,
         currencyPriceSell: currencyPrice?.sell,
-        step,
-        isAmountAllowed: isAmountWithinLiveBalance,
-        limitsLoading: limitsValidation.isLoading,
-        limitsBlocking: limitsValidation.isBlocking,
         setUsdAmount,
         setCurrencyAmount,
-        goToBankDetails: () => void stepper.goTo('bank-details'),
     })
 
     // BR self-service limit increase flow
@@ -272,23 +286,7 @@ function MantecaBankWithdrawFlow() {
         onNeedsSupport: () => openSupportWithMessage(t('manteca.increaseLimitsMessage')),
     })
 
-    // Get country flag code
-    const countryFlagCode = useMemo(() => {
-        return selectedCountry?.iso2?.toLowerCase()
-    }, [selectedCountry])
-
-    // Get method display info
-    const methodDisplayInfo = useMemo(() => {
-        const methodNames: { [key: string]: string } = {
-            mercadopago: t('methods.mercadopago'),
-            pix: t('methods.pix'),
-            'bank-transfer': t('methods.bankTransfer'),
-        }
-
-        return {
-            name: methodNames[selectedMethodType || 'bank-transfer'] || t('methods.bankTransfer'),
-        }
-    }, [selectedMethodType, t])
+    const countryFlagCode = selectedCountry?.iso2?.toLowerCase()
 
     const validateDestinationAddress = async (value: string) => {
         value = value.trim()
@@ -380,7 +378,7 @@ function MantecaBankWithdrawFlow() {
         return true
     }, [usdAmount, balance, t, tErrors, setErrorMessage])
 
-    const handleBankDetailsSubmit = useCallback(async () => {
+    const handlePrepareReview = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
         if (!validateSubmissionAmount()) {
@@ -388,7 +386,7 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!destinationAddress.trim()) {
+        if (!destinationConfirmed || !destinationAddress.trim()) {
             setFieldError(t('errors.enterAccountAddress'))
             return
         }
@@ -470,6 +468,7 @@ function MantecaBankWithdrawFlow() {
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
         validateSubmissionAmount,
+        destinationConfirmed,
         handleOnboardingError,
         balance,
         balanceErrorMessage,
@@ -481,7 +480,65 @@ function MantecaBankWithdrawFlow() {
         setErrorMessage,
     ])
 
+    /*
+     * Controller-rotation handoff for the offramp. Nothing was ordered or
+     * broadcast: wait out Rain's cooldown (cancellable by leaving the screen),
+     * then re-lock the SAME amount/recipient through the existing rate-lock
+     * handler, which returns the user to review to confirm the new quote.
+     */
+    const runQuoteRecovery = async (recovery: SpendRecoveryQuoteReviewError) => {
+        if (!usdAmount || !currencyCode) return
+        // One recovery at a time: a second entry would race two quotes.
+        if (quoteRecoveryInFlightRef.current) return
+        quoteRecoveryInFlightRef.current = true
+        quoteRecoveryCancelledRef.current = false
+        setQuoteUpdatedNotice(t('reviewUpdatedQuote'))
+        setLoadingState('Idle')
+        void stepper.goTo('review')
+        // The OLD quote stays on screen (disabled by isLockingPrice) until the
+        // new one lands: clearing it would trip the review step guard back to
+        // the amount screen, and `originalCurrencyAmount` — the pre-lock value
+        // back-navigation restores — must survive untouched.
+        setIsLockingPrice(true)
+        try {
+            if (recovery.retryAfterSec) {
+                const proceed = await sleepUnlessCancelled(
+                    recovery.retryAfterSec * 1000 + 1_000,
+                    () => quoteRecoveryCancelledRef.current
+                )
+                if (!proceed) return
+            }
+            const result = await mantecaApi.initiateWithdraw({ amount: usdAmount, currency: currencyCode })
+            if (quoteRecoveryCancelledRef.current) return
+            if (result.error || !result.data) {
+                // Neutral review/retry state — the payment did not fail. The
+                // review control retries the QUOTE, never the old lock.
+                setRequoteFailed(true)
+                setErrorMessage(t('errors.lockRateFailed'))
+                return
+            }
+            // Atomic swap of the displayed quote; the USD amount and recipient
+            // the user chose are unchanged.
+            setRequoteFailed(false)
+            setErrorMessage('')
+            setPriceLock(result.data)
+            setCurrencyAmount(result.data.fiatAmount)
+        } catch (error) {
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
+            })
+            setRequoteFailed(true)
+            setErrorMessage(t('errors.lockRateFailed'))
+        } finally {
+            setIsLockingPrice(false)
+            quoteRecoveryInFlightRef.current = false
+        }
+    }
+
     const handleWithdraw = async () => {
+        // A quote refresh (cooldown wait included) owns the flow: re-entering
+        // here would sign against the lock that refresh is replacing.
+        if (quoteRecoveryInFlightRef.current) return
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
         if (!validateSubmissionAmount()) {
             void stepper.goTo('amount')
@@ -509,32 +566,73 @@ function MantecaBankWithdrawFlow() {
             method_type: 'manteca',
             country: countryPath,
         })
+        // The previous re-quote never landed: this tap retries the QUOTE only.
+        // The user then sees the fresh terms and taps again to pay.
+        if (requoteFailed) {
+            setErrorMessage('')
+            await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote refresh retry')))
+            return
+        }
+        // This tap IS the confirmation of whatever quote is on screen.
+        setQuoteUpdatedNotice(null)
 
         try {
             setLoadingState('Preparing transaction')
 
             // Step 1: Sign the spend artifact (but don't broadcast yet).
-            // Route across smart-only / mixed / collateral-only — pure-collateral
-            // offramps (smart wallet empty, card collateral covers it) used to
-            // fail here because signTransferUserOp asks the paymaster to
-            // simulate a USDC transfer from a zero-balance smart account, which
-            // ZeroDev refuses to sponsor. signSpend picks the right routing,
-            // including a single-tap collateral-only path that lets Rain
-            // transfer straight from the collateral proxy to MANTECA's deposit
-            // address.
+            // Routing picks the funding SOURCE; execution runs on the mixed
+            // pipeline whenever collateral is involved — including a fully
+            // collateral-funded offramp from an empty smart account — because
+            // that route has a durable reservation and definitive failure
+            // codes, so a late controller rotation is recoverable on this same
+            // lock. Cost: the passkey fallback is two taps (one where the
+            // ephemeral path is enabled).
+            // Same terms on a recovery re-sign: only the prep and the signature
+            // are fresh — amount, recipient and the price lock below are not.
+            const signSpendInput = () => ({
+                requiredUsdcAmount: parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS),
+                // Entity-aware deposit address served by /withdraw/init
+                // (per-entity balances from 2026-09-14); the constant is
+                // only the fallback for an older API without the field.
+                recipient: resolveOfframpSpendRecipient(priceLock),
+                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
+                kind: 'FIAT_OFFRAMP' as const,
+                // Lets an internal recovery wait out a Rain cooldown that still
+                // fits this price lock instead of re-quoting.
+                lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined,
+            })
+
+            /*
+             * The price lock bounds EVERY attempt, not just the first
+             * signature: a passkey sheet is unbounded and a replacement is
+             * signed later still. An expired quote is a neutral re-lock +
+             * reconfirm — never a signature, never a submission.
+             */
+            const quoteExpired = () => {
+                const deadline = Date.parse(priceLock.expiresAt)
+                return Number.isFinite(deadline) && Date.now() >= deadline
+            }
+            if (quoteExpired()) {
+                await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
+                return
+            }
+
             let signedArtifact
             try {
-                const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-                signedArtifact = await signSpend({
-                    requiredUsdcAmount,
-                    // Entity-aware deposit address served by /withdraw/init
-                    // (per-entity balances from 2026-09-14); the constant is
-                    // only the fallback for an older API without the field.
-                    recipient: resolveOfframpSpendRecipient(priceLock),
-                    rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
-                    kind: 'FIAT_OFFRAMP',
-                })
+                signedArtifact = await signSpend(signSpendInput())
             } catch (error) {
+                // Controller-recovery control flow (nothing signed, nothing
+                // ordered): stay on the same payment and re-lock the quote
+                // through the existing handler, or simply return to review.
+                if (error instanceof SpendRecoveryQuoteReviewError) {
+                    await runQuoteRecovery(error)
+                    return
+                }
+                if (error instanceof SpendRecoveryAbortedError) {
+                    setLoadingState('Idle')
+                    void stepper.goTo('review')
+                    return
+                }
                 // Route through the shared classifier so backend wire codes reach
                 // this screen too; the branches ahead of it are per-flow.
                 const classified = friendlyError(error)
@@ -568,45 +666,81 @@ function MantecaBankWithdrawFlow() {
                 return
             }
 
+            /*
+             * Signing can outlive the price lock (a passkey sheet is
+             * unbounded). Nothing has been ordered or broadcast yet, so an
+             * expired quote here is a re-quote + reconfirm, never a submission
+             * under terms the user never saw.
+             */
+            if (quoteExpired()) {
+                await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
+                return
+            }
+
             setLoadingState('Withdrawing')
 
-            // Step 2: Send signed artifact to backend. Backend creates the
-            // Manteca order FIRST, then either broadcasts the signed UserOp
-            // (smart-only / mixed) or submits the Rain withdrawal via the
-            // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await submitSignedSpend(signedArtifact, () =>
-                mantecaApi.withdrawWithSignedTx(
-                    signedArtifact.strategy === 'collateral-only'
-                        ? {
-                              kind: 'rainWithdrawal' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                          }
-                        : {
-                              kind: 'userOp' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                              chainId: signedArtifact.signedUserOp.chainId,
-                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                              // For mixed: tell backend about the Rain prepare intent
-                              // embedded in the UserOp's batched callData so it can
-                              // reconcile the collateral webhook to OFFRAMP in history.
-                              ...(signedArtifact.strategy === 'mixed'
-                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
-                                  : {}),
-                          }
-                )
+            // Step 2: Send signed artifact to backend. The modern mixed/userOp
+            // route broadcasts the funding op FIRST — a definitive revert
+            // leaves no provider order behind, which is what makes the
+            // replacement below safe. No stuck funds either way.
+            // Built from the artifact actually being submitted: a recovery
+            // replacement carries a fresh prep + signature under the SAME lock.
+            const withdrawBody = (artifact: typeof signedArtifact) => {
+                const common = {
+                    priceLockCode: priceLock.priceLockCode,
+                    amount: usdAmount,
+                    destinationAddress: destinationAddress.toLowerCase(),
+                    bankCode: selectedBank?.code,
+                    accountType: accountType ?? undefined,
+                    currency: currencyCode,
+                }
+                return artifact.strategy === 'collateral-only'
+                    ? {
+                          ...common,
+                          kind: 'rainWithdrawal' as const,
+                          signedRainWithdrawal: artifact.rainWithdrawal,
+                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      }
+                    : {
+                          ...common,
+                          kind: 'userOp' as const,
+                          signedUserOp: artifact.signedUserOp.signedUserOp,
+                          chainId: artifact.signedUserOp.chainId,
+                          entryPointAddress: artifact.signedUserOp.entryPointAddress,
+                          // For mixed: tell backend about the Rain prepare intent
+                          // embedded in the UserOp's batched callData so it can
+                          // reconcile the collateral webhook to OFFRAMP in history.
+                          ...(artifact.strategy === 'mixed' ? { rainPreparationId: artifact.rainPreparationId } : {}),
+                      }
+            }
+
+            const result = await submitSignedSpend(
+                signedArtifact,
+                // Guards EVERY attempt, the recovery replacement included: it is
+                // signed later still, and the lock may have died in between.
+                (candidate) => {
+                    if (quoteExpired()) {
+                        throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
+                    }
+                    return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate))
+                },
+                {
+                    // Observes the FINAL failure only — cache repair, no retry.
+                    // A typed recovery outcome is control flow, not a Rain leg.
+                    onFailure: (failure) =>
+                        isSpendRecoveryOutcome(failure)
+                            ? undefined
+                            : void repairRainController({ strategy: signedArtifact.strategy, error: failure }),
+                    recover: (failure, artifact) =>
+                        recoverSignedSpend(
+                            failure,
+                            artifact,
+                            // Same terms, same lock — only the prep and the
+                            // signature are fresh, and its own 425 is ours.
+                            () => signSpend({ ...signSpendInput(), suppressCooldownEvent: true }),
+                            { lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined }
+                        ),
+                }
             )
 
             if (result.error) {
@@ -650,6 +784,23 @@ function MantecaBankWithdrawFlow() {
                 country: countryPath,
             })
         } catch (error) {
+            /*
+             * Controller-recovery control flow, handled BEFORE any failure
+             * surface: nothing moved and no provider order exists (a broadcast
+             * may have happened and reverted definitively). The user returns to
+             * the SAME review step — re-locking the quote through the existing
+             * handler when the old lock could not outlive Rain's cooldown — and
+             * confirms again. No submission happens under refreshed terms
+             * without that confirmation.
+             */
+            if (error instanceof SpendRecoveryQuoteReviewError) {
+                await runQuoteRecovery(error)
+                return
+            }
+            if (error instanceof SpendRecoveryAbortedError) {
+                void stepper.goTo('review')
+                return
+            }
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return
             // Reported here rather than left to the console-capture integration,
@@ -680,6 +831,7 @@ function MantecaBankWithdrawFlow() {
     // "Try again" pairs this with stepper.reset()
     const resetState = () => {
         resetSeed()
+        setDestinationConfirmed(isSavedAccount)
         setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
@@ -750,7 +902,7 @@ function MantecaBankWithdrawFlow() {
     if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
         return (
             <RateGateScreen
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onBack={onBack}
                 isLoading={isCurrencyLoading}
                 onRetry={refetchCurrency}
@@ -766,7 +918,7 @@ function MantecaBankWithdrawFlow() {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <SoundPlayer sound="success" />
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
@@ -812,7 +964,7 @@ function MantecaBankWithdrawFlow() {
     if (step === 'failure') {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
                         <Card.Header>
@@ -825,7 +977,7 @@ function MantecaBankWithdrawFlow() {
                                     resetState()
                                     void stepper.reset()
                                 }}
-                                variant="purple"
+                                variant="primary"
                             >
                                 {tCommon('tryAgain')}
                             </Button>
@@ -843,6 +995,7 @@ function MantecaBankWithdrawFlow() {
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
+                taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
@@ -893,7 +1046,7 @@ function MantecaBankWithdrawFlow() {
                 isMultiLevel
             />
             <NavHeader
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {
                     if (step === 'review') {
                         // clear price lock and restore original amount when going back
@@ -902,16 +1055,9 @@ function MantecaBankWithdrawFlow() {
                             setCurrencyAmount(originalCurrencyAmount)
                             setOriginalCurrencyAmount(undefined)
                         }
-                        void stepper.goTo('bank-details')
-                    } else if (step === 'bank-details') {
-                        // an amount seeded from ?amount= was entered on the root
-                        // amount step — back returns there, not to a second
-                        // amount entry (TASK-21664)
-                        if (seededFromUrl) {
-                            onBack()
-                            return
-                        }
                         void stepper.goTo('amount')
+                    } else if (step === 'amount' && !isSavedAccount) {
+                        void stepper.goTo('bank-details')
                     } else {
                         onBack()
                     }
@@ -921,8 +1067,18 @@ function MantecaBankWithdrawFlow() {
             {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
+                    {/* the balance error yields to the limits card only when that card renders */}
+                    <Field
+                        error={
+                            shouldShowAmountError({
+                                showError: !!balanceErrorMessage,
+                                showsLimitsCard: !!limitsCardProps,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? balanceErrorMessage
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}
@@ -947,43 +1103,33 @@ function MantecaBankWithdrawFlow() {
                                     : undefined
                             }
                         />
-                    </FieldColumn>
+                    </Field>
 
                     {/* limits warning/error card - uses centralized helper for props */}
-                    {(() => {
-                        const limitsCardProps = getLimitsWarningCardProps({
-                            validation: limitsValidation,
-                            flowType: 'offramp',
-                            currency: limitsValidation.currency,
-                        })
-                        if (!limitsCardProps) return null
-                        return (
-                            <LimitsWarningCard
-                                {...limitsCardProps}
-                                onIncreaseLimits={
-                                    isBrEligible && limitsValidation.isBlocking
-                                        ? limitIncreaseFlow.handleInitiate
-                                        : undefined
-                                }
-                                isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
-                            />
-                        )
-                    })()}
+                    {limitsCardProps && (
+                        <LimitsWarningCard
+                            {...limitsCardProps}
+                            onIncreaseLimits={
+                                isBrEligible && limitsValidation.isBlocking
+                                    ? limitIncreaseFlow.handleInitiate
+                                    : undefined
+                            }
+                            isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
+                        />
+                    )}
 
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
-                        onClick={() => {
-                            if (usdAmount) {
-                                // If coming from saved account flow, skip bank details step and go to review
-                                if (isSavedAccount) {
-                                    handleBankDetailsSubmit()
-                                } else {
-                                    void stepper.goTo('bank-details')
-                                }
-                            }
-                        }}
-                        disabled={!Number(usdAmount) || !!balanceErrorMessage || limitsValidation.isBlocking}
+                        onClick={handlePrepareReview}
+                        loading={isLockingPrice}
+                        disabled={
+                            !Number(usdAmount) ||
+                            !!balanceErrorMessage ||
+                            limitsValidation.isLoading ||
+                            limitsValidation.isBlocking ||
+                            isLockingPrice
+                        }
                         className="w-full"
                     >
                         {tCommon('continue')}
@@ -993,45 +1139,14 @@ function MantecaBankWithdrawFlow() {
 
             {step === 'bank-details' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                    {/* Amount Display Card */}
-                    <Card className="p-4">
-                        <div className="space-x-3 flex items-center">
-                            <div className="relative h-12 w-12">
-                                <Image
-                                    src={getFlagUrl(countryFlagCode)}
-                                    alt={t('manteca.flagAlt')}
-                                    width={48}
-                                    height={48}
-                                    className="h-12 w-12 rounded-full object-cover"
-                                />
-                                <IconBubble
-                                    icon="bank"
-                                    size="xs"
-                                    color="blue"
-                                    className="absolute -right-1 -bottom-1"
-                                />
-                            </div>
-                            <div>
-                                <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
-                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
-                                </p>
-                                <p className="text-heading-s text-foreground-primary">
-                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
-                                </p>
-                                <div className="text-heading-card text-foreground-primary">
-                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
                     {/* Bank Details Form */}
                     <div className="space-y-4">
                         <h2 className="text-heading-card text-foreground-primary">
-                            {t('manteca.enterMethodDetails', { method: methodDisplayInfo.name })}
+                            {t('manteca.enterAccountDetails')}
                         </h2>
+                        <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
                         <div className="space-y-2">
-                            <FieldColumn error={fieldError}>
+                            <Field error={fieldError}>
                                 <ValidatedInput
                                     value={destinationAddress}
                                     placeholder={countryConfig!.accountNumberLabel}
@@ -1039,6 +1154,7 @@ function MantecaBankWithdrawFlow() {
                                         // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                         const normalizedValue =
                                             countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
+                                        setDestinationConfirmed(false)
                                         setDestinationAddress(normalizedValue)
                                         setIsDestinationAddressValid(update.isValid)
                                         setIsDestinationAddressChanging(update.isChanging)
@@ -1049,7 +1165,7 @@ function MantecaBankWithdrawFlow() {
                                     }}
                                     validate={validateDestinationAddress}
                                 />
-                            </FieldColumn>
+                            </Field>
                             {countryConfig?.needsAccountType && (
                                 <BaseSelect
                                     value={accountType ?? undefined}
@@ -1084,22 +1200,22 @@ function MantecaBankWithdrawFlow() {
                         </div>
 
                         <Button
-                            onClick={handleBankDetailsSubmit}
+                            onClick={() => {
+                                setDestinationConfirmed(true)
+                                void stepper.goTo('amount')
+                            }}
                             disabled={
-                                !isCompleteBankDetails ||
-                                isDestinationAddressChanging ||
-                                !isDestinationAddressValid ||
-                                isLockingPrice
+                                !isCompleteBankDetails || isDestinationAddressChanging || !isDestinationAddressValid
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice}
+                            loading={isDestinationAddressChanging}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isLockingPrice ? t('manteca.lockingRate') : t('review')}
+                            {tCommon('continue')}
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                         )}
                     </div>
                 </div>
@@ -1158,15 +1274,29 @@ function MantecaBankWithdrawFlow() {
                     <Button
                         icon="arrow-up"
                         onClick={handleWithdraw}
-                        loading={isLoading}
-                        // settling failure is retryable — don't dead-end the button on it
-                        disabled={(!!errorMessage && errorCode !== 'balanceSettling') || isLoading}
+                        // A quote refresh (cooldown wait included) owns the
+                        // button: nothing may be signed against the old lock.
+                        loading={isLoading || isLockingPrice}
+                        disabled={
+                            // settling failure is retryable — don't dead-end the button on it.
+                            // A failed re-quote is retryable too: the tap fetches
+                            // a new quote and cannot submit the dead one.
+                            (!!errorMessage && errorCode !== 'balanceSettling' && !requoteFailed) ||
+                            isLoading ||
+                            isLockingPrice
+                        }
                         shadowSize="4"
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && !errorMessage && (
+                        <Callout priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Callout>
+                    )}
                     {(errorMessage || sumsubFlow.error) && (
-                        <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                     )}
                 </div>
             )}

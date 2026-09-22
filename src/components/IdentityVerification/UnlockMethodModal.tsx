@@ -64,14 +64,14 @@ const UnlockMethodModal = ({
                         <Button
                             icon="check-circle"
                             shadowSize="4"
-                            variant="purple"
+                            variant="primary"
                             className="w-full justify-center"
                             disabled={isLoading}
                             onClick={onUnlock}
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
                             {t('notNow')}
                         </Button>
                         <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />

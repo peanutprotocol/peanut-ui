@@ -1,3 +1,8 @@
+'use client'
+
+// nav-config carries lucide component functions, which cannot cross the RSC
+// boundary into CatalogCard. Nothing on this page needs the server.
+
 import { CatalogCard, CatalogGrid } from '../_components/CatalogCard'
 import { DocPage } from '../_components/DocPage'
 import { SIDEBAR_CONFIG } from '../_components/nav-config'

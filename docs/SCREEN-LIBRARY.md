@@ -29,6 +29,12 @@ states for the combined direct-send, semantic-request and request-pot row, so th
 review has 16 ordered screenshots rather than collapsing three distinct choices
 into one label.
 
+The revised `docs/screen-collections/multi-action-screens.json` focuses on
+simultaneous action controls. It excludes menus and repeated option lists and
+adds a Home fixture with the additional bank-transfer verification card beside
+Add, Send and Request. The new fixture must be captured from the revision that
+adds it before it can appear in a hosted collection.
+
 Create a self-contained local review from capture directories:
 
 ```sh
@@ -65,6 +71,18 @@ Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
 the URL. The manifest may change from queued to complete while focused capture
 runs; after completion its ordered content and assets are stable.
 
+To review the same custom selection **before and after two code revisions** through
+MCP, first use `list_comparisons` to find a published comparison (optionally
+filtering by exact before/after commit). Then call `compare_collection` with the
+existing collection ID and the returned comparison path. Its URL opens the
+collection in ordered, side-by-side Before/After mode, including unchanged
+screens and per-screen notes. The link pins one comparison report and locale;
+filters and screen anchors remain shareable. Screens absent from that report
+remain visible as unavailable rather than silently disappearing. The comparison
+must already be published; these tools do not start a capture of arbitrary
+historical revisions. The normal collection link still shows its original
+single-revision screenshots.
+
 ### Collection and MCP services
 
 The deployment has three deliberately separate Workers:
@@ -74,8 +92,9 @@ The deployment has three deliberately separate Workers:
    searches the latest complete catalogues, writes collection manifests, and
    dispatches the focused GitHub Actions workflow when an asset is missing.
 3. `peanut-screen-library-mcp` is a stateless Streamable HTTP MCP endpoint at
-   `/mcp`. Its four tools (`search_screens`, `create_collection`,
-   `get_collection_status`, and `capture_missing_states`) call the collection
+   `/mcp`. Its six tools (`search_screens`, `create_collection`,
+   `get_collection_status`, `capture_missing_states`, `list_comparisons`, and
+   `compare_collection`) call the collection
    Worker through a Cloudflare service binding. MCP never receives R2 or GitHub
    credentials.
 
@@ -86,12 +105,13 @@ Browser Rendering possible without changing the collection API.
 
 Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL`,
 `SCREEN_LIBRARY_ACCESS_AUD`, and `SCREEN_LIBRARY_MCP_URL`; the two URL variables
-are custom HTTPS origins and the audience is the expected Cloudflare Access
-application audience for both control-plane Workers. Both generated Workers set
-`workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
-Google and an `@peanut.me` allow rule for the collection origin and the MCP
-origin. Configure the MCP Access application as the OAuth provider for remote
-MCP clients.
+are either custom HTTPS origins or the Workers' configured `workers.dev`
+origins, and the audience is the expected Cloudflare Access application audience
+for both control-plane Workers. Custom-domain deployments set
+`workers_dev = false`; `workers.dev` deployments omit custom routes. Both modes
+disable preview URLs. Configure Cloudflare Access with Google and an
+`@peanut.me` allow rule for the collection origin and the MCP origin. Configure
+the MCP Access application as the OAuth provider for remote MCP clients.
 
 Two Worker secrets are configured once, outside GitHub logs:
 
@@ -214,8 +234,10 @@ DevOps setup:
    - a deployment token with Workers Scripts Edit scoped to this gallery's
      Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
      `screen-library-deploy` environment. The publisher token is not passed to
-     this job. The publisher verifies its token ID and derives the S3 secret from
-     its SHA-256 hash at runtime; no separate R2 keys are stored.
+     this job. The publisher accepts account-owned or user-owned API token values,
+     verifies them at the matching Cloudflare endpoint, and derives the S3 secret
+     from the SHA-256 hash at runtime. Do not store an already-derived R2 Secret
+     Access Key in `CLOUDFLARE_API_TOKEN`; no separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
@@ -287,6 +309,12 @@ boundary; there is no shorter wall-clock cutoff during quiet periods. If the
 baseline is unavailable or the capture harness changed, publication fails
 closed instead of comparing against an arbitrary revision; run the baseline
 workflow manually after enabling it.
+
+The four-viewport baseline publisher requires all 16 locale and viewport
+artifacts from one run attempt. If a capture leg fails, choose **Re-run all
+jobs** in GitHub Actions. Re-running only failed jobs leaves the successful
+artifacts under the earlier attempt and cannot pass the publisher's matrix
+check.
 
 `Publish screen library` is a reusable `workflow_call` job invoked after the
 capture jobs finish. The caller resolves the reusable workflow from `dev`, and

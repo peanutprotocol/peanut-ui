@@ -2,7 +2,7 @@
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import Link from 'next/link'
@@ -27,6 +27,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 description: 'Foundations, primitives, patterns, audit, and interactive playground',
                 path: '/dev/ds',
                 icon: 'docs',
+            },
+            {
+                name: 'Nav header centering',
+                description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
+                path: '/dev/nav-header-centering',
+                icon: 'switch',
             },
         ],
     },
@@ -88,6 +94,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 icon: 'info',
             },
             {
+                name: 'Reward surfaces',
+                description: 'Every reward/celebration overlay: who opens it in production, and a link to it',
+                path: '/dev/reward-surfaces',
+                icon: 'trophy',
+            },
+            {
                 name: 'Activation Journey',
                 description: 'Every in-app surface and lifecycle email/push per funnel state',
                 path: '/dev/journey',
@@ -98,6 +110,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
     {
         title: 'Builders & ops',
         tools: [
+            {
+                name: 'Deposit accounts',
+                description: 'Claim and share bank details with Bridge sandbox accounts',
+                path: '/dev/deposit-accounts',
+                icon: 'bank',
+            },
             {
                 name: 'Share asset builder',
                 description: 'Iterate the card share asset: badge set, hero variant, seed reroll, PNG capture',
@@ -193,7 +211,7 @@ export default function DevToolsPage() {
                     </Section>
                 ))}
 
-                <Notification
+                <Callout
                     priority="info"
                     title="Info"
                     items={[

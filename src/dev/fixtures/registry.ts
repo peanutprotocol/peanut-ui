@@ -10,6 +10,12 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import {
+    CLAIMABLE_EUR,
+    CLAIMABLE_USD_PREVIEW,
+    DEPOSIT_RAIL_POLICY,
+} from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
@@ -66,6 +72,14 @@ const BANK_ACCOUNTS = [
         updatedAt: '2026-01-01T00:00:00.000Z',
         chainId: null,
     },
+]
+
+// The same two bank accounts, but named by the user and with a last withdrawal
+// on them — what the picker sorts and titles by (TASK-22589). The Spanish one
+// was used more recently, so it sorts above the US one that was added later.
+const NAMED_BANK_ACCOUNTS = [
+    { ...BANK_ACCOUNTS[0], label: 'Payroll', lastUsedAt: '2026-08-12T09:00:00.000Z' },
+    { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
 // The activity list is not only transactions: it also injects a row per badge
@@ -193,6 +207,261 @@ const PEER_CONTACT = (peer: (typeof AVATAR_PEERS)[number], relationship: string)
     lastInteractionDate: '2026-01-01T00:00:00.000Z',
     transactionCount: 1,
 })
+/**
+ * Sandbox opens every account in the user's own name, so each fixture below
+ * carries the demo user as the holder and `nameOnAccount: 'user'`. The
+ * exceptions are the provider-held and unknown-ownership fixtures, which
+ * prove both non-possessive branches.
+ *
+ * `matching.sender` and `rules` are copied from what the backend returns per
+ * rail (peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`). The screens
+ * read nothing else, so a fixture IS the corridor as far as they are
+ * concerned.
+ */
+const HOLDER = 'Demo User'
+
+/** Dollars: third-party payments are allowed, on published terms. */
+const DEPOSIT_ACCOUNT_USD = {
+    id: 'fixture-deposit-usd',
+    railId: 'bridge.ach_us',
+    country: 'USA',
+    currency: 'USD',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.ACH_US.sender },
+    rules: DEPOSIT_RAIL_POLICY.ACH_US.rules,
+    instructions: {
+        accountHolderName: HOLDER,
+        bankName: 'Lead Bank',
+        bankAddress: '1801 Main St, Kansas City, MO 64108',
+        accountNumber: '9600000000000001',
+        routingNumber: '101019644',
+        beneficiaryName: HOLDER,
+        beneficiaryAddress: '1000 Brannan St, San Francisco, CA 94103',
+        paymentRails: ['ach_push', 'wire', 'fednow'],
+    },
+} satisfies DepositAccount
+
+/**
+ * The same dollar account held by a New York or Texas resident. No third party
+ * may pay in at all, so the policy narrows to own-name-only and the terms
+ * collapse to the reason.
+ */
+const DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED = {
+    ...DEPOSIT_ACCOUNT_USD,
+    id: 'fixture-deposit-usd-state',
+    matching: { ...DEPOSIT_ACCOUNT_USD.matching, sender: 'own-name-only' as const },
+    rules: {
+        ownAccount: { allowed: true },
+        thirdPartyBusiness: 'unavailable',
+        thirdPartyIndividual: { policy: 'unavailable' },
+        reason: 'state-restricted',
+    },
+} satisfies DepositAccount
+
+/** Euros: mirrors the US rail — individuals capped under 4,000 EUR, family exempt, 1 EUR floor. */
+const DEPOSIT_ACCOUNT_EUR = {
+    id: 'fixture-deposit-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+    instructions: {
+        accountHolderName: HOLDER,
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: HOLDER,
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
+        paymentRails: ['sepa'],
+    },
+} satisfies DepositAccount
+
+/** Sterling: business payments only, unlimited, with a 2 GBP floor. */
+const DEPOSIT_ACCOUNT_GBP = {
+    id: 'fixture-deposit-gbp',
+    railId: 'bridge.faster_payments_gb',
+    country: 'GBR',
+    currency: 'GBP',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.sender },
+    rules: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.rules,
+    instructions: {
+        accountHolderName: HOLDER,
+        bankName: 'Clear Junction Limited',
+        accountNumber: '00000001',
+        sortCode: '04-00-53',
+        paymentRails: ['faster_payments'],
+    },
+} satisfies DepositAccount
+
+/**
+ * Pesos: third party permitted, individuals capped per payment, businesses
+ * unlimited, 50 MXN floor. SPEI also returns a CLABE and no bank name, which
+ * is why rows follow field presence.
+ */
+const DEPOSIT_ACCOUNT_MXN = {
+    id: 'fixture-deposit-mxn',
+    railId: 'bridge.spei_mx',
+    country: 'MEX',
+    currency: 'MXN',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SPEI_MX.sender },
+    rules: DEPOSIT_RAIL_POLICY.SPEI_MX.rules,
+    instructions: {
+        accountHolderName: HOLDER,
+        clabe: '646180111800000000',
+        paymentRails: ['spei'],
+    },
+} satisfies DepositAccount
+
+/**
+ * Pesos colombianos: Bre-B names the account by a key the payer types, which
+ * is a row of its own beside the bank and the holder.
+ */
+const DEPOSIT_ACCOUNT_COP = {
+    id: 'fixture-deposit-cop',
+    railId: 'bridge.bank_transfer_co',
+    country: 'COL',
+    currency: 'COP',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_CO.sender },
+    instructions: {
+        accountHolderName: HOLDER,
+        bankName: 'Banco Davivienda',
+        breBKey: '@peanut.jordan',
+        paymentRails: ['bre_b'],
+    },
+} satisfies DepositAccount
+
+/**
+ * The one fixture where the payer does NOT read the user's name: the account
+ * is held by our banking partner on the user's behalf. The holder string is
+ * invented and partner-neutral on purpose — the screens must never name a
+ * provider, and a fixture is a screenshot waiting to happen.
+ */
+const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
+    ...DEPOSIT_ACCOUNT_EUR,
+    id: 'fixture-deposit-provider-held',
+    matching: { ...DEPOSIT_ACCOUNT_EUR.matching, nameOnAccount: 'provider' },
+    instructions: {
+        ...DEPOSIT_ACCOUNT_EUR.instructions,
+        accountHolderName: 'Northwind Payments B.V.',
+        beneficiaryName: 'Northwind Payments B.V.',
+    },
+} satisfies DepositAccount
+
+/**
+ * Bridge returned the real holder but its verified identity snapshot was not
+ * available. The screen keeps the holder row and payer terms, but makes no
+ * claim about who legally holds the account.
+ */
+const DEPOSIT_ACCOUNT_OWNERSHIP_UNKNOWN = {
+    ...DEPOSIT_ACCOUNT_EUR,
+    id: 'fixture-deposit-ownership-unknown',
+    matching: { ...DEPOSIT_ACCOUNT_EUR.matching, nameOnAccount: 'unknown' },
+} satisfies DepositAccount
+
+/**
+ * The Bridge bank rails, the set a user verified through Bridge carries.
+ *
+ * The corridor rows come from the user's rails — `corridorsFromRails` in
+ * features/deposit-accounts/rails.ts — so this list IS what the hub shows.
+ * The Manteca corridors are deliberately absent: they belong to an Argentine
+ * or Brazilian user, and the fixture that wants one says so (`get-paid-ar`).
+ */
+const BRIDGE_BANK_RAILS = [
+    { id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', channel: 'bank', country: 'US', currency: 'USD' },
+    { id: 'bridge.sepa_eu', provider: 'bridge', method: 'SEPA_EU', channel: 'bank', country: 'EU', currency: 'EUR' },
+    {
+        id: 'bridge.faster_payments_gb',
+        provider: 'bridge',
+        method: 'FASTER_PAYMENTS_GB',
+        channel: 'bank',
+        country: 'GB',
+        currency: 'GBP',
+    },
+    { id: 'bridge.spei_mx', provider: 'bridge', method: 'SPEI_MX', channel: 'bank', country: 'MX', currency: 'MXN' },
+]
+
+const VA_READY_CAPABILITIES = {
+    rails: BRIDGE_BANK_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+    nextActions: [],
+    restrictions: [],
+}
+
+/**
+ * The same corridors, before identity is verified.
+ *
+ * The rails are present and `requires-info`: an unverified user still has a
+ * region, so the rows exist and the gate says what is missing. An empty rail
+ * list is a user with no bank region at all — that is the empty state, not this.
+ */
+const BLOCKED_BANK_CAPABILITIES = {
+    rails: BRIDGE_BANK_RAILS.map((rail) => ({
+        ...rail,
+        status: 'requires-info',
+        blockingActions: ['sumsub:identity'],
+        reason: { code: 'identity_not_verified', userMessage: 'Verify your identity to open an account.' },
+    })),
+    nextActions: [{ key: 'sumsub:identity', kind: 'sumsub', purpose: 'unlock-bank', levelKey: 'identity' }],
+    restrictions: [],
+}
+
+/** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
+const MANTECA_AR_CAPABILITIES = {
+    rails: [
+        {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'enabled',
+        },
+    ],
+    nextActions: [],
+    restrictions: [],
+}
+
+/** A Colombian user: one Bre-B corridor and nothing else. */
+const BRIDGE_CO_CAPABILITIES = {
+    rails: [
+        {
+            id: 'bridge.bank_transfer_co',
+            provider: 'bridge',
+            method: 'BANK_TRANSFER_CO',
+            channel: 'bank',
+            country: 'CO',
+            currency: 'COP',
+            status: 'enabled',
+        },
+    ],
+    nextActions: [],
+    restrictions: [],
+}
+
+/** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
+const VA_READY_RESPONSE = {
+    'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
+}
+
+/** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
+const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
+const REQUEST_PAY_EUR = {
+    amount: '230.00',
+    currency: 'EUR',
+    isEstimate: true,
+    rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
+}
 
 export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
@@ -204,6 +473,38 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'home-verification-needed': {
+        route: '/home',
+        about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'requires-info',
+                            blockingActions: ['bridge-hosted:proof-of-address'],
+                        },
+                    ],
+                    nextActions: [
+                        {
+                            key: 'bridge-hosted:proof-of-address',
+                            kind: 'bridge-hosted',
+                            purpose: 'unlock-bridge-ach',
+                            requirementKey: 'proof_of_address',
+                            currency: 'USD',
+                        },
+                    ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
         route: '/profile/edit',
@@ -219,7 +520,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-verification': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Unlocked regions for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
@@ -235,18 +536,20 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Three-column badge collection with earned badges first and locked goals.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money?method=bank', about: 'Add money: the bank-transfer country list.' },
+    'add-money': {
+        route: '/add-money?method=bank',
+        about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',
         about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
-    // ?method=crypto is send's hand-off: the flow commits the crypto method and
-    // lands straight on the shared amount step (TASK-21816 URL stepper).
-    'withdraw-amount': {
-        route: '/withdraw?method=crypto',
-        about: 'Withdraw amount step (crypto): USD amount entry with balance and Continue.',
+    'withdraw-crypto-destination': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
     // Crypto address book beside the saved bank accounts. The three entries hit
@@ -287,12 +590,53 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // ?amount= arrives from the shared amount step and opens the bank-details
-    // form directly — the first Field-composed form (TASK-21454).
+    // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
-        route: '/withdraw/spain?amount=50',
-        about: 'Bridge bank-account form for Spain, amount pre-entered — Field label/error chrome.',
+        route: '/withdraw/spain?step=form',
+        about: 'Bridge bank-account form for Spain — Field label/error chrome.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // ---- the pick-first order (TASK-22589) ----
+    // The first screen of the flow: pick where the money goes, before any amount.
+    'withdraw-pick': {
+        route: '/withdraw',
+        about: 'Withdraw: the destination pick, saved accounts most-recently-used first.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // Manteca is entered with no amount now and collects it itself, in the
+    // local currency — the amount as the last step before the review.
+    'withdraw-amount-last': {
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true',
+        about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // A saved destination opens amount entry; an amount below the minimum shows the field error.
+    'withdraw-amount-error': {
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01',
+        about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
+        waitFor: 'p[role="alert"]',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // Named bank accounts beside the named address book: destinationLabel on
+    // every row, masked identifier underneath.
+    'withdraw-destination-names': {
+        route: '/withdraw',
+        about: 'Saved destinations with the names the user gave them, banks and addresses together.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] },
+            'GET /users/saved-addresses': {
+                savedAddresses: [
+                    {
+                        id: 'fixture-saved-1',
+                        address: '0x28c6c06298d514db089934071355e5743bf21d60',
+                        chainId: '42161',
+                        nickname: 'Binance',
+                        lastUsedAt: '2026-08-14T09:00:00.000Z',
+                        createdAt: '2026-05-01T00:00:00.000Z',
+                    },
+                ],
+            },
+        },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a
@@ -520,7 +864,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // fully unlocked user whatever the status says.
     // ---------------------------------------------------------------------
     unverified: {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'ID check never started: no region unlocked, all four locked.',
         responses: {
             'GET /users/me': {
@@ -529,8 +873,40 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'identity-awaiting-upload': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID upload still required: no in-review notice or support escalation.',
+        responses: {
+            'GET /users/me': {
+                // The demo baseline is verified; clear its prior decision and
+                // submission so this state really represents an unsubmitted upload.
+                identityVerification: {
+                    status: 'action_required',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'identity-review-overdue': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID submitted for review over seven days ago: overdue notice with support text link.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: {
+                    status: 'processing',
+                    reviewPending: true,
+                    submittedAt: '2026-08-20T12:00:00.000Z',
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
     'kyc-action-required': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
         responses: {
             'GET /users/me': {
@@ -655,6 +1031,190 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
+    // ---------------------------------------------------------------------
+    // Standing deposit accounts (the bank hub). One fixture per state a payer or
+    // a holder can be looking at — the two policy fields on `matching` are
+    // what each screen reads, so the states differ by policy, not by country.
+    //
+    // The timed-out details screen has no fixture on purpose: it is reached
+    // only after the client spends its provisioning poll budget, which no set
+    // of mocked responses can produce. `useDepositAccounts.test` covers it.
+    // ---------------------------------------------------------------------
+    'get-paid': {
+        route: '/add-money?method=bank',
+        about: 'The hub: one euro account held, the rest open to claim, every country below.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'get-paid-empty': {
+        route: '/add-money?method=bank',
+        about: 'Nothing claimed yet — every corridor offered, none held, country list below.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
+    'get-paid-blocked': {
+        route: '/add-money?method=bank',
+        about: 'Identity not verified, so no corridor can be claimed and the gate says why.',
+        responses: {
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
+        },
+    },
+    'get-paid-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        // The payer terms sit under the benefit rows, below the fold at 375.
+        fullPage: true,
+        about: 'What the user agrees to before a dollar account is opened, with the state rule still to be confirmed.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_USD_PREVIEW] },
+        },
+    },
+    'get-paid-claim-eur': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
+        // The payer terms sit under the benefit rows, below the fold at 375.
+        fullPage: true,
+        about: 'The same step on a corridor whose terms are fully resolved — no state rule to wait for.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_EUR] },
+        },
+    },
+    'get-paid-details-eur': {
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
+        about: 'Euro details: businesses only until an individual volume is agreed, with a 1 EUR floor.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'get-paid-details-usd': {
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
+        about: 'Dollar details: businesses and same-surname family unlimited, anyone else capped.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
+    },
+    'get-paid-details-usd-state-restricted': {
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
+        about: 'The same dollar account for a resident of a state where no third party may pay in.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED] },
+        },
+    },
+    'get-paid-details-gbp': {
+        route: '/add-money?method=bank&step=details&corridor=FASTER_PAYMENTS_GB',
+        about: 'Sterling details, where only a business may pay in, above a floor.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
+    },
+    'get-paid-details-mxn': {
+        route: '/add-money?method=bank&step=details&corridor=SPEI_MX',
+        about: 'Peso details: a per-payment cap on individuals, and a floor under every payment.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_MXN] } },
+    },
+    'get-paid-details-provider-held': {
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
+        about: 'The account is held by our banking partner, so the payer reads a name that is not the user.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_PROVIDER_HELD] },
+        },
+    },
+    'get-paid-details-ownership-unknown': {
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
+        about: 'Euro details with a real holder name but no verified provider identity for an ownership claim.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_OWNERSHIP_UNKNOWN] },
+        },
+    },
+    'get-paid-provisioning': {
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
+        about: 'Claimed, waiting on the provider — the skeleton matches the row count to come.',
+        isLoadingState: true,
+        waitFor: '[data-testid="deposit-details-skeleton"]',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': {
+                depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'provisioning', instructions: undefined }],
+            },
+        },
+    },
+    'get-paid-revoked': {
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
+        about: 'The account no longer accepts money and the details are already in a payroll file somewhere.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'revoked' }] },
+        },
+    },
+    'get-paid-share': {
+        route: '/add-money?method=bank&step=share&corridor=SEPA_EU',
+        about: 'What the payer will see, before the user sends it to them.',
+        // The caveats sit under the details card, below the fold.
+        fullPage: true,
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'get-paid-cop': {
+        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_CO',
+        about: 'Colombia: the Bre-B key the payer types, beside the bank and the holder.',
+        responses: {
+            'GET /users/me': { capabilities: BRIDGE_CO_CAPABILITIES },
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_COP] },
+        },
+    },
+    'get-paid-ar': {
+        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR',
+        about: 'Argentina: the provider CVU only credits transfers the user sends themselves, so it is never shared.',
+        responses: {
+            'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES },
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+        },
+    },
+
+    'home-add-drawer': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer — where bank transfer now leads to the standing account.',
+    },
+    'home-request-drawer': {
+        route: '/home?drawer=request',
+        about: 'The Request drawer — share a request link, or share standing bank details.',
+    },
+    'request-with-bank-alternative': {
+        route: '/request',
+        about: 'Asking one person for one amount, with the standing-details alternative named below it.',
+        // The alternative sits under the keypad, below the fold on a small phone.
+        fullPage: true,
+    },
+    'request-pay-by-bank': {
+        // `demo-request` is the uuid demo-api answers every request read with,
+        // so the overrides below key on it.
+        route: '/pay-request?id=demo-request',
+        about: 'Paying a request whose requester shares their bank details, so a bank transfer can settle it.',
+        // The bank-transfer row sits under the other payment methods.
+        fullPage: true,
+        responses: {
+            'GET /requests/demo-request': { bankInstructionsShared: true, tokenAmount: '250' },
+            // What is left to pay on every rail the requester can receive on.
+            // The screen waits for this read before it draws the bank rows, so
+            // a fixture without it never settles.
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'USD',
+                requestAmount: '250.00',
+                remainingAmount: '250.00',
+                rails: [
+                    { kind: 'peanut_balance', payerAmount: REQUEST_PAY_USD },
+                    {
+                        kind: 'bank',
+                        railId: 'bridge.sepa_eu',
+                        country: 'DE',
+                        reference: 'demo-req',
+                        payerAmount: REQUEST_PAY_EUR,
+                    },
+                ],
+            },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
     },
 
     // ---------------------------------------------------------------------

@@ -54,14 +54,14 @@ export default function AdvisoryPreemptModal({
                 {
                     text: t('advisory.completeNow'),
                     onClick: onCompleteNow,
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     disabled: isLoading,
                 },
                 {
                     text: t('advisory.doLater'),
                     onClick: onDoLater,
-                    variant: 'stroke',
+                    variant: 'secondary',
                     disabled: isLoading,
                 },
             ]}

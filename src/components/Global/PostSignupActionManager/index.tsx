@@ -74,7 +74,7 @@ export const PostSignupActionManager = ({
                 {
                     text: actionConfig.cta,
                     onClick: actionConfig.action,
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                 },
             ]}

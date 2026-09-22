@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
@@ -39,34 +39,14 @@ type CarouselPreview = {
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
-    isPerkClaim?: boolean
 }
 
 const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     {
-        id: 'perk-claim',
-        label: 'Perk claim (pink-dot, no X) — Card Pioneer reward',
-        icon: 'gift',
-        iconContainerClassName: 'bg-action-primary',
-        iconSize: 16,
-        isPerkClaim: true,
-        title: (
-            <p>
-                <b>+$5</b> reward ready!
-            </p>
-        ),
-        description: (
-            <p>
-                <b>Alice</b> used Peanut. Tap to claim.
-            </p>
-        ),
-    },
-
-    {
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
+        iconContainerClassName: 'bg-background-icon-bubble-yellow',
         iconSize: 16,
         title: (
             <span>
@@ -83,7 +63,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'kyc-prompt',
         label: 'KYC prompt — unlock QR (un-verified user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
+        iconContainerClassName: 'bg-background-icon-bubble-yellow',
         iconSize: 16,
         title: (
             <span>
@@ -129,7 +109,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'notification-prompt',
-        label: 'Notification prompt',
+        label: 'Callout prompt',
         icon: 'bell',
         title: 'Stay in the loop!',
         description: 'Turn on notifications and get alerts for all your wallet activity.',
@@ -166,7 +146,6 @@ export default function HomeCTAsPreviewPage() {
                                 logo={cta.logo}
                                 mascotPose={cta.mascotPose}
                                 logoSize={cta.logoSize}
-                                isPerkClaim={cta.isPerkClaim}
                                 onClose={noop(`close ${cta.id}`)}
                                 onClick={noop(`click ${cta.id}`)}
                             />
@@ -187,12 +166,12 @@ export default function HomeCTAsPreviewPage() {
                     ))}
                 </Section>
 
-                <Notification priority="info" title="Preview behavior">
+                <Callout priority="info" title="Preview behavior">
                     Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
                     defaults when logged out, so every step renders here regardless of real KYC state — except the spend
                     step, which needs card access or a QR rail to have an activating spend to route to, and so stays
                     empty in a logged-out preview.
-                </Notification>
+                </Callout>
             </div>
         </DevPageShell>
     )

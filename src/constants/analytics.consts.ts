@@ -78,6 +78,25 @@ export const ANALYTICS_EVENTS = {
     // in demo mode.
     SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
+    // ── Performance health ──
+    // Unsampled. duration_ms runs from accepted same-tab link intent, the
+    // actionable interaction attached to router navigation, History API
+    // mutation, or popstate until the committed destination paints twice.
+    // This measures route-shell paint, not completion of async widgets. Screen
+    // names are low-cardinality templates: dynamic ids and query values are
+    // redacted or reduced to enumerated UI states.
+    SCREEN_TRANSITION_COMPLETED: 'screen_transition_completed',
+    // Uniform 10% sample at response/error completion, used for unbiased
+    // endpoint latency percentiles. `duration_ms` includes `auth_wait_ms`;
+    // readable Server-Timing adds the server and client-network split. API
+    // routes use an allowlisted template: queries/fragments and dynamic ids
+    // are removed, while unknown shapes collapse to `/unmatched`.
+    API_REQUEST_COMPLETED: 'api_request_completed',
+    // Unsampled subset for network errors, timeouts, HTTP 5xx responses and
+    // duration_ms >= 2s. A request can also be present in the 10% completed
+    // sample; use this stream for reliability and tail alerts, not volume.
+    API_REQUEST_PROBLEM: 'api_request_problem',
+
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
     SEND_LINK_FAILED: 'send_link_failed',
@@ -101,6 +120,22 @@ export const ANALYTICS_EVENTS = {
     // The warning-card route check is intentionally separate from the payment
     // funnel: a native WebView can swallow a same-origin push without throwing.
     LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation',
+
+    // ── Standing deposit accounts (/get-paid) ──
+    // Bank details the user holds and hands to a payer. `corridor` is the rail
+    // method code (ACH_US, SEPA_EU…) and is the ONLY thing these carry: the
+    // account numbers themselves never reach analytics.
+    DEPOSIT_ACCOUNT_CLAIM_STARTED: 'deposit_account_claim_started',
+    DEPOSIT_ACCOUNT_CLAIM_FAILED: 'deposit_account_claim_failed',
+    DEPOSIT_ACCOUNT_DETAILS_VIEWED: 'deposit_account_details_viewed',
+    DEPOSIT_ACCOUNT_SHARED: 'deposit_account_shared',
+    DEPOSIT_ACCOUNT_GATE_BLOCKED: 'deposit_account_gate_blocked',
+    // The funnel had a start and a failure and no success, so nothing could
+    // answer "how many taps became an account".
+    DEPOSIT_ACCOUNT_CLAIMED: 'deposit_account_claimed',
+    // The provider review two corridors wait on: asked for, and granted.
+    DEPOSIT_ACCOUNT_ENDORSEMENT_REQUESTED: 'deposit_account_endorsement_requested',
+    DEPOSIT_ACCOUNT_ENDORSEMENT_APPROVED: 'deposit_account_endorsement_approved',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
@@ -235,10 +270,9 @@ export const ANALYTICS_EVENTS = {
 
     // Public card application entry.
     CARD_APPLICATION_CTA_CLICKED: 'card_application_cta_clicked',
-    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
-    // opens the badge detail modal (or the badges list for several).
+    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced;
+    // non-interactive: toasts carry no actions.
     BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
-    BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
     // Activation reward — $10 perk minted on first $100 spend (and same to referrer).
     CARD_ACTIVATION_THRESHOLD_REACHED: 'card_activation_threshold_reached',
     CARD_ACTIVATION_REWARD_CLAIMED: 'card_activation_reward_claimed',

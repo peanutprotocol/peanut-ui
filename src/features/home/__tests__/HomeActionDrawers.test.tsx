@@ -22,6 +22,19 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
+
+// Get-paid is dark until Bridge grants the Virtual Accounts SKU, so the bank
+// row has two truths and both have to hold.
+let depositAccountsEnabled = true
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => depositAccountsEnabled,
+}))
+
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -41,6 +54,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
+    depositAccountsEnabled = true
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -74,6 +88,8 @@ describe('HomeActionDrawers', () => {
     it('opens the add drawer with bank and crypto options only', async () => {
         renderWithUrl('?drawer=add')
 
+        // Both bank rows lead to the country selector — the single entry to
+        // every bank route, standing account and one-off top-up alike.
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
 
@@ -82,6 +98,15 @@ describe('HomeActionDrawers', () => {
 
         // withdraw is reachable via the SEND drawer only (product ruling)
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
+    })
+
+    it('lists bank before crypto (2026-09-18 decision: bank leads the add drawer)', () => {
+        renderWithUrl('?drawer=add')
+
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     /*
@@ -105,7 +130,61 @@ describe('HomeActionDrawers', () => {
         expect(last.searchParams.get('returnTo')).toBeNull()
     })
 
-    it('carries returnTo onto the bank destination through the & separator branch', async () => {
+    it('sends the bank row to the country list while get-paid is off', async () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    /*
+     * Both bank rows land on the country list, so the country click is the one
+     * place the bank arm of deposit_method_selected is reported. A capture
+     * here too counted the same user twice as soon as the flag went on.
+     */
+    it.each([true, false])('leaves the bank funnel event to the country click (get-paid on: %s)', async (enabled) => {
+        depositAccountsEnabled = enabled
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+        expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    it('opens the request drawer with both share actions and routes each on click', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=request', (e) => urlUpdates.push(e))
+
+        // both ways to be paid are offered on one screen
+        expect(screen.getByText('shareRequestLink')).toBeInTheDocument()
+        expect(screen.getByText('shareBankDetails')).toBeInTheDocument()
+        // A description is a sentence. Cut to one line it lost half of itself in
+        // pt-BR and es-419, so it wraps.
+        expect(screen.getByText('shareBankDetailsDescription')).toHaveClass('whitespace-normal')
+        expect(screen.getByText('shareBankDetailsDescription')).not.toHaveClass('truncate')
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-link'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/request'))
+        // the drawer param is cleared before routing, so browser-back lands on a closed home
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    it('drops the bank-details row from the request drawer while get-paid is off', () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=request')
+
+        expect(screen.getByTestId('home-drawer-request-share-link')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
+    })
+
+    it('carries a query-bearing returnTo onto the bank destination', async () => {
+        // The origin holds its own query string, so the value has to survive
+        // encoding whole — an unencoded `&to=EUR` would arrive as a separate
+        // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 

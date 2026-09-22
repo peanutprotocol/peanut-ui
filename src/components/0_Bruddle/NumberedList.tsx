@@ -9,7 +9,7 @@ interface NumberedListProps {
 /**
  * Ordered steps with filled action-primary circle markers. Use it for a real
  * sequence — a set of unordered claims belongs in minimal bullets instead, and
- * a risk or caveat belongs in the screen's single Notification.
+ * a risk or caveat belongs in the screen's single Callout.
  */
 export const NumberedList = ({ items, className }: NumberedListProps) => (
     <ol role="list" className={twMerge('flex w-full flex-col gap-3 text-left', className)}>

@@ -8,7 +8,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import Loading from '@/components/Global/Loading'
@@ -80,7 +80,7 @@ export default function FullGraphPage() {
                         title="Full graph"
                         description="Enter the admin API key to visualize the network."
                     />
-                    {error && <Notification priority="error">{error}</Notification>}
+                    {error && <Callout priority="error">{error}</Callout>}
                     <Field label="Admin API key">
                         <BaseInput
                             type="password"
@@ -169,7 +169,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.charge.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -226,7 +226,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.inviteLinks.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -284,7 +284,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.p2pLinks.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -344,7 +344,7 @@ export default function FullGraphPage() {
                                                     <span>Strength</span>
                                                 </div>
                                                 <BaseInput
-                                                    variant="sm"
+                                                    size="sm"
                                                     type="number"
                                                     min="-1"
                                                     max="1"
@@ -383,7 +383,7 @@ export default function FullGraphPage() {
                                                     </span>
                                                 </div>
                                                 <BaseInput
-                                                    variant="sm"
+                                                    size="sm"
                                                     type="number"
                                                     min="0"
                                                     max="9"
@@ -440,7 +440,7 @@ export default function FullGraphPage() {
                                             )}
                                     </div>
                                     {externalNodesError && externalNodesConfig.enabled && (
-                                        <Notification priority="error">Failed to load. Check the console.</Notification>
+                                        <Callout priority="error">Failed to load. Check the console.</Callout>
                                     )}
                                     {!externalNodesError && externalNodesConfig.enabled && (
                                         <div className="space-y-2 pl-4">
@@ -538,7 +538,7 @@ export default function FullGraphPage() {
                                                 {(forceConfig.externalLinks?.enabled ??
                                                     DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
                                                     <BaseInput
-                                                        variant="sm"
+                                                        size="sm"
                                                         type="number"
                                                         min="-1"
                                                         max="1"
@@ -612,7 +612,7 @@ export default function FullGraphPage() {
                                         </span>
                                     </div>
                                     <BaseInput
-                                        variant="sm"
+                                        size="sm"
                                         type="number"
                                         min="0"
                                         max="10000"
@@ -652,7 +652,7 @@ export default function FullGraphPage() {
                                 {/* Action buttons */}
                                 <div className="flex flex-col gap-3">
                                     <Button
-                                        variant="stroke"
+                                        variant="secondary"
                                         size="small"
                                         onClick={handleRecalculate}
                                         title="Recalculate layout with current settings"
@@ -661,7 +661,7 @@ export default function FullGraphPage() {
                                         Recalculate
                                     </Button>
                                     <Button
-                                        variant="stroke"
+                                        variant="secondary"
                                         size="small"
                                         onClick={handleReset}
                                         title="Reset all settings to defaults"
@@ -716,7 +716,7 @@ export default function FullGraphPage() {
                                                 label={
                                                     <span className="flex items-center gap-1">
                                                         <span
-                                                            className="inline-block size-2 rounded-round"
+                                                            className="inline-block size-2 rounded-full"
                                                             style={{
                                                                 backgroundColor: color,
                                                                 border: border

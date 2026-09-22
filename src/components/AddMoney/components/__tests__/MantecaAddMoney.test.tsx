@@ -23,6 +23,8 @@ jest.mock('next/navigation', () => ({
     useParams: () => mockParams,
     useSearchParams: () => ({ get: () => null }),
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+    // the residence screen renders NavHeader, whose maintenance banner reads it
+    usePathname: () => '/add-money',
 }))
 
 const mockQueryState: Record<string, unknown> = {}
@@ -62,8 +64,21 @@ jest.mock('@/hooks/useCurrency', () => ({
     }),
 }))
 
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [] }) }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
+let mockCapabilitiesLoading = false
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ rails: [], isLoading: mockCapabilitiesLoading }),
+}))
+// Default to a resident of both countries so the amount/KYC cases render the
+// amount step whichever top-up they open; the residence-gate cases override
+// it. The real hook reads useAuth, which throws with no provider.
+let mockResidenceIso2s: string[] = ['AR', 'BR']
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({
+    useResidenceIso2s: () => mockResidenceIso2s,
+}))
+let mockIsIdentityVerified = true
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: mockIsIdentityVerified }),
+}))
 let mockIsVerifiedForCountry = true
 jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => mockIsVerifiedForCountry }))
 let mockRejection: Record<string, unknown> = { state: 'happy' }
@@ -88,7 +103,14 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 // captures the KYC modal wiring so a test can drive its CTA
-type KycModalProps = { visible: boolean; variant?: string; reasonCode?: string; onVerify: () => Promise<void> }
+type KycModalProps = {
+    visible: boolean
+    variant?: string
+    reasonCode?: string
+    regionName?: string
+    onClose: () => void
+    onVerify: () => Promise<void>
+}
 let lastKycModalProps: KycModalProps | null = null
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: KycModalProps) => {
@@ -130,6 +152,9 @@ beforeEach(() => {
     lastInputStepProps = null
     lastKycModalProps = null
     mockIsVerifiedForCountry = true
+    mockIsIdentityVerified = true
+    mockCapabilitiesLoading = false
+    mockResidenceIso2s = ['AR', 'BR']
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
 })
@@ -220,5 +245,135 @@ describe('KYC modal — fixable Manteca rejection', () => {
         expect(mockKycFlow.handleFixableRejection).toHaveBeenCalledWith(sofRejection)
         expect(mockKycFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * The gate comes BEFORE the amount. Manteca mints a CVU/QR for an exact locked
+ * amount, so the amount screen has to stay first among the coordinates — but a
+ * user who cannot deposit should learn it on arrival, not after typing a number.
+ * The amount step stays mounted underneath so a dismissed drawer leaves a screen
+ * that explains itself. Title copy is covered in InitiateKycModal.countryPayments.
+ */
+describe('identity gate on arrival', () => {
+    test('an unverified user lands on the amount step with the gate already open', () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        render(<MantecaAddMoney />)
+
+        expect(lastKycModalProps!.visible).toBe(true)
+        expect(lastKycModalProps!.variant).toBe('country_payments')
+        expect(lastKycModalProps!.regionName).toBe('Argentina')
+        // the amount input is underneath, not replaced
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+
+    test('a verified user sees no gate', () => {
+        setCountry('argentina')
+        render(<MantecaAddMoney />)
+
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+
+    test('no gate flashes while the capabilities are still loading', () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockCapabilitiesLoading = true
+        render(<MantecaAddMoney />)
+
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+
+    test('Continue re-opens the gate after the user dismissed it', async () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        render(<MantecaAddMoney />)
+
+        act(() => lastKycModalProps!.onClose())
+        expect(lastKycModalProps!.visible).toBe(false)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(lastKycModalProps!.visible).toBe(true)
+    })
+
+    test('a dismissed gate stays closed on re-render', () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        const { rerender } = render(<MantecaAddMoney />)
+
+        act(() => lastKycModalProps!.onClose())
+        rerender(<MantecaAddMoney />)
+
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+})
+
+// An already-verified user opening a country they have not been uplifted for is
+// still gated — with the cross-region copy, not the first-time one.
+test('a verified user missing the regional uplift gets the cross-region gate', () => {
+    setCountry('argentina')
+    mockIsVerifiedForCountry = false
+    render(<MantecaAddMoney />)
+
+    expect(lastKycModalProps!.visible).toBe(true)
+    expect(lastKycModalProps!.variant).toBe('cross_region')
+})
+
+/**
+ * The residence rule comes before the amount and the KYC drawer. Manteca opens
+ * the Argentine top-up only for an Argentine resident and rejects the rest
+ * after amount + KYC, so a non-resident reads the rule on arrival — with the QR
+ * route that still works from any balance — instead of sailing into a deposit
+ * Manteca will refuse.
+ */
+describe('residence gate — Argentina', () => {
+    test('a non-resident sees the residence screen, not the amount step or KYC gate', () => {
+        setCountry('argentina')
+        mockResidenceIso2s = ['DE']
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        // the KYC drawer is never mounted for a non-resident
+        expect(lastKycModalProps).toBeNull()
+        expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
+        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
+    })
+
+    test('an Argentine resident reaches the amount step', () => {
+        setCountry('argentina')
+        mockResidenceIso2s = ['AR']
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
+ * Manteca account, which asks for a CPF, and a Brazilian residence is the
+ * stand-in the app checks first. The rule is client-side; the backend does not
+ * gate this corridor on residence.
+ */
+describe('residence gate — Brazil', () => {
+    test('a non-resident sees the residence screen, with the Pix QR way in', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['PT']
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toBeNull()
+        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
+    })
+
+    test('a Brazilian resident reaches the amount step', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['BR']
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
     })
 })

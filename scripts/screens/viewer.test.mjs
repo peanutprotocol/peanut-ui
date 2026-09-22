@@ -14,6 +14,8 @@ const elementIds = [
     'source',
     'source-control',
     'locale',
+    'profile',
+    'profile-control',
     'title',
     'description',
     'provenance',
@@ -46,6 +48,7 @@ const elementIds = [
     'footer',
     'auth-preview',
     'auth-gate',
+    'google-sign-in',
 ]
 
 class Element {
@@ -101,7 +104,10 @@ const versionGroups = (elements) => elements.get('versions').children
 const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
 const imageSources = (element) => [element?.src, ...(element?.children ?? []).flatMap(imageSources)].filter(Boolean)
 
-async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
+async function loadLanding(
+    pathname,
+    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '' } = {}
+) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
     const location = {
@@ -140,7 +146,9 @@ async function loadLanding(pathname, { ok = true, index = [], report, search = '
         fetch: (url) =>
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
-                : response,
+                : comparisonReport && url.includes('/screen-data/reports/')
+                  ? Promise.resolve({ ok: true, status: 200, json: async () => comparisonReport })
+                  : response,
         history,
         location,
         window: {},
@@ -149,8 +157,9 @@ async function loadLanding(pathname, { ok = true, index = [], report, search = '
         filename: 'public/screen-library/viewer.js',
     })
     resolveResponse({
-        ok,
-        status: ok ? 200 : 404,
+        ok: ok && !redirected,
+        type: redirected ? 'opaqueredirect' : undefined,
+        status: redirected ? 0 : ok ? 200 : 404,
         json: async () => report ?? index,
     })
     await new Promise((resolve) => setImmediate(resolve))
@@ -196,6 +205,17 @@ test('root shows the branded sign-in gate when Access redirects the catalogue re
     assert.equal(elements.get('auth-preview').hidden, false)
     assert.equal(elements.get('coverage').textContent, 'Private product library')
     assert.equal(body.classList.value, 'auth-required')
+    assert.equal(elements.get('google-sign-in').href, '/screen-data/auth/continue?return=%2F')
+})
+
+test('sign-in from a collection deep link returns to the same collection, locale and screen', async () => {
+    const pathname = '/collections/multi-action-screens-revised-review-20260921-05ad56c3fe/'
+    const elements = await loadLanding(pathname, { redirected: true, search: '?locale=en', hash: '#fixture-home' })
+    assert.equal(elements.get('auth-gate').hidden, false)
+    assert.equal(
+        elements.get('google-sign-in').href,
+        `/screen-data/auth/continue?return=${encodeURIComponent(`${pathname}?locale=en#fixture-home`)}`
+    )
 })
 
 test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {
@@ -246,6 +266,33 @@ test('landing locale selector filters published versions', async () => {
     assert.equal(versionLinks(elements).length, 1)
     assert.equal(versionLinks(elements)[0].children[1].textContent, 'pr-1')
     assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
+})
+
+test('landing viewport selector makes each published capture size independently browsable', async () => {
+    const commit = 'a'.repeat(40)
+    const defaultPath = `2026-09-21/dev/en/${commit}/run-1-1`
+    const smallPath = `2026-09-21/dev/en/320x712/${commit}/run-2-1`
+    const entries = [
+        { path: defaultPath, date: '2026-09-21', locale: 'en', source: 'synthetic', reportType: 'capture' },
+        {
+            path: smallPath,
+            date: '2026-09-21',
+            locale: 'en',
+            profile: '320x712',
+            source: 'synthetic',
+            reportType: 'capture',
+        },
+    ]
+    const elements = await loadLanding('/', { index: entries })
+    assert.equal(elements.get('profile-control').hidden, false)
+    assert.equal(elements.get('profile').children.length, 2)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${defaultPath}/?source=synthetic&locale=en`)
+    elements.get('profile').value = '320x712'
+    elements.get('profile').dispatch('change')
+    assert.equal(versionLinks(elements).length, 1)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${smallPath}/?source=synthetic&locale=en&profile=320x712`)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&profile=320x712')
+    assert.equal(versionLinks(elements)[0].children[0].children[1].textContent, 'Full library · 320 × 712')
 })
 
 test('landing source selector restores and shares deterministic or real journey filters', async () => {
@@ -786,6 +833,96 @@ test('curated collection pages preserve order, notes and switch locale in place'
     elements.get('locale').dispatch('change')
     assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${portuguese}`))
     assert.equal(elements.location.search, '?locale=pt-BR')
+})
+
+test('a custom collection can show its selected screens side by side across two revisions', async () => {
+    const beforeImage = 'a'.repeat(64) + '.webp'
+    const afterImage = 'b'.repeat(64) + '.webp'
+    const path = `2026-09-16/pr-42/en/${'c'.repeat(40)}/run-3-1`
+    const report = {
+        schema: 1,
+        type: 'collection',
+        id: 'review-20260916-abc123',
+        title: 'Review screens',
+        createdAt: '2026-09-16T12:00:00Z',
+        locales: ['en', 'pt-BR'],
+        source: { en: { commit: 'd'.repeat(40) } },
+        complete: true,
+        items: [
+            {
+                id: 'profile',
+                order: 0,
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                note: 'Compare this',
+                variants: {},
+            },
+            { id: 'send', order: 1, name: 'Send', flow: 'Payments', kind: 'route', variants: {} },
+            { id: 'card', order: 2, name: 'Card', flow: 'Card', kind: 'route', variants: {} },
+        ],
+    }
+    const comparisonReport = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        before: { commit: 'e'.repeat(40) },
+        after: { commit: 'c'.repeat(40) },
+        screens: [
+            {
+                id: 'send',
+                name: 'Send',
+                flow: 'Payments',
+                kind: 'route',
+                status: 'unchanged',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+            {
+                id: 'profile',
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                status: 'changed',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+            {
+                id: 'extra',
+                name: 'Extra',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+        ],
+    }
+    const elements = await loadLanding('/collections/review-20260916-abc123/', {
+        report,
+        comparisonReport,
+        search: `?locale=en&compare=${encodeURIComponent(path)}`,
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map((tile) => tile.id),
+        ['profile', 'send', 'card']
+    )
+    assert.equal(elements.get('screens').children[0].children[1].className, 'pair')
+    assert.deepEqual(imageSources(elements.get('screens').children[0]), [
+        `/screen-data/assets/${beforeImage}`,
+        `/screen-data/assets/${afterImage}`,
+    ])
+    assert.equal(elements.get('screens').children[0].children[0].children[3].textContent, 'Compare this')
+    const missingPair = elements.get('screens').children[2].children[1]
+    assert.equal(missingPair.className, 'pair')
+    assert.deepEqual(
+        missingPair.children.map((figure) => figure.children[1].textContent),
+        ['Not in this version', 'Not in this version']
+    )
+    assert.equal(elements.get('locale').children.length, 1)
+    assert.equal(elements.get('view-mode-row').hidden, true)
+    assert.match(elements.location.search, /compare=/)
+    assert.equal(elements.get('provenance').children[0].children[0].textContent, `Before ${'e'.repeat(40)}`)
 })
 
 test('Nutcracker reports show real-backend provenance and retain a screenshot when its assertion failed', async () => {

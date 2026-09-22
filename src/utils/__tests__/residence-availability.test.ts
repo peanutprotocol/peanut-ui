@@ -114,10 +114,10 @@ describe('multi-currency rail sets are qualified, not promised', () => {
 // unavailable for the same residence.
 describe('residenceAvailability vs buildUnlockGroups', () => {
     const ROW_FOR_RAIL: Record<AvailabilityRailKey, UnlockRowLabelKey> = {
-        pix: 'saBank',
-        arQr: 'saBank',
-        spei: 'naBank',
-        usdAch: 'naBank',
+        pix: 'brl',
+        arQr: 'ars',
+        spei: 'mxn',
+        usdAch: 'usd',
         eurSepa: 'sepa',
         gbpFps: 'sepa',
     }
@@ -127,8 +127,8 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
         return buildUnlockGroups({
-            regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-            qrOnly: { brazil: false, argentina: false },
+            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
+            canPayQr: false,
             restrictions,
             card: 'get',
             residenceIso2: iso2,
@@ -160,7 +160,9 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     it('a banking-restricted residence lists no rail and Unlock payments marks every bank row unavailable', () => {
         for (const iso2 of ['JP', 'RU']) {
             expect(residenceAvailability(sets, iso2).available.filter(isRail)).toEqual([])
-            const bankRows = unlockRowsFor(iso2).filter((row) => row.id !== 'p2p' && row.id !== 'card')
+            const bankRows = unlockRowsFor(iso2).filter(
+                (row) => row.id !== 'p2p' && row.id !== 'card' && row.id !== 'crypto'
+            )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
     })

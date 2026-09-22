@@ -25,7 +25,7 @@ import type {
     DepositAddressStatusResponse,
     RhinoChainType,
 } from '@/services/services.types'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tooltip } from '@/components/Tooltip'
 import { useState } from 'react'
 import Image from 'next/image'
@@ -134,12 +134,12 @@ const CryptoDepositView = ({
                     user to send funds while showing no address at all */}
                 {isError && !isLoading && (
                     <div className="flex flex-col items-center gap-4">
-                        <Notification priority="attention" title={t('addressErrorTitle')}>
+                        <Callout priority="attention" title={t('addressErrorTitle')}>
                             {t('addressErrorDescription')}
-                        </Notification>
+                        </Callout>
                         {onRetry && (
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full bg-background-default"
                                 shadowSize="4"
                                 onClick={onRetry}
@@ -254,9 +254,9 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* warning card */}
-                        <Notification priority="attention" title={t('warningTitle')}>
+                        <Callout priority="attention" title={t('warningTitle')}>
                             {t('warningDescription')}
-                        </Notification>
+                        </Callout>
 
                         {/* min/max limits */}
                         <div className="flex w-full flex-col gap-1">
@@ -283,7 +283,7 @@ const CryptoDepositView = ({
 
                         {/* how to deposit button */}
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full bg-background-default"
                             shadowSize="4"
                             onClick={() => setShowHowToDeposit(true)}

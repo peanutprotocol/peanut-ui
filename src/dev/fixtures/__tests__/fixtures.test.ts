@@ -28,6 +28,16 @@ function routeExists(route: string): boolean {
 }
 
 describe('fixture registry', () => {
+    it('shows the USD corridor task alongside Home actions', () => {
+        expect(FIXTURES['home-verification-needed'].responses?.['GET /users/me']).toEqual(
+            expect.objectContaining({
+                capabilities: expect.objectContaining({
+                    nextActions: [expect.objectContaining({ key: 'bridge-hosted:proof-of-address', currency: 'USD' })],
+                }),
+            })
+        )
+    })
+
     it('has unique kebab-case names', () => {
         expect(new Set(names).size).toBe(names.length)
         for (const name of names) expect(name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)

@@ -47,8 +47,8 @@ const withDrawer = (overrides: Record<string, unknown>, drawerOverrides: Record<
         extraDataForDrawer: { ...(baseTx.extraDataForDrawer as Record<string, unknown>), ...drawerOverrides },
     }) as unknown as TransactionDetails
 
-const renderConfig = (tx: TransactionDetails) =>
-    renderHook(() => useReceiptViewModel(tx, { isPublic: false })).result.current.rowVisibilityConfig
+const renderConfig = (tx: TransactionDetails, isPublic = false) =>
+    renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.rowVisibilityConfig
 
 const senderSendLink = (status: string): TransactionDetails =>
     withDrawer({ status }, { originalUserRole: EHistoryUserRole.SENDER, kind: 'SEND_LINK' })
@@ -133,5 +133,58 @@ describe('useReceiptViewModel — cancelled sendlink sender', () => {
         // non-peanut-wallet token surface this row. Locked so a future
         // status-blanket gate doesn't sneak in.
         expect(config.tokenAndNetwork).toBe(true)
+    })
+})
+
+describe('sender reference row (bank deposits)', () => {
+    const bankDeposit = (senderReference?: string): TransactionDetails =>
+        withDrawer({ status: 'completed', direction: 'bank_deposit' }, { kind: 'ONRAMP', senderReference })
+
+    it('shows when the deposit carries the payer reference', () => {
+        expect(renderConfig(bankDeposit('INVOICE 4471')).senderReference).toBe(true)
+    })
+
+    it('stays hidden when the API sends none', () => {
+        expect(renderConfig(bankDeposit()).senderReference).toBe(false)
+    })
+
+    it('never shows on another kind, even if the field is present', () => {
+        const send = withDrawer({ status: 'completed' }, { kind: 'DIRECT_TRANSFER', senderReference: 'x' })
+        expect(renderConfig(send).senderReference).toBe(false)
+    })
+
+    it('never shows on a public receipt — the payer reference is for the owner', () => {
+        // The backend withholds it from a public receipt, but the public page
+        // renders this same component tree, so the gate is repeated here.
+        expect(renderConfig(bankDeposit('INVOICE 4471'), true).senderReference).toBe(false)
+    })
+})
+
+describe('payment reference row (bank withdrawals)', () => {
+    const withdraw = (paymentReference?: string, status = 'completed'): TransactionDetails =>
+        withDrawer({ status, direction: 'bank_withdraw' }, { kind: 'OFFRAMP', paymentReference })
+
+    it('shows the owner the reference we sent with the payout', () => {
+        expect(renderConfig(withdraw('hello world')).paymentReference).toBe(true)
+    })
+
+    it('stays hidden when the API sends none — an older API, or a rail that takes none', () => {
+        expect(renderConfig(withdraw()).paymentReference).toBe(false)
+        expect(renderConfig(withdraw('')).paymentReference).toBe(false)
+    })
+
+    it('never shows on a public receipt — the reference is for the owner', () => {
+        expect(renderConfig(withdraw('hello world'), true).paymentReference).toBe(false)
+    })
+
+    it('can sit beside the document-id row on a cancelled withdrawal, under a different name', () => {
+        // The one case where both reference rows render together: the
+        // Transfer ID row drops out on cancel, so showsReceiptReferenceRow
+        // lets the document id back in. "Reference we sent" and "Receipt
+        // reference" must stay tellable apart.
+        const config = renderConfig(withdraw('hello world', 'cancelled'))
+        expect(config.paymentReference).toBe(true)
+        expect(config.reference).toBe(true)
+        expect(config.transferId).toBe(false)
     })
 })

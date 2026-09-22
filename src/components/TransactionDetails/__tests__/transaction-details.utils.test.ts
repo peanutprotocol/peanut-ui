@@ -12,7 +12,13 @@
  * enum (`WALLET_EXTERNAL`), which never reaches the FE. Each case below fails
  * on the pre-fix code (where `'address'` fell through to `formatIban`).
  */
-import { getAccountCopyValue, bankAccountLabelKey, receiptIssuedAt } from '../transaction-details.utils'
+import {
+    getAccountCopyValue,
+    bankAccountLabelKey,
+    receiptHeadlineAmount,
+    receiptIssuedAt,
+    showsReceiptReferenceRow,
+} from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
 // 3rd char is a LETTER (G) — dodges the /^[a-zA-Z]{2}\d/ display heuristic.
@@ -117,5 +123,97 @@ describe('receiptIssuedAt', () => {
 
     it('pending receipts date from creation', () => {
         expect(receiptIssuedAt({ ...base, status: 'pending' })?.toISOString()).toBe(base.createdAt)
+    })
+})
+
+/**
+ * The receipt screen and the PDF used to answer "how much" differently: a
+ * $100 pot that collected $40 printed $100.00 on one and $40.00 on the other,
+ * and the PDF dropped the sign so a refund read like a spend.
+ */
+describe('receiptHeadlineAmount', () => {
+    it('leads a request pot with what it collected, not with its goal', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 40 }, 100, '+')
+
+        expect(headline).toEqual({ amount: 40, sign: '', isCollectedTotal: true })
+    })
+
+    it('leads a goal-less pot with its collected total', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 47.25 }, 0, '')
+
+        expect(headline.amount).toBe(47.25)
+    })
+
+    it('keeps the direction sign on everything that is not a pot', () => {
+        expect(receiptHeadlineAmount({}, 12.5, '-')).toEqual({ amount: 12.5, sign: '-', isCollectedTotal: false })
+        expect(receiptHeadlineAmount({}, 12.5, '+').sign).toBe('+')
+    })
+
+    it('reads an unusable amount as zero rather than printing NaN', () => {
+        expect(receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: null }, 0, '').amount).toBe(0)
+        expect(receiptHeadlineAmount({}, Number.NaN, '-').amount).toBe(0)
+    })
+})
+
+/**
+ * The receipt's document-id row. It prints the history-entry id, which on a
+ * bank rail is the transfer id and on a crypto entry is the transaction hash
+ * — both already printed one row above under their own label. The row used to
+ * repeat them, so a real Bridge withdrawal showed the same value twice.
+ */
+describe('showsReceiptReferenceRow', () => {
+    it('drops out on a bank withdrawal, where Transfer ID already prints the id', () => {
+        expect(
+            showsReceiptReferenceRow({
+                id: '11111111-2222-3333-4444-555555555555',
+                direction: 'bank_withdraw',
+                status: 'completed',
+            })
+        ).toBe(false)
+    })
+
+    it('drops out on a bank claim for the same reason', () => {
+        expect(showsReceiptReferenceRow({ id: 'abc-def', direction: 'bank_claim', status: 'completed' })).toBe(false)
+    })
+
+    it('shows on a cancelled bank withdrawal, where the Transfer ID row is hidden', () => {
+        expect(showsReceiptReferenceRow({ id: 'abc-def', direction: 'bank_withdraw', status: 'cancelled' })).toBe(true)
+    })
+
+    it('drops out when the id IS the hash the Transaction ID row prints', () => {
+        expect(
+            showsReceiptReferenceRow({
+                id: '0x8b5cdd00ab',
+                txHash: '0x8b5cdd00ab',
+                direction: 'crypto_deposit',
+                status: 'completed',
+            })
+        ).toBe(false)
+    })
+
+    it('compares the id and the hash without case, because only the copy is case-sensitive', () => {
+        expect(
+            showsReceiptReferenceRow({
+                id: '0X8B5C00AB',
+                txHash: '0x8b5c00ab',
+                direction: 'crypto_deposit',
+                status: 'completed',
+            })
+        ).toBe(false)
+    })
+
+    it('still shows when the id names something no other row carries', () => {
+        expect(
+            showsReceiptReferenceRow({
+                id: '11111111-2222-3333-4444-555555555555',
+                txHash: '0x8b5c00ab',
+                direction: 'direct_transfer',
+                status: 'completed',
+            })
+        ).toBe(true)
+    })
+
+    it('shows nothing when there is no id', () => {
+        expect(showsReceiptReferenceRow({ direction: 'direct_transfer', status: 'completed' })).toBe(false)
     })
 })

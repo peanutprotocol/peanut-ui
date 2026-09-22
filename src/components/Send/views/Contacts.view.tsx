@@ -159,7 +159,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             <FieldError>{usernameCheckError}</FieldError>
                             {canRetryUsernameCheck && (
                                 <Button
-                                    variant="transparent"
+                                    variant="ghost"
                                     className="h-auto w-fit p-0 text-body-xs"
                                     onClick={() => setUsernameCheckRetry((retry) => retry + 1)}
                                 >
@@ -174,7 +174,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                     <div className="space-y-2">
                         <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
                         <ListItem
-                            position="single"
+                            position="solo"
                             title={t('contacts.usernameFound', { username: exactUsername })}
                             body={t('contacts.continueToSend')}
                             leading={<IconBubble icon="user" size="s" color="green" />}
@@ -201,11 +201,11 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                             <ListItem
                                                 position={
                                                     contacts.length === 1
-                                                        ? 'single'
+                                                        ? 'solo'
                                                         : index === 0
-                                                          ? 'first'
+                                                          ? 'top'
                                                           : index === contacts.length - 1
-                                                            ? 'last'
+                                                            ? 'bottom'
                                                             : 'middle'
                                                 }
                                                 key={contact.userId}
@@ -222,7 +222,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                 body={`@${contact.username}`}
                                                 leading={
                                                     <UserAvatar
-                                                        size="extra-small"
+                                                        size="s"
                                                         name={contact.username}
                                                         avatarKey={contact.avatarKey}
                                                         decorative
@@ -252,7 +252,13 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     icon="alert"
                                     description={t('contacts.errorDescription')}
                                     cta={
-                                        <Button shadowSize="4" onClick={() => refetch()} className="mt-4" icon="retry">
+                                        <Button
+                                            shadowSize="4"
+                                            onClick={() => refetch()}
+                                            className="mt-4"
+                                            icon="retry"
+                                            iconSize={12}
+                                        >
                                             {tCommon('retry')}
                                         </Button>
                                     }

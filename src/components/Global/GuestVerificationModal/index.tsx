@@ -31,7 +31,7 @@ export const GuestVerificationModal = ({
             onClose={onClose}
             title={t('guestVerificationModal.title')}
             description={description}
-            tone="warning"
+            tone="attention"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {
@@ -44,7 +44,7 @@ export const GuestVerificationModal = ({
                             const { inviteLink } = generateInviteCodeLink(inviterUsername)
                             router.push(inviteLink)
                         } else if (redirectToVerification) {
-                            router.push('/setup?redirect_uri=/profile/identity-verification')
+                            router.push('/setup?redirect_uri=/profile/accounts-and-payments')
                             return
                         } else {
                             router.push('/setup')
@@ -53,7 +53,7 @@ export const GuestVerificationModal = ({
                 },
                 {
                     text: secondaryCtaLabel,
-                    variant: 'stroke',
+                    variant: 'secondary',
                     className: 'w-full',
                     onClick: () => {
                         onClose()

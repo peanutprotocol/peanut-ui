@@ -65,7 +65,7 @@ export default function RelationshipTable({
         >
             <Button
                 type="button"
-                variant="transparent"
+                variant="ghost"
                 size="small"
                 onClick={() => changeSort(key)}
                 className={`w-auto gap-1 p-0 ${align === 'right' ? 'ml-auto' : ''}`}
@@ -167,7 +167,7 @@ export default function RelationshipTable({
                 <div className="flex gap-1">
                     <Button
                         type="button"
-                        variant="stroke"
+                        variant="secondary"
                         size="small"
                         disabled={page === 0}
                         onClick={() => setPage((value) => value - 1)}
@@ -177,7 +177,7 @@ export default function RelationshipTable({
                     </Button>
                     <Button
                         type="button"
-                        variant="stroke"
+                        variant="secondary"
                         size="small"
                         disabled={page + 1 >= pageCount}
                         onClick={() => setPage((value) => value + 1)}

@@ -54,11 +54,5 @@ export const useCopyLinkActions = (searchParams: SearchParamsReader): ActionModa
             className: 'bg-action-primary hover:bg-action-primary-hover text-black sm:py-3',
             shadowSize: '4',
         },
-        {
-            variant: 'transparent-dark',
-            className:
-                'text-foreground-secondary text-body-xs font-medium h-2 mt-1 hover:text-foreground-secondary active:text-foreground-secondary',
-            text: t('unsupportedBrowserModal.pasteHint'),
-        },
     ]
 }

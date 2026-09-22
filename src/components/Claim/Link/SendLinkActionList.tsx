@@ -19,7 +19,7 @@
  * note: request payment flows use RequestPotActionList instead
  */
 
-import StatusBadge from '../../Global/Badges/StatusBadge'
+import Badge from '../../Global/Badges/Badge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -232,7 +232,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {
@@ -261,7 +261,7 @@ export default function SendLinkActionList({
                     onClick={handleContinueWithPeanut}
                     className="flex w-full items-center gap-1"
                 >
-                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.continueWith')} </div>}
+                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.createAccount')}</div>}
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
@@ -325,7 +325,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                tone="warning"
+                tone="attention"
                 ctas={[
                     {
                         text: tCommon('close'),
@@ -375,13 +375,13 @@ const MethodCard = ({
     const showSoon = method.soon || soon
     return (
         <ListItem
-            position="single"
+            position="solo"
             body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
                     {(showSoon || requiresVerification) && (
-                        <StatusBadge
+                        <Badge
                             status={requiresVerification ? 'custom' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />

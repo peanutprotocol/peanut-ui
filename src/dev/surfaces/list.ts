@@ -18,6 +18,9 @@ export type SurfaceMeta = {
      *  surfaces that mount closed and open on an in-surface action. The spec
      *  asserts a dialog is open before capturing. */
     shotClick?: string
+    /** Stable test id for a translated trigger that opens a dialog. The capture
+     *  runner proves that the dialog opened before it records the surface. */
+    shotClickTestId?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
@@ -40,7 +43,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
-    '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
+    '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
     '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
@@ -97,8 +100,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
-    '46-c-perkclaimmodal': { name: 'PerkClaimDrawer', path: 'Home/PerkClaimDrawer.tsx' },
-    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockDrawer', path: 'Home/WelcomeUnlockDrawer/index.tsx' },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '49-c-tokenandnetworkconfirmationmodal': {
         name: 'TokenAndNetworkConfirmationDrawer',
@@ -204,7 +205,15 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Claim/Generic/ClaimError.view.tsx',
     },
     '86-f-choice-not-found': { name: 'Not found — recovery actions', path: 'app/not-found.tsx' },
-    '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
+    '87-f-request-created': {
+        name: 'Request link — created',
+        path: 'Request/link/views/RequestCreatedView.tsx',
+    },
+    '88-f-request-bank-currency': {
+        name: 'Request link — bank currency chooser',
+        path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
+        shotClickTestId: 'bank-transfer-chooser',
+    },
     '70-d-activationctas-outbound': {
         name: 'ActivationCTAs (outbound)',
         path: 'Home/ActivationCTAs.tsx',

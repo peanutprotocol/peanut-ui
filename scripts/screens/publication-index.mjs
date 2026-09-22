@@ -4,13 +4,13 @@ const devPath =
 const entryLocale = (entry) => entry.locale ?? 'en'
 const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
 const modernPath =
-    /^(\d{4}-\d{2}-\d{2})\/(dev|main|compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(en|es-419|es-ar|pt-br)\/([a-f0-9]{40})(\/run-[0-9]+-[0-9]+)?$/
+    /^(\d{4}-\d{2}-\d{2})\/(dev|main|compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(en|es-419|es-ar|pt-br)\/(?:(440x956|360x800|320x712)\/)?([a-f0-9]{40})(\/run-[0-9]+-[0-9]+)?$/
 const isCount = (value) => Number.isSafeInteger(value) && value >= 0
 
 function pathDetails(path) {
     const match = modernPath.exec(path ?? '')
     if (!match) return null
-    const [, date, channel, locale, commit, run = ''] = match
+    const [, date, channel, locale, profile, commit, run = ''] = match
     const pr = /^pr-([1-9][0-9]*)$/.exec(channel)
     return {
         date,
@@ -18,7 +18,8 @@ function pathDetails(path) {
         locale,
         commit,
         run,
-        key: `${date}/${locale}/${commit}${run}`,
+        key: `${date}/${locale}/${profile ?? '393x852'}/${commit}${run}`,
+        profile: profile ?? '393x852',
         prNumber: pr ? Number(pr[1]) : undefined,
         comparison: channel === 'compare-dev' || channel.startsWith('compare-main-') || Boolean(pr),
         library: channel === 'dev' || channel === 'main',
@@ -58,11 +59,13 @@ export async function enrichEntries(entries, storage) {
         const branch = entry.branch ?? prior.branch ?? (details?.library ? details.channel : details?.channel)
         const prNumber = entry.prNumber ?? prior.prNumber ?? details?.prNumber
         const changedScreens = entry.changedScreens ?? prior.changedScreens
+        const profile = entry.profile ?? prior.profile ?? details?.profile
         return {
             ...entry,
             ...(branch ? { branch } : {}),
             ...(Number.isSafeInteger(prNumber) && prNumber > 0 ? { prNumber } : {}),
             ...(isCount(changedScreens) ? { changedScreens } : {}),
+            ...(profile ? { profile } : {}),
         }
     })
     const unresolved = enriched.filter((entry) => {

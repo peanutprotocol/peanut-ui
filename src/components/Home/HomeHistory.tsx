@@ -363,7 +363,7 @@ const HomeHistory = ({
                         const kycEntry = buildKycHistoryEntry(user)
                         return kycEntry ? (
                             <div className="space-y-3">
-                                <KycStatusItem position="single" />
+                                <KycStatusItem position="solo" />
                             </div>
                         ) : (
                             <EmptyState

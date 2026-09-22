@@ -5,11 +5,13 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
     receiptIssuedAt,
+    showsReceiptReferenceRow,
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
-    hasReceiptPage,
+    hasResolvableReceiptDocument,
+    servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
@@ -210,6 +212,21 @@ export function useReceiptViewModel(
                 (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
                 transaction.status !== 'cancelled'
             ),
+            // The payer's own reference is owner-only. The backend already
+            // withholds it from a public receipt, but the public page renders
+            // this same component tree, so the gate is repeated here rather
+            // than resting on one side alone.
+            senderReference: !!(
+                !isPublic &&
+                transaction.direction === 'bank_deposit' &&
+                transaction.extraDataForDrawer?.senderReference
+            ),
+            // The mirror on the way out: the reference we sent the provider.
+            // The API sets it for the owner of a fiat payout only, and the
+            // public projection withholds it — but the public page renders
+            // this same component tree, so the gate is repeated here rather
+            // than resting on one side alone.
+            paymentReference: !!(!isPublic && transaction.extraDataForDrawer?.paymentReference),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
                     (isPendingBankRequest &&
@@ -243,10 +260,10 @@ export function useReceiptViewModel(
             // document rows: the entry id ties any shared or printed receipt
             // back to the source activity, and the issuance date follows the
             // shared status-branched rule (receiptIssuedAt) — both render
-            // only from real source fields, never fabricated. the Transfer ID
-            // row shows the same id under its own label for bank rails; the
-            // user ruled the Reference fact stays regardless.
-            reference: !!transaction.id,
+            // only from real source fields, never fabricated. the row drops
+            // out when the Transfer ID or Transaction ID row above already
+            // prints the same id, which is what made it read as a duplicate.
+            reference: showsReceiptReferenceRow(transaction),
             issuedOn: !!receiptIssuedAt(transaction),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
@@ -255,7 +272,13 @@ export function useReceiptViewModel(
     // interactive send/request action. Existing public receipt kinds share a
     // capability URL; all other kinds share an authenticated PDF file.
     const meetsShareConditions = useMemo(
-        () => !!transaction && !isPendingSentLink && !isPendingRequester && !isPendingRequestee,
+        () =>
+            !!transaction &&
+            !isPendingSentLink &&
+            !isPendingRequester &&
+            !isPendingRequestee &&
+            // no document affordance where the document cannot be fetched
+            hasResolvableReceiptDocument(transaction),
         [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]
     )
 
@@ -264,7 +287,7 @@ export function useReceiptViewModel(
     const shouldShowDownloadPdf = useMemo(() => {
         if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic ? hasReceiptPage(transaction) : meetsShareConditions
+        return isPublic ? servesAnonymousReceipt(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {

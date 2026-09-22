@@ -37,13 +37,13 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     {
                         text: t('wrapper.chatWithSupport'),
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'purple' as ButtonVariant,
+                        variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
                         text: tCommon('cancel'),
                         onClick: () => onDismiss(),
-                        variant: 'stroke' as ButtonVariant,
+                        variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
                 ],
@@ -54,7 +54,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-action-secondary',
+            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('wrapper.exit'),
@@ -62,13 +62,13 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                         onDismiss()
                         onExit()
                     },
-                    variant: 'purple' as ButtonVariant,
+                    variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
                 {
                     text: tCommon('continue'),
                     onClick: () => onDismiss(),
-                    variant: 'stroke' as ButtonVariant,
+                    variant: 'secondary' as ButtonVariant,
                     className: 'w-full',
                 },
             ],

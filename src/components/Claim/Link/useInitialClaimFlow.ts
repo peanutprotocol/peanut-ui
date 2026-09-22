@@ -103,7 +103,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
     }>({ showError: false, errorMessage: '' })
     // client-side validation (recipient input, cashout min/max) renders as the
     // field's own error under the recipient input; errorState keeps flow
-    // failures (claim/route/provider errors) in the Notification above
+    // failures (claim/route/provider errors) in the Callout above
     const [fieldError, setFieldError] = useState<string>('')
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])

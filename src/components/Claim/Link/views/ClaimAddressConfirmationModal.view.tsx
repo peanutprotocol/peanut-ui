@@ -36,7 +36,7 @@ export const ClaimAddressConfirmationModal = ({
                     <p className="font-bold">{t('addressCompatible.line2')}</p>
                 </div>
             }
-            tone="warning"
+            tone="attention"
             footer={
                 <div className="space-y-3 w-full">
                     <SlideToConfirm
@@ -53,7 +53,7 @@ export const ClaimAddressConfirmationModal = ({
                         }}
                     />
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         className="w-full"
                         onClick={() => {
                             setShowConfirmationModal(false)

@@ -19,20 +19,20 @@ jest.mock('next/link', () => ({
 
 describe('Button', () => {
     test('shadowless variant renders no press translate', () => {
-        render(<Button variant="transparent">Ghost</Button>)
+        render(<Button variant="ghost">Ghost</Button>)
         expect(screen.getByRole('button', { name: /Ghost/ }).className).not.toContain('active:translate')
     })
 
-    test('purple (shadowed) variant renders press translate', () => {
-        render(<Button variant="purple">Pay</Button>)
+    test('primary (shadowed) variant renders press translate', () => {
+        render(<Button variant="primary">Pay</Button>)
         const cls = screen.getByRole('button', { name: /Pay/ }).className
         expect(cls).toContain('active:translate-x-1')
         expect(cls).toContain('active:translate-y-1')
     })
 
-    test('caller shadow-none suppresses press translate even on purple', () => {
+    test('caller shadow-none suppresses press translate even on primary', () => {
         render(
-            <Button variant="purple" className="shadow-none">
+            <Button variant="primary" className="shadow-none">
                 Flat
             </Button>
         )
@@ -145,9 +145,9 @@ describe('Button link mode', () => {
     })
 
     test('link mode carries the exact button classes (plus no-underline)', () => {
-        render(<Button variant="stroke">AsButton</Button>)
+        render(<Button variant="secondary">AsButton</Button>)
         render(
-            <Button variant="stroke" href="/home">
+            <Button variant="secondary" href="/home">
                 AsLink
             </Button>
         )

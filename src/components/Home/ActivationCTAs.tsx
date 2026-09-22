@@ -203,7 +203,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
-                href: '/profile/identity-verification',
+                href: '/profile/accounts-and-payments',
             },
             deposit: {
                 icon: 'arrow-down',
@@ -211,11 +211,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
-                href: '/add-money',
+                // This Home-owned CTA can open the Home drawer directly. Keep
+                // /add-money itself as the external/deep-link compatibility
+                // route for flows that carry return state.
+                href: '/home?drawer=add',
             },
             card: {
                 icon: 'credit-card',
-                iconBg: 'bg-action-secondary',
+                iconBg: 'bg-background-icon-bubble-yellow',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -235,7 +238,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     )
 
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
-    // re-upload directly, instead of routing to /profile/identity-verification (which
+    // re-upload directly, instead of routing to /profile/accounts-and-payments (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
@@ -335,7 +338,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
-                    href: '/profile/identity-verification',
+                    href: '/profile/accounts-and-payments',
                 }
             }
             // Blocked, but self-fixable by verifying again with a document that
@@ -424,7 +427,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     }
 
     return (
-        <Card position="single" className="p-0">
+        <Card position="solo" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                 <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
                     <Icon name={step.icon} size={24} />
@@ -434,7 +437,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     <div className="text-body-s text-foreground-secondary">{step.description}</div>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
@@ -533,7 +536,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 {t('spendChooser.payWithCard')}
                             </Button>
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full justify-center"
                                 onClick={() => {
                                     posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {

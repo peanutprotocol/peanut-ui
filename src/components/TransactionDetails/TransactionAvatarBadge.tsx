@@ -1,6 +1,6 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type StatusType } from '@/components/Global/Badges/Badge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
@@ -79,7 +79,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     initials,
     userName,
     isLinkTransaction = false,
-    size = 'medium',
+    size = 'l',
     transactionType,
     context,
     countryCode,
@@ -99,7 +99,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
 
-    const bubbleSize = ({ tiny: 'xs', 'extra-small': 's', small: 'm', medium: 'm', large: 'l' } as const)[size]
+    const bubbleSize = ({ xs: 'xs', s: 's', m: 'm', l: 'm', xl: 'l' } as const)[size]
 
     // Claim links and request links are the link rows: every one of them shows
     // the link's own state. A request always qualifies — with a link it is a

@@ -50,8 +50,8 @@ jest.mock('@/constants/analytics.consts', () => ({
     ANALYTICS_EVENTS: { LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation' },
 }))
 
-jest.mock('@/components/0_Bruddle/Notification', () => ({
-    Notification: ({ children, title }: { children: React.ReactNode; title: string }) => (
+jest.mock('@/components/0_Bruddle/Callout', () => ({
+    Callout: ({ children, title }: { children: React.ReactNode; title: string }) => (
         <section>
             <h2>{title}</h2>
             {children}

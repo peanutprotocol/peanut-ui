@@ -33,12 +33,20 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // Side-effect import: useSafeBack patches history.pushState at module load. Importing here
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
-import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
+
+/**
+ * How long the protected auth gate may show the mascot before it gives up.
+ *
+ * Same ceiling, and for the same reason, as the `initialization_timeout` on
+ * /setup (app/(setup)/setup/page.tsx): a screen that can wait forever will,
+ * and the person is left with no way out of it.
+ */
+const AUTH_GATE_TIMEOUT_MS = 15000
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -140,6 +148,36 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // redirect logged-in users without peanut wallet account to complete setup
     const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
 
+    /*
+     * A floor under the protected gate.
+     *
+     * On native, `authReady()` can park before the user query ever fires (see
+     * utils/auth-token.ts), so `isFetchingUser` stays true, the /setup bounce
+     * above never arms, and the mascot runs forever. After 15s hand the person
+     * the backend error screen instead — it already offers a reload and a
+     * logout that skips the backend call, which is exactly what a parked
+     * token needs.
+     *
+     * A settled `user === null` is deliberately NOT watched: that is a logged-
+     * out visitor, and the bounce above already carries its own 3s hard-nav
+     * fallback. This watches only the states that claim to still be working.
+     */
+    const isAuthGateWorking = !isPublicPath && (!isReady || isFetchingUser || isCheckingAccount || needsRedirect)
+    const [authGateExpired, setAuthGateExpired] = useState(false)
+    useEffect(() => {
+        if (!isAuthGateWorking) {
+            setAuthGateExpired(false)
+            return undefined
+        }
+        // Harness-only: a reproduce session wipes client state and reloads on
+        // its own schedule, so an error screen mid-flight is noise.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
+            if (new URL(window.location.href).searchParams.get('__reproduce')) return undefined
+        }
+        const timeout = setTimeout(() => setAuthGateExpired(true), AUTH_GATE_TIMEOUT_MS)
+        return () => clearTimeout(timeout)
+    }, [isAuthGateWorking])
+
     // show full-page offline screen when user is offline
     // only show after initialization to prevent flash on initial load
     // when connection is restored, page auto-reloads (no "back online" screen)
@@ -167,6 +205,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     } else {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
+            if (authGateExpired) return <BackendErrorScreen />
             return (
                 <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
@@ -190,7 +229,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                    isHome && 'p-0',
                     // Receipt owns its 16px page inset so the same shell also
                     // renders correctly on the public web receipt route.
                     isReceipt && 'p-0',
@@ -199,16 +237,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn && !isProfileMenu
                         ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                         : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0',
-                    isHome && isCapacitor() && 'px-0 pt-0'
+                    isDev && 'p-0 pb-0'
                 )}
                 innerClassName={twMerge(
                     alignStart && 'items-start',
                     isSupport && 'h-full',
+                    // the shell inset now lives on the capped column, so a page that
+                    // owns its own inset opts out here instead of with p-0 above
+                    (isSupport || isReceipt || isDev) && 'px-0',
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                    isDev && 'max-w-full min-h-dvh items-start justify-start'
+                    // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
+                    // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
+                    // than the box that holds it, so on edge-to-edge iOS/Android the
+                    // scroller overflows by the inset and /dev/ds — which caps itself
+                    // at the same height — drifts its header out of view.
+                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start'
                 )}
                 modals={
                     <>

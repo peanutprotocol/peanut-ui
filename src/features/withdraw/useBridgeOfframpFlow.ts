@@ -2,6 +2,7 @@
 
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
@@ -22,7 +23,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -42,6 +43,13 @@ import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces/interfaces'
 import { WITHDRAW_BANK_STEPS } from './types'
+import {
+    bankReferenceDestinationFields,
+    bankReferenceProblem,
+    bankReferenceSpecForRail,
+    payoutDefaultReferenceNoteForRail,
+    payoutNoteForRail,
+} from './bank-reference'
 
 /**
  * Flow hook for the Bridge bank-withdraw review page
@@ -90,6 +98,26 @@ export function useBridgeOfframpFlow() {
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    // The optional reference the user sends with the payment. Form state only:
+    // it has no place in a shared link.
+    const [reference, setReference] = useState('')
+    // null when the account's rail takes no reference — the field then stays hidden
+    const referenceSpec = useMemo(
+        () => (bankAccount ? bankReferenceSpecForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
+        [bankAccount]
+    )
+    const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
+    const payoutNoteKey = useMemo(
+        () => (bankAccount ? payoutNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
+        [bankAccount]
+    )
+    const payoutDefaultReferenceNoteKey = useMemo(
+        () =>
+            bankAccount
+                ? payoutDefaultReferenceNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail)
+                : null,
+        [bankAccount]
+    )
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
@@ -117,7 +145,13 @@ export function useBridgeOfframpFlow() {
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
     const { exchangeRate } = useGetExchangeRate({
         accountType:
-            countryIso2 === 'GB' ? AccountType.GB : countryIso2 === 'MX' ? AccountType.CLABE : AccountType.IBAN,
+            countryIso2 === 'GB'
+                ? AccountType.GB
+                : countryIso2 === 'MX'
+                  ? AccountType.CLABE
+                  : countryIso2 === 'CO'
+                    ? AccountType.CO_BANK_TRANSFER
+                    : AccountType.IBAN,
         enabled: minNeedsRate,
     })
     const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
@@ -172,7 +206,7 @@ export function useBridgeOfframpFlow() {
     useEffect(() => {
         if (country) {
             const countryInfo = getCountryFromPath(country)
-            if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
+            if (!countryInfo || !hasBridgeBankCorridor(countryInfo.id)) {
                 router.replace(`/withdraw${fromSendFlow ? '?method=bank' : ''}`)
             }
         }
@@ -214,8 +248,10 @@ export function useBridgeOfframpFlow() {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
         } else if (!bankAccount && amountToWithdraw) {
-            // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country, recoveryQuery))
+            // An amount with no destination — send the user to the country's
+            // bank form, named in the URL, with the amount still on it
+            recovery.set('step', 'form')
+            router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
     }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
 
@@ -263,6 +299,9 @@ export function useBridgeOfframpFlow() {
         // disabled until it loads; reaching here early is a race, not a user
         // error: no-op rather than under-enforce.
         if (!isMinReady) return
+
+        // the submit is disabled while the reference breaks the rail's limits
+        if (referenceProblem) return
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
@@ -331,6 +370,7 @@ export function useBridgeOfframpFlow() {
                 destination: {
                     ...destination,
                     externalAccountId: destination.externalAccountId,
+                    ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
             }
             const { data, error } = await createOfframp(createPayload)
@@ -403,6 +443,12 @@ export function useBridgeOfframpFlow() {
                 country,
             })
         } catch (e) {
+            // Card re-approval dismissed, or the screen left, before the
+            // on-chain leg was prepared or signed. The offramp transfer row
+            // exists but no funds moved, so this is control flow, not a failed
+            // withdrawal: the user can run it again from the same screen.
+            if (e instanceof SpendRecoveryAbortedError) return
+
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
@@ -480,6 +526,12 @@ export function useBridgeOfframpFlow() {
         submittedTxHash,
         balanceErrorMessage,
         confirmPendingCopy,
+        reference,
+        setReference,
+        referenceSpec,
+        payoutNoteKey,
+        payoutDefaultReferenceNoteKey,
+        referenceProblem,
         pointsData,
         onBack,
         handleCreateAndInitiateOfframp,

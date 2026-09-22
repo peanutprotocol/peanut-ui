@@ -97,36 +97,46 @@ export function Careers() {
                         )}
                     </section>
 
-                    <section className="flex flex-col gap-4">
-                        <div className="flex items-start gap-4">
-                            <PeanutMascot pose="waving-hello" className="hidden h-24 w-auto shrink-0 sm:block" />
-                            <div className="flex flex-col gap-2">
-                                <h2 className="text-heading-xs text-foreground-primary">Ready?</h2>
-                                <p className="text-body-m text-foreground-primary">
-                                    Applications go through our Notion board — that&apos;s the only place we read them.
-                                    Skip the cover letter. Tell us what you&apos;d do in your first month.
-                                </p>
+                    {/* Ruled marketing CTA composition — mascot peeking from behind the card.
+                        Same shape as Marketing/mdx/CTA variant="card"; the top padding is the
+                        mascot's overhang, since the section gap alone can't hold it. */}
+                    <section className="relative pt-24 md:pt-28">
+                        <PeanutMascot
+                            pose="waving-hello"
+                            alt="Peanut mascot"
+                            className="absolute -top-2 left-1/2 z-0 h-32 w-32 -translate-x-1/2 md:h-40 md:w-40"
+                        />
+                        <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
+                            <h2 className="text-heading-xs text-foreground-primary">Ready?</h2>
+                            <p className="max-w-prose text-body-m text-foreground-primary">
+                                Applications go through our Notion board — that&apos;s the only place we read them. Skip
+                                the cover letter. Tell us what you&apos;d do in your first month.
+                            </p>
+                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+                                <Button
+                                    href={NOTION_JOB_BOARD_URL}
+                                    external
+                                    shadowSize="4"
+                                    className="w-full justify-center px-8 sm:w-auto"
+                                >
+                                    Apply on Notion
+                                </Button>
+                                <Button variant="secondary" href="/lp" className="w-full justify-center px-8 sm:w-auto">
+                                    See what we&apos;ve built
+                                </Button>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:max-w-sm">
-                            <Button href={NOTION_JOB_BOARD_URL} external shadowSize="4" className="w-full">
-                                Apply on Notion
-                            </Button>
-                            <Button variant="stroke" href="/lp" className="w-full">
-                                See what we&apos;ve built
-                            </Button>
-                        </div>
-                        <p className="text-body-s text-foreground-secondary">
-                            Curious first? Read the{' '}
-                            <Link href="/en/press" className="text-foreground-primary underline">
-                                press kit
-                            </Link>{' '}
-                            or poke around{' '}
-                            <Link href="/en/help" className="text-foreground-primary underline">
-                                the help centre
-                            </Link>
-                            .
-                        </p>
+                            <p className="text-body-s text-foreground-secondary">
+                                Curious first? Read the{' '}
+                                <Link href="/en/press" className="text-foreground-primary underline">
+                                    press kit
+                                </Link>{' '}
+                                or poke around{' '}
+                                <Link href="/en/help" className="text-foreground-primary underline">
+                                    the help centre
+                                </Link>
+                                .
+                            </p>
+                        </Card>
                     </section>
                 </div>
             </MarketingShell>

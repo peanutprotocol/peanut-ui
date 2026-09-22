@@ -112,20 +112,20 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         onClick: () => {
                             handleCopy(src)
                         },
-                        variant: 'purple' as ButtonVariant,
+                        variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
                         text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'stroke' as ButtonVariant,
+                        variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'stroke' as ButtonVariant,
+                        variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
                 ],
@@ -136,7 +136,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-action-secondary',
+            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -144,13 +144,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         setIsHelpModalOpen(false)
                         onClose('manual')
                     },
-                    variant: 'purple' as ButtonVariant,
+                    variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
                 {
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'stroke' as ButtonVariant,
+                    variant: 'secondary' as ButtonVariant,
                     className: 'w-full',
                 },
             ],
@@ -221,7 +221,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     {/* gap-4: the link's 44px hit area extends 14px past its text row */}
                     <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
                         <Button
-                            variant={'stroke'}
+                            variant={'secondary'}
                             className={`max-w-md`}
                             onClick={() => {
                                 setModalVariant('stop-verification')

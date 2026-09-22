@@ -84,7 +84,7 @@ export function SetupNotificationsPrompt({
                     {
                         text: isRequestingPermission ? t('requesting') : t('enable'),
                         onClick: onAllow,
-                        variant: 'purple',
+                        variant: 'primary',
                         shadowSize: '4',
                         className: 'sm:flex-none',
                         loading: isRequestingPermission,
@@ -93,7 +93,7 @@ export function SetupNotificationsPrompt({
                     {
                         text: t('notNow'),
                         onClick: onClose,
-                        variant: 'stroke',
+                        variant: 'secondary',
                         className: 'sm:flex-none',
                     },
                 ]}

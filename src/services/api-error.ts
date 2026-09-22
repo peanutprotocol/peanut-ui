@@ -13,12 +13,25 @@
  */
 export const API_ERROR_CODES = {
     USER_OP_REVERTED: 'USER_OP_REVERTED',
+    /** Bundler REFUSED the signed op at validation — definitive, nothing was
+     *  executed. Emitted only by the modern broadcast-first mixed routes; an
+     *  unknown/internal/already-known transport outcome never gets it. */
+    USER_OP_REJECTED: 'USER_OP_REJECTED',
     INSUFFICIENT_COLLATERAL: 'INSUFFICIENT_COLLATERAL',
     WITHDRAWAL_COOLDOWN_ACTIVE: 'WITHDRAWAL_COOLDOWN_ACTIVE',
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
     WITHDRAWAL_SIGNATURE_EXPIRED: 'WITHDRAWAL_SIGNATURE_EXPIRED',
     WITHDRAWAL_SUBMISSION_FAILED: 'WITHDRAWAL_SUBMISSION_FAILED',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
+    /** Rain rotated the controller (or the grant is bound to the old one), on an
+     *  attempt with NO financial effect: refused by `/prepare` or by
+     *  `verifyRainWithdrawal` before any order/claim/broadcast, or — for
+     *  `POST /rain/cards/withdraw/submit` only — after a proven no-effect late
+     *  failure (final DB mismatch before send, or an inner userOp receipt that
+     *  strictly reported `success === false`) with the controller actually
+     *  changed. The one failure the client may recover from in-flow by
+     *  re-preparing; never inferred from another code. */
+    RAIN_CONTROLLER_CHANGED: 'RAIN_CONTROLLER_CHANGED',
     NO_APPROVED_CARD: 'NO_APPROVED_CARD',
     NO_ACTIVE_CARD: 'NO_ACTIVE_CARD',
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
@@ -31,6 +44,7 @@ export const API_ERROR_CODES = {
     LINK_ALREADY_CLAIMED: 'LINK_ALREADY_CLAIMED',
     BELOW_MIN_BRIDGE_AMOUNT: 'BELOW_MIN_BRIDGE_AMOUNT',
     XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
+    DEPOSIT_ACCOUNTS_NOT_AVAILABLE: 'DEPOSIT_ACCOUNTS_NOT_AVAILABLE',
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
 } as const
 

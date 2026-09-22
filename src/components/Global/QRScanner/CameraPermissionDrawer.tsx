@@ -141,7 +141,7 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="camera" className="bg-action-secondary" />
+                        <IconBubble icon="camera" className="bg-background-icon-bubble-yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('qrScanner.cameraPermission.title')}</DrawerTitle>
                         </DrawerHeader>
@@ -196,7 +196,7 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                             native user loses the paste entry on this screen */}
                         {canDeepLinkToSettings ? (
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 onClick={() => {
@@ -206,11 +206,16 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                                 {t('qrScanner.cameraPermission.native.openSettings')}
                             </Button>
                         ) : (
-                            <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onRetry}>
+                            <Button
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={onRetry}
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
                         )}
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
                             {t('qrScanner.cameraPermission.dismiss')}
                         </Button>
                     </div>

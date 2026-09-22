@@ -92,7 +92,10 @@ export const invitesApi = {
 
     getInvites: async (): Promise<PointsInvitesResponse> => {
         try {
-            const response = await serverFetch('/points/invites', {
+            // Cash status already supplies pending rewards on the rewards page;
+            // ask the API not to repeat that aggregate in this list request.
+            // Contract and query-schema support land in peanut-api-ts#1623.
+            const response = await serverFetch('/points/invites?includePending=false', {
                 method: 'GET',
             })
             if (!response.ok) {

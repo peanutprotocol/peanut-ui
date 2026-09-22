@@ -131,6 +131,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
 
+// Get-paid is flag-gated. Pinned on here so the country pick is decided by the
+// user's rails alone; the flag-off path has its own coverage in
+// features/add-money/__tests__/useAddMoneyFlow.test.ts.
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => true,
+}))
+
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
@@ -561,21 +568,41 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
 }))
 
 // Country list
-jest.mock('@/components/Common/CountryList', () => ({
-    CountryList: (props: any) => (
-        <div data-testid="country-list">
-            <span>{props.inputTitle}</span>
-            <button
-                data-testid="country-argentina"
-                onClick={() => props.onCountryClick({ path: 'argentina', id: 'AR' })}
-            >
-                Argentina
-            </button>
-            <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
-                Germany
-            </button>
-            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
-                Chad
+jest.mock('@/components/Common/CountryList', () => {
+    // Full country rows: the pick now reads `type`/`iso2`/`currency` to resolve
+    // the country's corridors, so a `{ path, id }` stub would route every
+    // country down the legacy rail branch and test nothing.
+    const COUNTRIES: Record<string, any> = {
+        argentina: { type: 'country', id: 'AR', path: 'argentina', iso2: 'AR', currency: 'ARS' },
+        germany: { type: 'country', id: 'DE', path: 'germany', iso2: 'DE', currency: 'EUR' },
+        chad: { type: 'country', id: 'TD', path: 'chad', iso2: 'TD', currency: 'XAF' },
+    }
+    return {
+        CountryList: (props: any) => (
+            <div data-testid="country-list">
+                <span>{props.inputTitle}</span>
+                {Object.entries(COUNTRIES).map(([path, country]) => (
+                    <button
+                        key={path}
+                        data-testid={`country-${path}`}
+                        data-supported={String(props.isCountrySupported?.(country) ?? true)}
+                        onClick={() => props.onCountryClick(country)}
+                    >
+                        {path}
+                    </button>
+                ))}
+            </div>
+        ),
+    }
+})
+
+// The merged bank screen — accounts, crypto and the country list — is covered
+// by its own tests. Here the page only has to render it and hand it an exit.
+jest.mock('@/features/deposit-accounts/components/DepositAccountsFlowContainer', () => ({
+    DepositAccountsFlowContainer: ({ onExit }: { onExit: () => void }) => (
+        <div data-testid="deposit-accounts-hub">
+            <button data-testid="hub-back" onClick={onExit}>
+                back
             </button>
         </div>
     ),
@@ -672,6 +699,17 @@ jest.mock('@/components/AddMoney/consts', () => ({
     ],
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { ARG: 'AR', BRA: 'BR', USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
     BRIDGE_ALPHA3_TO_ALPHA2: { USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
+    // the bank rail per country — what the country pick reads to decide whether
+    // there is anything left to choose (soleLiveRailForCountry)
+    COUNTRY_SPECIFIC_METHODS: {
+        AR: { add: [{ id: 'bank-transfer-add', path: '/add-money/argentina/manteca' }], withdraw: [] },
+        BR: { add: [{ id: 'bank-transfer-add', path: '/add-money/brazil/manteca' }], withdraw: [] },
+        US: { add: [{ id: 'bank-transfer-add', path: '/add-money/us/bank' }], withdraw: [] },
+        DE: { add: [{ id: 'bank-transfer-add', path: '/add-money/germany/bank' }], withdraw: [] },
+        MX: { add: [{ id: 'bank-transfer-add', path: '/add-money/mexico/bank' }], withdraw: [] },
+        GB: { add: [{ id: 'bank-transfer-add', path: '/add-money/uk/bank' }], withdraw: [] },
+        XX: { add: [{ id: 'bank-transfer-add', path: '/add-money/unknown/bank', isSoon: true }], withdraw: [] },
+    },
 }))
 
 jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({}))
@@ -970,8 +1008,8 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing (root = bank country list; the old method-selection
-// screen is gone — crypto is linked directly from the home Add drawer)
+// GROUP 1: Landing (root = the merged bank screen; the old method-selection
+// screen is gone — crypto is a row on that screen and on the home Add drawer)
 // ============================================================
 describe('GROUP 1: Landing', () => {
     test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
@@ -979,7 +1017,7 @@ describe('GROUP 1: Landing', () => {
 
         // the drawer offers crypto AND bank, so generic entries lose nothing
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('deposit-accounts-hub')).not.toBeInTheDocument()
     })
 
     test('bare /add-money carries returnTo through the drawer redirect', () => {
@@ -1001,46 +1039,31 @@ describe('GROUP 1: Landing', () => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
     })
 
-    test('?method=bank shows the country list', () => {
+    /*
+     * Behaviour change: ?method=bank is the merged bank screen — the accounts
+     * this user holds, crypto, and every country they can send from. Which
+     * corridor a country opens is `useDepositCountryRouting`, tested there.
+     */
+    test('?method=bank shows the merged bank screen', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-        expect(screen.getByText('Select your country')).toBeInTheDocument()
+        expect(screen.getByTestId('deposit-accounts-hub')).toBeInTheDocument()
     })
 
-    // TASK-20033: picking a bank-supported country skips the redundant per-country
-    // method list and goes straight to the deposit screen (Manteca for AR/BR,
-    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
-    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
-        resetQueryState({ method: 'bank' })
+    test('a corridor link opens the same screen without a ?method=', () => {
+        resetQueryState({ corridor: 'SEPA_EU', step: 'details' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+        expect(screen.getByTestId('deposit-accounts-hub')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
-    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+    test('back from the bank screen navigates to /home', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('country-germany'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
-    })
-
-    test('selecting a coming-soon country keeps the per-country method screen', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('country-chad'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
-    })
-
-    test('back from the country list navigates to /home', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
@@ -1051,7 +1074,7 @@ describe('GROUP 1: Landing', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
     })
@@ -1061,7 +1084,7 @@ describe('GROUP 1: Landing', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 })
@@ -1080,9 +1103,9 @@ describe('GROUP 2: Country Page', () => {
 })
 
 // ============================================================
-// GROUP 3: Crypto Deposit
+// GROUP 3: Crypto deposit
 // ============================================================
-describe('GROUP 3: Crypto Deposit', () => {
+describe('GROUP 3: Crypto deposit', () => {
     test('loading state shows PeanutLoading', () => {
         resetQueryState({ network: 'EVM' })
 
@@ -1122,7 +1145,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         )
 
         expect(screen.getByTestId('qr-code')).toBeInTheDocument()
-        expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
+        expect(screen.getByText('Add crypto')).toBeInTheDocument()
         expect(screen.getAllByText(/EVM/).length).toBeGreaterThan(0)
         expect(screen.getByText('5 USD')).toBeInTheDocument()
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
@@ -1186,7 +1209,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
-    test('How to Deposit button opens modal', () => {
+    test('How to deposit button opens modal', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'not_started',
             resetStatus: jest.fn(),
@@ -1208,7 +1231,7 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        fireEvent.click(screen.getByText('How to Deposit'))
+        fireEvent.click(screen.getByText(en.addMoney.howToDeposit.title))
         expect(screen.getByTestId('how-to-deposit-modal')).toBeInTheDocument()
     })
 
@@ -1255,8 +1278,8 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 
         renderWithProviders(<AddMoneyCryptoPage />)
 
-        // The component renders CryptoDepositView which shows Deposit Crypto
-        expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
+        // The component renders CryptoDepositView which shows Add crypto
+        expect(screen.getByText('Add crypto')).toBeInTheDocument()
     })
 })
 
@@ -1797,7 +1820,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
     })
 
     // TASK-22121 #26: client-side validation renders as the field's own error
-    // under the amount input, not in the flow-level Notification
+    // under the amount input, not in the flow-level Callout
     test('validationError renders as a field error and disables Continue', () => {
         renderWithProviders(
             <InputAmountStep

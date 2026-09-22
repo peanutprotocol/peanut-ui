@@ -84,9 +84,12 @@ const INLINE_STYLE_ALLOW = [
 
 const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
 const INLINE_STYLE_RE = /style=\{\{/g
-// stock tailwind text sizes that the text-h* scale replaces
+// stock tailwind text sizes that the DS type scale replaces
 const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g
-const DS_TEXT_RE = /\btext-h(?:10|[1-9])\b/g
+// the DS type scale (figma): the adoption counter, so it goes UP
+const DS_TEXT_RE = /\btext-(?:heading|body|label|button)-[a-z0-9-]+\b/g
+// the v3 scale the DS one replaces. a debt counter, so it goes DOWN
+const LEGACY_TEXT_RE = /\btext-h(?:10|[1-9])\b/g
 // stock tailwind families the DS does not define at all — any use in a view
 // is non-DS. families the figma ramp owns (gray/pink/yellow/purple/blue/
 // green/red/orange) are policed by offRampPalette below instead.
@@ -157,6 +160,7 @@ counts.stockTextSize = files
     .filter((f) => isTsx(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_TEXT_RE), 0)
 counts.dsTextScale = files.filter((f) => isTsx(f)).reduce((sum, f) => sum + countMatches(f.text, DS_TEXT_RE), 0)
+counts.legacyTextScale = files.filter((f) => isTsx(f)).reduce((sum, f) => sum + countMatches(f.text, LEGACY_TEXT_RE), 0)
 counts.nonDsClassesInViews = files
     .filter((f) => isView(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_PALETTE_RE) + countMatches(f.text, ARBITRARY_RE), 0)
@@ -283,7 +287,7 @@ counts.classNameSitesInPages = files
 // composition-drift metrics (2026-09-01 sweep). design.md laws the token
 // metrics above cannot see: stacked weights mint off-ramp type styles, the
 // spacing/radius/motion scales ban off-scale values, icons have three sizes.
-// deliberate holds (geometry-driven indents like Notification's pl-7, boards
+// deliberate holds (geometry-driven indents like Callout's pl-7, boards
 // pending a ruling) live inside the baseline, not an allowlist — a ruling
 // drives the count down, new drift pushes it up and fails.
 counts.fontWeightOnTypeToken = files
@@ -326,6 +330,7 @@ const DEBT_KEYS = [
     'rawHexFiles',
     'inlineStyle',
     'stockTextSize',
+    'legacyTextScale',
     'nonDsClassesInViews',
     'useSearchParamsFiles',
     'legacyColorClasses',
@@ -415,7 +420,8 @@ if (mode === '--json') {
         `  raw hex in tsx            ${counts.rawHex} (across ${counts.rawHexFiles} files; canvas/D3/og allowlisted)`
     )
     console.log(`  inline style={{           ${counts.inlineStyle}`)
-    console.log(`  stock text sizes          ${counts.stockTextSize} (vs ${counts.dsTextScale} text-h* scale uses)`)
+    console.log(`  stock text sizes          ${counts.stockTextSize}`)
+    console.log(`  legacy text-h* scale      ${counts.legacyTextScale} (vs ${counts.dsTextScale} DS type-scale uses)`)
     console.log(
         `  non-DS classes in views   ${counts.nonDsClassesInViews} (page.tsx/*View files: stock palette + arbitrary values)`
     )

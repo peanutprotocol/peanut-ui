@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
@@ -19,12 +20,7 @@ export function HomeTopNav({ showRewards }: HomeTopNavProps) {
         <div className="flex items-center justify-between">
             {/* link-mode Button — ONE anchor, no nested interactive (the test
                 asserts this). 40px circle like NavHeader's back button. */}
-            <Button
-                variant="stroke"
-                href="/profile"
-                className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
-                aria-label={t('openProfile')}
-            >
+            <Button variant="ghost" href="/profile" className={NAV_CIRCLE_BUTTON_CLASSES} aria-label={t('openProfile')}>
                 <Icon name="menu" size={20} />
             </Button>
             {showRewards && (

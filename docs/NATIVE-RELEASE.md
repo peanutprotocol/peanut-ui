@@ -197,21 +197,19 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
-> **Owed to the next native release: the `/app` App Links claim.**
-> `d91ea7cee` added `/app` + `/app/*` to `public/.well-known/apple-app-site-association`
-> and `/app` + `/app/` to `android/app/src/main/AndroidManifest.xml`. `v1.6.0` predates
-> that commit, so no shipped binary or AASA ever carried the claim — but the manifest half
-> moved the native fingerprint, and `check-native-ota-surface` compares that fingerprint
-> against the binary an OTA targets. The two lines therefore blocked every production
-> bundle while delivering nothing, with the fleet stuck on JS older than its own binary.
-> Both platforms were reverted together so the iOS↔Android parity case in
-> `src/utils/__tests__/app-links.test.ts` stays enforced; only the two `/app`-presence
-> cases are `it.skip`.
+> **Download QRs use the shipped `/home` App Links claim.**
+> `d91ea7cee` once added `/app` + `/app/*` to the AASA file and the Android manifest.
+> `v1.6.0` predates that commit, so no shipped binary ever carried the claim, but the
+> manifest half moved the native fingerprint that `check-native-ota-surface` compares
+> against the binary an OTA targets — blocking every production bundle while delivering
+> nothing. Both platforms were reverted together, and restoring them was queued for the
+> next release.
 >
-> **Restore all three in the PR that cuts the next native release** — the AASA entries, the
-> manifest entries, and the two skipped cases. Never restore them on `dev` alone: an intent
-> filter cannot ship over the air, so on their own they block OTA again for no user-visible
-> gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
+> That plan is superseded. Download QRs now enter through the already-shipped `/home`
+> association plus an `app_entry` marker, so an installed app opens them with no new
+> intent filter and no store release. `/app` stays web-only, and
+> `src/utils/__tests__/app-links.test.ts` pins its absence on both platforms with live
+> cases. See §9 "App-download QR links do not expand the native surface".
 
 The native workflows are manual and accept `dev`, `main`, and `release/android-kyc`.
 Production OTA is different: every update to `main` runs **App Release OTA**, and that
@@ -396,6 +394,21 @@ update to `main`. It has no manual dispatch trigger and refuses every other ref.
 | ------- | ------- | -------------- |
 | **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
+
+### App-download QR links do not expand the native surface
+
+Generated download QRs use `https://peanut.me/home?app_entry=1`, not `/app`.
+`/home` is already present in the Android intent filter and every iOS AASA entry
+shipped with v1.6. In a browser, `src/proxy.ts` removes `app_entry` and redirects
+to the `/app` smart-store page while preserving the deferred-link payload. In an
+installed app, `useNativeAppLinks` consumes the marker, applies that payload, and
+opens its sanitized destination or `/home`.
+
+Keep `/app` out of `AndroidManifest.xml` and the AASA file. Adding it there is a
+native-surface change and requires a coordinated store release; server-side App
+Link configuration cannot make an Android binary claim paths outside its
+manifest. Existing `/app` links remain valid web smart links, while newly
+generated QRs get installed-app opening without a native rebuild.
 
 For a production OTA:
 

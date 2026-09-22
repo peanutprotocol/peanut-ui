@@ -5,6 +5,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type FC } from 'react'
@@ -18,6 +19,10 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
     const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('claim')
+    const tMigration = useTranslations('migration')
+    // guest on a spent link: during the migration the CTA hands them the app
+    // instead of web signup
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
 
     return (
         <PageStack>
@@ -47,13 +52,21 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                     </div>
                 </Card>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="w-full"
-                    onClick={() => router.push(user ? '/home' : '/setup')}
+                    onClick={() => {
+                        if (user) {
+                            router.push('/home')
+                            return
+                        }
+                        if (interceptGuestCta()) return
+                        router.push('/setup')
+                    }}
                 >
-                    {user ? t('backToHome') : t('claimed.getStarted')}
+                    {user ? t('backToHome') : handoffActive ? tMigration('downloadPeanut') : t('claimed.getStarted')}
                 </Button>
+                {storeHandoffModal}
             </PageStack.Center>
         </PageStack>
     )

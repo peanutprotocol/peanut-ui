@@ -1,6 +1,6 @@
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { t } from '@/i18n'
 import { type Translations } from '@/i18n/types'
 import { IncidentList } from './IncidentList'
@@ -146,9 +146,9 @@ const BANNER_PRIORITY: Record<BucketState, 'success' | 'attention' | 'error'> = 
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
     return (
-        <Notification priority={BANNER_PRIORITY[state]} title={title}>
+        <Callout priority={BANNER_PRIORITY[state]} title={title}>
             {detail}
-        </Notification>
+        </Callout>
     )
 }
 
@@ -178,14 +178,18 @@ function bucketDetail(bucket: StatusBucket, i18n: Translations): string {
  * One bar per hour. Bars carry a `title` rather than a custom tooltip so the
  * hour and its failure count stay reachable on a server-rendered page with no
  * client JS — this page has to work when everything else is on fire.
+ *
+ * The bucket count comes straight off the feed and is unbounded, so the bars
+ * get a width floor and the row scrolls — flex-1 alone collapses them to
+ * nothing once the gaps alone outgrow a phone.
  */
 function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; locale: string; i18n: Translations }) {
     return (
-        <div className="flex h-8 items-stretch gap-0.5" role="img" aria-label={i18n.statusWindowLabel}>
+        <div className="flex h-8 items-stretch gap-0.5 overflow-x-auto" role="img" aria-label={i18n.statusWindowLabel}>
             {provider.buckets.map((bucket) => (
                 <span
                     key={bucket.hourStart}
-                    className={`flex-1 rounded-1 ${BAR_COLORS[bucket.state]}`}
+                    className={`min-w-1 flex-1 rounded-1 ${BAR_COLORS[bucket.state]}`}
                     title={`${formatTime(bucket.hourStart, locale)} — ${bucketDetail(bucket, i18n)}`}
                 />
             ))}

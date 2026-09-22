@@ -62,7 +62,7 @@ export const KycVerificationInProgressModal = ({
                 visible={isOpen}
                 onClose={onClose}
                 icon={'clock' as IconName}
-                iconContainerClassName="bg-action-secondary text-black"
+                iconContainerClassName="bg-background-icon-bubble-yellow text-black"
                 title={t('progress.verifyingTitle')}
                 description={
                     <p>{stillGoing ? t('progress.verifyingStillGoing') : t('progress.verifyingDescription')}</p>
@@ -71,7 +71,7 @@ export const KycVerificationInProgressModal = ({
                     {
                         text: t('progress.closeAndNotify'),
                         onClick: handleGoHome,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },
@@ -117,7 +117,7 @@ export const KycVerificationInProgressModal = ({
                 visible={isOpen}
                 onClose={onClose}
                 isLoadingIcon
-                iconContainerClassName="bg-action-secondary text-black"
+                iconContainerClassName="bg-background-icon-bubble-yellow text-black"
                 title={title}
                 description={description}
                 ctas={
@@ -126,7 +126,7 @@ export const KycVerificationInProgressModal = ({
                               {
                                   text: tCommon('goToHome'),
                                   onClick: handleGoHome,
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   className: 'w-full',
                                   shadowSize: '4',
                               },
@@ -155,7 +155,7 @@ export const KycVerificationInProgressModal = ({
                         text: tosError ? tCommon('continue') : t('progress.acceptTerms'),
                         onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
                         disabled: isLoadingTos,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },
@@ -167,9 +167,10 @@ export const KycVerificationInProgressModal = ({
     }
 
     // phase === 'complete'
-    // Deliberately neutral (not "You're unlocked"): the rich WelcomeUnlockDrawer
-    // on home is THE single celebration — it lists what unlocked. This terminal
-    // must not stamp activationCelebratedAt, or home's celebration never shows.
+    // Deliberately neutral (not "You're unlocked"): home's rich activation
+    // celebration was deleted with TASK-22680 and nothing replaces it yet, so
+    // this terminal is the only KYC-complete surface. It still does not stamp
+    // activationCelebratedAt.
     return (
         <ActionModal
             visible={isOpen}
@@ -182,7 +183,7 @@ export const KycVerificationInProgressModal = ({
                 {
                     text: tCommon('continue'),
                     onClick: onContinue ?? onClose,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },

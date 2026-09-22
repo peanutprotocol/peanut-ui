@@ -1,4 +1,4 @@
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { localizeDocsHref } from '@/components/Global/DocsLink'
@@ -61,7 +61,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                     <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
                 <label className="text-body-m text-foreground-primary">{label}</label>
-                {badge && <StatusBadge status="custom" customText={badge} />}
+                {badge && <Badge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
                         <Icon name="info" size={16} fill="black" />
@@ -72,7 +72,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             <div className="flex items-center gap-1">
                 {endText && <span className="text-body-s text-foreground-secondary">{endText}</span>}
                 {comingSoon ? (
-                    <StatusBadge status="soon" size="medium" />
+                    <Badge status="soon" size="medium" />
                 ) : endIcon ? (
                     <Icon name={endIcon} size={24} fill="black" className={endIconClassName} />
                 ) : (

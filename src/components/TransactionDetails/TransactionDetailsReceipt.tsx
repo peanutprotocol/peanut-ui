@@ -21,10 +21,12 @@ import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
     hasUserProfileAvatar,
+    isCardPaymentEntry,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
 } from './transaction-predicates'
+import { receiptHeadlineAmount } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
@@ -102,16 +104,16 @@ export const TransactionDetailsReceipt = ({
     // ensure we have a valid number for display
     const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
     const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
-    let amountDisplay = `$${formatCurrency(Math.abs(safeAmount).toString())}`
-
-    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
-        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
-    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
-    }
+    // One rule for both this screen and the PDF — see receiptHeadlineAmount. A
+    // pot used to lead with its goal here and with its collected total there,
+    // so a $100 pot that collected $40 printed two different headlines.
+    const headline = receiptHeadlineAmount(transaction, safeAmount, getTransactionSign(transaction))
+    const amountDisplay = headline.isCollectedTotal
+        ? t('amountCollected', { amount: formattedTotalAmountCollected })
+        : `$${formatCurrency(Math.abs(headline.amount).toString())}`
 
     // '-' out, '+' in. Pots show a collected total, never a sign.
-    const headSign = transaction.isRequestPotLink ? '' : getTransactionSign(transaction)
+    const headSign = headline.sign
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
@@ -166,6 +168,7 @@ export const TransactionDetailsReceipt = ({
             {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
+                actionLabelKey={transaction.actionLabelKey}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
                 nameParams={transaction.nameParams}
@@ -177,6 +180,9 @@ export const TransactionDetailsReceipt = ({
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
+                merchantLogo={
+                    isCardPaymentEntry(transaction) ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo : null
+                }
                 avatarKey={transaction.avatarKey}
                 isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
@@ -188,9 +194,17 @@ export const TransactionDetailsReceipt = ({
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
 
+            {/* Why a deposit went back. The status alone says the money left
+                the balance; only this says what to ask the sender to fix. */}
+            {transaction.actionLabelKey === 'type.returnedToSender' && (
+                <Card position="solo" className="p-4">
+                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
+                </Card>
+            )}
+
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
-                <Card position="single" className="p-4">
+                <Card position="solo" className="p-4">
                     <div className="flex items-center gap-3">
                         <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">

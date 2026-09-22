@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
@@ -87,14 +87,14 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     text: t(isSaving ? 'provideEmail.saving' : 'provideEmail.save'),
                     onClick: handleSave,
                     disabled: isSaving || email.trim().length === 0,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },
                 {
                     text: t('provideEmail.notNow'),
                     onClick: onSkip,
-                    variant: 'stroke' as const,
+                    variant: 'secondary' as const,
                     className: 'w-full',
                 },
             ]}
@@ -109,9 +109,9 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     />
                     {error && <FieldError className="mt-1">{error}</FieldError>}
                     {flowError && (
-                        <Notification priority="error" className="mt-2">
+                        <Callout priority="error" className="mt-2">
                             {flowError}
-                        </Notification>
+                        </Callout>
                     )}
                 </div>
             }

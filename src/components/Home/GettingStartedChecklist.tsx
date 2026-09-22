@@ -5,14 +5,16 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
@@ -48,8 +50,10 @@ interface ChecklistItem {
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
+    const [, setHomeDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
+    const depositAccountsEnabled = useDepositAccountsEnabled()
     const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
 
@@ -96,23 +100,39 @@ const GettingStartedChecklist = () => {
             {
                 id: 'add-money',
                 icon: 'arrow-down',
-                // The row opens /add-money, which offers bank transfer AND
+                // The Add drawer offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
                 // take you straight to. A residence no bank provider onboards
                 // drops the bank half rather than selling an ID check that
                 // cannot deliver it (same ruling as the signup residence step).
                 label: t('addMoney'),
+                // With standing accounts live, the step is a win rather than a
+                // chore: bank details of the user's own, not an ID check to pay for.
                 sub: restrictions.banking
                     ? t('addMoneyRoutesNoBank')
-                    : isVerified
-                      ? t('addMoneyRoutes')
-                      : t('addMoneyRoutesKyc'),
+                    : depositAccountsEnabled
+                      ? t('addMoneyStandingAccounts')
+                      : isVerified
+                        ? t('addMoneyRoutes')
+                        : t('addMoneyRoutesKyc'),
                 done: isFunded,
-                onTap: tap('add-money', () => router.push('/add-money')),
+                onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
+    }, [
+        cardAvailable,
+        depositAccountsEnabled,
+        hasActiveCard,
+        hasSentPayment,
+        isFunded,
+        isVerified,
+        milestone,
+        restrictions.banking,
+        router,
+        setHomeDrawer,
+        t,
+    ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
     const progressLabel = t('title')
@@ -147,7 +167,7 @@ const GettingStartedChecklist = () => {
                             leading={<IconBubble icon={item.icon} size="xs" color="yellow" />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
-                            trailing={item.done ? <StatusBadge status="completed" /> : undefined}
+                            trailing={item.done ? <Badge status="completed" /> : undefined}
                             bodyWrap
                             chevron={tappable}
                             disabled={!tappable}

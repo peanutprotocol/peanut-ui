@@ -3,7 +3,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -324,7 +324,7 @@ const SignTestTransaction = () => {
                     <p className="mb-1 text-body-s text-foreground-secondary">
                         {t('steps.sign-test-transaction.description')}
                     </p>
-                    {displayError && <Notification priority="error">{displayError}</Notification>}
+                    {displayError && <Callout priority="error">{displayError}</Callout>}
                     <Button
                         loading={isLoading}
                         disabled={isDisabled}

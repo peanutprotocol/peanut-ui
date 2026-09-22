@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -51,7 +51,7 @@ const CardCopyButton: FC<CardCopyButtonProps> = ({ value, ariaLabel, onCopy }) =
     return (
         <Button
             type="button"
-            variant="transparent"
+            variant="ghost"
             aria-label={ariaLabel}
             onClick={() => copyRef.current?.copy()}
             disableHaptics
@@ -216,7 +216,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={t('hideDetails')}
@@ -252,7 +252,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={t('showDetails')}
@@ -265,7 +265,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <StatusBadge status="custom" customText={t('virtual')} />
+                                    <Badge status="custom" customText={t('virtual')} />
                                 </div>
                             )}
                         </>
