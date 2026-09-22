@@ -2,6 +2,7 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
@@ -93,8 +94,8 @@ const Navigation = memo(function Navigation({
 
     if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
-    // Icons inherit currentColor: the stroke button inverts on hover/active, and
-    // a hard-coded fill vanished into the black background.
+    // Icons inherit currentColor: the circle fills on hover/active, and a
+    // hard-coded fill vanished into the fill colour.
     // The row's containing block is the initial one (no positioned ancestor).
     // Match app navigation at 16px from either horizontal edge and 16px below
     // the safe-area boundary; on web --safe-top is zero.
@@ -103,9 +104,9 @@ const Navigation = memo(function Navigation({
             <div>
                 {showBackButton && (
                     <Button
-                        variant="stroke"
+                        variant="transparent"
                         onClick={onBack}
-                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('goBack')}
                     >
                         <Icon name="chevron-up" size={20} className="-rotate-90" />
@@ -126,8 +127,8 @@ const Navigation = memo(function Navigation({
                     <Button
                         onClick={onLogout}
                         loading={isLoggingOut}
-                        variant="stroke"
-                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        variant="transparent"
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
