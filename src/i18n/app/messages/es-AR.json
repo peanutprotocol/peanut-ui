@@ -680,7 +680,8 @@
             "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada.",
-            "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Enviá el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio."
+            "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Enviá el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
+            "chooseCurrency": "Elegí una moneda"
         }
     },
     "claim": {
@@ -1736,13 +1737,14 @@
             "cta": "Ver mis datos bancarios"
         },
         "list": {
+            "addHeading": "¿Cómo querés agregar dinero?",
             "searchPlaceholder": "Buscá país, moneda o cuenta",
             "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
             "accountCounter": "{used} de {cap} usadas",
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
-            "countriesPitch": "No necesitás una cuenta. Elegí el país de tu banco.",
+            "countriesPitch": "Elegí el país de tu banco.",
             "accountCounterOverCap": "{used} cuentas",
             "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra.",
             "badgeAvailable": "Disponible",

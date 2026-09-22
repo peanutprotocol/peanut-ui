@@ -68,6 +68,7 @@ export function WithdrawCurrencyList({
 }: WithdrawCurrencyListProps) {
     const t = useTranslations('withdraw')
     const tGlobal = useTranslations('global')
+    const tRails = useTranslations('depositAccounts.rows.rails')
     const locale = useLocale()
     const [query, setQuery] = useState(initialQuery)
     // Which shared-currency row is expanded to its country list. Transient UI —
@@ -149,7 +150,7 @@ export function WithdrawCurrencyList({
                         return (
                             <div key={currency.code}>
                                 <ListItem
-                                    title={currency.code}
+                                    title={`${currency.code} · ${tRails(currency.railNameKey)}`}
                                     body={localizedCurrencyName(locale, currency.code, currency.name)}
                                     chevron={!isMulti && !isNavigating}
                                     trailing={

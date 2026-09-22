@@ -168,6 +168,7 @@ async function main() {
             }
             const expectedText = screen.expectText ? captureText(screen.expectText) : undefined
             const clicks = screen.clicks.map(captureText)
+            const clickTestIds = screen.clickTestIds ?? []
             const actions = screen.actions?.map((action) =>
                 'click' in action ? { ...action, click: captureText(action.click) } : action
             )
@@ -421,6 +422,10 @@ async function main() {
                         .waitFor({ state: 'visible', timeout: 15000 })
                 for (const label of clicks)
                     await page.getByText(label, { exact: false }).first().click({ timeout: 10000 })
+                for (const testId of clickTestIds) {
+                    await page.getByTestId(testId).click({ timeout: 10000 })
+                    await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 10000 })
+                }
                 for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
                     else await page.locator(action.fill.selector).fill(action.fill.value)

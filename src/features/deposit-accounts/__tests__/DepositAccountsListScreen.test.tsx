@@ -240,11 +240,22 @@ describe('DepositAccountsListScreen', () => {
             expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Not set up')).not.toBeInTheDocument()
         })
 
-        it('stays silent where the user cannot use it, rather than promising one', () => {
+        it('shows verification when that can unlock the Argentine rail', () => {
             const gates = allGates({ kind: 'needs-enrollment' })
+            gates.BANK_TRANSFER_AR = { kind: 'needs-identity' }
             const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
 
             expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Available')).not.toBeInTheDocument()
+            expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Requires verification')).toBeInTheDocument()
+            expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
+        })
+
+        it('marks the Argentine rail unavailable and disables it when the user cannot use it', () => {
+            const gates = allGates({ kind: 'needs-enrollment' })
+            const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
+
+            expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Unavailable')).toBeInTheDocument()
+            expect(rowOf(container, 'BANK_TRANSFER_AR')).toHaveAttribute('aria-disabled', 'true')
         })
     })
 

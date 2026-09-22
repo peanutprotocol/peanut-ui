@@ -8,7 +8,16 @@ let mockLocale = 'en'
 jest.mock('next-intl', () => ({
     useLocale: () => mockLocale,
     useTranslations: (ns: string) => {
-        const t = (key: string) => `${ns}.${key}`
+        const railLabels: Record<string, string> = {
+            ach: 'ACH',
+            sepa: 'SEPA',
+            faster_payments: 'Faster Payments',
+            spei: 'SPEI',
+            pix: 'Pix',
+            transfer_ar: 'Bank transfer',
+            fallback: 'Bank transfer',
+        }
+        const t = (key: string) => (ns === 'depositAccounts.rows.rails' ? (railLabels[key] ?? key) : `${ns}.${key}`)
         t.rich = (key: string) => `${ns}.${key}`
         return t
     },
@@ -132,6 +141,17 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
 })
 
 describe('WithdrawCurrencyList — a currency row is the payout currency', () => {
+    it('uses one direction-correct currency and rail title format', () => {
+        renderList()
+
+        expect(screen.getByTestId('withdraw-currency-EUR')).toHaveTextContent('EUR · SEPA')
+        expect(screen.getByTestId('withdraw-currency-GBP')).toHaveTextContent('GBP · Faster Payments')
+        expect(screen.getByTestId('withdraw-currency-USD')).toHaveTextContent('USD · ACH')
+        expect(screen.getByTestId('withdraw-currency-COP')).toHaveTextContent('COP · Bank transfer')
+        expect(screen.getByTestId('withdraw-currency-BRL')).toHaveTextContent('BRL · Pix')
+        expect(screen.getByTestId('withdraw-currency-ARS')).toHaveTextContent('ARS · Bank transfer')
+    })
+
     it('offers no row for a currency the IBAN corridor never pays (PLN, SEK, CHF, DKK, NOK, CZK, HUF, RON)', () => {
         renderList()
         const rows = currencyRows()

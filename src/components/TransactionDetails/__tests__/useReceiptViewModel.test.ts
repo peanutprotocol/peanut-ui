@@ -159,3 +159,32 @@ describe('sender reference row (bank deposits)', () => {
         expect(renderConfig(bankDeposit('INVOICE 4471'), true).senderReference).toBe(false)
     })
 })
+
+describe('payment reference row (bank withdrawals)', () => {
+    const withdraw = (paymentReference?: string, status = 'completed'): TransactionDetails =>
+        withDrawer({ status, direction: 'bank_withdraw' }, { kind: 'OFFRAMP', paymentReference })
+
+    it('shows the owner the reference we sent with the payout', () => {
+        expect(renderConfig(withdraw('hello world')).paymentReference).toBe(true)
+    })
+
+    it('stays hidden when the API sends none — an older API, or a rail that takes none', () => {
+        expect(renderConfig(withdraw()).paymentReference).toBe(false)
+        expect(renderConfig(withdraw('')).paymentReference).toBe(false)
+    })
+
+    it('never shows on a public receipt — the reference is for the owner', () => {
+        expect(renderConfig(withdraw('hello world'), true).paymentReference).toBe(false)
+    })
+
+    it('can sit beside the document-id row on a cancelled withdrawal, under a different name', () => {
+        // The one case where both reference rows render together: the
+        // Transfer ID row drops out on cancel, so showsReceiptReferenceRow
+        // lets the document id back in. "Reference we sent" and "Receipt
+        // reference" must stay tellable apart.
+        const config = renderConfig(withdraw('hello world', 'cancelled'))
+        expect(config.paymentReference).toBe(true)
+        expect(config.reference).toBe(true)
+        expect(config.transferId).toBe(false)
+    })
+})
