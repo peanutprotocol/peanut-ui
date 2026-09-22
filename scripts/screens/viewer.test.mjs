@@ -830,6 +830,7 @@ test('a custom collection can show its selected screens side by side across two 
                 variants: {},
             },
             { id: 'send', order: 1, name: 'Send', flow: 'Payments', kind: 'route', variants: {} },
+            { id: 'card', order: 2, name: 'Card', flow: 'Card', kind: 'route', variants: {} },
         ],
     }
     const comparisonReport = {
@@ -875,7 +876,7 @@ test('a custom collection can show its selected screens side by side across two 
     })
     assert.deepEqual(
         elements.get('screens').children.map((tile) => tile.id),
-        ['profile', 'send']
+        ['profile', 'send', 'card']
     )
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair')
     assert.deepEqual(imageSources(elements.get('screens').children[0]), [
@@ -883,6 +884,12 @@ test('a custom collection can show its selected screens side by side across two 
         `/screen-data/assets/${afterImage}`,
     ])
     assert.equal(elements.get('screens').children[0].children[0].children[3].textContent, 'Compare this')
+    const missingPair = elements.get('screens').children[2].children[1]
+    assert.equal(missingPair.className, 'pair')
+    assert.deepEqual(
+        missingPair.children.map((figure) => figure.children[1].textContent),
+        ['Not in this version', 'Not in this version']
+    )
     assert.equal(elements.get('locale').children.length, 1)
     assert.equal(elements.get('view-mode-row').hidden, true)
     assert.match(elements.location.search, /compare=/)

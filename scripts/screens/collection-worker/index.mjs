@@ -20,6 +20,7 @@ const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 const safeReportPath =
     /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
 const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
+const COMPARISON_SEARCH_LIMIT = 100
 
 async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
@@ -241,7 +242,12 @@ async function comparisonSearch(url, env) {
     const afterCommit = url.searchParams.get('afterCommit') || ''
     if ([beforeCommit, afterCommit].some((commit) => commit && !/^[a-f0-9]{40}$/.test(commit)))
         return error('Invalid comparison commit', 400)
-    const entries = (await publishedComparisons(env.REPORTS, locale)).slice(0, 100)
+    // The fourth path segment is the after commit. Filter it before reading
+    // manifests, then apply the before-commit filter before bounding results;
+    // otherwise an older exact match disappears behind the newest 100 entries.
+    const entries = (await publishedComparisons(env.REPORTS, locale)).filter(
+        (entry) => !afterCommit || entry.path.split('/')[3] === afterCommit
+    )
     const comparisons = []
     for (const entry of entries) {
         const report = await readComparisonReport(env.REPORTS, entry.path, locale)
@@ -257,7 +263,10 @@ async function comparisonSearch(url, env) {
                 .length,
         })
     }
-    return json({ comparisons })
+    return json({
+        comparisons: comparisons.slice(0, COMPARISON_SEARCH_LIMIT),
+        truncated: comparisons.length > COMPARISON_SEARCH_LIMIT,
+    })
 }
 
 async function createCollection(request, actorEmail, env) {

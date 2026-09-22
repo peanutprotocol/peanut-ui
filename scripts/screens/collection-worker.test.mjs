@@ -203,7 +203,7 @@ test('published comparison lookup creates a before/after link for an existing or
             method: 'POST',
             body: JSON.stringify({
                 title: 'Profile review',
-                items: [{ id: 'profile', note: 'Check action hierarchy' }],
+                items: [{ id: 'profile', note: 'Check action hierarchy' }, { id: 'send' }],
             }),
         }),
         env,
@@ -226,9 +226,53 @@ test('published comparison lookup creates a before/after link for an existing or
         result.url,
         `https://screens.peanut.me/collections/${collection.id}/?locale=en&compare=${encodeURIComponent(comparisonPath)}`
     )
-    assert.deepEqual(result.selectedScreens, [{ id: 'profile', status: 'changed' }])
+    assert.deepEqual(result.selectedScreens, [
+        { id: 'profile', status: 'changed' },
+        { id: 'send', status: 'unavailable' },
+    ])
     assert.equal((await compare(`2026-09-16/pr-99/en/${sha}/run-3-1`)).status, 400)
     assert.equal((await compare('../index.json')).status, 400)
+})
+
+test('comparison lookup filters the full index before bounding its response', async () => {
+    const REPORTS = bucket()
+    const index = JSON.parse(REPORTS.objects.get('index.json')).filter((entry) => entry.reportType !== 'comparison')
+    for (let i = 0; i < 101; i++) {
+        const afterCommit = i.toString(16).padStart(40, '0')
+        const path = `2026-09-16/pr-${1000 + i}/en/${afterCommit}/run-3-1`
+        index.push({ path, locale: 'en', source: 'synthetic', reportType: 'comparison', complete: true })
+        REPORTS.objects.set(
+            `reports/${path}/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'comparison',
+                locale: 'en',
+                before: { commit: i === 100 ? beforeSha : 'd'.repeat(40) },
+                after: { commit: afterCommit },
+                screens: [],
+            })
+        )
+    }
+    REPORTS.objects.set('index.json', JSON.stringify(index))
+    const env = { REPORTS, SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access' }
+    const filtered = await worker.fetch(
+        new Request(`https://api.example/v1/comparisons?locale=en&beforeCommit=${beforeSha}`),
+        env,
+        accessContext
+    )
+    const filteredBody = await filtered.json()
+    assert.equal(filteredBody.comparisons.length, 1)
+    assert.equal(filteredBody.comparisons[0].afterCommit, (100).toString(16).padStart(40, '0'))
+    assert.equal(filteredBody.truncated, false)
+
+    const unfiltered = await worker.fetch(
+        new Request('https://api.example/v1/comparisons?locale=en'),
+        env,
+        accessContext
+    )
+    const unfilteredBody = await unfiltered.json()
+    assert.equal(unfilteredBody.comparisons.length, 100)
+    assert.equal(unfilteredBody.truncated, true)
 })
 
 test('captureMissing queues the exact missing matrix against the current dev revision', async () => {
