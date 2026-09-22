@@ -36,64 +36,35 @@ async function press(el: Locator) {
     await el.page().mouse.down()
 }
 
-/** how long the finger stays down — the assertions under it take ~300ms */
-const TOUCH_HOLD_MS = 5_000
+/** `.btn` transitions in 100ms — long enough for a hover fill to land */
+const HOVER_SETTLE_MS = 250
 
 /**
- * hold a real finger on the element, and give back the lift.
+ * prove that the press assertion below can only be reading :active.
  *
- * `press()` above is no guard for a control whose hover fill and press fill are
- * the same colour: a pointer has to hover the button to click it, so the hover
- * fill alone would satisfy the assertion and deleting the `active:` class would
- * keep it green. It survives today only because the config runs an `isMobile`
- * device, so Chromium re-emits the mouse as touch and no :hover is ever set —
- * luck, from one line in the config, not a guarantee. A finger brings no hover
- * with it by construction, so the fill it produces can only be :active.
+ * `press()` is no guard on its own for a control whose hover fill and press
+ * fill are the same colour: a pointer has to hover the control to press it, so
+ * the hover fill alone would satisfy the assertion and deleting the `active:`
+ * class would keep the test green.
  *
- * It has to be a synthesized GESTURE. Playwright's touchscreen taps and lets go
- * in one call, and raw `Input.dispatchTouchEvent` delivers a touchstart the page
- * can see but never reaches Chromium's gesture recognizer — so :active never
- * turns on. `Input.synthesizeTapGesture` does, and its `duration` is the hold.
- * The config already runs a `hasTouch` device (Pixel 7), so touch is available
- * without a context of its own.
+ * What rules the hover fill out is the Pixel 7 device in the config: it sets
+ * `isMobile`, so Chromium re-emits the mouse as touch and never sets :hover.
+ * That is one line in a config file away from silently un-proving both nav
+ * circle tests, so assert it here instead of trusting it — point the config at
+ * a desktop device and this fails loudly on the hover fill, rather than the
+ * press assertion passing on it.
+ *
+ * A synthesized touch gesture used to carry this instead, on the reasoning that
+ * a finger brings no hover with it. It does not survive CI: on the GitHub
+ * runner `Input.synthesizeTapGesture` returns after its full hold and :active
+ * never turns on, so both nav circle tests failed there on correct CSS while
+ * every mouse-driven test in this file passed. The mouse is the portable press;
+ * this assertion is what makes it mean something.
  */
-async function touchPress(el: Locator) {
-    const page = el.page()
-    await el.scrollIntoViewIfNeeded()
-    const box = await el.boundingBox()
-    if (!box) throw new Error('nothing to press: the element has no box')
-
-    const x = box.x + box.width / 2
-    const y = box.y + box.height / 2
-
-    // the gesture goes to raw viewport coordinates and gets none of the
-    // actionability checks `press()` borrows from hover(). A sticky bar over
-    // the centre point would swallow the tap, :active would never set, and the
-    // poll under the press would time out on CSS that is correct — so hit-test
-    // the point first and name whatever is in the way.
-    const intruder = await el.evaluate(
-        (node, point) => {
-            const hit = document.elementFromPoint(point.x, point.y)
-            if (!hit) return 'nothing — the point is outside the viewport'
-            if (hit === node || node.contains(hit)) return null
-            return `<${hit.tagName.toLowerCase()} class="${hit.getAttribute('class') ?? ''}">`
-        },
-        { x, y }
-    )
-    if (intruder) throw new Error(`the tap point (${x}, ${y}) is covered by ${intruder}, not by the element to press`)
-
-    const cdp = await page.context().newCDPSession(page)
-    const lifted = cdp.send('Input.synthesizeTapGesture', {
-        x,
-        y,
-        duration: TOUCH_HOLD_MS,
-        gestureSourceType: 'touch',
-    })
-
-    return async () => {
-        await lifted
-        await cdp.detach()
-    }
+async function expectNoHoverFill(el: Locator) {
+    await el.hover()
+    await el.page().waitForTimeout(HOVER_SETTLE_MS)
+    expect(await background(el), 'no hover fill, so a press fill can only be :active').toBe('rgba(0, 0, 0, 0)')
 }
 
 test.describe('Button press physics', () => {
@@ -135,19 +106,20 @@ test.describe('Button press physics', () => {
         // the board (17308:13973) draws ONE colour, action-primary pink, for
         // hover AND press (kush ruling 2026-09-21 — a two-colour press shipped
         // briefly and read as a purple back button). One colour for both states
-        // is what makes a mouse press unable to prove anything here, so the
-        // press below is a real touch: the circle is transparent at rest and a
-        // finger brings no hover with it, so the pink can only be :active.
+        // is what would make a mouse press prove nothing here — so the circle is
+        // read at rest, then under hover, then under press: three states, and
+        // only the third may be pink.
         expect(await background(back), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
+        await expectNoHoverFill(back)
 
-        const release = await touchPress(back)
+        await press(back)
         try {
             await expect
                 .poll(() => background(back), { message: 'press fill is action-primary' })
                 .toBe('rgb(255, 144, 232)')
             expect(await translate(back), 'a shadowless control must not translate').toBe('none')
         } finally {
-            await release()
+            await page.mouse.up()
         }
     })
 
@@ -166,15 +138,17 @@ test.describe('Button press physics', () => {
         expect(await boxShadow(circle), 'a nav circle carries no shadow').toBe('none')
 
         // same const, same one-colour contract as the circle above, so the same
-        // touch press — a mouse could not tell the hover fill from the press one
-        const release = await touchPress(circle)
+        // hover assertion carries the press assertion under it
+        await expectNoHoverFill(circle)
+
+        await press(circle)
         try {
             await expect
                 .poll(() => background(circle), { message: 'press fill is action-primary' })
                 .toBe('rgb(255, 144, 232)')
             expect(await translate(circle), 'a shadowless control must not translate').toBe('none')
         } finally {
-            await release()
+            await page.mouse.up()
         }
     })
 
