@@ -24,6 +24,12 @@ const LOCALE_CODES = {
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
+const DEVICE_PROFILES = {
+    '393x852': { platform: 'iphone', label: 'iPhone' },
+    '440x956': { platform: 'iphone', label: 'iPhone Pro Max' },
+    '360x800': { platform: 'android', label: 'Android' },
+    '320x712': { platform: 'android', label: 'Android small' },
+}
 const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
@@ -96,6 +102,7 @@ let rows = [],
     report,
     activeComparison,
     active,
+    activeMode = 'screen',
     viewMode = 'all',
     indexEntries = [],
     reportLocaleEntries = [],
@@ -171,38 +178,99 @@ function syncShareableUrl() {
     if (!offline && typeof history !== 'undefined' && typeof history.replaceState === 'function')
         history.replaceState(null, '', shareableHref())
 }
+function previewDevice() {
+    const capture = report?.type === 'comparison' ? report.after : report
+    const profile = `${capture?.profile ?? report?.profile ?? ''}`.toLowerCase()
+    const profileSize = /(\d{3,4})x(\d{3,4})/.exec(profile)
+    const width = Number(capture?.width ?? report?.width ?? profileSize?.[1] ?? 393)
+    const height = Number(capture?.height ?? report?.height ?? profileSize?.[2] ?? 852)
+    const preset = DEVICE_PROFILES[`${width}x${height}`]
+    const platform = preset?.platform ?? (profile.includes('android') ? 'android' : 'iphone')
+    return {
+        width,
+        height,
+        platform,
+        label: preset?.label ?? (platform === 'android' ? 'Android' : 'iPhone'),
+    }
+}
+function phonePreview(content, label) {
+    const device = previewDevice()
+    const preview = el('figure', undefined, 'device-preview')
+    const frame = el('div', undefined, `device-frame ${device.platform}`)
+    frame.style.aspectRatio = `${device.width} / ${device.height}`
+    frame.setAttribute('aria-label', `${device.label} preview at ${device.width} by ${device.height}`)
+    const screen = el('div', undefined, 'device-screen')
+    screen.append(content)
+    frame.append(
+        el('span', undefined, 'device-button device-button-top'),
+        el('span', undefined, 'device-button device-button-bottom'),
+        screen,
+        el('span', undefined, 'device-camera'),
+        el('span', undefined, 'device-home')
+    )
+    preview.append(frame, el('figcaption', label, 'device-label'))
+    return preview
+}
+function activePreviewIndex() {
+    const exact = filteredRows.indexOf(active)
+    return exact >= 0 ? exact : filteredRows.findIndex((row) => row.id === active?.id)
+}
+function updatePreviewPosition() {
+    const index = activePreviewIndex()
+    const device = previewDevice()
+    $('zoom-position').textContent =
+        `${index + 1} of ${filteredRows.length} · ${device.label} · ${device.width} × ${device.height}`
+    const onlyOne = filteredRows.length <= 1
+    $('zoom-prev').disabled = onlyOne
+    $('zoom-next').disabled = onlyOne
+}
 function zoom(row, mode = 'side') {
     active = row
     const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
     if (single) mode = 'screen'
+    activeMode = mode
     $('zoom-title').textContent = row.name
     $('zoom-images').replaceChildren()
     $('slider-label').hidden = mode !== 'overlay'
+    $('zoom-controls').hidden = single
     $('side').hidden = single
     $('overlay').hidden = single
     $('difference').hidden = single
+    for (const name of ['side', 'overlay', 'difference']) $(name).setAttribute('aria-pressed', String(name === mode))
     const before = row.before,
         after = row.after
     if (mode === 'screen') {
         const screen = availableScreen(row)
-        if (screen?.image) $('zoom-images').append(image(screen.image, row.name, { preview: false }))
+        if (screen?.image)
+            $('zoom-images').append(phonePreview(image(screen.image, row.name, { preview: false }), 'Screen'))
         else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
-        if (row.diff) $('zoom-images').append(image(row.diff, 'Pixel difference', { preview: false }))
+        if (row.diff)
+            $('zoom-images').append(phonePreview(image(row.diff, 'Pixel difference', { preview: false }), 'Difference'))
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
         n.append(image(before.image, 'Before', { preview: false }), image(after.image, 'After', { preview: false }))
-        $('zoom-images').append(n)
+        $('zoom-images').append(phonePreview(n, 'Before / after'))
         $('slider').value = '50'
     } else {
         for (const [label, s] of [
             ['Before', before],
             ['After', after],
         ])
-            if (s?.image) $('zoom-images').append(image(s.image, label, { preview: false }))
+            if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
     }
-    if (!$('zoom').open) $('zoom').showModal()
+    updatePreviewPosition()
+    if (!$('zoom').open) {
+        $('zoom').showModal()
+        $('close').focus?.()
+    }
+}
+function navigatePreview(direction) {
+    if (filteredRows.length <= 1) return
+    const index = activePreviewIndex()
+    const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
+    zoom(filteredRows[next], activeMode)
 }
 function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
@@ -859,6 +927,18 @@ $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
+$('zoom-prev').onclick = () => navigatePreview(-1)
+$('zoom-next').onclick = () => navigatePreview(1)
+$('zoom').addEventListener('keydown', (event) => {
+    if (!$('zoom').open) return
+    if (event.key === 'Escape') {
+        event.preventDefault()
+        $('zoom').close()
+    } else if (event.target !== $('slider') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault()
+        navigatePreview(event.key === 'ArrowLeft' ? -1 : 1)
+    }
+})
 $('date-prev').onclick = () => scrollDateStrip(-1)
 $('date-next').onclick = () => scrollDateStrip(1)
 $('date-strip').addEventListener('scroll', updateDateNavigation)

@@ -701,14 +701,24 @@ figcaption {
 }
 dialog {
     border: 0;
-    border-radius: 16px;
-    padding: 22px;
-    max-width: 1000px;
-    width: 95vw;
-    max-height: 95vh;
+    border-radius: 24px;
+    padding: 20px 24px 16px;
+    max-width: 1180px;
+    width: min(96vw, 1180px);
+    max-height: 96vh;
+    max-height: 96dvh;
+    overflow: hidden;
+    background: #17151a;
+    color: white;
+    box-shadow: 0 28px 90px rgb(0 0 0 / 48%);
+}
+dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 dialog::backdrop {
-    background: #17121bdd;
+    background: rgb(10 8 12 / 88%);
+    backdrop-filter: blur(8px);
 }
 .dialog-head {
     display: flex;
@@ -716,15 +726,45 @@ dialog::backdrop {
     align-items: center;
     gap: 20px;
 }
+.dialog-head > div {
+    min-width: 0;
+}
 .dialog-head h2 {
+    overflow: hidden;
+    margin: 2px 0 12px;
     font-size: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.zoom-position {
+    margin: 0;
+    color: #bdb5c1;
+    font-size: 12px;
 }
 .dialog-head button,
 .zoom-controls button {
-    border: 1px solid var(--rule);
-    background: white;
-    border-radius: 8px;
+    border: 1px solid rgb(255 255 255 / 24%);
+    background: rgb(255 255 255 / 9%);
+    color: white;
+    border-radius: 999px;
     padding: 8px 13px;
+}
+.dialog-head button:hover,
+.zoom-controls button:hover,
+.dialog-head button:focus-visible,
+.zoom-controls button:focus-visible {
+    border-color: var(--pink);
+}
+.dialog-head button:focus-visible,
+.zoom-controls button:focus-visible,
+.preview-nav:focus-visible {
+    outline: 3px solid var(--pink);
+    outline-offset: 3px;
+}
+.zoom-controls button[aria-pressed='true'] {
+    border-color: var(--pink);
+    background: var(--pink);
+    color: var(--ink);
 }
 .zoom-controls {
     display: flex;
@@ -733,25 +773,173 @@ dialog::backdrop {
     gap: 10px;
     margin-bottom: 18px;
 }
+.zoom-controls label {
+    color: #d8d1dc;
+}
+.preview-stage {
+    display: grid;
+    min-height: 0;
+    flex: 1 1 auto;
+    grid-template-columns: 58px minmax(0, 1fr) 58px;
+    align-items: center;
+    gap: 14px;
+}
+.preview-nav {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    padding: 0 0 5px;
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 50%;
+    background: rgb(255 255 255 / 10%);
+    color: white;
+    font-size: 42px;
+    font-weight: 250;
+    line-height: 1;
+}
+.preview-nav:hover:not(:disabled) {
+    border-color: var(--pink);
+    background: rgb(255 144 232 / 15%);
+}
+.preview-nav:disabled {
+    cursor: default;
+    opacity: 0.24;
+}
 #zoom-images {
     display: flex;
+    min-width: 0;
+    min-height: 0;
     justify-content: center;
+    align-items: center;
     gap: 20px;
 }
-#zoom-images img {
-    max-width: 100%;
-    width: 393px;
-    object-fit: contain;
-    align-self: flex-start;
+.device-preview {
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+}
+.device-frame {
+    position: relative;
+    height: min(67vh, 720px);
+    height: min(67dvh, 720px);
+    margin: auto;
+    border: 7px solid #050506;
+    background: #050506;
+    box-shadow:
+        0 0 0 1px #5e5c63,
+        0 22px 45px rgb(0 0 0 / 42%);
+}
+.device-frame.iphone {
+    border-radius: 46px;
+}
+.device-frame.android {
+    border-width: 5px;
+    border-radius: 27px;
+}
+.device-screen {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 38px;
+    background: #fff;
+}
+.android .device-screen {
+    border-radius: 21px;
+}
+.device-screen > img,
+.device-screen > .overlay {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+}
+.device-camera {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    left: 50%;
+    width: 78px;
+    height: 23px;
+    border-radius: 999px;
+    background: #050506;
+    transform: translateX(-50%);
+}
+.android .device-camera {
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 10%);
+}
+.device-home {
+    position: absolute;
+    z-index: 2;
+    bottom: 7px;
+    left: 50%;
+    width: 92px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 86%);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+    transform: translateX(-50%);
+}
+.android .device-home {
+    display: none;
+}
+.device-button {
+    position: absolute;
+    top: 22%;
+    left: -11px;
+    width: 4px;
+    height: 64px;
+    border-radius: 4px 0 0 4px;
+    background: #36343a;
+}
+.device-button-bottom {
+    top: 32%;
+    height: 42px;
+}
+.android .device-button {
+    right: -9px;
+    left: auto;
+    height: 56px;
+    border-radius: 0 4px 4px 0;
+}
+.android .device-button-bottom {
+    top: 31%;
+    height: 34px;
+}
+.device-label {
+    margin-top: 10px;
+    color: #c8c0cc;
+    font-size: 12px;
+}
+.preview-help {
+    margin: 12px 0 0;
+    color: #a9a1ad;
+    font-size: 11px;
+    text-align: center;
+}
+.preview-help kbd {
+    display: inline-grid;
+    min-width: 23px;
+    height: 21px;
+    margin: 0 3px 0 8px;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 25%);
+    border-radius: 5px;
+    background: rgb(255 255 255 / 8%);
+    color: #fff;
+    font: inherit;
 }
 #zoom-images .overlay {
     position: relative;
-    max-width: 393px;
-    width: 100%;
 }
 .overlay img {
     display: block;
     width: 100% !important;
+    height: 100%;
+    object-fit: fill;
 }
 .overlay img + img {
     position: absolute;
@@ -1027,11 +1215,40 @@ footer {
     #screens.all-screens {
         grid-template-columns: 235px;
     }
-    #zoom-images {
-        gap: 8px;
+    dialog {
+        width: 100vw;
+        max-height: 100vh;
+        max-height: 100dvh;
+        padding: 16px 10px 12px;
+        border-radius: 0;
     }
-    #zoom-images > img {
-        width: 48%;
+    .dialog-head,
+    .zoom-controls {
+        padding-inline: 8px;
+    }
+    .preview-stage {
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        gap: 4px;
+    }
+    .preview-nav {
+        width: 38px;
+        height: 38px;
+        font-size: 34px;
+    }
+    #zoom-images {
+        max-width: 100%;
+        gap: 8px;
+        overflow-x: auto;
+    }
+    .device-preview {
+        flex: 0 0 auto;
+    }
+    .device-frame {
+        height: min(66vh, 610px);
+        height: min(66dvh, 610px);
+    }
+    #zoom-images:has(.device-preview + .device-preview) {
+        justify-content: flex-start;
     }
 }
 
