@@ -376,6 +376,7 @@
                 "notAvailable": "Não disponível"
             },
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
+            "residenceNote": "Transferências bancárias em BRL e ARS são para residentes do Brasil e da Argentina. Atualize sua residência se você se mudou.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueie este método de pagamento",
@@ -2700,6 +2701,10 @@
         "actionRequiredDescription": "Precisamos de mais algumas informações para confirmar seu documento.",
         "processingTitle": "Configurando sua conta…",
         "processingDescription": "Estamos confirmando seu documento. Isso costuma levar menos de um minuto.",
+        "processingStaleTitle": "Ainda estamos configurando sua conta",
+        "processingUnfinishedDescription": "Está demorando mais que o normal. Se você deixou a verificação sem terminar, continue agora. Se já terminou, fale com o suporte e a gente confere.",
+        "processingReviewDescription": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
+        "continueVerification": "Continuar verificação",
         "unsupportedRegionError": "Os depósitos bancários ainda não estão disponíveis na sua região. Avisaremos assim que forem liberados.",
         "railsUnavailableError": "Sua identidade está verificada, mas não conseguimos configurar os pagamentos para a sua região no momento. Fale com o suporte e vamos resolver.",
         "unexpectedError": "Ocorreu um erro inesperado",
@@ -4148,7 +4153,10 @@
             },
             "PIX_BR": {
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceTitle": "Residência necessária",
+                "residenceRequired": "Só residentes legais no Brasil podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
+                "qrPay": "Você ainda pode pagar códigos QR do Pix no Brasil com o seu saldo."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",

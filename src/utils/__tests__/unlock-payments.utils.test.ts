@@ -1,3 +1,4 @@
+import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import { buildUnlockGroups, dedupeHeldBankRows, type BuildUnlockGroupsInput } from '@/utils/unlock-payments.utils'
 
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
@@ -36,7 +37,7 @@ describe('buildUnlockGroups', () => {
     })
 
     it('QR payments read Available on the pay capability alone, with no bank access', () => {
-        const payOnly = buildUnlockGroups(base({ canPayQr: true }))
+        const payOnly = buildUnlockGroups(base({ canPayQr: true, residenceIso2: 'BR' }))
         expect(group(payOnly, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'active' }))
         // the bank row is a separate permission and stays an offer
         expect(group(payOnly, 'southAmerica').rows[0]).toEqual(
@@ -93,7 +94,9 @@ describe('buildUnlockGroups', () => {
     })
 
     it('South America is one row per currency, each with its own allowance', () => {
-        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'active' } }))
+        const groups = buildUnlockGroups(
+            base({ bankChips: { ...base().bankChips, brl: 'active' }, residenceIso2: 'BR', secondResidenceIso2: 'AR' })
+        )
         expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
             ['brl-bank', 'active', ['BRL']],
             ['ars-bank', 'unlock', ['ARS']],
@@ -109,13 +112,15 @@ describe('buildUnlockGroups', () => {
     })
 
     it('sibling rows share the one unlock intent behind their two currencies', () => {
-        const groups = buildUnlockGroups(base())
+        const groups = buildUnlockGroups(base({ residenceIso2: 'BR', secondResidenceIso2: 'AR' }))
         expect(group(groups, 'southAmerica').rows.map((r) => r.regionPath)).toEqual(['latam', 'latam'])
         expect(group(groups, 'northAmerica').rows.map((r) => r.regionPath)).toEqual(['north-america', 'north-america'])
     })
 
     it('active rows carry no tap target; offer rows route into the region intent', () => {
-        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, sepa: 'active' } }))
+        const groups = buildUnlockGroups(
+            base({ bankChips: { ...base().bankChips, sepa: 'active' }, residenceIso2: 'BR' })
+        )
         expect(group(groups, 'europe').rows[0].regionPath).toBeUndefined()
         expect(group(groups, 'northAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'unlock', regionPath: 'north-america' })
@@ -124,7 +129,9 @@ describe('buildUnlockGroups', () => {
     })
 
     it('a pending verification keeps its own Processing status, never collapsed into Unlock', () => {
-        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'processing' } }))
+        const groups = buildUnlockGroups(
+            base({ bankChips: { ...base().bankChips, brl: 'processing' }, residenceIso2: 'BR' })
+        )
         expect(group(groups, 'southAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'processing', regionPath: 'latam' })
         )
@@ -170,6 +177,69 @@ describe('buildUnlockGroups', () => {
     })
 })
 
+/**
+ * The Manteca corridors open a first-party account to residents of that
+ * country (Brazil through a client-side CPF-by-residence pre-check). A row that
+ * is not an offer must not say Unlock — and must not carry another country's
+ * Processing either (the abandoned Argentine ghost on a Portuguese resident's
+ * screen, 2026-09-22).
+ */
+describe('buildUnlockGroups — residence decides the Manteca rows', () => {
+    const latamRows = (input?: Partial<BuildUnlockGroupsInput>) =>
+        group(buildUnlockGroups(base(input)), 'southAmerica').rows.map((r) => [r.id, r.chip, r.regionPath])
+
+    it('a resident of neither country reads Not available on both, with no tap target', () => {
+        expect(latamRows({ residenceIso2: 'PT' })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+    })
+
+    it('each country opens its own row, and a dual resident gets both', () => {
+        expect(latamRows({ residenceIso2: 'BR' })).toEqual([
+            ['brl-bank', 'unlock', 'latam'],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+        expect(latamRows({ residenceIso2: 'PT', secondResidenceIso2: 'AR' })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'unlock', 'latam'],
+        ])
+        expect(latamRows({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })).toEqual([
+            ['brl-bank', 'unlock', 'latam'],
+            ['ars-bank', 'unlock', 'latam'],
+        ])
+    })
+
+    it('an unknown residence fails closed, as the backend does', () => {
+        expect(latamRows({ residenceIso2: null })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+    })
+
+    it("another country's mid-flight rail is not narrated on a row that is not offered", () => {
+        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...base().bankChips, ars: 'processing' } })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+    })
+
+    it('a rail that already works stays a fact after a move', () => {
+        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...base().bankChips, brl: 'active' } })).toEqual([
+            ['brl-bank', 'active', undefined],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+    })
+
+    it('the Bridge rows and QR payments are untouched by it', () => {
+        const groups = buildUnlockGroups(base({ residenceIso2: 'PT' }))
+        expect(group(groups, 'europe').rows[0].chip).toBe('unlock')
+        expect(group(groups, 'northAmerica').rows.map((r) => r.chip)).toEqual(['unlock', 'unlock'])
+        // paying a QR code needs no first-party account, so the offer stands
+        expect(group(groups, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
+    })
+})
+
 describe('dedupeHeldBankRows', () => {
     const rowsWith = (bankChips: BuildUnlockGroupsInput['bankChips']) =>
         buildUnlockGroups(base({ bankChips }))
@@ -209,5 +279,27 @@ describe('dedupeHeldBankRows', () => {
 
     it('is a no-op with no active accounts', () => {
         expect(dedupeHeldBankRows(bankRows, new Set())).toEqual(bankRows)
+    })
+})
+
+/**
+ * One residence derivation for every residence gate: the Unlock payments rows
+ * and the top-up flows behind them read the same countries, verified first.
+ */
+describe('gatingResidenceIso2s', () => {
+    it('a verified residence outranks a declared one, as on the backend', () => {
+        expect(gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })).toEqual(['PT'])
+    })
+
+    it('a declared residence counts while nothing is verified, and a second one beside it', () => {
+        expect(gatingResidenceIso2s({ verified: null, declared: 'br', second: 'AR' })).toEqual(['BR', 'AR'])
+        expect(gatingResidenceIso2s({})).toEqual([])
+    })
+
+    it('the row and the top-up agree: verified PT + declared BR reads not offered on both', () => {
+        const residences = gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })
+        expect(residenceAllows('PIX_BR', residences)).toBe(false)
+        const groups = buildUnlockGroups(base({ residenceIso2: 'PT' }))
+        expect(group(groups, 'southAmerica').rows[0].chip).toBe('notAvailable')
     })
 })

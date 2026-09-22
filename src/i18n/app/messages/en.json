@@ -376,6 +376,7 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "residenceNote": "Bank transfers in BRL and ARS are for residents of Brazil and Argentina. Update your residence if you moved.",
             "unlockModal": {
                 "title": "Unlock {method}",
                 "titleGeneric": "Unlock this payment method",
@@ -2700,6 +2701,10 @@
         "actionRequiredDescription": "We need a bit more from you to confirm your ID.",
         "processingTitle": "Setting up your account…",
         "processingDescription": "We're confirming your ID. This usually takes less than a minute.",
+        "processingStaleTitle": "Still setting up your account",
+        "processingUnfinishedDescription": "This is taking longer than usual. If you left the verification unfinished, continue it now. If you already finished it, contact support and we'll check.",
+        "processingReviewDescription": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
+        "continueVerification": "Continue verification",
         "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
         "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "unexpectedError": "An unexpected error occurred",
@@ -4148,7 +4153,10 @@
             },
             "PIX_BR": {
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceTitle": "Residence required",
+                "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay a Pix QR code in Brazil from your balance."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",

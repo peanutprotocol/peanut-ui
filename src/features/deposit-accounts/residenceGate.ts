@@ -20,6 +20,25 @@ export function isResidenceGated(corridor: DepositCorridor): boolean {
 }
 
 /**
+ * The residences a residence gate reads, in one derivation for every gate.
+ *
+ * The verified residence outranks the declared one, as it does on the
+ * backend: the address collected at verification beats a self-asserted
+ * declaration, so a declared country only counts while nothing is verified.
+ * A second declared residence counts beside it (a dual resident).
+ */
+export function gatingResidenceIso2s(residence: {
+    verified?: string | null
+    declared?: string | null
+    second?: string | null
+}): string[] {
+    const iso2s = [residence.verified ?? residence.declared, residence.second]
+        .filter((iso2): iso2 is string => !!iso2)
+        .map((iso2) => iso2.toUpperCase())
+    return [...new Set(iso2s)]
+}
+
+/**
  * Does one of this user's residences match the corridor's country?
  *
  * A dual resident passes on either country, the same softening the restriction
