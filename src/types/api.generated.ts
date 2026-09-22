@@ -12101,6 +12101,9 @@ export interface paths {
                                     userMessage: string;
                                 }[];
                             };
+                            depositAccounts: {
+                                enabled: boolean;
+                            };
                             identityVerification: {
                                 actionMessage?: string;
                                 canRetry?: boolean;

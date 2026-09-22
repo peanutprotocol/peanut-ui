@@ -21482,6 +21482,17 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "depositAccounts": {
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "identityVerification": {
                                             "properties": {
                                                 "actionMessage": {
@@ -21691,7 +21702,8 @@
                                         "identityVerification",
                                         "profileNameLocked",
                                         "residenceRestrictions",
-                                        "residence"
+                                        "residence",
+                                        "depositAccounts"
                                     ],
                                     "type": "object"
                                 }
