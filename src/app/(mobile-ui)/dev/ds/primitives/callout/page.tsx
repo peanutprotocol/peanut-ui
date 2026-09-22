@@ -182,7 +182,7 @@ export default function CalloutPage() {
                         name: 'ctas',
                         type: '1-2 × { label, onClick }',
                         default: '(none)',
-                        description: 'First renders primary, second stroke',
+                        description: 'First renders primary, second secondary',
                     },
                 ]}
             />

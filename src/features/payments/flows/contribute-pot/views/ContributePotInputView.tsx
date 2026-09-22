@@ -158,6 +158,8 @@ export function ContributePotInputView() {
                     usdAmount={amount}
                     recipientUserId={recipient?.userId}
                     recipientUsername={recipient?.username}
+                    recipientAvatarKey={recipient?.avatarKey}
+                    requestMessage={request?.reference || ''}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
                     remainingUsd={totalAmount > 0 ? remainingAmount : undefined}

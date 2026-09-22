@@ -262,7 +262,7 @@ export default function RecoverFundsPage() {
                         {t('goToHome')}
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         onClick={() => {
                             setTokenBalances(

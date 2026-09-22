@@ -514,7 +514,7 @@ const SupportDrawer = () => {
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
                                 <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
-                                <Button variant="stroke" className="w-full" onClick={handleRetry}>
+                                <Button variant="secondary" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>
                             </div>

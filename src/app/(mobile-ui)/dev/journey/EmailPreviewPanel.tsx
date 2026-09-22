@@ -58,7 +58,7 @@ export default function EmailPreviewPanel({
         <div className="fixed inset-0 z-50 flex justify-end">
             <Button
                 type="button"
-                variant="transparent"
+                variant="ghost"
                 disableHaptics
                 aria-label="Close preview"
                 onClick={onClose}
@@ -80,7 +80,7 @@ export default function EmailPreviewPanel({
                             </div>
                         </div>
                         <Button
-                            variant="transparent"
+                            variant="ghost"
                             shape="square"
                             size="small"
                             icon="cancel"
@@ -143,7 +143,7 @@ export default function EmailPreviewPanel({
                             {position}/{renders.length}
                         </span>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             disabled={activeIndex === 0}
                             onClick={() => onSelect(activeIndex - 1)}
@@ -152,7 +152,7 @@ export default function EmailPreviewPanel({
                             Previous
                         </Button>
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             disabled={activeIndex >= renders.length - 1}
                             onClick={() => onSelect(activeIndex + 1)}

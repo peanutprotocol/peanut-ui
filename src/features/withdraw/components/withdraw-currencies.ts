@@ -20,10 +20,32 @@ export interface WithdrawCurrency {
     code: string
     /** Friendly name for the secondary line ("Euro", "British Pound Sterling"). */
     name: string
+    /** The localized rail label shown beside the currency code. */
+    railNameKey: WithdrawRailNameKey
     /** ISO-2 flag code for the row's leading flag ("eu", "gb", "us"…). */
     flagCode: string
     /** The supported withdraw countries that pay in this currency, in list order. */
     countries: CountryData[]
+}
+
+export type WithdrawRailNameKey = 'ach' | 'sepa' | 'faster_payments' | 'spei' | 'pix' | 'transfer_ar' | 'fallback'
+
+/**
+ * The rail that pays each live withdrawal currency.
+ *
+ * These labels are intentionally directional. COP deposits arrive over Bre-B,
+ * but COP payouts use a Colombian bank transfer. USD payouts use ACH, while
+ * USD deposits can also arrive by wire. The two screens share a label format,
+ * never a false claim that both directions use the same rail.
+ */
+const WITHDRAW_RAIL_NAME_KEYS: Record<string, WithdrawRailNameKey> = {
+    EUR: 'sepa',
+    GBP: 'faster_payments',
+    USD: 'ach',
+    MXN: 'spei',
+    BRL: 'pix',
+    ARS: 'transfer_ar',
+    COP: 'fallback',
 }
 
 /**
@@ -71,7 +93,13 @@ export function liveWithdrawCurrencies({ sendToBankOnly = false } = {}): Withdra
     for (const [code, countries] of byCurrency) {
         const mapping = countryCurrencyMappings.find((m) => m.currencyCode.toUpperCase() === code.toUpperCase())
         const flagCode = mapping?.flagCode ?? (countries.length === 1 ? (countries[0].iso2 ?? '').toLowerCase() : '')
-        rows.push({ code, name: mapping?.currencyName ?? code, flagCode, countries })
+        rows.push({
+            code,
+            name: mapping?.currencyName ?? code,
+            railNameKey: WITHDRAW_RAIL_NAME_KEYS[code] ?? 'fallback',
+            flagCode,
+            countries,
+        })
     }
 
     const rank = (code: string) => {

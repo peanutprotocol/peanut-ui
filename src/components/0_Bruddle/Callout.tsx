@@ -36,7 +36,7 @@ interface CalloutProps {
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two actions: first renders primary, second stroke (secondary). */
+    /** One or two actions: first renders primary, second secondary. */
     ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
@@ -83,7 +83,7 @@ const PRIORITY_STYLES: Record<
     },
 }
 
-const CTA_VARIANTS = ['primary', 'stroke'] as const
+const CTA_VARIANTS = ['primary', 'secondary'] as const
 
 /**
  * Inline callout banner from the figma notification board (17802:61535):

@@ -15,13 +15,13 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { LIMITS_COPY, type LimitFlowType, type LimitsWarningItem } from '../utils'
 
-export type LimitsWarningType = 'warning' | 'error'
+export type LimitsWarningType = 'attention' | 'error'
 
 export interface LimitsWarningCardProps {
     type: LimitsWarningType
     /** English fallback; `titleKind` takes precedence when set */
     title: string
-    titleKind?: 'blocking' | 'warning'
+    titleKind?: 'blocking' | 'attention'
     items: LimitsWarningItem[]
     showSupportLink?: boolean
     /** when set, shows an "Increase my limits" button instead of the support link */

@@ -73,7 +73,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? `${id}-error` : undefined}
                         id={id}
-                        variant="sm"
+                        size="sm"
                         type={type}
                         value={value}
                         onChange={(e) => onChange(e.target.value)}

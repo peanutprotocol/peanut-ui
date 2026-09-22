@@ -50,7 +50,7 @@ export function DepositShareActions({
                 {t('details.shareCta')}
             </ShareButton>
             <Button
-                variant="stroke"
+                variant="secondary"
                 className="w-full"
                 icon="copy"
                 onClick={async () => {

@@ -93,7 +93,7 @@ export function SetupNotificationsPrompt({
                     {
                         text: t('notNow'),
                         onClick: onClose,
-                        variant: 'stroke',
+                        variant: 'secondary',
                         className: 'sm:flex-none',
                     },
                 ]}

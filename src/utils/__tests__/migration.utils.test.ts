@@ -91,10 +91,18 @@ describe('isPwaSunsetOn', () => {
         expect(isPwaSunsetOn()).toBe(false)
     })
 
-    it('still follows the migration flag on the dev branch staging deployment', () => {
+    it('keeps web signup enabled on the dev branch staging deployment', () => {
         process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
         process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'dev'
         mockFlagEnabled = true
+
+        expect(isPwaSunsetOn()).toBe(false)
+    })
+
+    it('localStorage override still turns it on for a Vercel preview deployment', () => {
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
+        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'dev'
+        localStorage.setItem('pwa-sunset', 'true')
 
         expect(isPwaSunsetOn()).toBe(true)
     })

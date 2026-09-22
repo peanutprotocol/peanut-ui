@@ -227,6 +227,7 @@ export function DepositAccountsListScreen({
      * to the verification flow.
      */
     const isOpenable = (corridor: DepositCorridor, view: DepositGateView) => {
+        if (topUpOnlyHref(DEPOSIT_RAILS[corridor])) return canTopUp(corridor) || offersVerification(gates[corridor])
         // The backend's own answer wins: it speaks for this user and this
         // corridor, where the gate speaks for the rail alone.
         const reason = reasonFor(corridor)
@@ -297,8 +298,11 @@ export function DepositAccountsListScreen({
          * hand a payer — and it stays silent where the user cannot use it,
          * because the flow behind the row states its own rule.
          */
-        if (topUpOnlyHref(rail))
-            return canTopUp(rail.corridor) ? <Badge status="custom" customText={t('list.badgeAvailable')} /> : null
+        if (topUpOnlyHref(rail)) {
+            if (canTopUp(rail.corridor)) return <Badge status="custom" customText={t('list.badgeAvailable')} />
+            if (offersVerification(gate)) return <Badge status="custom" customText={t('list.badgeVerify')} />
+            return <Badge status="custom" customText={t('list.badgeUnavailable')} />
+        }
         if (isResidenceGated(rail.corridor) && !account)
             return <Badge status="custom" customText={t('list.badgeNotSetUp')} />
         // A claimable corridor the user has no rail for, shown because identity

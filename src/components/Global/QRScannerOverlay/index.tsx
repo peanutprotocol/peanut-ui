@@ -125,7 +125,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             tone: 'success',
             title: t('qrScannerOverlay.titleWillBeNotified'),
             description: t('qrScannerOverlay.willBeNotified', { qrName }),
-            ctas: [{ text: tCommon('close'), variant: 'stroke', onClick: onClose }],
+            ctas: [{ text: tCommon('close'), variant: 'secondary', onClick: onClose }],
         },
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
@@ -154,7 +154,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                 // The only way out: preventClose covers Escape, the backdrop and
                 // the back handler, and the X is hidden, so without this the user
                 // has to accept the warning to leave the modal.
-                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
+                { text: tCommon('close'), variant: 'secondary', onClick: onClose },
             ],
         },
         // A payload that is not an http(s) link is not one the user can be asked
@@ -172,7 +172,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                   ),
                   ctas: [
                       { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
-                      { text: tCommon('close'), variant: 'stroke', onClick: onClose },
+                      { text: tCommon('close'), variant: 'secondary', onClick: onClose },
                   ],
               }
             : unrecognizedContent,

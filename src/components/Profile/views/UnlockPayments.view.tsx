@@ -632,7 +632,7 @@ const UnlockPayments = () => {
                               },
                               {
                                   text: tCommon('contactSupport'),
-                                  variant: 'stroke',
+                                  variant: 'secondary',
                                   onClick: () => {
                                       setErrorAcknowledged(true)
                                       setIsSupportModalOpen(true)

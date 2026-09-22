@@ -122,7 +122,7 @@ export function Careers() {
                                 >
                                     Apply on Notion
                                 </Button>
-                                <Button variant="stroke" href="/lp" className="w-full justify-center px-8 sm:w-auto">
+                                <Button variant="secondary" href="/lp" className="w-full justify-center px-8 sm:w-auto">
                                     See what we&apos;ve built
                                 </Button>
                             </div>

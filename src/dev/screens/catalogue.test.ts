@@ -51,4 +51,10 @@ describe('screen catalogue', () => {
         expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
         expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)
     })
+
+    it('keeps the locale-independent trigger for the request bank chooser', () => {
+        expect(SCREENS.find(({ id }) => id === '88-f-request-bank-currency')?.clickTestIds).toEqual([
+            'bank-transfer-chooser',
+        ])
+    })
 })

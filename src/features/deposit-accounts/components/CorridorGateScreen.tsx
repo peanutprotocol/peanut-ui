@@ -121,7 +121,7 @@ export function CorridorGateScreen({
     const actButton = (
         <Button
             key="act"
-            variant={topUpLeads ? 'stroke' : 'primary'}
+            variant={topUpLeads ? 'secondary' : 'primary'}
             className="w-full"
             loading={isActing}
             disabled={isActing}
@@ -134,7 +134,7 @@ export function CorridorGateScreen({
     const topUpButton = onTopUp ? (
         <Button
             key="top-up"
-            variant={topUpLeads ? 'primary' : 'stroke'}
+            variant={topUpLeads ? 'primary' : 'secondary'}
             className="w-full"
             onClick={onTopUp}
             data-testid="corridor-gate-top-up"

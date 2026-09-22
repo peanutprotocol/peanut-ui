@@ -89,9 +89,8 @@ const LinkSendSuccessView = () => {
                         </ShareButton>
                         <Button
                             onClick={() => setShowCancelLinkDrawer(true)}
-                            variant={'primary-soft'}
+                            variant="secondary"
                             className="flex w-full items-center gap-1"
-                            shadowSize="4"
                             disabled={isLoading || cancelStatus === 'cancelled'}
                             loading={isLoading}
                         >

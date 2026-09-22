@@ -99,7 +99,7 @@ function ControlField({
             return (
                 <Field label={control.label}>
                     <BaseInput
-                        variant="sm"
+                        size="sm"
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || undefined)}
                         placeholder={control.placeholder}

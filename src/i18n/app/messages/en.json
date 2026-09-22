@@ -682,7 +682,7 @@
         "needHigherLimits": "Need higher limits? Contact support.",
         "warningCard": {
             "blockingTitle": "This amount exceeds your limit.",
-            "warningTitle": "You're close to your limit.",
+            "attentionTitle": "You're close to your limit.",
             "addUpTo": "You can add up to {amount}",
             "addUpToPerTransaction": "You can add up to {amount} per transaction",
             "withdrawUpTo": "You can withdraw up to {amount}",
@@ -1059,6 +1059,11 @@
         "linkCreatedToast": "Link created successfully!",
         "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
+        "created": {
+            "title": "Request created",
+            "description": "Your link is ready to share.",
+            "createAnother": "Create another request"
+        },
         "recipientPlaceholder": "Username, address, or ENS",
         "errors": {
             "createFailed": "Failed to create link",
@@ -1214,7 +1219,8 @@
             "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
             "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
             "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned.",
-            "otherWays": "See other ways to pay"
+            "otherWays": "See other ways to pay",
+            "chooseCurrency": "Choose a currency"
         },
         "requestAsksFor": "{amount} {currency} requested",
         "requestAsksForDollars": "${amount} in dollars, fixed when the request was made",
@@ -1275,6 +1281,7 @@
         },
         "actions": {
             "claimOn": "Claim on",
+            "createAccount": "Create Peanut account",
             "continueWith": "Continue with",
             "devconnectApp": "Devconnect app",
             "devconnectLogoAlt": "Devconnect Logo",
@@ -1948,8 +1955,9 @@
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
             "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
             "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
-            "payoutSenderSepa": "The payment arrives from our payment partner, not from your own name.",
-            "payoutSenderSepaDefaultReference": "Your name is in the payment reference.",
+            "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text we send with the payment.",
+            "payoutDefaultReferenceCarriesNameSepa": "That default text carries your name.",
+            "referenceFormattingMayChange": "The spacing and capital letters may change on the way.",
             "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
             "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
             "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
@@ -2085,9 +2093,8 @@
         "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",
-            "reference": "Reference",
+            "reference": "Receipt reference",
             "issuedOn": "Issued on",
-            "footer": "Receipt from Peanut · peanut.me",
             "pdf": {
                 "title": "Transaction Receipt",
                 "issuedBy": "Issued by Squirrel Labs Ltd",
@@ -2198,6 +2205,7 @@
             "fee": "Fee",
             "transferId": "Transfer ID",
             "senderReference": "Sender's reference",
+            "paymentReference": "Reference we sent",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
             "attachment": "Attachment",
@@ -4014,12 +4022,12 @@
         "title": "Your bank details",
         "list": {
             "addTitle": "Add money",
-            "addHeading": "Where is the money coming from?",
+            "addHeading": "How would you like to add money?",
             "searchPlaceholder": "Search country, currency or account",
             "noMatchTitle": "No match for “{query}”",
             "clearSearch": "Clear search",
             "countriesTitle": "Ways to send yourself money",
-            "countriesPitch": "No account needed. Pick the country your bank is in.",
+            "countriesPitch": "Pick the country your bank is in.",
             "sectionTitle": "Your account numbers",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
@@ -4098,6 +4106,7 @@
             "accepts": "Accepts",
             "beneficiaryAddress": "Recipient address",
             "rails": {
+                "ach": "ACH",
                 "ach_push": "ACH",
                 "fednow": "FedNow",
                 "wire": "Wire",

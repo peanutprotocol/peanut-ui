@@ -200,7 +200,7 @@ export default async function PressPage({ params }: PageProps) {
                                                         key={href}
                                                         href={href}
                                                         external={href.startsWith('http')}
-                                                        variant="stroke"
+                                                        variant="secondary"
                                                         size="small"
                                                         className="w-auto whitespace-nowrap"
                                                     >

@@ -78,7 +78,7 @@ export default function StaleCardApprovalReEnableModal() {
               },
               {
                   text: t('staleCardApprovalModal.notNowCta'),
-                  variant: 'stroke',
+                  variant: 'secondary',
                   disabled: isGranting,
                   onClick: close,
               },

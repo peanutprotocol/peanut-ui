@@ -97,7 +97,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     onChangeAvatar ? (
                         <Button
                             type="button"
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             onClick={onChangeAvatar}
                             aria-label={tAvatar('change')}
@@ -148,7 +148,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <ShareButton
                             url={profileUrl}
                             title=""
-                            variant="transparent"
+                            variant="ghost"
                             showIcon={false}
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)

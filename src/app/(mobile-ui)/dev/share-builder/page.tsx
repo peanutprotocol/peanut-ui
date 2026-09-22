@@ -143,7 +143,7 @@ export default function ShareBuilderPage() {
                             <Field label="Copy" htmlFor="share-hero-copy">
                                 <BaseInput
                                     id="share-hero-copy"
-                                    variant="sm"
+                                    size="sm"
                                     value={heroText}
                                     maxLength={28}
                                     onChange={(e) => setHeroText(e.target.value)}
@@ -151,16 +151,16 @@ export default function ShareBuilderPage() {
                                 />
                             </Field>
                             <div className="flex flex-wrap gap-2">
-                                <Button variant="stroke" size="small" onClick={() => setHeroText("I'M IN")}>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText("I'M IN")}>
                                     I&apos;M IN
                                 </Button>
-                                <Button variant="stroke" size="small" onClick={() => setHeroText("shhhh, i'm in")}>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText("shhhh, i'm in")}>
                                     shhhh, i&apos;m in
                                 </Button>
-                                <Button variant="stroke" size="small" onClick={() => setHeroText('ACCESS GRANTED')}>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText('ACCESS GRANTED')}>
                                     ACCESS GRANTED
                                 </Button>
-                                <Button variant="stroke" size="small" onClick={() => setHeroText('I GOT THE CARD')}>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText('I GOT THE CARD')}>
                                     I GOT THE CARD
                                 </Button>
                             </div>
@@ -192,7 +192,7 @@ export default function ShareBuilderPage() {
                             <Field label={`Username (${username.length} / 12)`} htmlFor="share-username">
                                 <BaseInput
                                     id="share-username"
-                                    variant="sm"
+                                    size="sm"
                                     value={username}
                                     maxLength={20}
                                     onChange={(e) =>
@@ -271,18 +271,18 @@ export default function ShareBuilderPage() {
                                 ))}
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <Button variant="stroke" size="small" onClick={() => setSelectedBadges(new Set())}>
+                                <Button variant="secondary" size="small" onClick={() => setSelectedBadges(new Set())}>
                                     0 badges
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     size="small"
                                     onClick={() => setSelectedBadges(new Set(['OG_2025_10_12']))}
                                 >
                                     1 badge
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     size="small"
                                     onClick={() =>
                                         setSelectedBadges(
@@ -293,7 +293,7 @@ export default function ShareBuilderPage() {
                                     3
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     size="small"
                                     onClick={() =>
                                         setSelectedBadges(
@@ -317,7 +317,7 @@ export default function ShareBuilderPage() {
                                     12
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     size="small"
                                     onClick={() => setSelectedBadges(new Set(ALL_CODES))}
                                 >
@@ -352,7 +352,7 @@ export default function ShareBuilderPage() {
                                     Reroll seed
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     className="flex-1"
                                     onClick={() => {
                                         setAssetReady(false)
@@ -368,20 +368,20 @@ export default function ShareBuilderPage() {
                     <Card className="p-4" shadowSize="4">
                         <Section title="Username length shortcuts">
                             <div className="grid grid-cols-2 gap-2">
-                                <Button variant="stroke" size="small" onClick={() => setUsername('me')}>
+                                <Button variant="secondary" size="small" onClick={() => setUsername('me')}>
                                     2-char user
                                 </Button>
-                                <Button variant="stroke" size="small" onClick={() => setUsername('twelvechars1')}>
+                                <Button variant="secondary" size="small" onClick={() => setUsername('twelvechars1')}>
                                     12 chars (max)
                                 </Button>
                                 <Button
-                                    variant="stroke"
+                                    variant="secondary"
                                     size="small"
                                     onClick={() => setUsername('thisistwentyplus_chars')}
                                 >
                                     20+ chars
                                 </Button>
-                                <Button variant="stroke" size="small" onClick={() => setUsername('kkonrad')}>
+                                <Button variant="secondary" size="small" onClick={() => setUsername('kkonrad')}>
                                     reset
                                 </Button>
                             </div>
@@ -455,7 +455,7 @@ export default function ShareBuilderPage() {
                         </Button>
                         <Button
                             data-testid="save-image"
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full"
                             onClick={handleSave}
                             loading={saving}

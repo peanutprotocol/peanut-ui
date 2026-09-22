@@ -3,6 +3,7 @@ import { type Account, AccountType } from '@/interfaces/interfaces'
 import {
     applyBridgeCrossCurrencyFee,
     getBankRailCountryFromAccount,
+    getBridgeRailIdFromAccount,
     getCountryFromAccount,
     getCurrencyConfig,
     getOfframpConfigFromAccount,
@@ -52,6 +53,20 @@ describe('bridge.utils', () => {
 
             expect(getBankRailCountryFromAccount(account)).toBeUndefined()
             expect(getCountryFromAccount(account)).toBeUndefined()
+        })
+
+        it.each([
+            [AccountType.US, 'bridge.ach_us'],
+            [AccountType.GB, 'bridge.faster_payments_gb'],
+            [AccountType.CLABE, 'bridge.spei_mx'],
+            [AccountType.CO_BANK_TRANSFER, 'bridge.bank_transfer_co'],
+            [AccountType.IBAN, 'bridge.sepa_eu'],
+        ])('selects the exact Bridge capability rail for %s', (type, railId) => {
+            expect(getBridgeRailIdFromAccount(savedAccount(type))).toBe(railId)
+        })
+
+        it('does not authorize a Bridge call with a non-bank account', () => {
+            expect(getBridgeRailIdFromAccount(savedAccount(AccountType.EVM_ADDRESS))).toBeUndefined()
         })
     })
 

@@ -543,7 +543,7 @@ export default function DebugPage() {
                     },
                     {
                         text: 'Cancel',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => setPromptRequest(null),
                     },
                 ]}
@@ -567,7 +567,7 @@ export default function DebugPage() {
                     },
                     {
                         text: 'Cancel',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => setIsResetOpen(false),
                     },
                 ]}

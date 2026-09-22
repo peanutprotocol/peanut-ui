@@ -17,7 +17,7 @@ export default function ShadowsPage() {
             />
 
             <DesignNote type="info">
-                Purple and stroke buttons include the standard 4px shadow. Pass shadowSize only for an intentional
+                Purple and secondary buttons include the standard 4px shadow. Pass shadowSize only for an intentional
                 override.
             </DesignNote>
 

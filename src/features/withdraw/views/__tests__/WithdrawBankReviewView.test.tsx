@@ -5,8 +5,8 @@ import { WithdrawBankReviewView } from '../WithdrawBankReviewView'
 import {
     bankReferenceProblem,
     bankReferenceSpecForRail,
-    payoutSenderDefaultReferenceNoteForRail,
-    payoutSenderNoteForRail,
+    payoutDefaultReferenceNoteForRail,
+    payoutNoteForRail,
 } from '../../bank-reference'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 
@@ -53,8 +53,8 @@ const Harness = ({
             balanceErrorMessage={null}
             confirmPendingCopy="processing"
             referenceSpec={spec}
-            payoutSenderNoteKey={payoutSenderNoteForRail(rail)}
-            payoutSenderDefaultReferenceNoteKey={payoutSenderDefaultReferenceNoteForRail(rail)}
+            payoutNoteKey={payoutNoteForRail(rail)}
+            payoutDefaultReferenceNoteKey={payoutDefaultReferenceNoteForRail(rail)}
             reference={reference}
             referenceProblem={spec ? bankReferenceProblem(reference, spec) : null}
             onReferenceChange={setReference}
@@ -149,10 +149,28 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(referenceInput()).toBeDisabled()
     })
 
-    it('names who the recipient bank shows as the sender, per rail', () => {
+    it('SEPA: says what the reference does, and claims nothing about the sender', () => {
+        // Our own round trip recorded the user's own legal name as the payout's
+        // sender_name, so the old "arrives from our payment partner" claim is
+        // gone rather than replaced by the opposite claim.
         renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByText(/replaces the default text we send/)).toBeInTheDocument()
+        expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
+    })
+
+    it('SEPA: warns that the rail rewrites the spacing and case', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByText(/spacing and capital letters may change/)).toBeInTheDocument()
+    })
+
+    it('a rail we have not measured says nothing about rewriting', () => {
+        renderWithIntl(<Harness rail="ach" />)
+        expect(screen.queryByText(/spacing and capital letters may change/)).not.toBeInTheDocument()
+    })
+
+    it('names who the recipient bank shows as the sender on the rails we can confirm', () => {
+        renderWithIntl(<Harness rail="ach" />)
         expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
-        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
     })
 
     it('says nothing about the sender on a rail we cannot confirm', () => {
@@ -180,22 +198,22 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(screen.getByText('Use at least 6 characters, or leave it empty.')).toBeInTheDocument()
     })
 
-    it('SEPA: promises the name is in the reference only while the user typed none', () => {
+    it('SEPA: says the default text carries the name only while the user typed none', () => {
         renderWithIntl(<Harness rail="sepa" />)
-        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
-        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
+        expect(screen.getByText(/default text carries your name/)).toBeInTheDocument()
 
-        // The provider's default reference carries the user's legal name. A
-        // reference the user types may replace it, so the promise must go.
+        // A typed reference replaces that whole line — measured on a real
+        // transfer (TD-37) — so the sentence goes and the note above it is
+        // what tells the user they gave the name up.
         fireEvent.change(referenceInput()!, { target: { value: 'RENT SEPTEMBER' } })
-        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
-        expect(screen.queryByText(/Your name is in the payment reference/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/default text carries your name/)).not.toBeInTheDocument()
+        expect(screen.getByText(/replaces the default text we send/)).toBeInTheDocument()
     })
 
-    it('SEPA: whitespace alone is not a reference, so the promise stays', () => {
+    it('SEPA: whitespace alone is not a reference, so the sentence stays', () => {
         renderWithIntl(<Harness rail="sepa" />)
         fireEvent.change(referenceInput()!, { target: { value: '   ' } })
-        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
+        expect(screen.getByText(/default text carries your name/)).toBeInTheDocument()
     })
 })
 
