@@ -22,7 +22,13 @@ interface CatalogCardProps {
 export function CatalogCard({ title, description, href, icon, status, quality, usages }: CatalogCardProps) {
     // IconBubble takes a name or a ready element; a lucide component is neither
     const LucideGlyph = typeof icon === 'string' ? undefined : icon
-    const bubbleIcon = LucideGlyph ? <LucideGlyph size={16} aria-hidden /> : (icon as IconName | undefined)
+    // inline fill:none for the same reason DocNavList sets it: a raw lucide only
+    // sets fill as a presentation attribute, which class-level CSS beats.
+    const bubbleIcon = LucideGlyph ? (
+        <LucideGlyph size={16} aria-hidden style={{ fill: 'none' }} />
+    ) : (
+        (icon as IconName | undefined)
+    )
     return (
         <Link href={href} className="block h-full">
             <ListItem

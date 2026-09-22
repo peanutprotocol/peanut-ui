@@ -104,7 +104,10 @@ function NavRow({
                 isActive && 'text-foreground-primary no-underline'
             )}
         >
-            <RowIcon size={16} aria-hidden className="shrink-0" />
+            {/* inline fill:none — a raw lucide sets fill only as a presentation
+                attribute, which `.btn svg { fill: inherit }` beats. The product
+                Icon wrapper does the same; these nav rows bypass it. */}
+            <RowIcon size={16} aria-hidden className="shrink-0" style={{ fill: 'none' }} />
             {isActive ? <strong>{label}</strong> : label}
         </Link>
     )
