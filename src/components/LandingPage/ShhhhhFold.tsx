@@ -29,7 +29,7 @@ export function ShhhhhFold() {
                 <div className="min-w-0">
                     <Link
                         prefetch={false}
-                        href="/card"
+                        href="/shhhhh"
                         className="font-roboto-flex-extrabold inline-block text-heading leading-none font-extraBlack md:text-headingLarge"
                     >
                         {t('wordmark')}
@@ -40,7 +40,7 @@ export function ShhhhhFold() {
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
-                        <Link prefetch={false} href="/card">
+                        <Link prefetch={false} href="/shhhhh">
                             {/* ds-preview: pink 4px shadow -> standard black shadowSize=4 */}
                             <Button shadowSize="4" className="!w-auto bg-white px-6 hover:bg-white/90 md:px-8">
                                 {t('cta')}
@@ -54,7 +54,7 @@ export function ShhhhhFold() {
                 </div>
 
                 <div className="flex min-w-0 justify-center md:justify-end">
-                    <Link prefetch={false} href="/card" aria-label={t('cta')} className="inline-block -rotate-12">
+                    <Link prefetch={false} href="/shhhhh" aria-label={t('cta')} className="inline-block -rotate-12">
                         <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
                             <ScaledPixelatedCardFace last4="????" shadowColor={PINK} />
                         </div>
