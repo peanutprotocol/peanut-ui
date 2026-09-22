@@ -7473,6 +7473,7 @@ export interface paths {
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
+                                hasStoredWithdrawApproval: boolean;
                                 hasWithdrawApproval: boolean;
                                 id: string;
                                 issuedAt: string;

@@ -17,7 +17,12 @@ import type { ReactNode } from 'react'
 import posthog from 'posthog-js'
 import { submitSignedSpend } from '../signSpendRetry'
 import { useSignSpendBundle } from '../useSignSpendBundle'
-import { InsufficientSpendableError, resolveSpendStrategy, runCollateralSpendPreflight } from '../spendPreflight'
+import {
+    InsufficientSpendableError,
+    RainControllerCheckError,
+    resolveSpendStrategy,
+    runCollateralSpendPreflight,
+} from '../spendPreflight'
 import { rainApi, RainCooldownError } from '@/services/rain'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { getSpendArtifactMeta, SpendRecoveryAbortedError, SpendRecoveryQuoteReviewError } from '../signSpendRetry'
@@ -256,8 +261,11 @@ describe('useSignSpendBundle — prepared-controller approval gate (TASK-22734)'
         )
     }
 
-    it('A→B: one refetch, one grant before the admin signature, artifact still produced', async () => {
+    // The pre-prepare check read A (cached approval live on A); /prepare came
+    // back on B — the rotation landed in the race window after the check.
+    it('race after the check (A→B at /prepare): one refetch, one grant before the admin signature, artifact still produced', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_A, changed: false })
         mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
@@ -268,22 +276,26 @@ describe('useSignSpendBundle — prepared-controller approval gate (TASK-22734)'
         expect(mockGrant).toHaveBeenCalledTimes(1)
         expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockSignTypedData.mock.invocationCallOrder[0])
         expect(rainApi.cancelPreparation).not.toHaveBeenCalled()
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        // The one controller read is the proactive pre-prepare check.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
-    it('an already-current overview signs with no refetch and no grant', async () => {
+    it('an already-current overview signs after one controller read, with no refetch and no grant', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
         await signCollateralOnly()
 
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
         expect(mockRefetchOverview).not.toHaveBeenCalled()
         expect(mockGrant).not.toHaveBeenCalled()
         expect(mockSignTypedData).toHaveBeenCalledTimes(1)
     })
 
-    it('a cancelled grant yields no signature and backs the draft out', async () => {
+    it('a cancelled post-prepare grant yields no signature and backs the draft out', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_A, changed: false })
         mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
         mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
@@ -293,12 +305,15 @@ describe('useSignSpendBundle — prepared-controller approval gate (TASK-22734)'
         expect(error.name).toBe('SessionKeyGrantRequiredError')
         expect(mockSignTypedData).not.toHaveBeenCalled()
         expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        // A dismissed prompt never triggers a repair read.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
-    it('mixed signs without any grant even when the prepared coordinator moved', async () => {
+    it('mixed with no stored grant signs without any grant even when the prepared coordinator moved', async () => {
         mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_A, changed: false })
+        mockFreshOverview = mockOverview
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
@@ -312,7 +327,227 @@ describe('useSignSpendBundle — prepared-controller approval gate (TASK-22734)'
         })
 
         expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+})
+
+/**
+ * Proactive re-sign BEFORE the first attempt (TASK-22734 hotfix), sign-only
+ * engine: QR and bank withdrawals sign here and the backend submits, so the
+ * controller is re-read and an outdated approval renewed before /prepare.
+ * Fails CLOSED when it cannot check; cancellation is typed control flow.
+ */
+describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)', () => {
+    const COORD_A = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    const card = (hasWithdrawApproval: boolean, hasStoredWithdrawApproval?: boolean) => [
+        {
+            id: 'card-1',
+            status: 'ACTIVE',
+            hasWithdrawApproval,
+            ...(hasStoredWithdrawApproval === undefined ? {} : { hasStoredWithdrawApproval }),
+        },
+    ]
+    const failedPaymentEvents = () =>
+        mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED)
+
+    function signQr(hook?: ReturnType<typeof renderHook<ReturnType<typeof useSignSpendBundle>, unknown>>) {
+        const { result } = hook ?? renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    beforeEach(() => {
+        // QR: routing picks collateral, execution runs on the mixed pipeline.
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+    })
+
+    it('old→new controller with a stored grant: renews BEFORE /prepare, artifact produced on the new controller', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        const artifact = (await signQr()) as unknown as { strategy: string; rainPreparationId?: string }
+
+        expect(artifact.strategy).toBe('mixed')
+        expect(artifact.rainPreparationId).toBe('prep-1')
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockPrepareWithdrawal.mock.invocationCallOrder[0])
+        expect(getSpendArtifactMeta(artifact as unknown as object)?.coordinatorAddress).toBe(COORD_B)
+        expect(failedPaymentEvents()).toHaveLength(0)
+    })
+
+    it('cached snapshot already false on the new controller, grant stored: still renews (mixed)', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+        mockFreshOverview = mockOverview
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        await signQr()
+
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('never granted: a mixed QR payment signs without a prompt', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false, false) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, false) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        const artifact = (await signQr()) as unknown as { strategy: string }
+
+        expect(artifact.strategy).toBe('mixed')
+        expect(mockGrant).not.toHaveBeenCalled()
+    })
+
+    it('current controller with a live approval: one read, no refetch, no grant', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        await signQr()
+
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
         expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('a dismissed re-sign prompt is typed control flow: nothing prepared, no failed payment, no repair read', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
+
+        const error = (await signQr()) as unknown as Error
+
+        expect(error).toBeInstanceOf(SpendRecoveryAbortedError)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+        expect(rainApi.cancelPreparation).not.toHaveBeenCalled()
+        expect(failedPaymentEvents()).toHaveLength(0)
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+
+    it('a controller read that fails is fail-closed: typed error, nothing prepared, no repair read', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockRejectedValue(new ApiError('provider down', { status: 502 }))
+
+        const error = (await signQr()) as unknown as Error
+
+        expect(error).toBeInstanceOf(RainControllerCheckError)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+
+    it('an overview refetch that fails after a rotation is fail-closed: nothing prepared', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockRefetchOverview.mockResolvedValueOnce({
+            isError: true,
+            error: new Error('overview down'),
+            data: mockOverview,
+        } as never)
+
+        const error = (await signQr()) as unknown as Error
+
+        expect(error).toBeInstanceOf(RainControllerCheckError)
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+    })
+
+    it('leaving the screen during the renewal prepares nothing, even though the grant succeeded', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        const hook = renderHook(() => useSignSpendBundle(), { wrapper })
+        mockGrant.mockImplementationOnce(async () => {
+            hook.unmount()
+            return { ok: true, overviewFresh: true }
+        })
+
+        const error = (await signQr(hook)) as unknown as Error
+
+        expect(error).toBeInstanceOf(SpendRecoveryAbortedError)
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(failedPaymentEvents()).toHaveLength(0)
+    })
+
+    /**
+     * The re-approval holds a passkey sheet open for as long as the user takes.
+     * A quote that died meanwhile must not reserve a Rain signature or ask for
+     * one — the call site re-quotes and the user confirms the new terms.
+     */
+    describe('a provider quote that dies during the re-approval', () => {
+        const signWithLock = (lockExpiresAt: number) => {
+            const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+            return act(async () =>
+                result.current
+                    .signSpend({
+                        requiredUsdcAmount: 150_000_000n,
+                        recipient: RECIPIENT,
+                        rainSpendingPower: 200_000_000n,
+                        kind: 'QR_PAY',
+                        lockExpiresAt,
+                    })
+                    .catch((e: Error) => e)
+            )
+        }
+
+        beforeEach(() => {
+            mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+            mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+            // A slow prompt: the grant outlives a short lock.
+            mockGrant.mockImplementation(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 40))
+                return { ok: true, overviewFresh: true }
+            })
+        })
+
+        it('hands back to quote review without preparing or signing anything', async () => {
+            const error = (await signWithLock(Date.now() + 20)) as unknown as Error
+
+            expect(error).toBeInstanceOf(SpendRecoveryQuoteReviewError)
+            expect(mockGrant).toHaveBeenCalledTimes(1)
+            expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+            expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+            expect(mockSignTypedData).not.toHaveBeenCalled()
+            // Control flow, not a failed payment.
+            expect(failedPaymentEvents()).toHaveLength(0)
+        })
+
+        it('signs normally when the lock still covers the renewal', async () => {
+            const artifact = (await signWithLock(Date.now() + 60_000)) as unknown as { strategy: string }
+
+            expect(artifact.strategy).toBe('mixed')
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    it('a wallet-only (smart-only) payment never reads the controller', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'smart-only', smartBalance: 200_000_000n })
+
+        const artifact = (await signQr()) as unknown as { strategy: string }
+
+        expect(artifact.strategy).toBe('smart-only')
+        expect(mockRefreshController).not.toHaveBeenCalled()
+        expect(mockGrant).not.toHaveBeenCalled()
     })
 })
 

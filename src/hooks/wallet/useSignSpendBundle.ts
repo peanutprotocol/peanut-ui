@@ -22,11 +22,14 @@ import { useGrantSessionKey } from './useGrantSessionKey'
 import { useRainControllerRepair } from './useRainControllerRepair'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
+    ensureCurrentControllerApproval,
     ensurePreparedControllerApproval,
     InsufficientSpendableError,
     isUserCancellation,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
+    sameAddress,
+    type CurrentControllerApproval,
     type SpendStrategy,
 } from './spendPreflight'
 import {
@@ -37,6 +40,7 @@ import {
     registerSpendArtifactMeta,
     requiresPasskeyRetry,
     SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
     toQuoteReview,
 } from './signSpendRetry'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
@@ -258,6 +262,11 @@ export const useSignSpendBundle = () => {
                 if (signRecovered && unmountedRef.current) throw new SpendRecoveryAbortedError(recoveryTrigger)
             }
 
+            // Outcome of the pre-prepare controller gate (run once, below, before
+            // the first attempt). Replacement legs read the controller through
+            // their own recovery and re-check the prep against it.
+            let gate: CurrentControllerApproval = { overview, granted: false }
+
             const runSignAttempt = async (): Promise<SignedSpendArtifact> => {
                 // Shared collateral pre-flights (root-validator migration gate) —
                 // ONE ordered sequence for both spend engines; see
@@ -265,13 +274,15 @@ export const useSignSpendBundle = () => {
                 // from the account it returns. requireOverview: this engine can't
                 // tell whether the grant exists while the overview is loading, and
                 // signing optimistically would crash on the backend submission.
-                // The session-key grant runs after /prepare, which is what knows
-                // the coordinator the approval has to cover.
+                // A grant in the pre-prepare gate can migrate + rebuild the
+                // kernel client (ref-backed cache), so it is re-read when one ran.
+                // The per-prep approval check runs after /prepare, which is what
+                // knows the coordinator the approval has to cover.
                 const activeClient = await runCollateralSpendPreflight({
                     strategy,
                     kind,
-                    kernelClient,
-                    overview,
+                    kernelClient: gate.granted ? getClientForChain(chainIdStr) : kernelClient,
+                    overview: gate.overview,
                     requireOverview: true,
                     sendNoopUserOp: (call) =>
                         handleSendUserOpEncoded([call], chainIdStr, { returnRevertedReceipt: true }),
@@ -318,13 +329,18 @@ export const useSignSpendBundle = () => {
 
                     // The prep states the coordinator this withdrawal targets;
                     // make sure the stored approval covers THAT one before signing.
-                    const { granted } = await ensurePreparedControllerApproval({
-                        preparedCoordinator: prep.coordinatorAddress,
-                        overview,
-                        refetchOverview: async () => (await refetchOverview()).data,
-                        grant,
-                        onGrantRequired,
-                    })
+                    // Already proven by the pre-prepare gate when the prep names
+                    // the controller it just checked; any other coordinator
+                    // (moved since) runs the full check.
+                    const { granted } = sameAddress(prep.coordinatorAddress, gate.approvedCoordinator)
+                        ? { granted: false }
+                        : await ensurePreparedControllerApproval({
+                              preparedCoordinator: prep.coordinatorAddress,
+                              overview: gate.overview,
+                              refetchOverview: async () => (await refetchOverview()).data,
+                              grant,
+                              onGrantRequired,
+                          })
                     // The grant can migrate + rebuild the kernel client; the
                     // cache is ref-backed, so re-read it before signing.
                     abortReplacementIfGone()
@@ -491,6 +507,32 @@ export const useSignSpendBundle = () => {
             }
 
             try {
+                // Controller + approval check before anything is prepared or
+                // signed. A cancelled prompt lands in the catch below with
+                // nothing prepared and nothing to back out.
+                gate = await ensureCurrentControllerApproval({
+                    strategy,
+                    overview,
+                    refreshController: () => rainApi.refreshControllerAddress(),
+                    // react-query's refetch resolves with an error STATE (and the
+                    // stale data) on failure; the gate must fail closed on it.
+                    refetchOverview: async () => {
+                        const result = await refetchOverview()
+                        if (result.isError) throw result.error
+                        return result.data
+                    },
+                    grant,
+                    onGrantRequired,
+                    isGone: () => unmountedRef.current,
+                })
+                // The check above can hold a passkey sheet open for as long as
+                // the user takes. A quote that died meanwhile must not reserve a
+                // Rain signature or ask for one: hand back to review, where the
+                // call site re-quotes and the user confirms the new terms. The
+                // call sites keep their own pre- and post-signing checks.
+                if (lockExpiresAt !== undefined && Date.now() >= lockExpiresAt) {
+                    throw new SpendRecoveryQuoteReviewError(new Error('Quote expired during the card approval check'))
+                }
                 return await runSignAttempt()
             } catch (e) {
                 /*

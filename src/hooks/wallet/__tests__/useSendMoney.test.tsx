@@ -62,6 +62,7 @@ let mockRainOverview: { balance: { spendingPower: number } | null } | undefined
 
 // must come after the jest.mock calls above
 import { useSendMoney } from '../useSendMoney'
+import { SpendRecoveryAbortedError } from '../signSpendRetry'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
@@ -157,6 +158,56 @@ describe('useSendMoney', () => {
                 const currentBalance = queryClient.getQueryData<bigint>(['balance', mockAddress])
                 expect(currentBalance).toEqual(initialBalance)
             })
+        })
+    })
+
+    /**
+     * The spend engine's pre-prepare controller check can end the attempt
+     * before anything is prepared or signed. The optimistic debit must still be
+     * rolled back, but nothing about it is a failed transaction.
+     */
+    describe('Card re-approval cancelled before the spend', () => {
+        const abort = () => new SpendRecoveryAbortedError(new Error('left the screen'))
+
+        it('rolls the balance back without logging a failed transaction', async () => {
+            const initialBalance = parseUnits('100', PEANUT_WALLET_TOKEN_DECIMALS)
+            queryClient.setQueryData(['balance', mockAddress], initialBalance)
+            mockSmartBalance = initialBalance
+            mockSpend.mockRejectedValue(abort())
+            const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            const { result } = renderHook(() => useSendMoney({ address: mockAddress }), { wrapper })
+            await expect(
+                result.current.mutateAsync({
+                    toAddress: '0x9999999999999999999999999999999999999999' as `0x${string}`,
+                    amountInUsd: '10',
+                })
+            ).rejects.toBeInstanceOf(SpendRecoveryAbortedError)
+
+            await waitFor(() => {
+                expect(queryClient.getQueryData<bigint>(['balance', mockAddress])).toEqual(initialBalance)
+            })
+            expect(errorLog).not.toHaveBeenCalled()
+            errorLog.mockRestore()
+        })
+
+        it('still logs a real transaction failure', async () => {
+            const initialBalance = parseUnits('100', PEANUT_WALLET_TOKEN_DECIMALS)
+            queryClient.setQueryData(['balance', mockAddress], initialBalance)
+            mockSmartBalance = initialBalance
+            mockSpend.mockRejectedValue(new Error('bundler 502'))
+            const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            const { result } = renderHook(() => useSendMoney({ address: mockAddress }), { wrapper })
+            await expect(
+                result.current.mutateAsync({
+                    toAddress: '0x9999999999999999999999999999999999999999' as `0x${string}`,
+                    amountInUsd: '10',
+                })
+            ).rejects.toThrow('bundler 502')
+
+            await waitFor(() => expect(errorLog).toHaveBeenCalled())
+            errorLog.mockRestore()
         })
     })
 

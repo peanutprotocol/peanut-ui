@@ -44,6 +44,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
 }))
 
 import { useContributePotFlow } from '../useContributePotFlow'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -94,6 +95,26 @@ test('a peer contribution still creates, sends and records', async () => {
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
     expect(mockSendMoney).toHaveBeenCalledWith(peer, '10', { kind: 'REQUEST_PAY', chargeId: 'charge-1' })
     expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+})
+
+/**
+ * The spend engine's pre-prepare controller check can end the attempt before
+ * anything is prepared or signed — a dismissed card re-approval, or the screen
+ * left. Nothing was paid, so the flow must not show a failed contribution.
+ */
+test('a cancelled card re-approval ends the attempt without a failure message', async () => {
+    mockSendMoney.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+    const { result } = renderHookWithIntl(() => useContributePotFlow())
+
+    await act(async () => {
+        expect(await result.current.executeContribution()).toEqual({ success: false })
+    })
+
+    expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    expect(mockRecordPayment).not.toHaveBeenCalled()
+    expect(ctx.setIsSuccess).not.toHaveBeenCalled()
+    // The spinner still has to stop: the user is back on the same screen.
+    expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
 })
 
 test('creates an own-request charge for payment from an external wallet', async () => {
