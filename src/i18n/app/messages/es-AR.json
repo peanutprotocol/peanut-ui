@@ -201,6 +201,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "residenceNote": "Las transferencias bancarias en BRL y ARS son para residentes de Brasil y Argentina. Actualizá tu residencia si te mudaste.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueá este método de pago",
@@ -1826,6 +1827,11 @@
             "BANK_TRANSFER_AR": {
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
                 "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo.",
+                "residenceTitle": "Necesitás residencia"
+            },
+            "PIX_BR": {
+                "residenceRequired": "Solo los residentes legales de Brasil pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
+                "qrPay": "De todas formas podés pagar códigos QR de Pix en Brasil con tu saldo.",
                 "residenceTitle": "Necesitás residencia"
             }
         },
