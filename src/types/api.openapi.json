@@ -12526,6 +12526,9 @@
                                                     "expiryYear": {
                                                         "type": "number"
                                                     },
+                                                    "hasStoredWithdrawApproval": {
+                                                        "type": "boolean"
+                                                    },
                                                     "hasWithdrawApproval": {
                                                         "type": "boolean"
                                                     },
@@ -12557,7 +12560,8 @@
                                                     "status",
                                                     "network",
                                                     "issuedAt",
-                                                    "hasWithdrawApproval"
+                                                    "hasWithdrawApproval",
+                                                    "hasStoredWithdrawApproval"
                                                 ],
                                                 "type": "object"
                                             },

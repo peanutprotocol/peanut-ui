@@ -69,6 +69,14 @@ export interface RainCardSummary {
      *  collateral-only spend preflight) drive a re-grant without any new UI —
      *  a fresh address can NOT retarget an already-signed CallPolicy grant. */
     hasWithdrawApproval: boolean
+    /** Whether ANY session-key approval is stored for this card, whatever
+     *  controller it targets. `true` with `hasWithdrawApproval: false` means the
+     *  grant is OUTDATED (pinned to a rotated controller) — the pre-prepare
+     *  spend gate renews it — while `false` means never granted, which a spend
+     *  that does not need the approval must not turn into a prompt. Optional:
+     *  an older backend omits it, and the gate then falls back to the cached
+     *  snapshot's own evidence. Never carries the approval itself. */
+    hasStoredWithdrawApproval?: boolean
 }
 
 export interface RainCardOverview {

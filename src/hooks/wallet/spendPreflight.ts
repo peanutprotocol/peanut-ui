@@ -7,6 +7,7 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import type { RainCardOverview } from '@/services/rain'
 import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import type { GrantSessionKeyError } from './useGrantSessionKey'
+import { SpendRecoveryAbortedError } from './signSpendRetry'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
 import {
     buildMigrationNoopCall,
@@ -268,6 +269,140 @@ function coversPreparedController(overview: RainCardOverview | undefined, prepar
         !!findActiveCard(overview)?.hasWithdrawApproval &&
         sameAddress(overview?.status?.coordinatorAddress, preparedCoordinator)
     )
+}
+
+/**
+ * The controller, or the overview the stored approval is judged against, could
+ * not be read. Nothing has been prepared, signed or sent. `cause` carries the
+ * underlying API failure so the shared classifier keeps its retry advice.
+ */
+export class RainControllerCheckError extends Error {
+    constructor(
+        readonly step: 'controller' | 'overview',
+        readonly cause: unknown
+    ) {
+        super(
+            step === 'controller'
+                ? 'Could not verify the card contract before spending — please try again'
+                : 'Could not load the card state before spending — please try again'
+        )
+        this.name = 'RainControllerCheckError'
+    }
+}
+
+export interface CurrentControllerApprovalArgs {
+    strategy: Exclude<SpendStrategy, 'insufficient'>
+    /** Cached overview; the hook's current snapshot. */
+    overview: RainCardOverview | undefined
+    /** `rainApi.refreshControllerAddress` — re-reads Rain and repairs the backend cache. */
+    refreshController: () => Promise<{ coordinatorAddress: string; changed: boolean }>
+    /** Overview refetch. MUST reject (or resolve undefined) when the read
+     *  failed — a stale snapshot handed back as fresh would be judged as if it
+     *  had been read against the current controller. */
+    refetchOverview: () => Promise<RainCardOverview | undefined>
+    grant: () => Promise<{ ok: true } | { ok: false; error: GrantSessionKeyError }>
+    onGrantRequired?: () => void
+    /** The screen was left: no prompt may be raised and nothing may be prepared. */
+    isGone?: () => boolean
+}
+
+export interface CurrentControllerApproval {
+    /** Freshest overview snapshot this gate saw — hand it to the post-prepare gate. */
+    overview: RainCardOverview | undefined
+    /** Controller the stored approval is known to cover after this gate (when known). */
+    approvedCoordinator?: string
+    /** A grant ran (it may have migrated + rebuilt the kernel client). */
+    granted: boolean
+}
+
+/** Rounds allowed when the store refuses the approval because the controller
+ *  moved again while it was being saved. Re-checks only; never a re-submission. */
+const STALE_GRANT_ROUNDS = 1
+
+/**
+ * Controller + approval gate for any spend that touches Rain collateral, run
+ * before `/prepare` — which is served from the backend's controller cache, so a
+ * rotation is otherwise only discovered by a failing payment.
+ *
+ * Invariants:
+ *  - one controller read per spend; the overview is refetched only when that
+ *    read reports a change or disagrees with the cached snapshot;
+ *  - `collateral-only` requires a live approval on the current controller;
+ *    `mixed` renews only an approval the card already stores and that no longer
+ *    targets it, so a never-granted user is never prompted;
+ *  - a read that fails throws `RainControllerCheckError`: nothing is prepared
+ *    against an unverified controller;
+ *  - a dismissed prompt, or a screen left at any await, throws
+ *    `SpendRecoveryAbortedError` — control flow, not a failed payment;
+ *  - `smart-only` calls nothing here.
+ *
+ * `hasStoredWithdrawApproval` is absent on older backends; the fallback
+ * evidence is a cached approval that was live before the rotation.
+ */
+export async function ensureCurrentControllerApproval(
+    args: CurrentControllerApprovalArgs
+): Promise<CurrentControllerApproval> {
+    const { strategy, overview, refreshController, refetchOverview, grant, onGrantRequired, isGone } = args
+
+    const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+    const cachedCard = findActiveCard(overview)
+    // No visible card: nothing to renew. The sign-only engine fails closed on a
+    // missing overview in runCollateralSpendPreflight.
+    if (!touchesCollateral || !cachedCard) return { overview, granted: false }
+
+    const abortIfGone = () => {
+        if (isGone?.()) throw new SpendRecoveryAbortedError(new Error('Left the screen before the spend was prepared'))
+    }
+
+    for (let staleRounds = STALE_GRANT_ROUNDS; ; staleRounds -= 1) {
+        let refreshed: { coordinatorAddress: string; changed: boolean }
+        try {
+            refreshed = await refreshController()
+        } catch (cause) {
+            throw new RainControllerCheckError('controller', cause)
+        }
+        abortIfGone()
+
+        const current = refreshed.coordinatorAddress
+        const rotated = refreshed.changed || !sameAddress(overview?.status?.coordinatorAddress, current)
+        // A snapshot read against the current controller settles the question
+        // without a refetch; read against any other one it proves nothing.
+        if (!rotated && coversPreparedController(overview, current)) {
+            return { overview, approvedCoordinator: current, granted: false }
+        }
+
+        let fresh: RainCardOverview | undefined
+        try {
+            fresh = await refetchOverview()
+        } catch (cause) {
+            throw new RainControllerCheckError('overview', cause)
+        }
+        if (!fresh) throw new RainControllerCheckError('overview', undefined)
+        abortIfGone()
+        if (coversPreparedController(fresh, current)) {
+            return { overview: fresh, approvedCoordinator: current, granted: false }
+        }
+
+        const freshCard = findActiveCard(fresh)
+        // Card gone from the fresh read: nothing to renew; /prepare answers.
+        if (!freshCard) return { overview: fresh, granted: false }
+        // Stored-but-outdated vs never granted.
+        const stored =
+            freshCard.hasStoredWithdrawApproval ?? (rotated && cachedCard.hasWithdrawApproval ? true : undefined)
+        if (strategy === 'mixed' && stored !== true) return { overview: fresh, granted: false }
+
+        onGrantRequired?.()
+        const grantResult = await grant()
+        if (!grantResult.ok) {
+            if (grantResult.error.kind === 'user-cancelled') {
+                throw new SpendRecoveryAbortedError(new SessionKeyGrantRequiredError(grantResult.error))
+            }
+            if (grantResult.error.kind === 'stale-approval' && staleRounds > 0) continue
+            throw new SessionKeyGrantRequiredError(grantResult.error)
+        }
+        abortIfGone()
+        return { overview: fresh, approvedCoordinator: current, granted: true }
+    }
 }
 
 export interface PreparedControllerApprovalArgs {

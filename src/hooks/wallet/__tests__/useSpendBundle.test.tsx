@@ -14,12 +14,20 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import posthog from 'posthog-js'
 import { useSpendBundle } from '../useSpendBundle'
-import { resolveSpendStrategy, runCollateralSpendPreflight, SessionKeyGrantRequiredError } from '../spendPreflight'
+import {
+    RainControllerCheckError,
+    resolveSpendStrategy,
+    runCollateralSpendPreflight,
+    SessionKeyGrantRequiredError,
+} from '../spendPreflight'
+import { SpendRecoveryAbortedError } from '../signSpendRetry'
 import { tryMixedEphemeralSpend } from '../mixedEphemeralSpend'
 import { rainApi, RainCooldownError } from '@/services/rain'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { userOpRevertedError } from '@/utils/userop-rescue.utils'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const RECIPIENT = '0x4e5b89fd498f333ed7f2a59c5f23d5b5dc41b3de'
@@ -94,6 +102,9 @@ const mockPrepareWithdrawal = rainApi.prepareWithdrawal as jest.Mock
 const mockSubmitWithdrawal = rainApi.submitWithdrawal as jest.Mock
 const mockCancelPreparation = rainApi.cancelPreparation as jest.Mock
 const mockRefreshController = rainApi.refreshControllerAddress as jest.Mock
+const mockCapture = posthog.capture as jest.Mock
+const failedPaymentEvents = () =>
+    mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED)
 
 const PREP = {
     preparationId: 'prep-1',
@@ -176,7 +187,9 @@ describe('useSpendBundle — draft back-out boundaries', () => {
         expect(mockCancelPreparation).not.toHaveBeenCalled()
     })
 
-    it('a cancelled session-key grant takes the same cancellation path', async () => {
+    it('a cancelled session-key grant now ends BEFORE any draft exists — nothing to back out', async () => {
+        // A collateral-only spend needs the approval, so the pre-prepare gate
+        // asks for it first; a dismissed prompt is typed control flow.
         mockOverview = {
             status: { coordinatorAddress: PREP.coordinatorAddress },
             cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
@@ -186,14 +199,15 @@ describe('useSpendBundle — draft back-out boundaries', () => {
 
         const { result } = renderHook(() => useSpendBundle(), { wrapper })
         await act(async () => {
-            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SpendRecoveryAbortedError)
         })
 
-        expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockCancelPreparation).not.toHaveBeenCalled()
         expect(mockSignTypedData).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
-        // A cancellation is never evidence about the controller.
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        // Only the proactive read; a cancellation never triggers a repair read.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
     describe('mixed path — the broadcast boundary sits INSIDE the userop helper', () => {
@@ -272,7 +286,10 @@ describe('useSpendBundle — prepared-controller approval gate', () => {
 
     afterEach(() => mockAccounts.splice(0, mockAccounts.length))
 
-    it('A→B: refetches once, grants once BEFORE signing, and the payment still succeeds', async () => {
+    // The pre-prepare gate read the controller as A (still current, cached
+    // approval live) — then /prepare came back on B: the rotation landed in
+    // the race window AFTER the check. The post-prepare gate still owns that.
+    it('race after the check (A→B at /prepare): refetches once, grants once BEFORE signing, payment succeeds', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
         // The backend refreshed its record during /prepare, so the refetched
         // overview reports the rotation and the now-dead approval.
@@ -293,13 +310,15 @@ describe('useSpendBundle — prepared-controller approval gate', () => {
         // The re-grant has to precede the admin signature it re-authorizes.
         expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockSignTypedData.mock.invocationCallOrder[0])
         expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
-        // No failure path: no draft back-out, no late cache repair.
+        // No failure path: no draft back-out, no late cache repair — the one
+        // controller read is the proactive pre-prepare check.
         expect(mockCancelPreparation).not.toHaveBeenCalled()
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
-    it('overview already on the prepared controller with a live grant: no refetch, no grant', async () => {
+    it('overview already on the current controller with a live grant: one read, no refetch, no grant', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
         const { result } = renderHook(() => useSpendBundle(), { wrapper })
@@ -307,12 +326,13 @@ describe('useSpendBundle — prepared-controller approval gate', () => {
             await result.current.spend(spendInput())
         })
 
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
         expect(mockRefetchOverview).not.toHaveBeenCalled()
         expect(mockGrant).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
     })
 
-    it('a cancelled grant aborts before signing or submitting, and backs the draft out', async () => {
+    it('a cancelled post-prepare grant aborts before signing or submitting, and backs the draft out', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
         mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
@@ -326,14 +346,16 @@ describe('useSpendBundle — prepared-controller approval gate', () => {
         expect(mockSignTypedData).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
         expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
-        // A dismissed prompt is not evidence of a stale controller.
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        // A dismissed prompt is not evidence of a stale controller: only the
+        // proactive pre-prepare read happened.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
-    it('mixed never re-grants — its prep already carries the current coordinator', async () => {
+    it('mixed with no stored grant never re-grants — its prep already carries the current coordinator', async () => {
         mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })
         mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false) }
+        mockFreshOverview = mockOverview
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, directTransfer: false, coordinatorAddress: COORD_B })
         mockHandleSendUserOpEncoded.mockResolvedValueOnce({ userOpHash: '0xuserop', receipt: null })
 
@@ -343,7 +365,201 @@ describe('useSpendBundle — prepared-controller approval gate', () => {
         })
 
         expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+})
+
+/**
+ * Proactive re-sign BEFORE the first attempt (TASK-22734 hotfix). The backend
+ * serves /prepare from its DB cache, so the first collateral spend after a
+ * rotation used to be built on a dead controller. Now every collateral-touching
+ * spend re-reads the controller once and renews an outdated approval before
+ * anything is prepared, signed or sent — and fails CLOSED when it cannot check.
+ */
+describe('useSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)', () => {
+    const COORD_A = '0xc0d5bd6307ec8c8da03e7502a00b8cba24eefc06'
+    const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    const card = (hasWithdrawApproval: boolean, hasStoredWithdrawApproval?: boolean) => [
+        {
+            id: 'card-1',
+            status: 'ACTIVE',
+            hasWithdrawApproval,
+            ...(hasStoredWithdrawApproval === undefined ? {} : { hasStoredWithdrawApproval }),
+        },
+    ]
+
+    afterEach(() => mockAccounts.splice(0, mockAccounts.length))
+
+    it('old→new controller: renews the grant BEFORE /prepare, then the payment succeeds on the new controller', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+        const onGrantRequired = jest.fn()
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        let out: Awaited<ReturnType<typeof result.current.spend>> | undefined
+        await act(async () => {
+            out = await result.current.spend(spendInput({ onGrantRequired }))
+        })
+
+        expect(out).toMatchObject({ strategy: 'collateral-only', intentId: 'prep-1' })
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(onGrantRequired).toHaveBeenCalledTimes(1)
+        // Renewed before the preparation it authorizes.
+        expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockPrepareWithdrawal.mock.invocationCallOrder[0])
+        // The prep names the controller just checked: no second refetch.
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSubmitWithdrawal.mock.calls[0][0]).toMatchObject({ preparedCoordinatorAddress: COORD_B })
+        expect(mockCancelPreparation).not.toHaveBeenCalled()
+    })
+
+    it('a dismissed re-sign prompt is typed control flow: nothing prepared, nothing sent, no failed payment', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SpendRecoveryAbortedError)
+        })
+
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        expect(mockCancelPreparation).not.toHaveBeenCalled()
+        expect(failedPaymentEvents()).toHaveLength(0)
+        // No repair read either: the read just happened.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+
+    it('a controller read that fails is fail-closed: no preparation, no repair read, typed error', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockRejectedValue(new ApiError('provider down', { status: 502 }))
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(RainControllerCheckError)
+        })
+
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
         expect(mockRefetchOverview).not.toHaveBeenCalled()
+    })
+
+    it('an overview refetch that fails after a rotation is fail-closed: no preparation', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        // react-query resolves with an error STATE and the stale data — the
+        // stale snapshot must not be judged as if it were fresh.
+        mockRefetchOverview.mockResolvedValueOnce({
+            isError: true,
+            error: new Error('overview down'),
+            data: mockOverview,
+        } as never)
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(RainControllerCheckError)
+        })
+
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+    })
+
+    it('leaving the screen during the renewal prepares nothing, even though the grant succeeded', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+
+        const { result, unmount } = renderHook(() => useSpendBundle(), { wrapper })
+        mockGrant.mockImplementationOnce(async () => {
+            unmount()
+            return { ok: true, overviewFresh: true }
+        })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SpendRecoveryAbortedError)
+        })
+
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        expect(failedPaymentEvents()).toHaveLength(0)
+    })
+
+    it('a wallet-only (smart-only) spend never reads the controller', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true, true) }
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'smart-only', smartBalance: 200_000_000n })
+        mockHandleSendUserOpEncoded.mockResolvedValueOnce({ userOpHash: '0xuserop', receipt: null })
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.spend(spendInput())
+        })
+
+        expect(mockRefreshController).not.toHaveBeenCalled()
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+    })
+
+    describe('mixed — renew only an OUTDATED grant, never a missing one', () => {
+        beforeEach(() => {
+            mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, directTransfer: false, coordinatorAddress: COORD_B })
+            mockHandleSendUserOpEncoded.mockResolvedValue({ userOpHash: '0xuserop', receipt: null })
+        })
+
+        it('cached snapshot already on the new controller (approval false) but a grant IS stored: renews before /prepare', async () => {
+            mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+            mockFreshOverview = mockOverview
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await result.current.spend(spendInput())
+            })
+
+            expect(mockGrant).toHaveBeenCalledTimes(1)
+            expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(
+                mockPrepareWithdrawal.mock.invocationCallOrder[0]
+            )
+            expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+        })
+
+        it("never granted (nothing stored): no prompt — auto-balance stays the user's choice", async () => {
+            mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false, false) }
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+            mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, false) }
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await result.current.spend(spendInput())
+            })
+
+            expect(mockGrant).not.toHaveBeenCalled()
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+            expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+        })
+
+        it('older backend without the stored flag: a live cached approval the rotation killed is renewed', async () => {
+            mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+            mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await result.current.spend(spendInput())
+            })
+
+            expect(mockGrant).toHaveBeenCalledTimes(1)
+            expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+        })
     })
 })
 
@@ -507,8 +723,9 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
             // Hint that lets the server classify an outdated artifact.
             preparedCoordinatorAddress: PREP.coordinatorAddress,
         })
-        // Recovered, so no failure surface at all.
-        expect(mockRefreshController).not.toHaveBeenCalled()
+        // Recovered, so no failure surface at all — the one controller read is
+        // the proactive pre-prepare check.
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
     it('stops after one recovery: a second rotation failure is surfaced', async () => {
@@ -662,15 +879,17 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
     })
 
     /*
-     * The rotation can also land one step earlier: prepare(A) succeeds, the
-     * inline grant is signed for A, and `/session-approve` refuses it (400
-     * STALE_CARD_APPROVAL) because another request already moved the record to
-     * B. Nothing is signed for the wire and nothing is sent at that point, so
-     * the same payment re-prepares against B — after the controller read
-     * CONFIRMS the move.
+     * The rotation can also land one step earlier: the pre-prepare check read
+     * A (cached approval live on A), /prepare came back on B, the post-prepare
+     * grant is signed for B, and `/session-approve` refuses it (400
+     * STALE_CARD_APPROVAL) because the record moved again, to C. Nothing is
+     * signed for the wire and nothing is sent at that point, so the same
+     * payment re-prepares against C — after the controller read CONFIRMS the
+     * move away from the prepared B.
      */
-    describe('rotation detected while the grant is saved', () => {
+    describe('rotation detected while the post-prepare grant is saved', () => {
         const COORD_B = `0x${'b'.repeat(40)}`
+        const COORD_C = `0x${'c'.repeat(40)}`
 
         // These cases queue per-call behaviour; a leftover queue would leak into
         // the next one (clearAllMocks keeps queued `*Once` values).
@@ -678,15 +897,19 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
             mockGrant.mockReset()
             mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
             mockRefreshController.mockReset()
+            // The pre-prepare read: still A, cached approval covers it.
             mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
         })
 
         const staleGrantSequence = () => {
             mockOverview = {
                 status: { coordinatorAddress: PREP.coordinatorAddress },
+                cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: true }],
+            }
+            mockFreshOverview = {
+                status: { coordinatorAddress: COORD_B },
                 cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
             }
-            mockFreshOverview = mockOverview
             mockGrant
                 .mockResolvedValueOnce({ ok: false, error: { kind: 'stale-approval', message: 'outdated contract' } })
                 .mockResolvedValueOnce({ ok: true, overviewFresh: true })
@@ -696,10 +919,12 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
             'recovers once without duplicating money or cancelling charge %s',
             async (chargeId) => {
                 staleGrantSequence()
-                mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+                mockRefreshController
+                    .mockResolvedValueOnce({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+                    .mockResolvedValue({ coordinatorAddress: COORD_C, changed: true })
                 mockPrepareWithdrawal
-                    .mockResolvedValueOnce(PREP)
-                    .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+                    .mockResolvedValueOnce({ ...PREP, coordinatorAddress: COORD_B })
+                    .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_C })
 
                 const { result } = renderHook(() => useSpendBundle(), { wrapper })
                 let out: Awaited<ReturnType<typeof result.current.spend>> | undefined
@@ -724,14 +949,17 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
                 expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
                 expect(mockSubmitWithdrawal.mock.calls[0][0]).toMatchObject({
                     preparationId: 'prep-2',
-                    preparedCoordinatorAddress: COORD_B,
+                    preparedCoordinatorAddress: COORD_C,
                 })
             }
         )
 
-        it('does NOT re-prepare when the controller did not actually move', async () => {
+        it('does NOT re-prepare when the controller did not actually move away from the prepared one', async () => {
             staleGrantSequence()
-            mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+            mockRefreshController
+                .mockResolvedValueOnce({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+                .mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
             const { result } = renderHook(() => useSpendBundle(), { wrapper })
             await act(async () => {
@@ -741,9 +969,12 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
             expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
         })
 
-        it('does NOT re-prepare when the controller read is unavailable', async () => {
+        it('does NOT re-prepare when the confirming controller read is unavailable', async () => {
             staleGrantSequence()
-            mockRefreshController.mockRejectedValue(new Error('provider lookup failed'))
+            mockRefreshController
+                .mockResolvedValueOnce({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+                .mockRejectedValue(new Error('provider lookup failed'))
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
             const { result } = renderHook(() => useSpendBundle(), { wrapper })
             await act(async () => {
@@ -758,11 +989,17 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
         ])('%s is never treated as a rotation, even with a moved controller', async (_label, error) => {
             mockOverview = {
                 status: { coordinatorAddress: PREP.coordinatorAddress },
+                cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: true }],
+            }
+            mockFreshOverview = {
+                status: { coordinatorAddress: COORD_B },
                 cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
             }
-            mockFreshOverview = mockOverview
             mockGrant.mockResolvedValue({ ok: false, error })
-            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+            mockRefreshController
+                .mockResolvedValueOnce({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+                .mockResolvedValue({ coordinatorAddress: COORD_C, changed: true })
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
             const { result } = renderHook(() => useSpendBundle(), { wrapper })
             await act(async () => {
@@ -772,24 +1009,27 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
             expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
         })
 
-        it('leaving during the controller read stops the recovery', async () => {
+        it('leaving during the confirming controller read stops the recovery', async () => {
             staleGrantSequence()
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
             let releaseRefresh: (value: { coordinatorAddress: string; changed: boolean }) => void = () => {}
-            mockRefreshController.mockReturnValueOnce(
-                new Promise((resolve) => {
-                    releaseRefresh = resolve
-                })
-            )
+            mockRefreshController
+                .mockResolvedValueOnce({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+                .mockReturnValueOnce(
+                    new Promise((resolve) => {
+                        releaseRefresh = resolve
+                    })
+                )
 
             const { result, unmount } = renderHook(() => useSpendBundle(), { wrapper })
             let settled: Promise<unknown> | undefined
             await act(async () => {
                 settled = result.current.spend(spendInput()).catch((e) => e)
-                await waitFor(() => expect(mockRefreshController).toHaveBeenCalledTimes(1))
+                await waitFor(() => expect(mockRefreshController).toHaveBeenCalledTimes(2))
             })
             unmount()
             await act(async () => {
-                releaseRefresh({ coordinatorAddress: COORD_B, changed: true })
+                releaseRefresh({ coordinatorAddress: COORD_C, changed: true })
                 expect(await settled).toBeInstanceOf(SessionKeyGrantRequiredError)
             })
 

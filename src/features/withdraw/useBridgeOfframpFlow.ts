@@ -2,6 +2,7 @@
 
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
@@ -403,6 +404,12 @@ export function useBridgeOfframpFlow() {
                 country,
             })
         } catch (e) {
+            // Card re-approval dismissed, or the screen left, before the
+            // on-chain leg was prepared or signed. The offramp transfer row
+            // exists but no funds moved, so this is control flow, not a failed
+            // withdrawal: the user can run it again from the same screen.
+            if (e instanceof SpendRecoveryAbortedError) return
+
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',

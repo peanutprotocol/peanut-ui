@@ -99,6 +99,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // ds: no ErrorAlert/InfoCard mocks — the view renders the real 0_Bruddle
 // Notification with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 // ---------- helpers ----------
 
@@ -275,6 +276,27 @@ describe('LinkSendInitialView validation errors keep the primary CTA', () => {
         await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE))
         expect(screen.getByText('Retry')).toBeInTheDocument()
         expect(screen.queryByText('Create link')).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * The spend engine checks the card controller before preparing or signing the
+ * link's deposit, and that check can end the attempt: the re-approval prompt
+ * was dismissed, or the screen was left. No link exists and nothing was spent,
+ * so the view must stay as it was rather than showing a failed creation.
+ */
+describe('LinkSendInitialView — card re-approval cancelled before the deposit', () => {
+    test('shows no error and keeps the primary CTA', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(mockCreateLink).toHaveBeenCalled())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.getByText('Create link')).toBeInTheDocument()
+        expect(screen.queryByText('Retry')).not.toBeInTheDocument()
     })
 })
 

@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { isUserCancellation, type SpendStrategy } from './spendPreflight'
+import { isUserCancellation, RainControllerCheckError, type SpendStrategy } from './spendPreflight'
 
 /**
  * Cache-only repair of the backend's stored Rain controller address after a
@@ -16,12 +16,14 @@ function touchesRain(strategy: SpendStrategy): boolean {
 }
 
 /**
- * The one exception to "repair on any failure": the user said no, so nothing
- * was signed and the controller was never exercised. Ambiguous and unknown
- * outcomes stay eligible — repairing a cache is safe either way.
+ * Two exceptions to "repair on any failure": the user said no, so nothing
+ * was signed and the controller was never exercised; and the pre-prepare
+ * check itself could not reach the controller, so a second read now would
+ * only repeat the failure. Ambiguous and unknown outcomes stay eligible —
+ * repairing a cache is safe either way.
  */
 function shouldRepairRainController(strategy: SpendStrategy, error: unknown): boolean {
-    return touchesRain(strategy) && !isUserCancellation(error)
+    return touchesRain(strategy) && !isUserCancellation(error) && !(error instanceof RainControllerCheckError)
 }
 
 type RepairRainController = (args: { strategy: SpendStrategy; error: unknown }) => Promise<void>

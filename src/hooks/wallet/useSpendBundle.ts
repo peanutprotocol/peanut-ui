@@ -16,7 +16,7 @@ import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { RainCooldownError, rainApi, type RainCollateralKind } from '@/services/rain'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
-import { isRainControllerChanged } from './signSpendRetry'
+import { isRainControllerChanged, isSpendRecoveryOutcome } from './signSpendRetry'
 import { isUserOpRevertedError } from '@/utils/userop-rescue.utils'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -29,11 +29,13 @@ import { isDemoMode } from '@/utils/demo'
 import { debitDemoBalance } from '@/utils/demo-balance'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import {
+    ensureCurrentControllerApproval,
     ensurePreparedControllerApproval,
     isStaleGrantApproval,
     isUserCancellation,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
+    sameAddress,
     SessionKeyGrantRequiredError,
     type SpendStrategy,
 } from './spendPreflight'
@@ -268,16 +270,37 @@ export const useSpendBundle = () => {
                 }
             }
             try {
+                // Controller + approval check before anything is prepared or
+                // signed. Once per spend: the replacement legs below read the
+                // controller through their own recovery.
+                const gate = await ensureCurrentControllerApproval({
+                    strategy,
+                    overview,
+                    refreshController: () => rainApi.refreshControllerAddress(),
+                    // react-query's refetch resolves with an error STATE (and the
+                    // stale data) on failure; the gate must fail closed on it.
+                    refetchOverview: async () => {
+                        const result = await refetchOverview()
+                        if (result.isError) throw result.error
+                        return result.data
+                    },
+                    grant,
+                    onGrantRequired,
+                    isGone: () => unmountedRef.current,
+                })
+
                 // Shared collateral pre-flights (root-validator migration gate)
                 // — ONE ordered sequence for both spend engines; see
                 // runCollateralSpendPreflight. Every signature below MUST come
-                // from the client it returns. The session-key grant runs after
-                // /prepare (ensurePreparedControllerApproval).
+                // from the client it returns. A grant above can migrate +
+                // rebuild the kernel client (the cache is ref-backed), so the
+                // gate is fed the re-read client when one ran. The per-prep
+                // approval check runs after /prepare (ensurePreparedControllerApproval).
                 const activeClient = await runCollateralSpendPreflight({
                     strategy,
                     kind,
-                    kernelClient,
-                    overview,
+                    kernelClient: gate.granted ? getClientForChain(chainIdStr) : kernelClient,
+                    overview: gate.overview,
                     requireOverview: false,
                     sendNoopUserOp: (call) =>
                         handleSendUserOpEncoded([call], chainIdStr, { returnRevertedReceipt: true }),
@@ -312,13 +335,18 @@ export const useSpendBundle = () => {
 
                         // The prep states the coordinator this withdrawal targets;
                         // make sure the stored approval covers THAT one before signing.
-                        const { granted } = await ensurePreparedControllerApproval({
-                            preparedCoordinator: prep.coordinatorAddress,
-                            overview,
-                            refetchOverview: async () => (await refetchOverview()).data,
-                            grant,
-                            onGrantRequired,
-                        })
+                        // Already proven by the pre-prepare gate when the prep
+                        // names the controller it just checked; any other
+                        // coordinator (moved since) runs the full check.
+                        const { granted } = sameAddress(prep.coordinatorAddress, gate.approvedCoordinator)
+                            ? { granted: false }
+                            : await ensurePreparedControllerApproval({
+                                  preparedCoordinator: prep.coordinatorAddress,
+                                  overview: gate.overview,
+                                  refetchOverview: async () => (await refetchOverview()).data,
+                                  grant,
+                                  onGrantRequired,
+                              })
                         abortReplacementIfGone()
                         // The grant can migrate + rebuild the kernel client; the
                         // cache is ref-backed, so re-read it before signing.
@@ -667,6 +695,12 @@ export const useSpendBundle = () => {
                     return await runWithCooldownRetry(runMixedSpend)
                 }
             } catch (e) {
+                // Typed control flow from the pre-prepare controller gate (a
+                // dismissed re-sign prompt, or the screen left before anything
+                // was prepared): nothing was prepared, signed or sent, so there
+                // is no draft to back out, no cache to repair and no failed
+                // payment to report.
+                if (isSpendRecoveryOutcome(e)) throw e
                 // Back the abandoned draft out ONLY when the failure provably
                 // precedes any broadcast: either the broadcast boundary was
                 // never reached (grant/setup/first-ceremony failure), or the

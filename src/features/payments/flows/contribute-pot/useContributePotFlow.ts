@@ -19,6 +19,7 @@ import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -225,6 +226,13 @@ export function useContributePotFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
+                // Card re-approval dismissed, or the screen left, before
+                // anything was prepared or signed — control flow, not a failed
+                // contribution. The charge stays open for another attempt.
+                if (err instanceof SpendRecoveryAbortedError) {
+                    setIsLoading(false)
+                    return { success: false }
+                }
                 const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
