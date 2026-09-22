@@ -840,11 +840,13 @@ export interface paths {
                         amount?: string;
                         destination: {
                             achReference?: string;
+                            coBankTransferReference?: string;
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
                             fasterPaymentsReference?: string;
                             paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
+                            speiReference?: string;
                             wireMessage?: string;
                         };
                         developerFee?: string;
@@ -947,11 +949,13 @@ export interface paths {
                         beneficiaryName?: string;
                         destination: {
                             achReference?: string;
+                            coBankTransferReference?: string;
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
                             fasterPaymentsReference?: string;
                             paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
+                            speiReference?: string;
                             wireMessage?: string;
                         };
                         provider?: string;
@@ -9294,7 +9298,7 @@ export interface paths {
                                     sortCode?: string;
                                 };
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -11206,7 +11210,7 @@ export interface paths {
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -11317,7 +11321,7 @@ export interface paths {
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -12170,6 +12174,78 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/verified-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            city: string;
+                            countryCode: string | null;
+                            postalCode: string;
+                            streetLine1: string;
+                            subdivisionCode: string | null;
+                        };
+                    };
+                };
+                /** @description Nothing to prefill. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

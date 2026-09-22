@@ -21,7 +21,8 @@ export interface ShareTextCopy {
  *
  * The possessive is the one care here. "My bank details" is only true when the
  * account is in the user's own name; where our banking partner holds it,
- * calling it "my account" is a claim we cannot make to a third party. So the
+ * calling it "my account" is a claim we cannot make to a third party. An
+ * unverified holder relationship is neutral for the same reason. So the
  * framing reads `nameOnAccount` — never a per-string judgement.
  *
  * The holder's full terms are NOT in the copied text: they render on screen
