@@ -9,6 +9,11 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
+    /* the one phone breakpoint: under it the badge tiles and the avatar hand use
+       the narrow layout (2x2 hand, 48px art). Keep in step with HAND_WIDE_MIN_PX
+       in src/components/Avatar/avatarPicker.utils.ts (TASK-22677). */
+    --breakpoint-xs: 24.375rem;
+
     /* the v3 legacy palette is GONE — every token had its consumers migrated.
        these resets are all that survives it: a family reset to `initial`
        leaves only the indices declared below, so an undeclared one like

@@ -114,8 +114,9 @@ export const Badges = () => {
                             className={twMerge(
                                 // Two tiles per row on every phone: three squeezed names and copy at 320-430px
                                 // (TASK-22677). pt-9 clears the Earned pill (20px tall at top-2) by 8px so
-                                // the tag never touches the art.
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                // the tag never touches the art. Under xs (390px) the art is 48px and the
+                                // gaps tighter, so a 140-167px tile is close to square.
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
@@ -126,14 +127,14 @@ export const Badges = () => {
                                 src={badge.logo!}
                                 alt=""
                                 className={twMerge(
-                                    'h-14 w-full object-contain',
+                                    'h-12 w-full object-contain xs:h-14',
                                     !badge.earned && 'opacity-40 grayscale'
                                 )}
                                 height={100}
                                 width={100}
                                 unoptimized
                             />
-                            <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
+                            <span className="mt-1 line-clamp-2 h-8 w-full text-label-m xs:mt-2">{badge.name}</span>
                             {/* two lines: the tap opens the detail drawer with the full description */}
                             <span className="line-clamp-2 h-8 w-full text-body-xs text-foreground-secondary">
                                 {badge.description}

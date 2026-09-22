@@ -170,7 +170,8 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     className={twMerge(
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
                                         // pt-9 clears the Earned tag (20px tall at top-2) by 8px so it never touches the sticker.
-                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                        // Under xs (390px) the sticker is 48px and the bottom gap tighter: a near-square tile.
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
                                         checked && 'border-2 border-border-default'
                                     )}
                                 >
@@ -185,6 +186,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         name={initial ? username : undefined}
                                         avatarKey={initial ? initialKey : key}
                                         size="l"
+                                        className="h-12 w-12 xs:h-16 xs:w-16"
                                     />
                                     {/* Two fixed lines keep tile heights equal at 320px. */}
                                     <span className="mt-1 line-clamp-2 h-8 text-label-m">{name}</span>

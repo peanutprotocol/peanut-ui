@@ -3,7 +3,8 @@ import { HAND_NARROW, HAND_WIDE } from './avatar.utils'
 
 export const AVATAR_PICKER_COLUMNS = 2
 
-/** From this viewport width the picker is a 2x3 screen; below it a 2x2 (TASK-22677). */
+/** From this viewport width the picker is a 2x3 screen; below it a 2x2 (TASK-22677).
+ *  The same number is the `xs` breakpoint token in src/styles/globals.css. */
 export const HAND_WIDE_MIN_PX = 390
 
 /** Stickers to deal for the current viewport. No matchMedia (jsdom) reads as narrow. */
