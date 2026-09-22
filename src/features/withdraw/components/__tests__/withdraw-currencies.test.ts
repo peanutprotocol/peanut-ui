@@ -39,6 +39,7 @@ describe('liveWithdrawCurrencies', () => {
         const eur = byCode.get('EUR')
         expect(eur).toBeDefined()
         expect(eur!.name).toBe('Euro')
+        expect(eur!.railNameKey).toBe('sepa')
         expect(eur!.flagCode).toBe('eu')
         // EUR is shared by many countries — the disambiguation case.
         expect(eur!.countries.length).toBeGreaterThan(1)
@@ -55,6 +56,7 @@ describe('currencyMatchesQuery', () => {
     const eur: WithdrawCurrency = {
         code: 'EUR',
         name: 'Euro',
+        railNameKey: 'sepa',
         flagCode: 'eu',
         countries: [{ id: 'DE', type: 'country', title: 'Germany', path: 'germany', currency: 'EUR' }],
     }
@@ -89,7 +91,8 @@ describe("withdrawPayoutCurrency — the currency that arrives, not the country'
 })
 
 describe('liveWithdrawCurrencies — rows are payout currencies', () => {
-    const codes = liveWithdrawCurrencies().map((currency) => currency.code)
+    const currencies = liveWithdrawCurrencies()
+    const codes = currencies.map((currency) => currency.code)
 
     it('has no row for a currency no corridor pays', () => {
         for (const code of ['PLN', 'SEK', 'CHF', 'DKK', 'NOK', 'CZK', 'HUF', 'RON', 'BGN', 'ISK']) {
@@ -107,6 +110,19 @@ describe('liveWithdrawCurrencies — rows are payout currencies', () => {
 
     it('every row is a currency some corridor pays out', () => {
         expect([...codes].sort()).toEqual(['ARS', 'BRL', 'COP', 'EUR', 'GBP', 'MXN', 'USD'])
+    })
+
+    it('names the payout rail for each direction, including deposit/payout differences', () => {
+        const rails = Object.fromEntries(currencies.map(({ code, railNameKey }) => [code, railNameKey]))
+        expect(rails).toMatchObject({
+            EUR: 'sepa',
+            GBP: 'faster_payments',
+            USD: 'ach',
+            MXN: 'spei',
+            BRL: 'pix',
+            ARS: 'transfer_ar',
+            COP: 'fallback',
+        })
     })
 })
 

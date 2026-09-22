@@ -238,6 +238,6 @@ test('unlock CTA after a saved Mexico account sends the NA intent, not LATAM', a
         fireEvent.click(screen.getByTestId('kyc-verify-button'))
     })
 
-    expect(mockGateFor).toHaveBeenCalledWith('deposit', { channel: 'bank', country: 'MX' })
+    expect(mockGateFor).toHaveBeenCalledWith('withdraw', { railId: 'bridge.spei_mx' })
     expect(mockHandleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
 })

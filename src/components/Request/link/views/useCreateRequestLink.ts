@@ -490,6 +490,20 @@ export const useCreateRequestLink = () => {
         return link
     }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 
+    const resetRequest = useCallback(() => {
+        createLinkAbortRef.current?.abort()
+        createLinkAbortRef.current = null
+        setRequestId(null)
+        setGeneratedLink(null)
+        setRequestAmount('')
+        setAttachmentOptions({ message: '', fileUrl: '', rawFile: undefined })
+        lastSavedAttachmentRef.current = { message: '', fileUrl: '', rawFile: undefined }
+        bankInstructionsTouchedRef.current = false
+        setBankInstructionsShared(payableSender === 'anyone')
+        setErrorState({ showError: false, errorMessage: '' })
+        void setQuery({ amount: null, merchant: null, currency: null })
+    }, [payableSender, setQuery])
+
     // Set wallet defaults when connected
     useMemo(() => {
         if (isConnected && address) {
@@ -519,5 +533,6 @@ export const useCreateRequestLink = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
+        resetRequest,
     }
 }

@@ -194,6 +194,9 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: (props: any) => <div data-testid="peanut-action-card" data-type={props.type} />,
 }))
 
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -623,11 +626,11 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+            expect(screen.getByTestId('qr-code-wrapper')).not.toHaveAttribute('data-blurred', 'true')
         })
     })
 
-    test('after link creation, amount input is disabled', async () => {
+    test('after link creation, the form is replaced by the persistent success state', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -639,7 +642,8 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('amount-input')).toHaveAttribute('data-disabled', 'true')
+            expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Request created' })).toBeInTheDocument()
         })
     })
 

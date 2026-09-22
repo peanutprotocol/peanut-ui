@@ -14,14 +14,15 @@ import { useRequestBack } from '@/components/Request/useRequestBack'
 import { BankInstructionsToggle } from './BankInstructionsToggle'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { RequestCurrencyPicker } from './RequestCurrencyPicker'
-import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 import { useCreateRequestLink } from './useCreateRequestLink'
+import { RequestCreatedView } from './RequestCreatedView'
 
 export const CreateRequestLinkView = () => {
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const onBack = useRequestBack()
+    const onDone = useRequestBack({ replace: true })
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
         requestAmount,
@@ -42,11 +43,26 @@ export const CreateRequestLinkView = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
+        resetRequest,
     } = useCreateRequestLink()
     // The amount field reports its sides through three setters in one pass,
     // `setSecondaryAmount` last. They are collected here and handed on once,
     // from that last one, so the hook always reads a matching set.
     const sides = useRef<AmountInputSides>({ primary: '', secondary: '', displayed: '' })
+
+    if (requestId && generatedLink) {
+        return (
+            <RequestCreatedView
+                requestId={requestId}
+                generatedLink={generatedLink}
+                requestAmount={requestAmount}
+                currency={currency}
+                bankPayable={bankInstructionsShared}
+                onDone={onDone}
+                onCreateAnother={resetRequest}
+            />
+        )
+    }
 
     return (
         <PageStack>
@@ -123,15 +139,10 @@ export const CreateRequestLinkView = () => {
                     />
                 )}
 
-                {requestId && <RequestFulfillmentNotice requestId={requestId} bankPayable={bankInstructionsShared} />}
-
                 <CreateRequestLinkCta
                     requestId={requestId}
-                    generatedLink={generatedLink}
                     isCreatingLink={isCreatingLink}
                     isUpdatingRequest={isUpdatingRequest}
-                    requestAmount={requestAmount}
-                    currency={currency}
                     onGenerate={generateLink}
                 />
 

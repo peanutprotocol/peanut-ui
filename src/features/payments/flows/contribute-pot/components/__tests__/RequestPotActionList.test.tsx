@@ -60,6 +60,26 @@ jest.mock('../PayByBankTransferDrawer', () => ({
     },
 }))
 
+const mockChooser = jest.fn()
+jest.mock('../BankTransferChooserDrawer', () => ({
+    BankTransferChooserDrawer: (props: {
+        rails: Array<{ railId?: string; payerAmount: { currency: string } }>
+        onUnavailable: (rail: { railId?: string; payerAmount: { currency: string } }) => void
+    }) => {
+        mockChooser(props)
+        return (
+            <div>
+                <span>Pay by bank transfer</span>
+                {props.rails.map((rail) => (
+                    <button key={rail.railId} onClick={() => props.onUnavailable(rail)}>
+                        {`Rail ${rail.payerAmount.currency}`}
+                    </button>
+                ))}
+            </div>
+        )
+    },
+}))
+
 let mockPayAmounts: unknown
 let mockPayAmountsLoading = false
 const mockUsePayAmounts = jest.fn()
@@ -156,7 +176,7 @@ describe('RequestPotActionList', () => {
     })
 
     describe('per-rail amounts', () => {
-        it('shows one bank row per currency the requester can receive, each with its rail', () => {
+        it('shows one bank-transfer row and hands its chooser every eligible rail', () => {
             mockPayAmounts = {
                 requestCurrency: 'EUR',
                 requestAmount: '100.00',
@@ -164,10 +184,28 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR' })
 
-            expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay in EUR', 'Pay in USD'])
-            expect(mockDrawer).toHaveBeenCalledWith(
-                expect.objectContaining({ rail: expect.objectContaining({ railId: 'bridge.sepa_eu' }) })
+            expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay by bank transfer'])
+            expect(mockChooser).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    requestAmount: '100.00 EUR',
+                    rails: [
+                        expect.objectContaining({ railId: 'bridge.sepa_eu' }),
+                        expect.objectContaining({ railId: 'bridge.ach_us' }),
+                    ],
+                })
             )
+        })
+
+        it('does not describe an open request as requesting zero', () => {
+            mockPayAmounts = {
+                requestCurrency: 'USD',
+                requestAmount: '0',
+                remainingAmount: null,
+                rails: [bankRail('USD', 'bridge.ach_us', false)],
+            }
+            renderList()
+
+            expect(mockChooser).toHaveBeenCalledWith(expect.objectContaining({ requestAmount: undefined }))
         })
 
         // The bank amounts were computed from the API's own remainder, so that
@@ -182,8 +220,10 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR', remainingUsd: 120 })
 
-            expect(mockDrawer).toHaveBeenCalledWith(
-                expect.objectContaining({ remainingUsd: 108, serverCountsAllPayments: true })
+            expect(mockChooser).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    bankRowProps: expect.objectContaining({ remainingUsd: 108, serverCountsAllPayments: true }),
+                })
             )
         })
 
@@ -201,8 +241,10 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR', remainingUsd: 57 })
 
-            expect(mockDrawer).toHaveBeenCalledWith(
-                expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: false })
+            expect(mockChooser).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    bankRowProps: expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: false }),
+                })
             )
         })
 
@@ -221,8 +263,10 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR', remainingUsd: 57 })
 
-            expect(mockDrawer).toHaveBeenCalledWith(
-                expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: true })
+            expect(mockChooser).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    bankRowProps: expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: true }),
+                })
             )
         })
 
@@ -280,7 +324,11 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR', remainingUsd: 108 })
 
-            expect(rowOrder().slice(2)).toEqual(['Pay in EUR', 'Pay in USD', 'Pay in GBP'])
+            expect(mockChooser.mock.calls.at(-1)?.[0].rails.map((rail: any) => rail.payerAmount.currency)).toEqual([
+                'EUR',
+                'USD',
+                'GBP',
+            ])
         })
 
         it('stops offering a rail whose details turned out to be unavailable', () => {
@@ -291,8 +339,10 @@ describe('RequestPotActionList', () => {
             }
             renderList({ requestCurrency: 'EUR', remainingUsd: 108 })
 
-            fireEvent.click(screen.getByText('Pay in USD'))
-            expect(rowOrder().slice(2)).toEqual(['Pay in EUR'])
+            fireEvent.click(screen.getByText('Rail USD'))
+            expect(mockChooser.mock.calls.at(-1)?.[0].rails.map((rail: any) => rail.payerAmount.currency)).toEqual([
+                'EUR',
+            ])
         })
 
         /**

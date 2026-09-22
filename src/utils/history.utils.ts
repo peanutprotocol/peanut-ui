@@ -148,6 +148,10 @@ export interface HistoryEntryExtraData {
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null
+    /** The reference WE sent the provider on a fiat payout, read back from
+     *  the stored destination (peanut-api-ts `outgoingPaymentReference`).
+     *  What we asked for, not what the receiving bank printed. Owner-only. */
+    paymentReference?: string | null
 
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
