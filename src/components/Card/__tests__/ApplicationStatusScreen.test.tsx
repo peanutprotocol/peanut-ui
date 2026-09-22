@@ -186,6 +186,21 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
         expect(screen.getByText('Contact support')).toBeInTheDocument()
     })
 
+    it('keeps the upload instruction when identity documents are still needed during PoA review', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="proof_of_address_review"
+                onUploadIdentity={jest.fn()}
+            />
+        )
+
+        expect(screen.getByText(en.identity.reasons.proof_of_address_review)).toBeInTheDocument()
+        expect(screen.getByText(en.card.status.requiresInfoUploadBody)).toBeInTheDocument()
+        expect(screen.getByText('Upload identity documents')).toBeInTheDocument()
+        expect(screen.queryByText(en.card.status.requiresInfoBody)).not.toBeInTheDocument()
+    })
+
     it('never renders the upload CTA on non-support variants', () => {
         render(<ApplicationStatusScreen variant="pending" onUploadProofOfAddress={jest.fn()} />)
         expect(screen.queryByText('Upload proof of address')).not.toBeInTheDocument()

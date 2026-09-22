@@ -96,7 +96,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     const hasUploadAction = !!(onUploadProofOfAddress || onUploadIdentity)
     const hasBothUploadActions = !!(onUploadProofOfAddress && onUploadIdentity)
     const bodyKey = variant === 'requires-info' && hasUploadAction ? 'status.requiresInfoUploadBody' : copyKeys.body
-    const showBody = !(variant === 'requires-info' && reasonCode === 'proof_of_address_review')
+    const showBody = !(variant === 'requires-info' && reasonCode === 'proof_of_address_review' && !hasUploadAction)
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
