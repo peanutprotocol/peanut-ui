@@ -547,11 +547,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                                 // the trim above, so a content-width track
                                 // would end wherever the tabs happen to end
                                 // and leave a ragged gap to the container edge.
-                                // `track` keeps the pill full width with the
-                                // chips content-sized inside it (kush,
-                                // 2026-09-21, rejecting `stretch`: it would
-                                // hand `All` the same room as `⬡ ARB`).
-                                fullWidth="track"
+                                // `stretch` gives every chip an equal share of
+                                // the row, the same row add-money's network
+                                // type switch renders (kush, 2026-09-22,
+                                // superseding the `track` pick of 2026-09-21:
+                                // at the widths this row really gets, `track`
+                                // scattered three chips across a full-width
+                                // pill instead of filling it). The trim still
+                                // converges — `shrink-0` keeps every chip at
+                                // its content width when the equal share is
+                                // too small, so `scrollWidth` still reports
+                                // the overflow the loop measures.
+                                fullWidth="stretch"
                             />
                         </div>
                     </Section>

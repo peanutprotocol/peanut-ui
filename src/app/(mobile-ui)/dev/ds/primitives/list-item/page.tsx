@@ -2,12 +2,15 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ListItemPage() {
     return (
@@ -16,6 +19,21 @@ export default function ListItemPage() {
                 title="ListItem"
                 description="Row component from the figma list-item board (17802:61530). Leading slot + title/body + trailing slot, grouped via position."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Rows in a list: payment methods, settings, accounts, activity',
+                    'One leading element only — an IconBubble, a flag, a logo or an avatar',
+                    'Trailing from the board set: chevron, badge, toggle, value, copy or external-link',
+                    'Group rows with position, or let ListGroup derive it',
+                ]}
+                dontUse={[
+                    'Rows inside a Card — nested borders; use DataRow',
+                    'A long account identifier as the title — middle-ellipsis it first (middleEllipsisAccount)',
+                    'An initials avatar for a row named by a label, not a person — use IconBubble with the type icon',
+                    'A three-dot overflow in the trailing slot — it is outside the board set, so flag it',
+                ]}
             />
 
             <DocSection title="Leading Content" description="Icon, icon bubble, or nothing — title with optional body.">
@@ -118,6 +136,62 @@ export default function ListItemPage() {
                     { name: 'onClick', type: '() => void', default: '(none)' },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Withdraw — crypto row above the currency list"
+                    path="src/features/withdraw/components/WithdrawCurrencyList.tsx"
+                    description="Solo row with an icon bubble, a wrapping body line and a chevron. It sits beside the currencies, never inside them."
+                    code={`<ListItem
+  key="crypto"
+  title={tGlobal('countryList.cryptoWithdrawTitle')}
+  body={tGlobal('countryList.cryptoWithdrawDescription')}
+  bodyWrap
+  chevron
+  leading={<IconBubble icon="coins" color="blue" size="s" />}
+  onClick={onCryptoClick}
+  data-testid="withdraw-crypto"
+/>`}
+                >
+                    <ListItem
+                        title="Crypto"
+                        body="Send USDC to any wallet or exchange address"
+                        bodyWrap
+                        chevron
+                        leading={<IconBubble icon="coins" color="blue" size="s" />}
+                        onClick={() => {}}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Your card — management rows"
+                    path="src/components/Card/YourCardScreen.tsx"
+                    description="Plain Icon in the leading slot (no bubble), chevron, each row pushes a route."
+                    code={`<ListItem
+  title={t('pin')}
+  leading={<Icon name="more-horizontal" size={24} />}
+  chevron
+  onClick={() => router.push('/card/pin')}
+/>`}
+                >
+                    <div>
+                        <ListItem
+                            title="PIN"
+                            leading={<Icon name="more-horizontal" size={24} />}
+                            chevron
+                            position="top"
+                            onClick={() => {}}
+                        />
+                        <ListItem
+                            title="Spending limit"
+                            leading={<Icon name="meter" size={24} />}
+                            chevron
+                            position="bottom"
+                            onClick={() => {}}
+                        />
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }
