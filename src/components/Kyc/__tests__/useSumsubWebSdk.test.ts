@@ -9,6 +9,8 @@ const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
 
 const launch = jest.fn()
+const destroy = jest.fn()
+let sdkRefreshToken: (() => Promise<string>) | undefined
 const sdkHandlers: Record<string, (payload?: unknown) => void> = {}
 
 function installSdk() {
@@ -20,8 +22,13 @@ function installSdk() {
         sdkHandlers[event] = handler
         return builder
     }
-    builder.build = () => ({ launch, destroy: jest.fn() })
-    ;(window as unknown as { snsWebSdk: unknown }).snsWebSdk = { init: () => builder }
+    builder.build = () => ({ launch, destroy })
+    ;(window as unknown as { snsWebSdk: unknown }).snsWebSdk = {
+        init: (_token: string, refreshToken: () => Promise<string>) => {
+            sdkRefreshToken = refreshToken
+            return builder
+        },
+    }
 }
 
 const baseArgs = () => ({
@@ -34,6 +41,7 @@ const baseArgs = () => ({
 describe('useSumsubWebSdk', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        sdkRefreshToken = undefined
         installSdk()
     })
 
@@ -114,5 +122,47 @@ describe('useSumsubWebSdk', () => {
 
         expect(result.current.hasSubmittedRef.current).toBe(false)
         expect(result.current.sdkLoadError).toBe(false)
+    })
+})
+
+describe('SDK credential lifecycle', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        sdkRefreshToken = undefined
+        installSdk()
+    })
+
+    afterEach(() => {
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+
+    it('keeps an open iframe on token refresh and replaces it for a new session', async () => {
+        let accessToken = 'first'
+        let sessionKey = 'session:1'
+        const { result, rerender } = renderHookWithIntl(() =>
+            useSumsubWebSdk({
+                ...baseArgs(),
+                accessToken,
+                sessionKey,
+                onRefreshToken: async () => {
+                    accessToken = 'refreshed'
+                    return accessToken
+                },
+            })
+        )
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(launch).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+            expect(await sdkRefreshToken?.()).toBe('refreshed')
+            rerender()
+        })
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(destroy).not.toHaveBeenCalled()
+
+        sessionKey = 'session:2'
+        rerender()
+        expect(destroy).toHaveBeenCalledTimes(1)
+        expect(launch).toHaveBeenCalledTimes(2)
     })
 })

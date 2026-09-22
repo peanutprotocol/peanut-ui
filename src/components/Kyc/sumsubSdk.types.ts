@@ -5,6 +5,8 @@
  */
 export interface SumsubSdkProps {
     visible: boolean
+    /** Changes only when the applicant starts a different verification session. */
+    sessionKey?: string
     accessToken: string | null
     onClose: () => void
     onComplete: () => void

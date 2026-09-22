@@ -28,6 +28,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
             />
             <SumsubKycWrapper
                 visible={flow.showWrapper}
+                sessionKey={String(flow.sdkSessionKey)}
                 accessToken={flow.accessToken}
                 onClose={flow.handleSdkClose}
                 onComplete={flow.handleSdkComplete}

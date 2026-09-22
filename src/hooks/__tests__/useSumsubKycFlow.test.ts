@@ -40,6 +40,35 @@ const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof 
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
 const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 
+describe('Sumsub SDK session identity', () => {
+    beforeEach(() => mockInitiate.mockReset())
+
+    it('keeps the session key on token refresh and advances it for another explicit open', async () => {
+        mockInitiate
+            .mockResolvedValueOnce({ data: { token: 'first', applicantId: 'app_1', status: 'PENDING' } })
+            .mockResolvedValueOnce({ data: { token: 'refreshed', applicantId: 'app_1', status: 'PENDING' } })
+            .mockResolvedValueOnce({ data: { token: 'second', applicantId: 'app_1', status: 'PENDING' } })
+
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        const firstSessionKey = result.current.sdkSessionKey
+        expect(firstSessionKey).toBe(1)
+
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('refreshed')
+        })
+        expect(result.current.accessToken).toBe('refreshed')
+        expect(result.current.sdkSessionKey).toBe(firstSessionKey)
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        expect(result.current.sdkSessionKey).toBe(firstSessionKey + 1)
+    })
+})
+
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()

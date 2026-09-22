@@ -255,6 +255,7 @@ export const useMultiPhaseKycFlow = ({
         isTerminalError,
         showWrapper,
         accessToken,
+        sdkSessionKey,
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
         handleRestartIdentity,
@@ -555,6 +556,7 @@ export const useMultiPhaseKycFlow = ({
         // SDK wrapper
         showWrapper,
         accessToken,
+        sdkSessionKey,
         handleSdkClose: handleClose,
         handleSdkComplete,
         handleSdkSubmitted,

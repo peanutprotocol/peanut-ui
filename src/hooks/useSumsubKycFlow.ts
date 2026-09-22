@@ -107,6 +107,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
+    // Explicit opens advance this key; credential refreshes do not. The WebSDK
+    // uses it to replace a genuinely new session without remounting on refresh.
+    const [sdkSessionKey, setSdkSessionKey] = useState(0)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setErrorState] = useState<string | null>(null)
@@ -440,6 +443,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // the WebSDK by platform, so every flow that mints a token —
                     // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
+                    setSdkSessionKey((key) => key + 1)
                     const actionType = response.data.actionType
                     /*
                      * 'bridge-uplift' is not a single-level applicant action: the
@@ -592,6 +596,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
+                    setSdkSessionKey((key) => key + 1)
                     // The restart no longer reopens the applicant's existing level:
                     // the backend targets the level the newly declared residence
                     // needs, and can overrule the intent we sent. So the multi-level
@@ -647,6 +652,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
+                    setSdkSessionKey((key) => key + 1)
                     setShowWrapper(true)
                 } else {
                     userInitiatedRef.current = false
@@ -690,6 +696,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 levelNameRef.current = response.data.levelName
                 actionKeyRef.current = key
                 setAccessToken(response.data.token)
+                setSdkSessionKey((key) => key + 1)
                 setIsActionFlow(true)
                 setShowWrapper(true)
             } catch (e: unknown) {
@@ -727,6 +734,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         isTerminalError,
         showWrapper,
         accessToken,
+        sdkSessionKey,
         liveKycStatus,
         rejectLabels,
         handleInitiateKyc,
