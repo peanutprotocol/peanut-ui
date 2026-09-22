@@ -106,7 +106,7 @@ const imageSources = (element) => [element?.src, ...(element?.children ?? []).fl
 
 async function loadLanding(
     pathname,
-    { ok = true, redirected = false, index = [], report, search = '', hash = '' } = {}
+    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '' } = {}
 ) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
@@ -146,7 +146,9 @@ async function loadLanding(
         fetch: (url) =>
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
-                : response,
+                : comparisonReport && url.includes('/screen-data/reports/')
+                  ? Promise.resolve({ ok: true, status: 200, json: async () => comparisonReport })
+                  : response,
         history,
         location,
         window: {},
@@ -831,6 +833,96 @@ test('curated collection pages preserve order, notes and switch locale in place'
     elements.get('locale').dispatch('change')
     assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${portuguese}`))
     assert.equal(elements.location.search, '?locale=pt-BR')
+})
+
+test('a custom collection can show its selected screens side by side across two revisions', async () => {
+    const beforeImage = 'a'.repeat(64) + '.webp'
+    const afterImage = 'b'.repeat(64) + '.webp'
+    const path = `2026-09-16/pr-42/en/${'c'.repeat(40)}/run-3-1`
+    const report = {
+        schema: 1,
+        type: 'collection',
+        id: 'review-20260916-abc123',
+        title: 'Review screens',
+        createdAt: '2026-09-16T12:00:00Z',
+        locales: ['en', 'pt-BR'],
+        source: { en: { commit: 'd'.repeat(40) } },
+        complete: true,
+        items: [
+            {
+                id: 'profile',
+                order: 0,
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                note: 'Compare this',
+                variants: {},
+            },
+            { id: 'send', order: 1, name: 'Send', flow: 'Payments', kind: 'route', variants: {} },
+            { id: 'card', order: 2, name: 'Card', flow: 'Card', kind: 'route', variants: {} },
+        ],
+    }
+    const comparisonReport = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        before: { commit: 'e'.repeat(40) },
+        after: { commit: 'c'.repeat(40) },
+        screens: [
+            {
+                id: 'send',
+                name: 'Send',
+                flow: 'Payments',
+                kind: 'route',
+                status: 'unchanged',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+            {
+                id: 'profile',
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                status: 'changed',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+            {
+                id: 'extra',
+                name: 'Extra',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { image: beforeImage },
+                after: { image: afterImage },
+            },
+        ],
+    }
+    const elements = await loadLanding('/collections/review-20260916-abc123/', {
+        report,
+        comparisonReport,
+        search: `?locale=en&compare=${encodeURIComponent(path)}`,
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map((tile) => tile.id),
+        ['profile', 'send', 'card']
+    )
+    assert.equal(elements.get('screens').children[0].children[1].className, 'pair')
+    assert.deepEqual(imageSources(elements.get('screens').children[0]), [
+        `/screen-data/assets/${beforeImage}`,
+        `/screen-data/assets/${afterImage}`,
+    ])
+    assert.equal(elements.get('screens').children[0].children[0].children[3].textContent, 'Compare this')
+    const missingPair = elements.get('screens').children[2].children[1]
+    assert.equal(missingPair.className, 'pair')
+    assert.deepEqual(
+        missingPair.children.map((figure) => figure.children[1].textContent),
+        ['Not in this version', 'Not in this version']
+    )
+    assert.equal(elements.get('locale').children.length, 1)
+    assert.equal(elements.get('view-mode-row').hidden, true)
+    assert.match(elements.location.search, /compare=/)
+    assert.equal(elements.get('provenance').children[0].children[0].textContent, `Before ${'e'.repeat(40)}`)
 })
 
 test('Nutcracker reports show real-backend provenance and retain a screenshot when its assertion failed', async () => {

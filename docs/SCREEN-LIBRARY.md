@@ -71,6 +71,18 @@ Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
 the URL. The manifest may change from queued to complete while focused capture
 runs; after completion its ordered content and assets are stable.
 
+To review the same custom selection **before and after two code revisions** through
+MCP, first use `list_comparisons` to find a published comparison (optionally
+filtering by exact before/after commit). Then call `compare_collection` with the
+existing collection ID and the returned comparison path. Its URL opens the
+collection in ordered, side-by-side Before/After mode, including unchanged
+screens and per-screen notes. The link pins one comparison report and locale;
+filters and screen anchors remain shareable. Screens absent from that report
+remain visible as unavailable rather than silently disappearing. The comparison
+must already be published; these tools do not start a capture of arbitrary
+historical revisions. The normal collection link still shows its original
+single-revision screenshots.
+
 ### Collection and MCP services
 
 The deployment has three deliberately separate Workers:
@@ -80,8 +92,9 @@ The deployment has three deliberately separate Workers:
    searches the latest complete catalogues, writes collection manifests, and
    dispatches the focused GitHub Actions workflow when an asset is missing.
 3. `peanut-screen-library-mcp` is a stateless Streamable HTTP MCP endpoint at
-   `/mcp`. Its four tools (`search_screens`, `create_collection`,
-   `get_collection_status`, and `capture_missing_states`) call the collection
+   `/mcp`. Its six tools (`search_screens`, `create_collection`,
+   `get_collection_status`, `capture_missing_states`, `list_comparisons`, and
+   `compare_collection`) call the collection
    Worker through a Cloudflare service binding. MCP never receives R2 or GitHub
    credentials.
 
