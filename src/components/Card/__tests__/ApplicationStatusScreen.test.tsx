@@ -123,6 +123,9 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
         )
         fireEvent.click(screen.getByText('Upload proof of address'))
         expect(onUpload).toHaveBeenCalledTimes(1)
+        expect(screen.getByText(en.card.status.requiresInfoUploadBody)).toBeInTheDocument()
+        expect(screen.queryByText(en.card.status.requiresInfoBody)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('card-upload-list')).not.toBeInTheDocument()
         // Contact support stays available as the fallback path.
         expect(screen.getByText('Contact support')).toBeInTheDocument()
     })
@@ -141,6 +144,44 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
     it('omits the upload CTA when no PoA action exists', () => {
         render(<ApplicationStatusScreen variant="requires-info" onContactSupport={jest.fn()} />)
         expect(screen.queryByText('Upload proof of address')).not.toBeInTheDocument()
+        expect(screen.getByText(en.card.status.requiresInfoBody)).toBeInTheDocument()
+        expect(screen.queryByText(en.card.status.requiresInfoUploadBody)).not.toBeInTheDocument()
+    })
+
+    it('uses a list group if both upload actions are offered', () => {
+        const onUploadProofOfAddress = jest.fn()
+        const onUploadIdentity = jest.fn()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={onUploadProofOfAddress}
+                onUploadIdentity={onUploadIdentity}
+            />
+        )
+
+        const list = screen.getByTestId('card-upload-list')
+        expect(list.querySelectorAll('[role="button"]')).toHaveLength(2)
+        fireEvent.click(screen.getByText('Upload proof of address'))
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        expect(onUploadProofOfAddress).toHaveBeenCalledTimes(1)
+        expect(onUploadIdentity).toHaveBeenCalledTimes(1)
+        expect(screen.getByText(en.card.status.requiresInfoUploadBody)).toBeInTheDocument()
+    })
+
+    it('shows the review message without asking for a new upload or support contact after PoA submission', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="proof_of_address_review"
+                onContactSupport={jest.fn()}
+            />
+        )
+
+        expect(screen.getByText(en.identity.reasons.proof_of_address_review)).toBeInTheDocument()
+        expect(screen.queryByText(en.card.status.requiresInfoBody)).not.toBeInTheDocument()
+        expect(screen.queryByText(en.card.status.requiresInfoUploadBody)).not.toBeInTheDocument()
+        expect(screen.getByText('Contact support')).toBeInTheDocument()
     })
 
     it('never renders the upload CTA on non-support variants', () => {
@@ -162,6 +203,8 @@ describe('ApplicationStatusScreen — identity-document upload CTA (TASK-21687)'
         )
         fireEvent.click(screen.getByText('Upload identity documents'))
         expect(onUpload).toHaveBeenCalledTimes(1)
+        expect(screen.getByText(en.card.status.requiresInfoUploadBody)).toBeInTheDocument()
+        expect(screen.queryByTestId('card-upload-list')).not.toBeInTheDocument()
         // Contact support stays available as the fallback path.
         expect(screen.getByText('Contact support')).toBeInTheDocument()
     })

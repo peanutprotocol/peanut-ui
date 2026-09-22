@@ -1518,6 +1518,7 @@
             "manualReviewBody": "Precisamos analisar seu envio manualmente. Normalmente leva 1-2 dias e avisamos quando estiver pronto.",
             "requiresInfoTitle": "Precisamos de mais informações",
             "requiresInfoBody": "Nosso time vai te ajudar a terminar seu pedido de cartão — fale com o suporte para continuar.",
+            "requiresInfoUploadBody": "Envie os documentos abaixo para continuar com seu pedido de cartão.",
             "requiresSupportTitle": "Algo deu errado do nosso lado",
             "requiresSupportBody": "Tivemos um problema ao processar seu pedido de cartão. Nosso time precisa dar uma olhada — fale com o suporte que a gente resolve.",
             "rejectedTitle": "Não conseguimos emitir um cartão para você",

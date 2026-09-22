@@ -1518,6 +1518,7 @@
             "manualReviewBody": "We need to do a manual review of your submission. This usually takes 1-2 days and we'll let you know when it's ready.",
             "requiresInfoTitle": "We need more information",
             "requiresInfoBody": "Our team will help you finish your card application — message support to continue.",
+            "requiresInfoUploadBody": "Upload the documents below to continue your card application.",
             "requiresSupportTitle": "Something went wrong on our side",
             "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue you a card",

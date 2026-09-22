@@ -833,6 +833,7 @@
         "status": {
             "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
+            "requiresInfoUploadBody": "Subí los documentos a continuación para continuar con tu solicitud de tarjeta.",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vivís. Podés seguir usando las otras funciones de Peanut disponibles para vos.",

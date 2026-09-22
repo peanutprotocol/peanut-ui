@@ -9,6 +9,8 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 
 type Variant =
     | 'pending'
@@ -62,7 +64,7 @@ const COPY_KEYS = {
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
 
-/** Variants where support is the only path forward — these render the CTA. */
+/** Variants where a support fallback is available. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
 
 /**
@@ -91,6 +93,10 @@ const ApplicationStatusScreen: FC<Props> = ({
     const copyKeys = COPY_KEYS[variant]
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
+    const hasUploadAction = !!(onUploadProofOfAddress || onUploadIdentity)
+    const hasBothUploadActions = !!(onUploadProofOfAddress && onUploadIdentity)
+    const bodyKey = variant === 'requires-info' && hasUploadAction ? 'status.requiresInfoUploadBody' : copyKeys.body
+    const showBody = !(variant === 'requires-info' && reasonCode === 'proof_of_address_review')
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -106,7 +112,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 <div className="flex flex-col gap-3">
                     <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
                     {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
+                    {showBody && <p className="text-foreground-secondary">{t(bodyKey)}</p>}
                 </div>
                 {variant === 'geo-blocked' && (
                     <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
@@ -116,7 +122,16 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
+                {SUPPORT_VARIANTS.has(variant) && hasBothUploadActions ? (
+                    <div className="w-full text-left">
+                        <ListGroup data-testid="card-upload-list">
+                            <ListItem title={t('uploadProofOfAddress')} chevron onClick={onUploadProofOfAddress} />
+                            <ListItem title={t('uploadIdentityDocuments')} chevron onClick={onUploadIdentity} />
+                        </ListGroup>
+                        {uploadError && <p className="mt-2 text-body-s text-foreground-error">{uploadError}</p>}
+                    </div>
+                ) : null}
+                {SUPPORT_VARIANTS.has(variant) && !hasBothUploadActions && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
@@ -124,7 +139,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                         {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
+                {SUPPORT_VARIANTS.has(variant) && !hasBothUploadActions && onUploadIdentity && (
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
                             {t('uploadIdentityDocuments')}

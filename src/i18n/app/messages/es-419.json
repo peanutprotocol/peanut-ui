@@ -1518,6 +1518,7 @@
             "manualReviewBody": "Tenemos que revisar tu solicitud manualmente. Normalmente toma 1-2 días y te avisamos cuando esté lista.",
             "requiresInfoTitle": "Necesitamos más información",
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escríbele a soporte para continuar.",
+            "requiresInfoUploadBody": "Sube los documentos a continuación para continuar con tu solicitud de tarjeta.",
             "requiresSupportTitle": "Algo salió mal de nuestro lado",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escríbele a soporte y lo resolvemos.",
             "rejectedTitle": "No pudimos emitirte una tarjeta",
