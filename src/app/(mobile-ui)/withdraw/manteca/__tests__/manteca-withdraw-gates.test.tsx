@@ -508,6 +508,8 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down'), 2))
         await reachReview()
         mockInitiateWithdraw.mockClear()
+        // reachReview itself passes through the amount step (destination first).
+        mockStepperGoTo.mockClear()
 
         clickConfirm()
         await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
