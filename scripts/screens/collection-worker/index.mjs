@@ -39,7 +39,7 @@ async function readJsonWithMetadata(bucket, key) {
     if (!object) return null
     return {
         value: await object.json(),
-        etag: object.httpEtag ?? object.etag ?? null,
+        etag: object.etag ?? null,
     }
 }
 
@@ -50,7 +50,7 @@ async function putJson(bucket, key, value, options = {}) {
     })
     return {
         ok: result !== null,
-        etag: result?.httpEtag ?? result?.etag ?? null,
+        etag: result?.etag ?? null,
     }
 }
 
