@@ -25,6 +25,31 @@ function serverFor(env) {
             )
     )
     server.registerTool(
+        'list_comparisons',
+        {
+            title: 'Find published revision comparisons',
+            description:
+                'List published before/after comparisons and their exact commits. Use a comparison path with compare_collection to view a custom collection across two revisions.',
+            inputSchema: {
+                locale: z.enum(['en', 'es-419', 'es-AR', 'pt-BR']).default('en'),
+                beforeCommit: z
+                    .string()
+                    .regex(/^[a-f0-9]{40}$/)
+                    .optional(),
+                afterCommit: z
+                    .string()
+                    .regex(/^[a-f0-9]{40}$/)
+                    .optional(),
+            },
+        },
+        async ({ locale, beforeCommit, afterCommit }) => {
+            const params = new URLSearchParams({ locale })
+            if (beforeCommit) params.set('beforeCommit', beforeCommit)
+            if (afterCommit) params.set('afterCommit', afterCommit)
+            return textResult(await collectionRequest(env, `/v1/comparisons?${params}`))
+        }
+    )
+    server.registerTool(
         'create_collection',
         {
             title: 'Create a screen collection',
@@ -55,6 +80,25 @@ function serverFor(env) {
                 await collectionRequest(env, '/v1/collections', {
                     method: 'POST',
                     body: JSON.stringify(input),
+                })
+            )
+    )
+    server.registerTool(
+        'compare_collection',
+        {
+            title: 'View a collection before and after',
+            description:
+                'Return a shareable before/after link for the selected screens in an existing collection, using a published revision comparison from list_comparisons.',
+            inputSchema: {
+                id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/),
+                comparisonPath: z.string().max(200),
+            },
+        },
+        async ({ id, comparisonPath }) =>
+            textResult(
+                await collectionRequest(env, `/v1/collections/${id}/compare`, {
+                    method: 'POST',
+                    body: JSON.stringify({ comparisonPath }),
                 })
             )
     )

@@ -878,6 +878,38 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'identity-awaiting-upload': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID upload still required: no in-review notice or support escalation.',
+        responses: {
+            'GET /users/me': {
+                // The demo baseline is verified; clear its prior decision and
+                // submission so this state really represents an unsubmitted upload.
+                identityVerification: {
+                    status: 'action_required',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'identity-review-overdue': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID submitted for review over seven days ago: overdue notice with support text link.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: {
+                    status: 'processing',
+                    reviewPending: true,
+                    submittedAt: '2026-08-20T12:00:00.000Z',
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts-and-payments',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',

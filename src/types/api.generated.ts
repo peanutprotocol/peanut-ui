@@ -5762,6 +5762,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6020,6 +6021,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6781,6 +6783,7 @@ export interface paths {
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
+                                hasStoredWithdrawApproval: boolean;
                                 hasWithdrawApproval: boolean;
                                 id: string;
                                 issuedAt: string;
@@ -7016,6 +7019,84 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/controller/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            changed: boolean;
+                            coordinatorAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7772,6 +7853,7 @@ export interface paths {
                         expiresAt: number;
                         preparationId: string;
                         recipientAddress: string;
+                        preparedCoordinatorAddress?: string;
                     };
                 };
             };
@@ -7818,7 +7900,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION";
+                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION" | "RAIN_CONTROLLER_CHANGED";
                             error: string;
                         };
                     };
@@ -8009,6 +8091,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -8277,6 +8360,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -12210,6 +12294,7 @@ export interface paths {
                                 };
                                 rejectLabels?: string[];
                                 reviewedAt?: string;
+                                reviewPending?: boolean;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };

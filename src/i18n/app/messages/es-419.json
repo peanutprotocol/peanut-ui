@@ -1337,6 +1337,7 @@
     },
     "qrPay": {
         "youArePaying": "Estás pagando",
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Procesando tu pago",
@@ -1892,6 +1893,7 @@
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "amountToWithdraw": "Monto a retirar",
         "amountToSend": "Monto a enviar",
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
@@ -2450,7 +2452,6 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
-        "toastTapToView": "Toca para ver",
         "unlock": {
             "invites": "Invita a {target, plural, one {# amigo que se una a Peanut} other {# amigos que se unan a Peanut}}.",
             "rewards": "Gana ${targetUsd} en recompensas.",
@@ -2659,8 +2660,7 @@
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
-        "toastChooseAvatar": "Elegir avatar"
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -3470,6 +3470,7 @@
             "successTitle": "Tarjeta reactivada",
             "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
+            "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Toca Reactivar tarjeta una vez más.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
             "reEnableCta": "Reactivar tarjeta",
             "workingCta": "Procesando…",

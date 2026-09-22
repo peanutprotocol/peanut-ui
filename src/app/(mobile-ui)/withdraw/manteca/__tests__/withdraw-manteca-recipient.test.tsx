@@ -156,6 +156,9 @@ jest.mock('@/services/manteca', () => ({
 
 import MantecaWithdrawPage from '../page'
 
+/** These fixtures intend a LIVE quote: the flow now refuses to sign or submit
+ *  against an expired price lock, so a fixed past date is a different case. */
+const LIVE_QUOTE_EXPIRY = new Date(Date.now() + 10 * 60_000).toISOString()
 const SERVED_ADDRESS = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
 const LEGACY_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
@@ -224,7 +227,7 @@ describe('bank-withdraw recipient at the signing boundary', () => {
         await driveToWithdraw({
             priceLockCode: 'pl-1',
             price: '1300',
-            expiresAt: '2026-09-14T00:00:00Z',
+            expiresAt: LIVE_QUOTE_EXPIRY,
             usdAmount: '10',
             fiatAmount: '13000.00',
             currency: 'ars',
@@ -238,7 +241,7 @@ describe('bank-withdraw recipient at the signing boundary', () => {
         await driveToWithdraw({
             priceLockCode: 'pl-1',
             price: '1300',
-            expiresAt: '2026-09-14T00:00:00Z',
+            expiresAt: LIVE_QUOTE_EXPIRY,
             usdAmount: '10',
             fiatAmount: '13000.00',
             currency: 'ars',
@@ -270,7 +273,7 @@ describe('current balance at Manteca submission boundaries', () => {
                 data: {
                     priceLockCode: 'pl-drop',
                     price: '1300',
-                    expiresAt: '2026-09-14T00:00:00Z',
+                    expiresAt: LIVE_QUOTE_EXPIRY,
                     usdAmount: '10',
                     fiatAmount: '13000.00',
                     currency: 'ars',
@@ -300,7 +303,7 @@ it('shows localized service-unavailable guidance instead of corporate debt-limit
     await driveToWithdraw({
         priceLockCode: 'pl-1',
         price: '1300',
-        expiresAt: '2026-09-14T00:00:00Z',
+        expiresAt: LIVE_QUOTE_EXPIRY,
         usdAmount: '10',
         fiatAmount: '13000.00',
         currency: 'ars',

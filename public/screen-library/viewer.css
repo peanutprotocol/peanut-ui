@@ -355,6 +355,9 @@ label {
 #locale-control {
     flex: 0 0 96px;
 }
+#profile-control {
+    flex: 0 0 130px;
+}
 #source-control {
     flex: 0 0 170px;
 }
@@ -1010,6 +1013,7 @@ footer {
         flex-basis: 100%;
     }
     #locale-control,
+    #profile-control,
     #flow-control,
     #status-control {
         flex: 1 1 120px;

@@ -1337,6 +1337,7 @@
     },
     "qrPay": {
         "youArePaying": "Você está pagando",
+        "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Processando seu pagamento",
@@ -1892,6 +1893,7 @@
         "bankNotAvailableNote": "Transferências bancárias não estão disponíveis no seu país. Você ainda pode adicionar e sacar cripto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "amountToWithdraw": "Valor a sacar",
         "amountToSend": "Valor a enviar",
         "howWouldYouLikeToWithdraw": "Como você quer sacar?",
@@ -2450,7 +2452,6 @@
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
-        "toastTapToView": "Toque para ver",
         "unlock": {
             "invites": "Convide {target, plural, one {# amigo que entre no Peanut} other {# amigos que entrem no Peanut}}.",
             "rewards": "Ganhe US$ {targetUsd} em recompensas.",
@@ -2659,8 +2660,7 @@
                 "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
-        "toastChooseAvatar": "Escolher avatar"
+        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}"
     },
     "notifications": {
         "setupTitle": "Ativar as notificações?",
@@ -3470,6 +3470,7 @@
             "successTitle": "Cartão reativado",
             "successDescription": "Seu cartão está pronto — tente o saque de novo.",
             "cancelledError": "A reativação foi cancelada. Toque em Reativar cartão para tentar de novo.",
+            "rotatedError": "Seu cartão foi atualizado enquanto salvávamos. Toque em Reativar cartão mais uma vez.",
             "unexpectedError": "Não conseguimos reativar seu cartão. Tente novamente.",
             "reEnableCta": "Reativar cartão",
             "workingCta": "Processando…",

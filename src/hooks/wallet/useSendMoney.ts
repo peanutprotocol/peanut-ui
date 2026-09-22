@@ -12,7 +12,13 @@ import { notifyHaptic } from '@/utils/haptics'
 import { toError } from '@/utils/to-error'
 import type { RainCollateralKind } from '@/services/rain'
 import { useSpendBundle } from './useSpendBundle'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError, type SpendStrategy } from './spendPreflight'
+import { SpendRecoveryAbortedError } from './signSpendRetry'
+import {
+    InsufficientSpendableError,
+    isUserCancellation,
+    SessionKeyGrantRequiredError,
+    type SpendStrategy,
+} from './spendPreflight'
 
 type SendMoneyParams = {
     toAddress: Address
@@ -125,6 +131,15 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             // refetch so the displayed balance settles on on-chain truth, not the
             // pre-tap cached value.
             queryClient.invalidateQueries({ queryKey: ['balance', address] })
+
+            if (error instanceof SpendRecoveryAbortedError) {
+                // The card re-approval prompt was dismissed, or the screen was
+                // left, before anything was prepared or signed. Not a failed
+                // payment: no failure log, no error copy. A dismissed prompt is
+                // worth a word; a screen the user already left is not.
+                if (isUserCancellation(error.cause)) toast.error(tErrors('cardApprovalCancelled'))
+                return
+            }
 
             console.error('[useSendMoney] Transaction failed, rolled back balance:', toError(error))
 
