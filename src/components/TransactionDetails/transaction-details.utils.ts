@@ -4,13 +4,12 @@ import { isCryptoAddressType } from '@/utils/account-mask.utils'
 // union type for all possible rows in the receipt
 export type TransactionDetailsRowKey =
     | 'createdAt'
-    | 'claimed'
+    | 'statusDate'
+    | 'from'
     | 'to'
     | 'tokenAndNetwork'
     | 'txId'
-    | 'cancelled'
-    | 'completed'
-    | 'refunded'
+    | 'conversion'
     | 'exchangeRate'
     | 'bankAccountDetails'
     | 'transferId'
@@ -25,24 +24,19 @@ export type TransactionDetailsRowKey =
     | 'attachment'
     | 'mantecaDepositInfo'
     | 'cardPayment'
-    | 'closed'
-    | 'reference'
-    | 'issuedOn'
 
 // order of the rows in the receipt (must match actual rendering order in component)
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'createdAt',
-    'cancelled',
-    'claimed',
-    'completed',
-    'refunded',
-    'closed',
+    'statusDate',
+    'from',
     'to',
     'tokenAndNetwork',
     'txId',
     'cardPayment',
     'fee',
     'mantecaDepositInfo',
+    'conversion',
     'exchangeRate',
     'bankAccountDetails',
     'paymentReference',
@@ -54,15 +48,8 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'networkFee',
     'peanutFee',
     'attachment',
-    'reference',
-    'issuedOn',
 ]
 
-/** the receipt's issuance timestamp — the moment the documented state was
- *  established, never the download time. status-branched: cancelled/closed
- *  receipts date from the cancellation, refunded from the refund, completed
- *  from settlement/claim, pending from creation. one rule shared by the
- *  details-card row and the pdf model so the two can never disagree. */
 /**
  * The amount a receipt leads with, and the sign in front of it.
  *
@@ -89,51 +76,73 @@ export const receiptHeadlineAmount = (
     return { amount: Number.isFinite(fallbackAmount) ? fallbackAmount : 0, sign, isCollectedTotal: false }
 }
 
-export const receiptIssuedAt = (transaction: {
+/** Which lifecycle event a receipt's status-dated row names. */
+export type ReceiptStatusDateKind = 'created' | 'completed' | 'claimed' | 'cancelled' | 'refunded' | 'closed'
+
+/**
+ * The receipt's status date: the moment the documented state was established,
+ * never the download time. Cancelled and closed receipts date from the
+ * cancellation, refunded from the refund, completed from the claim or
+ * settlement, pending from creation.
+ *
+ * One rule for the details card's status row and the PDF's "Date" line, so
+ * the two can never disagree. It replaced a separate "Issued on" row that
+ * printed the same value as the Completed / Cancelled row above it.
+ */
+export const receiptStatusDate = (transaction: {
     status?: string
     cancelledDate?: string | Date
     completedAt?: string | Date
     claimedAt?: string | Date
     createdAt?: string | Date
     date: string | Date
-}): Date | undefined => {
+}): { kind: ReceiptStatusDateKind; date: Date } | undefined => {
     const { status } = transaction
-    const source =
-        status === 'cancelled'
-            ? transaction.cancelledDate || transaction.createdAt || transaction.date
-            : status === 'closed'
-              ? transaction.cancelledDate || transaction.date || transaction.createdAt
-              : status === 'refunded'
-                ? transaction.date || transaction.completedAt || transaction.createdAt
-                : status === 'completed'
-                  ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
-                  : transaction.createdAt || transaction.date
-    return source ? new Date(source) : undefined
+    let kind: ReceiptStatusDateKind
+    let source: string | Date | undefined
+    if (status === 'cancelled') {
+        kind = 'cancelled'
+        source = transaction.cancelledDate || transaction.createdAt || transaction.date
+    } else if (status === 'closed') {
+        kind = 'closed'
+        source = transaction.cancelledDate || transaction.date || transaction.createdAt
+    } else if (status === 'refunded') {
+        kind = 'refunded'
+        source = transaction.date || transaction.completedAt || transaction.createdAt
+    } else if (status === 'completed') {
+        // A claim completes a link, so a claimed receipt names the claim once
+        // instead of printing both a Claimed and a Completed row.
+        kind = transaction.claimedAt ? 'claimed' : 'completed'
+        source = transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
+    } else {
+        kind = 'created'
+        source = transaction.createdAt || transaction.date
+    }
+    if (!source) return undefined
+    const date = new Date(source)
+    return isNaN(date.getTime()) ? undefined : { kind, date }
 }
 
+/** Whether two receipt timestamps print as the same value. Receipt dates show
+ *  minutes, so two events inside one minute read as one repeated row. */
+export const isSameReceiptMinute = (a: Date, b: Date): boolean =>
+    Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000)
+
+// SEPA structured-remittance fields arrive with a "/ROC/" (reference of the
+// originator customer) tag, and banks fill an empty one with "NOT PROVIDED".
+const SENDER_NOTE_TAG = /^\/ROC\//i
+const SENDER_NOTE_PLACEHOLDER = /^NOT\s*PROVIDED$/i
+
 /**
- * Whether the receipt's document-id row says anything the receipt does not
- * already say.
- *
- * The row prints the history-entry id. On a bank rail that same id already
- * prints as "Transfer ID", and on a crypto entry the id IS the transaction
- * hash, already printed as "Transaction ID". Both cases used to print the
- * value twice under two different names. Print the row only when the id
- * appears nowhere else. One rule for the screen and the pdf.
+ * The payer's note on a bank deposit, or undefined when there is nothing a
+ * person wrote. A placeholder such as "/ROC/NOT PROVIDED" is not a note: the
+ * row printed it as if the payer had typed it. Third-party text — render it
+ * as plain text only.
  */
-export const showsReceiptReferenceRow = (transaction: {
-    id?: string
-    txHash?: string | null
-    direction?: string
-    status?: string
-}): boolean => {
-    if (!transaction.id) return false
-    const showsTransferIdRow =
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.status !== 'cancelled'
-    if (showsTransferIdRow) return false
-    // The ids are case-sensitive lookup keys; telling them apart is not.
-    return !transaction.txHash || transaction.txHash.toLowerCase() !== transaction.id.toLowerCase()
+export const senderNoteText = (raw: string | null | undefined): string | undefined => {
+    const text = (raw ?? '').trim().replace(SENDER_NOTE_TAG, '').trim()
+    if (!text || SENDER_NOTE_PLACEHOLDER.test(text)) return undefined
+    return text
 }
 
 /** Which label a bank-account row carries. Callers map it to display text —

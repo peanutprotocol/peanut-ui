@@ -16,9 +16,12 @@ import { isStableCoin } from '@/utils/general.utils'
 export function ReceiptTokenRows({
     transaction,
     isPeanutWalletToken,
+    showsTokenAmount,
 }: {
     transaction: TransactionDetails
     isPeanutWalletToken: boolean
+    /** False when the conversion row already prints the token amount. */
+    showsTokenAmount: boolean
 }) {
     const t = useAppTranslations('transaction')
     const { tokenData, isLoading } = useTokenDisplay(transaction)
@@ -30,7 +33,7 @@ export function ReceiptTokenRows({
 
     return (
         <>
-            {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
+            {showsTokenAmount && !isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
                 <DataRow label={t('rows.tokenAmount')} value={transaction.amount} />
             )}
             {!isPeanutWalletToken && (

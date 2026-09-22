@@ -16,8 +16,9 @@ import {
     getAccountCopyValue,
     bankAccountLabelKey,
     receiptHeadlineAmount,
-    receiptIssuedAt,
-    showsReceiptReferenceRow,
+    isSameReceiptMinute,
+    receiptStatusDate,
+    senderNoteText,
 } from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
@@ -96,7 +97,7 @@ describe('bankAccountLabelKey', () => {
     })
 })
 
-describe('receiptIssuedAt', () => {
+describe('receiptStatusDate', () => {
     const base = {
         date: '2026-08-01T10:00:00.000Z',
         createdAt: '2026-08-01T10:00:00.000Z',
@@ -104,25 +105,74 @@ describe('receiptIssuedAt', () => {
         claimedAt: '2026-08-03T09:00:00.000Z',
         cancelledDate: '2026-08-04T15:00:00.000Z',
     }
+    const at = (tx: Parameters<typeof receiptStatusDate>[0]) => {
+        const result = receiptStatusDate(tx)
+        return result && { kind: result.kind, date: result.date.toISOString() }
+    }
 
-    it('completed receipts date from the claim/settlement', () => {
-        expect(receiptIssuedAt({ ...base, status: 'completed' })?.toISOString()).toBe(base.claimedAt)
-        expect(receiptIssuedAt({ ...base, status: 'completed', claimedAt: undefined })?.toISOString()).toBe(
-            base.completedAt
-        )
+    it('a claimed receipt names the claim once, not the claim and the completion', () => {
+        expect(at({ ...base, status: 'completed' })).toEqual({ kind: 'claimed', date: base.claimedAt })
+        expect(at({ ...base, status: 'completed', claimedAt: undefined })).toEqual({
+            kind: 'completed',
+            date: base.completedAt,
+        })
     })
 
     it('cancelled and closed receipts date from the cancellation', () => {
-        expect(receiptIssuedAt({ ...base, status: 'cancelled' })?.toISOString()).toBe(base.cancelledDate)
-        expect(receiptIssuedAt({ ...base, status: 'closed' })?.toISOString()).toBe(base.cancelledDate)
+        expect(at({ ...base, status: 'cancelled' })).toEqual({ kind: 'cancelled', date: base.cancelledDate })
+        expect(at({ ...base, status: 'closed' })).toEqual({ kind: 'closed', date: base.cancelledDate })
     })
 
     it('refunded receipts date from the refund (the display date)', () => {
-        expect(receiptIssuedAt({ ...base, status: 'refunded' })?.toISOString()).toBe(base.date)
+        expect(at({ ...base, status: 'refunded' })).toEqual({ kind: 'refunded', date: base.date })
     })
 
     it('pending receipts date from creation', () => {
-        expect(receiptIssuedAt({ ...base, status: 'pending' })?.toISOString()).toBe(base.createdAt)
+        expect(at({ ...base, status: 'pending' })).toEqual({ kind: 'created', date: base.createdAt })
+    })
+
+    it('yields nothing for an unreadable date rather than an Invalid Date', () => {
+        expect(receiptStatusDate({ status: 'pending', date: 'not-a-date', createdAt: 'not-a-date' })).toBeUndefined()
+    })
+})
+
+describe('isSameReceiptMinute', () => {
+    it('reads two events inside one printed minute as the same value', () => {
+        expect(isSameReceiptMinute(new Date('2026-08-01T10:00:05.000Z'), new Date('2026-08-01T10:00:55.000Z'))).toBe(
+            true
+        )
+    })
+
+    it('tells apart events a minute apart', () => {
+        expect(isSameReceiptMinute(new Date('2026-08-01T10:00:55.000Z'), new Date('2026-08-01T10:01:05.000Z'))).toBe(
+            false
+        )
+    })
+})
+
+/**
+ * SEPA remittance fields carry a "/ROC/" tag, and a payer who typed nothing
+ * arrives as "/ROC/NOT PROVIDED". The Sender's note row printed that as if a
+ * person had written it.
+ */
+describe('senderNoteText', () => {
+    it.each([
+        ['/ROC/NOT PROVIDED'],
+        ['/roc/not provided'],
+        ['/ROC/'],
+        ['NOTPROVIDED'],
+        ['NOT PROVIDED'],
+        [''],
+        ['   '],
+        [null],
+        [undefined],
+    ])('treats %p as no note', (raw) => {
+        expect(senderNoteText(raw)).toBeUndefined()
+    })
+
+    it('keeps what the payer wrote, without the SEPA tag', () => {
+        expect(senderNoteText('/ROC/INVOICE 4471')).toBe('INVOICE 4471')
+        expect(senderNoteText('  Rent March ')).toBe('Rent March')
     })
 })
 
@@ -152,68 +202,5 @@ describe('receiptHeadlineAmount', () => {
     it('reads an unusable amount as zero rather than printing NaN', () => {
         expect(receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: null }, 0, '').amount).toBe(0)
         expect(receiptHeadlineAmount({}, Number.NaN, '-').amount).toBe(0)
-    })
-})
-
-/**
- * The receipt's document-id row. It prints the history-entry id, which on a
- * bank rail is the transfer id and on a crypto entry is the transaction hash
- * — both already printed one row above under their own label. The row used to
- * repeat them, so a real Bridge withdrawal showed the same value twice.
- */
-describe('showsReceiptReferenceRow', () => {
-    it('drops out on a bank withdrawal, where Transfer ID already prints the id', () => {
-        expect(
-            showsReceiptReferenceRow({
-                id: '11111111-2222-3333-4444-555555555555',
-                direction: 'bank_withdraw',
-                status: 'completed',
-            })
-        ).toBe(false)
-    })
-
-    it('drops out on a bank claim for the same reason', () => {
-        expect(showsReceiptReferenceRow({ id: 'abc-def', direction: 'bank_claim', status: 'completed' })).toBe(false)
-    })
-
-    it('shows on a cancelled bank withdrawal, where the Transfer ID row is hidden', () => {
-        expect(showsReceiptReferenceRow({ id: 'abc-def', direction: 'bank_withdraw', status: 'cancelled' })).toBe(true)
-    })
-
-    it('drops out when the id IS the hash the Transaction ID row prints', () => {
-        expect(
-            showsReceiptReferenceRow({
-                id: '0x8b5cdd00ab',
-                txHash: '0x8b5cdd00ab',
-                direction: 'crypto_deposit',
-                status: 'completed',
-            })
-        ).toBe(false)
-    })
-
-    it('compares the id and the hash without case, because only the copy is case-sensitive', () => {
-        expect(
-            showsReceiptReferenceRow({
-                id: '0X8B5C00AB',
-                txHash: '0x8b5c00ab',
-                direction: 'crypto_deposit',
-                status: 'completed',
-            })
-        ).toBe(false)
-    })
-
-    it('still shows when the id names something no other row carries', () => {
-        expect(
-            showsReceiptReferenceRow({
-                id: '11111111-2222-3333-4444-555555555555',
-                txHash: '0x8b5c00ab',
-                direction: 'direct_transfer',
-                status: 'completed',
-            })
-        ).toBe(true)
-    })
-
-    it('shows nothing when there is no id', () => {
-        expect(showsReceiptReferenceRow({ direction: 'direct_transfer', status: 'completed' })).toBe(false)
     })
 })

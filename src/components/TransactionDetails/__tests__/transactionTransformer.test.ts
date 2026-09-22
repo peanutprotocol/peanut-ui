@@ -895,6 +895,48 @@ describe('mapTransactionDataForDrawer', () => {
             expect(deposit().extraDataForDrawer?.senderReference).toBeUndefined()
             expect(deposit('   ').extraDataForDrawer?.senderReference).toBeUndefined()
         })
+
+        it('is absent when the bank sent a SEPA placeholder instead of a note', () => {
+            expect(deposit('/ROC/NOT PROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('/ROC/').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('NOTPROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+    })
+
+    describe("payer of a deposit into the user's bank details", () => {
+        // Shapes from peanut-api-ts src/db/history.ts: a deposit-account
+        // deposit has the payer's bank as sender, typed by its rail; the
+        // user's own one-off deposit has their wallet as sender.
+        const deposit = (senderAccount: HistoryEntry['senderAccount']) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+                })
+            ).transactionDetails.extraDataForDrawer
+
+        it('carries the payer name the bank reported', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false, fullName: ' Ana Pérez ' })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBe('Ana Pérez')
+        })
+
+        it('is still a deposit-account deposit when the bank sent no name', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
+        it("is not one when the sender is the user's own wallet or an address", () => {
+            expect(
+                deposit({ identifier: '0xabc', type: 'peanut-wallet', isUser: true })?.isDepositAccountDeposit
+            ).toBeUndefined()
+            expect(
+                deposit({ identifier: '0xabc', type: 'evm-address', isUser: false })?.isDepositAccountDeposit
+            ).toBeUndefined()
+        })
     })
 
     describe('payment reference on a bank withdrawal', () => {

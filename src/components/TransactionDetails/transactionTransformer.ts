@@ -18,8 +18,11 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
-import { parseWireAmount } from './transaction-details.utils'
+import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+
+/** Sender account types that are not a payer's bank account. */
+const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -426,8 +429,17 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
-        /** The payer's own reference on a bank deposit, as their bank sent it. */
+        /** The payer's own note on a bank deposit, as their bank sent it.
+         *  Undefined for an empty field or a bank placeholder
+         *  ("/ROC/NOT PROVIDED") — see senderNoteText. */
         senderReference?: string
+        /** A deposit someone else paid into the user's bank details (a
+         *  standing deposit account), as opposed to the user's own one-off
+         *  bank deposit. */
+        isDepositAccountDeposit?: boolean
+        /** The payer's name as their bank reported it. Owner-only: the API
+         *  withholds it from anyone else. Deposit-account deposits only. */
+        payerName?: string
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
@@ -648,6 +660,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // if showFullName is false or undefined, use username; otherwise use fullName
     const nameForInitials = showFullName && fullName ? fullName : nameForDetails
 
+    // A deposit into the user's standing bank details. The wire carries no flag
+    // for it, so read the shape the API gives it (peanut-api-ts
+    // src/db/history.ts, `isDepositAccount`): the payer's bank account is the
+    // sender, typed by its rail. Every other deposit names the user's own
+    // wallet ('peanut-wallet') or an on-chain address as the sender.
+    const isDepositAccountDeposit =
+        direction === 'bank_deposit' &&
+        entry.senderAccount?.isUser === false &&
+        !NON_BANK_SENDER_TYPES.has(entry.senderAccount.type)
+
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
         intentKindOf(entry) === 'CRYPTO_DEPOSIT' && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
@@ -724,7 +746,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
-            senderReference: entry.extraData?.senderReference?.trim() || undefined,
+            senderReference: senderNoteText(entry.extraData?.senderReference),
+            isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant

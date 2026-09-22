@@ -2096,14 +2096,13 @@
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
-            "reference": "Referencia del recibo",
-            "issuedOn": "Fecha de emisión",
             "pdf": {
                 "title": "Comprobante de la transacción",
                 "issuedBy": "Emitido por Squirrel Labs Ltd",
                 "type": "Tipo",
                 "status": "Estado",
-                "from": "De"
+                "from": "De",
+                "date": "Fecha"
             }
         },
         "receiptUnavailable": {
@@ -2200,6 +2199,8 @@
             "received": "Recibido",
             "refunded": "Reembolsado",
             "closedAt": "Cerrado el",
+            "from": "De",
+            "fromNameNotProvided": "Transferencia bancaria (nombre no informado)",
             "to": "Para",
             "tokenAmount": "Monto del token",
             "tokenAndNetwork": "Token y red",
@@ -2207,7 +2208,7 @@
             "txId": "ID de transacción",
             "fee": "Comisión",
             "transferId": "ID de transferencia",
-            "senderReference": "Referencia del remitente",
+            "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
@@ -2216,7 +2217,8 @@
             "reason": "Motivo",
             "accountNumber": "Número de cuenta",
             "address": "Dirección",
-            "estimateConversion": "Conversión estimada"
+            "estimateConversion": "Conversión estimada",
+            "converted": "Convertido"
         },
         "returnedReason": "El banco devolvió este pago. Suele pasar cuando los datos no coinciden con el nombre de quien envía, o cuando su banco lo rechaza.",
         "perkBanner": {

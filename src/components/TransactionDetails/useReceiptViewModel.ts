@@ -4,18 +4,18 @@ import { useMemo } from 'react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
-    receiptIssuedAt,
-    showsReceiptReferenceRow,
+    isSameReceiptMinute,
+    parseWireAmount,
+    receiptStatusDate,
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
+import { receiptConvertedAmount, receiptExchangeRate } from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
     hasResolvableReceiptDocument,
     servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
-    isFxBearingFlow,
-    isDirectSendEntry,
     isMantecaOnrampEntry,
     isOnrampEntry,
     isQRPayment as isQRPaymentTransaction,
@@ -24,7 +24,7 @@ import {
 } from '@/components/TransactionDetails/transaction-predicates'
 import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provider-rows/CardPaymentRows'
 import { countryData } from '@/components/AddMoney/consts'
-import { getContributorsFromCharge, formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { getContributorsFromCharge, formatCurrency } from '@/utils/general.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 const ALL_ROWS_HIDDEN = transactionDetailsRowKeys.reduce(
@@ -152,14 +152,33 @@ export function useReceiptViewModel(
     const rowVisibilityConfig = useMemo<Record<TransactionDetailsRowKey, boolean>>(() => {
         if (!transaction) return ALL_ROWS_HIDDEN
 
-        // Hide "Created" when "Sent"/"Completed" is about to render — same
-        // lifecycle event for off-ramps / bank claims; keep "Created" as the
-        // fallback for pending states.
-        const willShowCompleted = !!(
-            transaction.status === 'completed' &&
-            transaction.completedAt &&
-            !isDirectSendEntry(transaction)
+        // Dates: Created, plus one row for the state the receipt documents
+        // (Completed / Claimed / Cancelled / Refunded / Closed). Created drops
+        // out only when it would print the same minute as that row.
+        const statusDate = receiptStatusDate(transaction)
+        const showsStatusDate = !!statusDate && statusDate.kind !== 'created'
+        const createdAt = transaction.createdAt ? new Date(transaction.createdAt) : undefined
+        const showsCreatedAt =
+            !!createdAt &&
+            !isNaN(createdAt.getTime()) &&
+            !(showsStatusDate && isSameReceiptMinute(createdAt, statusDate.date))
+
+        // Conversion: one row for one conversion. A settled one folds the
+        // rate into the "Converted" row; a pending one keeps the estimate
+        // and the rate as two rows that say different things.
+        const showsConversion = !!receiptConvertedAmount(transaction) && transaction.status !== 'cancelled'
+        const foldsRateIntoConversion = showsConversion && transaction.status === 'completed'
+
+        const showsNetworkFee = !!(
+            transaction.networkFeeDetails &&
+            transaction.sourceView === 'status' &&
+            transaction.status !== 'cancelled'
         )
+        // "Fee" and "Network fee" are one charge when they print one number.
+        const feeRepeatsNetworkFee =
+            showsNetworkFee &&
+            transaction.fee !== undefined &&
+            parseWireAmount(transaction.networkFeeDetails!.amountDisplay) === Number(transaction.fee)
 
         // "Show the user's own data even when the tx is in a cancelled state"
         // gate. True for everything that isn't cancelled, plus the
@@ -167,7 +186,13 @@ export function useReceiptViewModel(
         const allowCancelledSenderFields = transaction.status !== 'cancelled' || isSendLinkSenderCancelled
 
         return {
-            createdAt: !!transaction.createdAt && !willShowCompleted,
+            createdAt: showsCreatedAt,
+            statusDate: showsStatusDate,
+            // The payer of a deposit into the user's bank details. The name is
+            // owner-only (the API withholds it from anyone else), so the row
+            // is too; when the payer's bank sent no name the row says so
+            // rather than disappearing.
+            from: !isPublic && !!transaction.extraDataForDrawer?.isDepositAccountDeposit,
             to: transaction.direction === 'claim_external',
             tokenAndNetwork: !!(
                 transaction.tokenDisplayDetails &&
@@ -185,23 +210,9 @@ export function useReceiptViewModel(
                 transaction.status !== 'refunded'
             ),
             txId: !!transaction.txHash,
-            cancelled: transaction.status === 'cancelled',
-            claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
-            completed: !!(
-                transaction.status === 'completed' &&
-                transaction.completedAt &&
-                !isDirectSendEntry(transaction)
-            ),
-            refunded: transaction.status === 'refunded',
-            fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
-            exchangeRate: !!(
-                isFxBearingFlow(transaction) &&
-                transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD' &&
-                // No FX between USD and USDC/USDT — suppress the rate row.
-                !isStableCoin(transaction.currency.code) &&
-                transaction.status !== 'cancelled'
-            ),
+            fee: transaction.fee !== undefined && transaction.status !== 'cancelled' && !feeRepeatsNetworkFee,
+            conversion: showsConversion,
+            exchangeRate: !!receiptExchangeRate(transaction) && !foldsRateIntoConversion,
             bankAccountDetails: !!(
                 transaction.bankAccountDetails &&
                 transaction.bankAccountDetails.identifier &&
@@ -241,11 +252,7 @@ export function useReceiptViewModel(
             // cancel — the data belongs to the sender, not the (never-arrived)
             // recipient. Bank/onramp cancellations hide these as before.
             comment: !!(transaction.memo?.trim() && allowCancelledSenderFields),
-            networkFee: !!(
-                transaction.networkFeeDetails &&
-                transaction.sourceView === 'status' &&
-                transaction.status !== 'cancelled'
-            ),
+            networkFee: showsNetworkFee,
             attachment: !!(transaction.attachmentUrl && allowCancelledSenderFields),
             // Provider isn't plumbed through to the FE, so this branch lights
             // up for any FIAT_ONRAMP. Bridge onramps with a deposit_instructions
@@ -256,15 +263,6 @@ export function useReceiptViewModel(
             // otherwise an "all-data-absent" card spend leaves the slot
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
-            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
-            // document rows: the entry id ties any shared or printed receipt
-            // back to the source activity, and the issuance date follows the
-            // shared status-branched rule (receiptIssuedAt) — both render
-            // only from real source fields, never fabricated. the row drops
-            // out when the Transfer ID or Transaction ID row above already
-            // prints the same id, which is what made it read as a duplicate.
-            reference: showsReceiptReferenceRow(transaction),
-            issuedOn: !!receiptIssuedAt(transaction),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 

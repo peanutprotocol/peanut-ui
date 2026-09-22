@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
@@ -9,7 +9,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
-import { formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { PerkIcon } from './PerkIcon'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
@@ -62,28 +62,6 @@ export const TransactionDetailsReceipt = ({
     // hook so this component stays focused on composition.
     const vm = useReceiptViewModel(transaction, { isPublic })
     const { formattedTotalAmountCollected } = vm
-
-    const convertedAmount = useMemo(() => {
-        if (!transaction) return null
-        // Preference order:
-        //   1. Local fiat (e.g. ARS for Manteca on/off-ramps) via currency.code/amount
-        //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
-        //      — full decimals here, not truncated, so the receipt is auditable.
-        // USD-pegged stablecoins are skipped (same rule as TransactionCard).
-        const code = transaction.currency?.code
-        const amount = transaction.currency?.amount
-        if (code && amount) {
-            const upper = code.toUpperCase()
-            if (upper !== 'USD' && !isStableCoin(upper)) {
-                return `${upper} ${formatCurrency(amount)}`
-            }
-        }
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
-            return `${transaction.tokenAmount} ${tokenSymbol}`
-        }
-        return null
-    }, [transaction])
 
     if (!transaction) return null
 
@@ -235,12 +213,7 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            <ReceiptDetailsCard
-                transaction={transaction}
-                vm={vm}
-                shouldShowQrShare={shouldShowQrShare}
-                convertedAmount={convertedAmount ?? undefined}
-            />
+            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={shouldShowQrShare} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
