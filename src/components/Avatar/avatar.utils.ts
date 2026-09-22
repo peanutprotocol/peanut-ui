@@ -36,8 +36,9 @@ export const avatarPool = (heldCodes: readonly string[]): string[] => [
     ...badgeAvatarKeys(heldCodes),
 ]
 
-// slots 2-8 of the hand; slot 1 is the initial and slot 9 is the die
-const DEALT = 7
+// slots 2-5 of the hand; slot 1 is the initial and slot 6 is the die. Four
+// dealt stickers keep the drawer to one 2x3 screen on every phone (TASK-22677).
+const DEALT = 4
 
 /**
  * The given keys, each drawing once: a key whose art this bundle does not know
@@ -56,11 +57,11 @@ const distinctArt = (keys: readonly string[]): string[] => {
 
 /**
  * The hand the picker deals: index 0 is always the initial (null) and never
- * re-deals, then seven keys from the deck — the basics plus what the user's
+ * re-deals, then four keys from the deck — the basics plus what the user's
  * badges unlocked. One is guaranteed to be an earned badge avatar whenever the
  * user holds a badge with art (`prefer` narrows that draw to one badge, for the
  * badge-earned toast's deep link), the current pick stays in the hand so the
- * selected state is on screen, and the rest fills the seven. Slots 2-8 are
+ * selected state is on screen, and the rest fills the four. Slots 2-5 are
  * shuffled together and no two of them draw the same art. Rolling deals again
  * and never changes the pick (Split's semantics: the die changes what is
  * offered, not who you are).

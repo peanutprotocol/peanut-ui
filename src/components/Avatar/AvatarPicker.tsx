@@ -26,7 +26,7 @@ interface AvatarPickerProps {
 
 const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
-/** Eight tiles: the user's initial, then basics and unlocked badge art. Taps save; rolls only deal. */
+/** Six cells in a 2x3 grid: the user's initial, four dealt stickers, the die. Taps save; rolls only deal. */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
     const badgeCopy = useBadgeCopy()

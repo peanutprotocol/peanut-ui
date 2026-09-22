@@ -88,11 +88,11 @@ describe('dealHand', () => {
     const unlocked = badgeAvatarKeys(['BUG_WHISPERER'])
     const isBadge = (key: string | null) => !!key?.startsWith('badge.')
 
-    it('deals the initial first, then seven distinct keys from the pool', () => {
+    it('deals the initial first, then four distinct keys from the pool', () => {
         const hand = dealHand(null, unlocked, { random: seeded(1) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(5)
         expect(hand[0]).toBeNull()
-        expect(new Set(hand).size).toBe(8)
+        expect(new Set(hand).size).toBe(5)
         for (const key of hand.slice(1)) expect(avatarPool(['BUG_WHISPERER'])).toContain(key)
     })
 
@@ -107,22 +107,22 @@ describe('dealHand', () => {
 
     it('does not deal a pick this manifest does not know', () => {
         const hand = dealHand('basic.peanut', unlocked, { random: seeded(7) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(5)
         expect(hand).not.toContain('basic.peanut')
     })
 
-    // slot 1 draws the initial itself, so a letter in slots 2-8 would be the
+    // slot 1 draws the initial itself, so a letter in slots 2-5 would be the
     // same sticker twice, with both tiles checked
     it('does not deal a letter pick', () => {
         const hand = dealHand('letter.k', unlocked, { random: seeded(8) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(5)
         expect(hand).not.toContain('letter.k')
         expect(hand.map(avatarSrc)).not.toContain('/avatars/letter/k.webp')
     })
 
     it('deals only basics to a user with no badges', () => {
         const hand = dealHand(null, [], { random: seeded(3) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(5)
         expect(hand.slice(1).every((key) => key?.startsWith('basic.'))).toBe(true)
     })
 
@@ -144,8 +144,8 @@ describe('dealHand', () => {
             const art = dealHand('basic.sun', twice, { random: seeded(seed) })
                 .slice(1)
                 .map(avatarSrc)
-            expect(art).toHaveLength(7)
-            expect(new Set(art).size).toBe(7)
+            expect(art).toHaveLength(4)
+            expect(new Set(art).size).toBe(4)
             expect(art).not.toContain(null)
         }
     })

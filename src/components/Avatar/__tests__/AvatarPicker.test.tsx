@@ -68,9 +68,9 @@ const tiles = () => screen.getAllByRole('radio')
 const tile = (name: RegExp) => screen.getByRole('radio', { name })
 const die = () => screen.getByRole('button', { name: 'Roll the die' })
 
-// Math.random is pinned to 0 for the suite, which deals a fixed hand: the
-// initial, then apple, avocado, cactus, cloud, cube, donut and one earned
-// beetle. The cast copy is what a tile prints, so the tiles are named by it.
+// Math.random is pinned to 0 for the suite, which deals a fixed hand of five:
+// the initial, one earned beetle, then apple, avocado and cactus. The cast
+// copy is what a tile prints, so the tiles are named by it.
 const A = /Jackpot Cherry/
 const B = /Watermelon Slice/
 const KEY_A = 'basic.apple'
@@ -124,10 +124,10 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 describe('AvatarPicker', () => {
-    it('deals a hand of eight tiles and the die', () => {
+    it('deals a hand of five tiles and the die', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tiles()).toHaveLength(8)
+        expect(tiles()).toHaveLength(5)
         expect(die()).toBeInTheDocument()
     })
 
@@ -146,7 +146,7 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tile(A)).toHaveTextContent('Two short of rich')
-        expect(tile(/Grumpy Raincloud/)).toHaveTextContent('Complains, still comes')
+        expect(tile(/Bold Chili/)).toHaveTextContent('Picked the spicy one')
         for (const el of tiles()) expect(el.textContent?.trim()).not.toBe('')
     })
 
@@ -233,11 +233,11 @@ describe('AvatarPicker', () => {
 
     // a radiogroup may only hold radios, so the die sits beside the tiles in
     // the same grid rather than inside the group
-    it('puts the eight tiles in the radiogroup and the die outside it', () => {
+    it('puts the five tiles in the radiogroup and the die outside it', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
-        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(8).fill('radio'))
+        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(5).fill('radio'))
         expect(group.contains(die())).toBe(false)
     })
 
@@ -271,8 +271,8 @@ describe('AvatarPicker', () => {
         ]
         const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        // nothing to deal from yet: eight tiles, but no badge and no initial
-        expect(tiles()).toHaveLength(8)
+        // nothing to deal from yet: five tiles, but no badge and no initial
+        expect(tiles()).toHaveLength(5)
         expect(screen.queryByText('Earned')).not.toBeInTheDocument()
         expect(screen.queryByText('Just S')).not.toBeInTheDocument()
 
@@ -514,7 +514,7 @@ describe('AvatarPicker', () => {
         await server.settle(0, { error: 'Could not save' })
 
         await waitFor(() => expect(tile(/Shell/)).toHaveAttribute('aria-checked', 'true'))
-        expect(tiles()).toHaveLength(8)
+        expect(tiles()).toHaveLength(5)
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
     })
 

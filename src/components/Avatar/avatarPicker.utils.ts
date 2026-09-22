@@ -1,12 +1,12 @@
 import type { KeyboardEvent } from 'react'
 
-export const AVATAR_PICKER_COLUMNS = 3
+export const AVATAR_PICKER_COLUMNS = 2
 
 /**
  * One tab stop per radiogroup; arrows move between tiles and wrap. Left and
  * right walk the whole hand; up and down stay in their column and wrap within
- * it, so a hand whose size is not a multiple of the column count (eight tiles
- * in three columns) never drifts sideways.
+ * it, so a hand whose size is not a multiple of the column count (five tiles
+ * in two columns) never drifts sideways.
  */
 export function roveAvatarTiles(event: KeyboardEvent<HTMLDivElement>): void {
     const step = {
