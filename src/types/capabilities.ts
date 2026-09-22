@@ -233,6 +233,8 @@ export interface IdentityVerification {
     rejectLabels?: string[]
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
+    /** Set by the API only for an uploaded identity check awaiting a decision. */
+    reviewPending?: boolean
     /** ISO timestamp the decision landed. */
     reviewedAt?: string
 }

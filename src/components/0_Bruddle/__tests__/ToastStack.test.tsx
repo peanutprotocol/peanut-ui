@@ -1,5 +1,4 @@
-import { screen } from '@testing-library/react'
-// the dismiss aria-label comes from the common catalog via useTranslations
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ToastStack from '../ToastStack'
@@ -35,6 +34,7 @@ describe('ToastStack', () => {
     // this is the rain cooldown pill's real path (RainCooldownContext:111 —
     // content set, no hideIcon from the caller).
     test('custom-content toast renders exactly one icon: the content one, not the stock priority icon', () => {
+        const dismiss = jest.fn()
         const { container } = render(
             <ToastStack
                 toasts={[
@@ -49,25 +49,21 @@ describe('ToastStack', () => {
                         ),
                     },
                 ]}
-                dismiss={() => {}}
+                dismiss={dismiss}
             />
         )
-        const dismissButton = screen.getByRole('button', { name: 'Close' })
-        // svgs in the pill: the content's clock + the dismiss X — nothing else
-        const svgsOutsideDismiss = Array.from(container.querySelectorAll('svg')).filter(
-            (svg) => !dismissButton.contains(svg)
-        )
-        expect(svgsOutsideDismiss).toHaveLength(1)
+        const close = screen.getByRole('button', { name: 'Close' })
+        expect(container.querySelectorAll('svg')).toHaveLength(2) // content icon + close glyph
         expect(screen.getByText(/Card cool-down/)).toBeInTheDocument()
+        expect(screen.getAllByRole('button')).toHaveLength(1)
+        fireEvent.click(close)
+        expect(dismiss).toHaveBeenCalledWith('rain-cooldown')
     })
 
     test('plain-message toast keeps the stock priority icon', () => {
         const { container } = render(<ToastStack toasts={[{ id: 1, message: 'Link copied' }]} dismiss={() => {}} />)
-        const dismissButton = screen.getByRole('button', { name: 'Close' })
-        const svgsOutsideDismiss = Array.from(container.querySelectorAll('svg')).filter(
-            (svg) => !dismissButton.contains(svg)
-        )
-        expect(svgsOutsideDismiss).toHaveLength(1)
+        expect(container.querySelectorAll('svg')).toHaveLength(2) // priority icon + close glyph
+        expect(screen.getAllByRole('button')).toHaveLength(1)
     })
 
     // chip: the countdown strip going static was only half of it — an 80px

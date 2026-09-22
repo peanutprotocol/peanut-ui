@@ -11,6 +11,7 @@ import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -460,7 +461,7 @@ const UnlockPayments = () => {
                 </Callout>
             )}
 
-            {isIdentityInReview && !isKycDegraded && (
+            {isIdentityInReview && identity.reviewPending === true && !isKycDegraded && (
                 <Callout
                     priority="helper"
                     title={
@@ -468,13 +469,15 @@ const UnlockPayments = () => {
                             ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
                             : t('review.since')
                     }
-                    ctas={
-                        reviewEscalation
-                            ? [{ label: t('review.messageUs'), onClick: () => setIsSupportModalOpen(true) }]
-                            : undefined
-                    }
                 >
-                    {reviewEscalation ? t('review.escalation') : t('review.body')}
+                    {reviewEscalation ? (
+                        <div className="flex flex-col items-start gap-1">
+                            <span>{t('review.escalation')}</span>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>{t('review.messageUs')}</LinkButton>
+                        </div>
+                    ) : (
+                        t('review.body')
+                    )}
                 </Callout>
             )}
 

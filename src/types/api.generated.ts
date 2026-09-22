@@ -12284,6 +12284,7 @@ export interface paths {
                                 };
                                 rejectLabels?: string[];
                                 reviewedAt?: string;
+                                reviewPending?: boolean;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
