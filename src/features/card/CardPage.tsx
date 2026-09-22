@@ -44,7 +44,7 @@ export const CardPage: FC = () => {
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
-        setEligibilityCheckDone,
+        completeEligibilityCheck,
         setSkipCelebrationSeen,
         invalidateOverview,
         poaToken,
@@ -147,10 +147,10 @@ export const CardPage: FC = () => {
                         username={user?.user?.username ?? undefined}
                         onPrev={onBack}
                         onComplete={() => {
-                            setEligibilityCheckDone(true)
+                            completeEligibilityCheck()
                             // The state machine re-evaluates on the next render
                             // and either lands on 'waitlist-skip-celebration' or
-                            // 'waitlist' based on skipBadges. No nav, just a
+                            // 'waitlist' based on card access. No nav, just a
                             // state flip — keeps the share-asset reveal feeling
                             // continuous.
                         }}

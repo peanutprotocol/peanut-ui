@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
@@ -19,13 +19,12 @@ import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
-import { getSkipCelebrationSeen, SKIP_CELEBRATION_SEEN_KEY } from './utils'
-
-// Eligibility-check screen lifetime per Hugo's spec: gate fires every
-// /card mount UNTIL the user has an issued card. Persisting across mount
-// would skip the moment on revisit — wrong. Within a single mount, once
-// the user releases the hold, the in-React state below stays true so
-// they don't re-see the gate after celebration / add-card transitions.
+import {
+    getEligibilityCheckSeen,
+    markEligibilityCheckSeen,
+    getSkipCelebrationSeen,
+    SKIP_CELEBRATION_SEEN_KEY,
+} from './utils'
 
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -77,18 +76,19 @@ export function useCardFlow() {
     // machine's geoProhibited path own the block durably.
     const [geoBlocked, setGeoBlocked] = useState(false)
 
-    // Track whether the user has acknowledged the skip-badge celebration.
-    // localStorage on purpose (per-device, replayable via the eligibility
-    // re-hold below) — the celebration is a moment, not durable state.
+    // Track whether the user has acknowledged the celebration on this device.
     const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
 
-    // Press-and-hold "see if you qualify" gate. Resets per mount: as long
-    // as the user has not been issued a card, every fresh /card visit
-    // re-shows the gate. Within the same mount, this stays true after they
-    // release the hold so they don't get pulled back from celebration /
-    // add-card. State machine ALSO skips the gate when an issued card
-    // exists (see cardState.utils.ts — active-card wins first).
-    const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
+    // Snapshot whether this user saw the eligibility gate on a previous
+    // visit. Writing the seen flag on this visit must not dismiss the gate
+    // mid-screen, but a later /card mount should resume the current result.
+    const eligibilitySeenOnEntry = useMemo(() => getEligibilityCheckSeen(userId), [userId])
+    const [completedEligibilityForUser, setCompletedEligibilityForUser] = useState<string | null>(null)
+    const eligibilityCheckDone = !!userId && (eligibilitySeenOnEntry || completedEligibilityForUser === userId)
+    const completeEligibilityCheck = useCallback(() => {
+        if (!userId) return
+        setCompletedEligibilityForUser(userId)
+    }, [userId])
 
     // The old `?press_door=1` auto-stamp was removed alongside the /shhhhh
     // door rework: the bare door joins the waitlist and grants nothing, so a
@@ -135,6 +135,10 @@ export function useCardFlow() {
         eligibilityCheckDone,
     })
 
+    useEffect(() => {
+        if (state === 'eligibility-check' && userId) markEligibilityCheckSeen(userId)
+    }, [state, userId])
+
     // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
     // initial 'loading' state — it would inflate the funnel without signal.
     const lastReportedStateRef = useRef<CardTopLevelState | null>(null)
@@ -162,13 +166,8 @@ export function useCardFlow() {
         window.history.replaceState(window.history.state, '', url.toString())
     }, [state])
 
-    // Re-doing the funnel = re-celebrating. Every time the user lands on
-    // the eligibility-check screen (a fresh /card visit, no card yet
-    // issued, hold not yet completed), clear any stale celebration-seen
-    // flag so the post-hold transition reliably surfaces the celebration.
-    // The flag is set again when the user dismisses celebration via
-    // "Continue to your card", so it still suppresses a re-trigger on
-    // refresh after dismissal — only a fresh hold re-celebrates.
+    // A user seeing the eligibility gate for the first time should still
+    // get the celebration, even if this device has an older celebration flag.
     useEffect(() => {
         if (state !== 'eligibility-check') return
         if (!skipCelebrationSeen) return
@@ -583,7 +582,7 @@ export function useCardFlow() {
         handleConfirmCountry,
         handleAcceptTerms,
         // eligibility + celebration
-        setEligibilityCheckDone,
+        completeEligibilityCheck,
         setSkipCelebrationSeen,
         invalidateOverview,
         // poa self-heal

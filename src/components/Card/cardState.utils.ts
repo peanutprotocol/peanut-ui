@@ -18,7 +18,7 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
  *   loading → active → no-flow-access → rejected (incl. FAILED) →
  *   requires-support → requires-info → pending/manual-review →
  *   geo-blocked (no application, country on Rain's prohibited list) →
- *   eligibility-check (first arrival, not yet held) → skip-celebration →
+ *   eligibility-check (first visit only) → skip-celebration →
  *   add-card → waitlist
  *
  * Removed in Phase 2 of the M2 Card Waitlist Launch:
@@ -28,9 +28,8 @@ export type CardTopLevelState =
     | 'loading'
     /** Outer-gate fail — user hasn't passed /shhhhh AND public launch isn't here yet. */
     | 'no-flow-access'
-    /** First arrival from /shhhhh: press-and-hold "see if you qualify" gate.
-     *  Once held, the user lands on celebration or waitlist depending on
-     *  whether they hold a skip badge. */
+    /** First visit: press-and-hold "see if you qualify" gate. Once held,
+     *  the user lands on celebration or waitlist. */
     | 'eligibility-check'
     /** Queued — has flow access but no card access yet, no skip badge to celebrate. */
     | 'waitlist'
@@ -60,15 +59,9 @@ interface ComputeArgs {
     cardInfo?: CardInfoResponse
     overviewLoading: boolean
     cardInfoLoading: boolean
-    /** Has the user already acknowledged the badge-skip celebration on this
-     *  device (localStorage)? Per-device on purpose — re-doing the funnel
-     *  re-celebrates. */
+    /** Has the user already acknowledged the celebration on this device? */
     skipCelebrationSeen: boolean
-    /** Has the user pressed-and-held through the eligibility-check screen
-     *  yet? Per-mount React state (NOT persisted) — every fresh /card visit
-     *  shows the gate again until a card is issued. Within the same mount,
-     *  this stays true after the hold so the user isn't pulled back from
-     *  celebration / add-card. */
+    /** Has this user seen the gate on a prior visit or completed this visit's hold? */
     eligibilityCheckDone: boolean
 }
 
@@ -138,20 +131,16 @@ export function computeCardState({
     // the Sumsub address at submission time.
     if (!rail && cardInfo.geoProhibited) return 'geo-blocked'
 
-    // First arrival from /shhhhh: gate everything else behind the press-and-hold
-    // "see if you qualify" moment. Applies whether the user ultimately lands on
-    // celebration or waitlist — the user explicitly engages the door before
-    // the verdict is revealed.
+    // Show the press-and-hold on the first visit only. Returning to /card
+    // follows the current card-access and application state.
     if (!eligibilityCheckDone) return 'eligibility-check'
 
     // Rail ENABLED (or no application) without any non-canceled card. From
     // here, BE's hasCardAccess + skipBadges drive the new state machine.
     if (cardInfo.hasCardAccess) {
-        // Everyone who just passed the eligibility hold + has card access
-        // gets the celebration moment, not just skip-badge holders. The
-        // headline copy inside the celebration branches on whether a skip
-        // badge is present. Once seen (localStorage stamp), straight to
-        // add-card on subsequent visits.
+        // Everyone with card access gets the celebration moment once, not
+        // just skip-badge holders. Its headline branches on whether a skip
+        // badge is present. Once acknowledged, go straight to add-card.
         if (!skipCelebrationSeen) {
             return 'waitlist-skip-celebration'
         }

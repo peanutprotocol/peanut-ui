@@ -7,7 +7,12 @@ import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
 
 const mockCapture = jest.fn()
-let mockState = 'add-card'
+let mockState: 'add-card' | null = 'add-card'
+let mockUserId: string | null = null
+const mockComputeCardState = jest.fn(
+    (args: { eligibilityCheckDone: boolean }) =>
+        mockState ?? (args.eligibilityCheckDone ? 'waitlist' : 'eligibility-check')
+)
 
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
@@ -33,14 +38,14 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
     useRainCardOverview: () => ({ overview: undefined, isLoading: false, error: null }),
 }))
 jest.mock('@/components/Card/cardState.utils', () => ({
-    computeCardState: () => mockState,
+    computeCardState: (args: { eligibilityCheckDone: boolean }) => mockComputeCardState(args),
 }))
 jest.mock('@/components/Card/cardApply.utils', () => ({
     pollUntilApplyAdvances: jest.fn(),
@@ -78,7 +83,38 @@ describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockState = 'add-card'
+        mockUserId = null
         window.localStorage.clear()
+    })
+
+    it('shows the eligibility hold once per user and resumes the next screen after remount', () => {
+        mockState = null
+        mockUserId = 'user-one'
+        const firstVisit = renderHook(() => useCardFlow())
+        expect(firstVisit.result.current.state).toBe('eligibility-check')
+
+        act(() => firstVisit.result.current.completeEligibilityCheck())
+        expect(firstVisit.result.current.state).toBe('waitlist')
+        firstVisit.unmount()
+
+        const returnVisit = renderHook(() => useCardFlow())
+        expect(returnVisit.result.current.state).toBe('waitlist')
+        returnVisit.unmount()
+
+        mockUserId = 'user-two'
+        const anotherUser = renderHook(() => useCardFlow())
+        expect(anotherUser.result.current.state).toBe('eligibility-check')
+    })
+
+    it('does not repeat the gate after the user leaves it without completing the hold', () => {
+        mockState = null
+        mockUserId = 'user-one'
+        const firstVisit = renderHook(() => useCardFlow())
+        expect(firstVisit.result.current.state).toBe('eligibility-check')
+        firstVisit.unmount()
+
+        const returnVisit = renderHook(() => useCardFlow())
+        expect(returnVisit.result.current.state).toBe('waitlist')
     })
 
     it('opens the sumsub sdk on an incomplete apply response', async () => {
