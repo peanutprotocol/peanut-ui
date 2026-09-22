@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Section } from '@/components/0_Bruddle/Section'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
@@ -55,7 +56,7 @@ export default function AccordionPage() {
 <Accordion type="single" collapsible value={open} onValueChange={setOpen}>
     <Accordion.Item value="ar">
         <Accordion.Trigger>Argentina</Accordion.Trigger>
-        <Accordion.Content>Pay up to $500 per QR payment.</Accordion.Content>
+        <Accordion.Content>Pay up to $${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per QR payment.</Accordion.Content>
     </Accordion.Item>
     <Accordion.Item value="br" disabled>
         <Accordion.Trigger>Brazil</Accordion.Trigger>
@@ -155,7 +156,10 @@ export default function AccordionPage() {
                                     <Accordion.Content>
                                         <div className="flex items-center gap-2">
                                             <Icon name="check" className="text-green-500" size={16} />
-                                            <span>Pay up to $500 per QR payment.</span>
+                                            <span>
+                                                Pay up to ${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per QR
+                                                payment.
+                                            </span>
                                         </div>
                                     </Accordion.Content>
                                 </Accordion.Item>
