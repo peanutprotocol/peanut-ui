@@ -104,7 +104,7 @@ export const Badges = () => {
         <div className="flex h-full w-full flex-col gap-10">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2" aria-label={t('collectionLabel')}>
+                <div className="grid grid-cols-2 gap-2" aria-label={t('collectionLabel')}>
                     {badges.map((badge) => (
                         <button
                             key={badge.code}
@@ -112,18 +112,21 @@ export const Badges = () => {
                             aria-label={`${badge.name}, ${badge.earned ? t('earned') : t('locked')}`}
                             onClick={() => setSelectedBadge(badge)}
                             className={twMerge(
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                // Two tiles per row on every phone: three squeezed names and copy at 320-430px
+                                // (TASK-22677). pt-9 clears the Earned pill (20px tall at top-2) by 8px so
+                                // the tag never touches the art.
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
                             {badge.earned && (
-                                <Badge status="custom" customText={t('earned')} className="absolute top-1 right-1" />
+                                <Badge status="custom" customText={t('earned')} className="absolute top-2 right-2" />
                             )}
                             <BadgeImage
                                 src={badge.logo!}
                                 alt=""
                                 className={twMerge(
-                                    'h-16 w-full object-contain',
+                                    'h-14 w-full object-contain',
                                     !badge.earned && 'opacity-40 grayscale'
                                 )}
                                 height={100}
@@ -131,7 +134,8 @@ export const Badges = () => {
                                 unoptimized
                             />
                             <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
-                            <span className="line-clamp-3 h-12 w-full text-body-xs text-foreground-secondary">
+                            {/* two lines: the tap opens the detail drawer with the full description */}
+                            <span className="line-clamp-2 h-8 w-full text-body-xs text-foreground-secondary">
                                 {badge.description}
                             </span>
                         </button>

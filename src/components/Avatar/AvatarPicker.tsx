@@ -142,7 +142,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
                 {/* Pad the grid for focus rings; scroll-area padding must retain its safe-area inset. */}
-                <div className="grid grid-cols-3 gap-2 py-1">
+                <div className="grid grid-cols-2 gap-2 py-1">
                     {/* Keep tiles in the grid and the roll button outside the radio group. */}
                     <div role="radiogroup" aria-label={t('title')} className="contents" onKeyDown={roveAvatarTiles}>
                         {hand.map((key, index) => {
@@ -159,8 +159,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     tabIndex={index === focusIndex ? 0 : -1}
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
-                                        // Native buttons share Card's surface; top padding reserves space for the Earned tag.
-                                        `relative flex flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                        // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
+                                        // pt-9 clears the Earned tag (20px tall at top-2) by 8px so it never touches the sticker.
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                         checked && 'border-2 border-border-default'
                                     )}
                                 >
@@ -168,7 +169,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         <Badge
                                             status="custom"
                                             customText={t('earned')}
-                                            className="absolute top-1 right-1"
+                                            className="absolute top-2 right-2"
                                         />
                                     )}
                                     <UserAvatar
