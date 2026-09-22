@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto'
 import worker from './collection-worker/index.mjs'
 
 const sha = 'a'.repeat(40)
+const beforeSha = 'c'.repeat(40)
+const comparisonPath = `2026-09-16/pr-42/en/${sha}/run-3-1`
 const image = 'b'.repeat(64) + '.webp'
 function bucket() {
     const objects = new Map([
@@ -27,6 +29,15 @@ function bucket() {
                     branch: 'main',
                     complete: true,
                     sequence: 2,
+                },
+                {
+                    path: comparisonPath,
+                    locale: 'en',
+                    source: 'synthetic',
+                    reportType: 'comparison',
+                    prNumber: 42,
+                    complete: true,
+                    sequence: 3,
                 },
             ]),
         ],
@@ -66,6 +77,17 @@ function bucket() {
                         image,
                     },
                 ],
+            }),
+        ],
+        [
+            `reports/${comparisonPath}/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'comparison',
+                locale: 'en',
+                before: { commit: beforeSha },
+                after: { commit: sha },
+                screens: [{ id: 'profile', status: 'changed', before: { image }, after: { image } }],
             }),
         ],
     ])
@@ -151,6 +173,62 @@ test('collection API searches screens and creates an ordered reusable collection
         createdAt: body.collection.createdAt,
         createdBy: 'reviewer@peanut.me',
     })
+})
+
+test('published comparison lookup creates a before/after link for an existing ordered collection', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+    }
+    const listing = await worker.fetch(
+        new Request(`https://api.example/v1/comparisons?locale=en&beforeCommit=${beforeSha}`),
+        env,
+        accessContext
+    )
+    assert.equal(listing.status, 200)
+    assert.deepEqual((await listing.json()).comparisons, [
+        {
+            path: comparisonPath,
+            locale: 'en',
+            beforeCommit: beforeSha,
+            afterCommit: sha,
+            prNumber: 42,
+            changedScreens: 1,
+        },
+    ])
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            body: JSON.stringify({
+                title: 'Profile review',
+                items: [{ id: 'profile', note: 'Check action hierarchy' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const compare = (path) =>
+        worker.fetch(
+            new Request(`https://api.example/v1/collections/${collection.id}/compare`, {
+                method: 'POST',
+                body: JSON.stringify({ comparisonPath: path }),
+            }),
+            env,
+            accessContext
+        )
+    const response = await compare(comparisonPath)
+    assert.equal(response.status, 200)
+    const result = await response.json()
+    assert.equal(
+        result.url,
+        `https://screens.peanut.me/collections/${collection.id}/?locale=en&compare=${encodeURIComponent(comparisonPath)}`
+    )
+    assert.deepEqual(result.selectedScreens, [{ id: 'profile', status: 'changed' }])
+    assert.equal((await compare(`2026-09-16/pr-99/en/${sha}/run-3-1`)).status, 400)
+    assert.equal((await compare('../index.json')).status, 400)
 })
 
 test('captureMissing queues the exact missing matrix against the current dev revision', async () => {
