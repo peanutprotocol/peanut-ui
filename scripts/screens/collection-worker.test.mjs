@@ -91,24 +91,29 @@ function bucket() {
             }),
         ],
     ])
-    const etag = (value) => `"${createHash('sha256').update(String(value)).digest('hex')}"`
+    const etag = (value) => createHash('sha256').update(String(value)).digest('hex')
+    const httpEtag = (value) => `"${etag(value)}"`
     const storage = {
         objects,
         beforeConditionalPut: null,
         async get(key) {
             const value = objects.get(key)
-            return value === undefined ? null : { json: async () => JSON.parse(value), httpEtag: etag(value) }
+            return value === undefined
+                ? null
+                : { json: async () => JSON.parse(value), etag: etag(value), httpEtag: httpEtag(value) }
         },
         async head(key) {
             return objects.has(key) ? {} : null
         },
         async put(key, value, options = {}) {
             if (options.onlyIf?.etagMatches) {
+                if (options.onlyIf.etagMatches.startsWith('"'))
+                    throw new Error('Conditional ETag should not be wrapped in quotes')
                 await storage.beforeConditionalPut?.({ key, options })
                 if (etag(objects.get(key)) !== options.onlyIf.etagMatches) return null
             }
             objects.set(key, String(value))
-            return { httpEtag: etag(value) }
+            return { etag: etag(value), httpEtag: httpEtag(value) }
         },
     }
     return storage
@@ -317,6 +322,44 @@ test('captureMissing queues the exact missing matrix against the current dev rev
         ref: 'dev',
         inputs: { collection_id: collection.id },
     })
+})
+
+test('capture endpoint accepts the unquoted R2 ETag after collection creation', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            calls.push(url)
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            body: JSON.stringify({ title: 'Focused capture', items: [{ id: 'send' }], captureMissing: false }),
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(created.status, 201)
+    const { collection } = await created.json()
+    assert.deepEqual(collection.missing, [{ id: 'send', locale: 'en' }])
+
+    const response = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, { method: 'POST' }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 202)
+    assert.equal((await response.json()).collection.capture.status, 'queued')
+    assert.equal(calls.length, 2)
+    assert.match(calls[1], /screen-library-collection\.yml\/dispatches$/)
 })
 
 test('a failed workflow dispatch leaves the collection retriable', async () => {

@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { Slider } from '@/components/Global/Slider'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function SliderPage() {
     const [value, setValue] = useState([50])
@@ -19,6 +21,21 @@ export default function SliderPage() {
                 title="Slider"
                 description="Percentage slider from the figma slider board (17802:61531), radix base. Magnetic snapping to 25 / 33.3 / 50 / 100%. Consumer: AmountInput (contribute-pot flow)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Picking a share of a known total, such as what a pot still needs.',
+                    'Through AmountInput showSlider — that is the one path to a Slider in the app today.',
+                    'Beside the amount it drives: the number stays the control, the slider is the shortcut.',
+                    'With an aria-label — the track carries no visible label.',
+                ]}
+                dontUse={[
+                    'A direct import into a screen — no call site does that. AmountInput owns the Slider. Flag the need first.',
+                    'Exact amount entry — the track snaps to 25, 33.3, 50 and 100%. → use the AmountInput number field.',
+                    'Progress or completion display. → use ProgressBar.',
+                    'Recoloring the fill green or red as an indicator — the fill is always pink.',
+                ]}
             />
 
             <DocSection title="Interactive">
@@ -83,6 +100,40 @@ const [value, setValue] = useState([50])
                     },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Contribute to a pot — how much of the rest you pay"
+                    path="src/features/payments/flows/contribute-pot/views/ContributePotInputView.tsx"
+                    description="The only place in the app that shows a Slider. Nothing imports it directly: AmountInput owns it behind showSlider, and contribute-pot is the one caller that sets that prop. The percentage is of what the pot still needs, not of your balance."
+                    code={`{/* the only showSlider call site — AmountInput renders the Slider */}
+<AmountInput
+  setPrimaryAmount={setAmount}
+  hideCurrencyToggle={true}
+  showSlider={remainingAmount > 0}
+  maxAmount={remainingAmount}
+  defaultSliderValue={sliderDefaults.percentage}
+  defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
+/>
+
+{/* inside AmountInput */}
+<Slider
+  onValueChange={onSliderValueChange}
+  defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+/>`}
+                >
+                    <div className="flex flex-col gap-6 pb-6">
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
+                                <span className="text-heading-xs text-foreground-secondary">$</span>
+                                <span className="text-heading-big-input">30.00</span>
+                            </div>
+                            <span className="text-body-s text-foreground-secondary">$60.00 left to collect</span>
+                        </div>
+                        <Slider value={[50]} onValueChange={() => {}} aria-label="contribution percentage" />
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

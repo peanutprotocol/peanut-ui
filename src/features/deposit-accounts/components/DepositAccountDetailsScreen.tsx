@@ -127,6 +127,14 @@ export function DepositAccountDetailsScreen({
                     <>
                         <Section title={t('details.sectionTitle')}>
                             <DepositDetailsCard rows={rows} />
+                            {/* The reference row is one more field to copy; that
+                                the transfer is not matched without it is the
+                                fact the holder has to pass on. */}
+                            {account.instructions?.depositMessage && (
+                                <p className="text-body-xs text-foreground-secondary">
+                                    {t('details.referenceRequired')}
+                                </p>
+                            )}
                             {/* what the conversion costs, beside the details it applies to */}
                             <p className="text-body-xs text-foreground-secondary">
                                 <DepositFeeLine rail={rail} />
@@ -135,6 +143,14 @@ export function DepositAccountDetailsScreen({
 
                         <Section title={t('details.whoCanPay')}>
                             <DepositRuleList lines={rules} />
+                            {/* EUR is offered to anyone, and the one third-party
+                                SEPA transfer seen so far came back as a
+                                third-party payment. Until a third-party credit
+                                is proven the holder is told what to ask of a
+                                payer, beside the terms that say anyone may pay. */}
+                            {rail.corridor === 'SEPA_EU' && (
+                                <p className="text-body-xs text-foreground-secondary">{t('details.eurOwnName')}</p>
+                            )}
                         </Section>
                     </>
                 )}

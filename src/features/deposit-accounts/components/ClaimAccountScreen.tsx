@@ -10,6 +10,7 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositFeeLine } from './DepositFeeLine'
@@ -166,7 +167,13 @@ export function ClaimAccountScreen({
                             // The terms are on the screen now, so promising
                             // them later would contradict the lines above.
                             ...(rules ? [] : [t('claim.conditionTerms', { currency: rail.currency })]),
-                            t('claim.conditionNoReference'),
+                            // "No reference to remember" was promised on every
+                            // corridor, and the Colombian account is credited
+                            // by key AND reference: a transfer without it is
+                            // not matched. Each corridor states its own rule.
+                            corridorNeedsReference(rail.corridor)
+                                ? t('claim.conditionReference')
+                                : t('claim.conditionNoReference'),
                         ]}
                     />
                 )}

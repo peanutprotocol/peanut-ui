@@ -6,9 +6,13 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CarouselDotsPage() {
     const [active, setActive] = useState(1)
+    // the embla carousel below drives its dots from the selected snap
+    const [slide, setSlide] = useState(0)
 
     return (
         <DocPage>
@@ -16,6 +20,20 @@ export default function CarouselDotsPage() {
                 title="CarouselDots"
                 description="Dot pagination from the dots/stepper board (17312:137591): active = 24x8 border-default bar, inactive = 8px border-subtle dot. onSelect makes each dot a 44px-hit-area button."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Page position in a swipeable carousel — the shared embla wrapper renders it',
+                    'Step position in a short stepped sequence — the card add-to-wallet steps',
+                    'Let the user jump to a page: pass onSelect and each dot becomes a button with a 44px hit area',
+                    'Read-only indicator: omit onSelect and pass aria-label with the current step and the total',
+                ]}
+                dontUse={[
+                    'Percentage or quantity progress — use ProgressBar',
+                    'Switching between named sections — use Tabs',
+                    'A single page — show the dots only above one snap',
+                ]}
             />
 
             <DocSection title="Interactive">
@@ -34,6 +52,32 @@ export default function CarouselDotsPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Global carousel"
+                    path="src/components/Global/Carousel/index.tsx"
+                    description="The shared embla wrapper. Dots are clickable and only render when there is more than one snap."
+                    code={`{scrollSnaps.length > 1 && (
+    <CarouselDots count={scrollSnaps.length} activeIndex={selectedIndex} onSelect={onDotButtonClick} />
+)}`}
+                >
+                    <CarouselDots count={3} activeIndex={slide} onSelect={setSlide} />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — add to wallet steps"
+                    path="src/components/Card/AddToWalletCarousel.tsx"
+                    description="Read-only step indicator: the user advances with the button below, so the dots carry an aria-label instead of onSelect."
+                    code={`<CarouselDots
+    count={steps.length}
+    activeIndex={index}
+    aria-label={t('addToWallet.stepIndicator', { current: index + 1, total: steps.length })}
+/>`}
+                >
+                    <CarouselDots count={3} activeIndex={1} aria-label="Step 2 of 3" />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

@@ -5762,6 +5762,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6020,6 +6021,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6781,6 +6783,7 @@ export interface paths {
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
+                                hasStoredWithdrawApproval: boolean;
                                 hasWithdrawApproval: boolean;
                                 id: string;
                                 issuedAt: string;
@@ -7016,6 +7019,84 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/controller/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            changed: boolean;
+                            coordinatorAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7772,6 +7853,7 @@ export interface paths {
                         expiresAt: number;
                         preparationId: string;
                         recipientAddress: string;
+                        preparedCoordinatorAddress?: string;
                     };
                 };
             };
@@ -7818,7 +7900,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION";
+                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION" | "RAIN_CONTROLLER_CHANGED";
                             error: string;
                         };
                     };
@@ -8009,6 +8091,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -8277,6 +8360,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -11751,6 +11835,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/identity/session-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        generation: number;
+                        /** Format: uuid */
+                        sessionId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/increase-limits": {
         parameters: {
             query?: never;
@@ -11918,6 +12078,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        correctSession?: boolean;
                         /** @description A capability nextAction key */
                         key: string;
                     };
@@ -11933,6 +12094,15 @@ export interface paths {
                         "application/json": {
                             externalActionId?: string;
                             levelName?: string;
+                            session?: {
+                                externalActionId: string;
+                                generation: number;
+                                id: string;
+                                isMultiLevel: boolean;
+                                reasonCode: string | null;
+                                state: string;
+                                targetCountry: string;
+                            };
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };
@@ -12100,6 +12270,9 @@ export interface paths {
                                     code: string;
                                     userMessage: string;
                                 }[];
+                            };
+                            depositAccounts: {
+                                enabled: boolean;
                             };
                             identityVerification: {
                                 actionMessage?: string;

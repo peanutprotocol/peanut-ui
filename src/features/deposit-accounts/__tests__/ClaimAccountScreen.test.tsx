@@ -169,3 +169,25 @@ describe('the fee line on the claim screen', () => {
         )
     })
 })
+
+/**
+ * "No reference or memo to remember" was said on every corridor, and the
+ * Colombian account is credited by key AND reference: a transfer without the
+ * reference is not matched to the account. The step states each corridor's
+ * own rule.
+ */
+describe('the reference condition on the claim screen', () => {
+    it('promises no reference where the account needs none', () => {
+        claim({ rail: DEPOSIT_RAILS.SEPA_EU })
+
+        expect(screen.getByText(messages.depositAccounts.claim.conditionNoReference)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.conditionReference)).not.toBeInTheDocument()
+    })
+
+    it('says the reference is required on the Colombian corridor', () => {
+        claim({ rail: DEPOSIT_RAILS.BANK_TRANSFER_CO })
+
+        expect(screen.getByText(messages.depositAccounts.claim.conditionReference)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.conditionNoReference)).not.toBeInTheDocument()
+    })
+})

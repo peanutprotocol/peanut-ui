@@ -1,13 +1,18 @@
 'use client'
 
 import Card from '@/components/Global/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
+import Badge from '@/components/Global/Badges/Badge'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function CardsGlobalPage() {
     return (
@@ -16,6 +21,20 @@ export default function CardsGlobalPage() {
                 title="Card (Global)"
                 description="Global shared Card component for stacked lists with position-aware border radius. Different from the Bruddle Card primitive (named export from 0_Bruddle)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Stacked list rows: set position (solo, top, middle, bottom) so a group rounds and borders once.',
+                    'Positions computed per group, not per page — each date group or section rounds on its own.',
+                    'A row that navigates: pass onClick, or wrap the Card in a Link.',
+                    'Receipt and detail cards: one Card with px-4 py-0 and dashed dividers around DataRows.',
+                ]}
+                dontUse={[
+                    'A standalone content card with a shadow. → use the Bruddle Card (named export from 0_Bruddle/Card).',
+                    'A ListItem inside a Card — the borders nest, and ListItem already renders this Card.',
+                    'The default py-2 under receipt rows — DataRow owns its padding, so pass py-0 or the first and last rows double-pad.',
+                ]}
             />
 
             {/* Import */}
@@ -198,6 +217,81 @@ export default function CardsGlobalPage() {
                     padding or background.
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="History — rows grouped by date"
+                    path="src/app/(mobile-ui)/history/page.tsx"
+                    description="position is computed per DATE GROUP, not per page: the list peeks at the next entry to see whether a new day starts, so every group rounds on its own."
+                    code={`const isFirstInGroup = showHeader
+const isLastInGroup = !nextItem || nextGroupKey !== currentGroupHeaderKey
+
+let position: CardPosition = 'middle'
+if (isFirstInGroup && isLastInGroup) position = 'solo'
+else if (isFirstInGroup) position = 'top'
+else if (isLastInGroup) position = 'bottom'`}
+                >
+                    <div>
+                        <div className="mb-2 text-label-m text-foreground-primary">Today</div>
+                        <Card position="top" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Sent to hugo</span>
+                                <span className="text-body-s">-$12.00</span>
+                            </div>
+                        </Card>
+                        <Card position="bottom" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Card payment</span>
+                                <span className="text-body-s">-$4.50</span>
+                            </div>
+                        </Card>
+                        <div className="mt-2 mb-2 text-label-m text-foreground-primary">Yesterday</div>
+                        <Card position="solo" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Added money</span>
+                                <span className="text-body-s">+$100.00</span>
+                            </div>
+                        </Card>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Profile — menu rows"
+                    path="src/components/Profile/components/ProfileMenuItem.tsx"
+                    description="Each row is a Card with p-4 (min-h-6 + p-4 = the 56px DS row). A row that navigates wraps the Card in a Link; a coming-soon row drops the link and takes the disabled background instead."
+                    code={`<Link href={href} className="block">
+  <Card position={position} onClick={onClick} className="p-4 active:bg-background-disabled">
+    {content}
+  </Card>
+</Link>
+
+{/* coming soon: no link, disabled fill */}
+<Card position={position} className="bg-background-disabled p-4">
+  {content}
+</Card>`}
+                >
+                    <div>
+                        <Card position="top" onClick={() => {}} className="cursor-pointer p-4">
+                            <div className="flex min-h-6 items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="edit" size={20} fill="black" />
+                                    <span className="text-body-m text-foreground-primary">Personal details</span>
+                                </div>
+                                <NavigationArrow size={24} className="fill-black" />
+                            </div>
+                        </Card>
+                        <Card position="bottom" className="bg-background-disabled p-4">
+                            <div className="flex min-h-6 items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="trophy" size={20} fill="black" />
+                                    <span className="text-body-m text-foreground-primary">Referrals</span>
+                                </div>
+                                <Badge status="soon" size="medium" />
+                            </div>
+                        </Card>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

@@ -89,6 +89,22 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
+    // A rotation caught while the grant was being SAVED is a recognised
+    // outcome; the generic "unexpected" copy would misdescribe it.
+    it('a rotated-during-save refusal names the cause and keeps the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'stale-approval' } })
+        render(<StaleCardApprovalReEnableModal />)
+        fireStaleEvent()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Re-enable card'))
+        })
+
+        expect(screen.getByText(/updated while we were saving/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
+        expect(screen.getByText('Re-enable card')).toBeInTheDocument()
+    })
+
     it('can be dismissed with "Not now"', () => {
         render(<StaleCardApprovalReEnableModal />)
         fireStaleEvent()

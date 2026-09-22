@@ -179,6 +179,7 @@ export type DepositRowKey =
     | 'clabe'
     | 'brCode'
     | 'breBKey'
+    | 'reference'
     | 'bankAddress'
     | 'beneficiaryAddress'
     | 'accepts'

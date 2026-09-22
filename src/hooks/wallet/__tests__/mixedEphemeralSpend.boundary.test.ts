@@ -113,4 +113,20 @@ describe('tryMixedEphemeralSpend — real broadcast boundary', () => {
         expect(send).toHaveBeenCalledTimes(1)
         expect(marker).toHaveBeenCalledTimes(1)
     })
+
+    // `revertConfirmed` is what lets a caller prepare a REPLACEMENT payment, so
+    // only an explicit `success === false` may set it.
+    it.each([
+        ['success: false', false, true],
+        ['a missing success flag', undefined, false],
+    ])('a receipt with %s reports revertConfirmed=%s', async (_label, success, expected) => {
+        const session = makeSession({})
+        session.client.waitForUserOperationReceipt = jest.fn(async () => ({
+            success,
+            receipt: { status: 'reverted' },
+        })) as never
+        const result = await tryMixedEphemeralSpend(args(session, jest.fn()))
+        expect(result.ok).toBe(false)
+        expect('revertConfirmed' in result && result.revertConfirmed === true).toBe(expected)
+    })
 })

@@ -4,7 +4,7 @@ import messages from '@/i18n/app/messages/en.json'
 import { NextIntlClientProvider } from 'next-intl'
 import { DepositAccountDetailsScreen } from '../components/DepositAccountDetailsScreen'
 import { DEPOSIT_RAILS } from '../rails'
-import type { DepositAccountView } from '../types'
+import type { DepositAccountView, DepositRail } from '../types'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -18,12 +18,18 @@ const provisioning: DepositAccountView = {
     matching: { nameOnAccount: 'user', sender: 'anyone' },
 }
 
-const details = (account: DepositAccountView, onRetry = () => {}, canShare = false, onContactSupport = () => {}) =>
+const details = (
+    account: DepositAccountView,
+    onRetry = () => {},
+    canShare = false,
+    onContactSupport = () => {},
+    rail: DepositRail = DEPOSIT_RAILS.ACH_US
+) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <ToastProvider>
                 <DepositAccountDetailsScreen
-                    rail={DEPOSIT_RAILS.ACH_US}
+                    rail={rail}
                     account={account}
                     userName="Ana Pérez"
                     canShare={canShare}
@@ -105,5 +111,83 @@ describe('the details screen for revoked details', () => {
         details(revoked)
 
         expect(screen.getByText(messages.depositAccounts.details.revokedBody)).toBeInTheDocument()
+    })
+})
+
+/**
+ * The Colombian account is credited by key AND reference. The API returns the
+ * reference as `depositMessage`; it was never rendered, copied or shared, so a
+ * payer following the screen sent money that never arrived.
+ */
+describe('the details screen on an account with a reference', () => {
+    const cop: DepositAccountView = {
+        ...provisioning,
+        id: 'acct-cop',
+        railId: 'bridge.bank_transfer_co',
+        country: 'CO',
+        currency: 'COP',
+        status: 'active',
+        matching: { nameOnAccount: 'user', sender: 'business-only' },
+        instructions: {
+            accountHolderName: 'Ana Pérez',
+            breBKey: '@DEMO123',
+            depositMessage: 'PEANUT-7F3A',
+            paymentRails: ['bre_b'],
+        },
+    }
+
+    it('renders the reference as a row of its own and says it is required', () => {
+        details(
+            cop,
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.BANK_TRANSFER_CO
+        )
+
+        expect(screen.getByText(messages.depositAccounts.rows.reference)).toBeInTheDocument()
+        expect(screen.getByText('PEANUT-7F3A')).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.details.referenceRequired)).toBeInTheDocument()
+    })
+
+    it('says nothing about a reference on an account without one', () => {
+        details({ ...provisioning, status: 'active', instructions: { accountHolderName: 'Ana', paymentRails: [] } })
+
+        expect(screen.queryByText(messages.depositAccounts.rows.reference)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.referenceRequired)).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * EUR is offered to anyone, and the one third-party SEPA transfer seen so far
+ * was returned by the provider as a third-party payment. Until a third-party
+ * euro credit is proven, the holder reads what to ask of a payer beside the
+ * terms.
+ */
+describe('the euro caveat on the details screen', () => {
+    const active = (railId: string, currency: string): DepositAccountView => ({
+        ...provisioning,
+        railId,
+        currency,
+        status: 'active',
+        instructions: { accountHolderName: 'Ana Pérez', iban: 'DE89', paymentRails: ['sepa'] },
+    })
+
+    it('tells the euro holder that transfers from another name can be returned', () => {
+        details(
+            active('bridge.sepa_eu', 'EUR'),
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.SEPA_EU
+        )
+
+        expect(screen.getByText(messages.depositAccounts.details.eurOwnName)).toBeInTheDocument()
+    })
+
+    it('says nothing of the kind on the dollar account', () => {
+        details(active('bridge.ach_us', 'USD'), () => {}, true)
+
+        expect(screen.queryByText(messages.depositAccounts.details.eurOwnName)).not.toBeInTheDocument()
     })
 })
