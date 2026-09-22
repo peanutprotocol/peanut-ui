@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
@@ -14,6 +14,18 @@ import { DocNavList } from './DocNavList'
  */
 export function DocNavDrawer() {
     const [isOpen, setIsOpen] = useState(false)
+
+    // the sheet is mobile-only, so md:hidden below stops it painting past 768px
+    // (tailwind md) — but vaul keeps the overlay, the focus trap and the scroll
+    // lock on an open drawer, so a resize while it is open leaves the desktop
+    // page behind a black overlay it cannot dismiss. Close it on the crossing.
+    useEffect(() => {
+        const desktop = window.matchMedia('(min-width: 768px)')
+        const closeOnDesktop = () => desktop.matches && setIsOpen(false)
+        closeOnDesktop()
+        desktop.addEventListener('change', closeOnDesktop)
+        return () => desktop.removeEventListener('change', closeOnDesktop)
+    }, [])
 
     return (
         <>

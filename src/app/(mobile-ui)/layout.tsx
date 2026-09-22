@@ -254,7 +254,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                    isDev && 'max-w-full min-h-dvh items-start justify-start'
+                    // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
+                    // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
+                    // than the box that holds it, so on edge-to-edge iOS/Android the
+                    // scroller overflows by the inset and /dev/ds — which caps itself
+                    // at the same height — drifts its header out of view.
+                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start'
                 )}
                 modals={
                     <>

@@ -17,6 +17,9 @@ import { twMerge } from '@/utils/tw'
  */
 export function DocNavList({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
+    // deliberate exception to the URL-as-state rule: this filter is ephemeral dev-tool
+    // UI, the list stays mounted across navigation, and a shared /dev/ds link should
+    // open the page, not someone's half-typed search.
     const [query, setQuery] = useState('')
     const searchId = useId()
     const groups = filterNav(query)
@@ -39,35 +42,39 @@ export function DocNavList({ onNavigate }: { onNavigate?: () => void }) {
                 />
             </div>
 
-            {groups.length === 0 ? (
-                // status so a screen reader hears the empty result without moving focus
-                <p role="status" className="text-body-xs text-foreground-secondary">
-                    No entry matches “{query.trim()}”.
-                </p>
-            ) : (
-                groups.map((group) => (
-                    <div key={group.tier.href} className="flex min-w-0 flex-col">
+            {/* status so a screen reader hears the empty result without moving focus.
+                mounted on every render, empty and sr-only while there are results: a
+                live region that appears together with its text is not announced, and
+                sr-only takes it out of flow so it adds no gap to the column. */}
+            <p
+                role="status"
+                className={twMerge('text-body-xs text-foreground-secondary', groups.length > 0 && 'sr-only')}
+            >
+                {groups.length === 0 ? `No entry matches “${query.trim()}”.` : ''}
+            </p>
+
+            {groups.map((group) => (
+                <div key={group.tier.href} className="flex min-w-0 flex-col">
+                    <NavRow
+                        href={group.tier.href}
+                        icon={group.tier.icon}
+                        label={group.tier.label}
+                        isActive={!!pathname?.startsWith(group.tier.href)}
+                        isTier
+                        onNavigate={onNavigate}
+                    />
+                    {group.items.map((item) => (
                         <NavRow
-                            href={group.tier.href}
-                            icon={group.tier.icon}
-                            label={group.tier.label}
-                            isActive={!!pathname?.startsWith(group.tier.href)}
-                            isTier
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            isActive={pathname === item.href}
                             onNavigate={onNavigate}
                         />
-                        {group.items.map((item) => (
-                            <NavRow
-                                key={item.href}
-                                href={item.href}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={pathname === item.href}
-                                onNavigate={onNavigate}
-                            />
-                        ))}
-                    </div>
-                ))
-            )}
+                    ))}
+                </div>
+            ))}
         </div>
     )
 }
