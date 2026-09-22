@@ -227,7 +227,7 @@ export const Callout = ({
                     {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
                 </div>
                 {!!visibleCtas?.length && (
-                    <div className={twMerge('flex flex-wrap gap-7', indent)}>
+                    <div className={twMerge('flex flex-wrap gap-6', indent)}>
                         {visibleCtas.slice(0, 2).map((cta, i) => (
                             <LinkButton key={i} onClick={cta.onClick}>
                                 {cta.label}
