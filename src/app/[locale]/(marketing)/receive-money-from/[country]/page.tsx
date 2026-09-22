@@ -31,12 +31,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
+    const { title, description } = mdxContent.frontmatter
 
     return {
         ...metadataHelper({
             locale,
-            title: `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
-            description: t(i18n.receiveMoneyFromDesc, { country: countryName }),
+            title:
+                typeof title === 'string' && title.trim()
+                    ? title
+                    : `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
+            description:
+                typeof description === 'string' && description.trim()
+                    ? description
+                    : t(i18n.receiveMoneyFromDesc, { country: countryName }),
             canonical: `/${contentLocale}/receive-money-from/${country}`,
         }),
         alternates: {
