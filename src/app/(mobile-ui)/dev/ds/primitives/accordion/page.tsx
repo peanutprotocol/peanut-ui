@@ -12,6 +12,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function AccordionPage() {
     const [value, setValue] = useState<string>('expanded')
@@ -24,6 +25,20 @@ export default function AccordionPage() {
                 title="Accordion"
                 description="From the figma accordion board (17802:61540), radix headless base. Users scan section titles and expand only what they need. Consumer: BridgeLimitsView (limits QR countries)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Section titles the user scans, then opens only the one they need',
+                    'Reference detail that is long when every section is open — per-country limits',
+                    'One open section at a time: type="single" collapsible with value and onValueChange',
+                    'Preselect the open section from the url, as the limits view does with ?region',
+                ]}
+                dontUse={[
+                    'Switching between panels of equal weight — use Tabs',
+                    'A row that opens a detail view — use ListItem with a chevron',
+                    'Long or scrollable detail content — use a Drawer',
+                ]}
             />
 
             <DocSection title="States">

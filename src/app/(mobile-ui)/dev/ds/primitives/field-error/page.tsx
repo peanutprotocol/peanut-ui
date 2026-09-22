@@ -8,6 +8,7 @@ import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function FieldErrorPage() {
     const [value, setValue] = useState('kush!')
@@ -19,6 +20,19 @@ export default function FieldErrorPage() {
                 title="FieldError"
                 description="Inline field-level error from the form-field board (17788:19179): Body/XS in foreground-error, 4px under its input. Field validation only — page/flow-level failures keep Callout."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A message the user fixes by changing one input',
+                    '4px under that input — the test is attribution, not distance',
+                    'Reserve the slot height on a vertically centered step, so mounting the error does not shift the layout',
+                ]}
+                dontUse={[
+                    'An API or submission failure — use Callout priority="error", even when it sits next to the CTA',
+                    'A flow-blocking failure — use an error step, or Global/BackendErrorScreen for a full page',
+                    'Transient background feedback — use useToast',
+                ]}
             />
 
             <DocSection title="With an input">

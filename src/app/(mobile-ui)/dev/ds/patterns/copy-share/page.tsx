@@ -9,6 +9,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -21,6 +22,20 @@ export default function CopySharePage() {
                 title="Copy & Share"
                 description="Components for copying text to clipboard, sharing links, displaying addresses, and showing tooltips."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'CopyToClipboard beside a value that already has its place on screen — an address, an amount, a reference.',
+                    'CopyField when the value needs a full-width read-only field of its own.',
+                    'MoreInfo for an explanation worth one tap, instead of a line of body copy.',
+                    'The Web Share pattern (navigator.share with a clipboard fallback) to share a link out of the app.',
+                ]}
+                dontUse={[
+                    'CopyField where the value already sits in its own layout. → an inline CopyToClipboard is enough.',
+                    'A native title attribute for a hint. → use MoreInfo, which is portaled and keeps clear of the viewport edge.',
+                    'A toast to confirm a copy — both controls already show their own copied state.',
+                ]}
             />
 
             {/* CopyField */}

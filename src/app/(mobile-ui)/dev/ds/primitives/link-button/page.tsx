@@ -10,6 +10,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 const noop = () => {}
@@ -21,6 +22,20 @@ export default function LinkButtonPage() {
                 title="LinkButton"
                 description="Standalone link from the figma link board (17980:17351). Body/XS underlined, gray at rest, black on hover. Navigation only — never an action."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'A standalone navigation link on a screen — pass href',
+                    'An underlined text action that is not a CTA — open details, contact support',
+                    'External links and documents — pass external to open a new tab',
+                    'A quiet secondary action under the primary Button — full width with justify-center',
+                ]}
+                dontUse={[
+                    'A link inside a sentence — underline the text in place',
+                    'The secondary CTA of a modal or drawer — use a secondary Button',
+                    'Button-looking navigation — use Button with href',
+                ]}
             />
 
             <DocSection title="Usage & states">

@@ -8,6 +8,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 const noop = () => {}
 
@@ -18,6 +19,21 @@ export default function CalloutPage() {
                 title="Callout"
                 description="Inline callout banner from the figma notification board (17802:61535). Priority sets tone and icon; supports body or title + body, a checklist body, optional dismiss, and up to two CTAs. It backs every inline banner and error in the app, plus Toast and the Banner announcement surface."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'A flow-level failure no single input can fix — priority="error" near the CTA',
+                    'An inline warning or note the user must keep seeing while they act',
+                    'A short list of what a step unlocks — pass items for the checklist body',
+                    'An inline message that carries its own action — pass one or two ctas',
+                ]}
+                dontUse={[
+                    'Field validation errors — use FieldError under the input',
+                    'Transient feedback after an action — use useToast',
+                    'Maintenance or connectivity announcements — use Global/Banner',
+                    'Flow-blocking failures — use an error step or Global/BackendErrorScreen',
+                ]}
             />
 
             <DocSection title="Priority">

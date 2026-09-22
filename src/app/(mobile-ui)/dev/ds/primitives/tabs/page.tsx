@@ -14,6 +14,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { Callout } from '@/components/0_Bruddle/Callout'
 
 const historyRows = [
@@ -37,6 +38,21 @@ export default function TabsPage() {
                 title="Tabs"
                 description="The ONE tab component for product and marketing — one look, no variants. It is the app's own bottom navigation standing still (ruled 2026-09-21, TASK-22707, which also absorbed SegmentedControl): a bordered white pill track carrying a bordered page-tint chip, sharing its resting surface with BottomNav through 0_Bruddle/PillSurface. The chip is welded FLUSH — the track has no padding and the chip is drawn 1px outside the trigger, so its border lands on the track's. The two fills are only 1.09:1 apart, so selection is carried by that 1px border, the label colour, and — ruled 2026-09-21 — the label weight: active steps from 500 to 600 on the matching semibold type token. Static: no shadow, no slide, no spring. Code-first, figma board pending."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Switch between panels of related content on one screen — transaction details and history',
+                    'Any segmented control: Tabs absorbed SegmentedControl, so there is no second tab component',
+                    'Value toggles — give no tab a content and only the trigger row renders, so the switched content can live elsewhere on the screen',
+                    'Period, network, and view-mode switches — limits period, deposit chain type, token network',
+                ]}
+                dontUse={[
+                    'Navigation between routes — use NavHeader and links',
+                    'Switching the app section — that is the route-driven Global/BottomNav',
+                    'A long option list or a filter picker — use a Drawer selection list',
+                    'A different look per screen — there is no variant prop; never re-style the trigger row',
+                ]}
             />
 
             <DocSection title="Content tabs">

@@ -9,6 +9,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -32,6 +33,21 @@ export default function FeedbackPage() {
                 title="Feedback"
                 description="Status indicators, inline errors, and the documented EmptyState pattern."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Badge type=text for a status label in a list, a row, or a receipt. Badge type=icon for a compact status chip.',
+                    'Callout priority="error" for a flow-level failure — an API or submission error you cannot attribute to one input.',
+                    'Callout priority="attention" or "info" for a notice that belongs on the page itself.',
+                    'EmptyState for a no-data content area, including the failed-fetch state of the same list.',
+                ]}
+                dontUse={[
+                    'A validation error the user fixes in one input. → use FieldError under that input, never a Callout.',
+                    'Transient background feedback. → use a toast (useToast).',
+                    'A flow-blocking failure. → use an error step, or BackendErrorScreen for a full-page failure.',
+                    'A maintenance or connectivity announcement. → use Global/Banner under the page NavHeader.',
+                ]}
             />
 
             {/* Badge — text */}

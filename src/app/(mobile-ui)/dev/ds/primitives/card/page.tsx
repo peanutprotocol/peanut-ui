@@ -11,6 +11,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CardPage() {
     return (
@@ -19,6 +20,21 @@ export default function CardPage() {
                 title="Card"
                 description="Standalone container with optional shadow. Compound component with Header, Title, Description, Content sub-components."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A standalone block on a screen — icon bubble, title, body, CTA',
+                    'A summary surface that holds one result or one number',
+                    'Set the padding yourself — a bare Card has none (p-4 inside blocks, p-6 for the board CTA card)',
+                    'Add shadowSize to lift the card; leave it off for a flat block',
+                ]}
+                dontUse={[
+                    'Stacked list rows — use ListItem inside a ListGroup',
+                    'Rows inside the card — use DataRow; a ListItem there doubles the borders',
+                    'A no-data state — use EmptyState',
+                    'An inline status or error message — use Callout',
+                ]}
             />
 
             <Playground

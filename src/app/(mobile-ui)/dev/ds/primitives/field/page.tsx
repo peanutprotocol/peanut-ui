@@ -9,6 +9,7 @@ import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function FieldPage() {
     const [bic, setBic] = useState('NOTABIC')
@@ -20,6 +21,20 @@ export default function FieldPage() {
                 title="Field"
                 description="Form-field chrome from the form board (17802:61539): label + control + one helper/error line, gap 4. The error is text only and replaces the helper — Field never paints error borders. react-hook-form owns the state; wrap the control in a Controller."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'The chrome of any labelled form control — label, control, one helper or error line',
+                    'With react-hook-form: wrap the control in a Controller and pass fieldState.error?.message',
+                    'One line under the control — the error replaces the helper, never both',
+                    'Omit htmlFor when the control is a button trigger (BaseSelect) and give the control an aria-label',
+                ]}
+                dontUse={[
+                    'A flow-level failure — use Callout priority="error"',
+                    'An error border on the control — a field error is red text only',
+                    'A bare input plus its error, with no label — use FieldColumn',
+                ]}
             />
 
             <DocSection title="Label + helper">

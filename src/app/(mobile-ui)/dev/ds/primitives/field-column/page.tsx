@@ -9,6 +9,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function FieldColumnPage() {
     return (
@@ -17,6 +18,19 @@ export default function FieldColumnPage() {
                 title="FieldColumn"
                 description="An input and its FieldError stacked 4px apart — the form-field column from the form-field board. Field validation only; page/flow failures stay Callout. Whether it folds into Field is an open question."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A control and its error 4px apart, when the label lives outside the column',
+                    'A control that is not a text input — an amount keypad, a custom field',
+                    'errorId to wire aria-describedby on the control; errorTestId for the test hook',
+                ]}
+                dontUse={[
+                    'A field that needs a label or a helper line — use Field',
+                    'An API or submission failure — use Callout priority="error"',
+                    'Two messages at once — show the blocking one only',
+                ]}
             />
 
             <SectionDivider />

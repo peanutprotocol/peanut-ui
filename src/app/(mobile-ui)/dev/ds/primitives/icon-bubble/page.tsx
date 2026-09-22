@@ -9,6 +9,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function IconBubblePage() {
     return (
@@ -17,6 +18,20 @@ export default function IconBubblePage() {
                 title="IconBubble"
                 description="Round colored icon container from the figma icon-bubble board (17802:61528)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'The leading element of a ListItem (size s)',
+                    'The head icon above a modal, drawer or card title (size m)',
+                    'The red bubble in a destructive confirm — there is no red Button variant',
+                    'Pick the color from the meaning: green success, red error, yellow warning, blue info, gray inactive',
+                ]}
+                dontUse={[
+                    'A person — use Avatar (AvatarWithBadge); never mix an IconBubble color into it',
+                    'A plain hint next to text — use Icon at size 16',
+                    'A composite leading element (a mini-bubble over a logo) — the board allows one element, so flag it',
+                ]}
             />
 
             <DocSection title="Sizes" description="xs=24, s=32, m=48, l=72px.">

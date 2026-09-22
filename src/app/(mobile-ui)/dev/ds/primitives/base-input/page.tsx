@@ -11,6 +11,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function BaseInputPage() {
     const [value, setValue] = useState('')
@@ -21,6 +22,21 @@ export default function BaseInputPage() {
                 title="BaseInput"
                 description="Text input with sm/md size variants and optional right content slot."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Single-line text entry in a form or a flow step',
+                    'A placeholder that is a role label, one or two words — instructions go above the field',
+                    'leftContent / rightContent for a prefix or a unit (the board 40px slots)',
+                    'size="sm" (40px) for a compact field; the default md (48px) everywhere else',
+                ]}
+                dontUse={[
+                    'Label and error chrome around it — wrap it in Field',
+                    'A search field — use SearchInput, the one search input',
+                    'The big single amount field — use AmountInput',
+                    'useState for a value that should survive a refresh or a share — use nuqs useQueryStates',
+                ]}
             />
 
             <Playground

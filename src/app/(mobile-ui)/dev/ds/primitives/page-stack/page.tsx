@@ -12,6 +12,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function PageStackPage() {
     return (
@@ -20,6 +21,21 @@ export default function PageStackPage() {
                 title="PageStack"
                 description="The page shell: NavHeader + vertical stack, with Center and Footer regions. Code-only recipe (no figma board) — codifies /dev/ds/patterns/layouts."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Every app screen shell: NavHeader as the first child, then the page regions',
+                    'Content that sits in the optical middle of the screen — PageStack.Center',
+                    'A CTA pinned to the bottom edge — PageStack.Footer as the last child',
+                    'A full-height scrolling list: the header plus one child, no regions',
+                ]}
+                dontUse={[
+                    'A CTA that belongs with the centered content — put the Button inside PageStack.Center; it is never a sibling of it',
+                    'The bottom nav or safe-area padding — the (mobile-ui) layout owns both',
+                    'Page width and centering — wrap the stack in PageContainer',
+                    'space-y-* for the region gaps — it fights my-auto centering; use the gap prop',
+                ]}
             />
 
             <SectionDivider />

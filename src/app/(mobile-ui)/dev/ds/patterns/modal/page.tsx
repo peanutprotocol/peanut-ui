@@ -7,6 +7,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -28,6 +29,20 @@ export default function ModalPage() {
                 title="ActionModal"
                 description="Standard confirmation and action dialog with an icon, title, description, CTAs, and optional checkbox."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A decision the user answers: confirm, cancel, or a destructive action.',
+                    'One short message plus its CTAs, when the content must fully catch attention.',
+                    'Destructive confirms: red icon bubble, primary confirm, secondary cancel.',
+                    'Every modal in the app — route it through ActionModal, never Global/Modal directly.',
+                ]}
+                dontUse={[
+                    'Content you browse — a detail view, a selection list, anything that scrolls. → use a Drawer.',
+                    'A decision raised from inside an open drawer — the modal opens behind the drawer overlay. → use a nested Drawer.',
+                    'A purely informational surface — every modal offers at least one action button.',
+                ]}
             />
 
             {/* ActionModal */}

@@ -10,14 +10,30 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function PageContainerPage() {
     return (
         <DocPage>
             <DocHeader
                 title="PageContainer"
-                description="Responsive page wrapper with max-width centering. On desktop, applies left padding for sidebar offset."
+                description="The one centered page column. Desktop shows the same column, capped at max-w-xl — no sidebar offset since DS 13."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'The outermost wrapper of a page — it is the one centered column',
+                    'A whole flow: wrap once in the route layout, so every step inherits the column',
+                    'A page whose content centers vertically — alignItems="center"',
+                    'A one-off page frame on top of the column — pass className (the public receipt)',
+                ]}
+                dontUse={[
+                    'A desktop-specific layout — desktop shows the same column capped at max-w-xl; there is no sidebar offset',
+                    'A hand-rolled centered column — never respell it',
+                    'The regions inside the page (header, centered content, footer) — use PageStack',
+                    'Screen edge padding — AppShell owns the L/16 inset (px-4)',
+                ]}
             />
 
             <SectionDivider />

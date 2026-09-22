@@ -9,6 +9,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function BreadcrumbPage() {
     return (
@@ -17,6 +18,20 @@ export default function BreadcrumbPage() {
                 title="Breadcrumb"
                 description="Trail of parent pages above marketing and content pages. The last entry is the current page and never links."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'The parent trail on a marketing or content page — blog posts, country pages, legal pages',
+                    'Pass the trail root first; the last entry is the current page and never links',
+                    'Feed the same array to the BreadcrumbList JSON-LD, as the blog post page does',
+                    'Pass a translated label on a localized page so the nav landmark reads in that language',
+                ]}
+                dontUse={[
+                    'Back navigation inside the app — use NavHeader',
+                    'Steps inside a flow — move with NavHeader onPrev and the nuqs step',
+                    'Switching between sibling views — use Tabs',
+                ]}
             />
 
             <SectionDivider />

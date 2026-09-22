@@ -11,6 +11,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function DataRowPage() {
     return (
@@ -19,6 +20,22 @@ export default function DataRowPage() {
                 title="DataRow"
                 description="Label + value row (TX Details board 17490:115877). Promoted from TransactionDetails/ReceiptRow — use it for any labeled value, not just receipts."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Labeled values in a receipt or detail card — this is the DS receipt row',
+                    'Any label/value pair outside a receipt: bank details, per-transfer caps',
+                    'Values the user retypes or pastes elsewhere — pass allowCopy',
+                    'A label that needs a short explanation — pass moreInfoText',
+                    'A row-level action beside the value — pass trailing (LinkButton, Toggle)',
+                ]}
+                dontUse={[
+                    'Navigable rows on a list page — use ListItem, never inside a card (nested borders)',
+                    'Payment confirm and deposit details, where the label sits above the value — use PaymentInfoRow, and never mix the two in one card',
+                    'The network fee on a confirm screen — use NetworkFeeRow',
+                    'Its own borders or padding — the parent card owns px-4 py-0 and the dashed dividers',
+                ]}
             />
 
             <SectionDivider />

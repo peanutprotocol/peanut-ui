@@ -10,6 +10,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ListGroupPage() {
     return (
@@ -18,6 +19,19 @@ export default function ListGroupPage() {
                 title="ListGroup"
                 description="Assigns first/middle/last/single positions to ListItem/Card children — no more hardcoded position literals. Code-only recipe (no figma board)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Two or more stacked ListItem rows that share borders',
+                    'Rows built from a map, so the group renumbers when the data changes',
+                    'Rows that can be conditional — a dropped row renumbers the rest',
+                ]}
+                dontUse={[
+                    'A single row — render the ListItem on its own (position solo)',
+                    'Rows separated by an 8px gap — that is a plain flex column, not a group',
+                    'Receipt or detail rows — use DataRow inside the receipt card',
+                ]}
             />
 
             <SectionDivider />

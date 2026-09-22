@@ -7,6 +7,7 @@ import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CarouselDotsPage() {
     const [active, setActive] = useState(1)
@@ -19,6 +20,20 @@ export default function CarouselDotsPage() {
                 title="CarouselDots"
                 description="Dot pagination from the dots/stepper board (17312:137591): active = 24x8 border-default bar, inactive = 8px border-subtle dot. onSelect makes each dot a 44px-hit-area button."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Page position in a swipeable carousel — the shared embla wrapper renders it',
+                    'Step position in a short stepped sequence — the card add-to-wallet steps',
+                    'Let the user jump to a page: pass onSelect and each dot becomes a button with a 44px hit area',
+                    'Read-only indicator: omit onSelect and pass aria-label with the current step and the total',
+                ]}
+                dontUse={[
+                    'Percentage or quantity progress — use ProgressBar',
+                    'Switching between named sections — use Tabs',
+                    'A single page — show the dots only above one snap',
+                ]}
             />
 
             <DocSection title="Interactive">

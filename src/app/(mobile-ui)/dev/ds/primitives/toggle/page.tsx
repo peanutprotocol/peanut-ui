@@ -9,6 +9,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function TogglePage() {
     const [on, setOn] = useState(true)
@@ -23,6 +24,19 @@ export default function TogglePage() {
                 title="Toggle"
                 description="Switch from the figma toggle board (17802:61532). Monochrome: black knob on, outlined knob off."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A setting that takes effect the moment it flips',
+                    'The trailing control of a settings row — toggle is in the board trailing set',
+                    'Pass aria-label when no visible label names it, and keep one stable name in both states',
+                ]}
+                dontUse={[
+                    'A form input that only applies on submit — use Checkbox',
+                    'An action or a submit — use Button',
+                    'A destructive or irreversible flip on its own — confirm it first in an ActionModal, or a nested drawer inside a drawer',
+                ]}
             />
 
             <DocSection title="Values & States">

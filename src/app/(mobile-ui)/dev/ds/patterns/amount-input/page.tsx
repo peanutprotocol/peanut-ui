@@ -5,6 +5,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -17,6 +18,20 @@ export default function AmountInputPage() {
                 title="AmountInput"
                 description="Large currency input with denomination switching, conversion display, balance indicator, and optional slider. Reference page only -- no live demo due to complex context dependencies."
                 status="needs-refactor"
+            />
+
+            <WhenToUse
+                use={[
+                    'The single amount step of a flow, where one big number is the screen.',
+                    'Amount plus conversion: pass a secondaryDenomination for the currency toggle, or hideCurrencyToggle for a one-currency flow.',
+                    'Set decimals to the currency, not to the display — a USDC withdrawal needs 6.',
+                    'An amount error the user can fix, such as insufficient balance: a FieldError right under the input.',
+                ]}
+                dontUse={[
+                    'An ordinary form field. → use Field with BaseInput.',
+                    'A flow-level failure under the amount. → use Callout priority="error".',
+                    'A hand-rolled big-number input — the heading.big.input step belongs to this component.',
+                ]}
             />
 
             {/* Refactor Note */}

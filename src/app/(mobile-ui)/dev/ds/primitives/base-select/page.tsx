@@ -9,6 +9,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function BaseSelectPage() {
     const [value, setValue] = useState('')
@@ -19,6 +20,19 @@ export default function BaseSelectPage() {
                 title="BaseSelect"
                 description="Radix-based dropdown select with error and disabled states."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A short fixed list of options — account type, bank code, state',
+                    'Inside a Field, with a Controller when react-hook-form owns the value',
+                    'Always pass aria-label — the trigger is a button, so a sibling label cannot name it',
+                ]}
+                dontUse={[
+                    'A long list the user must search — use Common/CountryCombobox',
+                    'A list you browse, or rows with an icon and a sublabel — use a Drawer with ListItem rows',
+                    'The error prop as the message — the text goes in a FieldError under the control',
+                ]}
             />
 
             <SectionDivider />

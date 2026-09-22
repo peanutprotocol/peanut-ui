@@ -8,6 +8,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function MiniHeaderPage() {
     return (
@@ -16,6 +17,21 @@ export default function MiniHeaderPage() {
                 title="MiniHeader"
                 description="Grey uppercase mini-header that labels a block of plain prose. Code-only — pending a design ruling."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'A quiet label over a block of plain prose — form groups, drawer copy',
+                    'Splitting a long form into two or three short questions',
+                    'A label on an element you cannot swap — apply MINI_HEADER_CLASS instead',
+                    'Copy that is neither a warning nor a caveat, so it needs no tint',
+                ]}
+                dontUse={[
+                    'A heading over a list or a card stack — use Section',
+                    'A title with a supporting line — use TitleBlock',
+                    'A warning, a caveat, or a flow-level failure — use Callout',
+                    'A variant of it — the label is the whole component, and it is code-only pending a design ruling; flag the gap instead',
+                ]}
             />
 
             <SectionDivider />

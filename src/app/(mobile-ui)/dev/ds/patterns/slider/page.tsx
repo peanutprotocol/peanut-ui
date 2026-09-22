@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Slider } from '@/components/Global/Slider'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
@@ -20,6 +21,21 @@ export default function SliderPage() {
                 title="Slider"
                 description="Percentage slider from the figma slider board (17802:61531), radix base. Magnetic snapping to 25 / 33.3 / 50 / 100%. Consumer: AmountInput (contribute-pot flow)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Picking a share of a known total, such as what a pot still needs.',
+                    'Through AmountInput showSlider — that is the one path to a Slider in the app today.',
+                    'Beside the amount it drives: the number stays the control, the slider is the shortcut.',
+                    'With an aria-label — the track carries no visible label.',
+                ]}
+                dontUse={[
+                    'A direct import into a screen — no call site does that. AmountInput owns the Slider. Flag the need first.',
+                    'Exact amount entry — the track snaps to 25, 33.3, 50 and 100%. → use the AmountInput number field.',
+                    'Progress or completion display. → use ProgressBar.',
+                    'Recoloring the fill green or red as an indicator — the fill is always pink.',
+                ]}
             />
 
             <DocSection title="Interactive">

@@ -8,6 +8,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ScreenMarkPage() {
     return (
@@ -16,6 +17,19 @@ export default function ScreenMarkPage() {
                 title="ScreenMark"
                 description="One-liner over IconBubble size='l', centered above a screen's content — so every screen that carries a mark carries the same one. Code-only — pending a design ruling."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'The single icon mark centered above a screen title — the size="l" IconBubble',
+                    'Migrating a screen that already spells that centered bubble itself, so every mark looks the same',
+                    'The mark tone — pass color; the default is green',
+                ]}
+                dontUse={[
+                    'An icon inside a card, a row, a modal, or a drawer — use IconBubble directly at its own size',
+                    'A payment success screen — PaymentSuccessView already owns its mark',
+                    'A new screen decoration with no precedent — there is no product call site yet, and the component is code-only pending a design ruling; flag the gap',
+                ]}
             />
 
             <SectionDivider />

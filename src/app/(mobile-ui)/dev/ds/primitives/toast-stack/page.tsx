@@ -9,6 +9,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 const noop = () => {}
 
@@ -19,6 +20,20 @@ export default function ToastStackPage() {
                 title="ToastStack"
                 description="The toast provider's render surface, split out so framer-motion stays out of the initial bundle. Product code never renders it — ToastProvider owns it; fire toasts via useToast()."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Fire a toast with useToast() — the provider mounts this stack on demand',
+                    'Read this page to learn where toasts land, how they stack, and how they leave',
+                    'Change toast placement, order, or motion here — it is the one render surface',
+                    'Keep it lazy: framer-motion stays out of the bundle until the first toast is asked for',
+                ]}
+                dontUse={[
+                    'Do not mount ToastStack yourself — AppFlowProviders wraps every app route in ToastProvider',
+                    'Do not pass toasts or dismiss by hand — call useToast()',
+                    'A message that must stay on screen — use an inline Callout',
+                ]}
             />
 
             <SectionDivider />

@@ -9,6 +9,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function NumberedListPage() {
     return (
@@ -17,6 +18,21 @@ export default function NumberedListPage() {
                 title="NumberedList"
                 description="Semantic ordered list for a real sequence. Each step gets a 20px action-primary pink circle, so item copy should not include its own number."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A real sequence, where the order changes how the user completes the task',
+                    'Instructions the user follows outside the app — a bank transfer, passkey backup',
+                    'Steps that carry a bold name over a detail line — items accept nodes',
+                    'Steps inside a Card — pass className for the inner padding',
+                ]}
+                dontUse={[
+                    'Facts or conditions with no order — use BulletList',
+                    'Hand-written "1." or "Step N" prefixes — the marker carries the number',
+                    'Navigable settings or payment rows — use ListItem',
+                    'A warning, a caveat, or a flow-level failure — use Callout',
+                ]}
             />
 
             <DocSection title="Ordered steps" description="Use when the order changes how the user completes the task.">

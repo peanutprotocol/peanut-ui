@@ -6,6 +6,7 @@ import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ProgressBarPage() {
     return (
@@ -14,6 +15,20 @@ export default function ProgressBarPage() {
                 title="ProgressBar"
                 description="Track + fill + optional tick markers. Consumers own their colors via token classes (no figma board — code-only primitive)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Show how far a known quantity has run — checklist completion, pot goal, remaining limit',
+                    'Mark a threshold on the track with markers — the goal tick on a pot',
+                    'Pass the tone through trackClassName and fillClassName token classes; the bar owns no color',
+                    'Pair the bar with the percentage or the count spelled out above it',
+                ]}
+                dontUse={[
+                    'Waiting with no known end — use Loading (CyclingLoading stays inline)',
+                    'Page or step position — use CarouselDots',
+                    'Hold-to-confirm feedback — Button longPress draws its own bar',
+                ]}
             />
 
             <DocSection title="Values">

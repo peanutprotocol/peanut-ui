@@ -10,6 +10,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function PinInputPage() {
     const [value, setValue] = useState('')
@@ -20,6 +21,21 @@ export default function PinInputPage() {
                 title="PinInput"
                 description="Filled-dot PIN entry backed by one sr-only numeric input; tapping the dots opens the mobile keyboard. Lives in components/Card (the card PIN flows are its only consumers). Code-only — no figma board; pending a design ruling on a shared PIN/OTP primitive."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'Card PIN entry — the set and confirm steps',
+                    'A short fixed-length numeric secret typed on the mobile keyboard',
+                    'Pair it with a FieldError 4px below for the rejection reason',
+                    'Disable it while the save runs, so the digits cannot change under the request',
+                ]}
+                dontUse={[
+                    'Ordinary text or number fields — use Field with BaseInput',
+                    'An error border on the dots — a field error is red text only',
+                    'Amount entry — use AmountInput',
+                    'A new non-card PIN or OTP surface — flag it; a shared primitive is not ruled yet',
+                ]}
             />
 
             <SectionDivider />

@@ -8,6 +8,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -20,6 +21,21 @@ export default function LayoutsPage() {
                 title="Layouts"
                 description="Three page layout recipes used across the app. Every screen follows one of these patterns."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Recipe 1 — content and its CTA centered in one block: amount steps, confirmations, success screens.',
+                    'Recipe 2 — content from the top with the CTA pinned at the bottom: forms, settings, claim screens.',
+                    'Recipe 3 — header plus a list that fills the rest: history, token lists, contacts.',
+                    'PageStack, PageStack.Center and PageStack.Footer — the coded form of these recipes. Prefer them over raw markup.',
+                    'NavHeader as the first child of the page shell.',
+                ]}
+                dontUse={[
+                    'Absolute or fixed positioning for a bottom CTA — the flex recipe handles keyboard, safe area, and overflow.',
+                    'space-y-* on the page shell — it fights my-auto centering. Use gap-*.',
+                    'A per-page desktop layout, a bottom nav, or safe-area padding of your own — PageContainer and the (mobile-ui) layout own those.',
+                ]}
             />
 
             {/* Recipe 1: Centered Content + CTA */}

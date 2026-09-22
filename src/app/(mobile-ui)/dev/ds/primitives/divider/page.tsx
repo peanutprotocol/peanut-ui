@@ -9,11 +9,26 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function DividerPage() {
     return (
         <DocPage>
             <DocHeader title="Divider" description="Horizontal divider with optional text label." status="production" />
+
+            <WhenToUse
+                use={[
+                    'Separate two alternatives with an "or" label — sign up or log in',
+                    'Separate two blocks of different kinds — a card above a list',
+                    'Break long prose into parts: markdown --- renders as a Divider',
+                    'Quiet the rule down with dividerClassname and textClassname when it must not compete',
+                ]}
+                dontUse={[
+                    'Between list rows — ListItem position draws its own divider',
+                    'Between rows of a receipt card — the card owns the dashed dividers',
+                    'Between page sections — use the XL/24 section gap',
+                ]}
+            />
 
             <SectionDivider />
 

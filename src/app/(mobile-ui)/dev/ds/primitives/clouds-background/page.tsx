@@ -8,6 +8,7 @@ import { DocSection } from '../../_components/DocSection'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CloudsBackgroundPage() {
     return (
@@ -16,6 +17,20 @@ export default function CloudsBackgroundPage() {
                 title="CloudsBackground"
                 description="Decorative drifting-clouds backdrop for success and marketing moments. Code-only (brand) — no figma board. Decoration only, never a functional screen."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Brand decoration behind an onboarding or invites hero',
+                    'Pass minimal — both product call sites use it; the denser default has none today',
+                    'Host it in a relative, overflow-hidden box that has a height of its own',
+                    'Keep the illustration and the copy above it, on z-10',
+                ]}
+                dontUse={[
+                    'The app background on a functional screen — use bg-peanut-repeat-normal',
+                    'A loading or an empty state — use Loading or EmptyState',
+                    'Anything that carries meaning — the clouds are decoration; put the message in the page copy',
+                ]}
             />
 
             <SectionDivider />

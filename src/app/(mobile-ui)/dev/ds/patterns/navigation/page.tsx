@@ -7,6 +7,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -21,6 +22,21 @@ export default function NavigationPage() {
                 title="Navigation"
                 description="NavHeader for page-level navigation — back button, optional title, optional trailing element (board navigation.top.*)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A page under a section: NavHeader with a title. Back links to /home by default — pass href for a different parent.',
+                    'A step inside a flow: NavHeader onPrev sets the previous step.',
+                    'An entry that may be a deep link: useSafeBack(fallbackUrl), because the history can be empty.',
+                    'A terminal screen (success, error): useSafeBack(fallbackUrl, { replace: true }) so back cannot pop into a finished flow.',
+                    'One title for a whole flow — the step changes, the title does not.',
+                ]}
+                dontUse={[
+                    'A hand-rolled header on the first step of a flow. → use NavHeader with hideBackBtn.',
+                    'A long page title — it truncates past about 18 characters at 375px. Shorten the copy first.',
+                    'Driving the bottom-nav pill from a drawer or modal flag — the active pill tracks the route only.',
+                ]}
             />
 
             {/* NavHeader */}

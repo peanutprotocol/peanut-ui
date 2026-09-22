@@ -18,6 +18,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -30,6 +31,20 @@ export default function DrawerPage() {
                 title="Drawer"
                 description="Vaul-based bottom sheet with compound component API. Swipe-to-dismiss, snap points, and overlay."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Detail views, selection lists, and long or scrollable content.',
+                    'The default overlay: prefer a drawer unless the content is critical and must catch full attention.',
+                    'A decision raised from inside an open drawer — open a second Drawer with nested.',
+                    'Short form sheets: header, one or two fields, one CTA. Block dismissal while the save runs.',
+                ]}
+                dontUse={[
+                    'A short confirm or cancel question with one message. → use ActionModal.',
+                    'An ActionModal opened from inside a drawer — it renders behind the overlay. → use Drawer nested.',
+                    'Re-adding horizontal padding on the panel — DrawerContent already owns the 16px inset. Callers add vertical padding only.',
+                ]}
             />
 
             {/* Live Demo + Usage */}

@@ -7,6 +7,7 @@ import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function SlideToConfirmPage() {
     const [confirmedAt, setConfirmedAt] = useState<string | null>(null)
@@ -20,6 +21,20 @@ export default function SlideToConfirmPage() {
                 title="SlideToConfirm"
                 description="The one money-confirm control (button board 17785:11764, button.slide.*). Commits only at 100% travel — drag or arrow keys; Enter/Space never confirm. The latch resets when disabled goes true->false, so hosts that disable while the action runs get in-place retry after a failure."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'The last confirm on a money action — send, onramp, withdraw',
+                    'A destructive card action that must never fire by accident — lock or cancel a card',
+                    'A step that needs deliberate friction before it runs',
+                    'In-place retry after a failure — flip disabled true then false to reset the latch',
+                ]}
+                dontUse={[
+                    'Ordinary CTAs, form submits, and forward steps — use Button',
+                    'Press-and-hold reward claims — use HoldToClaimButton',
+                    'The cancel side of a confirm surface — use a secondary Button',
+                ]}
             />
 
             <DocSection title="Live">

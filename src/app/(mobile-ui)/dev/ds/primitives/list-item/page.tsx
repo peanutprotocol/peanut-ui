@@ -10,6 +10,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ListItemPage() {
     return (
@@ -18,6 +19,21 @@ export default function ListItemPage() {
                 title="ListItem"
                 description="Row component from the figma list-item board (17802:61530). Leading slot + title/body + trailing slot, grouped via position."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Rows in a list: payment methods, settings, accounts, activity',
+                    'One leading element only — an IconBubble, a flag, a logo or an avatar',
+                    'Trailing from the board set: chevron, badge, toggle, value, copy or external-link',
+                    'Group rows with position, or let ListGroup derive it',
+                ]}
+                dontUse={[
+                    'Rows inside a Card — nested borders; use DataRow',
+                    'A long account identifier as the title — middle-ellipsis it first (middleEllipsisAccount)',
+                    'An initials avatar for a row named by a label, not a person — use IconBubble with the type icon',
+                    'A three-dot overflow in the trailing slot — it is outside the board set, so flag it',
+                ]}
             />
 
             <DocSection title="Leading Content" description="Icon, icon bubble, or nothing — title with optional body.">

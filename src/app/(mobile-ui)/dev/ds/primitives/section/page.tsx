@@ -14,6 +14,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function SectionPage() {
     // mirrors TokenSelector's activeNetworkTab state
@@ -25,6 +26,21 @@ export default function SectionPage() {
                 title="Section"
                 description="Section title above a list/card stack. Owns the heading token. Code-only recipe (no figma board)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A titled block on a page: a heading over a list, a card stack, or a tabs row',
+                    'Anywhere a page would respell the heading — Section owns the h2 and its text-heading-card token',
+                    'An action on the title row — pass trailing, so it stays a sibling of the h2',
+                    'One heading that stays put while its content loads, errors, or renders empty',
+                ]}
+                dontUse={[
+                    'The page title above the content — use NavHeader',
+                    'A title with a supporting line under it — use TitleBlock',
+                    'A new heading size at the call site — Section owns the type token; never swap it',
+                    'The gap between sections — the page stack owns the XL/24 section gap; Section only sets the S/8 title-to-list gap',
+                ]}
             />
 
             <SectionDivider />

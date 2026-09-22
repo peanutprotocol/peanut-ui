@@ -9,6 +9,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CheckboxPage() {
     const [checked, setChecked] = useState(false)
@@ -19,6 +20,19 @@ export default function CheckboxPage() {
     return (
         <DocPage>
             <DocHeader title="Checkbox" description="Simple checkbox with optional label." status="production" />
+
+            <WhenToUse
+                use={[
+                    'Opt in before you submit — accept the terms, save this address',
+                    'A choice that only takes effect when the form is submitted',
+                    'The label prop for one short line; leave it out and put wrapping text or links beside the box',
+                ]}
+                dontUse={[
+                    'A setting that saves the moment it flips — use Toggle',
+                    'A trailing control on a list row — the board trailing set has a toggle, not a checkbox',
+                    'One choice out of many — use BaseSelect, or a selection list in a Drawer',
+                ]}
+            />
 
             <SectionDivider />
 

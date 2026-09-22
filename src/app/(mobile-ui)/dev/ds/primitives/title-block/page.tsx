@@ -12,6 +12,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function TitleBlockPage() {
     return (
@@ -20,6 +21,21 @@ export default function TitleBlockPage() {
                 title="TitleBlock"
                 description="Title + supporting text pair, extracted from EmptyState. Code-only recipe (no figma board)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'A title and its supporting line as one pair: screen hero, empty state, processing screen',
+                    'Centered confirm copy in a modal or a nested drawer — align="center"',
+                    'A screen hero at heading-s — pass size, and put your own <h1> in title',
+                    'An action that belongs with the copy — pass it as children so it inherits the block gap',
+                ]}
+                dontUse={[
+                    'A heading over a list or a card stack — use Section',
+                    'The page title in the header — use NavHeader',
+                    'A no-data card — use EmptyState, which already composes TitleBlock',
+                    'A heading size outside the size set — pick a size; never restyle the title at the call site',
+                ]}
             />
 
             <SectionDivider />

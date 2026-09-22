@@ -8,6 +8,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
@@ -20,6 +21,20 @@ export default function CardsGlobalPage() {
                 title="Card (Global)"
                 description="Global shared Card component for stacked lists with position-aware border radius. Different from the Bruddle Card primitive (named export from 0_Bruddle)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Stacked list rows: set position (solo, top, middle, bottom) so a group rounds and borders once.',
+                    'Positions computed per group, not per page — each date group or section rounds on its own.',
+                    'A row that navigates: pass onClick, or wrap the Card in a Link.',
+                    'Receipt and detail cards: one Card with px-4 py-0 and dashed dividers around DataRows.',
+                ]}
+                dontUse={[
+                    'A standalone content card with a shadow. → use the Bruddle Card (named export from 0_Bruddle/Card).',
+                    'A ListItem inside a Card — the borders nest, and ListItem already renders this Card.',
+                    'The default py-2 under receipt rows — DataRow owns its padding, so pass py-0 or the first and last rows double-pad.',
+                ]}
             />
 
             {/* Import */}
