@@ -2452,7 +2452,6 @@
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
-        "toastTapToView": "Toque para ver",
         "unlock": {
             "invites": "Convide {target, plural, one {# amigo que entre no Peanut} other {# amigos que entrem no Peanut}}.",
             "rewards": "Ganhe US$ {targetUsd} em recompensas.",
@@ -2661,8 +2660,7 @@
                 "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
-        "toastChooseAvatar": "Escolher avatar"
+        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}"
     },
     "notifications": {
         "setupTitle": "Ativar as notificações?",

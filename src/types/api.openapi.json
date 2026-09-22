@@ -21757,6 +21757,9 @@
                                                 "reviewedAt": {
                                                     "type": "string"
                                                 },
+                                                "reviewPending": {
+                                                    "type": "boolean"
+                                                },
                                                 "status": {
                                                     "anyOf": [
                                                         {

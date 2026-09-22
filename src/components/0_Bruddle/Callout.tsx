@@ -4,8 +4,8 @@ import React from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import { Button } from './Button'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
+import { LinkButton } from './LinkButton'
 
 export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
 export type CalloutVariant = 'inline' | 'floating'
@@ -30,13 +30,13 @@ interface CalloutProps {
     children?: React.ReactNode
     /** Checklist body: one check-marked row per entry, instead of `children`. */
     items?: React.ReactNode[]
-    /** When set, shows a close button (dismissible variant). */
+    /** When set, shows a close button. Toasts may be dismissed but never contain actions. */
     onDismiss?: () => void
     /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two actions: first renders primary, second secondary. */
+    /** One or two underlined text actions on inline callouts only. Transient toasts have no actions. */
     ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
@@ -82,8 +82,6 @@ const PRIORITY_STYLES: Record<
         bar: 'bg-background-icon-bubble-red',
     },
 }
-
-const CTA_VARIANTS = ['primary', 'secondary'] as const
 
 /**
  * Inline callout banner from the figma notification board (17802:61535):
@@ -132,6 +130,7 @@ export const Callout = ({
     const t = useTranslations('common')
     const { icon, bg, surface, bubble, bar } = PRIORITY_STYLES[priority]
     const isFloating = variant === 'floating'
+    const visibleCtas = isFloating ? undefined : ctas
     // `items` wins whenever it is passed at all — an explicit [] means "no rows",
     // not "fall back to children"
     const body = items
@@ -163,7 +162,7 @@ export const Callout = ({
     const indent = showIcon ? (isFloating ? 'pl-8' : 'pl-6') : ''
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box
-    if (!body && !title && !ctas?.length) return null
+    if (!body && !title && !visibleCtas?.length) return null
     return (
         <div
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
@@ -227,20 +226,12 @@ export const Callout = ({
                     </div>
                     {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
                 </div>
-                {!!ctas?.length && (
-                    <div className={twMerge('flex flex-wrap gap-2', indent)}>
-                        {ctas.slice(0, 2).map((cta, i) => (
-                            <Button
-                                key={i}
-                                size="small"
-                                variant={CTA_VARIANTS[i]}
-                                icon="chevron-right"
-                                iconPosition="right"
-                                onClick={cta.onClick}
-                                className="w-auto min-w-28"
-                            >
+                {!!visibleCtas?.length && (
+                    <div className={twMerge('flex flex-wrap gap-6', indent)}>
+                        {visibleCtas.slice(0, 2).map((cta, i) => (
+                            <LinkButton key={i} onClick={cta.onClick}>
                                 {cta.label}
-                            </Button>
+                            </LinkButton>
                         ))}
                     </div>
                 )}
@@ -273,9 +264,7 @@ export const Callout = ({
                 <span
                     aria-hidden
                     className={twMerge(
-                        // pointer-events-none: the bar paints after the dismiss
-                        // button and spans the full width, so on a one-line toast it
-                        // sat over the lower half of that button's 44px target
+                        // The decorative bar never intercepts pointer events.
                         'pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left rounded-b-sm motion-safe:animate-toast-progress',
                         bar
                     )}

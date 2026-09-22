@@ -89,7 +89,7 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
-let mockIdentity: { status: string; submittedAt?: string } = { status: 'not_started' }
+let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
 let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
@@ -126,7 +126,10 @@ let mockBridgeLimits: unknown = null
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ mantecaLimits: mockMantecaLimits, bridgeLimits: mockBridgeLimits }),
 }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+const mockSetIsSupportModalOpen = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockSetIsSupportModalOpen }),
+}))
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
@@ -229,17 +232,35 @@ describe('UnlockPayments', () => {
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
-        mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 2 * 86400000).toISOString() }
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        }
         render()
         expect(screen.getByText(/ID check in review since/)).toBeInTheDocument()
         expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
     })
 
-    it('escalates the in-review line after 7 days', () => {
+    it('does not show or escalate the notice without a confirmed submission signal', () => {
         mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 8 * 86400000).toISOString() }
         render()
+        expect(screen.queryByText(/ID check in review/)).not.toBeInTheDocument()
+        expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
+    })
+
+    it('escalates the in-review line after 7 days', () => {
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+        }
+        render()
         expect(screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
-        expect(screen.getByText("Message us and we'll chase it")).toBeInTheDocument()
+        const supportLink = screen.getByRole('button', { name: "Message us and we'll chase it" })
+        expect(supportLink).toHaveClass('underline')
+        fireEvent.click(supportLink)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
     })
 
     it('degraded mode shows the outage banner and blocks bank-method taps', () => {

@@ -71,7 +71,8 @@ function bestEntry(entries, locale) {
                 entry.locale === locale &&
                 (entry.source ?? 'synthetic') === 'synthetic' &&
                 entry.reportType === 'capture' &&
-                entry.branch === 'dev'
+                entry.branch === 'dev' &&
+                (entry.profile ?? '393x852') === '393x852'
         )
         .sort(
             (a, b) =>

@@ -24,7 +24,7 @@ export default function ToastPage() {
         <DocPage>
             <DocHeader
                 title="Toast"
-                description="Provider-based, non-blocking feedback for transient events. Toast renders the Callout primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and custom content."
+                description="Provider-based, non-blocking feedback for transient events. Toast renders the Callout primitive in the shared floating stack, with four caller-facing tones, reading-time auto-dismiss, stable IDs, persistent messages, and non-interactive custom content. Toasts have no action buttons or links; the close button only dismisses the toast."
                 status="production"
             />
 
