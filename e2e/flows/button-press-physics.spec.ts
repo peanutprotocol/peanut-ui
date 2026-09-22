@@ -63,10 +63,29 @@ async function touchPress(el: Locator) {
     const box = await el.boundingBox()
     if (!box) throw new Error('nothing to press: the element has no box')
 
+    const x = box.x + box.width / 2
+    const y = box.y + box.height / 2
+
+    // the gesture goes to raw viewport coordinates and gets none of the
+    // actionability checks `press()` borrows from hover(). A sticky bar over
+    // the centre point would swallow the tap, :active would never set, and the
+    // poll under the press would time out on CSS that is correct — so hit-test
+    // the point first and name whatever is in the way.
+    const intruder = await el.evaluate(
+        (node, point) => {
+            const hit = document.elementFromPoint(point.x, point.y)
+            if (!hit) return 'nothing — the point is outside the viewport'
+            if (hit === node || node.contains(hit)) return null
+            return `<${hit.tagName.toLowerCase()} class="${hit.getAttribute('class') ?? ''}">`
+        },
+        { x, y }
+    )
+    if (intruder) throw new Error(`the tap point (${x}, ${y}) is covered by ${intruder}, not by the element to press`)
+
     const cdp = await page.context().newCDPSession(page)
     const lifted = cdp.send('Input.synthesizeTapGesture', {
-        x: box.x + box.width / 2,
-        y: box.y + box.height / 2,
+        x,
+        y,
         duration: TOUCH_HOLD_MS,
         gestureSourceType: 'touch',
     })
