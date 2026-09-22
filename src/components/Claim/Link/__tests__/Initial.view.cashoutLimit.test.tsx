@@ -4,7 +4,7 @@
  * The MIN/MAX_CASHOUT_LIMIT refusals fire in handleIbanRecipient, which only
  * runs on the claim-to-bank path (claimToExternalWallet = false). During the
  * TASK-22121 #26 error split they were briefly routed to fieldError, whose
- * only render site (the FieldColumn under the external-wallet recipient
+ * only render site (the Field under the external-wallet recipient
  * input) is gated behind claimToExternalWallet — the refusal became
  * unrenderable on a money path. Pin the fix: the message must reach the
  * user through the flow Callout, and loading must return to Idle.
@@ -250,7 +250,7 @@ describe('InitialClaimLinkView bank-claim cashout limits', () => {
         fireEvent.click(screen.getByRole('button'))
 
         // the refusal must render — on the bank path the recipient-input
-        // FieldColumn is NOT mounted, so only the flow Callout can show it
+        // the Field is NOT mounted, so only the flow Callout can show it
         await waitFor(() => expect(screen.getByText(/below the \$10\.00 minimum for bank payouts/)).toBeInTheDocument())
         // no stuck spinner: the last loading transition is back to Idle
         expect(mockSetLoadingState).toHaveBeenLastCalledWith('Idle')

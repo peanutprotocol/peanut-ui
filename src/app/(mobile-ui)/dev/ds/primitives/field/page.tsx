@@ -19,21 +19,23 @@ export default function FieldPage() {
         <DocPage>
             <DocHeader
                 title="Field"
-                description="Form-field chrome from the form board (17802:61539): label + control + one helper/error line, gap 4. The error is text only and replaces the helper — Field never paints error borders. react-hook-form owns the state; wrap the control in a Controller."
+                description="Form-field chrome from the form board (17802:61539): an optional label + control + one helper/error line, gap 4. The error is text only and replaces the helper — Field never paints error borders. The one form-field component: FieldColumn folded into it (kush 2026-09-22). react-hook-form owns the state; wrap the control in a Controller."
                 status="production"
             />
 
             <WhenToUse
                 use={[
-                    'The chrome of any labelled form control — label, control, one helper or error line',
+                    'The chrome of any form control — the one form-field component, labelled or not',
+                    'No label and no helper — you get the bare control + error column',
                     'With react-hook-form: wrap the control in a Controller and pass fieldState.error?.message',
                     'One line under the control — the error replaces the helper, never both',
                     'Omit htmlFor when the control is a button trigger (BaseSelect) and give the control an aria-label',
+                    'errorId to wire aria-describedby on the control; errorTestId when a test looks the error up by name',
                 ]}
                 dontUse={[
                     'A flow-level failure — use Callout priority="error"',
                     'An error border on the control — a field error is red text only',
-                    'A bare input plus its error, with no label — use FieldColumn',
+                    'Two messages at once — show the blocking one only',
                 ]}
             />
 
@@ -79,6 +81,34 @@ export default function FieldPage() {
         </Field>
     )}
 />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Bare control (no label)"
+                description="Omit label and helper to get the control + error column on its own — the shape FieldColumn used to carry. Pass errorId when the control needs aria-describedby, errorTestId when a test looks the error up by name."
+            >
+                <DocSection.Content>
+                    <Field error="Amount is required" errorId="ds-field-bare-error">
+                        <BaseInput
+                            placeholder="Amount"
+                            state="error"
+                            aria-describedby="ds-field-bare-error"
+                            aria-label="Amount"
+                        />
+                    </Field>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Bare control"
+                        code={`<Field error={errors.amount?.message} errorId="amount-error">
+    <BaseInput
+        placeholder="Amount"
+        state={errors.amount ? 'error' : 'default'}
+        aria-describedby={errors.amount ? 'amount-error' : undefined}
+    />
+</Field>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -144,6 +174,54 @@ export default function FieldPage() {
                             ]}
                             className="h-12 w-full rounded-sm text-body-s"
                         />
+                    </Field>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Profile — edit a detail"
+                    path="src/components/Profile/components/ProfileEditField.tsx"
+                    description="The label and its badge sit outside the field, so Field runs bare: it owns the input and its error, and errorId wires aria-describedby on the input."
+                    code={`<div className="flex flex-col gap-2">
+    <label htmlFor={id} className="text-label-l">{label}</label>
+    <Field error={error} errorId={\`\${id}-error\`}>
+        <BaseInput
+            id={id}
+            size="sm"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? \`\${id}-error\` : undefined}
+        />
+    </Field>
+</div>`}
+                >
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor="ds-field-usage-username" className="text-label-l">
+                            Username
+                        </label>
+                        <Field error="That username is taken" errorId="ds-field-usage-username-error">
+                            <BaseInput
+                                id="ds-field-usage-username"
+                                size="sm"
+                                defaultValue="kushagra"
+                                aria-invalid
+                                aria-describedby="ds-field-usage-username-error"
+                            />
+                        </Field>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — amount step"
+                    path="src/components/AddMoney/components/InputAmountStep.tsx"
+                    description="Wraps the amount keypad, not a text input, and carries the error-alert test hook. The error is suppressed while the limits card is blocking, so only one message shows at a time. Recreated here with BaseInput in place of AmountInput."
+                    code={`{/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+<Field error={!limitsValidation?.isBlocking ? validationError : undefined} errorTestId="error-alert">
+    <AmountInput … />
+</Field>`}
+                >
+                    <Field error="Enter at least $10" errorTestId="error-alert">
+                        <BaseInput placeholder="$0.00" state="error" inputMode="decimal" aria-label="Amount" />
                     </Field>
                 </ProductUsage.Example>
             </ProductUsage>

@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
@@ -155,7 +155,7 @@ export function BridgeBankOnrampView() {
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
                     {/* the field error yields to the limits card only when that card renders */}
-                    <FieldColumn
+                    <Field
                         error={
                             shouldShowAmountError({
                                 showError: !!validationError,
@@ -183,7 +183,7 @@ export function BridgeBankOnrampView() {
                             }
                             hideBalance
                         />
-                    </FieldColumn>
+                    </Field>
 
                     {/* limits warning/error card */}
                     {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}

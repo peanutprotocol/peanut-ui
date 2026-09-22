@@ -45,7 +45,6 @@ import {
     Puzzle,
     RectangleEllipsis,
     RectangleHorizontal,
-    Rows2,
     Rows3,
     Ruler,
     Shapes,
@@ -181,15 +180,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Field',
             icon: RectangleEllipsis,
             href: '/dev/ds/primitives/field',
-            description: 'Form-field chrome: label + control + helper/error line — error is text only, never borders',
-            status: 'production',
-        },
-        {
-            label: 'FieldColumn',
-            icon: Rows2,
-            href: '/dev/ds/primitives/field-column',
             description:
-                'Input + FieldError stacked 4px apart, from the form-field board — whether it folds into Field is an open question',
+                'Form-field chrome: optional label + control + helper/error line — error is text only, never borders',
             status: 'production',
         },
         {
