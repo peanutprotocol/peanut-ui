@@ -25,9 +25,13 @@ const elementIds = [
     'difference',
     'slider',
     'slider-label',
+    'zoom-controls',
     'zoom',
     'zoom-title',
+    'zoom-position',
     'zoom-images',
+    'zoom-prev',
+    'zoom-next',
     'coverage',
     'empty-state',
     'empty-kicker',
@@ -63,6 +67,7 @@ class Element {
         this.textContent = ''
         this.className = ''
         this.dataset = {}
+        this.style = {}
         this.listeners = new Map()
         this.clientWidth = 280
         this.scrollWidth = 0
@@ -73,8 +78,8 @@ class Element {
     addEventListener(type, listener) {
         this.listeners.set(type, listener)
     }
-    dispatch(type) {
-        this.listeners.get(type)?.({ target: this })
+    dispatch(type, event = {}) {
+        this.listeners.get(type)?.({ target: this, preventDefault() {}, ...event })
     }
     append(...children) {
         this.children.push(...children)
@@ -492,7 +497,8 @@ test('changed mode shows only visual changes and can switch to the full catalogu
         true
     )
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
-    assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
+    assert.equal(imageSources(elements.get('zoom-images'))[0], `/screen-data/assets/${image}`)
+    assert.match(elements.get('zoom-images').children[0].children[0].className, /iphone/)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.deepEqual(
@@ -513,6 +519,69 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.get('screens').children.length, 1)
     assert.equal(elements.get('screens').children[0].id, 'failed')
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+})
+
+test('screen preview uses the viewport device frame and supports chevrons and keyboard navigation', async () => {
+    const first = 'a'.repeat(64) + '.webp'
+    const second = 'b'.repeat(64) + '.webp'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        profile: 'en-360x800',
+        width: 360,
+        height: 800,
+        complete: true,
+        capturedAt: '2026-09-22T12:00:00Z',
+        screens: [
+            {
+                id: 'first',
+                name: 'First screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image: first,
+                thumbnail: first,
+            },
+            {
+                id: 'second',
+                name: 'Second screen',
+                flow: 'Send',
+                kind: 'route',
+                status: 'captured',
+                image: second,
+                thumbnail: second,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-22/dev/en/360x800/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'First screen')
+    assert.equal(elements.get('zoom-position').textContent, '1 of 2 · Android · 360 × 800')
+    assert.match(elements.get('zoom-images').children[0].children[0].className, /device-frame android/)
+    assert.deepEqual(imageSources(elements.get('zoom-images')), [`/screen-data/assets/${first}`])
+
+    elements.get('zoom-next').onclick()
+    assert.equal(elements.get('zoom-title').textContent, 'Second screen')
+    assert.equal(elements.get('zoom-position').textContent, '2 of 2 · Android · 360 × 800')
+    assert.deepEqual(imageSources(elements.get('zoom-images')), [`/screen-data/assets/${second}`])
+
+    let prevented = 0
+    elements.get('zoom').dispatch('keydown', {
+        key: 'ArrowLeft',
+        preventDefault() {
+            prevented += 1
+        },
+    })
+    assert.equal(prevented, 1)
+    assert.equal(elements.get('zoom-title').textContent, 'First screen')
+
+    elements.get('zoom').dispatch('keydown', { key: 'Escape', target: elements.get('slider') })
+    assert.equal(elements.get('zoom').open, false)
 })
 
 test('report cards follow explicit journey order instead of manifest or ID order', async () => {
@@ -970,7 +1039,7 @@ test('Nutcracker reports show real-backend provenance and retain a screenshot wh
     const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
     assert.equal(screenshot.src, `/screen-data/assets/${original}`)
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
-    assert.equal(elements.get('zoom-images').children[0].src, screenshot.src)
+    assert.equal(imageSources(elements.get('zoom-images'))[0], screenshot.src)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {
