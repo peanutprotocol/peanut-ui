@@ -31,6 +31,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
+    // use_content_metadata only holds back 6 legacy content files with bad title/description;
+    // fix those, then read the frontmatter unconditionally like the sibling marketing routes.
     const { title, description, use_content_metadata: useContentMetadata } = mdxContent.frontmatter
 
     return {
