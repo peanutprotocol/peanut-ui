@@ -340,7 +340,7 @@
             "title": "Accounts and payments",
             "description": "Your accounts, payment methods and verification status.",
             "residence": {
-                "label": "Residence: {country}",
+                "label": "Residence",
                 "unknown": "Residence not set",
                 "verified": "Verified",
                 "unverified": "Not confirmed",
@@ -1541,7 +1541,7 @@
             "keepCard": "Keep my card",
             "body": "You won't be able to use it again.",
             "canceling": "Canceling…",
-            "slideToCancel": "Slide to Cancel",
+            "slideToCancel": "Slide to cancel",
             "canceledTitle": "Card canceled",
             "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
             "feedbackLabel": "Help us improve our product for you",

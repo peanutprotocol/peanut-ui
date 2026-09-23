@@ -109,7 +109,7 @@ export function PayByBankTransferDrawer({
                         {title}
                         {figure && (
                             <Badge
-                                status={figure.approx ? 'custom' : 'completed'}
+                                status={figure.approx ? 'neutral' : 'completed'}
                                 customText={t(figure.approx ? 'bankTransfer.estimateBadge' : 'bankTransfer.exactBadge')}
                             />
                         )}

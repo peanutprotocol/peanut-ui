@@ -121,7 +121,7 @@ export const Badges = () => {
                             )}
                         >
                             {badge.earned && (
-                                <Badge status="custom" customText={t('earned')} className="absolute top-1 right-1" />
+                                <Badge status="completed" customText={t('earned')} className="absolute top-1 right-1" />
                             )}
                             <BadgeImage
                                 src={badge.logo!}

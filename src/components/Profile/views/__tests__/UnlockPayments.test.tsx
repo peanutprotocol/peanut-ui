@@ -312,14 +312,23 @@ describe('UnlockPayments', () => {
     it("shows the verified residence anchor and floats that region's rows to the top of the merged list", () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR' } }
         render()
-        expect(screen.getByText('Residence: Brazil')).toBeInTheDocument()
-        expect(screen.getByText('Verified')).toBeInTheDocument()
+        // two-line row: the country never shares a truncating line with the pill
+        expect(screen.getByText('Residence')).toBeInTheDocument()
+        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
+        expect(screen.getByText('Verified')).toHaveClass('bg-background-badge-success')
         // Region headers are gone (2026-09-18 currency-first merge), so the
         // "floats up" contract now shows in row order: the residence's own
         // region (South America) sorts before the others in the merged list.
         const brazilRow = screen.getByText('BRL · Pix')
         const europeRow = screen.getByText('EUR · Bank transfer')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('an unconfirmed residence reads as a neutral badge, beside the verified one', () => {
+        mockUser = { residence: { declared: 'BR', verified: null } }
+        render()
+        expect(screen.getByText('Not confirmed')).toHaveClass('bg-background-badge-helper')
+        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
     })
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
