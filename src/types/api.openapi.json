@@ -23083,6 +23083,9 @@
                                                 }
                                             ]
                                         },
+                                        "guestBankClaimEnabled": {
+                                            "type": "boolean"
+                                        },
                                         "isVerified": {
                                             "type": "boolean"
                                         },
@@ -23110,7 +23113,8 @@
                                         "avatarKey",
                                         "showFullName",
                                         "canReceiveBankOfframp",
-                                        "isVerified"
+                                        "isVerified",
+                                        "guestBankClaimEnabled"
                                     ],
                                     "type": "object"
                                 }
