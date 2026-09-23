@@ -674,7 +674,7 @@
         },
         "increase": {
             "cta": "Increase my limits",
-            "submitted": "Document submitted! Your limits will be updated shortly."
+            "submitted": "Document sent for review."
         },
         "error": {
             "description": "Failed to load limits. Please try again."
@@ -1448,8 +1448,8 @@
             "title": "This QR is now yours!",
             "description": "Your sticker is now linked to your profile forever.",
             "putItAnywhere": "Put it anywhere!",
-            "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite and contribute towards your points forever.",
-            "shareQr": "Share QR Code",
+            "stickerDescription": "Stick it where people can find you. Anyone who scans it can join Peanut with your invite and earn you points.",
+            "shareQr": "Share QR code",
             "linkCopied": "Link copied",
             "shareTitle": "My Peanut QR Code",
             "shareText": "Scan my QR code to connect with me on Peanut!"
@@ -1467,7 +1467,7 @@
                 "inviteQrDescription": "Share anywhere. Anyone who scans can join you on Peanut."
             },
             "claimSuccess": {
-                "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+                "stickerDescription": "Stick it where people can find you. Anyone who scans it can join Peanut with your invite."
             }
         },
         "result": {
