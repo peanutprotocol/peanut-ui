@@ -25,22 +25,26 @@ let memoryCache: { countryCode: string | null; timestamp: number } | null = null
  * memoryCache is null on the server and on the first client render, so both
  * sides agree.
  */
-const freshMemoryCountry = (): string | null =>
-    memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION ? memoryCache.countryCode : null
+const hasFreshMemoryCache = (): boolean => !!memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION
+const freshMemoryCountry = (): string | null => (hasFreshMemoryCache() ? memoryCache!.countryCode : null)
 
 export const useGeoLocation = () => {
     const [countryCode, setCountryCode] = useState<string | null>(freshMemoryCountry)
-    const [isLoading, setIsLoading] = useState(() => freshMemoryCountry() === null)
+    const [isLoading, setIsLoading] = useState(() => !hasFreshMemoryCache())
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), GEO_LOOKUP_TIMEOUT_MS)
+        let timedOut = false
+        const timeout = setTimeout(() => {
+            timedOut = true
+            controller.abort()
+        }, GEO_LOOKUP_TIMEOUT_MS)
         const fetchCountry = async () => {
             try {
                 // check memory cache first (fastest)
-                if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION) {
-                    setCountryCode(memoryCache.countryCode)
+                if (hasFreshMemoryCache()) {
+                    setCountryCode(memoryCache!.countryCode)
                     setIsLoading(false)
                     return
                 }
@@ -74,6 +78,9 @@ export const useGeoLocation = () => {
                 sessionStorage.setItem(GEO_CACHE_TIMESTAMP_KEY, timestamp.toString())
                 memoryCache = { countryCode: fetchedCountryCode, timestamp }
             } catch (err) {
+                // A timed-out lookup is remembered as "unknown" for this session
+                // (memory only), so the next mount does not wait another 3 s.
+                if (timedOut) memoryCache = { countryCode: null, timestamp: Date.now() }
                 setError(err instanceof Error ? err.message : String(err))
             } finally {
                 clearTimeout(timeout)
@@ -82,6 +89,10 @@ export const useGeoLocation = () => {
         }
 
         fetchCountry()
+        return () => {
+            clearTimeout(timeout)
+            controller.abort()
+        }
     }, [])
 
     return { countryCode, isLoading, error }

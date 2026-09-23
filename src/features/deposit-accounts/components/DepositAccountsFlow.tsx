@@ -2,7 +2,7 @@
 
 import type { GateState } from '@/utils/capability-gate'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
 import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS, type DepositAccountScreen } from '../params'
@@ -31,6 +31,9 @@ import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
 import { DepositAccountsListScreen } from './DepositAccountsListScreen'
 import { AccountOpenedScreen } from './AccountOpenedScreen'
+
+/** vaul's close animation: a sheet the gate drawer hands off to opens after it */
+export const GATE_DRAWER_CLOSE_MS = 500
 
 export interface DepositAccountsFlowProps {
     /** the corridors this user has a rail for — a deep link to any other lands on the list */
@@ -131,6 +134,12 @@ export function DepositAccountsFlow({
     const [namedCorridor] = useQueryState('corridor', parseAsString)
     const namesUnknownCorridor = namedCorridor !== null && !(DEPOSIT_CORRIDORS as string[]).includes(namedCorridor)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
+    // The corridor whose gate the user just started to clear (verification,
+    // terms, email). The drawer closes to the list for that flow; once the gate
+    // clears, the user goes on to the claim for it without a second tap.
+    const [resumeCorridor, setResumeCorridor] = useState<DepositCorridor>()
+    const pendingGateAct = useRef<ReturnType<typeof setTimeout>>(undefined)
+    useEffect(() => () => clearTimeout(pendingGateAct.current), [])
     // Links minted while the cursor was called `?screen=` still open the flow
     // where they meant to. Rewritten once, in place, so back does not land on
     // the old name.
@@ -170,6 +179,26 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (gateBlocked) trackGateBlocked(corridor, gate.kind)
     }, [gateBlocked, corridor, gate.kind])
+
+    const resumeReady =
+        !!resumeCorridor &&
+        screen === 'list' &&
+        !isLoading &&
+        !isError &&
+        withClaimsGate(
+            resolveScreen(
+                'claim',
+                DEPOSIT_RAILS[resumeCorridor],
+                accounts[resumeCorridor],
+                gates[resumeCorridor],
+                claimable?.[resumeCorridor]
+            )
+        ) !== 'list'
+    useEffect(() => {
+        if (!resumeReady || !resumeCorridor) return
+        setResumeCorridor(undefined)
+        setParams({ corridor: resumeCorridor, step: 'claim' })
+    }, [resumeReady, resumeCorridor, setParams])
 
     // the client's own timeout is reported as its own state — a details view
     // that gave up is not the same event as one still waiting
@@ -295,20 +324,32 @@ export function DepositAccountsFlow({
                     }
                     // Every other button opens a sheet of its own (verification,
                     // terms, email, support). Those sit below a drawer, so this
-                    // one closes first and the user lands back on the list.
-                    closeGate()
+                    // one closes first, and the sheet opens once it has slid out:
+                    // a sheet opened under the closing overlay can miss its first tap.
+                    const afterGateCloses = (act: () => void) => {
+                        closeGate()
+                        clearTimeout(pendingGateAct.current)
+                        pendingGateAct.current = setTimeout(act, GATE_DRAWER_CLOSE_MS)
+                    }
                     // A corridor the backend withheld for support is not
                     // something the capability gate can resolve: its own answer
                     // here is a verification run that cannot lift the block.
-                    if (withheldAction === 'support') return onContactSupport(corridor, 'blocked')
+                    if (withheldAction === 'support') {
+                        return afterGateCloses(() => onContactSupport(corridor, 'blocked'))
+                    }
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
-                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate, corridor)
-                    if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
-                    return onContactSupport(
-                        corridor,
-                        gateNotice.action === 'account-limit' ? 'account-limit' : 'blocked'
-                    )
+                    if (!isDepositBlock(gateNotice.kind)) {
+                        setResumeCorridor(corridor)
+                        return afterGateCloses(() => onResolveGate(gate, corridor))
+                    }
+                    const reason =
+                        gateNotice.action === 'finish-review-support'
+                            ? 'review'
+                            : gateNotice.action === 'account-limit'
+                              ? 'account-limit'
+                              : 'blocked'
+                    return afterGateCloses(() => onContactSupport(corridor, reason))
                 }}
             />
         ) : null
@@ -317,6 +358,7 @@ export function DepositAccountsFlow({
 
     const openCorridor = (next: DepositCorridor) => {
         setOpeningCorridor(undefined)
+        setResumeCorridor(undefined)
         const nextAccount = accounts[next]
         // only a corridor a user can hold has something to claim; the rest go
         // straight to their details, which are the user's own top-up details

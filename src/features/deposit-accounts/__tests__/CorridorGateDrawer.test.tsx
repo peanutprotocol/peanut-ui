@@ -10,6 +10,7 @@ import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { corridorRecord, emptyCorridorRecord } from '../rails'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
+import { tapGateButton } from '../__fixtures__/gateDrawer'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 
@@ -139,7 +140,7 @@ describe('the gate drawer', () => {
     it('closes back to the list from the wait button, without leaving the flow', async () => {
         const props = flowProps({ blockedBy: 'endorsement-pending' })
         const { onUrlUpdate } = renderFlow(props)
-        fireEvent.click(screen.getByTestId('corridor-gate-pending-review'))
+        tapGateButton(screen.getByTestId('corridor-gate-pending-review'))
         await expectBackOnList(onUrlUpdate)
         expect(props.onExit).not.toHaveBeenCalled()
         expect(screen.getByTestId('hub')).toBeInTheDocument()
@@ -148,7 +149,7 @@ describe('the gate drawer', () => {
     it('opens support for the cap and closes itself, so the support sheet is not hidden behind it', async () => {
         const props = flowProps({ blockedBy: 'account-limit' })
         const { onUrlUpdate } = renderFlow(props)
-        fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+        tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         await expectBackOnList(onUrlUpdate)
     })
@@ -161,9 +162,39 @@ describe('the gate drawer', () => {
         const props = flowProps({ gate })
         const { onUrlUpdate } = renderFlow(props)
         expect(screen.getByTestId('hub')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId(`corridor-gate-${action}`))
+        tapGateButton(screen.getByTestId(`corridor-gate-${action}`))
         expect(props.onResolveGate).toHaveBeenCalledWith(gate, CORRIDOR)
         await expectBackOnList(onUrlUpdate)
+    })
+
+    /*
+     * The flow the drawer hands off to runs on the list. When it clears the
+     * gate, the user goes on to the claim for the corridor they tapped, as the
+     * full-page gate did — not back to a list they must tap again.
+     */
+    it('continues to the claim for that corridor once verification clears the gate', async () => {
+        const props = flowProps({ gate: { kind: 'needs-identity' } })
+        const { onUrlUpdate, rerenderFlow } = renderFlow(props)
+        tapGateButton(screen.getByTestId('corridor-gate-verify'))
+        expect(props.onResolveGate).toHaveBeenCalledWith({ kind: 'needs-identity' }, CORRIDOR)
+        await expectBackOnList(onUrlUpdate)
+
+        rerenderFlow(flowProps())
+        await waitFor(() => {
+            const last = onUrlUpdate.mock.calls.at(-1)?.[0].searchParams
+            expect(last?.get('step')).toBe('claim')
+            expect(last?.get('corridor') ?? 'SEPA_EU').toBe(CORRIDOR)
+        })
+        expect(screen.getByTestId('claim')).toBeInTheDocument()
+    })
+
+    it('keeps the drawer open while the provider review page is being opened', () => {
+        const review = { start: jest.fn(async () => {}), needsSupport: new Set<DepositCorridor>() }
+        const props = { ...flowProps({ blockedBy: 'endorsement-required' }), review }
+        renderFlow(props)
+        fireEvent.click(screen.getByTestId('corridor-gate-finish-review'))
+        expect(review.start).toHaveBeenCalledWith(CORRIDOR)
+        expect(drawer()).toBeInTheDocument()
     })
 
     it('stays closed on the list step', () => {

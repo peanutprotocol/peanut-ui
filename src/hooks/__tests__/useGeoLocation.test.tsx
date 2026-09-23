@@ -7,8 +7,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { GEO_LOOKUP_TIMEOUT_MS, useGeoLocation } from '../useGeoLocation'
 
-// The hook keeps a module-level cache that only a successful lookup fills, so
-// the timeout case runs first and the success case last.
+// The hook keeps a module-level cache for the session, so these run in order:
+// a timeout, a remount that reuses it, then a fresh lookup a day later.
+const DAY_MS = 24 * 60 * 60 * 1000
 
 const originalFetch = global.fetch
 
@@ -43,13 +44,26 @@ describe('useGeoLocation', () => {
         expect(result.current.error).not.toBeNull()
     })
 
+    it('remembers the timeout, so a remount does not wait again', async () => {
+        const fetchMock = jest.fn()
+        global.fetch = fetchMock as unknown as typeof fetch
+
+        const { result } = renderHook(() => useGeoLocation())
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.countryCode).toBeNull()
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
+
     it('still returns the country when the lookup answers in time', async () => {
+        // past the cached "unknown" from the first test
+        jest.useFakeTimers({ now: Date.now() + 2 * DAY_MS, advanceTimers: true })
         global.fetch = jest.fn(async () => ({ ok: true, text: async () => 'DE' })) as unknown as typeof fetch
 
         const { result } = renderHook(() => useGeoLocation())
 
         await waitFor(() => expect(result.current.isLoading).toBe(false))
-        expect(result.current.countryCode).toBe('DE')
         expect(result.current.error).toBeNull()
+        expect(result.current.countryCode).toBe('DE')
     })
 })
