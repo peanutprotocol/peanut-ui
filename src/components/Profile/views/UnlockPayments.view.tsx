@@ -405,7 +405,7 @@ const UnlockPayments = () => {
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <Badge status="completed" customText={t('residence.verified')} />
     ) : (
-        <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
+        <Badge status="neutral" customText={t('residence.unverified')} />
     )
 
     // Detail-drawer facts. Limits live HERE and nowhere else on this screen

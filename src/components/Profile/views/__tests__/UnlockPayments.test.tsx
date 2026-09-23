@@ -322,6 +322,12 @@ describe('UnlockPayments', () => {
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
+    it('an unconfirmed residence reads as a neutral badge, beside the verified one', () => {
+        mockUser = { residence: { declared: 'BR', verified: null } }
+        render()
+        expect(screen.getByText('Not confirmed')).toHaveClass('bg-background-badge-helper')
+    })
+
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
         mockRestrictions = { banking: true, card: true }
         render()

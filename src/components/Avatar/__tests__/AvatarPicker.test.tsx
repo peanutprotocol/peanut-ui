@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -278,6 +278,8 @@ describe('AvatarPicker', () => {
         // named after its art, lined with the badge that unlocked it
         expect(earned[0]).toHaveTextContent('Beetle')
         expect(earned[0]).toHaveTextContent('Bug Whisperer')
+        // design.md badges: "Earned" is done, so it reads success green
+        expect(within(earned[0]).getByText('Earned')).toHaveClass('bg-background-badge-success')
 
         unmount()
         mockUser.user.badges = []

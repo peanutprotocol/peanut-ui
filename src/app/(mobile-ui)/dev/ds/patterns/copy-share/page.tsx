@@ -330,14 +330,14 @@ copyRef.current?.copy()`}
                     path="src/features/deposit-accounts/components/DepositAccountsListScreen.tsx"
                     description="MoreInfo beside a counter badge in a section heading. The reason is one tap away instead of taking a line of its own."
                     code={`<span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
-  <Badge status="custom" customText={t('list.accountCounter', { used, cap })} />
+  <Badge status="neutral" customText={t('list.accountCounter', { used, cap })} />
   <MoreInfo text={t('list.accountLimitWhy')} />
 </span>`}
                 >
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-heading-card text-foreground-primary">Your accounts</span>
                         <span className="flex shrink-0 items-center gap-1">
-                            <Badge status="custom" customText="2 of 3" />
+                            <Badge status="neutral" customText="2 of 3" />
                             <MoreInfo text="Each account is opened with a partner bank, so the number you can hold at once is limited. Contact support if you need more." />
                         </span>
                     </div>
