@@ -1,33 +1,26 @@
 'use client'
 
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { countryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
-import { matchesCountryQuery } from '@/components/Common/country-search'
 import Badge from '@/components/Global/Badges/Badge'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import NavHeader from '@/components/Global/NavHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { SearchInput } from '@/components/SearchInput'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { twMerge } from '@/utils/tw'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
-import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView, isDepositBlock, offersVerification, type DepositGateView } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
@@ -37,6 +30,9 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
 import { CorridorFlag } from './CorridorFlag'
+
+/** the corridors whose row is a one-off transfer, each with its own line of copy */
+type OneOffCorridor = 'BANK_TRANSFER_AR' | 'PIX_BR'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
 const CRYPTO_HREF = '/add-money/crypto'
@@ -48,8 +44,11 @@ const CRYPTO_HREF = '/add-money/crypto'
  * Both jobs are one screen because they were one question: "how does money get
  * into my balance by bank". Add money entered by country and get-paid entered
  * by account, and the two lists disagreed about what a country offered. The
- * accounts come first — they are the reusable answer — and the country list
- * below sends every other country to the route its rail catalogue names.
+ * accounts come first — they are the reusable answer. Below them, "Add money
+ * from your bank" holds the one-off transfers (Argentina, Brazil), which have
+ * no account number to share, and the other countries, each sent to the route
+ * its rail catalogue names. Only that list is searchable: a search field over
+ * the whole screen was clutter (Konrad, 2026-09-23).
  *
  * The rows come from the user's own rails, so a corridor they have no rail for
  * is absent rather than present and unavailable — a German user reading an
@@ -106,13 +105,7 @@ export function DepositAccountsListScreen({
     const { t, railName } = useDepositAccountCopy()
     const tMethods = useTranslations('addMoney.methods')
     const tCommon = useTranslations('common')
-    const locale = useLocale()
     const router = useRouter()
-    // A search term is a way of reading this screen, not a place in the app:
-    // it survives no refresh and belongs in no shared link, so it stays out of
-    // the URL.
-    const [query, setQuery] = useState('')
-    const term = query.trim().toLowerCase()
     const { openCountry, isCountrySupported } = useDepositCountryRouting({
         accounts,
         claimable,
@@ -129,46 +122,20 @@ export function DepositAccountsListScreen({
     // answer. Offering crypto again here is the question the user just settled.
     const [{ method }] = useQueryStates({ method: parseAsStringEnum(['bank']) })
 
-    // The country list opens on a tap, or on a search that has found one.
-    // `null` means nobody has decided yet, so the search still can.
-    const [countriesOpen, setCountriesOpen] = useState<boolean | null>(null)
+    // The country list, and the search that lives in it, opens on a tap.
+    const [countriesOpen, setCountriesOpen] = useState(false)
+
+    // The crypto row is gone where the home drawer already settled bank.
+    const showCrypto = !method
 
     /**
-     * One field filters the whole screen, so every section answers the same
-     * question. The countries answer it first, and their corridors carry the
-     * answer up to the account rows: "portugal" has to find the euro account,
-     * and only the country table knows that Portugal pays in euro.
-     */
-    const matchingCountries = useMemo(
-        () =>
-            term
-                ? countryData.filter(
-                      (country) =>
-                          country.type === 'country' &&
-                          matchesCountryQuery(country, term, localizedCountryTitle(locale, country))
-                  )
-                : [],
-        [term, locale]
-    )
-    const corridorsFromCountries = useMemo(
-        () => new Set(matchingCountries.flatMap((country) => corridorsForCountry(country))),
-        [matchingCountries]
-    )
-    const matchesCorridor = (corridor: DepositCorridor) =>
-        !term ||
-        DEPOSIT_RAILS[corridor].currency.toLowerCase().includes(term) ||
-        railName(corridor).toLowerCase().includes(term) ||
-        corridorsFromCountries.has(corridor)
-
-    // The crypto row answers to its own words — "crypto", and whatever its
-    // description says in this language about wallets and exchanges.
-    const matchesCrypto =
-        !method && (!term || `${tMethods('crypto')} ${tMethods('cryptoDescription')} usdc`.toLowerCase().includes(term))
-
-    /**
-     * The rows: this user's own corridors, plus the residence-gated ones, which
-     * everybody sees. A Brazilian account is worth knowing about before you
-     * live in Brazil, and the screen behind the row is what states the rule.
+     * The account rows: this user's own corridors, plus the residence-gated
+     * ones, which everybody sees. A Brazilian account is worth knowing about
+     * before you live in Brazil, and the screen behind the row is what states
+     * the rule.
+     *
+     * A one-off transfer (Argentina, Brazil's Pix) is never an account number,
+     * so it is not listed here — see `oneOffCorridors`.
      *
      * A corridor the backend has said NOTHING about gets no row. The hub used
      * to add every claimable corridor in the catalogue whose gate read
@@ -190,7 +157,10 @@ export function DepositAccountsListScreen({
     const hubCorridors = useMemo(() => {
         const shown = new Set([...corridors, ...RESIDENCE_GATED_CORRIDORS])
         return DEPOSIT_RAIL_ORDER.filter(
-            (corridor) => shown.has(corridor) && (claimsEnabled || isHeld(accounts[corridor]))
+            (corridor) =>
+                shown.has(corridor) &&
+                !topUpOnlyHref(DEPOSIT_RAILS[corridor]) &&
+                (claimsEnabled || isHeld(accounts[corridor]))
         )
     }, [corridors, claimsEnabled, accounts])
 
@@ -236,7 +206,6 @@ export function DepositAccountsListScreen({
      * to the verification flow.
      */
     const isOpenable = (corridor: DepositCorridor, view: DepositGateView) => {
-        if (topUpOnlyHref(DEPOSIT_RAILS[corridor])) return canTopUp(corridor) || offersVerification(gates[corridor])
         // The backend's own answer wins: it speaks for this user and this
         // corridor, where the gate speaks for the rail alone.
         const reason = reasonFor(corridor)
@@ -259,7 +228,6 @@ export function DepositAccountsListScreen({
     }
 
     const views = hubCorridors
-        .filter((corridor) => matchesCorridor(corridor))
         // With the corridor's own terms: for a corridor the backend offers, those
         // terms decide, and the capability gate alone would call it closed.
         .map((corridor) => {
@@ -277,9 +245,9 @@ export function DepositAccountsListScreen({
     /**
      * Where the corridor stands, in the one slot that carries status.
      *
-     * A pointer row has no account and therefore no status: its badge would be
-     * a claim about something that does not exist. The chevron already says it
-     * leads somewhere, which is all a pointer row has to say.
+     * A badge states status only. A fact with no tone — "Not set up", a dead
+     * end — takes `neutral`, never `custom`, whose accent colour belongs to
+     * nothing on this screen (Konrad, 2026-09-23).
      *
      * "Unavailable" is reserved for a corridor that is truly closed. A
      * residence-gated row is not closed — it is one residence away — so it
@@ -297,23 +265,8 @@ export function DepositAccountsListScreen({
         view: DepositGateView
     ) => {
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
-        /*
-         * A corridor nobody can hold has no ACCOUNT to report — which is why
-         * this row used to say nothing at all. But it does have a corridor, and
-         * Accounts & payments says "Available" about that same rail. Two
-         * screens disagreeing about one thing is the defect the hub exists to
-         * end, so the row says the same word, about the same fact: you can
-         * deposit on this today. It never says "Ready" — there is nothing to
-         * hand a payer — and it stays silent where the user cannot use it,
-         * because the flow behind the row states its own rule.
-         */
-        if (topUpOnlyHref(rail)) {
-            if (canTopUp(rail.corridor)) return <Badge status="custom" customText={t('list.badgeAvailable')} />
-            if (offersVerification(gate)) return <Badge status="custom" customText={t('list.badgeVerify')} />
-            return <Badge status="custom" customText={t('list.badgeUnavailable')} />
-        }
         if (isResidenceGated(rail.corridor) && !account)
-            return <Badge status="custom" customText={t('list.badgeNotSetUp')} />
+            return <Badge status="neutral" customText={t('list.badgeNotSetUp')} />
         // A claimable corridor the user has no rail for, shown because identity
         // verification comes first. The badge states the requirement and promises
         // nothing: verifying opens the corridors the user's region has, not all.
@@ -324,16 +277,17 @@ export function DepositAccountsListScreen({
         // is not offered to them.
         if (!account && (reasonFor(rail.corridor) !== undefined || offersVerification(gate))) {
             const reason = reasonFor(rail.corridor)
-            if (reason === 'not-offered') return <Badge status="custom" customText={t('list.badgeNotOffered')} />
+            if (reason === 'not-offered') return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
             // the app's one "contact support" string, so the badge cannot
             // drift from the buttons that do the same thing
-            if (reason === 'support-required') return <Badge status="custom" customText={tCommon('contactSupport')} />
+            if (reason === 'support-required') return <Badge status="neutral" customText={tCommon('contactSupport')} />
             // `identity-required`, and the same for a corridor the backend said
-            // nothing about whose gate names a verification step
-            return <Badge status="custom" customText={t('list.badgeVerify')} />
+            // nothing about whose gate names a verification step: the user has
+            // something to do, as with "Action needed"
+            return <Badge status="pending" customText={t('list.badgeVerify')} />
         }
         if (!isClaimable(rail) || account?.status === 'unavailable')
-            return <Badge status="custom" customText={t('list.badgeUnavailable')} />
+            return <Badge status="neutral" customText={t('list.badgeUnavailable')} />
         // A read that failed says nothing about what the user holds. "Not set
         // up" is a claim about their account, and the fallback map cannot make
         // it — the notice above owns this state.
@@ -372,39 +326,41 @@ export function DepositAccountsListScreen({
                 // that said "Not set up" on a corridor accepting money that
                 // same second, with no way in behind it.
                 if (!view.claimable && canTopUp(rail.corridor))
-                    return <Badge status="custom" customText={t('list.badgeAvailable')} />
-                return <Badge status="custom" customText={t('list.badgeNotSetUp')} />
+                    return <Badge status="completed" customText={t('list.badgeAvailable')} />
+                return <Badge status="neutral" customText={t('list.badgeNotSetUp')} />
         }
     }
 
     /**
-     * Where a row leads.
+     * The one-off transfers: Argentina and Brazil's Pix. There is no account
+     * behind them, only a transfer the user makes each time, so they are not
+     * account numbers and sit under "Add money from your bank".
      *
-     * A pointer row goes straight to its top-up flow, whatever the residence
-     * says: Argentina has no account to open, and the flow states its own
-     * verification rule. The country list sends Argentina to the same href, so
-     * the two entry points cannot disagree.
-     *
-     * Everything else opens the corridor screens.
+     * A row shows only where it leads somewhere: the user can use it now, or
+     * the verification flow can open it. It carries no badge while it simply
+     * works — "Available" on a row that has no account is no status — and
+     * "Requires verification" where that is the next step. For anyone else it
+     * is absent: its own flow would only tell them it is not for them.
      */
-    const openRow = (corridor: DepositCorridor) => {
-        const topUp = topUpOnlyHref(DEPOSIT_RAILS[corridor])
-        if (topUp) {
-            // The Manteca top-up is a page of its own, so it must know where the
-            // user came from — the hub — or leaving verification strands them on
-            // the bare amount route they never knowingly opened.
-            router.push(withReturnTo(rewriteMethodPath(topUp), '/add-money?method=bank'))
-            return
-        }
-        onOpen(corridor)
-    }
+    const oneOffCorridors = claimsEnabled
+        ? DEPOSIT_RAIL_ORDER.filter(
+              (corridor) =>
+                  !!topUpOnlyHref(DEPOSIT_RAILS[corridor]) &&
+                  (canTopUp(corridor) || offersVerification(gates[corridor]))
+          )
+        : []
+
+    // The top-up flow is a page of its own, so it must know where the user
+    // came from — the hub — or leaving verification strands them on the bare
+    // amount route they never knowingly opened.
+    const openOneOff = (href: string) => router.push(withReturnTo(rewriteMethodPath(href), '/add-money?method=bank'))
 
     /**
      * The KYC-free way in, and the only one that is not a country. It is a row
      * of the accounts card rather than a box of its own: three stacked cards
      * read as three unrelated screens.
      */
-    const cryptoRow = matchesCrypto ? (
+    const cryptoRow = showCrypto ? (
         <ListItem
             key="crypto"
             title={tMethods('crypto')}
@@ -440,15 +396,10 @@ export function DepositAccountsListScreen({
      */
     const overCap = accountLimit !== undefined && slotsHeld > accountLimit
 
-    // A corridor with no row left after the search has nothing to label.
+    // A section with no rows has nothing to label.
     const showAccounts = views.length > 0
     // hidden while the read is in flight or has failed — a count then is a guess
     const showCounter = claimsEnabled && !isLoading && !isError && accountLimit !== undefined
-    const showCountries = !term || matchingCountries.length > 0
-    const nothingMatches = !!term && views.length === 0 && !matchesCrypto && !showCountries
-    // Two characters is where a search stops matching half the world, so it is
-    // where opening the list for the user helps rather than startles.
-    const countriesExpanded = countriesOpen ?? (term.length >= 2 && matchingCountries.length > 0)
 
     return (
         <PageStack>
@@ -456,23 +407,12 @@ export function DepositAccountsListScreen({
             <div className="flex flex-col gap-4">
                 <TitleBlock title={t('list.addHeading')} />
 
-                {/* one field for the whole screen: accounts, crypto and countries */}
-                <SearchInput
-                    value={query}
-                    onChange={setQuery}
-                    onClear={() => setQuery('')}
-                    placeholder={t('list.searchPlaceholder')}
-                    aria-label={t('list.searchPlaceholder')}
-                />
-
                 {/*
                  * A read that failed is not "you hold nothing". Without this the
                  * empty fallback map renders as six unclaimed corridors and the
                  * user is invited to open an account they may already have.
-                 * A search hides it: filtering is not the moment to explain a
-                 * failed read, and the notice returns when the field clears.
                  */}
-                {!term && isError && (
+                {isError && (
                     <Callout
                         priority="error"
                         title={t('list.errorTitle')}
@@ -480,14 +420,6 @@ export function DepositAccountsListScreen({
                     >
                         {t('list.errorBody')}
                     </Callout>
-                )}
-
-                {nothingMatches && (
-                    <EmptyState
-                        icon="search"
-                        title={t('list.noMatchTitle', { query: query.trim() })}
-                        cta={<LinkButton onClick={() => setQuery('')}>{t('list.clearSearch')}</LinkButton>}
-                    />
                 )}
 
                 {showAccounts && (
@@ -501,7 +433,7 @@ export function DepositAccountsListScreen({
                                 {showCounter && (
                                     <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
                                         <Badge
-                                            status="custom"
+                                            status="neutral"
                                             customText={
                                                 overCap
                                                     ? t('list.accountCounterOverCap', { used: slotsHeld })
@@ -548,7 +480,7 @@ export function DepositAccountsListScreen({
                                         trailing={rowBadge(rail, account, gates[corridor], view)}
                                         chevron={!disabled}
                                         disabled={disabled}
-                                        onClick={() => openRow(corridor)}
+                                        onClick={() => onOpen(corridor)}
                                         data-testid={`deposit-account-${corridor}`}
                                     />
                                 )
@@ -559,13 +491,37 @@ export function DepositAccountsListScreen({
                 )}
 
                 {/*
-                 * Every other way in. A country resolves to the corridor its
-                 * rail catalogue names — the standing account opens above, the
-                 * rest open their own flow — and a country with no live rail
-                 * offers the waitlist rather than a screen that says "soon".
+                 * Every other way in by bank. The one-off transfers come first,
+                 * then the other countries: a country resolves to the corridor
+                 * its rail catalogue names — the standing account opens above,
+                 * the rest open their own flow — and a country with no live rail
+                 * offers the waitlist rather than a screen that says "soon". The
+                 * country search lives inside the open list, not over the page.
                  */}
-                {showCountries && (
+                <Section title={t('list.bankTopUpTitle')} data-testid="bank-top-up">
                     <ListGroup data-testid="other-countries">
+                        {oneOffCorridors.map((corridor) => {
+                            const rail = DEPOSIT_RAILS[corridor]
+                            const href = topUpOnlyHref(rail) as string
+                            return (
+                                <ListItem
+                                    key={corridor}
+                                    leading={<CorridorFlag iso2={rail.flagIso2} />}
+                                    title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
+                                    body={t(`list.oneOffBody.${corridor as OneOffCorridor}`)}
+                                    bodyWrap
+                                    trailing={
+                                        canTopUp(corridor) ? undefined : (
+                                            <Badge status="pending" customText={t('list.badgeVerify')} />
+                                        )
+                                    }
+                                    chevron={!isLoading}
+                                    disabled={isLoading}
+                                    onClick={() => openOneOff(href)}
+                                    data-testid={`deposit-account-${corridor}`}
+                                />
+                            )
+                        })}
                         {/* the same row the accounts card is built from: an
                             accordion with one bottom border read as a broken
                             row next to them */}
@@ -580,27 +536,24 @@ export function DepositAccountsListScreen({
                                     size={20}
                                     className={twMerge(
                                         'transition-transform duration-moderate',
-                                        countriesExpanded && 'rotate-180'
+                                        countriesOpen && 'rotate-180'
                                     )}
                                 />
                             }
-                            position={countriesExpanded ? 'top' : 'solo'}
-                            aria-expanded={countriesExpanded}
-                            onClick={() => setCountriesOpen(!countriesExpanded)}
+                            aria-expanded={countriesOpen}
+                            onClick={() => setCountriesOpen(!countriesOpen)}
                             data-testid="other-countries-toggle"
                         />
-                        {countriesExpanded && (
-                            <CountryList
-                                viewMode="add-withdraw"
-                                flow="add"
-                                searchTerm={query}
-                                onCountryClick={openCountry}
-                                isCountrySupported={isCountrySupported}
-                                continuesGroup
-                            />
-                        )}
                     </ListGroup>
-                )}
+                    {countriesOpen && (
+                        <CountryList
+                            viewMode="add-withdraw"
+                            flow="add"
+                            onCountryClick={openCountry}
+                            isCountrySupported={isCountrySupported}
+                        />
+                    )}
+                </Section>
 
                 {/* Crypto comes after the bank options, not before them: with no
                     accounts card to carry its row, it sits below the countries so

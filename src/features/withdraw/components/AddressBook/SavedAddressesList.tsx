@@ -7,13 +7,12 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { getChainName } from '@/utils/general.utils'
-import { shortSavedAddress } from '@/utils/saved-address.utils'
+import { daysSince, shortSavedAddress } from '@/utils/saved-address.utils'
 import {
     byMostRecentlyUsed,
     destinationLabel,
     savedAddressDestination,
 } from '@/features/destinations/saved-destinations'
-import LastUsedPill from './LastUsedPill'
 
 interface SavedAddressesListProps {
     savedAddresses: SavedAddress[]
@@ -21,7 +20,11 @@ interface SavedAddressesListProps {
     onEdit: (saved: SavedAddress) => void
 }
 
-/** Crypto address book rows: nickname, short address on chain, last-used pill, edit affordance. */
+/**
+ * Crypto address book rows: nickname, then short address, chain and recency on
+ * the secondary line, and the edit affordance. Recency is a fact, not a
+ * status, so it is not a badge (Konrad, 2026-09-23).
+ */
 export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }: SavedAddressesListProps) {
     const t = useTranslations('global')
     const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
@@ -40,13 +43,9 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             position="solo"
                             className="p-4 py-2"
                             onClick={() => onSelect(saved)}
-                            title={
-                                <span className="flex items-center gap-2">
-                                    <span className="truncate">{destinationLabel(savedAddressDestination(saved))}</span>
-                                    <LastUsedPill lastUsedAt={saved.lastUsedAt} />
-                                </span>
-                            }
-                            body={`${shortSavedAddress(saved.address)} · ${chainName}`}
+                            title={destinationLabel(savedAddressDestination(saved))}
+                            body={`${shortSavedAddress(saved.address)} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
+                            bodyWrap
                             leading={
                                 <div className="relative h-8 w-8">
                                     <DisplayIcon

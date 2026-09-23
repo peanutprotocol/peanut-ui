@@ -267,7 +267,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // treatment entirely — no pending badge, no greyed amount (PR #2813
     // review; states board shows requests in the base state).
     const isOpenRequest = isOpenRequestDisplay({ direction, isRequestPotLink: isRequestPotTransaction })
-    const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
+    const isPendingFamily =
+        !!status && status !== 'custom' && status !== 'neutral' && PENDING_AMOUNT_STATUSES.has(status)
     const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
     const genericBadge = (

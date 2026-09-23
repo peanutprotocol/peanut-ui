@@ -624,7 +624,6 @@
         }
     },
     "request": {
-        "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "enterRecipient": "Ingresá una dirección de destinatario",
@@ -641,8 +640,7 @@
             "createWallet": "Creá tu Peanut Wallet"
         },
         "bankInstructions": {
-            "title": "Compartí tus datos bancarios",
-            "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
+            "title": "Dejá que te paguen por transferencia bancaria",
             "unknownPays": "Una transferencia de alguien que no seas vos no está confirmada en esta cuenta y puede devolverse."
         }
     },
@@ -1596,6 +1594,7 @@
         },
         "peanutActionCard": {
             "requestTitle": "Pedí dinero",
+            "requestDescription": "No hace falta una cuenta, solo mandá un DM.",
             "sendTitle": "Creá un enlace de pago"
         },
         "createAccountButton": {
@@ -1758,7 +1757,6 @@
         },
         "list": {
             "addHeading": "¿Cómo querés agregar dinero?",
-            "searchPlaceholder": "Buscá país, moneda o cuenta",
             "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
             "accountCounter": "{used} de {cap} usadas",
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
@@ -1769,6 +1767,7 @@
             "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra.",
             "badgeAvailable": "Disponible",
             "sectionTitle": "Tus números de cuenta",
+            "bankTopUpTitle": "Agregá dinero desde tu banco",
             "countriesTitle": "Formas de enviarte dinero"
         },
         "claim": {

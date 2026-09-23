@@ -32,7 +32,7 @@ jest.mock('next/navigation', () => ({
 // country back to the screen the way a tap does
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
-        <div data-testid="country-list" data-continues-group={String(!!props.continuesGroup)}>
+        <div data-testid="country-list" data-own-search={String(props.searchTerm === undefined)}>
             <span>{props.inputTitle}</span>
             <button
                 data-testid="country-germany"
@@ -154,7 +154,7 @@ const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
 
 const inRow = (container: HTMLElement, corridor: DepositCorridor) => within(rowOf(container, corridor) as HTMLElement)
 
-/** the countries toggle row, collapsed until tapped or until a search finds one */
+/** the countries toggle row, collapsed until tapped */
 const countriesTrigger = () => screen.getByTestId('other-countries-toggle')
 
 /**
@@ -229,15 +229,23 @@ describe('DepositAccountsListScreen', () => {
      * about one thing (QA script step 7).
      */
     describe('a corridor nobody can hold says the same as the other screen', () => {
-        it('badges the Argentine rail Available when the user can use it', () => {
+        /*
+         * Konrad, 2026-09-23: Argentina can never be an account number, so it
+         * is not under "Your account numbers". It is a one-off transfer, listed
+         * with the other ways to add money from a bank, and a row that simply
+         * works carries no badge.
+         */
+        it('lists the Argentine transfer under Add money from your bank, with no badge, when the user can use it', () => {
             const gates = allGates({ kind: 'needs-enrollment' })
             gates.BANK_TRANSFER_AR = READY
             const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
 
-            expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Available')).toBeInTheDocument()
-            // there is nothing to hand a payer, so it never claims to be Ready
-            expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Ready')).not.toBeInTheDocument()
-            expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Not set up')).not.toBeInTheDocument()
+            const row = rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement
+            expect(within(screen.getByTestId('bank-top-up')).getByTestId('deposit-account-BANK_TRANSFER_AR')).toBe(row)
+            expect(screen.queryByTestId('your-accounts')?.contains(row) ?? false).toBe(false)
+            expect(within(row).getByText('One-off transfer via Mercado Pago')).toBeInTheDocument()
+            for (const badge of ['Available', 'Ready', 'Not set up', 'Unavailable'])
+                expect(within(row).queryByText(badge)).not.toBeInTheDocument()
         })
 
         it('shows verification when that can unlock the Argentine rail', () => {
@@ -250,12 +258,13 @@ describe('DepositAccountsListScreen', () => {
             expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
         })
 
-        it('marks the Argentine rail unavailable and disables it when the user cannot use it', () => {
+        // a dead end is no row at all: its own flow would only say it is not for them
+        it('leaves the Argentine row out when the user cannot use it', () => {
             const gates = allGates({ kind: 'needs-enrollment' })
             const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
 
-            expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Unavailable')).toBeInTheDocument()
-            expect(rowOf(container, 'BANK_TRANSFER_AR')).toHaveAttribute('aria-disabled', 'true')
+            expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toBeInTheDocument()
+            expect(countriesTrigger()).toBeInTheDocument()
         })
     })
 
@@ -409,15 +418,15 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
     /**
      * A user with no bank rail of their own is not left with an empty screen:
-     * the residence-gated rows are there for everybody, and the countries and
-     * crypto below answer the rest.
+     * the countries and crypto answer the rest.
      */
-    it('keeps only the rows everybody gets when the user has no bank rail', () => {
+    it('leaves the countries when the user has no bank rail', () => {
         // a verified user whose region has no rail reads needs-enrollment
         const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-enrollment' }) })
 
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toBeInTheDocument()
+        expect(countriesTrigger()).toBeInTheDocument()
         // COP is not residence-gated, so its row belongs to the users whose
         // rails name it, like MXN
         expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
@@ -1015,14 +1024,9 @@ describe('the hub carries the accounts, crypto and the countries together', () =
 
 /**
  * The countries are a long list and a second question. They stay folded until
- * the user asks for them, or until a search has already found one.
+ * the user asks for them.
  */
 describe('the countries collapsible', () => {
-    const search = (text: string) =>
-        fireEvent.change(screen.getByPlaceholderText(messages.depositAccounts.list.searchPlaceholder), {
-            target: { value: text },
-        })
-
     it('starts collapsed, showing only its title and pitch', () => {
         list(false)
 
@@ -1043,36 +1047,19 @@ describe('the countries collapsible', () => {
         expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
-    /**
-     * The toggle and the countries are one card, not a toggle with a list
-     * under it: the accordion this replaced had one bottom border and read as
-     * a broken row beside the account rows above it.
+    /*
+     * Konrad, 2026-09-23: the search lives in the other countries, not over the
+     * whole screen. The page shows no field until the list is open, and then
+     * the country list carries its own.
      */
-    it('renders the countries flush with the toggle row above them', () => {
+    it('keeps the search inside the open country list', () => {
         list(false)
+
+        expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
 
         fireEvent.click(countriesTrigger())
-        expect(screen.getByTestId('country-list')).toHaveAttribute('data-continues-group', 'true')
-    })
-
-    it('opens itself once a search of two characters finds a country', () => {
-        list(false)
-
-        search('p')
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
-
-        search('po')
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-    })
-
-    it('folds again when the search is cleared', () => {
-        list(false)
-
-        search('portugal')
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-
-        search('')
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toHaveAttribute('data-own-search', 'true')
     })
 })
 
@@ -1114,88 +1101,6 @@ describe('the residence-gated rows', () => {
 })
 
 /**
- * One field filters the whole screen. Two fields, or a field that only
- * filtered the countries, is what made this screen read as three unrelated
- * lists stacked on top of each other.
- */
-describe('the hub search filters every section at once', () => {
-    const search = (text: string) =>
-        fireEvent.change(screen.getByPlaceholderText(messages.depositAccounts.list.searchPlaceholder), {
-            target: { value: text },
-        })
-
-    it('keeps the corridors a currency names and drops the rest', () => {
-        const { container } = list(false)
-
-        search('eur')
-
-        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
-        expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
-        expect(rowOf(container, 'SPEI_MX')).not.toBeInTheDocument()
-    })
-
-    it('finds an account by its rail name', () => {
-        const { container } = list(false)
-
-        search('spei')
-
-        expect(rowOf(container, 'SPEI_MX')).toBeInTheDocument()
-        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-    })
-
-    /**
-     * Only the country table knows that Portugal pays in euro, so the country
-     * match has to reach the account rows — a user searching their own country
-     * is looking for the account it pays into.
-     */
-    it('finds the euro account by a euro-zone country name', () => {
-        const { container } = list(false)
-
-        search('portugal')
-
-        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
-        // a search that found countries opens the list on its own
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-    })
-
-    it('finds the crypto row by its own words, and hides the sections that do not match', () => {
-        const { container } = list(false)
-
-        search('crypto')
-
-        expect(screen.getByTestId('add-money-crypto')).toBeInTheDocument()
-        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
-        expect(screen.queryByText(messages.depositAccounts.list.countriesTitle)).not.toBeInTheDocument()
-    })
-
-    it('hides a section title along with the section it labels', () => {
-        list(false)
-
-        search('eur')
-
-        // the crypto row says nothing about euros
-        expect(screen.queryByTestId('add-money-crypto')).not.toBeInTheDocument()
-        expect(screen.getByText(messages.depositAccounts.list.sectionTitle)).toBeInTheDocument()
-    })
-
-    it('says so once when nothing matches anywhere, and clears the search', () => {
-        const { container } = list(false)
-
-        search('zzzzqq')
-
-        expect(screen.getByText(/zzzzqq/)).toBeInTheDocument()
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
-        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByText(messages.depositAccounts.list.clearSearch))
-
-        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
-        expect(countriesTrigger()).toBeInTheDocument()
-    })
-})
-
-/**
  * Three catalogs ship this screen. A key that exists only in English reaches a
  * Spanish user as its own raw name.
  */
@@ -1207,15 +1112,14 @@ describe('the hub copy exists in every catalog', () => {
         'countriesPitch',
         'sectionTitle',
         'countriesTitle',
-        'searchPlaceholder',
-        'noMatchTitle',
-        'clearSearch',
+        'bankTopUpTitle',
     ]
 
     it('es-419 and pt-BR carry every key the hub reads', () => {
         for (const catalog of [esMessages, ptMessages]) {
-            const listCopy = (catalog as any).depositAccounts.list as Record<string, string>
+            const listCopy = (catalog as any).depositAccounts.list
             for (const key of HUB_KEYS) expect(listCopy[key]).toBeTruthy()
+            for (const corridor of ['BANK_TRANSFER_AR', 'PIX_BR']) expect(listCopy.oneOffBody[corridor]).toBeTruthy()
         }
     })
 })
@@ -1227,11 +1131,11 @@ describe('the hub copy exists in every catalog', () => {
  * the row sat mid-list, said a verified user must verify, and was not tappable.
  */
 describe('a row the user cannot act on', () => {
-    /** every account row, in the order the screen renders them */
+    /** every account-number row, in the order the screen renders them */
     const renderedCorridors = (container: HTMLElement) =>
-        Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((row) =>
-            row.getAttribute('data-testid')!.replace('deposit-account-', '')
-        )
+        Array.from(
+            within(container).getByTestId('your-accounts').querySelectorAll('[data-testid^="deposit-account-"]')
+        ).map((row) => row.getAttribute('data-testid')!.replace('deposit-account-', ''))
 
     const gatesWith = (corridor: DepositCorridor, gate: GateState) => ({ ...allGates(), [corridor]: gate })
 
@@ -1243,8 +1147,11 @@ describe('a row the user cannot act on', () => {
         })
         const order = renderedCorridors(container)
         expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
-        // the rest keep the catalogue's own order
-        expect(order.slice(0, -1)).toEqual(DEPOSIT_RAIL_ORDER.filter((c) => c !== 'BANK_TRANSFER_CO'))
+        // the rest keep the catalogue's own order; the one-off transfers are
+        // not account numbers and sit in their own section
+        expect(order.slice(0, -1)).toEqual(
+            DEPOSIT_RAIL_ORDER.filter((c) => !['BANK_TRANSFER_CO', 'PIX_BR', 'BANK_TRANSFER_AR'].includes(c))
+        )
     })
 
     it('never names an action the user cannot take: no closed row carries an action badge', () => {
@@ -1335,9 +1242,9 @@ describe('a withheld corridor, by the reason the backend gives', () => {
         expect(within(row).getByText(/not available/i)).toBeInTheDocument()
         expect(row).toHaveAttribute('aria-disabled', 'true')
         // and it sorts below every row that leads somewhere
-        const order = Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((r) =>
-            r.getAttribute('data-testid')!.replace('deposit-account-', '')
-        )
+        const order = Array.from(
+            screen.getByTestId('your-accounts').querySelectorAll('[data-testid^="deposit-account-"]')
+        ).map((r) => r.getAttribute('data-testid')!.replace('deposit-account-', ''))
         expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
     })
 
@@ -1348,5 +1255,45 @@ describe('a withheld corridor, by the reason the backend gives', () => {
         const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
         expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
         expect(row.getAttribute('aria-disabled')).not.toBe('true')
+    })
+})
+
+/*
+ * Konrad, 2026-09-23: `custom` is a new element, and its accent colour made the
+ * counter, "Not set up" and "Unavailable" read as one thing. A fact with no
+ * tone takes the neutral status; nothing on this screen borrows the accent.
+ */
+describe('badges on the hub state status in DS colours', () => {
+    const accentBadges = (container: HTMLElement) => container.querySelectorAll('.bg-background-badge-accent')
+
+    it('draws the account counter and "Not set up" as neutral badges', () => {
+        const { container } = list(false, { claimable: { ACH_US: offered('ACH_US') }, accountLimit: 2 })
+
+        expect(within(screen.getByTestId('account-counter')).getByText('0 of 2 used')).toHaveClass(
+            'bg-background-badge-helper'
+        )
+        expect(inRow(container, 'ACH_US').getByText('Not set up')).toHaveClass('bg-background-badge-helper')
+        expect(accentBadges(container)).toHaveLength(0)
+    })
+
+    it('draws a dead end as neutral', () => {
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered') },
+        })
+
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(/not available/i)).toHaveClass(
+            'bg-background-badge-helper'
+        )
+        expect(accentBadges(container)).toHaveLength(0)
+    })
+
+    it('lists the Brazilian Pix transfer with its own line and asks for verification where that opens it', () => {
+        const gates = allGates()
+        gates.PIX_BR = { kind: 'needs-identity' }
+        const { container } = list(false, { corridors: ['PIX_BR'], gates })
+
+        const row = inRow(container, 'PIX_BR')
+        expect(row.getByText('One-off Pix transfer')).toBeInTheDocument()
+        expect(row.getByText('Requires verification')).toHaveClass('bg-background-badge-attention')
     })
 })

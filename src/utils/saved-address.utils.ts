@@ -26,16 +26,7 @@ export function shortSavedAddress(address: string): string {
     return printableAddress(address, isAddress(address) ? 6 : 4, 4)
 }
 
-export type LastUsedTone = 'recent' | 'aging' | 'stale'
-
 export function daysSince(iso: string, now: Date = new Date()): number {
     const ms = now.getTime() - new Date(iso).getTime()
     return Math.max(0, Math.floor(ms / 86_400_000))
-}
-
-/** <7d green, 7–30d orange, 30+ red — exchanges rotate deposit addresses. */
-export function lastUsedTone(days: number): LastUsedTone {
-    if (days < 7) return 'recent'
-    if (days <= 30) return 'aging'
-    return 'stale'
 }

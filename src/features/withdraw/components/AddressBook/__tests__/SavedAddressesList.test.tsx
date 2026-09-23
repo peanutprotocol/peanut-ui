@@ -1,6 +1,7 @@
 /**
  * SavedAddressesList — the crypto address book rows.
- * Pins: nickname + 4+4 address + chain, the last-used tone, tap → onSelect,
+ * Pins: nickname, then 4+4 address + chain + recency on one secondary line
+ * (recency is a fact, never a badge), tap → onSelect,
  * and that the edit affordance does NOT also fire onSelect (a tap on "…"
  * that started a withdraw would be a nasty surprise).
  */
@@ -28,15 +29,17 @@ const row = (over: Partial<SavedAddress>): SavedAddress => ({
 })
 
 describe('SavedAddressesList', () => {
-    it('renders nickname, short address, and the last-used pill tone', () => {
+    it('renders the nickname, then address, chain and recency on the secondary line', () => {
         const rows = [row({}), row({ id: 'id-2', nickname: 'Cold', lastUsedAt: daysAgo(45) })]
         render(<SavedAddressesList savedAddresses={rows} onSelect={jest.fn()} onEdit={jest.fn()} />, {
             wrapper: IntlWrapper,
         })
         expect(screen.getByText('Binance')).toBeInTheDocument()
         expect(screen.getAllByText(/0xab58\.\.\.ec9b/)).toHaveLength(2)
-        expect(screen.getByText('Used yesterday').closest('[data-tone]')).toHaveAttribute('data-tone', 'recent')
-        expect(screen.getByText('Used 45 days ago').closest('[data-tone]')).toHaveAttribute('data-tone', 'stale')
+        expect(screen.getByText(/0xab58\.\.\.ec9b · .* · Used yesterday$/)).toBeInTheDocument()
+        expect(screen.getByText(/0xab58\.\.\.ec9b · .* · Used 45 days ago$/)).toBeInTheDocument()
+        // badges are for status only: recency never renders as a pill
+        expect(screen.queryByText('Used yesterday')).not.toBeInTheDocument()
     })
 
     it('tap selects; the edit button edits without selecting', () => {
