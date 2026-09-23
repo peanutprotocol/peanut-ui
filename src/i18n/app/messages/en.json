@@ -756,7 +756,8 @@
         },
         "wrapper": {
             "starAlt": "star",
-            "illustrationAlt": "Section illustration"
+            "illustrationAlt": "Section illustration",
+            "stepIndicator": "Step {current} of {total}"
         },
         "next": "Next",
         "logIn": "Log In",

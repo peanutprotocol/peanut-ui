@@ -569,6 +569,7 @@ function SetupPageContent() {
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}
             step={currentStepIndex}
+            totalSteps={steps.length}
             direction={direction}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}

@@ -1,5 +1,6 @@
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
+import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
@@ -63,6 +64,7 @@ interface SetupWrapperProps {
     onLogout?: () => void
     isLoggingOut?: boolean
     step?: number
+    totalSteps?: number
     direction?: number
 }
 
@@ -199,9 +201,14 @@ const ImageSection = ({
     image,
     screenId,
     imageClassName,
+    step,
+    totalSteps,
     direction = 0,
     prefersReducedMotion,
-}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
+}: Pick<
+    SetupWrapperProps,
+    'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction'
+> & {
     prefersReducedMotion: boolean
 }) => {
     const t = useTranslations('setup.wrapper')
@@ -272,6 +279,15 @@ const ImageSection = ({
                 {/* animated clouds background */}
                 <CloudsBackground minimal />
                 {animatedIllustration}
+                {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
+                    <CarouselDots
+                        count={totalSteps}
+                        activeIndex={step}
+                        variant="white"
+                        className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2"
+                        aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
+                    />
+                )}
             </div>
         )
     }
@@ -313,6 +329,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     imageClassName,
     titleClassName,
     step,
+    totalSteps,
     direction = 0,
 }: SetupWrapperProps) {
     const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
@@ -367,6 +384,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                     screenId={screenId}
                     layoutType={layoutType}
                     image={imageOverride?.screenId === screenId ? imageOverride.image : image}
+                    step={step}
+                    totalSteps={totalSteps}
                     direction={transitionDirection}
                     prefersReducedMotion={!!prefersReducedMotion}
                 />

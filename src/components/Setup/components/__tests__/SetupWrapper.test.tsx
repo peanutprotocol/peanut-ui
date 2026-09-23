@@ -103,6 +103,35 @@ const StepWithImageOverride = () => {
 }
 
 describe('SetupWrapper transitions', () => {
+    it('keeps white progress dots above the mascot and updates the active step', () => {
+        const { rerender } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="signup" step={2} totalSteps={6} image={{ pose: 'thinking' }}>
+                <div>Sign up</div>
+            </SetupWrapper>
+        )
+        const dots = screen.getByRole('group', { name: 'Step 3 of 6' })
+        expect(dots).toHaveClass('absolute', 'top-8', 'z-20')
+        expect(dots.closest('.bg-background-setup-hero')).toContainElement(screen.getByTestId('mascot'))
+        expect(dots.children).toHaveLength(6)
+        expect(dots.children[2]).toHaveClass('w-6', 'bg-white')
+        expect(dots.children[3]).toHaveClass('bg-white/60')
+
+        rerender(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="residence"
+                step={3}
+                totalSteps={6}
+                image={{ pose: 'waving-hello' }}
+            >
+                <div>Residence</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByRole('group', { name: 'Step 4 of 6' })).toBe(dots)
+        expect(dots.children[2]).toHaveClass('bg-white/60')
+        expect(dots.children[3]).toHaveClass('w-6', 'bg-white')
+    })
+
     it('keeps the hero and panel mounted while sliding the mascot and step content forward', () => {
         mockReducedMotion.value = false
         const { container, rerender } = renderWithIntl(
