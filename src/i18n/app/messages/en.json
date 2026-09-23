@@ -4120,6 +4120,7 @@
             "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
             "termsToggle": "Limits and fees",
+            "businessOnly": "Only you or a business can pay in. Other transfers are returned.",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
         },

@@ -4120,6 +4120,7 @@
             "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si puedes, deposita desde una cuenta a tu nombre.",
             "whoCanPay": "Quién puede pagarte",
             "termsToggle": "Límites y comisiones",
+            "businessOnly": "Solo tú o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "residenceCta": "Actualiza tu residencia",
             "qrPayCta": "Pagar un código QR"
         },

@@ -117,7 +117,10 @@ export function DepositAccountDetailsScreen({
     }
 
     const provisioning = account.status === 'provisioning'
-    const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
+    // The heading already names the rail, so the card does not repeat it.
+    const rows = account.instructions
+        ? instructionRows(account.instructions, rowLabels, railLabels).filter((row) => row.key !== 'accepts')
+        : []
     const rules = ruleLines(account.matching, account.rules, userName)
     const gateRules = rules.filter((rule) => GATE_RULE_KEYS.has(rule.key))
     const termRules = rules.filter((rule) => !GATE_RULE_KEYS.has(rule.key))
@@ -146,6 +149,13 @@ export function DepositAccountDetailsScreen({
                                 <p className="text-body-xs text-foreground-secondary">
                                     {t('details.referenceRequired')}
                                 </p>
+                            )}
+                            {/* A corridor that limits who may pay says so in one
+                                line (design.md, 2026-09-23): a user who shares these
+                                details with a friend has to see it without opening
+                                anything. The per-payer rows stay in the toggle. */}
+                            {account.matching.sender === 'business-only' && (
+                                <p className="text-body-xs text-foreground-secondary">{t('details.businessOnly')}</p>
                             )}
                             {gateRules.map((rule) => (
                                 // a div, not a p: the (i) renders a div of its own

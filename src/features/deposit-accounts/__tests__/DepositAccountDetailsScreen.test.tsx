@@ -249,6 +249,37 @@ describe('the details screen, collapsed and open', () => {
         for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.details.sectionTitle)).not.toBeInTheDocument()
+        // the heading already names the rail
+        expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
+        // anyone may pay into a euro account, so there is no who-may-pay line
+        expect(screen.queryByText(messages.depositAccounts.details.businessOnly)).not.toBeInTheDocument()
+    })
+
+    it('says a business-only account limits who may pay without opening anything, and keeps the rows inside', () => {
+        details(
+            {
+                ...eur,
+                railId: 'bridge.faster_payments_gb',
+                currency: 'GBP',
+                matching: { nameOnAccount: 'provider', sender: 'business-only' },
+                rules: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.rules,
+                instructions: {
+                    accountHolderName: 'Pooled Ltd',
+                    sortCode: '040000',
+                    accountNumber: '12345678',
+                    paymentRails: ['faster_payments'],
+                },
+            },
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.FASTER_PAYMENTS_GB
+        )
+
+        expect(screen.getByText(messages.depositAccounts.details.businessOnly)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.rules.individualNotYet.line)).not.toBeInTheDocument()
+        openTerms()
+        expect(screen.getByText(messages.depositAccounts.rules.individualNotYet.line)).toBeInTheDocument()
     })
 
     it('reveals who can pay, the fee and the timing when the toggle opens', () => {
