@@ -1319,7 +1319,14 @@
             "accountNumber": "Número da conta",
             "routingNumber": "Routing Number",
             "countryNotSelected": "País não selecionado",
-            "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo."
+            "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo.",
+            "guestErrors": {
+                "overLimit": "Este link passa do limite de $100.000 para resgatar em uma conta bancária. Resgate em uma carteira.",
+                "alreadyClaimed": "Este link já foi resgatado em uma conta bancária.",
+                "notClaimable": "Este link não pode mais ser resgatado.",
+                "unsupported": "Este link não pode ser resgatado em uma conta bancária. Resgate em uma carteira.",
+                "linkInvalid": "Não conseguimos verificar este link. Abra o link de novo e tente outra vez."
+            }
         },
         "manteca": {
             "youWillReceive": "Você vai receber",

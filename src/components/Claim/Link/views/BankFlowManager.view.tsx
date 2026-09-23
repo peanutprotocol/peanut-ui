@@ -5,7 +5,7 @@ import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/A
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useCallback, useContext, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
+import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { type Address, formatUnits } from 'viem'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -14,7 +14,11 @@ import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
-import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
+import {
+    type TCreateGuestOfframpRequest,
+    type TCreateOfframpRequest,
+    type TCreateOfframpResponse,
+} from '@/services/services.types'
 import {
     getBankRailCountryFromAccount,
     getBridgeRailIdFromAccount,
@@ -47,6 +51,13 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import {
+    guestBankAccountMessage,
+    guestBankClaimMessage,
+    guestClaimErrorKind,
+    getSendLinkPubKey,
+    signWithLinkKey,
+} from '@/utils/guest-claim.utils'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -64,6 +75,11 @@ type BankAccountWithId = IBankAccountDetails &
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const t = useTranslations('claim')
     const toFriendlyError = useFriendlyError()
+    // A refused guest claim has a stable code; show its copy, else the API's message.
+    const guestClaimError = (response: { error?: string; code?: string; status?: number }) => {
+        const kind = guestClaimErrorKind(response.code, response.status)
+        return kind ? t(`bank.guestErrors.${kind}`) : (response.error ?? t('bank.processAccountFailed'))
+    }
     // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
     const { user, fetchUser } = useAuth()
@@ -230,23 +246,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
 
             setLoadingState('Executing transaction')
-            // Guest flow off-ramps on the link SENDER's behalf — fetch the counterparty
-            // and check the provider-agnostic capability the BE exposes for them
-            // (`canReceiveBankOfframp`, i.e. an enabled Bridge bank rail). Replaces the
-            // raw `bridgeKycStatus === 'approved'` read; the FE never sees provider KYC.
-            // Logged-in flow uses the current user, whose readiness is already enforced
-            // above via `gate.kind !== 'ready'` (capability model).
-            const guestSender = isGuestFlow
-                ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                : null
-            if (isGuestFlow) {
-                if (!guestSender) throw new Error('Failed to get user info')
-                if (!guestSender.canReceiveBankOfframp) throw new Error('Sender cannot receive a bank off-ramp')
-            }
-
-            const userForOfframp = isGuestFlow ? guestSender : user?.user
-            if (!userForOfframp) throw new Error('Failed to get user info')
-            if (!userForOfframp.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
             // get payment rail and currency for the offramp
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
@@ -268,46 +267,58 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             // with "country is not supported for SEPA" (PEANUT-API-5P/5M/5N
             // on 2026-06-02). The account's `type` already carries the right
             // answer for every Bridge destination we support.
-            const destination = getOfframpConfigFromAccount(account)
+            const destination = { ...getOfframpConfigFromAccount(account), externalAccountId }
+            const source = { paymentRail, currency, fromAddress: peanutContractAddress }
+            const amount = formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)
 
-            // handle offramp request creation
-            const offrampRequestParams: TCreateOfframpRequest = {
-                onBehalfOf: userForOfframp.bridgeCustomerId,
-                amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                userId: userForOfframp.userId,
-                sendLinkPubKey: pubKey,
-                source: {
-                    paymentRail: paymentRail,
-                    currency: currency,
-                    fromAddress: peanutContractAddress,
-                },
-                destination: {
-                    ...destination,
-                    externalAccountId,
-                },
-                features: { allowAnyFromAddress: true },
-                // travel rule: pass claimer details for third-party guest claims
-                ...(isGuestFlow &&
-                    account.firstName &&
-                    account.lastName && {
-                        beneficiaryName: `${account.firstName} ${account.lastName}`,
-                        ...(account.street &&
-                            account.city &&
-                            account.country && {
-                                beneficiaryAddress: {
-                                    street: account.street,
-                                    city: account.city,
-                                    country: account.country,
-                                    state: account.state || undefined,
-                                    postalCode: account.postalCode || undefined,
-                                },
-                            }),
-                    }),
+            let offrampResponse: Awaited<ReturnType<typeof createOfframpForGuest>>
+            if (isGuestFlow) {
+                // Guest flow off-ramps on the link SENDER's behalf. The API finds
+                // the sender from the link; the link key's signature is the
+                // authorization, so the sender's identity never reaches this device.
+                const guestRequest: TCreateGuestOfframpRequest = {
+                    amount,
+                    sendLinkPubKey: pubKey,
+                    signature: await signWithLinkKey(
+                        claimLinkData.link,
+                        guestBankClaimMessage(pubKey, externalAccountId)
+                    ),
+                    source,
+                    destination,
+                    // travel rule: the guest claimer is the beneficiary
+                    beneficiaryName: `${account.firstName} ${account.lastName}`.trim(),
+                    ...(account.street &&
+                        account.city &&
+                        account.country && {
+                            beneficiaryAddress: {
+                                street: account.street,
+                                city: account.city,
+                                country: account.country,
+                                state: account.state || undefined,
+                                postalCode: account.postalCode || undefined,
+                            },
+                        }),
+                }
+                offrampResponse = await createOfframpForGuest(guestRequest)
+                if (offrampResponse.error || !offrampResponse.data) {
+                    setError(guestClaimError(offrampResponse))
+                    return
+                }
+            } else {
+                const userForOfframp = user?.user
+                if (!userForOfframp) throw new Error('Failed to get user info')
+                if (!userForOfframp.bridgeCustomerId) throw new Error('User bridge customer ID not found')
+                const offrampRequestParams: TCreateOfframpRequest = {
+                    onBehalfOf: userForOfframp.bridgeCustomerId,
+                    amount,
+                    userId: userForOfframp.userId,
+                    sendLinkPubKey: pubKey,
+                    source,
+                    destination,
+                    features: { allowAnyFromAddress: true },
+                }
+                offrampResponse = await createOfframp(offrampRequestParams)
             }
-
-            const offrampResponse = isGuestFlow
-                ? await createOfframpForGuest(offrampRequestParams)
-                : await createOfframp(offrampRequestParams)
 
             if (offrampResponse.error || !offrampResponse.data) {
                 throw new Error(offrampResponse.error || 'Failed to create offramp')
@@ -469,14 +480,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
                 setError(null)
-                const senderInfo = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                if (!senderInfo || ('error' in senderInfo && senderInfo.error)) {
-                    throw new Error(
-                        (senderInfo && typeof senderInfo.error === 'string' && senderInfo.error) ||
-                            'Failed to get sender info'
-                    )
-                }
-                if (!senderInfo.bridgeCustomerId) throw new Error('Sender bridge customer ID not found')
 
                 const threeLetterCountryCode = getCountryCodeForWithdraw(selectedCountry.id)
                 const payloadWithCountry = {
@@ -489,54 +492,34 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     country: threeLetterCountryCode,
                 }
 
-                const externalAccountResponse = await createBridgeExternalAccountForGuest(
-                    senderInfo.bridgeCustomerId,
+                // The account is created on the link sender's Bridge customer. The
+                // API resolves it from the link, so no sender id is sent from here.
+                const sendLinkPubKey = getSendLinkPubKey(claimLinkData.link)
+                const externalAccountResponse = await createGuestClaimExternalAccount(
+                    sendLinkPubKey,
+                    await signWithLinkKey(claimLinkData.link, guestBankAccountMessage(sendLinkPubKey)),
                     payloadWithCountry
                 )
-                if ('error' in externalAccountResponse && externalAccountResponse.error) {
+                if ('error' in externalAccountResponse) {
                     // The backend returns a curated, user-facing message for bank-account
                     // validation failures (e.g. an unverifiable billing address). Surface it
                     // verbatim — routing it through the friendly-error mapper would collapse it into the
                     // generic "contact support" fallback, hiding the actionable detail. (TASK-20194)
-                    const accountError = String(externalAccountResponse.error)
-                    Sentry.captureException(new Error(`External account creation failed: ${accountError}`))
-                    return { error: accountError }
-                }
-                if (!('id' in externalAccountResponse)) {
-                    throw new Error('Failed to create external account')
+                    Sentry.captureException(
+                        new Error(`External account creation failed: ${externalAccountResponse.error}`)
+                    )
+                    return { error: guestClaimError(externalAccountResponse) }
                 }
 
-                // merge the external account details with the user's details
+                // The API shows a guest only the account id and type; the rest of
+                // the details are the ones the guest just typed.
                 const finalBankDetails = {
-                    // derive the account type from the response shape so
-                    // getOfframpConfigFromAccount() routes by rail (GB sort_code → gb)
-                    // instead of falling back to country
-                    type: externalAccountResponse?.iban
-                        ? 'iban'
-                        : externalAccountResponse?.clabe
-                          ? 'clabe'
-                          : externalAccountResponse?.account?.sort_code
-                            ? 'gb'
-                            : externalAccountResponse?.account
-                              ? 'us'
-                              : undefined,
+                    ...rawData,
+                    // the account type routes the offramp (GB sort code → gb) instead of the country
+                    type: externalAccountResponse.account_type,
                     id: externalAccountResponse.id,
                     bridgeAccountId: externalAccountResponse.id,
                     name: externalAccountResponse.bank_name ?? rawData.name,
-                    firstName: externalAccountResponse.first_name ?? rawData.firstName,
-                    lastName: externalAccountResponse.last_name ?? rawData.lastName,
-                    email: rawData.email,
-                    accountNumber: externalAccountResponse.account_number ?? rawData.accountNumber,
-                    bic: externalAccountResponse?.iban?.bic ?? rawData.bic,
-                    routingNumber: externalAccountResponse?.account?.routing_number ?? rawData.routingNumber,
-                    sortCode: externalAccountResponse?.account?.sort_code ?? rawData.sortCode ?? '',
-                    clabe: externalAccountResponse?.clabe?.account_number ?? rawData.clabe,
-                    street: externalAccountResponse?.address?.street_line_1 ?? rawData.street,
-                    city: externalAccountResponse?.address?.city ?? rawData.city,
-                    state: externalAccountResponse?.address?.state ?? rawData.state,
-                    postalCode: externalAccountResponse?.address?.postal_code ?? rawData.postalCode,
-                    iban: externalAccountResponse?.iban?.account_number ?? rawData.iban,
-                    country: externalAccountResponse?.iban?.country ?? rawData.country,
                 }
                 setLocalBankDetails(finalBankDetails)
                 setBankDetails(finalBankDetails)
