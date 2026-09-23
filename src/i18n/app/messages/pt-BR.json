@@ -3271,7 +3271,7 @@
             "selectANetwork": "Escolha uma rede",
             "moreNetworksButton": "mais",
             "searchTokenPlaceholder": "Token ou endereço",
-            "sponsoredHint": "As transações com USDC na Arbitrum são patrocinadas",
+            "sponsoredHint": "As transações com USDC na Arbitrum são patrocinadas.",
             "quotedFeeHint": "Para outros tokens e redes, qualquer taxa é mostrada antes de você confirmar.",
             "availableToken": "Token disponível",
             "searchResults": "Resultados da busca",
