@@ -2,10 +2,9 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Badge from '@/components/Global/Badges/Badge'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import NavHeader from '@/components/Global/NavHeader'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -60,7 +59,7 @@ const ICONS = {
     'finish-review-support': 'peanut-support',
 } as const
 
-/** Reasons with nothing to press: the button goes back, and the screen updates by itself. */
+/** Reasons with nothing to press: the button closes the drawer, and the drawer updates by itself. */
 const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
 
 /**
@@ -68,8 +67,13 @@ const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
  *
  * This used to be a banner over the whole list, which told a user holding two
  * working accounts to go and verify their identity. The gate belongs to the
- * corridor: the row stays tappable, and the tap lands here with the reason and
- * the button that clears it.
+ * corridor: the row stays tappable, and the tap opens this drawer with the
+ * reason and the button that clears it.
+ *
+ * It is a drawer over the list rather than a page of its own: most reasons are
+ * one sentence and one button, which left a full page half empty, and the list
+ * the user tapped from stays mounted underneath (TASK-22762). Screens for an
+ * account the user holds stay full pages.
  *
  * Each kind gets its own words and its own button, because they are not the
  * same problem: `pending` and `waiting-on-provider` are a wait with nothing to
@@ -80,25 +84,27 @@ const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
  * The provider's own message wins over ours whenever it sent one — it knows why
  * it said no.
  */
-export function CorridorGateScreen({
+export function CorridorGateDrawer({
+    open,
     rail,
     notice,
     slotsHeld = 0,
     isActing = false,
     actFailed = false,
-    onBack,
+    onClose,
     onAct,
     onTopUp,
 }: {
+    open: boolean
     rail: DepositRail
     notice: NonNullable<DepositGateView['notice']>
-    /** how many accounts the cap screen says the user has — their own count, never a default */
+    /** how many accounts the cap drawer says the user has — their own count, never a default */
     slotsHeld?: number
     /** the button's action is in flight */
     isActing?: boolean
     /** the button's action failed for a reason a retry may clear */
     actFailed?: boolean
-    onBack: () => void
+    onClose: () => void
     onAct: () => void
     /**
      * The other way in: a transfer the user sends themselves on this same
@@ -125,7 +131,7 @@ export function CorridorGateScreen({
             className="w-full"
             loading={isActing}
             disabled={isActing}
-            onClick={waiting ? onBack : onAct}
+            onClick={waiting ? onClose : onAct}
             data-testid={`corridor-gate-${notice.action}`}
         >
             {t(LABELS[notice.action])}
@@ -144,41 +150,47 @@ export function CorridorGateScreen({
     ) : null
 
     return (
-        <PageStack>
-            <NavHeader title={t('list.addTitle')} onPrev={onBack} />
-            <PageStack.Center>
-                {notice.action === 'pending-review' && (
-                    <div className="mb-4 flex justify-center">
-                        <Badge status="pending" />
+        <Drawer
+            open={open}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
+                <div className="flex flex-col items-center text-center">
+                    {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
+                    <IconBubble
+                        icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
+                        color="gray"
+                        className="mb-4"
+                    />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{t(TITLES[notice.action], { count: slotsHeld })}</DrawerTitle>
+                        <DrawerDescription>
+                            {notice.message ??
+                                (topUpLeads
+                                    ? t('gate.limitBodyTopUp')
+                                    : t(BODIES[notice.action], { currency: rail.currency }))}
+                        </DrawerDescription>
+                    </DrawerHeader>
+                    {/* a flow-level failure, so a Callout: it carries role="alert"
+                        and the button below is the retry */}
+                    {actFailed && (
+                        <Callout priority="error" className="mt-4 w-full" data-testid="corridor-gate-act-failed">
+                            {t('gate.actFailed')}
+                        </Callout>
+                    )}
+                    {/* the leading button first in the DOM, so the order on
+                        screen and the tab order both say which one to press */}
+                    <div className="mt-6 flex w-full flex-col gap-2">
+                        {topUpLeads ? [topUpButton, actButton] : [actButton, topUpButton]}
                     </div>
-                )}
-                {/* a flow-level failure, so a Callout: it carries role="alert"
-                    and the button below is the retry */}
-                {actFailed && (
-                    <Callout priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
-                        {t('gate.actFailed')}
-                    </Callout>
-                )}
-                <EmptyState
-                    icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
-                    title={t(TITLES[notice.action], { count: slotsHeld })}
-                    description={
-                        notice.message ??
-                        (topUpLeads ? t('gate.limitBodyTopUp') : t(BODIES[notice.action], { currency: rail.currency }))
-                    }
-                    cta={
-                        // the leading button first in the DOM, so the order on
-                        // screen and the tab order both say which one to press
-                        <div className="mt-4 flex w-full flex-col gap-2">
-                            {topUpLeads ? [topUpButton, actButton] : [actButton, topUpButton]}
-                        </div>
-                    }
-                />
-                {/* which corridor the user tapped, so the screen is not about "an account" */}
-                <p className="text-center text-body-xs text-foreground-secondary">
-                    {`${rail.currency} · ${railName(rail.corridor)}`}
-                </p>
-            </PageStack.Center>
-        </PageStack>
+                    {/* which corridor the user tapped, so the drawer is not about "an account" */}
+                    <p className="mt-4 text-body-xs text-foreground-secondary">
+                        {`${rail.currency} · ${railName(rail.corridor)}`}
+                    </p>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

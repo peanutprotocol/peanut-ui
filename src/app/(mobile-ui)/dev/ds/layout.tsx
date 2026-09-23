@@ -24,28 +24,40 @@ export default function DesignSystemLayout({ children }: { children: React.React
                 <NavHeader title="Design System" href="/dev" rightElement={<DocNavDrawer />} />
             </div>
 
-            {/* Content area. The scrolling columns own the padding on the sides
-                they clip — right and bottom — and the row keeps only left and
-                top. An overflow box clips painting at its OWN padding edge, so
-                padding on the row leaves a full-width button's 4px offset
-                shadow (.btn-primary / .btn-secondary) outside the clip box, cut in
-                a straight line. Same fix as the drawer scroll wrapper in
-                Global/Drawer. Nothing paints up or left, so those two sides can
-                stay on the row. The split is invisible: each column simply
-                grows into the padding it now owns.
-                Rule for anything added here: a container that clips must carry
-                at least the biggest shadow offset used inside it (8px today —
-                shadow-primary-8) as padding on its right and bottom.
-                e2e/flows/ds-shadow-clip.spec.ts fails if one does not. */}
-            <div className="flex min-h-0 min-w-0 flex-1 gap-6 pt-8 pl-4 md:pl-6 lg:pl-10">
+            {/* Content area. The row has no padding and no gap: the scrolling
+                columns own ALL of it, on every side. An overflow box clips
+                painting at its OWN padding edge, so padding left on the row puts
+                anything that paints outside its box — a button's 4px offset
+                shadow (.btn-primary / .btn-secondary) to the right and bottom, a
+                focus ring on all four sides — outside the clip box, cut in a
+                straight line. Same fix as the drawer scroll wrapper in
+                Global/Drawer. The split is invisible: the old gap-6 is the
+                content column's left padding, and each column grows into the
+                padding it now owns.
+                Both columns are `relative`: an absolutely positioned child (the
+                sr-only inputs in PinInput, say) otherwise takes #scrollable-content
+                as its containing block, escapes the column's scroll box and
+                makes the SHELL scrollable — the wheel then chains into it and
+                header and sidebar scroll away with the page. overscroll-contain
+                stops a column at its scroll end handing the rest of the
+                wheel/touch delta to anything above it.
+                Rule for anything added here: a container that clips carries
+                padding on every side at least as big as what paints outside
+                its children (8px today — shadow-primary-8 — and the focus ring),
+                and a scroll box is `relative overscroll-contain`.
+                e2e/flows/ds-shadow-clip.spec.ts and ds-clip-scroll.spec.ts fail
+                if one does not. */}
+            <div className="flex min-h-0 min-w-0 flex-1">
                 {/* Desktop sidebar — a full-height column that scrolls on its own,
                     so a nav longer than the viewport never pushes the page. */}
-                <div className="hidden shrink-0 pb-8 md:block md:overflow-y-auto">
+                <div className="relative hidden shrink-0 overscroll-contain pt-8 pb-8 md:block md:overflow-y-auto md:pl-6 lg:pl-10">
                     <DocSidebar />
                 </div>
 
                 {/* Main content — the only part of the page that scrolls */}
-                <div className="min-w-0 flex-1 overflow-y-auto pr-4 pb-8 md:pr-6 lg:pr-10">{children}</div>
+                <div className="relative min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-8 pb-8 md:px-6 lg:pr-10">
+                    {children}
+                </div>
             </div>
         </div>
     )
