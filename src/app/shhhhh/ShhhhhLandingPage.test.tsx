@@ -91,6 +91,18 @@ it('offers the public product and keeps a guest card destination through signup'
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/setup?redirect_uri=%2Fcard'))
 })
 
+it('publishes the visible FAQ as FAQPage structured data', () => {
+    const { container } = render(<ShhhhhLandingPage />)
+    const script = container.querySelector('script[type="application/ld+json"]')
+    const schema = JSON.parse(script!.innerHTML)
+    expect(schema['@type']).toBe('FAQPage')
+    expect(schema.mainEntity).toHaveLength(7)
+    // the rendered answer and the structured one must be the same sentence
+    const first = schema.mainEntity[0]
+    expect(screen.getByText(first.name)).toBeInTheDocument()
+    expect(screen.getByText(first.acceptedAnswer.text)).toBeInTheDocument()
+})
+
 it('opens a signed-in account directly at /card', async () => {
     mockUser = { user: { userId: 'ordinary-user' } }
     getCard()

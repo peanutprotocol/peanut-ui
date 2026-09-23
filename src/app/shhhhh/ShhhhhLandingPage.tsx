@@ -7,8 +7,10 @@ import { useTranslations } from 'next-intl'
 import { captureException } from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
+import { JsonLd } from '@/components/Marketing/JsonLd'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { useAuth } from '@/context/authContext'
+import { faqSchema } from '@/lib/seo/schemas'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
@@ -73,8 +75,15 @@ export default function ShhhhhLandingPage() {
         }
     }
 
+    // The page is the only card FAQ crawlers see, so mirror the visible copy into FAQPage
+    // structured data from the same keys and strings.
+    const faqJsonLd = faqSchema(
+        faqKeys.map((key) => ({ question: t(`faq.${key}.question`), answer: t(`faq.${key}.answer`) }))
+    )
+
     return (
         <>
+            {faqJsonLd && <JsonLd data={faqJsonLd} />}
             <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24">
                 <HeroBackNav />
                 <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-2">
