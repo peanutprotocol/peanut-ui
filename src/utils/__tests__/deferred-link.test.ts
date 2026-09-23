@@ -8,6 +8,7 @@ import {
     playStoreUrlWithReferrer,
     restoreDeferredContext,
     APP_LOCALE_KEY,
+    MAX_PLAY_REFERRER_LENGTH,
 } from '../deferred-link'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
@@ -178,6 +179,17 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         const payload = buildDeferredPayload('/home')
         expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
         expect(parseDeferredPayload(payload)?.attribution).toBeUndefined()
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
+    })
+
+    it('keeps the store handoff usable when even the inviter exceeds the Play limit', () => {
+        window.history.replaceState({}, '', '/es-419/home')
+        const payload = buildDeferredPayload('/home', 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))
+
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(payload)).toEqual({})
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
+        expect(playStoreUrlWithReferrer('x'.repeat(MAX_PLAY_REFERRER_LENGTH + 1))).not.toContain('&referrer=')
     })
 
     it('round-trips a full payload including an encoded dest with query', () => {

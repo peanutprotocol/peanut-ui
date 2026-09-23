@@ -240,17 +240,23 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
         params.delete(ATTRIBUTION_PARAM)
     }
 
-    const result = params.toString()
-    if (encodeURIComponent(result).length > MAX_PLAY_REFERRER_LENGTH) {
-        throw new Error('deferred attribution exceeds Play referrer limit')
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        // Keep the inviter ahead of the locale. A malformed or unexpectedly
+        // long invite must not prevent the QR and store links from rendering.
+        params.delete('lang')
     }
-    return result
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        params.delete('invite')
+    }
+
+    return params.toString()
 }
 
 /** play store listing url with the payload riding the install referrer. */
 export function playStoreUrlWithReferrer(payload: string): string {
     const encoded = encodeURIComponent(payload)
-    if (encoded.length > MAX_PLAY_REFERRER_LENGTH) throw new Error('deferred attribution exceeds Play referrer limit')
+    if (encoded.length > MAX_PLAY_REFERRER_LENGTH) return PLAY_STORE_URL
     return `${PLAY_STORE_URL}&referrer=${encoded}`
 }
 
