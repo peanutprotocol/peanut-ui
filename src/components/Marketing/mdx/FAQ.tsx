@@ -28,8 +28,8 @@ interface FAQProps {
 /**
  * MDX FAQ component: the FAQ panel plus FAQPage JSON-LD. Matches LP styling.
  *
- * Renders as a white card on the page ground (variant="card"); home and
- * merchant pages keep the default full-width cream band.
+ * Same flat look as home and merchant pages, but `inline`: it sits in the
+ * prose column and follows the prose rhythm instead of the band's padding.
  */
 export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     const heading = title ?? getTranslations(locale).faqTitle
@@ -63,7 +63,7 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     return (
         // same column as the prose, CTA and RelatedPages around it
         <section className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
-            <FAQsPanel heading={heading} questions={questions} variant="card" />
+            <FAQsPanel heading={heading} questions={questions} inline />
             <JsonLd data={faqSchema} />
         </section>
     )

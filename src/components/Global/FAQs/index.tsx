@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 export type FAQsProps = {
     heading: string
@@ -22,10 +21,10 @@ export type FAQsProps = {
         /** Article that answers this question in full. Renders a "learn more" link under the answer. */
         learnMoreHref?: string
     }>
-    /** 'band' (default): full-width cream band. 'card': a white card on the
-     *  page's own ground that fills its parent's width — the caller owns the
-     *  column (marketing pages). */
-    variant?: 'band' | 'card'
+    /** Set when the panel sits inside a page's content column (marketing
+     *  pages): the caller owns width and side padding, and the panel drops the
+     *  band's own padding. The look is the same flat heading + ruled list. */
+    inline?: boolean
 }
 
 function linkifyText(text: string) {
@@ -53,37 +52,34 @@ function linkifyText(text: string) {
     return parts
 }
 
-export function FAQsPanel({ heading, questions, learnMoreLabel, variant = 'band' }: FAQsProps) {
-    const isCard = variant === 'card'
+export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }: FAQsProps) {
     return (
         // drift fix: was near-miss hex — snapped to the page-background token
         <section
             className={
-                // card: no top padding, so the prose block above sets the gap
+                // inline: no top padding, so the prose block above sets the gap
                 // (its own bottom margin: 16 under an h2, 24 under a paragraph)
-                isCard
+                inline
                     ? 'relative overflow-hidden pb-12 text-foreground-primary'
                     : 'relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32'
             }
         >
-            <div className={isCard ? `${CARD_SURFACE} p-6 md:p-10` : 'mx-auto max-w-3xl'}>
+            <div className="mx-auto max-w-3xl">
                 {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
-                    (60px) needs 401px and clips at 320px (TASK-22366). the card
-                    sits inside the prose column (~206px of text at 320), where
-                    even headingSmall clips "FREQUENTES", so it steps down to
-                    heading.m on mobile. heading.m carries its own weight (800),
-                    so no font-extraBlack on top */}
+                    (60px) needs 401px and clips at 320px (TASK-22366). inline, the
+                    blog column is 240px at 320 and "FREQUENTES" at headingSmall
+                    needs 267px, so it steps down to heading.m on mobile. heading.m
+                    carries its own weight (800), so no font-extraBlack on top */}
                 <h2
                     className={
-                        isCard
+                        inline
                             ? 'font-roboto-flex-extrabold text-heading-m uppercase md:text-headingMedium'
                             : 'font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium'
                     }
                 >
                     {heading}
                 </h2>
-                {/* the card's own border frames the list, so no outer rules there */}
-                <div className={isCard ? 'mt-10' : 'mt-10 border-y-2 border-border-default'}>
+                <div className="mt-10 border-y-2 border-border-default">
                     {questions.map((faq, idx) => (
                         <details
                             key={faq.id}
