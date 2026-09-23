@@ -1,5 +1,12 @@
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
+import {
+    AdvantageStep,
+    SetupPasskey,
+    SignupStep,
+    LandingStep,
+    ResidenceStep,
+    SignTestTransaction,
+} from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
