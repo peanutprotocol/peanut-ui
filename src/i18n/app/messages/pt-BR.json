@@ -3640,6 +3640,7 @@
             "nicknamePlaceholder": "ex.: Binance",
             "deleteCta": "Excluir endereço",
             "savePrompt": "Salvar na agenda",
+            "rowAria": "{name}, {address} em {chain}",
             "nicknameRequired": "Adicione um nome para salvar este endereço."
         },
         "savedDestinations": {

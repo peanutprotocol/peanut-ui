@@ -3640,6 +3640,7 @@
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
             "savePrompt": "Guardar en la libreta",
+            "rowAria": "{name}, {address} en {chain}",
             "nicknameRequired": "Agregá un nombre para guardar esta dirección."
         },
         "savedDestinations": {

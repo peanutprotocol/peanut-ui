@@ -40,6 +40,14 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                     const chain = supportedChainsAndTokens?.[saved.chainId]
                     const chainName = chain?.networkName || getChainName(saved.chainId) || saved.chainId
                     const label = destinationLabel(savedAddressDestination(saved))
+                    const shortAddress = shortSavedAddress(saved.address)
+                    // One name can be saved on two chains, and selecting sets the
+                    // chain, so both controls name the address and chain too.
+                    const rowName = t('savedAddresses.rowAria', {
+                        name: label,
+                        address: shortAddress,
+                        chain: chainName,
+                    })
                     return (
                         // Select and Edit are sibling controls in a plain row, never
                         // a button inside a button: the select button covers the row
@@ -48,7 +56,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             <ListItem
                                 position="solo"
                                 title={label}
-                                body={`${shortSavedAddress(saved.address)} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
+                                body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
                                 bodyWrap
                                 leading={
                                     <div className="relative h-8 w-8">
@@ -72,7 +80,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             />
                             <button
                                 type="button"
-                                aria-label={label}
+                                aria-label={rowName}
                                 data-testid="saved-address-select"
                                 className="absolute inset-0 cursor-pointer rounded-sm transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-foreground-primary/5"
                                 onClick={() => {
@@ -82,7 +90,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             />
                             <button
                                 type="button"
-                                aria-label={t('savedDestinations.editAria', { name: label })}
+                                aria-label={t('savedDestinations.editAria', { name: rowName })}
                                 data-testid="destination-edit"
                                 className="absolute top-1/2 right-4 flex size-10 -translate-y-1/2 items-center justify-center rounded-full transition-colors duration-instant after:absolute after:-inset-0.5 hover:bg-background-disabled focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled"
                                 onClick={() => onEdit(saved)}

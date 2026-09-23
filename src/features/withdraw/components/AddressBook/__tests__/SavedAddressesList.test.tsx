@@ -49,10 +49,10 @@ describe('SavedAddressesList', () => {
         render(<SavedAddressesList savedAddresses={[saved]} onSelect={onSelect} onEdit={onEdit} />, {
             wrapper: IntlWrapper,
         })
-        fireEvent.click(screen.getByLabelText('Edit Binance'))
+        fireEvent.click(screen.getByRole('button', { name: /^Edit Binance, 0xab58\.\.\.ec9b on / }))
         expect(onEdit).toHaveBeenCalledWith(saved)
         expect(onSelect).not.toHaveBeenCalled()
-        fireEvent.click(screen.getByRole('button', { name: 'Binance' }))
+        fireEvent.click(screen.getByRole('button', { name: /^Binance, 0xab58\.\.\.ec9b on / }))
         expect(onSelect).toHaveBeenCalledWith(saved)
     })
 
@@ -61,12 +61,35 @@ describe('SavedAddressesList', () => {
         render(<SavedAddressesList savedAddresses={[row({})]} onSelect={jest.fn()} onEdit={jest.fn()} />, {
             wrapper: IntlWrapper,
         })
-        const select = screen.getByRole('button', { name: 'Binance' })
-        const edit = screen.getByRole('button', { name: 'Edit Binance' })
+        const select = screen.getByRole('button', { name: /^Binance, 0xab58\.\.\.ec9b on / })
+        const edit = screen.getByRole('button', { name: /^Edit Binance, 0xab58\.\.\.ec9b on / })
         expect(select.contains(edit)).toBe(false)
         expect(edit.contains(select)).toBe(false)
         expect(edit.closest('[role="button"]')).toBeNull()
         expect(screen.getAllByRole('button')).toHaveLength(2)
+    })
+
+    // One address and name can be saved on two chains, and selecting sets the
+    // chain, so each control has to say which chain it is for.
+    it('names both controls by address and chain, so two rows that differ only by chain stay apart', () => {
+        const onSelect = jest.fn()
+        const onEdit = jest.fn()
+        const arbitrum = row({ id: 'arb', chainId: '42161' })
+        const base = row({ id: 'base', chainId: '8453', lastUsedAt: daysAgo(2) })
+        render(<SavedAddressesList savedAddresses={[arbitrum, base]} onSelect={onSelect} onEdit={onEdit} />, {
+            wrapper: IntlWrapper,
+        })
+
+        const selects = screen.getAllByTestId('saved-address-select').map((el) => el.getAttribute('aria-label'))
+        const edits = screen.getAllByTestId('destination-edit').map((el) => el.getAttribute('aria-label'))
+        expect(new Set(selects).size).toBe(2)
+        expect(new Set(edits).size).toBe(2)
+        for (const name of selects) expect(name).toMatch(/^Binance, 0xab58\.\.\.ec9b on \S/)
+
+        fireEvent.click(screen.getByRole('button', { name: selects[1]! }))
+        expect(onSelect).toHaveBeenCalledWith(base)
+        fireEvent.click(screen.getByRole('button', { name: edits[0]! }))
+        expect(onEdit).toHaveBeenCalledWith(arbitrum)
     })
 
     // The row keeps the ListItem's own padding, like every other list row (A51).
