@@ -498,7 +498,7 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     )
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
     assert.equal(imageSources(elements.get('zoom-images'))[0], `/screen-data/assets/${image}`)
-    assert.match(elements.get('zoom-images').children[0].children[0].className, /iphone/)
+    assert.match(elements.get('zoom-images').children[0].children[0].className, /device-frame iphone device-legacy/)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.deepEqual(
@@ -531,6 +531,12 @@ test('screen preview uses the viewport device frame and supports chevrons and ke
         profile: 'en-360x800',
         width: 360,
         height: 800,
+        device: {
+            platform: 'android',
+            label: 'Android',
+            cutout: 'punch-hole',
+            safeArea: { top: 24, right: 0, bottom: 24, left: 0 },
+        },
         complete: true,
         capturedAt: '2026-09-22T12:00:00Z',
         screens: [
@@ -562,7 +568,9 @@ test('screen preview uses the viewport device frame and supports chevrons and ke
     assert.equal(elements.get('zoom').open, true)
     assert.equal(elements.get('zoom-title').textContent, 'First screen')
     assert.equal(elements.get('zoom-position').textContent, '1 of 2 · Android · 360 × 800')
-    assert.match(elements.get('zoom-images').children[0].children[0].className, /device-frame android/)
+    const frame = elements.get('zoom-images').children[0].children[0]
+    assert.match(frame.className, /device-frame android device-safe device-punch-hole/)
+    assert.equal(frame.dataset.safeArea, '24,0,24,0')
     assert.deepEqual(imageSources(elements.get('zoom-images')), [`/screen-data/assets/${first}`])
 
     elements.get('zoom-next').onclick()
@@ -582,6 +590,45 @@ test('screen preview uses the viewport device frame and supports chevrons and ke
 
     elements.get('zoom').dispatch('keydown', { key: 'Escape', target: elements.get('slider') })
     assert.equal(elements.get('zoom').open, false)
+})
+
+test('iPhone previews expose only device metadata that was simulated during capture', async () => {
+    const image = 'a'.repeat(64) + '.webp'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        profile: 'en-393x852',
+        width: 393,
+        height: 852,
+        device: {
+            platform: 'ios',
+            label: 'iPhone',
+            cutout: 'dynamic-island',
+            safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+        },
+        complete: true,
+        capturedAt: '2026-09-23T12:00:00Z',
+        screens: [
+            {
+                id: 'request-created',
+                name: 'Request created',
+                flow: 'Request',
+                kind: 'route',
+                status: 'captured',
+                image,
+                thumbnail: image,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-23/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+    const frame = elements.get('zoom-images').children[0].children[0]
+    assert.match(frame.className, /device-frame iphone device-safe device-dynamic-island/)
+    assert.equal(frame.dataset.safeArea, '59,0,34,0')
+    assert.equal(elements.get('zoom-position').textContent, '1 of 1 · iPhone · 393 × 852')
 })
 
 test('report cards follow explicit journey order instead of manifest or ID order', async () => {
