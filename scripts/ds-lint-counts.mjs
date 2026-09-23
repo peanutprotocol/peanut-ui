@@ -354,10 +354,19 @@ const semanticColors = new Set([...DEFINED_COLOR_TOKENS].filter((name) => !/^[a-
 counts.alphaSemanticToken =
     files
         .filter((f) => !allowedPalette(f.path))
-        .reduce((sum, f) => sum + countAlphaSemanticTokens(f.text, semanticColors), 0) +
+        .reduce((sum, f) => sum + countAlphaSemanticTokens(f.text, semanticColors, { filename: f.path }), 0) +
     cssFiles
         .filter((f) => !allowedPalette(f.path))
-        .reduce((sum, f) => sum + countAlphaSemanticTokens(`${f.apply}\n${f.declarations}`, semanticColors), 0)
+        .reduce(
+            (sum, f) =>
+                sum +
+                countAlphaSemanticTokens(f.declarations, semanticColors) +
+                f.classLists.reduce(
+                    (total, value) => total + countAlphaSemanticTokens(value, semanticColors, { classList: true }),
+                    0
+                ),
+            0
+        )
 
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
