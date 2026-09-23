@@ -52,7 +52,29 @@ describe('SavedAddressesList', () => {
         fireEvent.click(screen.getByLabelText('Edit Binance'))
         expect(onEdit).toHaveBeenCalledWith(saved)
         expect(onSelect).not.toHaveBeenCalled()
-        fireEvent.click(screen.getByText('Binance'))
+        fireEvent.click(screen.getByRole('button', { name: 'Binance' }))
         expect(onSelect).toHaveBeenCalledWith(saved)
+    })
+
+    // Two sibling controls, never one inside the other (sep-23 review, A49).
+    it('keeps selecting and editing as separate controls, neither nested in the other', () => {
+        render(<SavedAddressesList savedAddresses={[row({})]} onSelect={jest.fn()} onEdit={jest.fn()} />, {
+            wrapper: IntlWrapper,
+        })
+        const select = screen.getByRole('button', { name: 'Binance' })
+        const edit = screen.getByRole('button', { name: 'Edit Binance' })
+        expect(select.contains(edit)).toBe(false)
+        expect(edit.contains(select)).toBe(false)
+        expect(edit.closest('[role="button"]')).toBeNull()
+        expect(screen.getAllByRole('button')).toHaveLength(2)
+    })
+
+    // The row keeps the ListItem's own padding, like every other list row (A51).
+    it('uses the list row at its standard size', () => {
+        const { container } = render(
+            <SavedAddressesList savedAddresses={[row({})]} onSelect={jest.fn()} onEdit={jest.fn()} />,
+            { wrapper: IntlWrapper }
+        )
+        expect(container.querySelector('.py-2')).toBeNull()
     })
 })

@@ -1,5 +1,6 @@
 'use client'
 
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -37,36 +38,40 @@ export function RequestCurrencyPicker({
 
     return (
         <div className="flex w-full flex-col gap-1">
-            <div className="flex w-full items-center justify-between gap-3">
-                <span className="text-body-s text-foreground-secondary">{t('currency.label')}</span>
-                <CurrencySelect
-                    selectedCurrency={currency}
-                    setSelectedCurrency={onChange}
-                    priorityCurrencies={accountCurrencies}
-                    label={t('currency.select')}
-                    locale={locale}
-                    trigger={
-                        <button
-                            type="button"
-                            disabled={disabled}
-                            aria-label={t('currency.triggerLabel', { currency })}
-                            className="flex min-h-11 items-center gap-2 text-body-m-semibold text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:text-foreground-secondary"
-                        >
-                            {flagCode && (
-                                <Image
-                                    src={getFlagUrl(flagCode)}
-                                    alt=""
-                                    width={160}
-                                    height={160}
-                                    className="size-4 rounded-full object-cover"
-                                />
-                            )}
-                            {currency}
-                            <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
-                        </button>
-                    }
-                />
-            </div>
+            {/* the DS label/value row; the row itself is not a control, only
+                the currency trigger in its value slot is */}
+            <DataRow
+                label={t('currency.label')}
+                value={
+                    <CurrencySelect
+                        selectedCurrency={currency}
+                        setSelectedCurrency={onChange}
+                        priorityCurrencies={accountCurrencies}
+                        label={t('currency.select')}
+                        locale={locale}
+                        trigger={
+                            <button
+                                type="button"
+                                disabled={disabled}
+                                aria-label={t('currency.triggerLabel', { currency })}
+                                className="flex min-h-11 items-center gap-2 text-body-m-semibold text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:text-foreground-secondary"
+                            >
+                                {flagCode && (
+                                    <Image
+                                        src={getFlagUrl(flagCode)}
+                                        alt=""
+                                        width={160}
+                                        height={160}
+                                        className="size-4 rounded-full object-cover"
+                                    />
+                                )}
+                                {currency}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
+                            </button>
+                        }
+                    />
+                }
+            />
             {currency !== 'USD' && bankPayable && (
                 <p className="text-body-s text-foreground-secondary">{t('currency.exactNote', { currency })}</p>
             )}

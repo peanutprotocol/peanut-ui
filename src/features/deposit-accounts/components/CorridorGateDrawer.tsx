@@ -24,7 +24,10 @@ const TITLES = {
 const BODIES = {
     none: 'gate.waitBody',
     'provide-email': 'gate.emailBody',
-    'accept-tos': 'gate.verifyBody',
+    // The title and the button already say it: one document to read and
+    // agree to. The identity sentence that used to sit here was about a
+    // different step (konrad review, 2026-09-23).
+    'accept-tos': null,
     // Support is offered to users who are already verified: a terminal
     // rejection, or a block the backend could not explain. The identity
     // sentence is false for both.
@@ -123,6 +126,10 @@ export function CorridorGateDrawer({
      * keeps its own button first — those DO clear the block.
      */
     const topUpLeads = !!onTopUp && notice.action === 'account-limit'
+    const bodyKey = BODIES[notice.action]
+    const body =
+        notice.message ??
+        (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined)
 
     const actButton = (
         <Button
@@ -166,12 +173,7 @@ export function CorridorGateDrawer({
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t(TITLES[notice.action], { count: slotsHeld })}</DrawerTitle>
-                        <DrawerDescription>
-                            {notice.message ??
-                                (topUpLeads
-                                    ? t('gate.limitBodyTopUp')
-                                    : t(BODIES[notice.action], { currency: rail.currency }))}
-                        </DrawerDescription>
+                        {body && <DrawerDescription>{body}</DrawerDescription>}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
                         and the button below is the retry */}
