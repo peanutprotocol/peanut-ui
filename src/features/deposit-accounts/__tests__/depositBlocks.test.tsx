@@ -7,7 +7,7 @@
  * on the screen behind the row rather than on the row — the row stays
  * tappable, because the tap is what asks for the review in the first place.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -15,6 +15,7 @@ import { depositGateView } from '../depositGate'
 import { resolveScreen } from '../resolveScreen'
 import { DEPOSIT_RAILS, corridorRecord, emptyCorridorRecord } from '../rails'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
+import { tapGateButton } from '../__fixtures__/gateDrawer'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import type { EndorsementReview } from '../useEndorsementReview'
 import type { GateState } from '@/utils/capability-gate'
@@ -174,7 +175,7 @@ describe('the screen a blocked corridor lands on', () => {
         render(flow(props))
         expect(screen.getByText('You already have 1 account')).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+        tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         // Support is the answer, never the identity flow: verifying again
         // cannot open a third account.
@@ -208,7 +209,7 @@ describe('the screen a blocked corridor lands on', () => {
             const props = capped()
             render(flow(props))
 
-            fireEvent.click(screen.getByTestId('corridor-gate-top-up'))
+            tapGateButton(screen.getByTestId('corridor-gate-top-up'))
             expect(props.onTopUp).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onContactSupport).not.toHaveBeenCalled()
         })
@@ -223,7 +224,7 @@ describe('the screen a blocked corridor lands on', () => {
         it('keeps support reachable, one tap away', () => {
             const props = capped()
             render(flow(props))
-            fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+            tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
             expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         })
 
@@ -265,7 +266,7 @@ describe('the screen a blocked corridor lands on', () => {
         expect(screen.queryByText(GATE.limitBody)).not.toBeInTheDocument()
         expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
         expect(screen.queryByTestId('corridor-gate-account-limit')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
@@ -291,7 +292,7 @@ describe('the screen a blocked corridor lands on', () => {
             expect(screen.getByText(GATE.finishReviewBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
             expect(screen.queryByText(GATE.waitTitle)).not.toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-finish-review'))
+            tapGateButton(screen.getByTestId('corridor-gate-finish-review'))
             expect(props.review?.start).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
@@ -304,7 +305,7 @@ describe('the screen a blocked corridor lands on', () => {
             render(flow(props))
             expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewSupportBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-finish-review-support'))
+            tapGateButton(screen.getByTestId('corridor-gate-finish-review-support'))
             expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'review')
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
@@ -342,7 +343,7 @@ describe('the screen a blocked corridor lands on', () => {
             const props = flowProps('endorsement-required', false, { kind: 'needs-identity' })
             render(flow(props))
             expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+            tapGateButton(screen.getByTestId('corridor-gate-verify'))
             expect(props.onResolveGate).toHaveBeenCalledTimes(1)
             expect(props.review?.start).not.toHaveBeenCalled()
         })
@@ -358,7 +359,7 @@ describe('the screen a blocked corridor lands on', () => {
         render(flow(props))
         expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
         expect(screen.getByText(GATE.reviewBody)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-pending-review'))
+        tapGateButton(screen.getByTestId('corridor-gate-pending-review'))
         expect(props.onResolveGate).not.toHaveBeenCalled()
         expect(props.onContactSupport).not.toHaveBeenCalled()
     })
@@ -400,7 +401,7 @@ describe('the screen behind a corridor the backend withheld', () => {
         render(flow(props))
         expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
         expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
@@ -409,7 +410,7 @@ describe('the screen behind a corridor the backend withheld', () => {
         const props = withheldProps('identity-required')
         render(flow(props))
         expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+        tapGateButton(screen.getByTestId('corridor-gate-verify'))
         expect(props.onResolveGate).toHaveBeenCalledTimes(1)
         expect(props.onContactSupport).not.toHaveBeenCalled()
     })
