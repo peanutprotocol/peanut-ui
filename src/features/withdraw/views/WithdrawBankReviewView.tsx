@@ -20,7 +20,6 @@ import {
     type PayoutDefaultReferenceNoteKey,
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
-import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 
 interface WithdrawBankReviewViewProps {
@@ -73,7 +72,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
 
     // ONE country drives this screen: the account's own, read off the IBAN.
     // The country picked upstream is not the same thing — a Portugal resident
@@ -132,10 +130,12 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
             )}
 
             <Card className="rounded-sm">
-                <PaymentInfoRow
-                    label={t('bank.accountOwner')}
-                    value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
-                />
+                {/* The holder is whoever the account was saved under — often not
+                    the user (a parent, a partner). When no name was stored, leave
+                    the row out: the user's own name here would be a wrong claim. */}
+                {bankAccount?.details?.accountOwnerName && (
+                    <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                )}
                 {bankAccount?.type === AccountType.IBAN ? (
                     <>
                         <PaymentInfoRow
