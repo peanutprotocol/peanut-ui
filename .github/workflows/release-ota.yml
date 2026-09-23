@@ -192,14 +192,12 @@ jobs:
             # condition "Check the native surface" fails on, minus the build.
             - name: Resolve per-platform OTA floors
               id: ota_floors
-              env:
-                  MANUAL_MAIN_SOURCE: ${{ github.event_name == 'workflow_dispatch' }}
               run: |
-                  # Before the bridge, main-source releases stay on the newest
-                  # binary because installed iOS 1.5 clients use the old numeric
-                  # gate. Once the bridge is active, retain the actual native
-                  # surfaces and keep iOS in the 1.5.x version lane.
-                  if [ "$MANUAL_MAIN_SOURCE" = "true" ] && [ "$BRIDGE_ACTIVE" != active ]; then
+                  # Before the bridge, installed iOS 1.5 clients still use the
+                  # old numeric gate, so a 1.6.x candidate cannot reach them
+                  # even when the native surface itself is compatible. Do not
+                  # claim delivery to that cohort on either release trigger.
+                  if [ "$BRIDGE_ACTIVE" != active ]; then
                     ANDROID="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
                     IOS="$ANDROID"
                   else
