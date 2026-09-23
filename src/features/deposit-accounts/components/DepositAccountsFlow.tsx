@@ -25,7 +25,7 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
-import { CorridorGateScreen } from './CorridorGateScreen'
+import { CorridorGateDrawer } from './CorridorGateDrawer'
 import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
@@ -269,26 +269,34 @@ export function DepositAccountsFlow({
           : rawGateNotice?.action === 'finish-review' && !canFinishReview
             ? { ...rawGateNotice, action: 'finish-review-support' as const }
             : rawGateNotice
-    if (
-        screen !== 'list' &&
-        claimsEnabled &&
-        !namesUnknownCorridor &&
-        !isLoading &&
-        !isError &&
-        isClaimable(rail) &&
-        !isHeld(account) &&
-        gateNotice
-    ) {
-        return (
-            <CorridorGateScreen
+    // The gate belongs to this corridor only while the user cannot open it. The
+    // drawer stays mounted after it closes (`?step=list`, same corridor), so
+    // it slides out instead of vanishing.
+    const gateApplies =
+        claimsEnabled && !namesUnknownCorridor && !isLoading && !isError && isClaimable(rail) && !isHeld(account)
+    const gateOpen = gateApplies && screen !== 'list' && !!gateNotice
+    const closeGate = () => setParams({ step: 'list' })
+    const gateDrawer =
+        gateApplies && gateNotice ? (
+            <CorridorGateDrawer
+                open={gateOpen}
                 rail={rail}
                 notice={gateNotice}
                 slotsHeld={slotsHeld}
                 isActing={review?.startingCorridor === corridor}
                 actFailed={review?.failedCorridor === corridor}
                 onTopUp={hasTopUp && onTopUp ? () => onTopUp(corridor) : undefined}
-                onBack={() => setParams({ step: 'list' })}
+                onClose={closeGate}
                 onAct={() => {
+                    // The provider's page opens in another tab, and the drawer
+                    // shows its progress and its failure — it stays open.
+                    if (gateNotice.action === 'finish-review') {
+                        return void review?.start(corridor)
+                    }
+                    // Every other button opens a sheet of its own (verification,
+                    // terms, email, support). Those sit below a drawer, so this
+                    // one closes first and the user lands back on the list.
+                    closeGate()
                     // A corridor the backend withheld for support is not
                     // something the capability gate can resolve: its own answer
                     // here is a verification run that cannot lift the block.
@@ -296,7 +304,6 @@ export function DepositAccountsFlow({
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
                     if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate, corridor)
-                    if (gateNotice.action === 'finish-review') return void review?.start(corridor)
                     if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
                     return onContactSupport(
                         corridor,
@@ -304,8 +311,9 @@ export function DepositAccountsFlow({
                     )
                 }}
             />
-        )
-    }
+        ) : null
+    // While the gate is open the list stays on screen underneath it.
+    const view = gateOpen ? 'list' : resolved
 
     const openCorridor = (next: DepositCorridor) => {
         setOpeningCorridor(undefined)
@@ -319,11 +327,11 @@ export function DepositAccountsFlow({
     // The provider closed a corridor the user holds an account on. There are no
     // details left to render, so the screen says so and offers the way in that
     // still works.
-    if (resolved === 'details' && account?.status === 'unavailable') {
+    if (view === 'details' && account?.status === 'unavailable') {
         return <CorridorUnavailableScreen rail={rail} onBack={() => setParams({ step: 'list' })} />
     }
 
-    if (resolved === 'claim') {
+    if (view === 'claim') {
         // a failure on another corridor is not this screen's news
         const failure = claimError?.corridor === corridor ? claimError : undefined
         return (
@@ -355,7 +363,7 @@ export function DepositAccountsFlow({
         )
     }
 
-    if (resolved === 'details' && account) {
+    if (view === 'details' && account) {
         // Celebrate only a claim made here, once Bridge has supplied usable details.
         if (
             openingCorridor === corridor &&
@@ -387,19 +395,22 @@ export function DepositAccountsFlow({
     }
 
     return (
-        <DepositAccountsListScreen
-            corridors={corridors}
-            accounts={accounts}
-            claimable={claimable}
-            unavailable={unavailable}
-            slotsHeld={slotsHeld}
-            accountLimit={accountLimit}
-            gates={gates}
-            isLoading={isLoading}
-            isError={isError}
-            onBack={onExit}
-            onOpen={openCorridor}
-            onRetry={onRetry}
-        />
+        <>
+            <DepositAccountsListScreen
+                corridors={corridors}
+                accounts={accounts}
+                claimable={claimable}
+                unavailable={unavailable}
+                slotsHeld={slotsHeld}
+                accountLimit={accountLimit}
+                gates={gates}
+                isLoading={isLoading}
+                isError={isError}
+                onBack={onExit}
+                onOpen={openCorridor}
+                onRetry={onRetry}
+            />
+            {gateDrawer}
+        </>
     )
 }
