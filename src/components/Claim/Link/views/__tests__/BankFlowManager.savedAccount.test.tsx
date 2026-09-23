@@ -129,7 +129,7 @@ jest.mock('@/context/loadingStates.context', () => {
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 jest.mock('@/components/Claim/useClaimLink', () => ({ __esModule: true, default: () => ({ claimLink: jest.fn() }) }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
-jest.mock('@/app/actions/external-accounts', () => ({ createBridgeExternalAccountForGuest: jest.fn() }))
+jest.mock('@/app/actions/external-accounts', () => ({ createGuestClaimExternalAccount: jest.fn() }))
 jest.mock('@/app/actions/offramp', () => ({
     confirmOfframp: jest.fn(),
     createOfframp: jest.fn(),
