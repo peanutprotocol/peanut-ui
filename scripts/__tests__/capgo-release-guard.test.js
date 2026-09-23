@@ -307,6 +307,33 @@ it('keeps a partial or deleted upload reserved, and ignores the staging counter'
     expect(result.result).toBe('1.6.3')
     expect(invoke('current-release', [...policyResponses(), { body: [] }]).result).toBe('builtin')
 })
+it('keeps bridge bundle numbers separate from the next public OTA number', () => {
+    const bridgeChannels = [
+        { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false },
+        { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false },
+    ]
+    const releases = [
+        { name: '1.6.7-ios' },
+        { name: '1.6.7-android' },
+        { name: '1.5.1000-ios' },
+        { name: '1.6.1000-android' },
+        { name: '1.5.1001-ios', deleted: true },
+        { name: '1.6.1001-android', deleted: true },
+    ]
+    const result = invoke('current-release', [...policyResponses(bridgeChannels), { body: releases }], {
+        ALLOW_IOS_BRIDGE: '1',
+        ALLOW_ANDROID_BRIDGE: '1',
+    })
+    expect(result.status).toBe(0)
+    expect(result.result).toBe('1.6.7')
+    const bridgeEnv = { ALLOW_IOS_BRIDGE: '1', ALLOW_ANDROID_BRIDGE: '1' }
+    expect(invoke('next-ios-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result).toBe(
+        '1.5.1002-ios'
+    )
+    expect(
+        invoke('next-android-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result
+    ).toBe('1.6.1002-android')
+})
 it('verifies the selected production artifact after promotion', () => {
     const rows = [channelPolicy('ios', env.VERSION), channels[1]]
     expect(invoke('verify-production', [...policyResponses(rows), { body: [goodBundle] }]).status).toBe(0)
@@ -421,6 +448,8 @@ it('bypasses the candidate checksum collision only for the second platform recor
                     CAPGO_PRIVATE_KEY: 'private-key',
                     COMMIT_MSG: 'release',
                     RELEASE_VERSION: '1.6.4',
+                    RELEASE_VERSION_IOS: '1.5.1000-ios',
+                    RELEASE_VERSION_ANDROID: '1.6.1000-android',
                     FLOOR_ANDROID: '1.6.0',
                     FLOOR_IOS: '1.5.0',
                     GITHUB_SHA: SHA,
@@ -431,12 +460,12 @@ it('bypasses the candidate checksum collision only for the second platform recor
         )
         expect(result.status).toBe(0)
         const [ios, android] = fs.readFileSync(calls, 'utf8').trim().split('\n')
-        expect(ios).toContain('--bundle 1.6.4-ios')
+        expect(ios).toContain('--bundle 1.5.1000-ios')
         expect(ios).toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}`)
         expect(ios).not.toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${SHA}`)
         expect(ios).toContain('--min-update-version 1.5.0')
         expect(ios).not.toContain('--ignore-checksum-check')
-        expect(android).toContain('--bundle 1.6.4-android')
+        expect(android).toContain('--bundle 1.6.1000-android')
         expect(android).toContain('--min-update-version 1.6.0')
         expect(android).toContain('--ignore-checksum-check')
     } finally {

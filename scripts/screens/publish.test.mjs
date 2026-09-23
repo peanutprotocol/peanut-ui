@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
 import { hash, storeAsset } from './core.mjs'
-import { publishReport } from './publish.mjs'
+import { updateIndexes } from './publication-index.mjs'
+import { existingAssetPaths, publishReport } from './publish.mjs'
 
 const commit = 'a'.repeat(40)
 
@@ -321,6 +322,52 @@ test('publication accepts sanitized Nutcracker journeys without changing the syn
         assert.equal(storage.objects.has(`assets/${thumbnailName}`), false)
         const metadata = await sharp(storage.objects.get(`assets/${manifest.screens[0].image}`)).metadata()
         assert.deepEqual({ width: metadata.width, height: metadata.height }, { width: 240, height: 2400 })
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('batched publication retains every report while uploading a shared image once', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-batch-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const image = new PNG({ width: 393, height: 852 })
+        image.data.fill(127)
+        const name = storeAsset(assets, PNG.sync.write(image))
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(capture(name)))
+        const storage = memoryStorage()
+        const knownAssets = await existingAssetPaths(storage)
+        const assetWrites = new Map()
+        const assetConversions = new Map()
+        const paths = [`2026-09-23/dev/en/${commit}/run-123-1`, `2026-09-23/main/en/${commit}/run-123-1`]
+
+        for (const reportPath of paths)
+            await publishReport({
+                inputDir: dir,
+                reportPath,
+                env: {
+                    SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                    EXPECTED_HEAD: commit,
+                    DEV_SEQUENCE: '123',
+                    RUN_ATTEMPT: '1',
+                },
+                storage,
+                knownAssets,
+                assetWrites,
+                assetConversions,
+                updateSharedIndexes: false,
+            })
+
+        assert.equal(assetConversions.size, 1)
+        assert.equal(storage.calls.filter((pathname) => pathname.startsWith('assets/')).length, 1)
+        assert.equal(storage.calls.filter((pathname) => pathname.startsWith('entries/')).length, 2)
+        assert.equal(storage.objects.has('index.json'), false)
+        for (const reportPath of paths) assert.equal(storage.objects.has(`reports/${reportPath}/manifest.json`), true)
+
+        const { entries } = await updateIndexes(storage)
+        assert.equal(entries.length, 2)
+        assert.equal(storage.objects.has('index.json'), true)
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }

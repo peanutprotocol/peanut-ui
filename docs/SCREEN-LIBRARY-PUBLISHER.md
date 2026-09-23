@@ -26,16 +26,15 @@ node --test scripts/screens/*.test.mjs
 
 The publisher installs pixelmatch 7.2.0, pngjs 7.0.0, @aws-sdk/client-s3 3.883.0 and sharp
 0.34.5 without app install scripts. Only complete dev libraries advance latest.
-The publisher queues up to 100 pending runs with queue: max. Missing event PR
-lists use a unique live repository/branch/head binding; a changed fallback merge
-base requires a rerun.
+Immutable uploads run concurrently across workflow runs. Only the short shared
+index refresh queues with `queue: max`. Missing event PR lists use a unique live
+repository/branch/head binding; a changed fallback merge base requires a rerun.
 
 ## Private deployment
 
 The gallery deploys independently to Cloudflare Workers from the trusted
-publisher workflow after a successful dev publication. This ordering completes
-any historical private-asset migration before new viewer or Worker code can go
-live. No Next.js build or Vercel deployment is involved. Worker Static Assets
+publisher workflow after a successful dev publication and index refresh. No
+Next.js build or Vercel deployment is involved. Worker Static Assets
 serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
 The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 `/screen-data/*`; the public root is a sign-in shell that shows a blurred gallery
@@ -56,10 +55,8 @@ DevOps setup:
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 2. Create two Cloudflare API tokens with separate values:
    - a publisher token with Workers R2 Storage Edit scoped to this gallery's
-     R2 bucket. Until the first private publication has migrated every retained
-     report, also keep Images Edit on this token so it can remove the old public
-     Hosted Images objects. Save it as the repository
-     `CLOUDFLARE_API_TOKEN` secret. The reusable workflow keeps its historical
+     R2 bucket. Save it as the repository `CLOUDFLARE_API_TOKEN` secret. The
+     reusable workflow keeps its historical
      `CLOUDFLARE_PUBLISH_TOKEN` input for compatibility while exposing the
      value to the publisher process as `CLOUDFLARE_API_TOKEN`; this token never
      receives Workers Scripts Edit.
@@ -98,14 +95,12 @@ DevOps setup:
 The existing Vercel app preview workflow remains independent. Neither the Blob
 secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
 
-Before publishing a new report, the trusted publisher scans retained manifests
-for legacy Cloudflare Images URL maps. It verifies each report against its
-trusted offline archive, restores every content-addressed image to private R2,
-deletes the corresponding public Hosted Images objects, and only then rewrites
-the manifest without those URLs. A failed deletion leaves the old manifest in
-place so the next run can retry; publication fails instead of declaring the
-migration complete. After one successful run reports that all retained reports
-were migrated, Images Edit can be removed from the publisher token.
+Hosted Images is not part of the current storage path. Normal publication never
+deletes retained objects or scans historical reports for migration work. The
+publisher lists existing content-addressed R2 assets once per run, uploads only
+missing hashes with bounded concurrency, shares duplicate conversions, commits
+all report and entry objects, and refreshes the shared index once. The immutable
+uploads do not hold the global index lock.
 
 Only the separate trusted publisher receives the write credentials. The
 publisher accepts hashes and validated JSON plus exact PNG capture inputs; no

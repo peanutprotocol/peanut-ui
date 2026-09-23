@@ -183,10 +183,13 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
-The About screen shows this three-part version of the code currently running: the native
-version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
-build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
-it is not appended as a fourth dotted segment because it is not a comparable release.
+The About screen shows the native version for the built-in bundle. For production OTAs,
+the workflow bakes in the public release number and About appends `-i` or `-a` for the
+platform. For example, the release after `ota-1.6.8` appears as `1.6.9-i` on iOS and
+`1.6.9-a` on Android. Capgo currently needs separate internal compatibility IDs in the
+`1.5.1000+-ios` and `1.6.1000+-android` lanes to reach older native clients. Its
+dashboard shows those raw IDs. The platform build identifier (`versionCode` /
+`CFBundleVersion`) remains separate support metadata.
 
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
@@ -213,7 +216,7 @@ and it is fine for it to lag behind what ships.
 
 The native workflows are manual and accept `dev`, `main`, and `release/android-kyc`.
 Production OTA is different: every update to `main` runs **App Release OTA**, and that
-workflow also supports a manual dispatch on `dev` that builds the current `main` commit.
+workflow also supports a manual retry on `main` for the current commit.
 No production OTA builds the `dev` app tree.
 
 1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
@@ -234,19 +237,17 @@ Use the workflow that matches the release:
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
 The native lanes require a manual dispatch. Updating `main` automatically publishes the
-production OTA after all guards pass. To publish the existing `main` commit using the newer
-release workflow on `dev`, dispatch **App Release OTA** with the workflow ref set to `dev`:
+production OTA after all guards pass. To retry the current `main` commit, dispatch
+**App Release OTA** with the workflow ref set to `main`:
 
 ```sh
-gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref dev
+gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref main
 ```
 
-GitHub registers this dispatch because `release-ota.yml` also exists on the default branch.
-The workflow pins `main` at checkout, uses its app source, dependencies and native build
-script, then verifies that `main` remains at that SHA before uploading and before each
-platform promotion. The `dev` checkout supplies only the release tooling. Review the run's
-**Main commit** before treating it as a release of the intended code. The workflows resolve
-versions; do not create release tags by hand.
+The workflow uses the selected `main` SHA for both app source and release tooling, then
+verifies that `main` remains at that SHA before uploading and before each platform
+promotion. Review the run's **Main commit** before treating it as a release of the
+intended code. The workflows resolve versions; do not create release tags by hand.
 
 Use the Android replacement lane only for an Android-only native correction to the
 currently shipped build. It verifies the existing native tag attests both platforms,
@@ -400,24 +401,19 @@ the build is reproducible, the AAB lands on a Play track.
 ## 9. OTA updates (Capgo)
 
 `App Release OTA` builds and publishes a production static export automatically after every
-update to `main`. It also accepts a manual dispatch on `dev` to publish the current `main`
-source with the platform-aware release tooling that is already on `dev`. A dispatch on the
-older workflow ref `main` still runs that ref's older workflow and cannot use the newer
-platform channels; select `dev` explicitly until the new workflow reaches `main`.
+update to `main`. A manual dispatch on `main` retries its current commit. The app source
+and release tooling both come from that commit.
 
 | trigger | channel | bundle version |
 | ------- | ------- | -------------- |
-| **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
-| **App Release OTA** — manual dispatch on `dev`, app source from `main` | same two production channels | same platform bundle versions |
+| **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | public `ota-<major>.<build>.<ota+1>` tag; internal `1.5.1000+-ios` / `1.6.1000+-android` bridge bundles while needed |
+| **App Release OTA** — manual dispatch on `main` | same two production channels | same release and bundle scheme |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
 
-The manual main-source path conservatively sets both server delivery floors to the newest
-native release. The updater in the current `main` app bundle compares a candidate's
-major/build to the installed binary and does not read the newer per-platform floor marker.
-Offering a 1.6.x bundle to a 1.5.x install would therefore result in a store-update-required
-decision even if the native surfaces match. Older binaries will not receive this manual
-release. The automatic path retains the per-platform floors once the newer updater is on
-`main`.
+The compatibility bridge keeps iOS 1.5.0 and Android 1.6.0 installations eligible while
+their native surfaces remain compatible. The public release counter ignores the bridge
+IDs, but each internal platform lane still increments independently and reserves failed
+or deleted uploads.
 
 ### App-download QR links do not expand the native surface
 
@@ -445,8 +441,9 @@ For a production OTA:
 3. Merge the reviewed commit to `main`. That push starts **App Release OTA**; there is no
    separate manual release action.
 4. Verify the automatic run's source SHA, compatibility checks, both exact candidate records and
-   platform channels, and the `ota-<version>` tag. The next version exceeds both channels,
-   previous OTA tags and reserved platform upload names (including partial/deleted uploads).
+   platform channels, and the `ota-<version>` tag. The next public release exceeds previous
+   public OTA tags and uploads; the bridge IDs advance in their own lanes. Partial/deleted
+   uploads remain reserved.
    `builtin` is a valid initial channel state; never overwrite a failed candidate.
 
 Updating `main` publishes to production after the automated checks; this workflow does not
@@ -517,8 +514,9 @@ resolver reject every later OTA even though the publish guard accepts the same r
   surface differs from the newest release still fails `check-native-ota-surface` and still
   needs a coordinated native release.
 - **Each platform gets its own server floor.** The same web export is uploaded as two
-  signed bundle records: `1.6.N-ios` with minimum `1.5.0`, and `1.6.N-android` with minimum
-  `1.6.0`. Channels are platform-exclusive defaults using Metadata targeting. Android
+  signed bundle records: currently `1.5.1000+-ios` with minimum `1.5.0`, and
+  `1.6.1000+-android` with minimum `1.6.0`. Channels are platform-exclusive defaults
+  using Metadata targeting. Android
   1.5.0 is rejected by Capgo before its old updater can download the first floor-aware
   bundle. Android 1.6.0 can update immediately without waiting for iOS adoption.
 

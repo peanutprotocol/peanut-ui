@@ -111,35 +111,5 @@ export async function createStorage(
                 hasMore: result.IsTruncated,
             }
         },
-        removeImage: (id) => deleteHostedImage(config, id),
     }
-}
-
-async function cloudflareRequest(url, options, request = fetch) {
-    for (let attempt = 0; ; attempt++) {
-        const response = await request(url, {
-            ...options,
-            signal: AbortSignal.timeout(30000),
-        })
-        if (attempt >= 5 || (response.status !== 429 && response.status < 500)) return response
-        const seconds = Number(response.headers.get('retry-after')) || 2 ** attempt
-        await response.arrayBuffer()
-        await new Promise((done) => setTimeout(done, Math.min(60, seconds) * 1000))
-    }
-}
-
-export async function deleteHostedImage(config, id, request = fetch) {
-    if (!/^(?:ps-[a-f0-9]{29}|peanut-screen-[a-f0-9]{64})$/.test(id ?? ''))
-        throw new Error('Invalid Cloudflare Images ID')
-    const response = await cloudflareRequest(
-        `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/images/v1/${encodeURIComponent(id)}`,
-        {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${config.CLOUDFLARE_API_TOKEN}` },
-        },
-        request
-    )
-    if (response.status === 404) return
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok || data.success !== true) throw new Error('Cloudflare Images deletion failed')
 }

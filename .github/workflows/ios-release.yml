@@ -52,6 +52,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
     # `production-release` here (which serialises iOS and Android for that path only —
@@ -143,6 +147,13 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the iOS 1.5.x bridge for older installs"
+                      exit 0
+                  fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   if [ "$CURRENT" = builtin ]; then
                     echo "needs_ota=true" >> "$GITHUB_OUTPUT"

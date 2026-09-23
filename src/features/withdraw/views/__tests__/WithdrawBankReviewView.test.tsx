@@ -273,3 +273,33 @@ describe('WithdrawBankReviewView — the BIC row', () => {
         expect(screen.queryByText('N/A')).not.toBeInTheDocument()
     })
 })
+
+/**
+ * TASK-18624: withdrawing to someone else's account (a parent's) showed the
+ * user as the account owner, because a missing stored name fell back to the
+ * viewer's own name.
+ */
+describe('WithdrawBankReviewView — the account owner row', () => {
+    it("shows the holder name stored on the account, not the user's", () => {
+        const mothersAccount = {
+            ...ibanAccount,
+            details: { ...ibanAccount.details, accountOwnerName: 'Maria Montenegro' },
+        } as unknown as Account
+        renderWithIntl(<Harness rail="sepa" account={mothersAccount} />)
+
+        expect(screen.getByText('Account owner')).toBeInTheDocument()
+        expect(screen.getByText('Maria Montenegro')).toBeInTheDocument()
+        expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+
+    it("leaves the row out when no holder name was stored, rather than showing the user's name", () => {
+        const noOwner = {
+            ...ibanAccount,
+            details: { ...ibanAccount.details, accountOwnerName: '' },
+        } as unknown as Account
+        renderWithIntl(<Harness rail="sepa" account={noOwner} />)
+
+        expect(screen.queryByText('Account owner')).not.toBeInTheDocument()
+        expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+})
