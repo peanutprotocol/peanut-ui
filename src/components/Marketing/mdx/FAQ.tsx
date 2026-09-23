@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { PROSE_WIDTH } from '../constants'
 import { extractText } from './mdx.utils'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -27,8 +28,8 @@ interface FAQProps {
 /**
  * MDX FAQ component: the FAQ panel plus FAQPage JSON-LD. Matches LP styling.
  *
- * It used to sit in a purple peanut-pattern section. FAQsPanel paints its own
- * opaque, full-width background on top, so none of it was ever visible.
+ * Same flat look as home and merchant pages, but `inline`: it sits in the
+ * prose column and follows the prose rhythm instead of the band's padding.
  */
 export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     const heading = title ?? getTranslations(locale).faqTitle
@@ -60,8 +61,9 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     }
 
     return (
-        <section className="overflow-x-hidden">
-            <FAQsPanel heading={heading} questions={questions} />
+        // same column as the prose, CTA and RelatedPages around it
+        <section className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
+            <FAQsPanel heading={heading} questions={questions} inline />
             <JsonLd data={faqSchema} />
         </section>
     )
