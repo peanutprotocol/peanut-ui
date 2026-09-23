@@ -23,6 +23,7 @@ import { clearSignupAttribution, readSignupAttributionAsync } from '@/utils/sign
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { confettiPresets } from '@/utils/confetti'
 
 export function AccountReadyView({
     onContinue,
@@ -80,6 +81,7 @@ const SignTestTransaction = () => {
      * the first redirect — a signup entered from /receipt would land on /home.
      */
     const redirectingRef = useRef(false)
+    const completionCelebratedRef = useRef(false)
 
     const redirectToAccount = () => {
         if (redirectingRef.current) return
@@ -93,6 +95,13 @@ const SignTestTransaction = () => {
     const completeSignup = async () => {
         creatingAccountRef.current = false
         console.log('[SignTestTransaction] Account setup complete')
+        // The final passkey confirmation has succeeded and the account exists.
+        // Fire while this screen is still visible; the shared canvas carries
+        // the burst through the immediate client-side redirect.
+        if (!completionCelebratedRef.current) {
+            completionCelebratedRef.current = true
+            confettiPresets.celebration()
+        }
         const inviteCode = getFromCookie('inviteCode')
         // Native Preferences can be the only surviving copy after a WebView
         // process restart, so load the durable context before emitting the
