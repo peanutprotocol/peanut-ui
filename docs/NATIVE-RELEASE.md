@@ -611,6 +611,26 @@ assignment overrides defaults; inspect those separately. Updated beta exit calls
 `unsetChannel()`, verifies the platform default and resets to builtin. It never assigns
 an explicit `production` override. A surviving dashboard override requires admin removal.
 
+**Legacy local channel preferences need a delivery path.** Updater 8.51.14 persists every
+successful `getChannel()` answer as a local `defaultChannel`. Devices that read the old
+`production` channel before the platform split can therefore keep sending
+`defaultChannel: production`, even though their Dashboard Device Override is `None`.
+The old beta exit also tried to self-assign `production`. A mobile-disabled `production`
+channel then returns `no_channel` on update checks; changing the server defaults alone
+does not clear that local preference. The newer client clears a verified legacy
+`production` preference on an About read or after `no_channel`, then retries the check
+once. It also avoids diagnosing a dashboard override solely from an unexpected channel
+name after leaving beta.
+
+That client repair cannot reach a device whose current updater cannot download it.
+Before retiring a bridge delivery route, audit retained devices by platform, native
+version, last contact and **Dashboard override versus reported default channel**.
+Plan a compatible one-time bridge for eligible binaries, verify the actual installed
+bundle and next update check on a small cohort, then expand. A single shared bridge
+bundle has one native minimum: setting it to Android 1.6.0 does not repair iOS 1.5.0
+devices. Those devices need an independently verified compatible iOS artifact or a
+new native binary. Do not treat a synthetic Capgo Debug API Request as device adoption.
+
 There are two distinct legacy states:
 
 - Original v1.5.0 updater code downloads candidates without a floor gate. The platform
