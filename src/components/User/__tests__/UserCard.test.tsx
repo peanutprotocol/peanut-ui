@@ -20,6 +20,14 @@ jest.mock('next/image', () => ({
 }))
 
 describe('UserCard avatar', () => {
+    it('aligns the recipient name with the caption and places the send arrow after it', () => {
+        renderWithIntl(<UserCard type="send" username="satoshi" recipientType="USERNAME" />)
+
+        const caption = screen.getByText("You're sending money to")
+        expect(caption.nextElementSibling?.tagName.toLowerCase()).toBe('svg')
+        expect(caption.parentElement?.nextElementSibling).toHaveTextContent('satoshi')
+    })
+
     it('renders the recipient picked avatar', () => {
         const { container } = renderWithIntl(
             <UserCard type="send" username="satoshi" recipientType="USERNAME" avatarKey="basic.frog" />

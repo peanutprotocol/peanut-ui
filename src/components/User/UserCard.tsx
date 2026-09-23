@@ -1,6 +1,5 @@
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { AVATAR_TEXT_DARK } from '@/utils/color.utils'
-import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
@@ -57,7 +56,7 @@ const UserCard = ({
         return undefined
     }
 
-    const getTitle = useCallback(() => {
+    const getTitle = () => {
         const icon = getIcon()
         let title = ''
         if (type === 'send') title = t('userCard.sendingMoneyTo')
@@ -66,11 +65,13 @@ const UserCard = ({
         if (type === 'request_pay') title = t('userCard.isRequesting', { name: fullName ?? username })
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
-            <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                {icon && <Icon name={icon} size={16} />} {title}
+            <div className="flex min-w-0 items-center gap-1 text-body-xs text-foreground-secondary">
+                {type !== 'send' && icon && <Icon name={icon} size={16} className="shrink-0" />}
+                <span className="truncate">{title}</span>
+                {type === 'send' && icon && <Icon name={icon} size={16} className="shrink-0" />}
             </div>
         )
-    }, [type, fullName, username, t])
+    }
 
     const getAddressLinkTitle = () => {
         if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.

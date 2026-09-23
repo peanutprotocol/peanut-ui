@@ -22,6 +22,7 @@ export interface DirectSendRecipient {
     username: string
     address: Address
     userId?: string
+    isVerified?: boolean
     fullName?: string
     /** Their picked profile avatar; null means the username-letter fallback. */
     avatarKey?: string | null

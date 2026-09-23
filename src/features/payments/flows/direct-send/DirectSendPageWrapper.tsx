@@ -44,6 +44,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
             username: user.username,
             address: walletAccount.identifier as Address,
             userId: user.userId,
+            isVerified: user.isVerified,
             fullName: user.fullName,
             avatarKey: user.avatarKey ?? null,
         }
