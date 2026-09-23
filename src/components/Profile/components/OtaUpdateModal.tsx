@@ -16,7 +16,7 @@ import { useTranslations } from 'next-intl'
 const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
     const t = useTranslations('profile.update')
     const tCommon = useTranslations('common')
-    const { pendingBundle, applyState, applyNow } = useOtaUpdate()
+    const { applyState, applyNow } = useOtaUpdate()
     const manualRestart = applyState === 'manual-restart'
     const failed = applyState === 'failed'
     const applying = applyState === 'applying'
@@ -28,13 +28,7 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
             tone={failed ? 'error' : 'info'}
             icon="download"
             title={t('title')}
-            description={
-                manualRestart
-                    ? t('manualRestart')
-                    : failed
-                      ? t('applyFailed')
-                      : t('description', { version: pendingBundle?.version ?? '' })
-            }
+            description={manualRestart ? t('manualRestart') : failed ? t('applyFailed') : t('description')}
             // Both props: preventClose covers Escape and the backdrop, hideModalCloseButton the X.
             // Dismissing mid-apply would hide the failure state the user still has to act on.
             preventClose={applying}

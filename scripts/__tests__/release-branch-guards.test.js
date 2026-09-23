@@ -51,7 +51,7 @@ function floorShell() {
         .join('\n')
 }
 
-function runFloors(manual) {
+function runFloors(bridgeActive) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-floors-'))
     const output = path.join(dir, 'output')
     const script = `
@@ -63,11 +63,17 @@ function runFloors(manual) {
                 *) return 1;;
             esac
         }
+        pnpm() { return 0; }
         ${floorShell()}
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
         encoding: 'utf8',
-        env: { ...process.env, MANUAL_MAIN_SOURCE: String(manual), GITHUB_OUTPUT: output },
+        env: {
+            ...process.env,
+            BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive',
+            ANDROID_BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive',
+            GITHUB_OUTPUT: output,
+        },
     })
     const floors = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
     fs.rmSync(dir, { recursive: true, force: true })
@@ -106,6 +112,12 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
         env: {
             ...process.env,
             RELEASE_VERSION: '1.6.4',
+            RELEASE_VERSION_IOS: '1.5.1001-ios',
+            RELEASE_VERSION_ANDROID: '1.6.1001-android',
+            BRIDGE_ACTIVE: 'active',
+            ANDROID_BRIDGE_ACTIVE: 'active',
+            IOS_BRIDGE_PREVIOUS: 'active',
+            ANDROID_BRIDGE_PREVIOUS: 'active',
             FLOOR_ANDROID: '1.6.0',
             FLOOR_IOS: '1.5.0',
             EXPECTED_MAIN_SHA: expectedMainSha,
@@ -131,13 +143,13 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
 describe('release-ota.yml publishes main source', () => {
     const guard = guardOf('release-ota.yml')
 
-    it('accepts a main push and a manual dispatch of dev tooling', () => {
+    it('accepts a main push and a manual dispatch of main', () => {
         expect(run(guard, 'main', 'push').status).toBe(0)
-        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(0)
+        expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
     })
 
     it.each([
-        ['main', 'workflow_dispatch'],
+        ['dev', 'workflow_dispatch'],
         ['dev', 'push'],
         ['release/android-kyc', 'workflow_dispatch'],
         ['feature/kyc', 'push'],
@@ -148,11 +160,11 @@ describe('release-ota.yml publishes main source', () => {
         expect(result.stderr).toContain('::error::')
     })
 
-    it('auto-runs only on main pushes and manually runs dev tooling against main source', () => {
+    it('auto-runs only on main pushes and manually retries that same main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
         expect(workflow).toContain('workflow_dispatch:')
-        expect(workflow).toContain("github.event_name == 'workflow_dispatch' && 'main' || github.sha")
+        expect(workflow).toContain('ref: ${{ github.sha }}')
         expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
         expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('path: app')
@@ -160,9 +172,9 @@ describe('release-ota.yml publishes main source', () => {
         expect(workflow).toContain('OTA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}')
     })
 
-    it('limits the older main updater to its native version while retaining platform floors for new builds', () => {
-        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
-        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+    it('keeps platform floors while bridges are active, and uses the native floor before bootstrapping', () => {
+        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
     })
 
     it('rechecks main after the build and immediately before each platform promotion', () => {

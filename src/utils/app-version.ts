@@ -61,12 +61,28 @@ export async function getRunningVersion(): Promise<RunningVersionInfo | null> {
 /**
  * The user-facing release version of the code actually running.
  *
- * Peanut's three segments are `<major>.<native-build>.<ota>`. On an OTA'd
- * install the Capgo bundle owns that version; otherwise the native shell does.
+ * The OTA export carries the public release number baked by the release
+ * workflow. Capgo may use a different internal number to keep older native
+ * clients eligible for updates; append a short platform suffix for the user.
+ * Without that metadata, keep reporting the actual bundle version.
  * `appBuild` is a separate platform/CI identifier used by the stores and support
  * diagnostics. Appending it as a fourth dotted segment (for example,
  * `1.5.0.21653381`) makes it look like part of the comparable release version.
  */
-export function formatRunningVersion({ appVersion, otaVersion }: RunningVersionInfo): string {
-    return otaVersion || appVersion
+export function formatOtaBundleVersion(
+    otaVersion: string,
+    displayReleaseVersion = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+): string {
+    if (displayReleaseVersion && /^\d+\.\d+\.\d+$/.test(displayReleaseVersion)) {
+        if (/^\d+\.\d+\.\d+-ios$/.test(otaVersion)) return `${displayReleaseVersion}-i`
+        if (/^\d+\.\d+\.\d+-android$/.test(otaVersion)) return `${displayReleaseVersion}-a`
+    }
+    return otaVersion
+}
+
+export function formatRunningVersion(
+    { appVersion, otaVersion }: RunningVersionInfo,
+    displayReleaseVersion = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+): string {
+    return otaVersion ? formatOtaBundleVersion(otaVersion, displayReleaseVersion) : appVersion
 }

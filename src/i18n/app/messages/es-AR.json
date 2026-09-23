@@ -337,7 +337,7 @@
         },
         "update": {
             "title": "Actualización lista",
-            "description": "Reiniciá Peanut para terminar de instalar la versión {version}.",
+            "description": "Reiniciá Peanut para terminar de instalar la actualización.",
             "restartNow": "Reiniciar ahora",
             "notNow": "Ahora no",
             "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",

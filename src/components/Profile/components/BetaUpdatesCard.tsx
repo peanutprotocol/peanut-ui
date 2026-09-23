@@ -7,6 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
+import { formatOtaBundleVersion } from '@/utils/app-version'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -110,7 +111,9 @@ export const BetaUpdatesCard = () => {
                 </div>
                 <div className="flex justify-between gap-4">
                     <dt>{t('bundleLabel')}</dt>
-                    <dd>{status?.bundleVersion ?? '—'}</dd>
+                    <dd title={status?.bundleVersion ?? undefined}>
+                        {status?.bundleVersion ? formatOtaBundleVersion(status.bundleVersion) : '—'}
+                    </dd>
                 </div>
                 {status?.deviceId && (
                     <div className="flex justify-between gap-4">
