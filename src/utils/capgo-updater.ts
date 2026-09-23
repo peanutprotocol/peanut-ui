@@ -4,7 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { needsStoreUpdate } from '@/utils/ota-native-gate'
+import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -100,8 +100,26 @@ function queueUpdateCheck(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckO
 async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     try {
-        const latest = await CapacitorUpdater.getLatest()
-        // getLatest resolves with a url only when a genuinely newer bundle exists.
+        const latest = await getLatestAfterLegacyChannelRecovery(CapacitorUpdater)
+        // Since 8.45.11 the plugin can resolve policy outcomes instead of
+        // rejecting. Classify them before the URL branch: blocked/failed
+        // responses deliberately have no download URL, and treating every
+        // no-URL response as up to date hides the store-update path.
+        if (latest.kind === 'up_to_date') {
+            removeStoredValue(FAILURE_STREAK_KEY)
+            return 'up-to-date'
+        }
+        if (latest.kind === 'blocked' || latest.kind === 'failed') {
+            const message = latest.error || latest.message || `update_check_${latest.kind}`
+            if (isNewerBinaryRejection(message)) {
+                removeStoredValue(FAILURE_STREAK_KEY)
+                callbacks.onStoreUpdateRequired?.()
+                return 'store-update-required'
+            }
+            throw new Error(message)
+        }
+        // getLatest can offer a different version even when its number is lower
+        // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
             // Refused before the download, not after: a bundle built for a newer
             // binary must never reach the device's disk, because everything that
@@ -109,7 +127,7 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // downloaded. Capgo's own floor is the server-side half of this rule and
             // only applies under one channel strategy, in a dashboard nothing here
             // can read — so the client decides too.
-            if (await needsStoreUpdate(latest.version)) {
+            if (await needsStoreUpdate(latest.version, latest.comment)) {
                 console.info(`[capgo] bundle ${latest.version} needs a newer binary — store update only`)
                 removeStoredValue(FAILURE_STREAK_KEY)
                 callbacks.onStoreUpdateRequired?.()
@@ -125,6 +143,10 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // apply on next launch (no mid-session reload — avoids yanking the
             // UI out from under the user). set() reloads IMMEDIATELY; next()
             // is the deferred variant.
+            // Persist before arming next(): the native bridge can reload the
+            // WebView as soon as it queues the bundle. A later JS write may never
+            // run, leaving the next launch without the floors that admitted it.
+            rememberStagedFloors(bundle.id, latest.comment)
             await CapacitorUpdater.next({ id: bundle.id })
             callbacks.onUpdateAvailable?.(bundle)
             removeStoredValue(FAILURE_STREAK_KEY)
@@ -162,9 +184,44 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
     }
 }
 
+// The old mobile updater persisted `production` locally. That channel is now
+// Electron-only, so Capgo answers no_channel before it can offer the platform
+// default. unsetChannel() clears only that local preference (never a dashboard
+// override); retry exactly once so a genuinely missing default remains an error.
+async function getLatestAfterLegacyChannelRecovery(updater: CapacitorUpdaterPlugin) {
+    let latest: Awaited<ReturnType<CapacitorUpdaterPlugin['getLatest']>> | undefined
+    let originalError: unknown
+    try {
+        latest = await updater.getLatest()
+    } catch (err) {
+        if (!isMissingChannel(err instanceof Error ? err.message : String(err ?? ''))) throw err
+        originalError = err
+    }
+    if (latest && !isMissingChannel(`${latest.error ?? ''} ${latest.message ?? ''}`)) return latest
+    // no_channel can also mean a removed beta channel or a broken cloud
+    // default. Only the known legacy production preference is ours to clear.
+    const channel = await updater.getChannel().catch(() => null)
+    if (channel?.channel !== 'production' || channel.status === 'override') {
+        if (latest) return latest
+        throw originalError
+    }
+    await updater.unsetChannel({})
+    return updater.getLatest()
+}
+
+function isMissingChannel(message: string): boolean {
+    return /no_channel|no (default )?channel or override/i.test(message)
+}
+
 // The bundle Capgo serves was built for a newer native version than the one
-// installed (major/minor gate), so no OTA can land until the store binary does.
-const NEWER_BINARY_ERRORS = ['disable_auto_update_to_major', 'disable_auto_update_to_minor']
+// installed, so no OTA can land until the store binary does. The metadata case
+// is the explicit per-bundle min_update_version floor; it is an expected refusal,
+// not an updater failure worth escalating to Sentry.
+const NEWER_BINARY_ERRORS = [
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata',
+]
 
 function isNewerBinaryRejection(message: string): boolean {
     return NEWER_BINARY_ERRORS.some((pattern) => message.includes(pattern))
@@ -359,7 +416,9 @@ export async function readStagedBundle(
         CapacitorUpdater.current().catch(() => null),
     ])
     if (!next?.version || next.id === current?.bundle?.id) return null
-    if (!(await needsStoreUpdate(next.version))) return next
+    // Asked with the floors this bundle was admitted under, not with nothing:
+    // re-deciding on the version alone would disarm a bundle the check approved.
+    if (!(await needsStoreUpdate(next.version, stagedFloors(next.id)))) return next
 
     // Say so, rather than letting the update row vanish: the launch check would
     // reach the same verdict, but only once it has reached the network.
@@ -396,6 +455,7 @@ async function disarmStagedBundle(
     runningId: string | undefined
 ): Promise<null> {
     console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    forgetStagedFloors()
     const sentinels =
         runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
 
@@ -500,14 +560,13 @@ function recordFailureStreak(message: string): number {
 }
 
 // The channel used for opt-in beta updates. Testers opt in from the About screen;
-// every other install stays on the app's default channel (production) and never
+// every other install stays on the app's platform default channel and never
 // sees these bundles.
 export const BETA_OTA_CHANNEL = 'staging'
 
-// The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).
-// Leaving beta also assigns the device here when the channel allows device
-// self-assign in the Capgo dashboard; otherwise the local unset has to do.
-export const PRODUCTION_OTA_CHANNEL = 'production'
+// Server defaults required by all production release workflows. Beta exit
+// unsets local routing and verifies the effective default without assigning one.
+export const PRODUCTION_OTA_CHANNELS = { ios: 'ios-mobile-release', android: 'android-mobile-release' } as const
 
 export interface OtaChannelStatus {
     channel: string | null
@@ -567,11 +626,22 @@ function isClosedChannel(reason: unknown): boolean {
 
 export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const [channel, current, device] = await Promise.all([
+    let [channel, current, device] = await Promise.all([
         CapacitorUpdater.getChannel().catch(() => null),
         CapacitorUpdater.current().catch(() => null),
         CapacitorUpdater.getDeviceId().catch(() => null),
     ])
+    // getChannel() itself persists the channel it reads in plugin 8.51.14.
+    // Merely opening About could therefore re-pin the retired mobile channel.
+    // Clear it and show the resulting platform default when possible.
+    if (channel?.channel === 'production' && channel.status !== 'override') {
+        try {
+            await CapacitorUpdater.unsetChannel({})
+            channel = await CapacitorUpdater.getChannel().catch(() => channel)
+        } catch (err) {
+            console.warn('[capgo] legacy channel migration failed:', err)
+        }
+    }
     return {
         channel: channel?.channel ?? null,
         bundleVersion: current?.bundle?.version ?? null,
@@ -604,9 +674,7 @@ export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
 // the two: production versions sort below it, so nothing will ever replace it.
 export class OtaResetFailedError extends Error {}
 
-// A device Capgo still routes to the beta channel after the leave: the server
-// refused the production self-assign, or someone forced the device onto beta
-// from the dashboard and the assignment outlived the app's attempt to rewrite it.
+// Capgo explicitly reports an override that wins over the local channel unset.
 export class OtaChannelOverrideError extends Error {}
 
 // Capgo could not say which channel it will serve. Resetting on that guess is how
@@ -637,32 +705,36 @@ export async function leaveBetaOtaChannel(): Promise<void> {
             throw err
         }
 
-        // unsetChannel() only drops the plugin's local preference (verified in
-        // the plugin source: both platforms just remove a stored key). The
-        // device→channel assignment lives on the server, and only setChannel()
-        // rewrites it — so also assign production. Best effort: a channel that
-        // refuses self-assign must not strand a device whose beta preference is
-        // already gone; getChannel() below is what decides whether beta still
-        // sticks server-side.
-        try {
-            const reassigned = await CapacitorUpdater.setChannel({
-                channel: PRODUCTION_OTA_CHANNEL,
-                triggerAutoUpdate: false,
-            })
-            if (reassigned.error) console.info(`[capgo] production self-assign refused: ${reassigned.error}`)
-        } catch (err) {
-            console.info(`[capgo] production self-assign failed: ${err instanceof Error ? err.message : String(err)}`)
-        }
+        // unsetChannel returns to the platform's server-selected default.
+        // Assigning the retired shared production channel here would override
+        // platform routing. Explicit dashboard overrides are checked below.
 
         // getChannel() asks the backend what it will actually serve, and only a
-        // successful, channel-bearing answer licenses the reset. Offline, rate
+        // successful platform channel or explicit default answer licenses reset. Offline, rate
         // limited, or an error field means indeterminate — not "clear".
-        const effective = await CapacitorUpdater.getChannel().catch(() => null)
+        let effective = await CapacitorUpdater.getChannel().catch(() => null)
         if (!effective || effective.error) {
             throw new OtaChannelUnknownError(effective?.error ?? 'the effective channel could not be read')
         }
-        if (effective.channel === BETA_OTA_CHANNEL) {
-            throw new OtaChannelOverrideError(`${BETA_OTA_CHANNEL} is still assigned to this device`)
+        const expected = isAndroidNativeBridge() ? PRODUCTION_OTA_CHANNELS.android : PRODUCTION_OTA_CHANNELS.ios
+        // getChannel() persists its answer locally. If a stale channel answer
+        // re-pins the device just after unsetChannel(), clear it and verify once
+        // more before deciding that beta cannot be left.
+        if (effective.channel && effective.channel !== expected && effective.status !== 'override') {
+            await CapacitorUpdater.unsetChannel({})
+            effective = await CapacitorUpdater.getChannel().catch(() => null)
+            if (!effective || effective.error) {
+                throw new OtaChannelUnknownError(effective?.error ?? 'the effective channel could not be read')
+            }
+        }
+        if (effective.channel && effective.channel !== expected) {
+            const message = `expected ${expected}, but ${effective.channel} is assigned`
+            if (effective.status === 'override') throw new OtaChannelOverrideError(message)
+            throw new OtaChannelUnknownError(message)
+        }
+
+        if (!effective.channel && effective.status !== 'default') {
+            throw new OtaChannelUnknownError('the platform default could not be confirmed')
         }
 
         try {
