@@ -573,14 +573,24 @@ tagging. Promotions are separate API operations: if the second fails, one platfo
 advance while the other keeps its prior bundle. Fix the cause and rerun; reserved bundle
 names force a fresh version. This verifies publication, not boot behavior on real devices.
 
-**The floors are kept next to the staged bundle id.** A bundle is admitted at check time,
-when the comment is in hand, but applied on a *later launch* — and the plugin's queue
-carries only an id and a version (`BundleInfo` has no comment field). Without that, the
+**The floors are kept next to the downloaded bundle id.** A bundle is admitted at check time,
+when the comment is in hand, but applied on a *later launch* — and `BundleInfo`
+carries only an id and a version, not the comment. Without that, the
 launch-time gate re-asks with nothing to answer from, falls back to the version rule, and
-disarms the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
-throw it away on every launch. Only one bundle is ever queued, so it is one entry, replaced
-before native queueing on each stage and dropped when the queue is. A mismatched id reads
+discards the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
+throw it away on every launch. Only one downloaded bundle is selected for the next launch;
+the local marker and its floors are replaced together. A mismatched id reads
 as "no floors", which is also what a bundle staged before any of this existed gets.
+
+**Applying a mobile OTA:** The app downloads the bundle during a session without calling
+Capgo `next()`. `next()` would also install when Android backgrounds the app for a passkey
+prompt, interrupting signing. On a later launch the client verifies that the download is
+still present and compatible, then uses `set()` while the splash covers the reload. The
+splash waits briefly for that decision on launches with a saved download. Old JS may have
+left a native `next()` queue; the new client disarms that queue and retains the compatible
+download. Android binaries with a Capgo plugin older than 8.46 cannot use `set()` safely;
+their manual Update app action arms `next()` only immediately before an explicit app exit.
+The OTA is not automatically applied on an ordinary background transition.
 
 The scan that produces a floor **stops at the major boundary**, even where the surface
 matches across it. A major is a deliberate app-generation break: `release-version.mjs`
