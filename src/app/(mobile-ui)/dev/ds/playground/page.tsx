@@ -1,4 +1,4 @@
-import { CatalogCard, CatalogGrid } from '../_components/CatalogCard'
+import { TierCatalog } from '../_components/CatalogCard'
 import { DocPage } from '../_components/DocPage'
 
 export default function PlaygroundPage() {
@@ -14,26 +14,7 @@ export default function PlaygroundPage() {
                 </p>
             </div>
 
-            <CatalogGrid>
-                <CatalogCard
-                    title="Shake & Confetti"
-                    description="Tune shake intensity + hold-to-claim progress and fire the double-star confetti burst."
-                    href="/dev/shake-test"
-                    icon="gift"
-                />
-                <CatalogCard
-                    title="Perk Success"
-                    description="The perk-unlock success screen with mock perks — preview the celebration + confetti flow."
-                    href="/dev/perk-success-test"
-                    icon="check-circle"
-                />
-                <CatalogCard
-                    title="Share Builder"
-                    description="Iterator for the D3 card share asset — stress-test tiers, names and edge cases."
-                    href="/dev/share-builder"
-                    icon="copy"
-                />
-            </CatalogGrid>
+            <TierCatalog tier="playground" />
         </DocPage>
     )
 }

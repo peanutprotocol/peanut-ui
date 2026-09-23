@@ -1,42 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import type { LucideIcon } from 'lucide-react'
-import { type IconName } from '@/components/Global/Icons/Icon'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LUCIDE_FILL_NONE } from './nav-config'
-
-interface CatalogCardProps {
-    title: string
-    description: string
-    href: string
-    /** a product icon name, or a lucide component (what nav-config carries) */
-    icon?: IconName | LucideIcon
-    status?: 'production' | 'limited' | 'unused' | 'needs-refactor'
-    quality?: 1 | 2 | 3 | 4 | 5
-    usages?: number
-}
+import { LUCIDE_FILL_NONE, SIDEBAR_CONFIG, type NavItem } from './nav-config'
 
 // dogfood: a catalog entry IS the DS ListItem anatomy (leading bubble, title,
 // body, trailing chevron) — the Link wrapper owns navigation semantics
-export function CatalogCard({ title, description, href, icon, status, quality, usages }: CatalogCardProps) {
-    // IconBubble takes a name or a ready element; a lucide component is neither
-    const LucideGlyph = typeof icon === 'string' ? undefined : icon
-    // inline fill:none for the same reason DocNavList sets it: a raw lucide only
-    // sets fill as a presentation attribute, which class-level CSS beats.
-    const bubbleIcon = LucideGlyph ? (
-        <LucideGlyph size={16} aria-hidden style={LUCIDE_FILL_NONE} />
-    ) : (
-        (icon as IconName | undefined)
-    )
+function CatalogCard({ label, description, href, icon: Glyph, status, quality, usages }: NavItem) {
     return (
         <Link href={href} className="block h-full">
             <ListItem
                 position="solo"
                 className="h-full cursor-pointer transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
-                leading={bubbleIcon ? <IconBubble icon={bubbleIcon} size="s" color="yellow" /> : undefined}
-                title={title}
+                // inline fill:none for the same reason DocNavList sets it: a raw lucide only
+                // sets fill as a presentation attribute, which class-level CSS beats.
+                leading={
+                    <IconBubble
+                        icon={<Glyph size={16} aria-hidden style={LUCIDE_FILL_NONE} />}
+                        size="s"
+                        color="yellow"
+                    />
+                }
+                title={label}
                 body={
                     <div>
                         <p>{description}</p>
@@ -61,6 +47,15 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
     )
 }
 
-export function CatalogGrid({ children }: { children: React.ReactNode }) {
-    return <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
+/** a tier index grid, read from nav-config (the sidebar's source) so the two
+    can never disagree. takes the tier key, not the items: lucide components
+    cannot cross the RSC boundary, so the server pages pass a string. */
+export function TierCatalog({ tier }: { tier: string }) {
+    return (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {SIDEBAR_CONFIG[tier].map((item) => (
+                <CatalogCard key={item.href} {...item} />
+            ))}
+        </div>
+    )
 }
