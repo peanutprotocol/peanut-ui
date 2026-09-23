@@ -177,10 +177,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
                                         // The 32px top padding clears the Earned tag (20px tall, 6px down) by 6px so it never touches the sticker.
                                         // Under xs (390px) the sticker is 48px, which with one reserved text line each
-                                        // makes the tile about as tall as it is wide. The chosen tile fills with the pink that
-                                        // buttons press to (action-primary); its 1px border stays.
+                                        // makes the tile about as tall as it is wide. The chosen tile follows the selected-rows
+                                        // rule in design.md: action-primary fill, over-color ink on every line, and a second
+                                        // channel besides colour (WCAG 1.4.1), here the 2px border.
                                         `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'bg-action-primary'
+                                        checked && 'border-2 bg-action-primary'
                                     )}
                                 >
                                     {earned && (
@@ -199,12 +200,19 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     {/* One line reserved, two allowed: a translated name that wraps grows its
                                         grid row (rows stretch to the tallest tile), so nothing clips and the
                                         common one-line case keeps the tile square. */}
-                                    <span className="mt-2 line-clamp-2 min-h-4 text-label-m">{name}</span>
-                                    {/* grey on pink is ~2.8:1, so the chosen tile's line takes the primary ink */}
+                                    <span
+                                        className={twMerge(
+                                            'mt-2 line-clamp-2 min-h-4 text-label-m',
+                                            checked && 'text-foreground-over-color-primary'
+                                        )}
+                                    >
+                                        {name}
+                                    </span>
+                                    {/* grey on pink is 2.95:1, so the chosen tile's line takes the over-color ink */}
                                     <span
                                         className={twMerge(
                                             'line-clamp-2 min-h-4 text-body-xs text-foreground-secondary',
-                                            checked && 'text-foreground-primary'
+                                            checked && 'text-foreground-over-color-primary'
                                         )}
                                     >
                                         {line}
