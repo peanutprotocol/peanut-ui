@@ -48,6 +48,28 @@ describe('CardCountryConfirmScreen', () => {
         await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('BR'))
     })
 
+    it('moves focus and selection with the arrow keys, one tab stop', () => {
+        render(
+            <CardCountryConfirmScreen candidates={['BR', 'AR']} onConfirm={jest.fn()} onContactSupport={jest.fn()} />
+        )
+        const brazil = screen.getByRole('radio', { name: 'Brazil' })
+        const argentina = screen.getByRole('radio', { name: 'Argentina' })
+        expect(brazil).toHaveAttribute('tabIndex', '0')
+        expect(argentina).toHaveAttribute('tabIndex', '-1')
+
+        brazil.focus()
+        fireEvent.keyDown(brazil, { key: 'ArrowDown' })
+        expect(argentina).toHaveAttribute('aria-checked', 'true')
+        expect(argentina).toHaveFocus()
+        expect(argentina).toHaveAttribute('tabIndex', '0')
+        expect(brazil).toHaveAttribute('tabIndex', '-1')
+
+        // wraps at the end
+        fireEvent.keyDown(argentina, { key: 'ArrowDown' })
+        expect(brazil).toHaveAttribute('aria-checked', 'true')
+        expect(brazil).toHaveFocus()
+    })
+
     it('routes to support when no candidates could be derived', () => {
         const onContactSupport = jest.fn()
         render(<CardCountryConfirmScreen candidates={[]} onConfirm={jest.fn()} onContactSupport={onContactSupport} />)

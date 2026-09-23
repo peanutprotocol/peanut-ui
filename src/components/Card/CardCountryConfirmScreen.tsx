@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, type KeyboardEvent, useEffect, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -65,6 +65,21 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
         )
     }
 
+    const focusIndex = Math.max(0, candidates.indexOf(selected ?? ''))
+
+    // WAI-ARIA radio group: an arrow key moves focus and selection together, wrapping at the ends
+    const moveSelection = (event: KeyboardEvent<HTMLDivElement>) => {
+        const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key]
+        if (!step) return
+        const radios = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]'))
+        const index = radios.indexOf(document.activeElement as HTMLElement)
+        if (index < 0) return
+        event.preventDefault()
+        const next = (index + step + radios.length) % radios.length
+        setSelected(candidates[next])
+        radios[next].focus()
+    }
+
     return (
         <PageStack gap="6">
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -77,7 +92,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
             {/* selected-row rule (design.md): fill + over-colour text + trailing check.
                 ListItem forwards no role or aria state, so the radio semantics ride a
                 wrapper, the same way TokenListItem carries its option semantics. */}
-            <div role="radiogroup" aria-label={t('countryConfirm.title')}>
+            <div role="radiogroup" aria-label={t('countryConfirm.title')} onKeyDown={moveSelection}>
                 {candidates.map((iso2, index) => {
                     const isSelected = selected === iso2
                     const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
@@ -86,7 +101,8 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                             key={iso2}
                             role="radio"
                             aria-checked={isSelected}
-                            tabIndex={0}
+                            // roving tabindex: one tab stop, on the picked row (or the first)
+                            tabIndex={index === focusIndex ? 0 : -1}
                             onClick={() => setSelected(iso2)}
                             onKeyDown={(event) => {
                                 if (event.key !== 'Enter' && event.key !== ' ') return
