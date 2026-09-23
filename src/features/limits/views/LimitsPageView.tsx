@@ -114,7 +114,7 @@ const LimitsPageView = () => {
                         title={restOfWorldName}
                         onClick={() => {}}
                         disabled={true}
-                        trailing={<Badge status="custom" customText={tCommon('comingSoon')} />}
+                        trailing={<Badge status="soon" customText={tCommon('comingSoon')} />}
                     />
                 </Section>
             )}

@@ -4103,7 +4103,7 @@
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "provisioning": "Setting up your {currency} account, usually under a minute.",
+            "provisioning": "Usually ready in under a minute.",
             "sectionTitle": "Bank details",
             "shareCta": "Share details",
             "unavailableTitle": "{currency} details are not available to you yet",
@@ -4116,9 +4116,11 @@
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
-            "referenceRequired": "Every transfer needs this reference. Without it the money cannot be matched to your account.",
+            "referenceRequired": "Every transfer needs this reference.",
             "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
+            "termsToggle": "Limits and fees",
+            "businessOnly": "Only you or a business can pay in. Other transfers are returned.",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
         },
@@ -4307,7 +4309,7 @@
                 "why": "The state on your address does not allow anyone but you to pay into an account like this one. Your own transfers work as normal, and the details stay valid."
             },
             "ownName": {
-                "line": "Top up from a bank account in your own name.",
+                "line": "Add money from a bank account in your own name.",
                 "payer": "Only the account holder can pay into this account.",
                 "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
             },

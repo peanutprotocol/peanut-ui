@@ -1,27 +1,40 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { instructionRows } from '../instructionRows'
+import type { DepositRuleKey } from '../ruleLines'
 import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositFeeLine } from './DepositFeeLine'
-import { DepositRuleList } from './DepositRuleList'
+import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositShareActions } from './DepositShareActions'
 
 /**
+ * Rules that limit the holder's OWN use of the account. Every other rule is
+ * about third-party payers and waits behind the toggle; these decide whether
+ * the account works for the user at all, so they stay beside the card.
+ */
+const GATE_RULE_KEYS: ReadonlySet<DepositRuleKey> = new Set<DepositRuleKey>([
+    'ownName',
+    'stateRestricted',
+    'ownAccountNo',
+])
+
+/**
  * Screen 2 — the user's own view of one account.
  *
- * Block order is priority order. Whose name a payer will read comes before
- * the numbers, because it decides whether the details are safe to hand over;
- * everything below the card sets expectations.
+ * One card of numbers and the actions that hand them over, like a bank's own
+ * account-details screen. Who can pay, fees and timing are one collapsed
+ * section below the card (founders review, 2026-09-23: the screen read as the
+ * heaviest in the app).
  */
 export function DepositAccountDetailsScreen({
     rail,
@@ -43,7 +56,7 @@ export function DepositAccountDetailsScreen({
     /** revoked details have no self-service fix — this is the only way out */
     onContactSupport: () => void
 }) {
-    const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines } = useDepositAccountCopy()
 
     if (account.status === 'revoked') {
         return (
@@ -104,8 +117,13 @@ export function DepositAccountDetailsScreen({
     }
 
     const provisioning = account.status === 'provisioning'
-    const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
+    // The heading names this account's own rails, so the card does not repeat them.
+    const rows = account.instructions
+        ? instructionRows(account.instructions, rowLabels, railLabels).filter((row) => row.key !== 'accepts')
+        : []
     const rules = ruleLines(account.matching, account.rules, userName)
+    const gateRules = rules.filter((rule) => GATE_RULE_KEYS.has(rule.key))
+    const termRules = rules.filter((rule) => !GATE_RULE_KEYS.has(rule.key))
 
     return (
         <PageStack>
@@ -113,45 +131,69 @@ export function DepositAccountDetailsScreen({
             <div className="flex flex-col gap-6">
                 <TitleBlock
                     size="s"
-                    title={t('details.heading', { currency: rail.currency, rail: railName(rail.corridor) })}
-                    description={
-                        provisioning
-                            ? t('details.provisioning', { currency: rail.currency })
-                            : arrivalDetail(rail.corridor)
-                    }
+                    title={t('details.heading', {
+                        currency: rail.currency,
+                        rail: accountRailName(rail.corridor, account.instructions),
+                    })}
+                    description={provisioning ? t('details.provisioning') : undefined}
                 />
 
                 {provisioning ? (
                     <DepositDetailsSkeleton rows={rail.detailRowCount} />
                 ) : (
                     <>
-                        <Section title={t('details.sectionTitle')}>
+                        <div className="flex flex-col gap-2">
                             <DepositDetailsCard rows={rows} />
-                            {/* The reference row is one more field to copy; that
-                                the transfer is not matched without it is the
-                                fact the holder has to pass on. */}
+                            {/* Only a line that decides whether a transfer lands at
+                                all stays outside the toggle: a transfer without the
+                                reference is not matched, and an own-name-only rule
+                                decides who can use the account. */}
                             {account.instructions?.depositMessage && (
                                 <p className="text-body-xs text-foreground-secondary">
                                     {t('details.referenceRequired')}
                                 </p>
                             )}
-                            {/* what the conversion costs, beside the details it applies to */}
-                            <p className="text-body-xs text-foreground-secondary">
-                                <DepositFeeLine rail={rail} />
-                            </p>
-                        </Section>
-
-                        <Section title={t('details.whoCanPay')}>
-                            <DepositRuleList lines={rules} />
-                            {/* EUR is offered to anyone, and the one third-party
-                                SEPA transfer seen so far came back as a
-                                third-party payment. Until a third-party credit
-                                is proven the holder is told what to ask of a
-                                payer, beside the terms that say anyone may pay. */}
-                            {rail.corridor === 'SEPA_EU' && (
-                                <p className="text-body-xs text-foreground-secondary">{t('details.eurOwnName')}</p>
+                            {/* A corridor that limits who may pay says so in one
+                                line (design.md, 2026-09-23): a user who shares these
+                                details with a friend has to see it without opening
+                                anything. The per-payer rows stay in the toggle. */}
+                            {account.matching.sender === 'business-only' && (
+                                <p className="text-body-xs text-foreground-secondary">{t('details.businessOnly')}</p>
                             )}
-                        </Section>
+                            {gateRules.map((rule) => (
+                                // a div, not a p: the (i) renders a div of its own
+                                <div key={rule.key} className="text-body-xs text-foreground-secondary">
+                                    <RuleWithInfo text={rule.text} why={rule.why} />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Everything a holder reads once and a payer never needs
+                            stays one tap away, so the numbers are the screen. */}
+                        <Accordion type="single" collapsible>
+                            <Accordion.Item value="terms">
+                                <Accordion.Trigger>{t('details.termsToggle')}</Accordion.Trigger>
+                                <Accordion.Content className="flex flex-col gap-3">
+                                    {termRules.length > 0 && <DepositRuleList lines={termRules} />}
+                                    {/* EUR is offered to anyone, and the one third-party
+                                        SEPA transfer seen so far came back as a
+                                        third-party payment. Until a third-party credit
+                                        is proven the holder is told what to ask of a
+                                        payer, beside the terms that say anyone may pay. */}
+                                    {rail.corridor === 'SEPA_EU' && (
+                                        <p className="text-body-xs text-foreground-secondary">
+                                            {t('details.eurOwnName')}
+                                        </p>
+                                    )}
+                                    <p className="text-body-xs text-foreground-secondary">
+                                        <DepositFeeLine rail={rail} />
+                                    </p>
+                                    <p className="text-body-xs text-foreground-secondary">
+                                        {arrivalDetail(rail.corridor)}
+                                    </p>
+                                </Accordion.Content>
+                            </Accordion.Item>
+                        </Accordion>
                     </>
                 )}
             </div>

@@ -4,6 +4,7 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -448,10 +449,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                 const summary = residenceAvailability(restrictionSets, iso2)
                                 const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
                                 return (
-                                    <div
-                                        key={iso2}
-                                        className="rounded-sm border border-border-default bg-background-default p-3"
-                                    >
+                                    <div key={iso2} className={`${CARD_SURFACE} p-3`}>
                                         <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>

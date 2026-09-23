@@ -4103,7 +4103,7 @@
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "provisioning": "Preparando sua conta em {currency}, geralmente em menos de um minuto.",
+            "provisioning": "Geralmente fica pronta em menos de um minuto.",
             "sectionTitle": "Dados bancários",
             "shareCta": "Compartilhar dados",
             "unavailableTitle": "Você ainda não tem dados em {currency}",
@@ -4116,9 +4116,11 @@
             "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e fale com o suporte para substituí-los.",
             "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
-            "referenceRequired": "Toda transfer\u00eancia precisa desta refer\u00eancia. Sem ela o dinheiro n\u00e3o pode ser associado \u00e0 sua conta.",
+            "referenceRequired": "Toda transfer\u00eancia precisa desta refer\u00eancia.",
             "eurOwnName": "Transfer\u00eancias em euros de uma conta em outro nome podem ser devolvidas. Se puder, deposite de uma conta no seu nome.",
             "whoCanPay": "Quem pode te pagar",
+            "termsToggle": "Limites e tarifas",
+            "businessOnly": "S\u00f3 voc\u00ea ou uma empresa podem pagar nesta conta. Outras transfer\u00eancias s\u00e3o devolvidas.",
             "residenceCta": "Atualizar sua residência",
             "qrPayCta": "Pagar um código QR"
         },

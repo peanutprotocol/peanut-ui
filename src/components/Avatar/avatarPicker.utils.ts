@@ -1,12 +1,25 @@
 import type { KeyboardEvent } from 'react'
+import { HAND_NARROW, HAND_WIDE } from './avatar.utils'
 
-export const AVATAR_PICKER_COLUMNS = 3
+export const AVATAR_PICKER_COLUMNS = 2
+
+/** From this viewport width (390px at a 16px root) the picker is a 2x3 screen; below it a 2x2
+ *  (TASK-22677). The same literal as the `xs` breakpoint token in src/styles/globals.css: a
+ *  media-query rem follows the browser's default font size, so a px query here would switch
+ *  at a different width from the CSS for anyone who changed that default. */
+export const HAND_WIDE_MIN = '24.375rem'
+
+/** Stickers to deal for the current viewport. No matchMedia (jsdom) reads as narrow. */
+export const handSize = (): number =>
+    typeof window !== 'undefined' && window.matchMedia?.(`(min-width: ${HAND_WIDE_MIN})`)?.matches
+        ? HAND_WIDE
+        : HAND_NARROW
 
 /**
  * One tab stop per radiogroup; arrows move between tiles and wrap. Left and
  * right walk the whole hand; up and down stay in their column and wrap within
- * it, so a hand whose size is not a multiple of the column count (eight tiles
- * in three columns) never drifts sideways.
+ * it, so a hand whose size is not a multiple of the column count (three tiles
+ * in two columns) never drifts sideways.
  */
 export function roveAvatarTiles(event: KeyboardEvent<HTMLDivElement>): void {
     const step = {
