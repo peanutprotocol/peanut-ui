@@ -27,8 +27,8 @@ interface FAQProps {
 /**
  * MDX FAQ component: the FAQ panel plus FAQPage JSON-LD. Matches LP styling.
  *
- * It used to sit in a purple peanut-pattern section. FAQsPanel paints its own
- * opaque, full-width background on top, so none of it was ever visible.
+ * Renders as a white card on the page ground (variant="card"); home and
+ * merchant pages keep the default full-width cream band.
  */
 export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     const heading = title ?? getTranslations(locale).faqTitle
@@ -61,7 +61,7 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
 
     return (
         <section className="overflow-x-hidden">
-            <FAQsPanel heading={heading} questions={questions} />
+            <FAQsPanel heading={heading} questions={questions} variant="card" />
             <JsonLd data={faqSchema} />
         </section>
     )

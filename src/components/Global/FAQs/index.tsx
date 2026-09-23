@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 export type FAQsProps = {
     heading: string
@@ -21,6 +22,9 @@ export type FAQsProps = {
         /** Article that answers this question in full. Renders a "learn more" link under the answer. */
         learnMoreHref?: string
     }>
+    /** 'band' (default): full-width cream band. 'card': a white card on the
+     *  page's own ground, used by marketing pages. */
+    variant?: 'band' | 'card'
 }
 
 function linkifyText(text: string) {
@@ -48,17 +52,25 @@ function linkifyText(text: string) {
     return parts
 }
 
-export function FAQsPanel({ heading, questions, learnMoreLabel }: FAQsProps) {
+export function FAQsPanel({ heading, questions, learnMoreLabel, variant = 'band' }: FAQsProps) {
+    const isCard = variant === 'card'
     return (
         // drift fix: was near-miss hex — snapped to the page-background token
-        <section className="relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32">
-            <div className="mx-auto max-w-3xl">
+        <section
+            className={
+                isCard
+                    ? 'relative overflow-hidden px-4 py-12 text-foreground-primary'
+                    : 'relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32'
+            }
+        >
+            <div className={isCard ? `mx-auto max-w-3xl ${CARD_SURFACE} p-6 md:p-10` : 'mx-auto max-w-3xl'}>
                 {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
                     (60px) needs 401px and clips at 320px (TASK-22366) */}
                 <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium">
                     {heading}
                 </h2>
-                <div className="mt-10 border-y-2 border-border-default">
+                {/* the card's own border frames the list, so no outer rules there */}
+                <div className={isCard ? 'mt-10' : 'mt-10 border-y-2 border-border-default'}>
                     {questions.map((faq, idx) => (
                         <details
                             key={faq.id}
