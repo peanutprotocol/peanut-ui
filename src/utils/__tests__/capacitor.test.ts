@@ -10,8 +10,9 @@ let getPlatform: typeof import('../capacitor').getPlatform
 const mockGetInfo = jest.fn()
 jest.mock('@capacitor/device', () => ({ Device: { getInfo: () => mockGetInfo() } }))
 const mockBrowserClose = jest.fn()
+const mockBrowserOpen = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined)
 jest.mock('@capacitor/browser', () => ({
-    Browser: { open: jest.fn(() => Promise.resolve()), close: () => mockBrowserClose() },
+    Browser: { open: (options: unknown) => mockBrowserOpen(options), close: () => mockBrowserClose() },
 }))
 
 describe('capacitor utils', () => {
@@ -346,6 +347,33 @@ describe('legacy android safe-area zeroing', () => {
         const { zeroLegacyAndroidSafeAreaInsets } = require('../capacitor')
         await zeroLegacyAndroidSafeAreaInsets()
         expect(inline()).toEqual(['', '', '', ''])
+    })
+})
+
+describe('openExternalUrl Help Center context', () => {
+    beforeEach(() => {
+        jest.resetModules()
+        mockBrowserOpen.mockClear()
+    })
+
+    afterEach(() => {
+        delete window.Capacitor
+        jest.restoreAllMocks()
+    })
+
+    it.each(['android', 'ios'])('marks Help Center links opened from %s', async (platform) => {
+        window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help')
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
+    })
+
+    it('does not mark normal browser visits', async () => {
+        const open = jest.spyOn(window, 'open').mockReturnValue(window)
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help')
+        expect(open).toHaveBeenCalledWith('https://peanut.me/en/help', '_blank')
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
     })
 })
 
