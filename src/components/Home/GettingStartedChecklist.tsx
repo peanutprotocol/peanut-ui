@@ -170,9 +170,10 @@ const GettingStartedChecklist = () => {
                             trailing={item.done ? <Badge status="completed" /> : undefined}
                             bodyWrap
                             chevron={tappable}
-                            disabled={!tappable}
+                            // a done row is finished, not unavailable: it renders as a plain,
+                            // untappable row instead of a disabled one
+                            disabled={!item.done && !tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={item.done ? 'border-border-default bg-background-default' : undefined}
                         />
                     )
                 })}
