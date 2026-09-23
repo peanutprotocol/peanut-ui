@@ -7,12 +7,20 @@
 set -euo pipefail
 case "$PLATFORM" in ios|android) ;; *) echo 'Invalid platform' >&2; exit 1;; esac
 BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
 if [ "$BRIDGE" = active ]; then
   if [ "$PLATFORM" = ios ]; then
     echo 'The iOS 1.5.x bridge is active; native .0 cannot replace it' >&2
     exit 1
   fi
   export ALLOW_IOS_BRIDGE=1
+fi
+if [ "$ANDROID_BRIDGE" = active ]; then
+  if [ "$PLATFORM" = android ]; then
+    echo 'The Android 1.6.x bridge is active; native .0 cannot replace it' >&2
+    exit 1
+  fi
+  export ALLOW_ANDROID_BRIDGE=1
 fi
 resolve_floor() {
   if [ "${IS_REBUILD:-false}" = true ]; then

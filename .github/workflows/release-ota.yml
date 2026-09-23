@@ -8,9 +8,9 @@ name: App Release OTA
 # two signed platform bundle records to an inactive candidate channel, verifies
 # their exact metadata, then promotes each to its platform production channel.
 #
-# Android continues in the newest native version range. While the verified iOS
-# 1.5 recovery bridge is active, iOS stays in its 1.5.x range so old clients
-# that were offline during the bridge can still receive later main bundles.
+# While the verified legacy bridges are active, iOS stays in its 1.5.x range
+# and Android in its 1.6.x range. Old clients that were offline during the
+# first bridge can still receive later main bundles.
 #
 # The tag is written afterwards as the record of what shipped. A failed deploy
 # leaves no tag; any partial upload still reserves its number for a fresh retry.
@@ -24,6 +24,8 @@ on:
 
 env:
     CAPGO_APP_ID: me.peanut.wallet
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
 
 permissions:
     contents: read
@@ -45,7 +47,9 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             ios_version: ${{ steps.resolve.outputs.ios_version }}
+            android_version: ${{ steps.resolve.outputs.android_version }}
             bridge_active: ${{ steps.resolve.outputs.bridge_active }}
+            android_bridge_active: ${{ steps.resolve.outputs.android_bridge_active }}
             source_sha: ${{ steps.source.outputs.sha }}
         defaults:
             run:
@@ -123,7 +127,7 @@ jobs:
                   SOURCE_SHA: ${{ steps.source.outputs.sha }}
               run: |
                   BRIDGE="$(node ../release-tooling/scripts/capgo-release-guard.mjs bridge-status)"
-                  if [ "$BRIDGE" = active ]; then export ALLOW_IOS_BRIDGE=1; fi
+                  ANDROID_BRIDGE="$(node ../release-tooling/scripts/capgo-release-guard.mjs android-bridge-status)"
                   CURRENT="$(node ../release-tooling/scripts/capgo-release-guard.mjs current-release)"
                   VERSION="$(node ../release-tooling/scripts/release-version.mjs ota --current "$CURRENT" --root "$PWD")"
                   if [ "$BRIDGE" = active ]; then
@@ -131,16 +135,24 @@ jobs:
                   else
                     IOS_VERSION="$VERSION-ios"
                   fi
+                  if [ "$ANDROID_BRIDGE" = active ]; then
+                    ANDROID_VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-android-bridge)"
+                  else
+                    ANDROID_VERSION="$VERSION-android"
+                  fi
                   {
                     echo "version=$VERSION"
                     echo "ios_version=$IOS_VERSION"
+                    echo "android_version=$ANDROID_VERSION"
                     echo "bridge_active=$BRIDGE"
+                    echo "android_bridge_active=$ANDROID_BRIDGE"
                   } >> "$GITHUB_OUTPUT"
-                  echo "Highest current or reserved release is $CURRENT — Android $VERSION-android, iOS $IOS_VERSION"
+                  echo "Highest current or reserved release is $CURRENT — Android $ANDROID_VERSION, iOS $IOS_VERSION"
                   {
                     echo "## OTA $VERSION"
                     echo "- **Replaces:** $CURRENT"
                     echo "- **iOS bundle:** $IOS_VERSION"
+                    echo "- **Android bundle:** $ANDROID_VERSION"
                     echo "- **Main commit:** ${SOURCE_SHA:0:7}"
                   } >> "$GITHUB_STEP_SUMMARY"
 
@@ -151,7 +163,7 @@ jobs:
         env:
             OTA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
             BRIDGE_ACTIVE: ${{ needs.resolve.outputs.bridge_active }}
-            ALLOW_IOS_BRIDGE: ${{ needs.resolve.outputs.bridge_active == 'active' && '1' || '0' }}
+            ANDROID_BRIDGE_ACTIVE: ${{ needs.resolve.outputs.android_bridge_active }}
         defaults:
             run:
                 working-directory: app
@@ -197,11 +209,9 @@ jobs:
             - name: Resolve per-platform OTA floors
               id: ota_floors
               run: |
-                  # Before the bridge, installed iOS 1.5 clients still use the
-                  # old numeric gate, so a 1.6.x candidate cannot reach them
-                  # even when the native surface itself is compatible. Do not
-                  # claim delivery to that cohort on either release trigger.
-                  if [ "$BRIDGE_ACTIVE" != active ]; then
+                  # Before each bridge, installed old clients use a numeric
+                  # gate; do not claim delivery to them from a newer lane.
+                  if [ "$BRIDGE_ACTIVE" != active ] && [ "$ANDROID_BRIDGE_ACTIVE" != active ]; then
                     ANDROID="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
                     IOS="$ANDROID"
                   else
@@ -215,6 +225,10 @@ jobs:
                     fi
                     pnpm exec jest src/utils/__tests__/ota-native-gate.test.ts --runInBand --silent \
                       --testNamePattern='admits a 1.5.x bridge on the old numeric gate, then a 1.6.x bundle on the floor-aware gate'
+                  fi
+                  if [ "$ANDROID_BRIDGE_ACTIVE" = active ] && [ "$ANDROID" != '1.6.0' ]; then
+                    echo "::error::Android bridge is active but main now needs native $ANDROID; coordinate a native migration first" >&2
+                    exit 1
                   fi
                   {
                     echo "android=$ANDROID"
@@ -271,14 +285,18 @@ jobs:
               env:
                   VERSION: ${{ needs.resolve.outputs.version }}
                   IOS_VERSION: ${{ needs.resolve.outputs.ios_version }}
+                  ANDROID_VERSION: ${{ needs.resolve.outputs.android_version }}
               run: |
-                  if [ -z "$VERSION" ] || [ -z "$IOS_VERSION" ]; then
+                  if [ -z "$VERSION" ] || [ -z "$IOS_VERSION" ] || [ -z "$ANDROID_VERSION" ]; then
                       echo "::error::the OTA resolver did not provide a bundle version" >&2
                       exit 1
                   fi
-                  echo "name=$VERSION" >> "$GITHUB_OUTPUT"
-                  echo "ios=$IOS_VERSION" >> "$GITHUB_OUTPUT"
-                  echo "Uploading as platform bundle versions $IOS_VERSION and $VERSION-android"
+                  {
+                      echo "name=$VERSION"
+                      echo "ios=$IOS_VERSION"
+                      echo "android=$ANDROID_VERSION"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Uploading as platform bundle versions $IOS_VERSION and $ANDROID_VERSION"
 
             # Resolve the floor from the release tags and fail closed when none is
             # visible. The bundle must target the newest native shell it can safely
@@ -315,6 +333,7 @@ jobs:
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
                   RELEASE_VERSION_IOS: ${{ steps.version.outputs.ios }}
+                  RELEASE_VERSION_ANDROID: ${{ steps.version.outputs.android }}
                   FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
                   FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
               run: |
@@ -330,6 +349,7 @@ jobs:
                       VERSION="$RELEASE_VERSION_IOS"
                     else
                       NATIVE_FLOOR="$FLOOR_ANDROID"
+                      VERSION="$RELEASE_VERSION_ANDROID"
                       # Both platform records deliberately contain the same web
                       # assets. Keep the duplicate check for the first upload,
                       # then allow the second record with its Android floor.
@@ -349,6 +369,7 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
                   RELEASE_VERSION_IOS: ${{ steps.version.outputs.ios }}
+                  RELEASE_VERSION_ANDROID: ${{ steps.version.outputs.android }}
                   FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
                   FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
               run: |
@@ -358,8 +379,9 @@ jobs:
                       export VERSION="$RELEASE_VERSION_IOS" NATIVE_FLOOR="$FLOOR_IOS"
                       if [ "$BRIDGE_ACTIVE" = active ]; then export IOS_LEGACY_BRIDGE=1; fi
                     else
-                      export NATIVE_FLOOR="$FLOOR_ANDROID"
+                      export VERSION="$RELEASE_VERSION_ANDROID" NATIVE_FLOOR="$FLOOR_ANDROID"
                       unset IOS_LEGACY_BRIDGE
+                      if [ "$ANDROID_BRIDGE_ACTIVE" = active ]; then export ANDROID_LEGACY_BRIDGE=1; fi
                     fi
                     node ../release-tooling/scripts/capgo-release-guard.mjs verify-bundle
                   done
@@ -369,6 +391,7 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
                   RELEASE_VERSION_IOS: ${{ steps.version.outputs.ios }}
+                  RELEASE_VERSION_ANDROID: ${{ steps.version.outputs.android }}
                   FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
                   FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
                   EXPECTED_MAIN_SHA: ${{ needs.resolve.outputs.source_sha }}
@@ -388,8 +411,9 @@ jobs:
                       export VERSION="$RELEASE_VERSION_IOS" NATIVE_FLOOR="$FLOOR_IOS"
                       if [ "$BRIDGE_ACTIVE" = active ]; then export IOS_LEGACY_BRIDGE=1; fi
                     else
-                      export NATIVE_FLOOR="$FLOOR_ANDROID"
+                      export VERSION="$RELEASE_VERSION_ANDROID" NATIVE_FLOOR="$FLOOR_ANDROID"
                       unset IOS_LEGACY_BRIDGE
+                      if [ "$ANDROID_BRIDGE_ACTIVE" = active ]; then export ANDROID_LEGACY_BRIDGE=1; fi
                     fi
                     # Re-check immediately before EACH production mutation: the
                     # first platform promotion can finish while main advances
@@ -406,7 +430,7 @@ jobs:
                   {
                     echo "## OTA Deployment"
                     echo "- **Channels:** ios-mobile-release, android-mobile-release"
-                    echo "- **Bundle versions:** ${{ steps.version.outputs.ios }}, ${{ steps.version.outputs.name }}-android"
+                    echo "- **Bundle versions:** ${{ steps.version.outputs.ios }}, ${{ steps.version.outputs.android }}"
                     echo "- **Main commit:** ${{ needs.resolve.outputs.source_sha }}"
                     echo "- **Release tooling commit:** ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}"
                   } >> "$GITHUB_STEP_SUMMARY"

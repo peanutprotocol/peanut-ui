@@ -61,6 +61,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # Direct v* tag pushes and blank-version replacements join the release mutex.
     # release-native.yml supplies versionName and already owns that mutex, so its
@@ -219,11 +223,17 @@ jobs:
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android
-                  ALLOW_IOS_BRIDGE: '1'
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
               run: |
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the Android 1.6.x bridge for older installs"
+                      exit 0
+                  fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   if [ "$CURRENT" = builtin ]; then
                     echo "needs_ota=true" >> "$GITHUB_OUTPUT"

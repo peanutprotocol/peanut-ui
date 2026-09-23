@@ -52,6 +52,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # A direct v* tag push joins the release mutex. When release-native.yml calls
     # this workflow from a main push, the parent already owns that mutex; the

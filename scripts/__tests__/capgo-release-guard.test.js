@@ -84,6 +84,18 @@ it('permits the explicit iOS 1.5 bridge with a newer Android floor only in bridg
     expect(verify([bridge], { ...options, PLATFORM: 'android' }).status).toBe(1)
     expect(verify([bridge], { ...options, FLOOR_IOS: '1.4.0' }).status).toBe(1)
 })
+it('permits an Android 1.6 bridge only with its matching platform and floor', () => {
+    const bridge = { ...goodBundle, name: '1.6.1000-android', min_update_version: '1.6.0' }
+    const options = {
+        PLATFORM: 'android',
+        VERSION: bridge.name,
+        ANDROID_LEGACY_BRIDGE: '1',
+        NATIVE_FLOOR: '1.6.0',
+    }
+    expect(verify([bridge], options).status).toBe(0)
+    expect(verify([bridge], { ...options, PLATFORM: 'ios' }).status).toBe(1)
+    expect(verify([bridge], { ...options, FLOOR_ANDROID: '1.5.0' }).status).toBe(1)
+})
 it('binds a manual release to the pinned main commit instead of the dev workflow commit', () => {
     const mainSha = 'b'.repeat(40)
     const mainBundle = { ...goodBundle, link: `https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}` }
@@ -322,6 +334,56 @@ it('reserves the next iOS 1.5 bridge version even after a partial upload', () =>
     ])
     expect(result.result).toBe('1.5.1001-ios')
 })
+it('reserves the next Android 1.6 bridge version even after a partial upload', () => {
+    const result = invoke('next-android-bridge', [
+        ...policyResponses(),
+        { body: [{ name: '1.6.1000-android', deleted: true }, { name: '1.7.2-android' }] },
+    ])
+    expect(result.result).toBe('1.6.1001-android')
+})
+it('recognizes only the verified Android bridge policy', () => {
+    const bridge = { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false }
+    expect(invoke('android-bridge-status', policyResponses()).result).toBe('inactive')
+    expect(invoke('android-bridge-status', policyResponses([channels[0], bridge])).result).toBe('active')
+    expect(invoke('verify-promotion', policyResponses([channels[0], bridge])).status).toBe(1)
+    expect(
+        invoke('verify-promotion', policyResponses([channels[0], bridge]), { ALLOW_ANDROID_BRIDGE: '1' }).status
+    ).toBe(0)
+    expect(
+        invoke(
+            'android-bridge-status',
+            policyResponses([channels[0], { ...bridge, version: { id: 42, name: '1.7.2-android' } }])
+        ).status
+    ).toBe(1)
+    expect(
+        invoke(
+            'android-bridge-status',
+            policyResponses([channels[0], { ...bridge, version: { id: 42, name: '1.6.8-android' } }])
+        ).status
+    ).toBe(1)
+})
+it('promotes an Android 1.6 bridge without changing iOS routing', () => {
+    const version = '1.6.1000-android'
+    const bridgeBundle = { ...goodBundle, name: version, min_update_version: '1.6.0' }
+    const promoted = { ...channelPolicy('android', version), disable_auto_update_under_native: false }
+    const result = invoke(
+        'promote-android-bridge',
+        [
+            ...policyResponses(),
+            { body: [bridgeBundle] },
+            { body: { status: 'success' } },
+            ...policyResponses([channels[0], promoted]),
+        ],
+        { PLATFORM: 'android', VERSION: version, ANDROID_LEGACY_BRIDGE: '1', NATIVE_FLOOR: '1.6.0' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'android-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: false,
+        rolloutEnabled: false,
+    })
+})
 it('recognizes the verified iOS bridge channel while preserving Android policy', () => {
     const bridge = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
     expect(invoke('bridge-status', policyResponses()).result).toBe('inactive')
@@ -438,6 +500,34 @@ it('continues the 1.5.x iOS lane only when the bridge policy is active', () => {
     expect(rejected.status).toBe(1)
     expect(rejected.requests.every((request) => request.method === 'GET')).toBe(true)
 })
+it('continues the 1.6.x Android lane only in Android bridge mode', () => {
+    const bridge = { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false }
+    const next = { ...bridge, version: { id: 42, name: '1.6.1001-android' } }
+    const options = {
+        PLATFORM: 'android',
+        VERSION: '1.6.1001-android',
+        ALLOW_ANDROID_BRIDGE: '1',
+        ANDROID_LEGACY_BRIDGE: '1',
+        NATIVE_FLOOR: '1.6.0',
+    }
+    expect(
+        invoke(
+            'promote-production',
+            [
+                ...policyResponses([channels[0], bridge]),
+                { body: { status: 'success' } },
+                ...policyResponses([channels[0], next]),
+            ],
+            options
+        ).status
+    ).toBe(0)
+    const rejected = invoke('promote-production', policyResponses([channels[0], bridge]), {
+        ...options,
+        ANDROID_LEGACY_BRIDGE: '0',
+    })
+    expect(rejected.status).toBe(1)
+    expect(rejected.requests.every((request) => request.method === 'GET')).toBe(true)
+})
 
 it('does not mutate production after a rejected policy preflight', () => {
     const result = invoke(
@@ -490,6 +580,7 @@ it('bypasses the candidate checksum collision only for the second platform recor
                 COMMIT_MSG: 'release',
                 RELEASE_VERSION: '1.6.4',
                 RELEASE_VERSION_IOS: '1.6.4-ios',
+                RELEASE_VERSION_ANDROID: '1.6.4-android',
                 FLOOR_ANDROID: '1.6.0',
                 FLOOR_IOS: '1.5.0',
                 GITHUB_SHA: SHA,
@@ -516,6 +607,7 @@ it('bypasses the candidate checksum collision only for the second platform recor
                 CAPGO_PRIVATE_KEY: 'private-key',
                 RELEASE_VERSION: '1.6.5',
                 RELEASE_VERSION_IOS: '1.5.1001-ios',
+                RELEASE_VERSION_ANDROID: '1.6.5-android',
                 FLOOR_ANDROID: '1.6.0',
                 FLOOR_IOS: '1.5.0',
                 OTA_SOURCE_SHA: mainSha,
@@ -527,6 +619,26 @@ it('bypasses the candidate checksum collision only for the second platform recor
         expect(bridgedIos).toContain('--bundle 1.5.1001-ios')
         expect(bridgedIos).toContain('--min-update-version 1.5.0')
         expect(nextAndroid).toContain('--bundle 1.6.5-android')
+
+        const bothBridges = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                RELEASE_VERSION: '1.7.1',
+                RELEASE_VERSION_IOS: '1.5.1002-ios',
+                RELEASE_VERSION_ANDROID: '1.6.1001-android',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
+        expect(bothBridges.status).toBe(0)
+        const uploads = fs.readFileSync(calls, 'utf8').trim().split('\n')
+        expect(uploads.at(-2)).toContain('--bundle 1.5.1002-ios')
+        expect(uploads.at(-1)).toContain('--bundle 1.6.1001-android')
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }

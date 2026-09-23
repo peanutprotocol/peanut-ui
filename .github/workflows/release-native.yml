@@ -31,6 +31,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # Retain each queued main push; GitHub's default single pending slot would
     # silently cancel intermediate native releases during a busy merge period.
@@ -96,6 +100,11 @@ jobs:
                   if [ "$BRIDGE" = active ]; then
                       node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
                       echo "The iOS 1.5.x bridge remains compatible with this main commit"
+                  fi
+                  ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
+                  if [ "$ANDROID_BRIDGE" = active ]; then
+                      node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                      echo "The Android 1.6.x bridge remains compatible with this main commit"
                   fi
 
             - name: Resolve next build version

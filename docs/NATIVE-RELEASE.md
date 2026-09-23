@@ -417,13 +417,18 @@ platform channels; select `dev` explicitly until the new workflow reaches `main`
 | **App Release OTA** — manual dispatch on `dev`, app source from `main` | same two production channels | same platform bundle versions |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
 
-While the iOS 1.5.x recovery bridge is active, both automatic and manual OTA runs keep
-publishing iOS 1.5.x bundles from the current `main` tree. The native iOS upload leaves
-that channel in place; replacing it with a new native `.0` would make existing iOS 1.5.0
-clients reject updates. Android advances to the new native version and its `.0` bundle.
-If a main change actually alters the iOS native surface, the bridge compatibility guard
-stops the coordinated store release before either upload until there is a migration
-path for the older iOS clients.
+When a legacy bridge is active, its platform's bundle instead advances within the
+old numeric lane: `1.5.<next>-ios` or `1.6.<next>-android`. Run the iOS and Android
+recovery bridge workflows on `dev` before activating automatic native builds, then
+verify a device on each old binary accepts its bridge and a later main-source OTA.
+
+While the legacy bridges are active, both automatic and manual OTA runs keep publishing
+iOS 1.5.x and Android 1.6.x bundles from the current `main` tree. The new native uploads
+leave those channels in place; promoting a newer `.0` would make offline older clients
+reject updates under their numeric gate. New binaries use the same shared native version
+and the floor-aware gate accepts the compatible legacy bundle. If `main` changes either
+platform's native surface, a preflight stops the coordinated store release before either
+upload until there is a migration path for that platform's older clients.
 
 ### App-download QR links do not expand the native surface
 
@@ -701,8 +706,8 @@ record with incomplete metadata fails closed.
   channel-policy interface used by Capgo CLI, since the public channel response omits
   platform flags. Unreadable policies or missing metadata exposure stop publication.
 - **An automatic native release publishes a matching `.0` bootstrap bundle after
-  the native checks pass.** While the iOS bridge is active, only Android promotes this
-  shared `.0` record; iOS retains its compatible 1.5.x channel. Production OTA
+  the native checks pass where a platform's legacy bridge is inactive.** An active
+  bridge retains its compatible 1.5.x or 1.6.x channel. Production OTA
   remains automatic from `main`. The native workflow uses the `Production` GitHub environment;
   adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced

@@ -51,7 +51,7 @@ function floorShell() {
         .join('\n')
 }
 
-function runFloors(bridgeActive) {
+function runFloors(bridgeActive, androidBridgeActive = false) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-floors-'))
     const output = path.join(dir, 'output')
     const script = `
@@ -68,7 +68,12 @@ function runFloors(bridgeActive) {
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
         encoding: 'utf8',
-        env: { ...process.env, BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive', GITHUB_OUTPUT: output },
+        env: {
+            ...process.env,
+            BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive',
+            ANDROID_BRIDGE_ACTIVE: androidBridgeActive ? 'active' : 'inactive',
+            GITHUB_OUTPUT: output,
+        },
     })
     const floors = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
     fs.rmSync(dir, { recursive: true, force: true })
@@ -172,6 +177,7 @@ describe('release-ota.yml publishes main source', () => {
     it('holds the iOS delivery floor until the bridge is active', () => {
         expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
         expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+        expect(runFloors(true, true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
     })
 
     it('rechecks main after the build and immediately before each platform promotion', () => {
@@ -227,6 +233,17 @@ describe('native release source branch', () => {
         expect(workflow).toContain("track: ${{ github.event_name == 'push' && 'internal' || inputs.track }}")
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
     })
+})
+
+it.each([
+    ['ios', 'v1.5.0'],
+    ['android', 'v1.6.0'],
+])('the %s recovery bridge pins main and checks its shipped native surface', (platform, base) => {
+    const workflow = fs.readFileSync(path.join(workflowsDir, `release-${platform}-legacy-bridge.yml`), 'utf8')
+    expect(workflow).toContain('ref: main')
+    expect(workflow).toContain('git ls-remote origin refs/heads/main')
+    expect(workflow).toContain(`check-native-ota-surface.mjs ${base} --platform ${platform} --root "$PWD"`)
+    expect(workflow).toContain(`PLATFORM: ${platform}`)
 })
 
 describe('android-release.yml release branches', () => {
