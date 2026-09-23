@@ -7,7 +7,11 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import ExchangeRateWidget from '../index'
-import type { ExchangeRateWidgetMinimumPolicy, RouteMinimum } from '@/utils/exchangeRateWidget.utils'
+import {
+    getExchangeRateWidgetRouteMinimum,
+    type ExchangeRateWidgetMinimumPolicy,
+    type RouteMinimum,
+} from '@/utils/exchangeRateWidget.utils'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -88,6 +92,48 @@ describe('ExchangeRateWidget route minimum — a local-currency floor (1 BRL for
         renderWidget('BRL', brlFloor)
 
         expect(brlFloor.resolve).toHaveBeenCalledWith(5.2)
+    })
+})
+
+/**
+ * The two Rates & fees screenshot fixtures (dev/fixtures/registry.ts), with
+ * the real route policy at the simulated 5 BRL/USD: what the capture must show.
+ */
+describe('ExchangeRateWidget — the rates-and-fees fixtures', () => {
+    const realPolicy: ExchangeRateWidgetMinimumPolicy = {
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate),
+        label: (m) => `The minimum for this withdrawal is ${m.amount} ${m.currency}.`,
+    }
+    const destination = () => (screen.getAllByRole('spinbutton')[1] as HTMLInputElement).value
+
+    it('rates-and-fees: 10 USD → 50.00 BRL, Withdraw now enabled', () => {
+        mockUseExchangeRate.mockReturnValue(quote(10, 5))
+        renderWidget('BRL', realPolicy)
+
+        expect(destination()).toBe('50.00')
+        expect(cta()).toBeEnabled()
+        expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('1 USD = 5.0000 BRL')
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
+    })
+
+    it('rates-and-fees-below-minimum: 0.1 USD → 0.50 BRL, Withdraw now disabled, minimum is 1 BRL', () => {
+        mockUseExchangeRate.mockReturnValue(quote(0.1, 5))
+        renderWidget('BRL', realPolicy)
+
+        expect(destination()).toBe('0.50')
+        expect(cta()).toBeDisabled()
+        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent(
+            'The minimum for this withdrawal is 1 BRL.'
+        )
+    })
+
+    it('rates-and-fees-unavailable: no quote, no fee claim, the pill says unavailable', () => {
+        mockUseExchangeRate.mockReturnValue(quote(10, 0, { destinationAmount: '', isError: true }))
+        renderWidget('BRL', realPolicy)
+
+        expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('Rate currently unavailable')
+        expect(screen.queryByTestId('exchange-rate-note')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
     })
 })
 

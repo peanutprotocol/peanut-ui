@@ -23,7 +23,7 @@ jest.mock('next/image', () => ({
 // pin the searchable chain set: the wagmi-derived list is env-dependent
 jest.mock('../TokenSelector.consts', () => ({
     ...jest.requireActual('../TokenSelector.consts'),
-    TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS: ['42161', '1'],
+    TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS: ['42161', '1', '10'],
 }))
 jest.mock('../Components/NetworkListView', () => ({
     __esModule: true,
@@ -36,6 +36,8 @@ jest.mock('../Components/NetworkListView', () => ({
 
 const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+const WETH_ARB = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+const USDC_OP = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
 
 const token = (address: string, symbol: string) => ({
     address,
@@ -61,14 +63,24 @@ const CHAINS = {
     },
 }
 
+// The fee-wording cases need a second USDC (Optimism) and a non-USDC token on
+// Arbitrum; kept apart so the exact-text queries above still see one USDC.
+const FEE_CHAINS = {
+    ...CHAINS,
+    '42161': { ...CHAINS['42161'], tokens: [token(USDC_ARB, 'USDC'), token(WETH_ARB, 'WETH')] },
+    '10': { chainId: '10', networkName: 'Optimism', chainIconURI: '', tokens: [token(USDC_OP, 'USDC')] },
+}
+
 function Harness({
     initialChainID = '',
     initialTokenAddress = '',
     viewType = 'other',
+    chains = CHAINS,
 }: {
     initialChainID?: string
     initialTokenAddress?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    chains?: typeof CHAINS
 }) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
@@ -77,7 +89,7 @@ function Harness({
             <tokenSelectorContext.Provider
                 value={
                     {
-                        supportedChainsAndTokens: CHAINS,
+                        supportedChainsAndTokens: chains,
                         selectedChainID,
                         setSelectedChainID,
                         selectedTokenAddress,
@@ -250,6 +262,93 @@ describe('TokenSelector network tabs (TASK-22452)', () => {
 
             expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument()
             expect(screen.getByRole('tab', { name: /ETH/ })).toBeInTheDocument()
+        })
+    })
+
+    /**
+     * The one guarantee is USDC on Arbitrum. Every other withdraw pick used to
+     * get no word at all, which read as either "also free" or "hidden fee";
+     * it now says where the fee, if any, will be shown — never that there is
+     * none (TASK-22257). No quote is fetched here; the confirm step owns it.
+     */
+    describe('fee wording on a withdraw pick (TASK-22257)', () => {
+        const NO_FEES = 'No fees with this token.'
+        const QUOTED = 'For other tokens and networks, any fee is shown before you confirm.'
+        const SPONSORED = 'Transactions using USDC on Arbitrum are sponsored'
+        const helper = (text: string) => screen.queryByText(text, { selector: 'span' })
+        // the harness probes are <output>, which also carry the status role
+        const callout = () => {
+            const callouts = screen.getAllByRole('status').filter((el) => el.tagName === 'DIV')
+            expect(callouts).toHaveLength(1)
+            return callouts[0]
+        }
+
+        test('Arbitrum USDC keeps its no-fees line and gets no quoted-fee line', () => {
+            render(
+                <Harness
+                    chains={FEE_CHAINS}
+                    viewType="withdraw"
+                    initialChainID="42161"
+                    initialTokenAddress={USDC_ARB}
+                />
+            )
+            expect(helper(NO_FEES)).toBeInTheDocument()
+            expect(helper(QUOTED)).not.toBeInTheDocument()
+        })
+
+        test.each([
+            ['Optimism USDC', '10', USDC_OP],
+            ['Arbitrum WETH', '42161', WETH_ARB],
+        ])('%s: the fee is explained as shown on confirm, never promised free', (_label, chainId, address) => {
+            render(
+                <Harness
+                    chains={FEE_CHAINS}
+                    viewType="withdraw"
+                    initialChainID={chainId}
+                    initialTokenAddress={address}
+                />
+            )
+            expect(helper(QUOTED)).toBeInTheDocument()
+            expect(helper(NO_FEES)).not.toBeInTheDocument()
+        })
+
+        test('an incomplete pick gets no helper line', () => {
+            render(<Harness chains={FEE_CHAINS} viewType="withdraw" initialChainID="10" />)
+            expect(helper(QUOTED)).not.toBeInTheDocument()
+            expect(helper(NO_FEES)).not.toBeInTheDocument()
+        })
+
+        test('the drawer callout names both facts, in the token browser and in More networks', () => {
+            render(<Harness chains={FEE_CHAINS} viewType="withdraw" />)
+            openDrawer()
+            expect(callout()).toHaveTextContent(SPONSORED)
+            expect(callout()).toHaveTextContent(QUOTED)
+
+            fireEvent.click(screen.getByRole('button', { name: /more networks/i }))
+            expect(screen.getByTestId('network-list')).toBeInTheDocument()
+            expect(callout()).toHaveTextContent(SPONSORED)
+            expect(callout()).toHaveTextContent(QUOTED)
+        })
+
+        test('other flows are unchanged: the sponsored callout alone, no helper lines', () => {
+            render(<Harness chains={FEE_CHAINS} viewType="other" initialChainID="10" initialTokenAddress={USDC_OP} />)
+            openDrawer()
+            expect(callout()).toHaveTextContent(SPONSORED)
+            expect(screen.queryByText(QUOTED)).not.toBeInTheDocument()
+            expect(helper(NO_FEES)).not.toBeInTheDocument()
+        })
+
+        test('maintenance is unchanged: the announcement, no sponsored callout', () => {
+            underMaintenanceConfig.disableXchainWithdraw = true
+            try {
+                render(<Harness viewType="withdraw" />)
+                openDrawer()
+                expect(screen.getByRole('alert')).toHaveTextContent(/temporarily unavailable/i)
+                expect(screen.queryByText(SPONSORED)).not.toBeInTheDocument()
+                expect(screen.queryByText(QUOTED)).not.toBeInTheDocument()
+            } finally {
+                underMaintenanceConfig.disableXchainWithdraw = false
+            }
         })
     })
 

@@ -100,8 +100,15 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         // React discards while the hook adjusts state does not count), so a
         // wrong intermediate quote is caught even if a later frame corrected it
         const seen: { pair: string; source: number | ''; destination: number | ''; isLoading: boolean }[] = []
+        type PairProps = {
+            sourceCurrency: string
+            destinationCurrency: string
+            initialSourceAmount: number
+            sourceAmountIntent?: { value: number | '' }
+        }
+        const initialProps: PairProps = { sourceCurrency: 'USD', destinationCurrency: 'EUR', initialSourceAmount: 10 }
         const hook = renderHook(
-            (props: { sourceCurrency: string; destinationCurrency: string; initialSourceAmount: number }) => {
+            (props: PairProps) => {
                 const value = useExchangeRate(props)
                 React.useEffect(() => {
                     seen.push({
@@ -113,7 +120,7 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
                 })
                 return value
             },
-            { wrapper, initialProps: { sourceCurrency: 'USD', destinationCurrency: 'EUR', initialSourceAmount: 10 } }
+            { wrapper, initialProps }
         )
         return { ...hook, client, seen }
     }
@@ -123,8 +130,14 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         await act(async () => pending['USD/EUR'].resolve(0.8563))
         await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(8.563))
 
-        // swap: the URL now says EUR → USD with the amount the user just saw
-        rerender({ sourceCurrency: 'EUR', destinationCurrency: 'USD', initialSourceAmount: 8.56 })
+        // swap: the URL now says EUR → USD with the amount the user just saw,
+        // and the caller says it supplied that amount (intent)
+        rerender({
+            sourceCurrency: 'EUR',
+            destinationCurrency: 'USD',
+            initialSourceAmount: 8.56,
+            sourceAmountIntent: { value: 8.56 },
+        })
 
         // the reversed rate is still in flight: the source is already the
         // swapped amount and the other side is empty, not the old pair's quote
@@ -170,12 +183,22 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         const { result, rerender, client, seen } = renderPair()
         await act(async () => pending['USD/EUR'].resolve(0.8563))
         await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(8.563))
-        rerender({ sourceCurrency: 'EUR', destinationCurrency: 'USD', initialSourceAmount: 8.56 })
+        rerender({
+            sourceCurrency: 'EUR',
+            destinationCurrency: 'USD',
+            initialSourceAmount: 8.56,
+            sourceAmountIntent: { value: 8.56 },
+        })
         await act(async () => pending['EUR/USD'].resolve(1.168))
         await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(8.56 * 1.168))
 
         seen.length = 0
-        rerender({ sourceCurrency: 'USD', destinationCurrency: 'EUR', initialSourceAmount: 10 })
+        rerender({
+            sourceCurrency: 'USD',
+            destinationCurrency: 'EUR',
+            initialSourceAmount: 10,
+            sourceAmountIntent: { value: 10 },
+        })
 
         expect(seen[0]).toMatchObject({ pair: 'USD/EUR', source: 10, isLoading: false })
         expect(seen[0].destination).toBeCloseTo(8.563)
@@ -192,7 +215,12 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         expect(result.current.sourceAmount).toBe(125)
         expect(result.current.destinationInputValue).toBe('100')
 
-        rerender({ sourceCurrency: 'EUR', destinationCurrency: 'USD', initialSourceAmount: 100 })
+        rerender({
+            sourceCurrency: 'EUR',
+            destinationCurrency: 'USD',
+            initialSourceAmount: 100,
+            sourceAmountIntent: { value: 100 },
+        })
         await act(async () => pending['EUR/USD'].resolve(1.25))
         await waitFor(() => expect(result.current.isLoading).toBe(false))
 
@@ -201,6 +229,71 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         expect(result.current.sourceAmount).toBe(100)
         expect(result.current.destinationAmount).toBeCloseTo(125)
         expect(result.current.destinationInputValue).toBe('125.00')
+        client.clear()
+    })
+
+    it('a pair change without an intent starts from the incoming amount (external URL / plain callers)', async () => {
+        const { result, rerender, client } = renderPair()
+        await act(async () => pending['USD/EUR'].resolve(0.8))
+        await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(8))
+
+        act(() => result.current.handleSourceAmountChange(20))
+        rerender({ sourceCurrency: 'USD', destinationCurrency: 'BRL', initialSourceAmount: 100 })
+        expect(result.current.sourceAmount).toBe(100)
+
+        // equal to the previous URL amount, still the URL's, not the typed 20
+        act(() => result.current.handleSourceAmountChange(20))
+        rerender({ sourceCurrency: 'USD', destinationCurrency: 'ARS', initialSourceAmount: 100 })
+        expect(result.current.sourceAmount).toBe(100)
+        client.clear()
+    })
+
+    it('a pair change with a fresh intent starts from its value — a number, or an empty field', async () => {
+        const { result, rerender, client } = renderPair()
+        await act(async () => pending['USD/EUR'].resolve(0.5))
+        await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(5))
+
+        // 20 typed; the swap carries 10 — the same number the URL held before
+        act(() => result.current.handleSourceAmountChange(20))
+        rerender({
+            sourceCurrency: 'EUR',
+            destinationCurrency: 'USD',
+            initialSourceAmount: 10,
+            sourceAmountIntent: { value: 10 },
+        })
+        expect(result.current.sourceAmount).toBe(10)
+
+        // a picker with an empty field keeps it empty
+        const emptyIntent = { value: '' as const }
+        act(() => result.current.handleSourceAmountChange(''))
+        rerender({
+            sourceCurrency: 'USD',
+            destinationCurrency: 'BRL',
+            initialSourceAmount: 10,
+            sourceAmountIntent: emptyIntent,
+        })
+        expect(result.current.sourceAmount).toBe('')
+
+        // the same intent object is not fresh: a later external pair change
+        // starts from the incoming amount again
+        rerender({
+            sourceCurrency: 'USD',
+            destinationCurrency: 'ARS',
+            initialSourceAmount: 25,
+            sourceAmountIntent: emptyIntent,
+        })
+        expect(result.current.sourceAmount).toBe(25)
+        client.clear()
+    })
+
+    it('rounds a source derived from a typed destination UP at token precision, so it funds the destination', async () => {
+        const { result, client } = renderPair()
+        await act(async () => pending['USD/EUR'].resolve(5.8))
+        await waitFor(() => expect(result.current.exchangeRate).toBe(5.8))
+
+        act(() => result.current.handleDestinationAmountChange('1', 1))
+        expect(result.current.sourceAmount).toBe(0.172414)
+        expect(0.172414 * 5.8).toBeGreaterThanOrEqual(1)
         client.clear()
     })
 

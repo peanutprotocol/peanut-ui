@@ -1,13 +1,29 @@
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
 type InputValue = number | ''
+
+/**
+ * The source amount a caller wants the NEXT pair change to start from, as a
+ * fresh object per request: identity says "new intent", the value says what
+ * (a number, or '' for a deliberately empty field).
+ */
+type SourceAmountIntent = { value: InputValue }
+
+// A source derived from a typed destination is rounded UP at the wallet
+// token's precision, so the amount that would be sent always funds what was
+// asked for (0.17 USD × 5.8 = 0.986 BRL; 0.172414 USD funds 1 BRL).
+const SOURCE_SCALE = 10 ** PEANUT_WALLET_TOKEN_DECIMALS
+const ceilToSourcePrecision = (value: number) => Math.ceil(value * SOURCE_SCALE - 1e-6) / SOURCE_SCALE
 
 interface UseExchangeRateProps {
     sourceCurrency: string
     destinationCurrency: string
     initialSourceAmount?: number
+    /** A pair change with a fresh intent starts from its value; without one, from `initialSourceAmount`. */
+    sourceAmountIntent?: SourceAmountIntent
     enabled?: boolean
 }
 
@@ -29,6 +45,7 @@ export function useExchangeRate({
     sourceCurrency,
     destinationCurrency,
     initialSourceAmount = 10,
+    sourceAmountIntent,
     enabled = true,
 }: UseExchangeRateProps): UseExchangeRateReturn {
     // What the user typed on each side, and which side was typed last. Both
@@ -42,17 +59,18 @@ export function useExchangeRate({
     })
     const [lastEditedField, setLastEditedField] = useState<'source' | 'destination' | null>(null)
 
-    // A new pair restarts from the caller's source amount; a new amount alone
-    // replaces the source input. Adjusted during render so no frame shows the
-    // old inputs against the new pair.
-    const [seen, setSeen] = useState({ sourceCurrency, destinationCurrency, initialSourceAmount })
+    // A new pair restarts from the source side; a new amount alone replaces
+    // the source input. Adjusted during render so no frame shows the old
+    // inputs against the new pair.
+    const [seen, setSeen] = useState({ sourceCurrency, destinationCurrency, initialSourceAmount, sourceAmountIntent })
     if (seen.sourceCurrency !== sourceCurrency || seen.destinationCurrency !== destinationCurrency) {
-        setSeen({ sourceCurrency, destinationCurrency, initialSourceAmount })
-        setSourceInput(initialSourceAmount)
+        const fresh = sourceAmountIntent !== undefined && sourceAmountIntent !== seen.sourceAmountIntent
+        setSeen({ sourceCurrency, destinationCurrency, initialSourceAmount, sourceAmountIntent })
+        setSourceInput(fresh ? sourceAmountIntent.value : initialSourceAmount)
         setDestinationInput({ text: '', amount: '' })
         setLastEditedField(null)
     } else if (seen.initialSourceAmount !== initialSourceAmount) {
-        setSeen({ sourceCurrency, destinationCurrency, initialSourceAmount })
+        setSeen({ ...seen, initialSourceAmount })
         setSourceInput(initialSourceAmount)
     }
 
@@ -106,7 +124,7 @@ export function useExchangeRate({
         destinationAmount = destinationInput.amount
         sourceAmount =
             exchangeRate > 0 && isValidAmount(destinationInput.amount)
-                ? parseFloat((destinationInput.amount / exchangeRate).toFixed(2))
+                ? ceilToSourcePrecision(destinationInput.amount / exchangeRate)
                 : ''
     } else {
         sourceAmount = sourceInput

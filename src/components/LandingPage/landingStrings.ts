@@ -1,5 +1,6 @@
 import { type Translations } from '@/i18n/types'
 import type { LandingProblemStrings, LandingSupportedRailsStrings } from './landing.types'
+import type { ExchangeRateWidgetLabels } from '@/components/Global/ExchangeRateWidget'
 
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
@@ -36,17 +37,20 @@ export interface LandingStrings {
     /** Headings for the rich supported-rails FAQ body (SupportedRailsFaqAnswer). */
     supportedRails: LandingSupportedRailsStrings
     /** Passed straight through to ExchangeRateWidget's `labels`. */
-    exchange: {
-        youSend: string
-        recipientGets: string
-        swapCurrencies: string
-        rateUnavailable: string
-        bankFee: string
-        peanutFee: string
-        free: string
-        arrivesHours: string
-        arrivesMinutes: string
-        selectCurrency: string
+    exchange: ExchangeRateWidgetLabels
+}
+
+/** The widget's labels from a flat marketing catalog — the landing page and the MDX embed read the same keys. */
+export function exchangeWidgetLabels(i18n: Translations): ExchangeRateWidgetLabels {
+    return {
+        youSend: i18n.exchangeYouSend,
+        recipientGets: i18n.exchangeRecipientGets,
+        swapCurrencies: i18n.exchangeSwapCurrencies,
+        rateUnavailable: i18n.exchangeRateUnavailable,
+        rateNote: i18n.exchangeRateNote,
+        arrivesHours: i18n.exchangeArrivesHours,
+        arrivesMinutes: i18n.exchangeArrivesMinutes,
+        selectCurrency: i18n.exchangeSelectCurrency,
     }
 }
 
@@ -96,17 +100,6 @@ export function landingStrings(i18n: Translations): LandingStrings {
             free: i18n.landingSupportedRailsFree,
             joinAnd: i18n.listJoinAnd,
         },
-        exchange: {
-            youSend: i18n.exchangeYouSend,
-            recipientGets: i18n.exchangeRecipientGets,
-            swapCurrencies: i18n.exchangeSwapCurrencies,
-            rateUnavailable: i18n.exchangeRateUnavailable,
-            bankFee: i18n.exchangeBankFee,
-            peanutFee: i18n.exchangePeanutFee,
-            free: i18n.exchangeFree,
-            arrivesHours: i18n.exchangeArrivesHours,
-            arrivesMinutes: i18n.exchangeArrivesMinutes,
-            selectCurrency: i18n.exchangeSelectCurrency,
-        },
+        exchange: exchangeWidgetLabels(i18n),
     }
 }

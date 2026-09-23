@@ -423,8 +423,7 @@
         "widget": {
             "youSend": "Vos enviás",
             "recipientGets": "Recibís"
-        },
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
+        }
     },
     "setup": {
         "steps": {

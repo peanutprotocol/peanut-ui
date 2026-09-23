@@ -518,11 +518,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                         />
                     </div>
 
-                    {/* sponsored fees are a fact worth noticing, not grey fine
-                        print — and it sits outside the sticky bar so only the
-                        search field follows the scroll */}
-                    <Callout priority="info">{t('tokenSelector.sponsoredHint')}</Callout>
-
                     <Section
                         title={t('tokenSelector.selectANetwork')}
                         trailing={
@@ -576,6 +571,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         (viewType === 'withdraw' || viewType === 'claim') &&
         selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
         selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+    // Every other withdraw pick: no fee is assumed either way — the quote on
+    // the confirm step says (TASK-22257).
+    const showQuotedFeeHint = viewType === 'withdraw' && !showNoFeesHint && !!selectedTokenAddress && !!selectedChainID
 
     return (
         <div className="flex flex-col gap-1">
@@ -605,25 +603,40 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
             {showNoFeesHint && (
                 <span className="text-body-xs text-foreground-secondary">{t('tokenSelector.noFeesWithToken')}</span>
             )}
+            {showQuotedFeeHint && (
+                <span className="text-body-xs text-foreground-secondary">{t('tokenSelector.quotedFeeHint')}</span>
+            )}
 
             {/* the boolean is honoured: a drag/Escape/outside-click dismiss must
                 run the same close path as the row tap */}
             <Drawer open={isDrawerOpen} onOpenChange={(open) => (open ? setIsDrawerOpen(true) : closeDrawer())}>
                 <DrawerContent accessibleTitle={t('tokenSelector.drawerTitle')} className="py-4">
-                    {showNetworkList ? (
-                        <NetworkListView
-                            chains={supportedChainsAndTokens}
-                            onSelectChain={handleChainSelectFromList}
-                            onBack={() => setShowNetworkList(false)}
-                            searchValue={networkSearchValue}
-                            setSearchValue={setNetworkSearchValue}
-                            selectedChainID={selectedChainID}
-                            allowedChainIds={allowedChainIds}
-                            comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
-                        />
-                    ) : (
-                        tokenBrowser
-                    )}
+                    <div className="flex flex-col gap-4">
+                        {/* sponsored fees are a fact worth noticing, not grey fine
+                            print. Above both views, so the More networks list
+                            keeps it; the withdraw pick also says where any other
+                            fee will be shown. */}
+                        {!isCrossChainDisabled && (
+                            <Callout priority="info">
+                                {t('tokenSelector.sponsoredHint')}
+                                {viewType === 'withdraw' && <> {t('tokenSelector.quotedFeeHint')}</>}
+                            </Callout>
+                        )}
+                        {showNetworkList ? (
+                            <NetworkListView
+                                chains={supportedChainsAndTokens}
+                                onSelectChain={handleChainSelectFromList}
+                                onBack={() => setShowNetworkList(false)}
+                                searchValue={networkSearchValue}
+                                setSearchValue={setNetworkSearchValue}
+                                selectedChainID={selectedChainID}
+                                allowedChainIds={allowedChainIds}
+                                comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                            />
+                        ) : (
+                            tokenBrowser
+                        )}
+                    </div>
                 </DrawerContent>
             </Drawer>
         </div>

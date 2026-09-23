@@ -9,14 +9,49 @@
 // responses were checked against production on 2026-04-16. That file is gone;
 // this registry replaced it.
 
-import type { Fixture } from './types'
+import type { Fixture, FixtureReply } from './types'
 import {
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
     DEPOSIT_RAIL_POLICY,
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { paths } from '@/types/api.generated'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+
+type FxRateBody = paths['/fx/rate']['get']['responses'][200]['content']['application/json']
+
+/**
+ * A simulated display rate for ONE pair, in the exact GET /fx/rate contract
+ * (fetchDisplayRate validates every field). The timestamps are stamped when
+ * the request arrives, so the reply is fresh under the shots' frozen clock and
+ * under a live one. Any other pair — a swap, say — answers null and falls to
+ * the offline demo's 503, so no pair is ever quoted that this fixture did not
+ * name. Not a price: a round synthetic figure for screenshots only.
+ */
+export function simulatedFxRate(from: string, to: string, rate: string): (path: string) => FixtureReply | null {
+    return (path) => {
+        const query = new URL(path, 'http://fixture.local').searchParams
+        if (query.get('from') !== from || query.get('to') !== to) return null
+        const now = new Date().toISOString()
+        const body: FxRateBody = {
+            from,
+            to,
+            rate,
+            basis: 'display_sell',
+            indicative: true,
+            selection: 'provider_pair',
+            fromSource: 'identity',
+            toSource: 'manteca',
+            generatedAt: now,
+            effectiveAt: now,
+        }
+        return { status: 200, body }
+    }
+}
+
+/** 5 BRL per USD: round enough that 10 → 50 and 0.1 → 0.5 read at a glance. */
+const SIMULATED_USD_BRL = { 'GET /fx/rate': simulatedFxRate('USD', 'BRL', '5') }
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -743,6 +778,31 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
+
+    // ---------------------------------------------------------------------
+    // Rates & fees (TASK-19427). The offline demo answers GET /fx/rate 503, so
+    // a quote needs a whole reply. It is scoped to USD → BRL: swapping the pair
+    // in the widget asks for BRL → USD, which this fixture does not answer, and
+    // the screen falls to "rate unavailable" — the honest answer, not a made-up
+    // one. Swaps are covered by the widget's Jest tests.
+    // ---------------------------------------------------------------------
+    'rates-and-fees': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=10',
+        about: 'Rates & fees with a simulated 5 BRL/USD quote: 10 USD → 50 BRL, Withdraw now enabled.',
+        waitFor: '[data-testid="exchange-rate-pill"]',
+        replies: SIMULATED_USD_BRL,
+    },
+    'rates-and-fees-below-minimum': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=0.1',
+        about: 'Rates & fees below the PIX floor: 0.1 USD → 0.5 BRL, Withdraw now disabled, "minimum is 1 BRL".',
+        waitFor: '[data-testid="exchange-rate-minimum"]',
+        replies: SIMULATED_USD_BRL,
+    },
+    'rates-and-fees-unavailable': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=10',
+        about: 'Rates & fees when the rate cannot be read: no quote, no fee claim, no delivery time.',
+        waitFor: '[data-testid="exchange-rate-pill"]',
+    },
 
     // ---------------------------------------------------------------------
     // Hazards — user text and numbers that break layouts.

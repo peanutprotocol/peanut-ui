@@ -8,7 +8,11 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import ExchangeRateWidget from '../index'
-import { fetchDisplayRate } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
+import {
+    getExchangeRateWidgetRouteMinimum,
+    type ExchangeRateWidgetMinimumPolicy,
+} from '@/utils/exchangeRateWidget.utils'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -36,32 +40,61 @@ const destinationInput = () => amountInputs()[1]
 const currencyPair = () =>
     screen
         .getAllByRole('button')
-        .map((button) => button.textContent?.trim())
-        .filter((text) => text === 'USD' || text === 'EUR')
+        .map((button) => button.textContent?.trim() ?? '')
+        .filter((text) => /^(USD|EUR|BRL|ARS|GBP|MXN|COP)$/.test(text))
 
-const renderWidget = (onUrlUpdate = jest.fn()) => {
+const renderWidget = ({
+    onUrlUpdate = jest.fn(),
+    to = 'EUR',
+    amount = '10',
+    minimumPolicy,
+}: {
+    onUrlUpdate?: jest.Mock
+    to?: string
+    amount?: string
+    minimumPolicy?: ExchangeRateWidgetMinimumPolicy
+} = {}) => {
     const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0, retry: false } } })
     const ctaAction = jest.fn()
-    render(
+    const tree = (searchParams: Record<string, string>) => (
         <QueryClientProvider client={client}>
             {/* hasMemory: without it the adapter's flush re-parses the INITIAL
                 search params and silently undoes the swap */}
-            <NuqsTestingAdapter
-                searchParams={{ from: 'USD', to: 'EUR', amount: '10' }}
-                onUrlUpdate={onUrlUpdate}
-                hasMemory
-            >
+            <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate} hasMemory>
                 <ExchangeRateWidget
                     ctaLabel="Withdraw now"
                     ctaIcon="arrow-down"
                     ctaAction={ctaAction}
                     restrictToRoutable
+                    minimumPolicy={minimumPolicy}
                 />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
-    return { client, onUrlUpdate, ctaAction }
+    const { rerender } = render(tree({ from: 'USD', to, amount }))
+    // an external URL change (a popstate, a pasted link): the adapter re-syncs
+    // its memory from new initial params, the widget sees the new pair + amount
+    const setExternalUrl = (searchParams: Record<string, string>) => rerender(tree(searchParams))
+    return { client, onUrlUpdate, ctaAction, setExternalUrl }
 }
+
+const cta = () => screen.getByRole('button', { name: /Withdraw now/ })
+const swapButton = () => screen.getByRole('button', { name: 'Swap currencies' })
+const urlAmounts = (onUrlUpdate: jest.Mock) =>
+    onUrlUpdate.mock.calls.map((call) => (call[0].searchParams as URLSearchParams).get('amount'))
+/** Open the source (0) or destination (1) selector and pick a currency. */
+const pickCurrency = (side: 0 | 1, code: string) => {
+    const triggers = screen
+        .getAllByRole('button')
+        .filter((b) => /^(USD|EUR|BRL|ARS|GBP|MXN|COP)$/.test(b.textContent?.trim() ?? ''))
+    fireEvent.click(triggers[side])
+    // the option's accessible name is "eu flag EUR Euro"
+    fireEvent.click(screen.getByRole('option', { name: new RegExp(`\\b${code}\\b`) }))
+}
+const settleDebounce = () =>
+    act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 700))
+    })
 
 beforeEach(() => {
     pending = {}
@@ -114,7 +147,7 @@ describe('ExchangeRateWidget swap', () => {
             await new Promise((resolve) => setTimeout(resolve, 700))
         })
 
-        const amounts = onUrlUpdate.mock.calls.map((call) => (call[0].searchParams as URLSearchParams).get('amount'))
+        const amounts = urlAmounts(onUrlUpdate)
         expect(amounts.at(-1)).toBe('8.56')
         expect(amounts.slice(amounts.indexOf('8.56'))).toEqual(['8.56'])
         expect(sourceInput().value).toBe('8.56')
@@ -139,6 +172,252 @@ describe('ExchangeRateWidget swap', () => {
         expect(sourceInput().value).toBe('10')
         expect(destinationInput().value).toBe('8.56')
         expect(mockFetchDisplayRate).toHaveBeenCalledTimes(2)
+        client.clear()
+    })
+})
+
+/**
+ * The swap writes the net "You get" as the new amount. When that number equals
+ * what the URL already held, the value alone cannot say "new amount" — the
+ * widget's intent counter does (review finding, round 3).
+ */
+describe('ExchangeRateWidget swap whose amount equals the old URL amount', () => {
+    it('type 20 at rate 0.5 and swap at once: quotes 10 EUR → 20 USD, not 20 EUR', async () => {
+        const { client, onUrlUpdate } = renderWidget({ amount: '10' })
+        await act(async () => pending['USD/EUR'].resolve(0.5))
+        await waitFor(() => expect(destinationInput().value).toBe('5.00'))
+
+        fireEvent.change(sourceInput(), { target: { value: '20' } })
+        expect(destinationInput().value).toBe('10.00')
+        fireEvent.click(screen.getByRole('button', { name: 'Swap currencies' }))
+        await act(async () => pending['EUR/USD'].resolve(2))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(currencyPair()).toEqual(['EUR', 'USD'])
+        expect(sourceInput().value).toBe('10')
+        expect(destinationInput().value).toBe('20.00')
+
+        await settleDebounce()
+        expect(sourceInput().value).toBe('10')
+        // 10 is the parser default, which nuqs clears from the URL (null); the
+        // old debounce never wrote 20 over it
+        expect(urlAmounts(onUrlUpdate).filter((a) => a !== '10' && a !== null)).toEqual([])
+        client.clear()
+    })
+
+    it('a second swap waits for the reversed rate: the first conversion stands, then swaps back to 10 USD', async () => {
+        const { client } = renderWidget({ amount: '10' })
+        await act(async () => pending['USD/EUR'].resolve(0.5))
+        await waitFor(() => expect(destinationInput().value).toBe('5.00'))
+
+        fireEvent.click(swapButton()) // EUR → USD, carries 5, reversed rate pending
+        expect(currencyPair()).toEqual(['EUR', 'USD'])
+        expect(swapButton()).toBeDisabled()
+        fireEvent.click(swapButton()) // ignored: nothing usable to carry yet
+        fireEvent.click(swapButton())
+        expect(currencyPair()).toEqual(['EUR', 'USD'])
+        expect(amountInputs()).toHaveLength(0)
+
+        // the reversed rate lands: the FIRST requested conversion, 5 EUR → 10 USD
+        await act(async () => pending['EUR/USD'].resolve(2))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+        expect(sourceInput().value).toBe('5')
+        expect(destinationInput().value).toBe('10.00')
+        expect(swapButton()).toBeEnabled()
+
+        // swapping back restores 10 USD → 5 EUR from the cached pair, at once
+        fireEvent.click(swapButton())
+        expect(currencyPair()).toEqual(['USD', 'EUR'])
+        expect(sourceInput().value).toBe('10')
+        expect(destinationInput().value).toBe('5.00')
+        expect(mockFetchDisplayRate).toHaveBeenCalledTimes(2)
+        client.clear()
+    })
+
+    it('with no usable quote the swap is disabled and a click changes nothing', async () => {
+        // a 429 is terminal for the hook (no retries), so "unavailable" shows at once
+        mockFetchDisplayRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
+        const { client } = renderWidget({ amount: '10' })
+        await waitFor(() => expect(screen.getByText('Rate currently unavailable')).toBeInTheDocument())
+
+        expect(swapButton()).toBeDisabled()
+        fireEvent.click(swapButton())
+        expect(currencyPair()).toEqual(['USD', 'EUR'])
+        expect(sourceInput().value).toBe('10')
+        client.clear()
+    })
+})
+
+/**
+ * A pair change the widget did not make — a popstate, a pasted link — carries
+ * no intent, so the URL amount wins even when it equals the previous one.
+ */
+describe('ExchangeRateWidget external pair + amount change', () => {
+    it('takes the URL amount when it differs from what is typed', async () => {
+        const { client, setExternalUrl } = renderWidget({ amount: '10' })
+        await act(async () => pending['USD/EUR'].resolve(0.5))
+        await waitFor(() => expect(destinationInput().value).toBe('5.00'))
+        fireEvent.change(sourceInput(), { target: { value: '20' } })
+
+        setExternalUrl({ from: 'USD', to: 'BRL', amount: '100' })
+        await act(async () => pending['USD/BRL'].resolve(5))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(currencyPair()).toEqual(['USD', 'BRL'])
+        expect(sourceInput().value).toBe('100')
+        expect(destinationInput().value).toBe('500.00')
+        client.clear()
+    })
+
+    it('takes the URL amount even when it equals the one the URL held before typing', async () => {
+        const { client, setExternalUrl } = renderWidget({ amount: '10' })
+        await act(async () => pending['USD/EUR'].resolve(0.5))
+        await waitFor(() => expect(destinationInput().value).toBe('5.00'))
+        fireEvent.change(sourceInput(), { target: { value: '20' } })
+
+        setExternalUrl({ from: 'USD', to: 'BRL', amount: '10' })
+        await act(async () => pending['USD/BRL'].resolve(5))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(sourceInput().value).toBe('10')
+        expect(destinationInput().value).toBe('50.00')
+        client.clear()
+    })
+})
+
+/**
+ * A currency pick used to write only the pair; the hook then restarted from
+ * the URL amount, which the debounce had not updated yet — 100 typed, 10 shown.
+ * The pick now carries the amount on screen, and an empty field stays empty.
+ */
+describe('ExchangeRateWidget currency selectors under a pending debounce', () => {
+    it('source selector: the just-typed amount survives the pick, and the old debounce never writes 10 back', async () => {
+        const { client, onUrlUpdate } = renderWidget()
+        await act(async () => pending['USD/EUR'].resolve(0.8563))
+        await waitFor(() => expect(destinationInput().value).toBe('8.56'))
+
+        fireEvent.change(sourceInput(), { target: { value: '100' } })
+        pickCurrency(0, 'EUR') // source EUR forces the pair to EUR → USD
+        await act(async () => pending['EUR/USD'].resolve(1.168))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(currencyPair()).toEqual(['EUR', 'USD'])
+        expect(sourceInput().value).toBe('100')
+        expect(destinationInput().value).toBe('116.80')
+
+        await settleDebounce()
+        expect(urlAmounts(onUrlUpdate)).toEqual(['100'])
+        expect(sourceInput().value).toBe('100')
+        client.clear()
+    })
+
+    it('destination selector: same guarantee', async () => {
+        const { client, onUrlUpdate } = renderWidget()
+        await act(async () => pending['USD/EUR'].resolve(0.8563))
+        await waitFor(() => expect(destinationInput().value).toBe('8.56'))
+
+        fireEvent.change(sourceInput(), { target: { value: '100' } })
+        pickCurrency(1, 'BRL')
+        await act(async () => pending['USD/BRL'].resolve(5))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(currencyPair()).toEqual(['USD', 'BRL'])
+        expect(sourceInput().value).toBe('100')
+        expect(destinationInput().value).toBe('500.00')
+        await settleDebounce()
+        expect(urlAmounts(onUrlUpdate)).toEqual(['100'])
+        client.clear()
+    })
+
+    it('a "You get" edit carries its derived source through the pick', async () => {
+        const { client } = renderWidget()
+        await act(async () => pending['USD/EUR'].resolve(0.8))
+        await waitFor(() => expect(destinationInput().value).toBe('8.00'))
+
+        fireEvent.change(destinationInput(), { target: { value: '100' } })
+        expect(sourceInput().value).toBe('125')
+        pickCurrency(1, 'BRL')
+        await act(async () => pending['USD/BRL'].resolve(5))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(sourceInput().value).toBe('125')
+        expect(destinationInput().value).toBe('625.00')
+        client.clear()
+    })
+
+    it('an empty field stays empty through the pick — no default 10 reappears', async () => {
+        const { client, onUrlUpdate } = renderWidget()
+        await act(async () => pending['USD/EUR'].resolve(0.8))
+        await waitFor(() => expect(destinationInput().value).toBe('8.00'))
+
+        fireEvent.change(sourceInput(), { target: { value: '' } })
+        pickCurrency(1, 'BRL')
+        await act(async () => pending['USD/BRL'].resolve(5))
+        await waitFor(() => expect(amountInputs()).toHaveLength(2))
+
+        expect(sourceInput().value).toBe('')
+        expect(destinationInput().value).toBe('')
+        await settleDebounce()
+        expect(urlAmounts(onUrlUpdate).filter((amount) => amount !== '10')).toEqual([])
+        client.clear()
+    })
+})
+
+/**
+ * The gate judges what the forwarded source amount FUNDS, not the typed
+ * "You get" figure (review finding). A destination edit derives its source
+ * rounded up at token precision, so a requested 1 BRL is fundable.
+ */
+describe('ExchangeRateWidget BRL floor at 5.8 with the real hook', () => {
+    const policy: ExchangeRateWidgetMinimumPolicy = {
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate),
+        label: (m) => `Minimum ${m.amount} ${m.currency}`,
+    }
+    const renderBrl = async () => {
+        const rendered = renderWidget({ to: 'BRL', minimumPolicy: policy })
+        await act(async () => pending['USD/BRL'].resolve(5.8))
+        await waitFor(() => expect(destinationInput().value).toBe('58.00'))
+        return rendered
+    }
+
+    it('typing 1 BRL derives a source that funds it (0.172414 USD) and the CTA carries that amount', async () => {
+        const { client, ctaAction } = await renderBrl()
+        fireEvent.change(destinationInput(), { target: { value: '1' } })
+
+        expect(sourceInput().value).toBe('0.172414')
+        expect(cta()).toBeEnabled()
+        fireEvent.click(cta())
+        expect(ctaAction).toHaveBeenCalledWith('USD', 'BRL', 0.172414)
+        client.clear()
+    })
+
+    it('typing just below 1 BRL is refused, with the BRL floor named', async () => {
+        const { client } = await renderBrl()
+        fireEvent.change(destinationInput(), { target: { value: '0.99' } })
+
+        expect(cta()).toBeDisabled()
+        expect(screen.getByText('Minimum 1 BRL')).toBeInTheDocument()
+        client.clear()
+    })
+
+    it('a typed source is judged by what it funds: 0.17 USD (0.986 BRL) fails, 0.18 USD passes', async () => {
+        const { client } = await renderBrl()
+        fireEvent.change(sourceInput(), { target: { value: '0.17' } })
+        expect(cta()).toBeDisabled()
+
+        fireEvent.change(sourceInput(), { target: { value: '0.18' } })
+        expect(cta()).toBeEnabled()
+        client.clear()
+    })
+
+    it('six-decimal boundary: a seventh decimal the payload cannot carry does not fund the floor', async () => {
+        const { client } = await renderBrl()
+        // 0.1724137 × 5.8 shows as "1.00", but the route carries 0.172413 → 0.99999 BRL
+        fireEvent.change(sourceInput(), { target: { value: '0.1724137' } })
+
+        expect(destinationInput().value).toBe('1.00')
+        expect(cta()).toBeDisabled()
+        expect(screen.getByText('Minimum 1 BRL')).toBeInTheDocument()
         client.clear()
     })
 })

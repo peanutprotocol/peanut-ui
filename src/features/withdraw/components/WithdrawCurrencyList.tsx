@@ -157,7 +157,8 @@ export function WithdrawCurrencyList({
                 />
             )}
 
-            {nothingMatches && (
+            {/* the open country list says "no results" itself; never twice */}
+            {nothingMatches && !showOtherCountries && (
                 <EmptyState
                     title={tGlobal('countryList.noResultsTitle')}
                     description={tGlobal('countryList.noResultsDescription')}

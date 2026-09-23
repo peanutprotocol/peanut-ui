@@ -696,7 +696,7 @@
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
-        "balanceNote": "Seu saldo na Peanut é exibido em USD. Onde houver suporte a transferências bancárias em moeda local, você pode sacar nessa moeda.",
+        "balanceNote": "Seu saldo na Peanut fica em USD. Estas são as moedas em que uma transferência bancária pode chegar. Em alguns países, como Suécia ou Suíça, as transferências chegam em euros, e não na moeda local.",
         "tryIt": "Sacar agora",
         "addMoneyCta": "Adicionar dinheiro",
         "widget": {
@@ -704,8 +704,7 @@
             "recipientGets": "Você recebe",
             "swapCurrencies": "Trocar moedas",
             "rateUnavailable": "Câmbio indisponível no momento",
-            "bankFee": "Taxa do banco",
-            "free": "Grátis!",
+            "rateNote": "A cotação é uma estimativa e pode incluir custos de conversão. Confira a cotação e as tarifas antes de confirmar.",
             "arrivesHours": "Costuma chegar em horas.",
             "arrivesMinutes": "Costuma chegar em minutos.",
             "selectCurrency": "Selecionar moeda",
@@ -3277,6 +3276,7 @@
             "moreNetworksButton": "mais",
             "searchTokenPlaceholder": "Token ou endereço",
             "sponsoredHint": "As transações com USDC na Arbitrum são patrocinadas",
+            "quotedFeeHint": "Para outros tokens e redes, qualquer taxa é mostrada antes de você confirmar.",
             "availableToken": "Token disponível",
             "searchResults": "Resultados da busca",
             "popularTokensOnChain": "Tokens populares em {chainName}",

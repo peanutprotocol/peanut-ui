@@ -188,9 +188,7 @@ export interface Translations {
     exchangeRecipientGets: string
     exchangeSwapCurrencies: string
     exchangeRateUnavailable: string
-    exchangeBankFee: string
-    exchangePeanutFee: string
-    exchangeFree: string
+    exchangeRateNote: string
     exchangeArrivesHours: string
     exchangeArrivesMinutes: string
     exchangeSelectCurrency: string

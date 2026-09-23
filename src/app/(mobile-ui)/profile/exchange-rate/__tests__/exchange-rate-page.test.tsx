@@ -66,11 +66,13 @@ jest.mock('@/components/Global/NavHeader', () => ({
 // It also exposes the minimum policy the page hands it, and taps with the
 // on-screen amount the real widget passes (null when the field is empty).
 const mockMinimumPolicy: { current: any } = { current: null }
+const mockLabels: { current: any } = { current: null }
 const mockCtaAmount: { current: number | null } = { current: null }
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
-    default: ({ ctaAction, ctaLabel, ctaDisabled, minimumPolicy }: any) => {
+    default: ({ ctaAction, ctaLabel, ctaDisabled, minimumPolicy, labels }: any) => {
         mockMinimumPolicy.current = minimumPolicy
+        mockLabels.current = labels
         return (
             <button
                 disabled={ctaDisabled}
@@ -206,6 +208,17 @@ describe('exchange-rate CTA', () => {
         renderPage()
 
         expect(mockMinimumPolicy.current.resolve(5.2)).toBeNull()
+    })
+
+    // The widget shows no fee rows; the app hands it the translated rate note
+    // and no fee-free label at all (TASK-21104).
+    it('hands the widget the app-catalog rate note and no fee labels', () => {
+        renderPage()
+
+        expect(mockLabels.current.rateNote).toBe(
+            'The rate is an estimate and may include conversion costs. Review the rate and any fees before confirming.'
+        )
+        expect(Object.keys(mockLabels.current)).not.toEqual(expect.arrayContaining(['bankFee', 'free', 'peanutFee']))
     })
 
     /*

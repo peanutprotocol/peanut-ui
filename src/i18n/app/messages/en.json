@@ -696,7 +696,7 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "balanceNote": "Your Peanut balance is shown in USD. Where local-currency bank transfers are supported, you can withdraw in that currency.",
+        "balanceNote": "Your Peanut balance is held in USD. These are the currencies a bank transfer can arrive in. In some countries, such as Sweden or Switzerland, transfers arrive in euros rather than the local currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
         "widget": {
@@ -704,8 +704,7 @@
             "recipientGets": "You get",
             "swapCurrencies": "Swap currencies",
             "rateUnavailable": "Rate currently unavailable",
-            "bankFee": "Bank fee",
-            "free": "Free!",
+            "rateNote": "The rate is an estimate and may include conversion costs. Review the rate and any fees before confirming.",
             "arrivesHours": "Usually arrives in hours.",
             "arrivesMinutes": "Usually arrives in minutes.",
             "selectCurrency": "Select currency",
@@ -3277,6 +3276,7 @@
             "moreNetworksButton": "more",
             "searchTokenPlaceholder": "Token or address",
             "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
+            "quotedFeeHint": "For other tokens and networks, any fee is shown before you confirm.",
             "availableToken": "Available token",
             "searchResults": "Search Results",
             "popularTokensOnChain": "Popular tokens on {chainName}",

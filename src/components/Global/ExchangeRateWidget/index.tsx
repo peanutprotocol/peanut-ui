@@ -21,9 +21,8 @@ export interface ExchangeRateWidgetLabels {
     recipientGets: string
     swapCurrencies: string
     rateUnavailable: string
-    bankFee: string
-    peanutFee: string
-    free: string
+    /** Under a landed quote: the rate is indicative, fees are shown at confirmation. Never a fee claim. */
+    rateNote: string
     arrivesHours: string
     arrivesMinutes: string
     selectCurrency: string
@@ -36,9 +35,8 @@ const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
     recipientGets: 'Recipient Gets',
     swapCurrencies: 'Swap currencies',
     rateUnavailable: 'Rate currently unavailable',
-    bankFee: 'Bank fee',
-    peanutFee: 'Peanut fee',
-    free: 'Free!',
+    rateNote:
+        'The rate is an estimate and may include conversion costs. Review the rate and any fees before confirming.',
     arrivesHours: 'Should arrive in hours.',
     arrivesMinutes: 'Should arrive in minutes.',
     selectCurrency: 'Select currency',
@@ -108,6 +106,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // fallback can disagree with what the widget ends up showing.
     const [sourceCurrency, destinationCurrency] = resolveExchangeCurrencyPair(query.from, query.to, resolveCurrency)
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
+    // What the next pair change this widget makes starts from; a fresh object
+    // per request so the hook can tell it from the URL amount even when equal.
+    const [sourceAmountIntent, setSourceAmountIntent] = useState<{ value: number | '' }>()
 
     // Exchange rate hook handles all the conversion logic
     const {
@@ -123,6 +124,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         sourceCurrency,
         destinationCurrency,
         initialSourceAmount: urlSourceAmount,
+        sourceAmountIntent,
     })
 
     const debouncedSourceAmount = useDebounce(sourceAmount, 500)
@@ -146,12 +148,23 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         return netDestinationAmount.toFixed(2)
     }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
+    // `intent` is the amount the new pair starts from (a picker: the field as
+    // it is, '' included; a swap: the amount it carries). Recorded only when
+    // the pair really changes, so the hook consumes it in that same render.
     const updateUrlParams = useCallback(
-        (params: { from?: string; to?: string; amount?: number }) => {
+        (params: { from?: string; to?: string; amount?: number }, intent?: { value: number | '' }) => {
+            const pairChanges =
+                (params.from ?? sourceCurrency) !== sourceCurrency ||
+                (params.to ?? destinationCurrency) !== destinationCurrency
+            if (intent && pairChanges) setSourceAmountIntent(intent)
             setQuery(params)
         },
-        [setQuery]
+        [setQuery, sourceCurrency, destinationCurrency]
     )
+
+    // A pick keeps the field as it is: the URL gets the amount when there is
+    // one (its copy lags typing by the debounce), the intent carries '' too.
+    const liveSourceAmount = typeof sourceAmount === 'number' && sourceAmount > 0 ? sourceAmount : undefined
 
     // Setter functions that update URL
     // USD must always be one of the two currencies in the pair
@@ -162,49 +175,53 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             // URL comes through, and one of them had no guard at all.
             const currency = toSupportedExchangeCurrency(raw)
             if (!currency) return
+            const amount = liveSourceAmount
+            const intent = { value: liveSourceAmount ?? ('' as const) }
             if (currency === 'USD') {
                 // If setting source to USD and destination is already USD, switch destination
                 if (destinationCurrency === 'USD') {
-                    updateUrlParams({ from: currency, to: 'EUR' }) // fallback to EUR
+                    updateUrlParams({ from: currency, to: 'EUR', amount }, intent) // fallback to EUR
                 } else {
-                    updateUrlParams({ from: currency })
+                    updateUrlParams({ from: currency, amount }, intent)
                 }
             } else {
-                updateUrlParams({ from: currency, to: 'USD' })
+                updateUrlParams({ from: currency, to: 'USD', amount }, intent)
             }
         },
-        [updateUrlParams, destinationCurrency]
+        [updateUrlParams, destinationCurrency, liveSourceAmount]
     )
 
     const setDestinationCurrency = useCallback(
         (raw: string) => {
             const currency = toSupportedExchangeCurrency(raw)
             if (!currency) return
+            const amount = liveSourceAmount
+            const intent = { value: liveSourceAmount ?? ('' as const) }
             if (currency === 'USD') {
                 if (sourceCurrency === 'USD') {
-                    updateUrlParams({ from: 'EUR', to: currency }) // fallback to EUR
+                    updateUrlParams({ from: 'EUR', to: currency, amount }, intent) // fallback to EUR
                 } else {
-                    updateUrlParams({ to: currency })
+                    updateUrlParams({ to: currency, amount }, intent)
                 }
             } else {
-                updateUrlParams({ from: 'USD', to: currency })
+                updateUrlParams({ from: 'USD', to: currency, amount }, intent)
             }
         },
-        [updateUrlParams, sourceCurrency]
+        [updateUrlParams, sourceCurrency, liveSourceAmount]
     )
 
-    // No loading flag of its own: the hook derives both amounts from the
-    // current pair and rate, so the skeleton is exactly `isLoading` (TASK-21369).
+    // A swap carries the displayed "You get" over as the new source, so it needs
+    // a usable quote: none while loading, on error, or with nothing to carry.
+    // The reversed pair may then be pending, which disables the next swap
+    // until its rate lands (a cached one swaps back at once).
+    const hasUsableQuote =
+        !isLoading && !isError && typeof netDestinationAmount === 'number' && netDestinationAmount > 0
     const swapCurrencies = useCallback(() => {
+        if (!hasUsableQuote) return
         setIsEditingDestination(false)
-        // Use the displayed net amount as the new source so post-swap values match
-        // what the user saw in "Recipient Gets" before swapping.
-        const newAmount =
-            typeof netDestinationAmount === 'number' && netDestinationAmount > 0
-                ? Math.round(netDestinationAmount * 100) / 100
-                : undefined
-        updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount })
-    }, [sourceCurrency, destinationCurrency, netDestinationAmount, updateUrlParams])
+        const newAmount = Math.round(netDestinationAmount * 100) / 100
+        updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount }, { value: newAmount })
+    }, [hasUsableQuote, sourceCurrency, destinationCurrency, netDestinationAmount, updateUrlParams])
 
     const showLoading = isLoading
 
@@ -263,21 +280,28 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     const ctaSourceAmount =
         typeof sourceAmount === 'number' && sourceAmount > 0 ? toRoutePayloadAmount(sourceAmount) : null
 
+    // What the payload amount above actually funds at this rate — not the typed
+    // "You get" figure, which a rounded source can fall short of.
+    const fundedDestinationAmount =
+        ctaSourceAmount !== null && exchangeRate > 0
+            ? applyBridgeCrossCurrencyFee(ctaSourceAmount * exchangeRate, sourceCurrency, destinationCurrency)
+            : null
+
     // The route's floor, checked against the side it is stated in: a USD floor
-    // against the payload amount above, a local one (1 BRL for PIX) against the
-    // cents "You get" shows. Both truncate, never round up: 0.995 USD is below
-    // a $1 floor here exactly as it is on the route.
+    // against the payload amount, a local one (1 BRL for PIX) against the cents
+    // that amount funds. Both truncate, never round up: 0.995 USD is below a $1
+    // floor here exactly as it is on the route.
     const routeMinimum = minimumPolicy && hasQuote ? minimumPolicy.resolve(exchangeRate) : null
     const belowMinimum = useMemo(() => {
         if (!routeMinimum) return false
         if (routeMinimum.currency === sourceCurrency) {
             return ctaSourceAmount !== null && ctaSourceAmount < routeMinimum.amount
         }
-        if (routeMinimum.currency === destinationCurrency && typeof netDestinationAmount === 'number') {
-            return Math.floor(netDestinationAmount * 100 + 1e-9) / 100 < routeMinimum.amount
+        if (routeMinimum.currency === destinationCurrency && fundedDestinationAmount !== null) {
+            return Math.floor(fundedDestinationAmount * 100 + 1e-9) / 100 < routeMinimum.amount
         }
         return false
-    }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, netDestinationAmount])
+    }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, fundedDestinationAmount])
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
@@ -339,7 +363,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             <button
                 onClick={swapCurrencies}
-                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled"
+                disabled={!hasUsableQuote}
+                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled disabled:opacity-40 disabled:hover:bg-transparent"
                 aria-label={l.swapCurrencies}
             >
                 <Icon name="arrow-exchange" size={20} className="rotate-90 transition-transform duration-moderate" />
@@ -404,7 +429,11 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 // one skeleton pill sized like the loaded pill — no tint-on-tint
                 <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
             ) : (
-                <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
+                <div
+                    className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary"
+                    // the settled state a screenshot waits for (dev fixtures)
+                    data-testid="exchange-rate-pill"
+                >
                     {isError ? (
                         <span>{l.rateUnavailable}</span>
                     ) : (
@@ -417,18 +446,16 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             {hasAmount && (
                 <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
+                    {/* /fx/rate is an indicative display rate; the widget holds no
+                        fee data, so the only honest line here is that fees are
+                        shown at confirmation (TASK-21104) */}
                     {hasQuote && (
-                        <>
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
-                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
-                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                            </div>
-                        </>
+                        <p
+                            className="text-left text-body-xs text-foreground-secondary"
+                            data-testid="exchange-rate-note"
+                        >
+                            {l.rateNote}
+                        </p>
                     )}
                 </div>
             )}
@@ -444,7 +471,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             </Button>
 
             {hasAmount && (
-                <p className="min-h-4 text-body-xs text-foreground-secondary">
+                <p
+                    className="min-h-4 text-body-xs text-foreground-secondary"
+                    data-testid={belowMinimum ? 'exchange-rate-minimum' : undefined}
+                >
                     {belowMinimum && routeMinimum
                         ? minimumPolicy?.label(routeMinimum)
                         : hasQuote
