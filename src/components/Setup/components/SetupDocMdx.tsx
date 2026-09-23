@@ -10,11 +10,11 @@ export const createSetupDocComponents = (locale: Locale): ReturnType<typeof crea
     Hero: () => null,
     h1: ({ children }) => <h1 className="mb-4 text-heading-s">{children}</h1>,
     h2: ({ children }) => <h2 className="mt-6 mb-2 text-heading-xs">{children}</h2>,
-    h3: ({ children }) => <h3 className="mt-5 mb-2 text-heading-card">{children}</h3>,
+    h3: ({ children }) => <h3 className="mt-4 mb-2 text-heading-card">{children}</h3>,
     h4: ({ children }) => <h4 className="mt-4 mb-2 text-body-m-semibold">{children}</h4>,
     p: ({ children }) => <p className="mb-4 text-body-s leading-6 text-foreground-secondary">{children}</p>,
-    ul: ({ children }) => <ul className="space-y-2 mb-4 list-disc pl-5 text-body-s">{children}</ul>,
-    ol: ({ children }) => <ol className="space-y-2 mb-4 list-decimal pl-5 text-body-s">{children}</ol>,
+    ul: ({ children }) => <ul className="space-y-2 mb-4 list-disc pl-4 text-body-s">{children}</ul>,
+    ol: ({ children }) => <ol className="space-y-2 mb-4 list-decimal pl-4 text-body-s">{children}</ol>,
     li: ({ children }) => <li className="pl-1 leading-6">{children}</li>,
     blockquote: ({ children }) => (
         <blockquote className="mb-4 border-l-3 border-border-brand pl-4">{children}</blockquote>
@@ -39,7 +39,7 @@ export const createSetupDocComponents = (locale: Locale): ReturnType<typeof crea
     Steps: ({ title, children }: { title?: string; children: ReactNode }) => (
         <section className="mb-4">
             {title && <h2 className="mt-6 mb-2 text-heading-xs">{title}</h2>}
-            <ol className="space-y-3 list-decimal pl-5 text-body-s">{children}</ol>
+            <ol className="space-y-3 list-decimal pl-4 text-body-s">{children}</ol>
         </section>
     ),
     Step: ({ title, children }: { title?: string; children: ReactNode }) => (
