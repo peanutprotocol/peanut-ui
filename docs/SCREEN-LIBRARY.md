@@ -1,7 +1,11 @@
 # Versioned screen library
 
 The library combines two complementary sources. The app-state catalogue captures
-deterministic synthetic states at 393×852 in every supported locale. Nutcracker
+deterministic synthetic states at 393×852 in every supported locale. Each capture
+profile declares its platform, mobile user agent, cutout and safe-area insets; the
+same metadata drives the gallery's matching device frame. Legacy reports without
+that metadata use a neutral viewport frame with no simulated hardware overlays.
+Nutcracker
 adds English screenshots from real Peanut backend journeys, provider sandboxes,
 Arbitrum Sepolia and an isolated Postgres database. Synthetic captures remain the
 complete visual baseline; Nutcracker supplies integration evidence for the subset

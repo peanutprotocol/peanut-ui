@@ -11,6 +11,12 @@ import {
 const sha = 'a'.repeat(40)
 const image = 'b'.repeat(64) + '.webp'
 const report = (locale, screens) => ({ schema: 1, type: 'capture', locale, commit: sha, screens })
+const iphoneDevice = {
+    platform: 'ios',
+    label: 'iPhone',
+    cutout: 'dynamic-island',
+    safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+}
 
 test('collection specs preserve requested order, notes and locales', () => {
     assert.deepEqual(
@@ -70,4 +76,39 @@ test('collections reuse captured assets and identify only missing locale variant
 test('collection specs reject duplicate and unsafe screen IDs', () => {
     assert.throws(() => normalizeCollectionSpec({ title: 'x', items: [{ id: '../secret' }] }), /Invalid/)
     assert.throws(() => normalizeCollectionSpec({ title: 'x', items: [{ id: 'home' }, { id: 'home' }] }), /duplicate/)
+})
+
+test('collections retain canonical device presentation across locales', () => {
+    const screens = [{ id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'captured', image }]
+    const collection = composeCollection({
+        id: 'safe-area-review-20260923-abc123',
+        spec: { title: 'Safe area review', locales: ['en', 'pt-BR'], items: [{ id: 'home' }] },
+        reports: {
+            en: {
+                ...report('en', screens),
+                profile: 'en-393x852',
+                width: 393,
+                height: 852,
+                device: iphoneDevice,
+            },
+            'pt-BR': {
+                ...report('pt-BR', screens),
+                profile: 'pt-BR-393x852',
+                width: 393,
+                height: 852,
+                device: iphoneDevice,
+            },
+        },
+    })
+    assert.equal(collection.profile, '393x852')
+    assert.deepEqual(collection.device, iphoneDevice)
+    assert.deepEqual(validateCollection(collection).device, iphoneDevice)
+    assert.throws(
+        () =>
+            validateCollection({
+                ...collection,
+                device: { ...iphoneDevice, safeArea: { ...iphoneDevice.safeArea, bottom: 0 } },
+            }),
+        /Invalid collection capture presentation/
+    )
 })
