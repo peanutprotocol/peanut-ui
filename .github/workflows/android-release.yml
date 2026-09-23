@@ -72,8 +72,7 @@ concurrency:
     # that mutex; its child keeps a separate group instead of deadlocking its parent.
     # A direct dispatch with an explicit version remains deepest break-glass.
     group: >-
-        ${{ github.event_name == 'push' && 'production-release'
-        || (inputs.versionName == '' && 'production-release')
+        ${{ inputs.versionName == '' && 'production-release'
         || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
@@ -232,6 +231,8 @@ jobs:
               run: |
                   BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
                   if [ "$BRIDGE" = active ]; then
+                      # A same-version replacement already passed the narrow
+                      # legacy-compatible scope check in the version step.
                       if [ "$IS_REBUILD" != true ]; then
                           node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
                       fi
@@ -416,9 +417,8 @@ jobs:
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
-            # Publish the native .0 record to this platform's channel. The other
-            # native job may reuse it only after exact source/floor/artifact checks;
-            # an existing record alone never counts as a successful upload.
+            # Publish a matching .0 only when this platform has no active legacy
+            # bridge. The shared record is verified before promotion.
             - name: Publish matching production OTA bundle
               if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:
