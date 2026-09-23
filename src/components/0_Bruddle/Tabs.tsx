@@ -3,6 +3,7 @@
 import { Content, List, Root, Trigger } from '@radix-ui/react-tabs'
 import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
+import { CARD_SURFACE } from './Card'
 import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
 
 /**
@@ -283,10 +284,7 @@ export const Tabs = ({
                         // radix computes its own hidden attribute from `forceMount ||
                         // isSelected`, so with forceMount on it never sets it and every
                         // panel would render stacked
-                        className={twMerge(
-                            'mt-4 rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
-                            focusRing
-                        )}
+                        className={twMerge(`mt-4 ${CARD_SURFACE} p-4 data-[state=inactive]:hidden`, focusRing)}
                     >
                         {tab.content}
                     </Content>

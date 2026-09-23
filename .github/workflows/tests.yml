@@ -137,6 +137,33 @@ jobs:
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
 
+    # Screen wordiness ratchet (founders daily 2026-09-23). Counts the English
+    # copy each screen can show (scripts/screen-wordiness.md) and prints the
+    # heaviest screens to the job summary on every run. Fails when a screen
+    # grows past its baseline entry, or a new screen goes over the budget.
+    # Same posture as ds-lint: the script parses with `typescript`, so it
+    # installs without running scripts or a pnpmfile, and needs no build.
+    screen-wordiness:
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules: the script reads src/**/*.tsx and the app catalog
+            # in src/i18n, neither of which lives in a submodule.
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+
+            - name: Screen wordiness budget
+              run: node scripts/screen-wordiness.mjs --check
+
     # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
     # feat/design-system, so this gates the PR via ci-success.needs. Warnings
     # do not fail the job; add a warn floor only if the team decides one.
@@ -1154,6 +1181,7 @@ jobs:
                 format,
                 screen-tests,
                 ds-lint,
+                screen-wordiness,
                 eslint,
                 typecheck,
                 native-export,
@@ -1172,6 +1200,7 @@ jobs:
                       echo "  format:    ${{ needs.format.result }}"
                       echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
+                      echo "  screen-wordiness: ${{ needs['screen-wordiness'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"

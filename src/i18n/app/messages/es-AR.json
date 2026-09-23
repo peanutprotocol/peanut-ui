@@ -1775,6 +1775,7 @@
         },
         "details": {
             "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si pod\u00e9s, deposit\u00e1 desde una cuenta a tu nombre.",
+            "businessOnly": "Solo vos o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
