@@ -92,14 +92,14 @@ export function LandingPageClient({
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
-            // Every card feature opens the public application.
+            // the whole strip is the door: every word goes to /shhhhh
             message: [
                 tDoorMarquee('peanutCard'),
                 tDoorMarquee('contactless'),
                 tDoorMarquee('available'),
                 tDoorMarquee('online'),
                 tDoorMarquee('noMonthlyFee'),
-            ].map((label) => ({ label, href: '/card' })),
+            ].map((label) => ({ label, href: '/shhhhh' })),
         }),
         [tDoorMarquee]
     )

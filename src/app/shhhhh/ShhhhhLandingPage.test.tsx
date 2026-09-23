@@ -52,6 +52,30 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 jest.mock('@/components/Marketing/HeroBackNav', () => ({ HeroBackNav: () => null }))
+jest.mock('@/components/LandingPage/marquee', () => ({
+    Marquee: ({ message }: { message: string[] }) => <div data-testid="marquee">{message.join(' ')}</div>,
+}))
+jest.mock('framer-motion', () => ({
+    MotionConfig: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    motion: new Proxy(
+        {},
+        {
+            get:
+                (_target, tag: string) =>
+                ({ children, ...props }: { children?: React.ReactNode }) => {
+                    const Tag = tag as 'div'
+                    const {
+                        initial: _i,
+                        animate: _a,
+                        transition: _t,
+                        whileInView: _w,
+                        ...rest
+                    } = props as Record<string, unknown>
+                    return <Tag {...rest}>{children}</Tag>
+                },
+        }
+    ),
+}))
 jest.mock('@/components/Card/share-asset/ScaledPixelatedCardFace', () => ({ ScaledPixelatedCardFace: () => null }))
 jest.mock('@/components/Invites/badge-campaign-context', () => {
     const actual = jest.requireActual('@/components/Invites/badge-campaign-context')
@@ -86,9 +110,26 @@ const getCard = () => {
 
 it('offers the public product and keeps a guest card destination through signup', async () => {
     getCard()
-    expect(screen.getByRole('heading', { level: 1, name: 'Peanut Card' })).toBeInTheDocument()
+    // the wordmark is part of the h1, so search engines read the product name
+    expect(screen.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeInTheDocument()
     expect(screen.queryByText(/waitlist|closed beta|try the door/i)).not.toBeInTheDocument()
+    // the honesty beat and the door marquee came back from the old page
+    expect(screen.getByRole('heading', { level: 2, name: 'Probably not for you.' })).toBeInTheDocument()
+    expect(screen.getAllByTestId('marquee')).toHaveLength(5)
+    expect(screen.getAllByTestId('marquee')[0]).toHaveTextContent('PEANUT CARD CONTACTLESS GET YOUR CARD')
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/setup?redirect_uri=%2Fcard'))
+})
+
+it('publishes the visible FAQ as FAQPage structured data', () => {
+    const { container } = render(<ShhhhhLandingPage />)
+    const script = container.querySelector('script[type="application/ld+json"]')
+    const schema = JSON.parse(script!.innerHTML)
+    expect(schema['@type']).toBe('FAQPage')
+    expect(schema.mainEntity).toHaveLength(7)
+    // the rendered answer and the structured one must be the same sentence
+    const first = schema.mainEntity[0]
+    expect(screen.getByText(first.name)).toBeInTheDocument()
+    expect(screen.getByText(first.acceptedAnswer.text)).toBeInTheDocument()
 })
 
 it('opens a signed-in account directly at /card', async () => {

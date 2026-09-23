@@ -3779,20 +3779,38 @@
         "hero": {
             "wordmark": "Peanut Card",
             "tagline": "Your money. Ready to spend.",
-            "body": "Use your Peanut Card online, and contactless with Apple Pay or Google Pay where supported, wherever Visa is accepted.",
             "cta": "Get your card",
-            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms."
+            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms.",
+            "title": "Go Pink.",
+            "pitch": "One balance. 150 million places to spend it.",
+            "lead": "A virtual Visa card that spends your Peanut balance. Online, and in store with Apple Pay or Google Pay where supported."
         },
         "whatItDoes": {
-            "titleLine1": "One card.",
-            "titleLine2": "Everyday spending.",
-            "body": "Add money to Peanut by bank transfer, exchange withdrawal, or supported stablecoins. Use your card online or add it to Apple Pay or Google Pay where supported."
+            "titleLine1": "It's a card.",
+            "titleLine2": "That's the whole trick.",
+            "body": "Top up the way you already move money: bank transfer, exchange withdrawal, or stablecoins. Then spend it wherever Visa is accepted.",
+            "statMerchants": "Visa-accepting merchants",
+            "statBalance": "balance",
+            "statMonthlyFees": "monthly fees",
+            "statAnnualFees": "annual fees"
+        },
+        "whoItsFor": {
+            "title": "Built for money that doesn't stay put.",
+            "body": "Nomads, expats, remote workers, frequent travellers. One balance, spendable wherever Visa is accepted."
+        },
+        "notForYou": {
+            "title": "Probably not for you.",
+            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
+            "body2": "If your money lives elsewhere, across borders, in dollars, in more than one place, the Peanut Card was built for you."
         },
         "howToApply": {
-            "title": "How to get your card",
-            "verify": "Sign in and complete identity verification.",
-            "terms": "Review and accept the cardholder terms.",
-            "spend": "Once approved, add funds and start spending."
+            "title": "How to get it.",
+            "signInTitle": "Sign in.",
+            "signInBody": "Or create your account. Takes a minute.",
+            "verifyTitle": "Verify.",
+            "verifyBody": "One identity check, plus the cardholder terms.",
+            "spendTitle": "Spend.",
+            "spendBody": "Approved? Add money and pay."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -3802,7 +3820,7 @@
             "noMonthlyFee": "NO MONTHLY FEE"
         },
         "faq": {
-            "title": "Questions about Peanut Card",
+            "title": "FAQ.",
             "q1": {
                 "question": "What is Peanut Card?",
                 "answer": "Peanut Card is a virtual Visa card for spending your Peanut balance online and through supported mobile wallets."
@@ -3833,8 +3851,9 @@
             }
         },
         "ready": {
-            "title": "Get your Peanut Card",
-            "subtitle": "Start your application today."
+            "title": "Ready?",
+            "subtitle": "Sign in, verify, spend.",
+            "disclaimer": "Subject to eligibility. Identity verification required."
         }
     },
     "unsupportedWebView": {
