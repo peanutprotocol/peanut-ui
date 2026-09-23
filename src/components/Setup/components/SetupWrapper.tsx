@@ -105,9 +105,8 @@ const TransitioningContent = ({
             animate="center"
             exit="exit"
             transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-            className={className}
+            className={twMerge(className, !isPresent && 'pointer-events-none')}
             aria-hidden={!isPresent}
-            style={{ pointerEvents: isPresent ? 'auto' : 'none' }}
         >
             {children}
         </motion.div>
