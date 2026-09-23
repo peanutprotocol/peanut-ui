@@ -122,8 +122,6 @@ export function RewardsPage() {
                         {t('inviteNow')}
                     </Button>
 
-                    <div className="border-t border-border-disabled" />
-
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={16} height={16} />
