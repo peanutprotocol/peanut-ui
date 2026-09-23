@@ -299,7 +299,7 @@ describe('release version resolver', () => {
         const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/release-native.yml'), 'utf8')
         const guard = workflow
             .split('- name: Guard release provenance')[1]
-            .split('- name: Resolve next build version')[0]
+            .split('- name: Check active iOS bridge before either store upload')[0]
             .split('run: |')[1]
             .split('\n')
             .map((line) => line.replace(/^ {18}/, ''))

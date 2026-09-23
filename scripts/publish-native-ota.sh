@@ -6,6 +6,14 @@
 # records keep separate -ios/-android identities and can use each floor fully.
 set -euo pipefail
 case "$PLATFORM" in ios|android) ;; *) echo 'Invalid platform' >&2; exit 1;; esac
+BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+if [ "$BRIDGE" = active ]; then
+  if [ "$PLATFORM" = ios ]; then
+    echo 'The iOS 1.5.x bridge is active; native .0 cannot replace it' >&2
+    exit 1
+  fi
+  export ALLOW_IOS_BRIDGE=1
+fi
 resolve_floor() {
   if [ "${IS_REBUILD:-false}" = true ]; then
     node scripts/ota-platform-floor.mjs "$@" --prospective-version "$VERSION" --replacement-platform "$PLATFORM"

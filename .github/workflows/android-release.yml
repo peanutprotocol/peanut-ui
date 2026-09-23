@@ -62,14 +62,11 @@ permissions:
     contents: read
 
 concurrency:
-    # A break-glass `v*` tag push and the sanctioned blank-version replacement both
-    # write the production Capgo channel, so they join the release mutex. When
-    # release-native.yml calls this workflow it passes versionName and already holds
-    # that mutex; its child keeps a separate group instead of deadlocking its parent.
-    # A direct dispatch with an explicit version remains deepest break-glass.
+    # Direct v* tag pushes and blank-version replacements join the release mutex.
+    # release-native.yml supplies versionName and already owns that mutex, so its
+    # child gets a separate group and cannot deadlock against the parent.
     group: >-
-        ${{ github.event_name == 'push' && 'production-release'
-        || (inputs.versionName == '' && 'production-release')
+        ${{ inputs.versionName == '' && 'production-release'
         || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
@@ -222,6 +219,7 @@ jobs:
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android
+                  ALLOW_IOS_BRIDGE: '1'
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}

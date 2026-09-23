@@ -9,10 +9,10 @@ const workflowsDir = path.join(__dirname, '..', '..', '.github', 'workflows')
 // Execute only the branch guard, never the version resolver or deployment steps.
 function guardOf(file) {
     const workflow = fs.readFileSync(path.join(workflowsDir, file), 'utf8')
-    if (file === 'release-ota.yml') {
+    if (file === 'release-ota.yml' || file === 'release-native.yml') {
         const step = workflow.slice(workflow.indexOf('- name: Guard release ref'))
         return step
-            .match(/run: \|\n([\s\S]*?)\n\s+- name: Check out release tooling/)[1]
+            .match(/run: \|\n([\s\S]*?)\n\s+- (?:name: Check out release tooling|uses: actions\/checkout)/)[1]
             .split('\n')
             .map((line) => line.replace(/^ {18}/, ''))
             .join('\n')
@@ -134,16 +134,16 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
 describe('release-ota.yml publishes main source', () => {
     const guard = guardOf('release-ota.yml')
 
-    it('accepts a main push and a manual dispatch of dev tooling', () => {
-        expect(run(guard, 'main', 'push').status).toBe(0)
+    it('accepts a completed main native run and a manual dispatch of dev tooling', () => {
+        expect(run(guard, 'main', 'workflow_run').status).toBe(0)
         expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(0)
     })
 
     it.each([
         ['main', 'workflow_dispatch'],
-        ['dev', 'push'],
+        ['dev', 'workflow_run'],
         ['release/android-kyc', 'workflow_dispatch'],
-        ['feature/kyc', 'push'],
+        ['feature/kyc', 'workflow_run'],
         ['', 'workflow_dispatch'],
     ])('refuses %s on %s', (branch, event) => {
         const result = run(guard, branch, event)
@@ -151,11 +151,17 @@ describe('release-ota.yml publishes main source', () => {
         expect(result.stderr).toContain('::error::')
     })
 
-    it('auto-runs only on main pushes and manually runs dev tooling against main source', () => {
+    it('runs after a successful native main push and manually runs dev tooling against main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
-        expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
+        expect(workflow).toMatch(
+            /workflow_run:\n\s+workflows: \['App Release Android & iOS'\]\n\s+types: \[completed\]\n\s+branches: \[main\]/
+        )
+        expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
+        expect(workflow).toContain("github.event.workflow_run.event == 'push'")
         expect(workflow).toContain('workflow_dispatch:')
-        expect(workflow).toContain("github.event_name == 'workflow_dispatch' && 'main' || github.sha")
+        expect(workflow).toContain(
+            "github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha"
+        )
         expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
         expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('path: app')
@@ -201,8 +207,30 @@ describe('release-ota.yml publishes main source', () => {
     })
 })
 
-// The native lanes still cut releases from dev; unchanged, and deliberately so.
-describe.each(['release-native.yml', 'android-release.yml'])('%s release branches', (file) => {
+describe('native release source branch', () => {
+    const guard = guardOf('release-native.yml')
+
+    it('accepts main pushes and main dispatches only', () => {
+        expect(run(guard, 'main', 'push').status).toBe(0)
+        expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
+        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(1)
+        expect(run(guard, 'release/android-kyc', 'workflow_dispatch').status).toBe(1)
+    })
+
+    it('uses one native version and the Play internal track on automatic runs', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
+        expect(workflow).toContain('queue: max')
+        expect(workflow.indexOf('Check active iOS bridge before either store upload')).toBeLessThan(
+            workflow.indexOf('    ios:')
+        )
+        expect(workflow).toContain("track: ${{ github.event_name == 'push' && 'internal' || inputs.track }}")
+        expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
+    })
+})
+
+describe('android-release.yml release branches', () => {
+    const file = 'android-release.yml'
     const guard = guardOf(file)
 
     it.each(['dev', 'main', 'release/android-kyc'])('accepts %s', (branch) => {

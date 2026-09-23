@@ -1,6 +1,6 @@
 name: App Release OTA
 
-# Production OTA releases run automatically after every update to main. A
+# Production OTA releases run after each successful native release from main. A
 # manual dispatch of this workflow on dev can also ship the current main tree
 # using the newer release tooling from dev. In both cases, the selected main
 # commit must contain the newest attested native release and pass native
@@ -16,7 +16,9 @@ name: App Release OTA
 # leaves no tag; any partial upload still reserves its number for a fresh retry.
 
 on:
-    push:
+    workflow_run:
+        workflows: ['App Release Android & iOS']
+        types: [completed]
         branches: [main]
     workflow_dispatch:
 
@@ -34,9 +36,11 @@ concurrency:
     # TASK-21793 shape, so the whole resolve-through-publish span holds the mutex.
     group: production-release
     cancel-in-progress: false
+    queue: max
 
 jobs:
     resolve:
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success') }}
         runs-on: ubuntu-latest
         outputs:
             version: ${{ steps.resolve.outputs.version }}
@@ -47,29 +51,29 @@ jobs:
             run:
                 working-directory: app
         steps:
-            # The manual lane is deliberately dispatched on dev, where the
-            # platform-aware release tooling lives. The app tree is always main.
+            # The automatic lane uses the successful native run's main commit.
+            # Manual dispatch uses dev tooling with the current main app tree.
             - name: Guard release ref
               working-directory: .
               run: |
-                  if { [ "$GITHUB_EVENT_NAME" != "push" ] || [ "$GITHUB_REF_NAME" != "main" ]; } &&
+                  if { [ "$GITHUB_EVENT_NAME" != "workflow_run" ] || [ "$GITHUB_REF_NAME" != "main" ]; } &&
                      { [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] || [ "$GITHUB_REF_NAME" != "dev" ]; }; then
-                      echo "::error::production OTA requires a main push or a manual dispatch on dev" >&2
+                      echo "::error::production OTA requires a successful native main run or a manual dispatch on dev" >&2
                       exit 1
                   fi
 
             - name: Check out release tooling
               uses: actions/checkout@v7
               with:
-                  ref: ${{ github.sha }}
+                  ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
                   path: release-tooling
 
             - name: Check out main app source
               uses: actions/checkout@v7
               with:
-                  # A dispatch on dev pins main at checkout; a main push uses
-                  # the event's exact commit. Full history supplies native tags.
-                  ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+                  # A dispatch on dev pins main at checkout; the automatic run
+                  # uses the exact commit that passed the native release.
+                  ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
                   path: app
                   fetch-depth: 0
 
@@ -155,7 +159,7 @@ jobs:
             - name: Check out release tooling
               uses: actions/checkout@v7
               with:
-                  ref: ${{ github.sha }}
+                  ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
                   path: release-tooling
 
             - name: Check out pinned main app source
@@ -404,7 +408,7 @@ jobs:
                     echo "- **Channels:** ios-mobile-release, android-mobile-release"
                     echo "- **Bundle versions:** ${{ steps.version.outputs.ios }}, ${{ steps.version.outputs.name }}-android"
                     echo "- **Main commit:** ${{ needs.resolve.outputs.source_sha }}"
-                    echo "- **Release tooling commit:** ${{ github.sha }}"
+                    echo "- **Release tooling commit:** ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}"
                   } >> "$GITHUB_STEP_SUMMARY"
 
     tag:

@@ -14,6 +14,19 @@ const baselineEntitlements = fs.readFileSync(
 )
 
 describe('iOS release workflow', () => {
+    it('keeps the legacy iOS bridge when a newer native build reaches TestFlight', () => {
+        expect(workflowSource).toContain(
+            "github.event_name == 'push' && inputs.versionName == '' && 'production-release'"
+        )
+        const floorStart = workflowSource.indexOf('- name: Check production OTA floor')
+        const floorEnd = workflowSource.indexOf('- name: Verify SumSub Cordova plugin materialized', floorStart)
+        const floor = workflowSource.slice(floorStart, floorEnd)
+        expect(floor.indexOf('bridge-status')).toBeLessThan(floor.indexOf('current-version'))
+        expect(floor).toContain('if [ "$BRIDGE" = active ]; then')
+        expect(floor).toContain('node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios')
+        expect(floor).toContain('echo "needs_ota=false" >> "$GITHUB_OUTPUT"')
+    })
+
     it('keeps TASK-21683 profile builds inspectable without advancing production OTA', () => {
         expect(workflowSource).toContain('fetch-depth: 0')
         expect(workflowSource).toContain("github.ref_name == 'innolope/TASK-21683-lottie-native-testflight'")
