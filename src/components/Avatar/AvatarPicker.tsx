@@ -171,9 +171,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
                                         // pt-9 clears the Earned tag (20px tall at top-2) by 8px so it never touches the sticker.
                                         // Under xs (390px) the sticker is 48px, which with one reserved text line each
-                                        // makes a 140px tile 138px tall.
+                                        // makes the tile about as tall as it is wide. The chosen tile fills with the pink that
+                                        // buttons press to (action-primary); its 1px border stays.
                                         `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'border-2 border-border-default'
+                                        checked && 'bg-action-primary'
                                     )}
                                 >
                                     {earned && (
@@ -193,7 +194,13 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         grid row (rows stretch to the tallest tile), so nothing clips and the
                                         common one-line case keeps the tile square. */}
                                     <span className="mt-2 line-clamp-2 min-h-4 text-label-m">{name}</span>
-                                    <span className="line-clamp-2 min-h-4 text-body-xs text-foreground-secondary">
+                                    {/* grey on pink is ~2.8:1, so the chosen tile's line takes the primary ink */}
+                                    <span
+                                        className={twMerge(
+                                            'line-clamp-2 min-h-4 text-body-xs text-foreground-secondary',
+                                            checked && 'text-foreground-primary'
+                                        )}
+                                    >
                                         {line}
                                     </span>
                                 </button>
