@@ -62,7 +62,7 @@
         "features/limits/views/MantecaLimitsView.tsx": 106,
         "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 128,
         "features/payments/flows/contribute-pot/views/ContributePotInputView.tsx": 207,
-        "features/payments/flows/direct-send/views/SendInputView.tsx": 65,
+        "features/payments/flows/direct-send/views/SendInputView.tsx": 93,
         "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 189,
         "features/payments/flows/qr-pay/views/QrPayKycGateView.tsx": 114,
         "features/payments/flows/qr-pay/views/QrPayProviderRejectionView.tsx": 131,
