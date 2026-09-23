@@ -257,13 +257,15 @@ describe('ExchangeRateWidget route minimum — when the gate must stay out of th
         expect(cta()).toBeEnabled()
     })
 
-    it('waits for a landed quote: no verdict while the rate is loading', () => {
+    it('a local-currency floor gives no verdict while the display rate is loading (no funded amount yet)', () => {
         const policy = policyFor({ amount: 1, currency: 'BRL' })
         mockUseExchangeRate.mockReturnValue(quote(0.15, 0, { destinationAmount: '', isLoading: true }))
         renderWidget('BRL', policy)
 
         expect(cta()).toBeEnabled()
-        expect(policy.resolve).not.toHaveBeenCalled()
+        // resolved without a rate: USD floors need none, BRL cannot be judged
+        expect(policy.resolve).toHaveBeenCalledWith(0)
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
     })
 
     it('a caller-disabled CTA stays disabled regardless of the floor', () => {

@@ -291,17 +291,20 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // against the payload amount, a local one (1 BRL for PIX) against the cents
     // that amount funds. Both truncate, never round up: 0.995 USD is below a $1
     // floor here exactly as it is on the route.
-    const routeMinimum = minimumPolicy && hasQuote ? minimumPolicy.resolve(exchangeRate) : null
+    // Resolved with or without a display quote: a USD floor (Bridge, fixed) does
+    // not depend on it. Without a quote the resolver gets no rate (0), and a
+    // local-currency floor gives no verdict — there is no funded amount to judge.
+    const routeMinimum = minimumPolicy ? minimumPolicy.resolve(hasQuote ? exchangeRate : 0) : null
     const belowMinimum = useMemo(() => {
         if (!routeMinimum) return false
         if (routeMinimum.currency === sourceCurrency) {
             return ctaSourceAmount !== null && ctaSourceAmount < routeMinimum.amount
         }
-        if (routeMinimum.currency === destinationCurrency && fundedDestinationAmount !== null) {
+        if (routeMinimum.currency === destinationCurrency && hasQuote && fundedDestinationAmount !== null) {
             return Math.floor(fundedDestinationAmount * 100 + 1e-9) / 100 < routeMinimum.amount
         }
         return false
-    }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, fundedDestinationAmount])
+    }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, hasQuote, fundedDestinationAmount])
     // The route's floor is not known (rate pending or failed): the CTA waits,
     // whatever the display quote says. Only a failure is announced.
     const minimumBlocked = minimumPolicy?.blocked

@@ -422,6 +422,87 @@ describe('ExchangeRateWidget BRL floor at 5.8 with the real hook', () => {
     })
 })
 
+/**
+ * A ready Bridge floor ($4 at Bridge 16.5) is independent of the indicative
+ * display quote: when /fx/rate fails or is still pending, the floor still
+ * gates the source amount (bridge-minimum closure review, P2).
+ */
+describe('ExchangeRateWidget Bridge floor without a display quote', () => {
+    const bridgeFloor: ExchangeRateWidgetMinimumPolicy = {
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, rate, 4),
+        label: (m) => `Minimum ${m.amount} ${m.currency}`,
+    }
+    const displayFails = () =>
+        mockFetchDisplayRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
+
+    it('display failed, 3 USD: disabled with the $4 minimum; the pill stays honest', async () => {
+        displayFails()
+        const { client, ctaAction } = renderWidget({ to: 'MXN', amount: '3', minimumPolicy: bridgeFloor })
+        await waitFor(() =>
+            expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('Rate currently unavailable')
+        )
+
+        expect(cta()).toBeDisabled()
+        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent('Minimum 4 USD')
+        fireEvent.click(cta())
+        expect(ctaAction).not.toHaveBeenCalled()
+        client.clear()
+    })
+
+    it('display failed, exactly 4 USD: enabled and forwards 4', async () => {
+        displayFails()
+        const { client, ctaAction } = renderWidget({ to: 'MXN', amount: '4', minimumPolicy: bridgeFloor })
+        await waitFor(() =>
+            expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('Rate currently unavailable')
+        )
+
+        expect(cta()).toBeEnabled()
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
+        fireEvent.click(cta())
+        expect(ctaAction).toHaveBeenCalledWith('USD', 'MXN', 4)
+        client.clear()
+    })
+
+    it('display pending, 3 USD: disabled with the $4 minimum before any quote arrives', () => {
+        const { client, ctaAction } = renderWidget({ to: 'MXN', amount: '3', minimumPolicy: bridgeFloor })
+
+        expect(amountInputs()).toHaveLength(0) // still loading the display quote
+        expect(cta()).toBeDisabled()
+        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent('Minimum 4 USD')
+        fireEvent.click(cta())
+        expect(ctaAction).not.toHaveBeenCalled()
+        client.clear()
+    })
+
+    it('display pending, exactly 4 USD: enabled and forwards 4', () => {
+        const { client, ctaAction } = renderWidget({ to: 'MXN', amount: '4', minimumPolicy: bridgeFloor })
+
+        expect(amountInputs()).toHaveLength(0)
+        expect(cta()).toBeEnabled()
+        fireEvent.click(cta())
+        expect(ctaAction).toHaveBeenCalledWith('USD', 'MXN', 4)
+        client.clear()
+    })
+
+    it('display pending but the Bridge rate itself failed: still blocked, no floor shown', () => {
+        const { client, ctaAction } = renderWidget({
+            to: 'MXN',
+            amount: '4',
+            minimumPolicy: {
+                ...bridgeFloor,
+                resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, rate, null),
+                blocked: 'unavailable',
+            },
+        })
+
+        expect(cta()).toBeDisabled()
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
+        fireEvent.click(cta())
+        expect(ctaAction).not.toHaveBeenCalled()
+        client.clear()
+    })
+})
+
 describe('ExchangeRateWidget CTA amount', () => {
     it('hands the CTA the amount just typed, before the URL debounce has written it', async () => {
         const { client, ctaAction, onUrlUpdate } = renderWidget()
