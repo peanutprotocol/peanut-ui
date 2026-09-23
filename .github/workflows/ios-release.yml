@@ -64,7 +64,16 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
+    retired-shared-channel:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Reject retired shared-channel release tooling
+              run: |
+                  echo '::error::This workflow publishes to the retired production channel. Use the platform-aware iOS release workflow on dev.' >&2
+                  exit 1
+
     release:
+        needs: retired-shared-channel
         runs-on: macos-15
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production

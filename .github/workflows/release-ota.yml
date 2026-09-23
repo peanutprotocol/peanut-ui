@@ -38,6 +38,11 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
+            - name: Reject retired shared-channel release tooling
+              run: |
+                  echo '::error::This workflow publishes to the retired production channel. Run App Release OTA on dev; that workflow builds the current main source and publishes platform bundles.' >&2
+                  exit 1
+
             # An OTA reaches every shipped install. Restrict the selected branch;
             # release QA must verify its commit before this manual dispatch.
             - name: Guard release ref
