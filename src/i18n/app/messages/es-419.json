@@ -758,6 +758,11 @@
         },
         "signupStep": {
             "usernamePlaceholder": "Tu usuario",
+            "whoInvitedYou": "¿Quién te invitó?",
+            "inviterUsernameLabel": "Usuario de Peanut de quien te invitó",
+            "inviterUsernamePlaceholder": "Su usuario",
+            "inviterHelp": "Quien te invitó puede ganar recompensas cuando uses Peanut.",
+            "inviterNotFound": "No pudimos verificar ese usuario. Revísalo e inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",

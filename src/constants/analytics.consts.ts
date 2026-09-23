@@ -24,6 +24,8 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
+    SIGNUP_INVITER_ADDED: 'signup_inviter_added',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',

@@ -758,6 +758,11 @@
         },
         "signupStep": {
             "usernamePlaceholder": "Username",
+            "whoInvitedYou": "Who invited you?",
+            "inviterUsernameLabel": "Inviter's Peanut username",
+            "inviterUsernamePlaceholder": "Their username",
+            "inviterHelp": "Your inviter may earn rewards when you use Peanut.",
+            "inviterNotFound": "We couldn't verify that username. Check it and try again.",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",
