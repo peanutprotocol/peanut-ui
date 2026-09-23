@@ -111,7 +111,7 @@ export function verifyBundle(bundle, env) {
     return version
 }
 
-export function verifyPolicies(channels, appId, { iosBridge = false } = {}) {
+export function verifyPolicies(channels, appId, { iosBridge = false, allowIosBridge = false } = {}) {
     if (!Array.isArray(channels) || channels.length >= 1000 || channels.some((row) => row.app_id !== appId)) {
         throw new Error('invalid channel policy response')
     }
@@ -119,13 +119,19 @@ export function verifyPolicies(channels, appId, { iosBridge = false } = {}) {
         const matches = channels.filter((row) => row.name === name)
         if (matches.length !== 1) throw new Error(`missing or ambiguous channel ${name}`)
         const row = matches[0]
+        const version = channelVersion(row, name)
+        const activeBridge =
+            target === 'ios' &&
+            allowIosBridge &&
+            row.disable_auto_update_under_native === false &&
+            /^1\.5\.[1-9]\d*-ios$/.test(version)
         const expected = {
             public: true,
             ios: target === 'ios',
             android: target === 'android',
             electron: false,
             disable_auto_update: 'version_number',
-            disable_auto_update_under_native: target === 'ios' && iosBridge ? false : true,
+            disable_auto_update_under_native: target === 'ios' && (iosBridge || activeBridge) ? false : true,
             allow_device_self_set: false,
             allow_prod: true,
             allow_device: true,
@@ -134,7 +140,6 @@ export function verifyPolicies(channels, appId, { iosBridge = false } = {}) {
         for (const [field, value] of Object.entries(expected)) {
             if (row[field] !== value) throw new Error(`${name} must have ${field}=${value}`)
         }
-        channelVersion(row, name)
     }
     if (
         channels.some(
@@ -178,7 +183,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             ...(body ? { body: JSON.stringify({ app_id: appId, ...body }) } : {}),
         })
     }
-    const policies = async ({ iosBridge = false } = {}) => {
+    const policies = async ({ iosBridge = false, allowIosBridge = env.ALLOW_IOS_BRIDGE === '1' } = {}) => {
         // GET /app lists apps; app_id in its query does not select one record.
         const app = await request(`app/${encodeURIComponent(appId)}`)
         if (app?.app_id !== appId) throw new Error('Capgo app response does not match the requested app')
@@ -205,7 +210,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                 },
             }),
             appId,
-            { iosBridge }
+            { iosBridge, allowIosBridge }
         )
     }
     const verifyCandidate = async () => {
@@ -315,7 +320,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             return cores[0] ?? 'builtin'
         }
         case 'next-ios-bridge': {
-            await policies()
+            await policies({ allowIosBridge: true })
             const used = (await bundles())
                 .map((row) => /^1\.5\.(\d+)-ios$/.exec(row.name ?? ''))
                 .filter(Boolean)
@@ -324,7 +329,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         }
         case 'promote-ios-bridge': {
             if (env.IOS_LEGACY_BRIDGE !== '1') throw new Error('bridge mode is required')
-            await policies()
+            await policies({ allowIosBridge: true })
             await bundle()
             const version = required(env, 'VERSION')
             await request('channel', {
@@ -349,6 +354,12 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             }
             return `Verified legacy bridge ${await bundle()}`
         }
+        case 'bridge-status': {
+            const row = (await policies({ allowIosBridge: true })).find(
+                (entry) => entry.name === PRODUCTION_CHANNELS.ios
+            )
+            return row.disable_auto_update_under_native ? 'inactive' : 'active'
+        }
         case 'verify-promotion':
             await policies()
             return 'Platform production policies verified'
@@ -361,7 +372,13 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             // rollout in one API request. A separate preflight followed by CLI
             // `channel set` leaves a window where a newly enabled rollout can
             // survive the promotion and keep serving the previous bundle.
-            await policies()
+            const before = await policies()
+            if (target === 'ios') {
+                const bridgeActive = before.find((row) => row.name === name).disable_auto_update_under_native === false
+                if (bridgeActive !== (env.IOS_LEGACY_BRIDGE === '1')) {
+                    throw new Error('iOS bridge mode does not match the channel policy')
+                }
+            }
             await request('channel', {
                 body: {
                     channel: name,

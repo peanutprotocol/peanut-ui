@@ -73,6 +73,15 @@ jobs:
                   fi
                   echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
 
+            - name: Require the initial bridge transition
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: |
+                  if [ "$(node ../release-tooling/scripts/capgo-release-guard.mjs bridge-status)" != inactive ]; then
+                    echo '::error::the iOS bridge is already active; use App Release OTA for subsequent main updates' >&2
+                    exit 1
+                  fi
+
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 

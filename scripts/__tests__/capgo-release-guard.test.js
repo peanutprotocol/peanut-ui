@@ -322,6 +322,21 @@ it('reserves the next iOS 1.5 bridge version even after a partial upload', () =>
     ])
     expect(result.result).toBe('1.5.1001-ios')
 })
+it('recognizes the verified iOS bridge channel while preserving Android policy', () => {
+    const bridge = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    expect(invoke('bridge-status', policyResponses()).result).toBe('inactive')
+    expect(invoke('bridge-status', policyResponses([bridge, channels[1]])).result).toBe('active')
+    expect(invoke('current-release', [...policyResponses([bridge, channels[1]]), { body: [] }]).status).toBe(1)
+    expect(
+        invoke('current-release', [...policyResponses([bridge, channels[1]]), { body: [] }], {
+            ALLOW_IOS_BRIDGE: '1',
+        }).status
+    ).toBe(0)
+    expect(
+        invoke('bridge-status', policyResponses([{ ...bridge, version: { id: 42, name: '1.6.8-ios' } }, channels[1]]))
+            .status
+    ).toBe(1)
+})
 it('promotes a verified bridge and disables native-version downgrade protection only for iOS', () => {
     const version = '1.5.1000-ios'
     const bridge = { ...goodBundle, name: version }
@@ -401,6 +416,28 @@ it('promotes one platform bundle and disables rollout in the same mutation', () 
         },
     })
 })
+it('continues the 1.5.x iOS lane only when the bridge policy is active', () => {
+    const bridge = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    const next = { ...bridge, version: { id: 42, name: '1.5.1001-ios' } }
+    const options = { PLATFORM: 'ios', VERSION: '1.5.1001-ios', ALLOW_IOS_BRIDGE: '1', IOS_LEGACY_BRIDGE: '1' }
+    expect(
+        invoke(
+            'promote-production',
+            [
+                ...policyResponses([bridge, channels[1]]),
+                { body: { status: 'success' } },
+                ...policyResponses([next, channels[1]]),
+            ],
+            options
+        ).status
+    ).toBe(0)
+    const rejected = invoke('promote-production', policyResponses([bridge, channels[1]]), {
+        ...options,
+        IOS_LEGACY_BRIDGE: '0',
+    })
+    expect(rejected.status).toBe(1)
+    expect(rejected.requests.every((request) => request.method === 'GET')).toBe(true)
+})
 
 it('does not mutate production after a rejected policy preflight', () => {
     const result = invoke(
@@ -439,34 +476,27 @@ it('bypasses the candidate checksum collision only for the second platform recor
     const mainSha = 'b'.repeat(40)
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-platform-uploads-'))
     const calls = path.join(dir, 'calls')
-    try {
-        const result = spawnSync(
-            'bash',
-            [
-                '-euo',
-                'pipefail',
-                '-c',
-                `
+    const shellCommand = `
           npx() { printf '%s\\n' "$*" >> "$CALLS_FILE"; }
           ${shell}
-        `,
-            ],
-            {
-                encoding: 'utf8',
-                env: {
-                    ...process.env,
-                    CAPGO_API_KEY: 'api-key',
-                    CAPGO_PRIVATE_KEY: 'private-key',
-                    COMMIT_MSG: 'release',
-                    RELEASE_VERSION: '1.6.4',
-                    FLOOR_ANDROID: '1.6.0',
-                    FLOOR_IOS: '1.5.0',
-                    GITHUB_SHA: SHA,
-                    OTA_SOURCE_SHA: mainSha,
-                    CALLS_FILE: calls,
-                },
-            }
-        )
+        `
+    try {
+        const result = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                COMMIT_MSG: 'release',
+                RELEASE_VERSION: '1.6.4',
+                RELEASE_VERSION_IOS: '1.6.4-ios',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                GITHUB_SHA: SHA,
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
         expect(result.status).toBe(0)
         const [ios, android] = fs.readFileSync(calls, 'utf8').trim().split('\n')
         expect(ios).toContain('--bundle 1.6.4-ios')
@@ -477,6 +507,26 @@ it('bypasses the candidate checksum collision only for the second platform recor
         expect(android).toContain('--bundle 1.6.4-android')
         expect(android).toContain('--min-update-version 1.6.0')
         expect(android).toContain('--ignore-checksum-check')
+
+        const bridgeResult = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                RELEASE_VERSION: '1.6.5',
+                RELEASE_VERSION_IOS: '1.5.1001-ios',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
+        expect(bridgeResult.status).toBe(0)
+        const [, , bridgedIos, nextAndroid] = fs.readFileSync(calls, 'utf8').trim().split('\n')
+        expect(bridgedIos).toContain('--bundle 1.5.1001-ios')
+        expect(bridgedIos).toContain('--min-update-version 1.5.0')
+        expect(nextAndroid).toContain('--bundle 1.6.5-android')
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }
