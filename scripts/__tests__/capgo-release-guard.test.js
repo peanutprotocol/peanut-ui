@@ -72,11 +72,11 @@ function verify(rows, overrides) {
     return invoke('verify-bundle', [{ body: candidate }, { body: rows }], overrides)
 }
 
-it('sends secure Capgo API keys in the x-api-key header', () => {
+it('sends Capgo API keys in the Authorization header accepted by the app endpoint', () => {
     const result = verify([goodBundle])
     expect(result.status).toBe(0)
-    expect(result.requests[0].headers).toMatchObject({ 'x-api-key': env.CAPGO_API_KEY })
-    expect(result.requests[0].headers).not.toHaveProperty('Authorization')
+    expect(result.requests[0].headers).toMatchObject({ Authorization: env.CAPGO_API_KEY })
+    expect(result.requests[0].headers).not.toHaveProperty('x-api-key')
 })
 
 it('verifies the exact structured bundle record', () => {

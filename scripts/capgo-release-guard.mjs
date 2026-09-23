@@ -200,7 +200,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         if (!body) url.search = new URLSearchParams({ app_id: appId, ...query }).toString()
         return json(url, {
             method: body ? 'POST' : 'GET',
-            headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+            headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
             ...(body ? { body: JSON.stringify({ app_id: appId, ...body }) } : {}),
         })
     }
