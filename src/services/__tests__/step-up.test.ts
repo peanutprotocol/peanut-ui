@@ -147,7 +147,6 @@ describe('primeStepUpToken', () => {
         mockedFetch.mockReset()
         mockedAuth.mockReset()
         primeStepUpToken('from-login', 300)
-        await new Promise((resolve) => setTimeout(resolve, 0))
         await expect(getStepUpToken()).resolves.toBe('from-login')
         expect(mockedAuth).not.toHaveBeenCalled()
         expect(mockedFetch).not.toHaveBeenCalled()

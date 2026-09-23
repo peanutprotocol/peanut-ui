@@ -9,7 +9,6 @@ import {
     addCardToWallet,
     getPushProvisioningAvailability,
     PUSH_PROVISIONING_FLAG,
-    syncWalletAuthorizationToken,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
 
@@ -32,14 +31,13 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
 
     useEffect(() => {
         let cancelled = false
-        const iosNative = isIOSNative()
         // iOS only for now. Google requires its own supplied, localized "Add to
         // Google Wallet" button on any control that starts push provisioning, and
         // that asset ships with issuer onboarding — which is also the gate this
         // path waits on. Until then Android keeps the manual carousel rather than
         // starting the flow from a button Google has not sanctioned. The native
         // Android path underneath is complete; re-enable it with the asset.
-        if (!flagOn || !iosNative) {
+        if (!flagOn || !isIOSNative()) {
             setNativeAvailable(false)
             return
         }
@@ -49,7 +47,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         return () => {
             cancelled = true
         }
-    }, [flagOn, card.id, card.last4])
+    }, [flagOn, card.last4])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         const wallet = isIOSNative() ? 'apple' : 'google'
@@ -57,11 +55,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
-            if (data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
-                await syncWalletAuthorizationToken(data.walletAuthorizationToken, data.walletAuthorizationExpiresIn)
-            }
             const result = await addCardToWallet({
-                peanutCardId: card.id,
                 cardId: data.cardId,
                 cardSecret: data.cardSecret,
                 cardholderName: data.cardholderName,

@@ -25,71 +25,17 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "PushProvisioning"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "addCard", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "rememberCard", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearWalletSession", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearWalletLegacySession", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearWalletCard", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addCard", returnType: CAPPluginReturnPromise)
     ]
 
     private static func hasMeaConfig() -> Bool {
         Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil
     }
 
-    @objc func rememberCard(_ call: CAPPluginCall) {
-        guard let cardId = call.getString("peanutCardId"), !cardId.isEmpty else {
-            call.reject("peanutCardId is required", "BAD_PARAMS")
-            return
-        }
-        WalletExtensionCardStore.save(.init(
-            cardId: cardId,
-            last4: call.getString("last4") ?? "",
-            title: call.getString("displayName") ?? "Peanut Card"
-        ))
-        call.resolve()
-    }
-
-    @objc func clearWalletLegacySession(_ call: CAPPluginCall) {
-        // Kept as a migration endpoint for bundles that previously mirrored
-        // the account JWT into the Wallet keychain access group.
-        WalletExtensionAuth.deleteSessionToken()
-        call.resolve()
-    }
-
-    @objc func setWalletAuthorizationToken(_ call: CAPPluginCall) {
-        guard let token = call.getString("token"),
-              let expiresIn = call.getInt("expiresIn"),
-              !token.isEmpty,
-              expiresIn > 0 else {
-            call.reject("token and expiresIn are required", "BAD_PARAMS")
-            return
-        }
-        WalletExtensionAuth.saveAuthorizationToken(token, expiresIn: expiresIn)
-        call.resolve()
-    }
-
-    @objc func clearWalletSession(_ call: CAPPluginCall) {
-        WalletExtensionAuth.deleteSessionToken()
-        WalletExtensionAuth.deleteAuthorizationToken()
-        WalletExtensionCardStore.clear()
-        call.resolve()
-    }
-
-    @objc func clearWalletCard(_ call: CAPPluginCall) {
-        WalletExtensionCardStore.clear()
-        call.resolve()
-    }
-
-    @objc func clearWalletAuthorizationToken(_ call: CAPPluginCall) {
-        WalletExtensionAuth.deleteAuthorizationToken()
-        call.resolve()
-    }
-
 #if canImport(MeaPushProvisioning)
     private var currentCall: CAPPluginCall?
     private var tokenizationResponseData: MppInitializeOemTokenizationResponseData?
+    private var pendingCard: WalletExtensionCardStore.Card?
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         let passKitReady = PKPassLibrary.isPassLibraryAvailable() && PKAddPaymentPassViewController.canAddPaymentPass()
@@ -153,6 +99,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             self.tokenizationResponseData = data
             self.currentCall = call
+            self.pendingCard = WalletExtensionCardStore.Card(
+                cardId: cardId,
+                last4: call.getString("last4") ?? "",
+                title: call.getString("displayName") ?? "Peanut Card"
+            )
             DispatchQueue.main.async {
                 self.bridge?.viewController?.present(controller, animated: true)
             }
@@ -208,11 +159,14 @@ extension PushProvisioningPlugin: PKAddPaymentPassViewControllerDelegate {
             self.bridge?.viewController?.presentedViewController?.dismiss(animated: true)
         }
         let call = currentCall
+        let card = pendingCard
         currentCall = nil
         tokenizationResponseData = nil
+        pendingCard = nil
         if let pass = pass, error == nil {
-            // Metadata is mirrored when the card screen opens. Keep it here so
-            // the paired-Watch-only path remains discoverable.
+            // Mirror the card into the shared app-group store so the Wallet
+            // issuer-provisioning extension can answer status() without the app.
+            if let card = card { WalletExtensionCardStore.save(card) }
             call?.resolve(["added": true, "last4": pass.primaryAccountNumberSuffix])
         } else if let error = error {
             call?.resolve(["added": false, "error": error.localizedDescription])
