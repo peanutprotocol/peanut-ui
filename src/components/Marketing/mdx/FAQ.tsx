@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { PROSE_WIDTH } from '../constants'
 import { extractText } from './mdx.utils'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -60,7 +61,8 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     }
 
     return (
-        <section className="overflow-x-hidden">
+        // same column as the prose, CTA and RelatedPages around it
+        <section className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
             <FAQsPanel heading={heading} questions={questions} variant="card" />
             <JsonLd data={faqSchema} />
         </section>
