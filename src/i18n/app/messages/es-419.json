@@ -1074,7 +1074,12 @@
             "enterRecipient": "Ingresa una dirección de destinatario",
             "missingUsernameOrAmount": "Falta el nombre de usuario o el monto",
             "createRequestFailed": "No se pudo crear la solicitud.",
-            "validatingRecipient": "Validando destinatario..."
+            "validatingRecipient": "Validando destinatario...",
+            "signInRequired": "Inicia sesión para solicitar dinero.",
+            "moneyContactsOnly": "Solo puedes solicitar dinero a personas a las que les hayas pagado o de las que hayas recibido un pago.",
+            "requestLimit": "Demasiadas solicitudes de pago. Inténtalo más tarde.",
+            "walletOwnership": "Usa tu propia billetera Peanut para recibir este pago.",
+            "contactsUnavailable": "No pudimos consultar tus contactos. Inténtalo de nuevo."
         },
         "validation": {
             "invalidRecipientTitle": "Destinatario inválido",

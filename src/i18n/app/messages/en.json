@@ -1074,7 +1074,12 @@
             "enterRecipient": "Please enter a recipient address",
             "missingUsernameOrAmount": "Username or amount is missing",
             "createRequestFailed": "Failed to create request.",
-            "validatingRecipient": "Validating recipient..."
+            "validatingRecipient": "Validating recipient...",
+            "signInRequired": "Sign in to request money.",
+            "moneyContactsOnly": "You can only request money from people you have paid or been paid by.",
+            "requestLimit": "Too many payment requests. Please try again later.",
+            "walletOwnership": "Use your own Peanut wallet to receive this request.",
+            "contactsUnavailable": "We could not check your contacts. Please try again."
         },
         "validation": {
             "invalidRecipientTitle": "Invalid Recipient",

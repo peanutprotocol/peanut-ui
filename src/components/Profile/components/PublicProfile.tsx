@@ -23,6 +23,8 @@ import { toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRequestContact } from '@/hooks/useRequestContact'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -40,6 +42,8 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
     const t = useTranslations('profile.publicProfile')
     const tNav = useTranslations('navigation')
+    const tRequest = useTranslations('request')
+    const requestContact = useRequestContact(username, isLoggedIn)
     const [profileUserId, setProfileUserId] = useState<string | null>(null)
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
@@ -193,6 +197,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </Button>
 
                         <Button
+                            disabled={
+                                isLoggedIn &&
+                                !!user?.user.hasAppAccess &&
+                                (!requestContact.data || requestContact.isError)
+                            }
                             onClick={() => {
                                 if (isLoggedIn && user?.user.hasAppAccess) {
                                     router.push(requestUrl(username))
@@ -213,6 +222,18 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </Button>
                     </div>
                 )}
+
+                {isLoggedIn &&
+                    user?.user.hasAppAccess &&
+                    !isSelfProfile &&
+                    !requestContact.isLoading &&
+                    (!requestContact.data || requestContact.isError) && (
+                        <Notification priority="helper">
+                            {tRequest(
+                                requestContact.isError ? 'errors.contactsUnavailable' : 'errors.moneyContactsOnly'
+                            )}
+                        </Notification>
+                    )}
 
                 {/* badges row */}
                 <BadgesRow badges={profileBadges} isSelfProfile={isSelfProfile} />
