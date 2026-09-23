@@ -360,6 +360,7 @@ import WithdrawCryptoPage from '../page'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -509,6 +510,39 @@ describe('crypto withdraw preparation', () => {
             })
             expect(mockWithdrawFlow.setChargeDetails).toHaveBeenLastCalledWith(chargeDetails)
         } finally {
+            mockStepper.step = 'review'
+        }
+    })
+
+    // TASK-22590: USDC on BNB Chain is 18-decimal on-chain. The request is
+    // sized and labelled in destination units, so the catalog entry the
+    // selector hands over must reach the charge as 18, not USDC's usual 6.
+    it('sizes a BNB Chain USDC withdrawal request in 18-decimal destination units', async () => {
+        const bsc = (await getSupportedChainsAndTokens())['56']
+        const usdc = bsc.tokens.find((t) => t.symbol === 'USDC')!
+        const original = { token: withdrawData.token, chain: withdrawData.chain }
+        withdrawData.token = { address: usdc.address, symbol: usdc.symbol, decimals: usdc.decimals, price: 1 }
+        withdrawData.chain = { chainId: 56, name: bsc.networkName }
+        mockStepper.step = 'recipient'
+        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        try {
+            render(<WithdrawCryptoPage />)
+            selectDestinationAndReview()
+            await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(1))
+            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+            expect(payload).toMatchObject({
+                local_price: { amount: '50', currency: 'USD' },
+                requestProps: {
+                    chainId: '56',
+                    tokenAddress: usdc.address,
+                    tokenSymbol: 'USDC',
+                    tokenDecimals: 18,
+                    tokenAmount: '50.000000000000000000',
+                },
+            })
+        } finally {
+            Object.assign(withdrawData, original)
             mockStepper.step = 'review'
         }
     })

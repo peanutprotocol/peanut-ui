@@ -37,7 +37,8 @@ jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (e: unknown) => (e instanceof Error ? e.message : String(e)),
 }))
 jest.mock('@/constants/rhino.consts', () => ({
-    chainIdToRhinoName: (chainId: string) => ({ '42161': 'ARBITRUM', '8453': 'BASE', '1': 'ETHEREUM' })[chainId],
+    chainIdToRhinoName: (chainId: string) =>
+        ({ '42161': 'ARBITRUM', '8453': 'BASE', '1': 'ETHEREUM', '56': 'BINANCE' })[chainId],
 }))
 jest.mock('@/constants/chainRegistry.consts', () => ({ NON_EVM_WITHDRAW_CHAINS: {} }))
 jest.mock('@/utils/general.utils', () => ({
@@ -49,6 +50,8 @@ jest.mock('@/app/actions/tokens', () => ({ estimateTransactionCostUsd: jest.fn()
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/interfaces/peanut-sdk-types', () => ({ EPeanutLinkType: { erc20: 1 } }))
 
+import { decodeFunctionData, erc20Abi, parseUnits } from 'viem'
+import { peanutTokenDetails } from '@/constants/token-registry.consts'
 import { useCrossChainTransfer } from '../useCrossChainTransfer'
 
 const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
@@ -123,6 +126,50 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         expect(result.current.receiveAmount).toBe('10')
         expect(result.current.quoteExpiresAt).toBe('2099-01-01T00:00:00.000Z')
         expect(result.current.error).toBeNull()
+    })
+
+    // TASK-22590: USDC on BNB Chain is 18-decimal, but the user sends Arbitrum
+    // USDC (6). The destination's units must never leak into the source
+    // transfer, or the kernel would try to send 10^12 times the amount.
+    it('SDA withdraw to BNB Chain USDC encodes the source transfer in Arbitrum 6-decimal units', async () => {
+        const catalogToken = (chainId: string, address: string) =>
+            peanutTokenDetails
+                .find((c) => c.chainId === chainId)!
+                .tokens.find((t) => t.address.toLowerCase() === address.toLowerCase())!
+        const bscUsdc = catalogToken('56', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d')
+        const arbUsdc = catalogToken('42161', USDC_ARB)
+        const SDA = '0x3333333333333333333333333333333333333333'
+        mockPreviewSdaTransfer.mockResolvedValue(quote(0))
+        const { result } = renderHook(() => useCrossChainTransfer())
+
+        await act(async () => {
+            await result.current.calculate({
+                source,
+                destination: {
+                    recipientAddress: RECIPIENT,
+                    tokenAddress: bscUsdc.address,
+                    tokenAmount: '10.000000000000000000',
+                    tokenDecimals: bscUsdc.decimals,
+                    tokenType: 1,
+                    chainId: '56',
+                    tokenSymbol: 'USDC',
+                },
+                context: 'withdraw',
+                contextId: 'charge-bsc',
+            })
+        })
+
+        expect(bscUsdc.decimals).toBe(18)
+        expect(mockPreviewSdaTransfer).toHaveBeenCalledWith(
+            expect.objectContaining({ chainIn: 'ARBITRUM', chainOut: 'BINANCE', mode: 'pay', amount: '10' })
+        )
+        expect(result.current.error).toBeNull()
+        const [transfer] = result.current.transactions!
+        expect(transfer.to).toBe(USDC_ARB)
+        const { functionName, args } = decodeFunctionData({ abi: erc20Abi, data: transfer.data! })
+        expect(functionName).toBe('transfer')
+        expect(args).toEqual([SDA, parseUnits('10', arbUsdc.decimals)])
+        expect(args[1]).toBe(10_000_000n)
     })
 
     it('SDA pay-request: quotes receive mode by the destination amount (the payer covers any fee)', async () => {
