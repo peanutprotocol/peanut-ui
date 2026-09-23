@@ -1,0 +1,17 @@
+name: iOS 1.5 OTA recovery bridge
+
+# Register workflow_dispatch on the default branch. The reviewed release
+# implementation lives on dev and always builds the current main app tree.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    use-dev-tooling:
+        runs-on: ubuntu-latest
+        steps:
+            - run: |
+                  echo '::error::Select the dev workflow ref for the iOS recovery bridge; its app source is pinned to main.' >&2
+                  exit 1
