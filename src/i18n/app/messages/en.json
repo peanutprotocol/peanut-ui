@@ -696,7 +696,7 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "balanceNote": "Your Peanut balance is held in USD. These are the currencies a bank transfer can arrive in. In some countries, such as Sweden or Switzerland, transfers arrive in euros rather than the local currency.",
+        "balanceNote": "Your balance is in USD. Bank transfers use these currencies; some countries, like Sweden, get euros instead.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
         "widget": {
@@ -704,11 +704,11 @@
             "recipientGets": "You get",
             "swapCurrencies": "Swap currencies",
             "rateUnavailable": "Rate currently unavailable",
-            "rateNote": "The rate is an estimate and may include conversion costs. Review the rate and any fees before confirming.",
+            "rateNote": "Estimated rate; may include conversion costs. Review any fees before confirming.",
             "arrivesHours": "Usually arrives in hours.",
             "arrivesMinutes": "Usually arrives in minutes.",
             "selectCurrency": "Select currency",
-            "belowMinimum": "The minimum for this withdrawal is {amount} {currency}."
+            "belowMinimum": "Minimum withdrawal: {amount} {currency}."
         },
         "row": {
             "approximate": "This is an approximate value. The actual amount received may vary based on your bank's exchange rate",

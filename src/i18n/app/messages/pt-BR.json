@@ -696,7 +696,7 @@
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
-        "balanceNote": "Seu saldo na Peanut fica em USD. Estas são as moedas em que uma transferência bancária pode chegar. Em alguns países, como Suécia ou Suíça, as transferências chegam em euros, e não na moeda local.",
+        "balanceNote": "Seu saldo fica em USD. Transferências bancárias usam estas moedas; alguns países, como a Suécia, recebem euros no lugar.",
         "tryIt": "Sacar agora",
         "addMoneyCta": "Adicionar dinheiro",
         "widget": {
@@ -704,11 +704,11 @@
             "recipientGets": "Você recebe",
             "swapCurrencies": "Trocar moedas",
             "rateUnavailable": "Câmbio indisponível no momento",
-            "rateNote": "A cotação é uma estimativa e pode incluir custos de conversão. Confira a cotação e as tarifas antes de confirmar.",
+            "rateNote": "Cotação estimada; pode incluir custos de conversão. Confira as tarifas antes de confirmar.",
             "arrivesHours": "Costuma chegar em horas.",
             "arrivesMinutes": "Costuma chegar em minutos.",
             "selectCurrency": "Selecionar moeda",
-            "belowMinimum": "O mínimo para este saque é {amount} {currency}."
+            "belowMinimum": "Saque mínimo: {amount} {currency}."
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",

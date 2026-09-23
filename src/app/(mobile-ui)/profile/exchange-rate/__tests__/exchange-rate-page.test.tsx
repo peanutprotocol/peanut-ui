@@ -216,7 +216,7 @@ describe('exchange-rate CTA', () => {
         expect(mockMinimumPolicy.current).toBeTruthy()
         const minimum = mockMinimumPolicy.current.resolve(5.2)
         expect(minimum).toEqual({ amount: 1, currency: 'BRL' })
-        expect(mockMinimumPolicy.current.label(minimum)).toBe('The minimum for this withdrawal is 1 BRL.')
+        expect(mockMinimumPolicy.current.label(minimum)).toBe('Minimum withdrawal: 1 BRL.')
     })
 
     it('resolves no minimum for an add-money route (zero balance)', () => {
@@ -305,7 +305,7 @@ describe('exchange-rate CTA', () => {
         renderPage()
 
         expect(mockLabels.current.rateNote).toBe(
-            'The rate is an estimate and may include conversion costs. Review the rate and any fees before confirming.'
+            'Estimated rate; may include conversion costs. Review any fees before confirming.'
         )
         expect(Object.keys(mockLabels.current)).not.toEqual(expect.arrayContaining(['bankFee', 'free', 'peanutFee']))
     })

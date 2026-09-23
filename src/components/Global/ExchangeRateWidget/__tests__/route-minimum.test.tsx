@@ -149,7 +149,8 @@ describe('ExchangeRateWidget route minimum — a local-currency floor (1 BRL for
 describe('ExchangeRateWidget — the rates-and-fees fixtures', () => {
     const realPolicy: ExchangeRateWidgetMinimumPolicy = {
         resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate, null),
-        label: (m) => `The minimum for this withdrawal is ${m.amount} ${m.currency}.`,
+        // mirrors exchangeRate.widget.belowMinimum
+        label: (m) => `Minimum withdrawal: ${m.amount} ${m.currency}.`,
     }
     const destination = () => (screen.getAllByRole('spinbutton')[1] as HTMLInputElement).value
 
@@ -163,15 +164,13 @@ describe('ExchangeRateWidget — the rates-and-fees fixtures', () => {
         expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
     })
 
-    it('rates-and-fees-below-minimum: 0.1 USD → 0.50 BRL, Withdraw now disabled, minimum is 1 BRL', () => {
+    it('rates-and-fees-below-minimum: 0.1 USD → 0.50 BRL, Withdraw now disabled, minimum withdrawal 1 BRL', () => {
         mockUseExchangeRate.mockReturnValue(quote(0.1, 5))
         renderWidget('BRL', realPolicy)
 
         expect(destination()).toBe('0.50')
         expect(cta()).toBeDisabled()
-        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent(
-            'The minimum for this withdrawal is 1 BRL.'
-        )
+        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent('Minimum withdrawal: 1 BRL.')
     })
 
     it('rates-and-fees-unavailable: no quote, no fee claim, the pill says unavailable', () => {

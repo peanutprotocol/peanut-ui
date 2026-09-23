@@ -794,7 +794,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'rates-and-fees-below-minimum': {
         route: '/profile/exchange-rate?from=USD&to=BRL&amount=0.1',
-        about: 'Rates & fees below the PIX floor: 0.1 USD → 0.5 BRL, Withdraw now disabled, "minimum is 1 BRL".',
+        about: 'Rates & fees below the PIX floor: 0.1 USD → 0.5 BRL, Withdraw now disabled, "Minimum withdrawal: 1 BRL".',
         waitFor: '[data-testid="exchange-rate-minimum"]',
         replies: SIMULATED_USD_BRL,
     },

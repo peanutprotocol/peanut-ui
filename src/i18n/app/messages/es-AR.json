@@ -422,7 +422,8 @@
         "addMoneyCta": "Agregar dinero",
         "widget": {
             "youSend": "Vos enviás",
-            "recipientGets": "Recibís"
+            "recipientGets": "Recibís",
+            "rateNote": "Tipo de cambio estimado; puede incluir costos de conversión. Revisá las comisiones antes de confirmar."
         }
     },
     "setup": {
