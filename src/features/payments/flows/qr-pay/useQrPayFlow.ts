@@ -46,6 +46,7 @@ import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/net
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
+import { parseUsdAmount } from '@/features/withdraw/amount-validation'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -284,6 +285,23 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentLock, paymentProcessor, setAmount, setCurrencyAmount])
 
+    /*
+     * A USD amount chosen upstream (withdraw → saved Brazil PIX key) becomes
+     * the first value of the BRL field — once, at this lock's live sell rate,
+     * floored to the cent. Only for a verified PIX key with an open amount: a
+     * fixed QR's amount is the merchant's. It is an editable estimate; the
+     * existing BRL/USD minimums and the quote at Pay still decide. Fixed at
+     * mount so a lock refetch, a user edit or the URL clearing never re-apply it.
+     */
+    const amountUsdSeedRef = useRef({
+        present: !!scan.amountUsd,
+        usd: scan.amountUsd ? parseUsdAmount(scan.amountUsd) : null,
+        eligible: qrType === EQrType.PIX && pixKeyLabel !== null,
+        decided: false,
+    })
+    const onAmountUsdConsumedRef = useRef(scan.onAmountUsdConsumed)
+    onAmountUsdConsumedRef.current = scan.onAmountUsdConsumed
+
     // Get currency object from payment lock (Manteca)
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
@@ -307,12 +325,27 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             }
         }
         getCurrencyObject().then((currencyObject) => {
-            if (!cancelled) setCurrency(currencyObject)
+            if (cancelled) return
+            setCurrency(currencyObject)
+            const seed = amountUsdSeedRef.current
+            if (!seed.present || seed.decided) return
+            seed.decided = true
+            if (
+                seed.usd &&
+                seed.eligible &&
+                paymentLock.code === '' &&
+                currencyObject.code === 'BRL' &&
+                currencyObject.price > 0
+            ) {
+                const brl = Math.floor(Number(seed.usd) * currencyObject.price * 100 + 1e-9) / 100
+                if (brl > 0) setCurrencyAmount(brl.toFixed(2))
+            }
+            onAmountUsdConsumedRef.current?.()
         })
         return () => {
             cancelled = true
         }
-    }, [paymentLock, paymentProcessor, setCurrency])
+    }, [paymentLock, paymentProcessor, setCurrency, setCurrencyAmount])
 
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay

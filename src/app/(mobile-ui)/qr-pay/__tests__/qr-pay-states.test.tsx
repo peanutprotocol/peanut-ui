@@ -329,6 +329,8 @@ jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real: the real AmountInput cases depend on its flooring
+    formatTokenAmount: jest.requireActual('@/utils/general.utils').formatTokenAmount,
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
@@ -364,24 +366,38 @@ jest.mock('@/utils/network-triage', () => ({
 }))
 
 let mockUsdScale = 1
-jest.mock('@/components/Global/AmountInput', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="amount-input" data-disabled={props.disabled}>
-            <input
-                data-testid="amount-field"
-                value={props.initialAmount ?? ''}
-                onChange={(e) => {
-                    props.setPrimaryAmount?.(e.target.value)
-                    props.setSecondaryAmount?.(
-                        mockUsdScale === 1 ? e.target.value : (Number(e.target.value) * mockUsdScale).toFixed(2)
-                    )
-                }}
-                disabled={props.disabled}
-            />
-        </div>
-    ),
-}))
+// Opt-in: like the real AmountInput, report both legs of a synced initialAmount.
+let mockReportsInitialAmount = false
+// Opt-in: render the real AmountInput (its sync, edit guard and USD flooring).
+let mockUseRealAmountInput = false
+jest.mock('@/components/Global/AmountInput', () => {
+    const RealAmountInput = jest.requireActual('@/components/Global/AmountInput').default
+    function StubAmountInput(props: any) {
+        const report = (value: string) => {
+            props.setPrimaryAmount?.(value)
+            props.setSecondaryAmount?.(mockUsdScale === 1 ? value : (Number(value) * mockUsdScale).toFixed(2))
+        }
+        require('react').useEffect(() => {
+            if (mockReportsInitialAmount && props.initialAmount) report(props.initialAmount)
+        }, [props.initialAmount])
+        return (
+            <div data-testid="amount-input" data-disabled={props.disabled}>
+                <input
+                    data-testid="amount-field"
+                    value={props.initialAmount ?? ''}
+                    onChange={(e) => report(e.target.value)}
+                    disabled={props.disabled}
+                />
+            </div>
+        )
+    }
+    return {
+        __esModule: true,
+        default: function AmountInputSwitch(props: any) {
+            return mockUseRealAmountInput ? <RealAmountInput {...props} /> : <StubAmountInput {...props} />
+        },
+    }
+})
 
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
@@ -576,7 +592,7 @@ jest.mock('@/context/loadingStates.context', () => ({
     }),
 }))
 
-function renderQrPay(params: Record<string, string> = {}) {
+function renderQrPay(params: Record<string, string> = {}, { onUrlUpdate }: { onUrlUpdate?: jest.Mock } = {}) {
     // the page reads ?qrCode/?t/?type through nuqs — the testing adapter is
     // the URL (setSearchParams keeps the legacy useSearchParams mock in sync
     // for anything else that still reads it)
@@ -595,7 +611,7 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <NuqsTestingAdapter searchParams={params}>
+        <NuqsTestingAdapter searchParams={params} onUrlUpdate={onUrlUpdate}>
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <LoadingProvider>
@@ -709,6 +725,8 @@ function applyDefaults() {
 
 beforeEach(() => {
     mockUsdScale = 1
+    mockReportsInitialAmount = false
+    mockUseRealAmountInput = false
     jest.clearAllMocks()
     mockCooldown = null
     mockSearchParams.clear()
@@ -945,6 +963,226 @@ describe('GROUP 2: Payment Form States', () => {
         expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
         await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
+
+    /*
+     * TASK-19427 / Chip 5293855702: a saved Brazil account now reaches this
+     * PIX-key flow with the USD amount chosen on Rates & fees. The flow turns
+     * it into its first BRL value — once, at its own live sell rate, floored
+     * to the cent — and leaves the existing floors and the quote at Pay to
+     * decide. It is an editable estimate, never an automatic payment.
+     */
+    describe('a USD amount carried from a saved PIX key (amountUsd)', () => {
+        const { getCurrencyPrice } = require('@/app/actions/currency')
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const key = 'ada@example.com'
+        const field = () => screen.getByTestId('amount-field') as HTMLInputElement
+        const renderSeeded = (amountUsd: string, onUrlUpdate = jest.fn()) => ({
+            onUrlUpdate,
+            ...renderQrPay(
+                { qrCode: pixKeyToBRCode(key), pixKey: key, type: 'PIX', t: '1', amountUsd },
+                { onUrlUpdate }
+            ),
+        })
+        const lastUrlAmountUsd = (onUrlUpdate: jest.Mock) =>
+            (onUrlUpdate.mock.calls.at(-1)?.[0].searchParams as URLSearchParams | undefined)?.get('amountUsd')
+        // The seeded BRL goes through the amount input like any synced value:
+        // it reports the USD leg at the live rate to the flow's own validators.
+        const withLiveSell = (sell: number) => {
+            getCurrencyPrice.mockResolvedValue({ sell, buy: sell + 0.2 })
+            mockUsdScale = 1 / sell
+            mockReportsInitialAmount = true
+        }
+
+        beforeEach(() => setupMantecaPayment({ code: '', paymentAsset: 'BRL' }))
+
+        test('at the 1 BRL PIX floor: 0.2 USD at live 5 seeds 1.00 BRL and Pay is enabled', async () => {
+            withLiveSell(5)
+            const { onUrlUpdate } = renderSeeded('0.2')
+
+            await waitFor(() => expect(field().value).toBe('1.00'))
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            expect(screen.queryByText(/minimum/i)).not.toBeInTheDocument()
+            // read once, then gone from the URL: a reload cannot re-apply it
+            await waitFor(() => expect(lastUrlAmountUsd(onUrlUpdate)).toBeNull())
+        })
+
+        test('below the floor at the live rate: 0.2 USD at 4.9 seeds 0.98 BRL and the PIX minimum shows', async () => {
+            withLiveSell(4.9)
+            renderSeeded('0.2')
+
+            await waitFor(() => expect(field().value).toBe('0.98')) // floored, never rounded up
+            expect(await screen.findByText(/Minimum PIX amount is 1 BRL/i)).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+        })
+
+        test('waits for the live quote: nothing is seeded before the rate arrives', async () => {
+            let resolvePrice!: (value: { sell: number; buy: number }) => void
+            getCurrencyPrice.mockReturnValue(new Promise((resolve) => (resolvePrice = resolve)))
+            renderSeeded('0.2')
+
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            })
+            expect(screen.queryByTestId('amount-field')).not.toBeInTheDocument()
+
+            await act(async () => resolvePrice({ sell: 5, buy: 5.2 }))
+            await waitFor(() => expect(field().value).toBe('1.00'))
+        })
+
+        test('a user edit wins and the seed is never applied again', async () => {
+            withLiveSell(5)
+            renderSeeded('0.2')
+            await waitFor(() => expect(field().value).toBe('1.00'))
+
+            fireEvent.change(field(), { target: { value: '7' } })
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            })
+            expect(field().value).toBe('7')
+        })
+
+        // This stub shows the flow's own BRL state, so a re-seed would show here
+        // (the real input stops syncing once the user types).
+        test('a replacement quote at Pay re-fetches the live rate without replaying the seed', async () => {
+            withLiveSell(5)
+            renderSeeded('0.2')
+            await waitFor(() => expect(field().value).toBe('1.00'))
+            fireEvent.change(field(), { target: { value: '7' } })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+
+            // Pay re-inits with the typed BRL. The replacement lock is still
+            // open-amount here, so the flow stops before signing, and it re-runs
+            // the live-rate fetch.
+            const scanLock = await mockMantecaApi.initiateQrPayment.mock.results[0].value
+            mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...scanLock })
+            const priceCalls = getCurrencyPrice.mock.calls.length
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+            await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+            expect(mockMantecaApi.initiateQrPayment.mock.calls[1][0].amount).toBe('7')
+            await waitFor(() => expect(getCurrencyPrice.mock.calls.length).toBeGreaterThan(priceCalls))
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            })
+            expect(field().value).toBe('7')
+        })
+
+        test.each(['abc', '1e3', '-1', '0', '0.1234567'])(
+            'a malformed seed (%p) seeds nothing and is cleared from the URL',
+            async (amountUsd) => {
+                getCurrencyPrice.mockResolvedValue({ sell: 5, buy: 5.2 })
+                const { onUrlUpdate } = renderSeeded(amountUsd)
+
+                await screen.findByTestId('amount-field')
+                expect(field().value).toBe('')
+                await waitFor(() => expect(lastUrlAmountUsd(onUrlUpdate)).toBeNull())
+            }
+        )
+
+        test('a fixed-amount QR keeps the merchant amount and ignores the seed', async () => {
+            setupMantecaPayment() // code LOCK123: 92 BRL set by the merchant
+            renderSeeded('0.2')
+
+            await waitFor(() => expect(field().value).toBe('92'))
+        })
+
+        /*
+         * The same seed through the real AmountInput: its initialAmount sync,
+         * its edit guard, and its USD leg, which it floors to the cent
+         * (formatTokenAmount) where the stub above rounds. The flow's floors
+         * judge that floored USD.
+         */
+        describe('through the real AmountInput', () => {
+            const realField = () => screen.getByPlaceholderText('0.00') as HTMLInputElement
+            const payButton = () => screen.getByRole('button', { name: 'Pay' })
+            const withRealInput = (sell: number) => {
+                getCurrencyPrice.mockResolvedValue({ sell, buy: sell + 0.2 })
+                mockUseRealAmountInput = true
+            }
+
+            test('0.2 USD at live 5.07 seeds 1.01 BRL; its USD leg floors to 0.19 and Pay is enabled', async () => {
+                withRealInput(5.07) // 1.01 / 5.07 = 0.1992…: floored 0.19, rounded 0.20
+                renderSeeded('0.2')
+
+                await waitFor(() => expect(realField().value).toBe('1.01'))
+                expect(screen.getByText(/≈ USD 0\.19/)).toBeInTheDocument()
+                await waitFor(() => expect(payButton()).toBeEnabled())
+                expect(screen.queryByText(/minimum|at least/i)).not.toBeInTheDocument()
+            })
+
+            test('0.1 USD at live 10.05 seeds 1.00 BRL, whose floored USD 0.09 fails the USD 0.1 floor', async () => {
+                withRealInput(10.05) // 1.00 / 10.05 = 0.0995…: floored 0.09
+                renderSeeded('0.1')
+
+                await waitFor(() => expect(realField().value).toBe('1.00'))
+                expect(screen.getByText(/≈ USD 0\.09/)).toBeInTheDocument()
+                expect(await screen.findByText('Transfer amount must be at least $0.1')).toBeInTheDocument()
+                expect(payButton()).toBeDisabled()
+            })
+
+            test('a user edit in the real input is kept and not reset to the seed', async () => {
+                withRealInput(5)
+                renderSeeded('0.2')
+                await waitFor(() => expect(realField().value).toBe('1.00'))
+
+                fireEvent.change(realField(), { target: { value: '5' } })
+                await act(async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 50))
+                })
+                expect(realField().value).toBe('5')
+                expect(screen.getByText(/≈ USD 1/)).toBeInTheDocument()
+                await waitFor(() => expect(payButton()).toBeEnabled())
+            })
+
+            test('a cleared field stays clear, and the typed BRL is what Pay quotes', async () => {
+                withRealInput(5)
+                renderSeeded('0.2')
+                await waitFor(() => expect(realField().value).toBe('1.00'))
+
+                fireEvent.change(realField(), { target: { value: '' } })
+                await act(async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 50))
+                })
+                expect(realField().value).toBe('')
+                expect(payButton()).toBeDisabled()
+
+                fireEvent.change(realField(), { target: { value: '5' } })
+                await waitFor(() => expect(payButton()).toBeEnabled())
+                await act(async () => {
+                    fireEvent.click(payButton())
+                })
+                await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+                expect(mockMantecaApi.initiateQrPayment.mock.calls[1][0].amount).toBe('5')
+            })
+
+            test('a price for a scan the user has left does not seed the next one', async () => {
+                let resolveOld!: (value: { sell: number; buy: number }) => void
+                getCurrencyPrice.mockReturnValueOnce(new Promise((resolve) => (resolveOld = resolve)))
+                withRealInput(5) // every later call resolves at once
+                const { unmount } = renderSeeded('0.2')
+                await waitFor(() => expect(getCurrencyPrice).toHaveBeenCalledTimes(1))
+                unmount()
+
+                // the next scan of the same key, with no amount carried
+                renderQrPay({ qrCode: pixKeyToBRCode(key), pixKey: key, type: 'PIX', t: '2' })
+                await waitFor(() => expect(realField()).toBeInTheDocument())
+                await act(async () => resolveOld({ sell: 5, buy: 5.2 }))
+                await act(async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 50))
+                })
+                expect(realField().value).toBe('')
+            })
+        })
+
+        test('an unverified PIX QR (no matching key) ignores the seed', async () => {
+            getCurrencyPrice.mockResolvedValue({ sell: 5, buy: 5.2 })
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1', amountUsd: '0.2' })
+
+            await screen.findByTestId('amount-field')
+            expect(field().value).toBe('')
+        })
     })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {
