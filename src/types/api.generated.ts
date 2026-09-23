@@ -13068,6 +13068,7 @@ export interface paths {
                             avatarKey: string | null;
                             canReceiveBankOfframp: boolean;
                             fullName: string | null;
+                            guestBankClaimEnabled: boolean;
                             isVerified: boolean;
                             showFullName: boolean;
                             userId: string;
