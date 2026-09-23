@@ -7,9 +7,12 @@ import { canShare } from '@/features/deposit-accounts/resolveScreen'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useTranslations } from 'next-intl'
 
-/** the one line the toggle may say about who is allowed to pay this request */
+/**
+ * The one line the toggle says, and only where the corridor changes who may
+ * pay. For an account anybody can pay into, the title says it all.
+ */
 const SENDER_LINE_KEYS = {
-    anyone: 'bankInstructions.anyonePays',
+    anyone: undefined,
     'business-only': 'bankInstructions.businessPays',
     unknown: 'bankInstructions.unknownPays',
 } as const
@@ -60,22 +63,11 @@ export function BankInstructionsToggle({
     // canShare already excludes own-name-only; this narrows the copy-line type.
     if (sender === 'own-name-only') return null
 
-    // The copy names the actual tradeoff at the toggle's current position,
-    // not a generic explanation of what the toggle does: ON reads as a
-    // privacy disclosure (Slava, 2026-09-18). OFF says the details stay
-    // private and that a payer can still pay with Peanut or crypto. The pay
-    // screen does list a generic bank method either way, which funds the
-    // payer's own Peanut balance; the copy deliberately leaves that out (Hugo,
-    // 2026-09-21) — every payment ends up in Peanut, so naming the payer's own
-    // bank only confused the requester.
-    const title = checked ? t('bankInstructions.title') : t('bankInstructions.titleOff')
-    const description = checked ? (
-        <>
-            {t('bankInstructions.description')} {t(SENDER_LINE_KEYS[sender])}
-        </>
-    ) : (
-        t('bankInstructions.descriptionOff')
-    )
+    // One title for both positions and no body line (Konrad, 2026-09-23):
+    // the title already says what switching it on does. The only line left is
+    // the one that changes what happens to a payer's money, and it only
+    // matters once the details are shared.
+    const senderLine = checked ? SENDER_LINE_KEYS[sender] : undefined
 
     return (
         <ListItem
@@ -83,16 +75,14 @@ export function BankInstructionsToggle({
             className="w-full"
             // ListItem truncates a string title, and the es/pt titles run past
             // one line at 375px. A node title wraps.
-            title={<span className="break-words whitespace-normal">{title}</span>}
-            body={<div className="text-body-xs">{description}</div>}
+            title={<span className="break-words whitespace-normal">{t('bankInstructions.title')}</span>}
+            body={senderLine ? <div className="text-body-xs">{t(senderLine)}</div> : undefined}
             bodyWrap
             trailing={
                 <Toggle
                     checked={checked}
                     onChange={onChange}
                     disabled={disabled}
-                    // One stable name. A label that flips with the state reads as
-                    // "Don't share…, switch, off" — a double negative.
                     aria-label={t('bankInstructions.title')}
                     data-testid="bank-instructions-toggle"
                 />

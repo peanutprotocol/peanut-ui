@@ -580,10 +580,12 @@ describe('GROUP 1: Initial Form States', () => {
         expect(screen.getByPlaceholderText('Comment')).toBeInTheDocument()
     })
 
-    test('info content shows hint about leaving amount empty', () => {
+    // Konrad, 2026-09-23: an open amount is not worth a callout, which is
+    // kept for what a user must know.
+    test('shows no callout about leaving the amount empty', () => {
         renderCreateRequest()
 
-        expect(screen.getByText(/Leave empty to let payers choose amounts/)).toBeInTheDocument()
+        expect(screen.queryByText(/Leave empty to let payers choose/)).not.toBeInTheDocument()
     })
 })
 
