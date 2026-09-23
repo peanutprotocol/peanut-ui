@@ -144,11 +144,6 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("No pass request configuration", "INIT_FAILED")
                 return
             }
-            if let pai = data.primaryAccountIdentifier, !pai.isEmpty {
-                // PassKit uses this to omit devices that already have the card,
-                // including the iPhone when only a paired Watch is eligible.
-                config.primaryAccountIdentifier = pai
-            }
             if let name = call.getString("cardholderName"), !name.isEmpty {
                 config.cardholderName = name
             }
