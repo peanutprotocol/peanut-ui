@@ -40,6 +40,8 @@ describe('CardCountryConfirmScreen', () => {
             <CardCountryConfirmScreen candidates={['BR', 'AR']} onConfirm={onConfirm} onContactSupport={jest.fn()} />
         )
         fireEvent.click(screen.getByText('Brazil'))
+        expect(screen.getByRole('radio', { name: 'Brazil' })).toHaveAttribute('aria-checked', 'true')
+        expect(screen.getByRole('radio', { name: 'Argentina' })).toHaveAttribute('aria-checked', 'false')
         const continueBtn = screen.getByRole('button', { name: 'Continue' })
         expect(continueBtn).toBeEnabled()
         fireEvent.click(continueBtn)

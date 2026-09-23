@@ -8,6 +8,10 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { localizedCountryName } from '@/utils/country-name.utils'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { twMerge } from '@/utils/tw'
 
 interface Props {
     /** ISO-2 codes the backend derived from the applicant's own evidence. */
@@ -70,22 +74,44 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                 <p className="text-foreground-secondary">{t('countryConfirm.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-3">
-                {candidates.map((iso2) => (
-                    <li key={iso2}>
-                        <button
-                            type="button"
+            {/* selected-row rule (design.md): fill + over-colour text + trailing check.
+                ListItem forwards no role or aria state, so the radio semantics ride a
+                wrapper, the same way TokenListItem carries its option semantics. */}
+            <div role="radiogroup" aria-label={t('countryConfirm.title')}>
+                {candidates.map((iso2, index) => {
+                    const isSelected = selected === iso2
+                    const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
+                    return (
+                        <div
+                            key={iso2}
+                            role="radio"
+                            aria-checked={isSelected}
+                            tabIndex={0}
                             onClick={() => setSelected(iso2)}
-                            aria-pressed={selected === iso2}
-                            className={`w-full rounded-sm border border-border-default p-4 text-left text-label-l ${
-                                selected === iso2 ? 'bg-action-primary/10' : 'bg-background-default'
-                            }`}
+                            onKeyDown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return
+                                event.preventDefault()
+                                setSelected(iso2)
+                            }}
+                            className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
-                            {localizedCountryName(locale, iso2, iso2)}
-                        </button>
-                    </li>
-                ))}
-            </ul>
+                            <ListItem
+                                position={getCardPosition(index, candidates.length)}
+                                className={twMerge(
+                                    'transition-colors duration-instant active:bg-background-disabled',
+                                    isSelected && 'bg-action-primary'
+                                )}
+                                title={
+                                    <span className={twMerge('block truncate', paint)}>
+                                        {localizedCountryName(locale, iso2, iso2)}
+                                    </span>
+                                }
+                                trailing={isSelected && <Icon name="check" size={20} className={paint} />}
+                            />
+                        </div>
+                    )
+                })}
+            </div>
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
