@@ -150,6 +150,24 @@ describe('AvatarPicker', () => {
         expect(die()).toBeInTheDocument()
     })
 
+    // a narrow roll drops the pick on purpose; a user refetch (the pending-rail
+    // poller, a post-save fetchUser) must not deal it back and undo the roll
+    it('keeps a narrow roll when the user object refreshes', () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        mockUser.user.avatarKey = 'basic.cactus'
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
+
+        fireEvent.click(die())
+        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
+        const rolled = tiles().map((el) => el.textContent)
+
+        mockUser.user.badges = [...mockUser.user.badges]
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles().map((el) => el.textContent)).toEqual(rolled)
+    })
+
     it('is the hand and nothing else: no title, no description, no header', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 

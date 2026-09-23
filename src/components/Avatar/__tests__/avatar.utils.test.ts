@@ -2,7 +2,15 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
 import en from '@/i18n/app/messages/en.json'
-import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, dealHand, letterAvatarSrc } from '../avatar.utils'
+import {
+    avatarPool,
+    avatarSrc,
+    badgeAvatarKeys,
+    basicAvatarKeys,
+    dealHand,
+    letterAvatarSrc,
+    rollKeepsPick,
+} from '../avatar.utils'
 
 describe('avatar catalog', () => {
     // the manifest is the API's contract: every slug it names must be real art
@@ -113,6 +121,15 @@ describe('dealHand', () => {
         expect(rolled).toHaveLength(3)
         expect(rolled.some(isBadge)).toBe(true)
         expect(rolled).not.toContain('basic.sun')
+    })
+
+    it('lets the pick go on a narrow roll unless it is the only badge art', () => {
+        expect(rollKeepsPick(4, 'basic.sun', unlocked)).toBe(true)
+        expect(rollKeepsPick(2, 'basic.sun', unlocked)).toBe(false)
+        expect(rollKeepsPick(2, 'badge.BUG_WHISPERER.beetle', unlocked)).toBe(false)
+        // one badge sticker, and it is the pick: releasing it would drop the badge tile
+        expect(rollKeepsPick(2, 'badge.X.only', ['badge.X.only'])).toBe(true)
+        expect(rollKeepsPick(2, 'basic.sun', [])).toBe(true)
     })
 
     it('does not deal a pick this manifest does not know', () => {
