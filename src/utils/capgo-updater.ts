@@ -118,7 +118,8 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             }
             throw new Error(message)
         }
-        // getLatest resolves with a url only when a genuinely newer bundle exists.
+        // getLatest can offer a different version even when its number is lower
+        // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
             // Refused before the download, not after: a bundle built for a newer
             // binary must never reach the device's disk, because everything that
