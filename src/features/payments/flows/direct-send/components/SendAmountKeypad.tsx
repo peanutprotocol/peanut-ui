@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
@@ -33,6 +34,8 @@ interface SendAmountKeypadProps {
     balanceFillAmount?: number
     disabled?: boolean
     commentActive?: boolean
+    validationMessage?: string
+    validationAction?: ReactNode
     children: ReactNode
 }
 
@@ -43,6 +46,8 @@ export function SendAmountKeypad({
     balanceFillAmount,
     disabled = false,
     commentActive = false,
+    validationMessage,
+    validationAction,
     children,
 }: SendAmountKeypadProps) {
     const t = useTranslations('payment.amountEntry')
@@ -68,19 +73,25 @@ export function SendAmountKeypad({
                     setCopiedAmount(null)
                     setHasUninspectedText(hasStrings)
                 })
-            } else if (navigator.permissions?.query && navigator.clipboard?.readText) {
-                // Browsers may inspect only an already granted clipboard. Do
-                // not open a permission prompt just to draw a suggestion.
-                void navigator.permissions
-                    .query({ name: 'clipboard-read' as PermissionName })
-                    .then(async (permission) => {
-                        if (permission.state !== 'granted') return
-                        const text = await navigator.clipboard.readText()
-                        if (!cancelled) setCopiedAmount(parseClipboardAmount(text))
-                    })
-                    .catch(() => {
-                        if (!cancelled) setCopiedAmount(null)
-                    })
+            } else {
+                // A browser cannot inspect clipboard contents without access
+                // the user may not have granted. Keep the paste action visible,
+                // as QRScanner does, and validate the text on the user's tap.
+                setHasUninspectedText(true)
+                if (navigator.permissions?.query && navigator.clipboard?.readText) {
+                    void navigator.permissions
+                        .query({ name: 'clipboard-read' as PermissionName })
+                        .then(async (permission) => {
+                            if (permission.state !== 'granted') return
+                            const text = await navigator.clipboard.readText()
+                            if (!cancelled) {
+                                setCopiedAmount(parseClipboardAmount(text))
+                            }
+                        })
+                        .catch(() => {
+                            if (!cancelled) setCopiedAmount(null)
+                        })
+                }
             }
         }
         refresh()
@@ -88,25 +99,28 @@ export function SendAmountKeypad({
             if (document.visibilityState === 'visible') refresh()
         }
         document.addEventListener('visibilitychange', onVisible)
+        window.addEventListener('focus', refresh)
         return () => {
             cancelled = true
             document.removeEventListener('visibilitychange', onVisible)
+            window.removeEventListener('focus', refresh)
         }
     }, [])
 
     const pasteAmount = useCallback(async () => {
+        const keepBrowserPasteAction = !isAndroidNative() && !isIOSNative()
         const result = await readClipboard()
         if (!result.ok) {
             toast.error(t(result.reason === 'unavailable' ? 'clipboardUnavailable' : 'noAmountOnClipboard'))
             setCopiedAmount(null)
-            setHasUninspectedText(false)
+            setHasUninspectedText(keepBrowserPasteAction)
             return
         }
         const parsed = parseClipboardAmount(result.text)
         if (!parsed) {
             toast.error(t('noAmountOnClipboard'))
             setCopiedAmount(null)
-            setHasUninspectedText(false)
+            setHasUninspectedText(keepBrowserPasteAction)
             return
         }
         onAmountChange(parsed)
@@ -143,6 +157,10 @@ export function SendAmountKeypad({
                 >
                     {formatSendAmount(amount)}
                 </output>
+                {validationMessage && <FieldError className="mt-1 text-center">{validationMessage}</FieldError>}
+                {validationAction && (
+                    <div className="mt-2 flex min-h-11 items-center justify-center">{validationAction}</div>
+                )}
                 {(copiedAmount || hasUninspectedText) && (
                     <button
                         type="button"
@@ -158,42 +176,39 @@ export function SendAmountKeypad({
                     </button>
                 )}
             </div>
-            <div className="mb-3">{children}</div>
-            {!commentActive && (
-                <div
-                    role="group"
-                    aria-label={t('keypad')}
-                    className="grid w-full grid-cols-3"
-                    onPaste={(event) => {
-                        if (disabled) return
-                        const parsed = parseClipboardAmount(event.clipboardData.getData('text'))
-                        if (parsed) {
-                            event.preventDefault()
-                            onAmountChange(parsed)
-                        }
-                    }}
-                >
-                    {KEYS.map(({ label, value }, index) => (
-                        <div
-                            key={value}
-                            className={`${index % 3 !== 2 ? 'border-r' : ''} ${index < 9 ? 'border-b' : ''} border-border-subtle`}
+            <div className="mb-3 flex min-h-12 items-center justify-center">{children}</div>
+            <div
+                role="group"
+                aria-label={t('keypad')}
+                aria-hidden={commentActive}
+                className={`grid w-full grid-cols-3 ${commentActive ? 'pointer-events-none invisible' : ''}`}
+                onPaste={(event) => {
+                    if (disabled || commentActive) return
+                    const parsed = parseClipboardAmount(event.clipboardData.getData('text'))
+                    if (parsed) {
+                        event.preventDefault()
+                        onAmountChange(parsed)
+                    }
+                }}
+            >
+                {KEYS.map(({ label, value }, index) => (
+                    <div
+                        key={value}
+                        className={`${index % 3 !== 2 ? 'border-r' : ''} ${index < 9 ? 'border-b' : ''} border-border-subtle`}
+                    >
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-15 w-full rounded-none p-0 text-heading-s"
+                            onClick={() => onAmountChange(pressAmountKey(amount, value))}
+                            aria-label={value === 'delete' ? t('delete') : value === 'decimal' ? t('decimal') : label}
+                            disabled={disabled}
                         >
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="h-15 w-full rounded-none p-0 text-heading-s"
-                                onClick={() => onAmountChange(pressAmountKey(amount, value))}
-                                aria-label={
-                                    value === 'delete' ? t('delete') : value === 'decimal' ? t('decimal') : label
-                                }
-                                disabled={disabled}
-                            >
-                                {label}
-                            </Button>
-                        </div>
-                    ))}
-                </div>
-            )}
+                            {label}
+                        </Button>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

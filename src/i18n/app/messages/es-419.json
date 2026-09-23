@@ -1116,6 +1116,7 @@
             "noAmountOnClipboard": "No hay un monto en el portapapeles",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
             "addComment": "Agregar comentario",
+            "addMoney": "Agregar dinero",
             "editComment": "Editar comentario",
             "comment": "Comentario",
             "insertEmoji": "Agregar {emoji} al comentario"

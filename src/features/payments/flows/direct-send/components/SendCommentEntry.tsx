@@ -4,7 +4,6 @@ import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { pickCommentEmojis } from '../sendAmount.utils'
 
@@ -38,7 +37,7 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
 
     if (!isOpen) {
         return (
-            <div className="flex min-h-11 w-full items-center justify-center gap-3">
+            <div className="flex h-12 w-full items-center justify-center gap-3">
                 <LinkButton
                     onClick={() => {
                         setEmojis(pickCommentEmojis())
@@ -57,7 +56,7 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
     return (
         <div
             ref={editorRef}
-            className="w-full"
+            className="relative h-12 w-full"
             onBlur={(event) => {
                 if (!editorRef.current?.contains(event.relatedTarget)) {
                     setIsOpen(false)
@@ -65,40 +64,38 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
                 }
             }}
         >
-            <Field label={t('comment')} htmlFor="send-comment">
-                <div className="flex items-center gap-1">
-                    <div className="min-w-0 flex-1">
-                        <BaseInput
-                            ref={inputRef}
-                            id="send-comment"
-                            value={value}
-                            onChange={(event) => onChange(event.target.value)}
-                            placeholder={t('comment')}
-                            enterKeyHint="done"
-                            maxLength={MAX_COMMENT_LENGTH}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                    event.preventDefault()
-                                    inputRef.current?.blur()
-                                }
-                            }}
-                        />
-                    </div>
-                    {emojis.map((emoji) => (
-                        <Button
-                            key={emoji}
-                            type="button"
-                            variant="ghost"
-                            className="h-11 w-11 shrink-0 p-0"
-                            aria-label={t('insertEmoji', { emoji })}
-                            onPointerDown={(event) => event.preventDefault()}
-                            onClick={() => insertEmoji(emoji)}
-                        >
-                            <span className={emoji.length > 2 ? 'text-body-m' : 'text-heading-s'}>{emoji}</span>
-                        </Button>
-                    ))}
-                </div>
-            </Field>
+            <BaseInput
+                ref={inputRef}
+                id="send-comment"
+                aria-label={t('comment')}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder={t('comment')}
+                className="pr-36"
+                enterKeyHint="done"
+                maxLength={MAX_COMMENT_LENGTH}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault()
+                        inputRef.current?.blur()
+                    }
+                }}
+            />
+            <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
+                {emojis.map((emoji) => (
+                    <Button
+                        key={emoji}
+                        type="button"
+                        variant="ghost"
+                        className="h-11 w-11 shrink-0 p-0 opacity-50 hover:opacity-80 focus-visible:opacity-100"
+                        aria-label={t('insertEmoji', { emoji })}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() => insertEmoji(emoji)}
+                    >
+                        <span className={emoji.length > 2 ? 'text-body-m' : 'text-heading-s'}>{emoji}</span>
+                    </Button>
+                ))}
+            </div>
         </div>
     )
 }

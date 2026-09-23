@@ -1116,6 +1116,7 @@
             "noAmountOnClipboard": "No amount found on the clipboard",
             "clipboardUnavailable": "Could not access the clipboard",
             "addComment": "Add comment",
+            "addMoney": "Add money",
             "editComment": "Edit comment",
             "comment": "Comment",
             "insertEmoji": "Add {emoji} to comment"

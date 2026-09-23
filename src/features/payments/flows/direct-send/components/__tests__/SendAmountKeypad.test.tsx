@@ -76,6 +76,52 @@ it('hides the Android shortcut for unrelated clipboard text', async () => {
     expect(screen.queryByRole('button', { name: /Paste from clipboard/ })).not.toBeInTheDocument()
 })
 
+it('offers a tap-to-paste action in the browser when clipboard text cannot be inspected in advance', async () => {
+    mockRead.mockResolvedValue({ ok: true, text: '$12.50' })
+    const onAmountChange = jest.fn()
+    renderWithIntl(
+        <SendAmountKeypad amount="" onAmountChange={onAmountChange}>
+            <span>Comment</span>
+        </SendAmountKeypad>
+    )
+
+    const chip = await screen.findByRole('button', { name: /Paste from clipboard/ })
+    expect(mockRead).not.toHaveBeenCalled()
+    fireEvent.click(chip)
+    await waitFor(() => expect(onAmountChange).toHaveBeenCalledWith('12.50'))
+})
+
+it('keeps the browser paste action available after nonnumeric clipboard text', async () => {
+    mockRead.mockResolvedValue({ ok: true, text: 'Dinner at 7' })
+    renderWithIntl(
+        <SendAmountKeypad amount="" onAmountChange={jest.fn()}>
+            <span>Comment</span>
+        </SendAmountKeypad>
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Paste from clipboard/ }))
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: /Paste from clipboard/ })).toBeInTheDocument()
+})
+
+it('centers the persistent amount validation message', () => {
+    renderWithIntl(
+        <SendAmountKeypad
+            amount="5"
+            onAmountChange={jest.fn()}
+            validationMessage="Not enough balance"
+            validationAction={<button type="button">Add money</button>}
+        >
+            {null}
+        </SendAmountKeypad>
+    )
+
+    expect(screen.getByRole('alert')).toHaveClass('text-center')
+    expect(screen.getByRole('alert').compareDocumentPosition(screen.getByRole('button', { name: 'Add money' }))).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+    )
+})
+
 it('removes the number keys while the comment keyboard is active', () => {
     renderWithIntl(
         <SendAmountKeypad amount="12" onAmountChange={jest.fn()} commentActive>
@@ -85,4 +131,5 @@ it('removes the number keys while the comment keyboard is active', () => {
 
     expect(screen.getByText('Comment input')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Amount keypad' })).not.toBeInTheDocument()
+    expect(document.querySelector('[role="group"][aria-label="Amount keypad"]')).toHaveClass('invisible')
 })

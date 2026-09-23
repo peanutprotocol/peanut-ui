@@ -14,8 +14,8 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import UserCard from '@/components/User/UserCard'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { SendAmountKeypad } from '../components/SendAmountKeypad'
@@ -26,10 +26,13 @@ import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { withReturnTo } from '@/utils/return-to.utils'
 
 export function SendInputView() {
     const onBack = useSafeBack('/home')
+    const pathname = usePathname()
     const t = useTranslations('payment')
     const { isFetchingUser } = useAuth()
     const [isEditingComment, setIsEditingComment] = useState(false)
@@ -61,6 +64,10 @@ export function SendInputView() {
     const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
+    useEffect(() => {
+        if (isInsufficientBalance) setIsEditingComment(false)
+    }, [isInsufficientBalance])
+
     return (
         <PageStack gap="6" className="min-h-inherit">
             <NavHeader onPrev={onBack} title={t('headers.send')} />
@@ -82,24 +89,26 @@ export function SendInputView() {
                 balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                 disabled={isLoading}
                 commentActive={isEditingComment}
+                validationMessage={isInsufficientBalance ? t('errors.insufficientPayment') : undefined}
+                validationAction={
+                    isInsufficientBalance ? (
+                        <LinkButton href={withReturnTo('/add-money', pathname)}>{t('amountEntry.addMoney')}</LinkButton>
+                    ) : undefined
+                }
             >
-                {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
-                <SendCommentEntry
-                    value={attachment.message ?? ''}
-                    onChange={(message) =>
-                        setAttachment({ message, file: attachment.file, fileUrl: attachment.fileUrl })
-                    }
-                    onEditingChange={setIsEditingComment}
-                />
+                {!isInsufficientBalance && (
+                    <SendCommentEntry
+                        value={attachment.message ?? ''}
+                        onChange={(message) =>
+                            setAttachment({ message, file: attachment.file, fileUrl: attachment.fileUrl })
+                        }
+                        onEditingChange={setIsEditingComment}
+                    />
+                )}
             </SendAmountKeypad>
 
-            <PageStack.Footer className={isEditingComment ? 'hidden' : 'gap-4'}>
-                <SendWithPeanutCta
-                    onClick={handleSubmit}
-                    disabled={isButtonDisabled}
-                    loading={isLoading}
-                    insufficientBalance={isInsufficientBalance}
-                />
+            <PageStack.Footer className={isEditingComment ? 'pointer-events-none invisible gap-4' : 'gap-4'}>
+                <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
                 {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
                 {!isLoggedIn && !isFetchingUser && <PaymentMethodActionList isAmountEntered={isAmountEntered} />}
                 {!isLoggedIn && !isFetchingUser && <SupportCTA />}

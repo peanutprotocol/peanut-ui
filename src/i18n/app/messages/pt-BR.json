@@ -1116,6 +1116,7 @@
             "noAmountOnClipboard": "Não há um valor na área de transferência",
             "clipboardUnavailable": "Não foi possível acessar a área de transferência",
             "addComment": "Adicionar comentário",
+            "addMoney": "Adicionar dinheiro",
             "editComment": "Editar comentário",
             "comment": "Comentário",
             "insertEmoji": "Adicionar {emoji} ao comentário"
