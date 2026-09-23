@@ -64,7 +64,10 @@ it('shows the returned status and the general reason when the API named none', (
         </ToastProvider>,
         { wrapper: IntlWrapper }
     )
-    expect(screen.getByText('Returned')).toBeInTheDocument()
+    // grey `neutral`, not the green of the refunded style: nothing succeeded
+    const badge = screen.getByText('Returned')
+    expect(badge).toHaveClass('bg-background-badge-helper')
+    expect(badge).not.toHaveClass('bg-background-badge-success')
     expect(screen.queryByText('Refunded')).not.toBeInTheDocument()
     expect(screen.queryByText(/someone else's account/)).not.toBeInTheDocument()
 })
