@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -253,14 +253,14 @@ const SignupStep = () => {
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
-                                <DocsLink href="/terms" className="underline underline-offset-2">
+                                <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
                                     {chunks}
-                                </DocsLink>
+                                </SetupDocLink>
                             ),
                             privacy: (chunks) => (
-                                <DocsLink href="/privacy" className="underline underline-offset-2">
+                                <SetupDocLink kind="privacy" href="/privacy" className="underline underline-offset-2">
                                     {chunks}
-                                </DocsLink>
+                                </SetupDocLink>
                             ),
                         })}
                     </p>

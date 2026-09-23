@@ -11,7 +11,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
@@ -101,10 +101,9 @@ const LandingStep = () => {
                 {t('logIn')}
             </Button>
             <div className="pt-2 text-center">
-                {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                <DocsLink href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+                <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     {t('landing.recoverWallet')}
-                </DocsLink>
+                </SetupDocLink>
             </div>
         </div>
     )
