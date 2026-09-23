@@ -69,13 +69,20 @@ export async function getRunningVersion(): Promise<RunningVersionInfo | null> {
  * diagnostics. Appending it as a fourth dotted segment (for example,
  * `1.5.0.21653381`) makes it look like part of the comparable release version.
  */
+export function formatOtaBundleVersion(
+    otaVersion: string,
+    displayReleaseVersion = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+): string {
+    if (displayReleaseVersion && /^\d+\.\d+\.\d+$/.test(displayReleaseVersion)) {
+        if (/^\d+\.\d+\.\d+-ios$/.test(otaVersion)) return `${displayReleaseVersion}-i`
+        if (/^\d+\.\d+\.\d+-android$/.test(otaVersion)) return `${displayReleaseVersion}-a`
+    }
+    return otaVersion
+}
+
 export function formatRunningVersion(
     { appVersion, otaVersion }: RunningVersionInfo,
     displayReleaseVersion = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
 ): string {
-    if (otaVersion && displayReleaseVersion && /^\d+\.\d+\.\d+$/.test(displayReleaseVersion)) {
-        if (/^\d+\.\d+\.\d+-ios$/.test(otaVersion)) return `${displayReleaseVersion}-i`
-        if (/^\d+\.\d+\.\d+-android$/.test(otaVersion)) return `${displayReleaseVersion}-a`
-    }
-    return otaVersion || appVersion
+    return otaVersion ? formatOtaBundleVersion(otaVersion, displayReleaseVersion) : appVersion
 }
