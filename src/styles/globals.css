@@ -892,6 +892,28 @@
     }
 }
 
+/* Setup overrides sit outside Tailwind layers so they win over the shared
+   utility classes on BaseInput and ValidatedInput. Pointer focus is pink;
+   keyboard navigation keeps a high-contrast blue ring. */
+[data-setup-flow] .input:focus,
+[data-setup-flow] [data-input-container]:focus-within {
+    border-color: var(--color-border-brand);
+    outline: none;
+}
+[data-setup-input-modality='keyboard'] [data-setup-flow] .input:focus,
+[data-setup-input-modality='keyboard'] [data-setup-flow] [data-input-container]:focus-within {
+    border-color: transparent;
+    outline: 3px solid var(--color-action-focus);
+}
+/* ValidatedInput paints the container; its inner field has no border. */
+[data-setup-flow] [data-input-container] .input:focus {
+    border-color: transparent;
+    outline: none;
+}
+[data-setup-input-modality='pointer'] [data-setup-flow] [data-input-clear]:focus-visible {
+    outline: none;
+}
+
 /* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+
    (targetSdk 36 forces edge-to-edge) Capacitor's built-in SystemBars plugin
    overwrites these as an inline style on <html> with natively measured values —

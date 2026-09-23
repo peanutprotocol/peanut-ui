@@ -107,6 +107,36 @@ describe('SetupWrapper navigation', () => {
     })
 })
 
+describe('Setup input focus modality', () => {
+    it('keeps pointer focus while typing and restores keyboard focus for navigation', () => {
+        const view = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="signup">
+                <input aria-label="Username" />
+                <button type="button">Next</button>
+            </SetupWrapper>
+        )
+        const input = screen.getByRole('textbox', { name: 'Username' })
+        const next = screen.getByRole('button', { name: 'Next' })
+        expect(input.closest('[data-setup-flow]')).toBeInTheDocument()
+        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
+
+        fireEvent.pointerDown(input)
+        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'pointer')
+        fireEvent.keyDown(input, { key: ' ' })
+        fireEvent.keyDown(input, { key: 'Enter' })
+        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'pointer')
+
+        fireEvent.keyDown(next, { key: 'Tab' })
+        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
+        fireEvent.pointerDown(next)
+        fireEvent.keyDown(next, { key: ' ' })
+        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
+
+        view.unmount()
+        expect(document.documentElement).not.toHaveAttribute('data-setup-input-modality')
+    })
+})
+
 const StepWithImageOverride = () => {
     useSetupImageOverride({ pose: 'cheering' })
     return <div>Residence outcome</div>
