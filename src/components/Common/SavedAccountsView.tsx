@@ -11,7 +11,6 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 import NavHeader from '../Global/NavHeader'
-import Divider from '../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -57,7 +56,6 @@ export default function SavedAccountsView({
     onCryptoClick,
 }: SavedAccountListProps) {
     const t = useTranslations('global')
-    const tCommon = useTranslations('common')
     const tSend = useTranslations('send')
     const tWithdraw = useTranslations('withdraw')
     const plusTrailing = <Icon name="plus" size={20} className="text-foreground-primary" />
@@ -122,11 +120,6 @@ export default function SavedAccountsView({
                                 />
                             </Section>
                         )}
-                        <Divider
-                            textClassname="text-label-m text-foreground-secondary"
-                            dividerClassname="bg-border-subtle"
-                            text={tCommon('or')}
-                        />
                         <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
                             {t('savedAccounts.selectNewMethod')}
                         </Button>
