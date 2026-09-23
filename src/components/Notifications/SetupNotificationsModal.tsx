@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 
 export default function SetupNotificationsModal() {
     // migration-era copy ("Get money alerts") only ships when the pwa-sunset
@@ -76,7 +77,7 @@ export function SetupNotificationsPrompt({
                 onClose={onClose}
                 title={t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
                 description={t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')}
-                icon="bell"
+                content={<PeanutMascotScene scene="paper-planes" className="h-40 max-w-48" />}
                 // stacked CTAs at every width; sm:flex-none stops ActionModal's
                 // sm:flex-1 from stretching the buttons in the column
                 ctaClassName="sm:flex-col"

@@ -1,4 +1,4 @@
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -290,10 +290,9 @@ const SetupPasskey = () => {
                 </div>
                 <div>
                     <p className="pt-2 text-center text-body-xs text-foreground-secondary">
-                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                        <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                        <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             {t('passkey.learnMore')}
-                        </DocsLink>{' '}
+                        </SetupDocLink>{' '}
                     </p>
                 </div>
             </div>

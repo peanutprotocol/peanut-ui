@@ -1,6 +1,11 @@
 import { routePatterns, routePatternFor } from './routes.mjs'
 
 const ROUTE_EXCLUSIONS = new Map([
+    ['/setup', 'Stateful setup router; each repeatable setup view is catalogued as a synthetic component scenario'],
+    [
+        '/setup/finish',
+        'Stateful incomplete-account route; its repeatable completion view is catalogued as 05-a-signtesttransaction',
+    ],
     ['/qr', 'Routing alias for QR scanner and claim destinations; those destination screens are catalogued separately'],
     ['/points', 'Routing alias for the Rewards destination, which is catalogued separately'],
     ['/points/invites', 'Routing alias for the Rewards invites destination, which is catalogued separately'],

@@ -7,6 +7,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AccountSetupError } from '@/services/account-setup'
 import { AccountType } from '@/interfaces/interfaces'
+import { confettiPresets } from '@/utils/confetti'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -14,6 +15,8 @@ const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
 const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
+const mockReadSignupAttributionAsync = jest.fn()
+const mockClearSignupAttribution = jest.fn()
 
 let accounts: Array<{ type: AccountType }> = []
 
@@ -51,7 +54,12 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn() } }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
+jest.mock('@/utils/signup-attribution', () => ({
+    readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
+    clearSignupAttribution: (...args: unknown[]) => mockClearSignupAttribution(...args),
+}))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -67,6 +75,8 @@ describe('SignTestTransaction — setup completion', () => {
         localStorage.clear()
         accounts = []
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
+        mockReadSignupAttributionAsync.mockResolvedValue(null)
+        mockClearSignupAttribution.mockResolvedValue(undefined)
         // addAccount refetches the user, so the account appears before the
         // completion redirect — the pre-existing-account effect must not race it.
         mockAddAccount.mockImplementation(async () => {
@@ -82,6 +92,7 @@ describe('SignTestTransaction — setup completion', () => {
         await waitFor(() => expect(capturePasskeyDebugInfo).toHaveBeenCalled())
         await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeEnabled())
         expect(mockAddAccount).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
     })
 
     it('redirects when Retry discovers an account from the ambiguous request', async () => {
@@ -96,6 +107,7 @@ describe('SignTestTransaction — setup completion', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
         await waitFor(() => expect(screen.getByRole('button', { name: /retry account setup/i })).toBeEnabled())
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
 
         // A later focus/profile refresh reveals that the first request did
         // commit. The Retry action must consume the signup marker and finish.
@@ -107,6 +119,7 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockAddAccount).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
     })
 
     it('redirects immediately after account finalization', async () => {
@@ -117,6 +130,7 @@ describe('SignTestTransaction — setup completion', () => {
 
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
         expect(confirmButton).toBeDisabled()
         fireEvent.click(confirmButton)
         expect(mockSendUserOp).toHaveBeenCalledTimes(1)
@@ -126,6 +140,35 @@ describe('SignTestTransaction — setup completion', () => {
             expect.objectContaining({ flow_version: 1, signup_entry_flow: 'default' })
         )
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('captures a Preferences-only journey after restart before clearing its native context', async () => {
+        const order: string[] = []
+        mockReadSignupAttributionAsync.mockResolvedValue({
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            captureMethod: 'browser',
+        })
+        jest.mocked(posthog.capture).mockImplementation((event) => {
+            if (event === ANALYTICS_EVENTS.SIGNUP_COMPLETED) order.push('capture')
+            return undefined
+        })
+        mockClearSignupAttribution.mockImplementation(async () => {
+            order.push('clear')
+        })
+
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_COMPLETED,
+            expect.objectContaining({
+                signup_journey_id: '33333333-3333-4333-8333-333333333333',
+                signup_platform: 'android',
+            })
+        )
+        expect(order).toEqual(['capture', 'clear'])
     })
 
     /*

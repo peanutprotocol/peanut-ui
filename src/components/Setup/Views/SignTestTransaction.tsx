@@ -19,9 +19,11 @@ import posthog from 'posthog-js'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
+import { clearSignupAttribution, readSignupAttributionAsync } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { confettiPresets } from '@/utils/confetti'
 
 export function AccountReadyView({
     onContinue,
@@ -79,6 +81,7 @@ const SignTestTransaction = () => {
      * the first redirect — a signup entered from /receipt would land on /home.
      */
     const redirectingRef = useRef(false)
+    const completionCelebratedRef = useRef(false)
 
     const redirectToAccount = () => {
         if (redirectingRef.current) return
@@ -89,15 +92,37 @@ const SignTestTransaction = () => {
         handleRedirect({ isNewAccount: true })
     }
 
-    const completeSignup = () => {
+    const completeSignup = async () => {
         creatingAccountRef.current = false
         console.log('[SignTestTransaction] Account setup complete')
+        // The final passkey confirmation has succeeded and the account exists.
+        // Fire while this screen is still visible; the shared canvas carries
+        // the burst through the immediate client-side redirect.
+        if (!completionCelebratedRef.current) {
+            completionCelebratedRef.current = true
+            confettiPresets.celebration()
+        }
         const inviteCode = getFromCookie('inviteCode')
+        // Native Preferences can be the only surviving copy after a WebView
+        // process restart, so load the durable context before emitting the
+        // terminal event or deleting it.
+        const signupAttribution = await readSignupAttributionAsync()
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
+            ...(signupAttribution
+                ? {
+                      signup_journey_id: signupAttribution.journeyId,
+                      signup_platform: signupAttribution.platform,
+                      signup_attribution_capture_method: signupAttribution.captureMethod,
+                  }
+                : {}),
         })
+        // The authenticated API attachment only clears its retry marker. Keep
+        // the bounded context through this capture so signup_completed carries
+        // the same journey join key, then remove both web and native copies.
+        await clearSignupAttribution()
 
         // Persist the residence answer from the residence step, now that
         // the account exists. Fire-and-forget: prequalification data,
@@ -249,7 +274,7 @@ const SignTestTransaction = () => {
                 }
 
                 // addAccount() already fetched and verified user data.
-                completeSignup()
+                await completeSignup()
             } else {
                 if (creatingAccountRef.current) {
                     // A prior ambiguous request can commit after both immediate
@@ -257,7 +282,7 @@ const SignTestTransaction = () => {
                     // marker and presents the same success state as the direct
                     // response instead of leaving the button loading forever.
                     console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
-                    completeSignup()
+                    await completeSignup()
                 } else {
                     // Login flow: the account-exists effect owns navigation.
                     console.log('[SignTestTransaction] Account exists, redirecting to the app')

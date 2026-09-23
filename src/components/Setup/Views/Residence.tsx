@@ -280,9 +280,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.congrats.title')}
-                    </h1>
+                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">
                         {railItem
                             ? t('residenceStep.congrats.description', {
@@ -309,9 +307,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.partial.title')}
-                    </h1>
+                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.partial.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
@@ -335,9 +331,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.restricted.title')}
-                    </h1>
+                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.restricted.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
@@ -386,7 +380,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 {/* Rendered here, not by the step chrome, so the heads-up
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
-                <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
+                <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
                 <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <CountryCombobox
                     options={countryOptions}
@@ -505,7 +499,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     disabled={!residenceCountry || isLoading}
                     loading={isLoading}
                 >
-                    {t('next')}
+                    {t('cta.home')}
                 </Button>
             )}
         </div>

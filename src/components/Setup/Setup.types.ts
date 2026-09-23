@@ -1,14 +1,18 @@
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
+import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 
-/** A setup screen leads with either a still image (its URL) or an animated mascot pose. */
-export type SetupIllustration = { src: string } | { pose: MascotPose }
+/** A setup screen leads with a still, an animated pose, or a composed mascot scene. */
+export type SetupIllustration = { src: string } | { pose: MascotPose } | { scene: PeanutMascotSceneName }
 
 export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'advantage-payments'
     | 'residence'
+    | 'advantage-rewards'
     | 'passkey-permission'
+    | 'advantage-control'
     | 'passkey-success'
     | 'notification-permission'
     | 'add-wallets'
@@ -22,11 +26,14 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    'advantage-payments': undefined
     residence: undefined
+    'advantage-rewards': undefined
     'passkey-permission': {
         handle: string
     }
     'passkey-success': undefined
+    'advantage-control': undefined
     'notification-permission': undefined
     'add-wallets': undefined
     success: undefined

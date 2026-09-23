@@ -782,6 +782,11 @@
     [type='button'] {
         -webkit-tap-highlight-color: transparent;
     }
+
+    /* One animated setup tint shared by the hero and native safe-area fills. */
+    .setup-hero-background {
+        background-color: var(--setup-hero-background, var(--color-background-setup-hero));
+    }
 }
 
 /* ── component classes ported from the v3 plugin (addComponents). chains like
@@ -885,6 +890,28 @@
     .input {
         @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary outline-action-focus transition-colors placeholder:text-foreground-secondary focus:border-transparent focus:outline-[3px] focus:outline-action-focus focus:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
+}
+
+/* Setup overrides sit outside Tailwind layers so they win over the shared
+   utility classes on BaseInput and ValidatedInput. Pointer focus is pink;
+   keyboard navigation keeps a high-contrast blue ring. */
+[data-setup-flow] .input:focus,
+[data-setup-flow] [data-input-container]:focus-within {
+    border-color: var(--color-border-brand);
+    outline: none;
+}
+[data-setup-input-modality='keyboard'] [data-setup-flow] .input:focus,
+[data-setup-input-modality='keyboard'] [data-setup-flow] [data-input-container]:focus-within {
+    border-color: transparent;
+    outline: 3px solid var(--color-action-focus);
+}
+/* ValidatedInput paints the container; its inner field has no border. */
+[data-setup-flow] [data-input-container] .input:focus {
+    border-color: transparent;
+    outline: none;
+}
+[data-setup-input-modality='pointer'] [data-setup-flow] [data-input-clear]:focus-visible {
+    outline: none;
 }
 
 /* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+

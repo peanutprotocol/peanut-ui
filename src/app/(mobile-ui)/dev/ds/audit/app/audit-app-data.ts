@@ -171,7 +171,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/AddWithdraw/DynamicBankAccountForm.tsx',
                     'components/SearchInput/index.tsx',
                     'components/Profile/components/ProfileEditField.tsx',
-                    'components/Invites/JoinWaitlistPage.tsx',
                     'components/LandingPage/CurrencySelect.tsx',
                 ],
             },
@@ -188,7 +187,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/Send/views/SendRouter.view.tsx',
                     'components/Global/TokenSelector/TokenSelector.tsx',
                     'components/Common/SavedAccountsView.tsx',
-                    'components/Setup/Views/JoinWaitlist.tsx',
                 ],
             },
             {

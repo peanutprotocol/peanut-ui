@@ -535,14 +535,10 @@
             "allSetTitle": "Todo listo",
             "allSetDescription": "Ahora envía o solicita dinero para empezar.",
             "joinPeanut": "¡Únete a Peanut!",
-            "inviteOnlyLine1": "Peanut es solo por invitación.",
-            "inviteOnlyLine2": "¡Ve y ruégale a tu amigo por un enlace de invitación!",
-            "invitedLine": "Peanut es solo por invitación — y {username} tiene una invitación para ti.",
-            "joinCta": "Reclama tu invitación",
-            "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Sálvame la vida y mándame tu invitación",
-            "begForInvite": "Rogar por una invitación",
+            "invitedLine": "{username} te invitó a Peanut.",
+            "joinCta": "Crea tu billetera",
             "activityPrivateNote": "La actividad solo es visible para ti, no es pública.",
-            "noInviteTitle": "Sin invitación no hay Peanut",
+            "noInviteTitle": "Únete a Peanut",
             "requestAction": "Solicitar"
         },
         "iosCopy": {
@@ -722,32 +718,34 @@
                 "title": "Peanut hace que los dólares sean fáciles.",
                 "description": "Crea tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
             },
-            "welcome": {
-                "title": "Peanut es solo con invitación",
-                "description": "¿Quién te invitó? Ingresa su nombre de usuario para continuar, o únete a la lista de espera y te avisaremos cuando puedas entrar."
-            },
             "signup": {
                 "title": "¿Cómo te llamamos?",
                 "description": "Elige tu nombre de usuario. Lo usarás para enviar y recibir dinero."
+            },
+            "advantage-payments": {
+                "title": "Paga a quien quieras con un toque.",
+                "description": "Envía dólares a un usuario de Peanut o comparte un enlace de pago."
             },
             "residence": {
                 "title": "¿Dónde vives legalmente?",
                 "description": "El país donde vives legalmente y tienes tu domicilio, no donde estás de viaje. Esto decide qué métodos de pago puedes desbloquear."
             },
+            "advantage-rewards": {
+                "title": "Lo bueno se disfruta en compañía.",
+                "description": "Invita a tus amigos y desbloquea recompensas cuando usen Peanut."
+            },
             "passkey-permission": {
                 "title": "Configuremos tu passkey",
                 "description": "Usa tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo tú."
+            },
+            "advantage-control": {
+                "title": "Tu dinero está en tus manos.",
+                "description": "Consulta tu saldo y confirma acciones con tu passkey."
             },
             "sign-test-transaction": {
                 "title": "Tu cuenta está lista",
                 "description": "Solo confirma que eres tú: un toque y listo."
             }
-        },
-        "existingSession": {
-            "title": "Ya tienes una sesión iniciada",
-            "description": "Este dispositivo tiene una sesión iniciada como {username}. Continúa con esa cuenta o cierra sesión para crear una nueva.",
-            "continueAs": "Continuar como {username}",
-            "logoutAndStartFresh": "Cerrar sesión y empezar de cero"
         },
         "navigation": {
             "goBack": "Volver",
@@ -756,25 +754,35 @@
         },
         "wrapper": {
             "starAlt": "estrella",
-            "illustrationAlt": "Ilustración de la sección"
+            "illustrationAlt": "Ilustración de la sección",
+            "stepIndicator": "Paso {current} de {total}"
         },
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
+        "cta": {
+            "claimName": "Quiero ese nombre",
+            "payments": "Suena bien",
+            "home": "Aquí vivo",
+            "rewards": "¡Quiero recompensas!",
+            "control": "Vamos a terminar"
+        },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
             "recoverWallet": "¿Necesitas recuperar tu cuenta de Peanut?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Nombre de usuario",
-            "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verifica el usuario exacto de quien te invitó.",
-            "joinWaitlist": "Unirme a la lista de espera",
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero crea una billetera.",
             "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
         },
         "signupStep": {
-            "usernamePlaceholder": "Tu usuario",
+            "usernamePlaceholder": "tu usuario",
+            "whoInvitedYou": "¿Quién te invitó?",
+            "inviterUsernameLabel": "Usuario de Peanut de quien te invitó",
+            "inviterUsernamePlaceholder": "su usuario",
+            "inviterHelp": "Quien te invitó puede ganar recompensas cuando uses Peanut.",
+            "inviterNotFound": "No pudimos verificar ese usuario. Revísalo e inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
@@ -1283,7 +1291,7 @@
             "devconnectApp": "app de Devconnect",
             "devconnectLogoAlt": "Logo de Devconnect",
             "starAlt": "estrella",
-            "invitedBy": "¡{username} te invitó, tienes acceso anticipado!",
+            "invitedBy": "Invitación de {username}",
             "requiresVerification": "Requiere verificación"
         },
         "minAmount": {
@@ -2409,32 +2417,14 @@
         "illustrationAlt": "Ilustración de la sección",
         "invalidCodeTitle": "Código de invitación inválido",
         "invalidCodeMessage": "El código de invitación que intentas usar no es válido. Revisa la URL e inténtalo de nuevo.",
-        "skipTitle": "Te estás saltando la lista de espera",
-        "skipDescription": "Alguien de Peanut te quiere adentro. Crea tu billetera y pasa directo: sin código de invitación y sin fila.",
-        "skipCta": "Reclama tu pase directo",
         "vanityTitle": "Reclama tu insignia",
         "vanityDescription": "Ganaste una insignia de Peanut. Para reclamarla, regístrate o inicia sesión.",
         "vanityCta": "Regístrate",
         "inviterTitle": "{username} te invitó a Peanut",
-        "inviterDescription": "Acceso solo para miembros. Usa esta invitación para abrir tu billetera y empezar a enviar y recibir dinero en todo el mundo.",
-        "inviterCta": "Reclama tu lugar",
+        "inviterDescription": "Crea tu billetera desde este enlace y empieza a enviar y recibir dinero en todo el mundo.",
+        "inviterCta": "Crea tu billetera",
         "alreadyHaveAccount": "¿Ya tienes una cuenta? ¡Inicia sesión!",
-        "logIn": "Inicia sesión",
-        "emailTitle": "Mantente al tanto",
-        "emailDescription": "Ingresa tu correo para que podamos avisarte cuando tengas acceso.",
-        "emailLabel": "Correo electrónico",
-        "accountNotLoaded": "Tu cuenta aún no se cargó. Espera un momento e inténtalo de nuevo.",
-        "emailSavedProfileFailed": "Guardamos tu correo, pero tuvimos problemas para cargar tu perfil. Inténtalo de nuevo.",
-        "emailSubmitFailed": "Algo salió mal. Inténtalo de nuevo u omite este paso.",
-        "notificationsTitle": "¿Quieres novedades al instante?",
-        "notificationsDescription": "Te avisaremos apenas tengas acceso.",
-        "inviteOnlyTitle": "Peanut es solo con invitación",
-        "inLine": "Estás en la fila",
-        "inLineWithPosition": "Estás #{position} en la fila",
-        "skipTheLine": "Sáltate la fila: escribe el usuario del miembro que te invitó.",
-        "pleaseWait": "Espera un momento...",
-        "logInDifferentAccount": "Iniciar sesión con otra cuenta",
-        "emailPlaceholder": "tu@ejemplo.com"
+        "logIn": "Inicia sesión"
     },
     "badges": {
         "title": "Insignias",
@@ -3372,14 +3362,14 @@
             "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
-            "title": "¡No pierdas tu invitación!",
-            "description": "Este enlace te permite saltarte la lista de espera de Peanut. Si usas {method}, perderás tu invitación.",
-            "joinCta": "Únete",
+            "title": "¿Crear tu billetera de Peanut?",
+            "description": "Crea una billetera para que esta referencia quede vinculada a tu cuenta. Si usas {method}, continuarás sin registrarte.",
+            "joinCta": "Crear billetera",
             "continueWithMethod": "Continuar con {method}"
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",
-            "inviteOnly": "Peanut ahora es solo por invitación, ¡y tú estás dentro!",
+            "inviteOnly": "Peanut está abierto para todos. Tu enlace personal sigue registrando tus recompensas por referidos.",
             "earnRules": "<b>Amigos que invitas →</b> ganas una parte de sus comisiones. <b>Sus invitados →</b> ganas una parte de la parte de ellos.",
             "shareSheetTitle": "Comparte tu enlace de invitación",
             "shareCta": "Compartir link de invitación",

@@ -7,6 +7,7 @@ import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
@@ -87,6 +88,7 @@ export function RewardsPage() {
             <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
+                    <PeanutMascotScene scene="coins" className="mx-auto" />
                     {cashStatus?.success &&
                         cashStatus.data &&
                         (() => {

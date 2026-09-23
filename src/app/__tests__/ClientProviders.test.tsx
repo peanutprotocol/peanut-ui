@@ -9,11 +9,16 @@
  * contract is checked without mocking the wallet/kernel/Capacitor stack.
  */
 import React from 'react'
-import { ClientProviders } from '../ClientProviders'
+import { render, waitFor } from '@testing-library/react'
+import { ClientProviders, SignupAttributionNavigationCapture } from '../ClientProviders'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
+
+const mockCaptureSignupAttribution = jest.mocked(captureSignupAttribution)
 
 jest.mock('@/hooks/useSplashGate', () => ({ useSplashGate: jest.fn() }))
 jest.mock('@/hooks/useNativeAppLinks', () => ({ useNativeAppLinks: jest.fn() }))
 jest.mock('@/hooks/useZeroLegacyAndroidSafeAreaInsets', () => ({ useZeroLegacyAndroidSafeAreaInsets: jest.fn() }))
+jest.mock('@/utils/signup-attribution', () => ({ captureSignupAttribution: jest.fn() }))
 // Both sit ABOVE the two providers under test, so stubbing them can't mask the
 // contract. PeanutProvider pulls the wagmi config (http() at module scope) and
 // nuqs ships ESM jest won't transform — neither survives jsdom import.
@@ -89,5 +94,19 @@ describe('ClientProviders provider order', () => {
         expect(intl).toBeGreaterThanOrEqual(0)
         expect(context).toBeGreaterThanOrEqual(0)
         expect(intl).toBeLessThan(context)
+    })
+
+    it('keeps React navigation entries referrer-free after instrumentation bootstrap', async () => {
+        mockCaptureSignupAttribution.mockClear()
+        Object.defineProperty(window, 'Capacitor', { configurable: true, value: undefined })
+
+        const { rerender } = render(<SignupAttributionNavigationCapture pathname="/blog/creator-guide" />)
+
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
+
+        rerender(<SignupAttributionNavigationCapture pathname="/signup" />)
+
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
+        expect(mockCaptureSignupAttribution).toHaveBeenCalledTimes(2)
     })
 })

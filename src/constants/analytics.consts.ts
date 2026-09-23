@@ -23,11 +23,10 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
-    SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
-    SIGNUP_EXISTING_SESSION_PROMPTED: 'signup_existing_session_prompted',
+    SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
+    SIGNUP_INVITER_ADDED: 'signup_inviter_added',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
-    SIGNUP_EXISTING_SESSION_LOGGED_OUT: 'signup_existing_session_logged_out',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
     SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
@@ -155,7 +154,6 @@ export const ANALYTICS_EVENTS = {
     INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
-    WAITLIST_STEP_VIEWED: 'waitlist_step_viewed',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
