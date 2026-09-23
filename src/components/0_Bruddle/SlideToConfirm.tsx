@@ -6,7 +6,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon } from '../Global/Icons/Icon'
 
 interface SlideToConfirmProps {
-    /** Text shown centered in the track ("Slide to Lock"). */
+    /** Text shown beside the handle ("Slide to Lock"). */
     label: string
     /** Fires once when the handle reaches the end of the track. */
     onConfirm: () => void
@@ -24,7 +24,7 @@ const COMPLETE_EPSILON = 0.5
 
 /**
  * The one slide-to-confirm control, from the button board 17785:11764
- * (button.slide.*): white pill with 4px shadow, bold centered label, round
+ * (button.slide.*): white pill with 4px shadow, bold label beside the round
  * action-primary handle; a trailing gradient shows slide progress while
  * dragging; disabled is not draggable. commits only at 100% travel — by drag
  * or by arrow-key presses (no instant keyboard confirm: this control exists
@@ -90,8 +90,11 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
             )}
             aria-label={label}
         >
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-button-l text-foreground-primary">
-                {label}
+            <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-14 right-2 flex items-center text-button-l text-foreground-primary"
+            >
+                <span className="min-w-0 truncate">{label}</span>
             </span>
             <motion.div
                 aria-hidden
