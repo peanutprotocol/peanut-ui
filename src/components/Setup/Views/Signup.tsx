@@ -119,8 +119,8 @@ const SignupStep = () => {
     return (
         <>
             <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
-                <div className="space-y-1 mb-auto w-full">
-                    <div className="flex items-center gap-2">
+                <div className="mb-auto flex w-full flex-col gap-4">
+                    <div className="flex flex-col gap-1">
                         <ValidatedInput
                             placeholder={t('signupStep.usernamePlaceholder')}
                             value={username}
@@ -132,21 +132,19 @@ const SignupStep = () => {
                             isInputChanging={isChanging}
                             className="rounded-sm"
                         />
-                        <Button
-                            size="large"
-                            className="w-4/12"
-                            loading={isLoading}
-                            shadowSize="4"
-                            onClick={() => handleNext(async () => isValid)}
-                            disabled={!isValid || isChanging || isLoading}
-                        >
-                            {t('next')}
-                        </Button>
+                        {/* Reserve error height so validation does not move the button. */}
+                        <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
-                    {/* slot space is always reserved so the error mounting doesn't
-                        re-center the vertically-centered step block (F-5). min-h-8
-                        = two 16px body-xs lines, enough for the longest message */}
-                    <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
+                    <Button
+                        size="large"
+                        className="w-full"
+                        loading={isLoading}
+                        shadowSize="4"
+                        onClick={() => handleNext(async () => isValid)}
+                        disabled={!isValid || isChanging || isLoading}
+                    >
+                        {t('next')}
+                    </Button>
                 </div>
                 <div>
                     <p className="pt-2 text-center text-body-xs text-foreground-secondary">

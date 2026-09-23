@@ -7,6 +7,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useRef, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 import { invitesApi } from '@/services/invites'
@@ -25,7 +26,7 @@ import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 const JoinWaitlist = () => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
-    const [inviteCode, setInviteCode] = useState('')
+    const { inviteCodeInput: inviteCode, setInviteCodeInput: setInviteCode } = useSetupFlowContext()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
