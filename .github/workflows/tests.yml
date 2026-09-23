@@ -48,7 +48,7 @@ jobs:
                   # lifecycle scripts, so don't leave it in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -125,7 +125,7 @@ jobs:
               with:
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -152,7 +152,7 @@ jobs:
               with:
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -177,7 +177,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -201,7 +201,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -239,7 +239,7 @@ jobs:
                   # never see it in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -333,7 +333,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -489,7 +489,7 @@ jobs:
                   # submodule PAT does not need to stay in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:
@@ -791,7 +791,7 @@ jobs:
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
             - uses: actions/setup-node@v4
               with:

@@ -215,7 +215,7 @@ function keyAlternatives(node) {
     const s = stringOf(node)
     if (s !== null) return [{ literal: s }]
     if (ts.isTemplateExpression(node)) {
-        const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const esc = escapeRegexLiteral
         let re = esc(node.head.text)
         for (const span of node.templateSpans) re += '[^.]+' + esc(span.literal.text)
         return [{ pattern: re }]
@@ -371,6 +371,10 @@ function iosOverrideKey(ns, key) {
 }
 
 /** Resolve one key use to { key, words }: the heaviest alternative, or null. */
+function escapeRegexLiteral(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function resolveKeyUse(ctx, use) {
     let best = null
     for (const alt of use.alts) {
@@ -381,7 +385,7 @@ function resolveKeyUse(ctx, use) {
             // an unknown-namespace key that ends several catalog paths is ambiguous
             if (use.ns === undefined && candidates.length > 1) candidates = []
         } else {
-            const prefix = use.ns === undefined ? '(?:.+\\.)?' : use.ns ? `${use.ns.replace(/\./g, '\\.')}\\.` : ''
+            const prefix = use.ns === undefined ? '(?:.+\\.)?' : use.ns ? `${escapeRegexLiteral(use.ns)}\\.` : ''
             const re = new RegExp(`^${prefix}${alt.pattern}$`)
             candidates = ctx.catalogKeys.filter((k) => re.test(k))
         }
