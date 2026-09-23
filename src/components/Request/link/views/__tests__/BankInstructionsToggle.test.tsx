@@ -91,11 +91,10 @@ describe('BankInstructionsToggle', () => {
     })
 
     describe('who may pay', () => {
-        // The sender-line only describes a live disclosure, so it only shows
-        // once the toggle is actually ON (checked=true below).
-        // The title already says a payer can use a bank transfer, so a
-        // corridor anybody can pay into adds no line (Konrad, 2026-09-23).
-        it('adds no line on a corridor that takes third-party money', () => {
+        // The sender warning only describes a live disclosure, so it only
+        // shows once the toggle is actually ON (checked=true below). A
+        // corridor anybody can pay into adds no warning.
+        it('adds no warning on a corridor that takes third-party money', () => {
             accounts = { SEPA_EU: account('active', 'anyone') }
 
             renderToggle(true)
@@ -146,17 +145,36 @@ describe('BankInstructionsToggle', () => {
         expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
     })
 
-    describe('one title, no body line', () => {
-        // Konrad, 2026-09-23: the title says what switching it on does, so the
-        // row carries no second line that repeats it, in either position.
-        it.each([true, false])('reads the same title with no body when checked is %s', (checked) => {
+    describe('one title, and one line about what a payer sees', () => {
+        // Konrad, 2026-09-23: the title says what switching it on does, so it
+        // reads the same in both positions. While on, one line says the
+        // payer sees the full name: the only notice that the name leaves.
+        it('says a payer sees the full name and bank details while on', () => {
             accounts = { SEPA_EU: account('active', 'anyone') }
 
-            renderToggle(checked)
+            renderToggle(true)
 
             expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
-            expect(screen.queryByText(/Anyone who opens this link/)).not.toBeInTheDocument()
-            expect(screen.queryByText(/Payers can pay you with Peanut or crypto/)).not.toBeInTheDocument()
+            expect(screen.getByText('Payers see your full name and bank details.')).toBeInTheDocument()
+        })
+
+        it('keeps the title and drops the line while off', () => {
+            accounts = { SEPA_EU: account('active', 'anyone') }
+
+            renderToggle(false)
+
+            expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
+            expect(screen.queryByText(/Payers see your full name/)).not.toBeInTheDocument()
+        })
+
+        it('puts the corridor warning after the disclosure on the same line', () => {
+            accounts = { SEPA_EU: account('active', 'business-only') }
+
+            renderToggle(true)
+
+            expect(
+                screen.getByText(/^Payers see your full name and bank details\. Only businesses can pay this/)
+            ).toBeInTheDocument()
         })
 
         it('drops the sender line while unchecked', () => {

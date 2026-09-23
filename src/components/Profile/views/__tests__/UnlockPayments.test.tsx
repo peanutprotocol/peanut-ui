@@ -926,6 +926,8 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
 
         expect(badgeFor('BRL · Pix').getByText('Not available')).toBeInTheDocument()
         expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
+        // the same neutral pill as the card's "Not available" (Konrad, 2026-09-23)
+        expect(badgeFor('BRL · Pix').getByText('Not available')).toHaveClass('bg-background-badge-helper')
         expect(badgeFor('ARS · Bank transfer').queryByText('Processing')).not.toBeInTheDocument()
         expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
         // the Bridge rows keep their offer, and so does QR — it needs no account

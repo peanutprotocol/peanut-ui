@@ -581,11 +581,13 @@ describe('GROUP 1: Initial Form States', () => {
     })
 
     // Konrad, 2026-09-23: an open amount is not worth a callout, which is
-    // kept for what a user must know.
-    test('shows no callout about leaving the amount empty', () => {
+    // kept for what a user must know. The empty amount is where the old hint
+    // showed, so the screen must render no callout at all there.
+    test('shows no callout while the amount is empty', () => {
         renderCreateRequest()
 
-        expect(screen.queryByText(/Leave empty to let payers choose/)).not.toBeInTheDocument()
+        expect(screen.getByTestId('amount-field')).toHaveValue('')
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 })
 

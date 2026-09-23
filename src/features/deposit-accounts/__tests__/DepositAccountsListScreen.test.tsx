@@ -1132,10 +1132,10 @@ describe('the hub copy exists in every catalog', () => {
  */
 describe('a row the user cannot act on', () => {
     /** every account-number row, in the order the screen renders them */
-    const renderedCorridors = (_container: HTMLElement) =>
-        Array.from(screen.getByTestId('your-accounts').querySelectorAll('[data-testid^="deposit-account-"]')).map(
-            (row) => row.getAttribute('data-testid')!.replace('deposit-account-', '')
-        )
+    const renderedCorridors = (container: HTMLElement) =>
+        Array.from(
+            within(container).getByTestId('your-accounts').querySelectorAll('[data-testid^="deposit-account-"]')
+        ).map((row) => row.getAttribute('data-testid')!.replace('deposit-account-', ''))
 
     const gatesWith = (corridor: DepositCorridor, gate: GateState) => ({ ...allGates(), [corridor]: gate })
 

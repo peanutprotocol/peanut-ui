@@ -8,8 +8,8 @@ import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccoun
 import { useTranslations } from 'next-intl'
 
 /**
- * The one line the toggle says, and only where the corridor changes who may
- * pay. For an account anybody can pay into, the title says it all.
+ * The warning line for a corridor that changes who may pay. An account anybody
+ * can pay into needs none.
  */
 const SENDER_LINE_KEYS = {
     anyone: undefined,
@@ -63,11 +63,11 @@ export function BankInstructionsToggle({
     // canShare already excludes own-name-only; this narrows the copy-line type.
     if (sender === 'own-name-only') return null
 
-    // One title for both positions and no body line (Konrad, 2026-09-23):
-    // the title already says what switching it on does. The only line left is
-    // the one that changes what happens to a payer's money, and it only
-    // matters once the details are shared.
-    const senderLine = checked ? SENDER_LINE_KEYS[sender] : undefined
+    // One title for both positions (Konrad, 2026-09-23). While it is on, one
+    // line says what a payer sees: the requester's full legal name leaves with
+    // the details, and the profile asks before it shows that name at all. A
+    // corridor that limits who may pay adds its warning to the same line.
+    const senderLine = SENDER_LINE_KEYS[sender]
 
     return (
         <ListItem
@@ -76,7 +76,14 @@ export function BankInstructionsToggle({
             // ListItem truncates a string title, and the es/pt titles run past
             // one line at 375px. A node title wraps.
             title={<span className="break-words whitespace-normal">{t('bankInstructions.title')}</span>}
-            body={senderLine ? <div className="text-body-xs">{t(senderLine)}</div> : undefined}
+            body={
+                checked ? (
+                    <div className="text-body-xs">
+                        {t('bankInstructions.disclosure')}
+                        {senderLine && <> {t(senderLine)}</>}
+                    </div>
+                ) : undefined
+            }
             bodyWrap
             trailing={
                 <Toggle

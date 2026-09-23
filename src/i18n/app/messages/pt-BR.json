@@ -1092,6 +1092,7 @@
         },
         "bankInstructions": {
             "title": "Deixe que te paguem por transferência bancária",
+            "disclosure": "Quem paga vê seu nome completo e seus dados bancários.",
             "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
             "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida."
         },
@@ -4059,7 +4060,7 @@
                 "BANK_TRANSFER_AR": "Transferência única pelo Mercado Pago",
                 "PIX_BR": "Transferência Pix única"
             },
-            "countriesTitle": "Outros países",
+            "countriesTitle": "Formas de enviar dinheiro para você",
             "countriesPitch": "Escolha o país do seu banco.",
             "sectionTitle": "Seus números de conta",
             "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",

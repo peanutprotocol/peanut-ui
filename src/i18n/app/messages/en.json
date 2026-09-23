@@ -1092,6 +1092,7 @@
         },
         "bankInstructions": {
             "title": "Let them pay by bank transfer",
+            "disclosure": "Payers see your full name and bank details.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
         },
@@ -4059,7 +4060,7 @@
                 "BANK_TRANSFER_AR": "One-off transfer via Mercado Pago",
                 "PIX_BR": "One-off Pix transfer"
             },
-            "countriesTitle": "Other countries",
+            "countriesTitle": "Ways to send yourself money",
             "countriesPitch": "Pick the country your bank is in.",
             "sectionTitle": "Your account numbers",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
