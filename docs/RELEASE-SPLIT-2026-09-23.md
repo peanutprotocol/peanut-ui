@@ -1,6 +1,7 @@
 # OTA first, native build second
 
-The split starts from `dev` commit `18c935832`. The shipped native baseline is
+The split starts from `dev` commit `18c935832` and includes the release bridge
+changes merged into `main` by #3367 (`3e9a30b3e`). The shipped native baseline is
 `v1.6.0` (`331002ff83e95593e92f12fdf870201f25f1f6d0`).
 
 1. Merge `innolope/release-ota-first-0923` into `main`. It retains the dev web
@@ -22,15 +23,20 @@ if it is squashed, reconcile the native branch with main before retargeting.
 Back-merge the resulting main history into dev after both stages to preserve
 the explicit deferral and restoration history.
 
-The native branch restores the original dev tree exactly before applying #3325
-and the native trigger. New native-surface changes remain blocked by the OTA
-guard until a successful native release records its baseline tag. Native and
-OTA workflows share the existing production-release concurrency group.
+The native branch restores the deferred features and applies #3325. Native and
+OTA workflows share the existing production-release concurrency group. The
+first branch disables #3367's automatic native build after OTA; the follow-up
+uses a main push and a changed native fingerprint instead. An OTA from the
+native follow-up is expected to fail its compatibility guard for the old lanes.
+It must not replace the previously verified bridge artifacts.
 
-PR #3367 is separate release-automation work. Its proposed native build after
-every successful OTA conflicts with this two-stage release policy; reconcile
-that trigger before combining it with either release branch. Do not merge the
-original #3325 directly into the OTA branch.
+Both store builds require the existing iOS 1.5.x and Android 1.6.x bridges to be
+active. They leave those channels intact for older installs. New binaries bake
+their new native version into their JS compatibility floors and reject legacy
+bridge downloads or staged bundles, retaining their embedded JS. Publishing
+future OTA updates for the new native generation requires a separate compatible
+channel transition; this PR does not move the legacy channels to the new shell.
+Do not merge the original #3325 directly into the OTA branch.
 
 The Wallet integration retains its entitlement/provisioning-profile gates.
 A successful binary build alone does not establish Apple entitlement approval,

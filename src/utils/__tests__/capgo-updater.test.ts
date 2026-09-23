@@ -21,6 +21,12 @@ const mockUpdater = {
     getNextBundle: jest.fn(),
     delete: jest.fn().mockResolvedValue(undefined),
 }
+const mockObsoleteBridge = jest.fn().mockReturnValue(false)
+jest.mock('@/utils/ota-native-gate', () => ({
+    ...jest.requireActual('@/utils/ota-native-gate'),
+    isObsoleteLegacyBridge: (version: string) => mockObsoleteBridge(version),
+}))
+
 const mockPlatform = { android: true, binaryVersion: '1.5.0' as string | null }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
@@ -46,6 +52,7 @@ let info: jest.SpyInstance
 let error: jest.SpyInstance
 
 beforeEach(() => {
+    mockObsoleteBridge.mockReset().mockReturnValue(false)
     jest.useFakeTimers()
     window.localStorage.clear()
     mockPlatform.android = true
@@ -566,6 +573,32 @@ describe('store-update gate', () => {
         mockUpdater.getFailedUpdate.mockResolvedValue(null)
         mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
         mockUpdater.getNextBundle.mockResolvedValue(null)
+    })
+
+    it('keeps new native JS when the old bridge is offered without asking for a store update', async () => {
+        mockObsoleteBridge.mockReturnValue(true)
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/bridge.zip', version: '1.5.1001-ios' })
+        const onStoreUpdateRequired = jest.fn()
+        const onUpdateAvailable = jest.fn()
+        await initCapgoUpdater({ onStoreUpdateRequired, onUpdateAvailable })
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(onStoreUpdateRequired).not.toHaveBeenCalled()
+        expect(onUpdateAvailable).not.toHaveBeenCalled()
+    })
+
+    it('disarms an old bridge queued before a native upgrade', async () => {
+        mockObsoleteBridge.mockReturnValue(true)
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin', version: '1.7.0' } })
+        mockUpdater.getNextBundle
+            .mockResolvedValueOnce({ id: 'legacy', version: '1.5.1001-ios' })
+            .mockResolvedValue(null)
+        const onStoreUpdateRequired = jest.fn()
+        await expect(readStagedBundle({ onStoreUpdateRequired })).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'legacy' })
+        expect(onStoreUpdateRequired).not.toHaveBeenCalled()
     })
 
     it('never downloads a bundle built for a newer binary', async () => {

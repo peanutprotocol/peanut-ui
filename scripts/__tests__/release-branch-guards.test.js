@@ -9,10 +9,10 @@ const workflowsDir = path.join(__dirname, '..', '..', '.github', 'workflows')
 // Execute only the branch guard, never the version resolver or deployment steps.
 function guardOf(file) {
     const workflow = fs.readFileSync(path.join(workflowsDir, file), 'utf8')
-    if (file === 'release-ota.yml') {
+    if (file === 'release-ota.yml' || file === 'release-native.yml') {
         const step = workflow.slice(workflow.indexOf('- name: Guard release ref'))
         return step
-            .match(/run: \|\n([\s\S]*?)\n\s+- name: Check out release tooling/)[1]
+            .match(/run: \|\n([\s\S]*?)\n\s+- (?:name: Check out release tooling|uses: actions\/checkout)/)[1]
             .split('\n')
             .map((line) => line.replace(/^ {18}/, ''))
             .join('\n')
@@ -22,7 +22,13 @@ function guardOf(file) {
 
 function run(guard, branch, event = 'workflow_dispatch') {
     return spawnSync('bash', ['-eu', '-c', guard], {
-        env: { ...process.env, GITHUB_REF_NAME: branch, GITHUB_EVENT_NAME: event },
+        env: {
+            ...process.env,
+            GITHUB_REF_NAME: branch,
+            GITHUB_EVENT_NAME: event,
+            GITHUB_SHA: 'a'.repeat(40),
+            OTA_SOURCE_SHA: 'a'.repeat(40),
+        },
         encoding: 'utf8',
     })
 }
@@ -51,7 +57,7 @@ function floorShell() {
         .join('\n')
 }
 
-function runFloors(manual) {
+function runFloors(bridgeActive, androidBridgeActive = false) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-floors-'))
     const output = path.join(dir, 'output')
     const script = `
@@ -63,18 +69,24 @@ function runFloors(manual) {
                 *) return 1;;
             esac
         }
+        pnpm() { :; }
         ${floorShell()}
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
         encoding: 'utf8',
-        env: { ...process.env, MANUAL_MAIN_SOURCE: String(manual), GITHUB_OUTPUT: output },
+        env: {
+            ...process.env,
+            BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive',
+            ANDROID_BRIDGE_ACTIVE: androidBridgeActive ? 'active' : 'inactive',
+            GITHUB_OUTPUT: output,
+        },
     })
     const floors = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
     fs.rmSync(dir, { recursive: true, force: true })
     return { status: result.status, floors }
 }
 
-function runPromotion({ firstMainSha, staleAfterFirst = false }) {
+function runPromotion({ firstMainSha, staleAfterFirst = false, bootstrap = false }) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-guard-'))
     const gitCalls = path.join(dir, 'git-calls')
     const nodeCalls = path.join(dir, 'node-calls')
@@ -106,6 +118,12 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
         env: {
             ...process.env,
             RELEASE_VERSION: '1.6.4',
+            RELEASE_VERSION_IOS: '1.6.4-ios',
+            RELEASE_VERSION_ANDROID: '1.6.4-android',
+            BRIDGE_ACTIVE: bootstrap ? 'active' : 'inactive',
+            ANDROID_BRIDGE_ACTIVE: bootstrap ? 'active' : 'inactive',
+            IOS_BRIDGE_PREVIOUS: bootstrap ? 'inactive' : 'active',
+            ANDROID_BRIDGE_PREVIOUS: bootstrap ? 'inactive' : 'active',
             FLOOR_ANDROID: '1.6.0',
             FLOOR_IOS: '1.5.0',
             EXPECTED_MAIN_SHA: expectedMainSha,
@@ -131,14 +149,14 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
 describe('release-ota.yml publishes main source', () => {
     const guard = guardOf('release-ota.yml')
 
-    it('accepts a main push and a manual dispatch of dev tooling', () => {
+    it('accepts a main push and a manual dispatch on main', () => {
         expect(run(guard, 'main', 'push').status).toBe(0)
-        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(0)
+        expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
     })
 
     it.each([
-        ['main', 'workflow_dispatch'],
-        ['dev', 'push'],
+        ['main', 'workflow_run'],
+        ['dev', 'workflow_dispatch'],
         ['release/android-kyc', 'workflow_dispatch'],
         ['feature/kyc', 'push'],
         ['', 'workflow_dispatch'],
@@ -148,11 +166,11 @@ describe('release-ota.yml publishes main source', () => {
         expect(result.stderr).toContain('::error::')
     })
 
-    it('auto-runs only on main pushes and manually runs dev tooling against main source', () => {
+    it('runs on every main push using that exact main commit for tooling and app source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
         expect(workflow).toContain('workflow_dispatch:')
-        expect(workflow).toContain("github.event_name == 'workflow_dispatch' && 'main' || github.sha")
+        expect(workflow.match(/ref: \$\{\{ github.sha \}\}/g)).toHaveLength(3)
         expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
         expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('path: app')
@@ -160,9 +178,23 @@ describe('release-ota.yml publishes main source', () => {
         expect(workflow).toContain('OTA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}')
     })
 
-    it('limits the older main updater to its native version while retaining platform floors for new builds', () => {
-        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
-        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+    it('holds the iOS delivery floor until the bridge is active', () => {
+        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
+        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+        expect(runFloors(true, true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+    })
+
+    it('bootstraps both legacy lanes on the first main push', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+        expect(workflow).toContain('next-ios-bridge')
+        expect(workflow).toContain('next-android-bridge')
+        expect(workflow).toContain("echo 'bridge_active=active'")
+        expect(workflow).toContain("echo 'android_bridge_active=active'")
+        const result = runPromotion({ firstMainSha: 'a'.repeat(40), bootstrap: true })
+        expect(result.status).toBe(0)
+        expect(result.calls.filter((call) => call.includes('promote-ios-bridge'))).toHaveLength(1)
+        expect(result.calls.filter((call) => call.includes('promote-android-bridge'))).toHaveLength(1)
+        expect(result.calls.filter((call) => call.includes('promote-production'))).toHaveLength(0)
     })
 
     it('rechecks main after the build and immediately before each platform promotion', () => {
@@ -198,8 +230,50 @@ describe('release-ota.yml publishes main source', () => {
     })
 })
 
-// The native lanes still cut releases from dev; unchanged, and deliberately so.
-describe.each(['release-native.yml', 'android-release.yml'])('%s release branches', (file) => {
+describe('native release source branch', () => {
+    const guard = guardOf('release-native.yml')
+
+    it('accepts main pushes and manual main dispatches for native changes', () => {
+        expect(run(guard, 'main', 'workflow_run').status).toBe(1)
+        expect(run(guard, 'main', 'push').status).toBe(0)
+        expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
+        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(1)
+        expect(run(guard, 'release/android-kyc', 'workflow_dispatch').status).toBe(1)
+    })
+
+    it('automatically builds only changed native contracts on main', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        expect(workflow).not.toContain('workflow_run:')
+        expect(workflow).toMatch(/\n    push:/)
+        expect(workflow.match(/if: needs.resolve.outputs.build_required == 'true'/g)).toHaveLength(2)
+        expect(workflow).toContain('workflow_dispatch:')
+        expect(workflow).toContain('queue: max')
+        expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
+    })
+
+    it.each(['ios', 'android'])('keeps the %s legacy lane during store builds', (platform) => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
+        expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
+        expect(workflow).not.toContain('channel currentBundle production')
+        expect(workflow).not.toContain('--channel production')
+        expect(workflow).toContain('New native')
+        expect(workflow).toContain('builds reject legacy bridge bundles and keep their embedded JS.')
+    })
+})
+
+it.each([
+    ['ios', 'v1.5.0'],
+    ['android', 'v1.6.0'],
+])('the %s recovery bridge pins main and checks its shipped native surface', (platform, base) => {
+    const workflow = fs.readFileSync(path.join(workflowsDir, `release-${platform}-legacy-bridge.yml`), 'utf8')
+    expect(workflow).toContain('ref: ${{ github.sha }}')
+    expect(workflow).toContain('git ls-remote origin refs/heads/main')
+    expect(workflow).toContain(`check-native-ota-surface.mjs ${base} --platform ${platform} --root "$PWD"`)
+    expect(workflow).toContain(`PLATFORM: ${platform}`)
+})
+
+describe('android-release.yml release branches', () => {
+    const file = 'android-release.yml'
     const guard = guardOf(file)
 
     it.each(['dev', 'main', 'release/android-kyc'])('accepts %s', (branch) => {

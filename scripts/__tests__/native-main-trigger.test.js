@@ -84,3 +84,14 @@ describe('native release after a reviewed main merge', () => {
         expect(workflow).toContain('group: production-release')
     })
 })
+
+it.each(['ios', 'android'])(
+    'bakes the new native floor into the %s binary without replacing the legacy bridge',
+    (platform) => {
+        const source = fs.readFileSync(path.join(__dirname, `../../.github/workflows/${platform}-release.yml`), 'utf8')
+        expect(source).toContain('NEXT_PUBLIC_OTA_FLOOR_ANDROID: ${{ steps.version.outputs.name }}')
+        expect(source).toContain('NEXT_PUBLIC_OTA_FLOOR_IOS: ${{ steps.version.outputs.name }}')
+        expect(source).toContain('echo "needs_ota=false" >> "$GITHUB_OUTPUT"')
+        expect(source).toContain('builds reject legacy bridge bundles and keep their embedded JS.')
+    }
+)

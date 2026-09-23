@@ -61,6 +61,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # A break-glass `v*` tag push and the sanctioned blank-version replacement both
     # write the production Capgo channel, so they join the release mutex. When
@@ -68,8 +72,7 @@ concurrency:
     # that mutex; its child keeps a separate group instead of deadlocking its parent.
     # A direct dispatch with an explicit version remains deepest break-glass.
     group: >-
-        ${{ github.event_name == 'push' && 'production-release'
-        || (inputs.versionName == '' && 'production-release')
+        ${{ inputs.versionName == '' && 'production-release'
         || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
@@ -226,6 +229,14 @@ jobs:
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
               run: |
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      # Leave the existing bridge artifact untouched. New native
+                      # builds reject legacy bridge bundles and keep their embedded JS.
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the Android 1.6.x bridge for older installs"
+                      exit 0
+                  fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   if [ "$CURRENT" = builtin ]; then
                     echo "needs_ota=true" >> "$GITHUB_OUTPUT"
@@ -278,6 +289,8 @@ jobs:
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
+                  NEXT_PUBLIC_OTA_FLOOR_ANDROID: ${{ steps.version.outputs.name }}
+                  NEXT_PUBLIC_OTA_FLOOR_IOS: ${{ steps.version.outputs.name }}
                   KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
                   WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
               run: |
@@ -403,9 +416,8 @@ jobs:
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
-            # Publish the native .0 record to this platform's channel. The other
-            # native job may reuse it only after exact source/floor/artifact checks;
-            # an existing record alone never counts as a successful upload.
+            # Publish a matching .0 only when this platform has no active legacy
+            # bridge. The shared record is verified before promotion.
             - name: Publish matching production OTA bundle
               if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:

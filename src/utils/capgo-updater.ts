@@ -4,7 +4,13 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
+import {
+    forgetStagedFloors,
+    isObsoleteLegacyBridge,
+    needsStoreUpdate,
+    rememberStagedFloors,
+    stagedFloors,
+} from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -118,8 +124,16 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             }
             throw new Error(message)
         }
-        // getLatest resolves with a url only when a genuinely newer bundle exists.
+        // getLatest can offer a different version even when its number is lower
+        // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
+            // The old lane stays live for existing installs during a native
+            // migration. Keep this binary's newer embedded JS until its own
+            // compatible OTA lane is published.
+            if (isObsoleteLegacyBridge(latest.version)) {
+                removeStoredValue(FAILURE_STREAK_KEY)
+                return 'up-to-date'
+            }
             // Refused before the download, not after: a bundle built for a newer
             // binary must never reach the device's disk, because everything that
             // stages one (next(), the plugin's background apply) works off what is
@@ -415,6 +429,9 @@ export async function readStagedBundle(
         CapacitorUpdater.current().catch(() => null),
     ])
     if (!next?.version || next.id === current?.bundle?.id) return null
+    if (isObsoleteLegacyBridge(next.version)) {
+        return queueOtaWork(() => disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id))
+    }
     // Asked with the floors this bundle was admitted under, not with nothing:
     // re-deciding on the version alone would disarm a bundle the check approved.
     if (!(await needsStoreUpdate(next.version, stagedFloors(next.id)))) return next

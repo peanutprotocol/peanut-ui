@@ -61,3 +61,15 @@ test('publisher and deploy reuse one Cloudflare API token during input migration
     )
     assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
 })
+
+test('secret-bearing publisher is immutable and deploy only checks out trusted dev pushes', () => {
+    assert.match(
+        screenLibrary,
+        /uses: peanutprotocol\/peanut-ui\/\.github\/workflows\/screen-library-publish\.yml@[a-f0-9]{40}\b/
+    )
+    const deploy = publisher.slice(publisher.indexOf('    deploy:'))
+    assert.match(deploy, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/dev'/)
+    assert.match(deploy, /environment: screen-library-deploy/)
+    assert.match(deploy, /ref: \$\{\{ github\.sha \}\}/)
+    assert.match(deploy, /persist-credentials: false/)
+})

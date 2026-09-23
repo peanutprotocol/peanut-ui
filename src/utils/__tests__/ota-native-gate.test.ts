@@ -86,6 +86,12 @@ describe('needsStoreUpdate with candidate floors', () => {
         await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(false)
     })
 
+    it('admits a 1.5.x bridge on the old numeric gate, then a 1.6.x bundle on the floor-aware gate', async () => {
+        const { bundleNeedsNewerBinary, needsStoreUpdate } = await load('ios', '1.5.0')
+        expect(bundleNeedsNewerBinary('1.5.999-ios', '1.5.0')).toBe(false)
+        await expect(needsStoreUpdate('1.6.8-ios', floors('1.6.0', '1.5.0'))).resolves.toBe(false)
+    })
+
     it('still refuses that candidate on an Android 1.5.0 binary, whose floor is 1.6.0', async () => {
         const { needsStoreUpdate } = await load('android', '1.5.0')
         await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(true)
@@ -239,5 +245,22 @@ describe('staged floors', () => {
     it('survives unreadable storage without throwing', () => {
         window.localStorage.setItem('capgoStagedFloors', 'not json')
         expect(gate.stagedFloors('b-9')).toBeUndefined()
+    })
+})
+
+describe('legacy bridges after a native surface upgrade', () => {
+    it.each([
+        ['1.5.1000-ios', '1.5.0', false],
+        ['1.6.1000-android', '1.6.0', false],
+        ['1.5.1001-ios', '1.7.0', true],
+        ['1.6.1001-android', '1.7.0', true],
+        ['1.7.1-ios', '1.7.0', false],
+        ['1.5.999-ios', '1.7.0', false],
+        ['1.5.1000-android', '1.7.0', false],
+        ['1.6.1000-ios', '1.7.0', false],
+        ['1.5.1000-ios', null, false],
+    ])('classifies %s against the running surface %s', (version, floor, expected) => {
+        const { legacyBridgePredatesSurface } = jest.requireActual('../ota-native-gate')
+        expect(legacyBridgePredatesSurface(version, floor)).toBe(expected)
     })
 })

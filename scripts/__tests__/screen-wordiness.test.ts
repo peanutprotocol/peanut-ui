@@ -159,3 +159,33 @@ export function RewardsScreen() {
         ])
     })
 })
+
+describe('literal translation namespaces in dynamic keys', () => {
+    it.each(['foo+', 'foo(', 'foo[bar]', 'foo\\bar', 'foo.bar', '(a+)+'])('escapes namespace %s', (namespace) => {
+        const root = mkdtempSync(join(tmpdir(), 'screen-wordiness-literal-'))
+        try {
+            mkdirSync(join(root, 'src/i18n/app/messages'), { recursive: true })
+            mkdirSync(join(root, 'src/app/(mobile-ui)/literal'), { recursive: true })
+            writeFileSync(
+                join(root, 'src/i18n/app/messages/en.json'),
+                JSON.stringify({
+                    [namespace]: { status: { ok: 'Correct literal match' } },
+                    fooooo: { status: { ok: 'Wrong longer namespace must never inflate the word count' } },
+                })
+            )
+            writeFileSync(
+                join(root, 'src/app/(mobile-ui)/literal/page.tsx'),
+                `import { useTranslations } from 'next-intl'
+export default function Page({ state }) {
+    const t = useTranslations(${JSON.stringify(namespace)})
+    return <p>{t(\`status.\${state}\`)}</p>
+}`
+            )
+            const [screen] = measureScreens(root)
+            expect(screen.words).toBe(3)
+            expect(screen.top).toEqual([{ key: `${namespace}.status.ok`, words: 3 }])
+        } finally {
+            rmSync(root, { recursive: true, force: true })
+        }
+    })
+})
