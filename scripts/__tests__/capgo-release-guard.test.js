@@ -76,6 +76,14 @@ it('verifies the exact structured bundle record', () => {
     expect(verify([goodBundle]).status).toBe(0)
     expect(verify({ data: [goodBundle] }).status).toBe(0)
 })
+it('permits the explicit iOS 1.5 bridge with a newer Android floor only in bridge mode', () => {
+    const bridge = { ...goodBundle, name: '1.5.1000-ios' }
+    const options = { VERSION: bridge.name, IOS_LEGACY_BRIDGE: '1' }
+    expect(verify([bridge], options).status).toBe(0)
+    expect(verify([bridge], { VERSION: bridge.name }).status).toBe(1)
+    expect(verify([bridge], { ...options, PLATFORM: 'android' }).status).toBe(1)
+    expect(verify([bridge], { ...options, FLOOR_IOS: '1.4.0' }).status).toBe(1)
+})
 it('binds a manual release to the pinned main commit instead of the dev workflow commit', () => {
     const mainSha = 'b'.repeat(40)
     const mainBundle = { ...goodBundle, link: `https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}` }
@@ -306,6 +314,29 @@ it('keeps a partial or deleted upload reserved, and ignores the staging counter'
     ])
     expect(result.result).toBe('1.6.3')
     expect(invoke('current-release', [...policyResponses(), { body: [] }]).result).toBe('builtin')
+})
+it('reserves the next iOS 1.5 bridge version even after a partial upload', () => {
+    const result = invoke('next-ios-bridge', [
+        ...policyResponses(),
+        { body: [{ name: '1.5.1000-ios', deleted: true }, { name: '1.6.7-ios' }] },
+    ])
+    expect(result.result).toBe('1.5.1001-ios')
+})
+it('promotes a verified bridge and disables native-version downgrade protection only for iOS', () => {
+    const version = '1.5.1000-ios'
+    const bridge = { ...goodBundle, name: version }
+    const promoted = { ...channelPolicy('ios', version), disable_auto_update_under_native: false }
+    const result = invoke('promote-ios-bridge', [
+        ...policyResponses(),
+        { body: [bridge] },
+        { body: { status: 'success' } },
+        ...policyResponses([promoted, channels[1]]),
+    ], { VERSION: version, IOS_LEGACY_BRIDGE: '1' })
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'ios-mobile-release', version, disableAutoUpdateUnderNative: false, rolloutEnabled: false,
+    })
+    expect(invoke('verify-promotion', policyResponses([promoted, channels[1]])).status).toBe(1)
 })
 it('verifies the selected production artifact after promotion', () => {
     const rows = [channelPolicy('ios', env.VERSION), channels[1]]
