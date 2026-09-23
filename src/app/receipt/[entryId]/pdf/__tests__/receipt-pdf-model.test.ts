@@ -187,6 +187,15 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(pending.convertedAmountDisplay).toBe('≈ EUR 21.33')
         expect(settled.convertedAmountDisplay).toBe('EUR 21.33')
         expect(cancelled.convertedAmountDisplay).toBeUndefined()
+        // refunded, or returned after settling: the money did convert
+        const refunded = buildReceiptPdfModel(withOverrides({ ...fx, status: 'refunded' }), t, 'en')
+        const returned = buildReceiptPdfModel(
+            withOverrides({ ...fx, status: 'failed' }, { wasReturned: true }),
+            t,
+            'en'
+        )
+        expect(refunded.convertedAmountDisplay).toBe('EUR 21.33')
+        expect(returned.convertedAmountDisplay).toBe('EUR 21.33')
     })
 
     test('cancelled entries drop fee/bank/transfer rows but keep the Date field', () => {

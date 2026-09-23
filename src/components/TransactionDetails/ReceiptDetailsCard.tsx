@@ -22,7 +22,12 @@ import {
     type BankAccountLabelKey,
     type ReceiptStatusDateKind,
 } from './transaction-details.utils'
-import { receiptConversionLine, receiptConvertedAmount, receiptExchangeRate } from './receipt-conversion.utils'
+import {
+    isSettledConversion,
+    receiptConversionLine,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from './receipt-conversion.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -134,11 +139,7 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.tokenAndNetwork && (
-                <ReceiptTokenRows
-                    transaction={transaction}
-                    isPeanutWalletToken={isPeanutWalletToken}
-                    showsTokenAmount={!rowVisibilityConfig.conversion}
-                />
+                <ReceiptTokenRows transaction={transaction} isPeanutWalletToken={isPeanutWalletToken} />
             )}
 
             {rowVisibilityConfig.txId && transaction.txHash && (
@@ -179,7 +180,7 @@ export function ReceiptDetailsCard({
                 second line; pending, it stays an estimate. */}
             {rowVisibilityConfig.conversion &&
                 convertedAmount &&
-                (transaction.status === 'completed' ? (
+                (isSettledConversion(transaction) ? (
                     <DataRow
                         label={t('rows.converted')}
                         value={

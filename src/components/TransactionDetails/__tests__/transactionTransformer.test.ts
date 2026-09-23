@@ -929,6 +929,20 @@ describe('mapTransactionDataForDrawer', () => {
             expect(drawer?.payerName).toBeUndefined()
         })
 
+        it('is not one for a Manteca deposit, whose sender is also a bank account', () => {
+            // peanut-api-ts src/manteca/history.ts: the user's own CBU transfer.
+            const drawer = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { identifier: 'Manteca Deposit', type: 'BANK_CBU', isUser: false },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'MANTECA' },
+                })
+            ).transactionDetails.extraDataForDrawer
+            expect(drawer?.isDepositAccountDeposit).toBeUndefined()
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
         it("is not one when the sender is the user's own wallet or an address", () => {
             expect(
                 deposit({ identifier: '0xabc', type: 'peanut-wallet', isUser: true })?.isDepositAccountDeposit

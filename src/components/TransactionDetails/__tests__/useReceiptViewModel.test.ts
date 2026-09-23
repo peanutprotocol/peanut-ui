@@ -237,6 +237,22 @@ describe('conversion rows — one conversion, one row', () => {
         expect(config.exchangeRate).toBe(true)
     })
 
+    it('refunded or returned after settling: the money did convert, so one Converted row', () => {
+        expect(renderConfig(eurDeposit('refunded')).exchangeRate).toBe(false)
+        const returnedWithdraw = withDrawer(
+            {
+                status: 'failed',
+                direction: 'bank_withdraw',
+                amount: 24.32,
+                currency: { code: 'EUR', amount: '21.33' },
+            },
+            { kind: 'OFFRAMP', receipt: { exchange_rate: '0.8769' }, wasReturned: true }
+        )
+        const config = renderConfig(returnedWithdraw)
+        expect(config.conversion).toBe(true)
+        expect(config.exchangeRate).toBe(false)
+    })
+
     it('cancelled: neither', () => {
         const config = renderConfig(eurDeposit('cancelled'))
         expect(config.conversion).toBe(false)

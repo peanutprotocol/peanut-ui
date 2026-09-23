@@ -440,6 +440,9 @@ export interface TransactionDetails {
         /** The payer's name as their bank reported it. Owner-only: the API
          *  withholds it from anyone else. Deposit-account deposits only. */
         payerName?: string
+        /** The provider reported the transfer as returned or refunded after
+         *  it settled. */
+        wasReturned?: boolean
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
@@ -662,11 +665,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // A deposit into the user's standing bank details. The wire carries no flag
     // for it, so read the shape the API gives it (peanut-api-ts
-    // src/db/history.ts, `isDepositAccount`): the payer's bank account is the
-    // sender, typed by its rail. Every other deposit names the user's own
-    // wallet ('peanut-wallet') or an on-chain address as the sender.
+    // src/db/history.ts, `isDepositAccount`): a Bridge deposit whose sender is
+    // the payer's bank account, typed by its rail. Every other Bridge deposit
+    // names the user's own wallet ('peanut-wallet') or an on-chain address as
+    // the sender. Manteca deposits also carry a bank sender (BANK_CBU), but
+    // they are the user's own transfer, so the provider gate is required.
     const isDepositAccountDeposit =
         direction === 'bank_deposit' &&
+        entry.extraData?.provider === 'BRIDGE' &&
         entry.senderAccount?.isUser === false &&
         !NON_BANK_SENDER_TYPES.has(entry.senderAccount.type)
 
@@ -748,6 +754,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             bridgeTransferId: entry.extraData?.bridgeTransferId,
             senderReference: senderNoteText(entry.extraData?.senderReference),
             isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            // The bank sent the money back after it settled, so the
+            // conversion happened even though the row reads as failed.
+            wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
             payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /

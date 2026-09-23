@@ -1,5 +1,10 @@
 // One conversion, one rule, for the details card and the PDF.
-import { receiptConversionLine, receiptConvertedAmount, receiptExchangeRate } from '../receipt-conversion.utils'
+import {
+    isSettledConversion,
+    receiptConversionLine,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from '../receipt-conversion.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 
@@ -71,16 +76,36 @@ describe('receiptExchangeRate', () => {
 
 describe('receiptConversionLine', () => {
     it('reads fiat → balance for money coming in', () => {
-        expect(receiptConversionLine(eurDeposit(), '+')).toBe('EUR 21.33 → 24.32 USDC')
+        expect(receiptConversionLine(eurDeposit(), '+')).toBe('EUR 21.33 → 24.32 USD')
     })
 
     it('reads balance → fiat for money going out', () => {
         expect(
             receiptConversionLine(eurDeposit({ amount: -33.25, currency: { code: 'ARS', amount: '30000' } }), '-')
-        ).toBe('33.25 USDC → ARS 30,000.00')
+        ).toBe('33.25 USD → ARS 30,000.00')
     })
 
     it('is nothing when there is no conversion', () => {
         expect(receiptConversionLine(eurDeposit({ currency: { code: 'USD', amount: '5' } }), '+')).toBeUndefined()
+    })
+})
+
+describe('isSettledConversion', () => {
+    it('is settled once completed, refunded, or returned after settling', () => {
+        expect(isSettledConversion(eurDeposit())).toBe(true)
+        expect(isSettledConversion(eurDeposit({ status: 'refunded' }))).toBe(true)
+        expect(
+            isSettledConversion(
+                eurDeposit({
+                    status: 'failed',
+                    extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', wasReturned: true },
+                })
+            )
+        ).toBe(true)
+    })
+
+    it('is an estimate while pending, or when it failed before settling', () => {
+        expect(isSettledConversion(eurDeposit({ status: 'pending' }))).toBe(false)
+        expect(isSettledConversion(eurDeposit({ status: 'failed' }))).toBe(false)
     })
 })

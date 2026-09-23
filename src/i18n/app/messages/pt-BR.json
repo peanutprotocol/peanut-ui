@@ -2202,7 +2202,6 @@
             "from": "De",
             "fromNameNotProvided": "Transferência bancária (nome não informado)",
             "to": "Para",
-            "tokenAmount": "Valor do token",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na {chain}",
             "txId": "ID da transação",

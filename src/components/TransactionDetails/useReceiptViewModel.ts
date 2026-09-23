@@ -10,7 +10,11 @@ import {
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
-import { receiptConvertedAmount, receiptExchangeRate } from '@/components/TransactionDetails/receipt-conversion.utils'
+import {
+    isSettledConversion,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
     hasResolvableReceiptDocument,
     servesAnonymousReceipt,
@@ -167,7 +171,7 @@ export function useReceiptViewModel(
         // rate into the "Converted" row; a pending one keeps the estimate
         // and the rate as two rows that say different things.
         const showsConversion = !!receiptConvertedAmount(transaction) && transaction.status !== 'cancelled'
-        const foldsRateIntoConversion = showsConversion && transaction.status === 'completed'
+        const foldsRateIntoConversion = showsConversion && isSettledConversion(transaction)
 
         const showsNetworkFee = !!(
             transaction.networkFeeDetails &&

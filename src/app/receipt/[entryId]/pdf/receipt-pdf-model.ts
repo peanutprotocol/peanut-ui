@@ -7,7 +7,11 @@ import {
     receiptStatusDate,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
-import { receiptConvertedAmount, receiptExchangeRate } from '@/components/TransactionDetails/receipt-conversion.utils'
+import {
+    isSettledConversion,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, formatCurrency, printableAddress } from '@/utils/general.utils'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
@@ -180,7 +184,7 @@ export function buildReceiptPdfModel(
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
         amountDisplay: `${headline.sign}$${formatCurrency(safeAmount.toString())}`,
-        convertedAmountDisplay: converted && status !== 'completed' ? `≈ ${converted}` : converted,
+        convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }

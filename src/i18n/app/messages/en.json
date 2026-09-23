@@ -2202,7 +2202,6 @@
             "from": "From",
             "fromNameNotProvided": "Bank transfer (name not provided)",
             "to": "To",
-            "tokenAmount": "Token amount",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on {chain}",
             "txId": "Transaction ID",

@@ -4,6 +4,7 @@ import React from 'react'
 import { screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReceiptDetailsCard } from '../ReceiptDetailsCard'
 import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -16,9 +17,11 @@ jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 function Card({ transaction, isPublic = false }: { transaction: TransactionDetails; isPublic?: boolean }) {
     const vm = useReceiptViewModel(transaction, { isPublic })
     return (
-        <ToastProvider>
-            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={false} />
-        </ToastProvider>
+        <QueryClientProvider client={new QueryClient()}>
+            <ToastProvider>
+                <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={false} />
+            </ToastProvider>
+        </QueryClientProvider>
     )
 }
 
@@ -68,10 +71,16 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
     it('prints a settled conversion once, with the rate, and no estimate', () => {
         renderWithIntl(<Card transaction={vaDeposit()} />)
         expect(screen.getByText('Converted')).toBeInTheDocument()
-        expect(screen.getByText('EUR 21.33 → 24.32 USDC')).toBeInTheDocument()
+        expect(screen.getByText('EUR 21.33 → 24.32 USD')).toBeInTheDocument()
         expect(screen.getByText('1 USD = EUR 0.8769')).toBeInTheDocument()
         expect(screen.queryByText('Estimate conversion')).not.toBeInTheDocument()
         expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
+    })
+
+    it('states a refunded deposit as converted, not as an estimate', () => {
+        renderWithIntl(<Card transaction={vaDeposit({ status: 'refunded' })} />)
+        expect(screen.getByText('Converted')).toBeInTheDocument()
+        expect(screen.queryByText('Estimate conversion')).not.toBeInTheDocument()
     })
 
     it('keeps the estimate wording only while pending', () => {
@@ -80,6 +89,30 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
         expect(screen.getByText('≈ EUR 21.33')).toBeInTheDocument()
         expect(screen.getByText('Exchange rate')).toBeInTheDocument()
         expect(screen.queryByText('Converted')).not.toBeInTheDocument()
+    })
+})
+
+describe('ReceiptDetailsCard — token rows', () => {
+    it('never prints a Token amount row, even on a cancelled non-stable withdraw', () => {
+        const tokenDetails = { tokenSymbol: 'ETH', chainName: 'Base', tokenIcon: 'x', chainIconUrl: '' }
+        renderWithIntl(
+            <Card
+                transaction={vaDeposit(
+                    {
+                        direction: 'withdraw',
+                        status: 'cancelled',
+                        tokenSymbol: 'ETH',
+                        tokenAmount: '0.0041',
+                        currency: undefined,
+                        sourceView: 'history',
+                        tokenDisplayDetails: tokenDetails,
+                    },
+                    { kind: 'CRYPTO_WITHDRAW', isDepositAccountDeposit: undefined }
+                )}
+            />
+        )
+        expect(screen.queryByText('Token amount')).not.toBeInTheDocument()
+        expect(screen.queryByText('24.32')).not.toBeInTheDocument()
     })
 })
 

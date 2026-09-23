@@ -1,7 +1,6 @@
 import type { TransactionDetails } from './transactionTransformer'
 import { isFxBearingFlow } from './transaction-predicates'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/wallet-token.consts'
 
 /**
  * The other side of a receipt's conversion: local fiat ("EUR 21.33") first,
@@ -36,9 +35,23 @@ export function receiptExchangeRate(transaction: TransactionDetails): string | u
 }
 
 /**
+ * Whether the conversion already happened: the entry settled, or it settled
+ * and the money was sent back afterwards. Settled, the receipt states the
+ * conversion; before that, it is an estimate.
+ */
+export function isSettledConversion(transaction: Pick<TransactionDetails, 'status' | 'extraDataForDrawer'>): boolean {
+    return (
+        transaction.status === 'completed' ||
+        transaction.status === 'refunded' ||
+        !!transaction.extraDataForDrawer?.wasReturned
+    )
+}
+
+/**
  * The settled conversion as one line, in the direction the money moved:
- * "EUR 21.33 → 24.32 USDC" for money coming in, "24.32 USDC → ARS 30,000"
- * for money going out.
+ * "EUR 21.33 → 24.32 USD" for money coming in, "24.32 USD → ARS 30,000"
+ * for money going out. USD, like the rate line ("1 USD = EUR 0.8769") and
+ * every other rate in the app.
  */
 export function receiptConversionLine(
     transaction: Pick<TransactionDetails, 'currency' | 'tokenSymbol' | 'tokenAmount' | 'amount'>,
@@ -47,6 +60,6 @@ export function receiptConversionLine(
     const converted = receiptConvertedAmount(transaction)
     if (!converted) return undefined
     const usd = Math.abs(Number(transaction.amount))
-    const balanceSide = `${formatCurrency(Number.isFinite(usd) ? usd.toString() : '0')} ${PEANUT_WALLET_TOKEN_SYMBOL}`
+    const balanceSide = `${formatCurrency(Number.isFinite(usd) ? usd.toString() : '0')} USD`
     return sign === '+' ? `${converted} → ${balanceSide}` : `${balanceSide} → ${converted}`
 }
