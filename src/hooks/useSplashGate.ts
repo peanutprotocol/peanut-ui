@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { localeApplied } from '@/i18n/app/locale-store'
+import { readStoredValue } from '@/utils/safe-storage'
 
 /*
  * Single owner of SplashScreen.hide() for native builds, mounted in
@@ -22,6 +23,17 @@ import { localeApplied } from '@/i18n/app/locale-store'
 // Module-level: hide exactly once per document, across remounts.
 let splashHidden = false
 let hardTimeoutArmed = false
+let finishOtaLaunchDecision: (() => void) | undefined
+const newOtaLaunchDecision = () =>
+    new Promise<void>((resolve) => {
+        finishOtaLaunchDecision = resolve
+    })
+let otaLaunchDecision = newOtaLaunchDecision()
+
+/** The updater has either handled the downloaded bundle or declined this launch. */
+export function completeOtaLaunchDecision(): void {
+    finishOtaLaunchDecision?.()
+}
 
 /*
  * hide() unblocks the first frame, and on Android that frame is what runs the
@@ -55,6 +67,12 @@ async function whenActive(): Promise<void> {
 
 async function hideSplash() {
     if (splashHidden) return
+    // Only launches with a previously downloaded OTA wait for the apply
+    // decision. Otherwise the usual first-frame timing stays unchanged.
+    if (readStoredValue('capgoDownloadedBundleId')) {
+        await Promise.race([otaLaunchDecision, new Promise<void>((resolve) => setTimeout(resolve, 2_000))])
+    }
+    if (splashHidden) return
     splashHidden = true
     try {
         await whenActive()
@@ -81,6 +99,7 @@ export function isSplashVisible(): boolean {
 export function resetSplashGateForTests(): void {
     splashHidden = false
     hardTimeoutArmed = false
+    otaLaunchDecision = newOtaLaunchDecision()
 }
 
 export function useSplashGate(): void {
