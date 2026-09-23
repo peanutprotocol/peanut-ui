@@ -6,9 +6,9 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
@@ -36,7 +36,7 @@ interface ActivationCTAsProps {
 
 interface StepConfig {
     icon: IconName
-    iconBg: string
+    iconColor: IconBubbleColor
     title: string
     description: string
     ctaLabel: string
@@ -199,7 +199,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         () => ({
             verify: {
                 icon: 'globe-lock',
-                iconBg: 'bg-action-primary',
+                iconColor: 'brand',
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
@@ -207,7 +207,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             deposit: {
                 icon: 'arrow-down',
-                iconBg: 'bg-action-primary',
+                iconColor: 'brand',
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
@@ -218,7 +218,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             card: {
                 icon: 'credit-card',
-                iconBg: 'bg-background-icon-bubble-yellow',
+                iconColor: 'yellow',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -227,7 +227,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             outbound: {
                 icon: 'qr-code',
-                iconBg: 'bg-action-primary',
+                iconColor: 'brand',
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
@@ -294,7 +294,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (isRegionRestricted) {
             return {
                 icon: 'globe-lock',
-                iconBg: 'bg-action-primary',
+                iconColor: 'brand',
                 title: tRegion('title'),
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),
@@ -324,7 +324,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (isEmailBlocked) {
                 return {
                     icon: 'globe-lock',
-                    iconBg: 'bg-action-primary',
+                    iconColor: 'brand',
                     title: t('addEmail.title'),
                     description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
@@ -334,7 +334,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
-                    iconBg: 'bg-action-primary',
+                    iconColor: 'brand',
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
@@ -352,7 +352,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (isRestartBlocked) {
                 return {
                     icon: 'globe-lock',
-                    iconBg: 'bg-action-primary',
+                    iconColor: 'brand',
                     title: tProviderRejection('restartTitle'),
                     description: localizedRejectionMessage || tProviderRejection('restartDescription'),
                     ctaLabel: tProviderRejection('restartTitle'),
@@ -362,7 +362,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // blocked
             return {
                 icon: 'globe-lock',
-                iconBg: 'bg-action-primary',
+                iconColor: 'brand',
                 title: t('verificationIssue.title'),
                 description: t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
@@ -429,9 +429,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     return (
         <Card position="solo" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
-                <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
-                    <Icon name={step.icon} size={24} />
-                </div>
+                <IconBubble icon={step.icon} color={step.iconColor} />
                 <div className="w-full text-center">
                     <div className="text-heading-card">{step.title}</div>
                     <div className="text-body-s text-foreground-secondary">{step.description}</div>
@@ -515,7 +513,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         {/* the head owns the M/12 beneath it; everything after it
                             keeps the drawer's L/16 rhythm */}
                         <div className="mb-3 flex w-full flex-col items-center gap-4">
-                            <IconBubble icon="credit-card" className="bg-action-primary" />
+                            <IconBubble icon="credit-card" color="brand" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
                                 <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>
