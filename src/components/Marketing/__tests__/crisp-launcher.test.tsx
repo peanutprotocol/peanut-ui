@@ -39,7 +39,9 @@ it.each(['browser sheet', 'native webview'])('suppresses the duplicate launcher 
         ['do', 'chat:close'],
         ['do', 'chat:hide'],
     ])
-    const onClosed = window.$crisp?.find((command) => command[0] === 'on' && command[1] === 'chat:closed')?.[2]
+    const onClosed = window.$crisp?.find(
+        (command: unknown[]) => command[0] === 'on' && command[1] === 'chat:closed'
+    )?.[2]
     expect(onClosed).toEqual(expect.any(Function))
     ;(onClosed as () => void)()
     expect(window.$crisp?.slice(-1)).toEqual([['do', 'chat:hide']])
