@@ -5,7 +5,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect } from 'react'
 import Loading from '@/components/Global/Loading'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -17,7 +17,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { BASE_URL } from '@/constants/general.consts'
 
 export default function RedirectQrSuccessPage() {
-    const t = useTranslations('qrPay')
+    // the app hook applies the iOS copy layer: the sticker text drops the points clause there
+    const t = useAppTranslations('qrPay')
     const params = useParams()
     const searchParams = useSearchParams()
     const code = (params?.code as string) || searchParams.get('code') || ''

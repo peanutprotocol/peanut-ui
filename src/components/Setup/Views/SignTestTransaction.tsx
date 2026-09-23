@@ -322,7 +322,7 @@ const SignTestTransaction = () => {
                 <div>
                     {/* In-app explainer instead of a browser redirect — leaving
                         the app mid-signup loses users (full guide inside). */}
-                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
                         <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
                     </p>
                 </div>
