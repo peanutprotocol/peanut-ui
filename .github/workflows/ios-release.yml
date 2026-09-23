@@ -52,6 +52,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
     # `production-release` here (which serialises iOS and Android for that path only —
@@ -61,7 +65,7 @@ concurrency:
     # deadlocking against its parent. A direct dispatch of this workflow is
     # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
     group: >-
-        ${{ github.event_name == 'push' && 'production-release'
+        ${{ github.event_name == 'push' && inputs.versionName == '' && 'production-release'
         || format('ios-release-{0}', github.ref) }}
     cancel-in-progress: false
 
@@ -143,6 +147,17 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
+                  # The 1.5.x bridge is the only production path for native 1.5.0
+                  # clients. Publishing a new .0 to this channel would strand them.
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      # New TestFlight binaries also check the bridge on launch.
+                      # Keep their iOS native contract compatible with its JS.
+                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the iOS 1.5.x bridge; the following OTA run publishes fresh main JS there"
+                      exit 0
+                  fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   if [ "$CURRENT" = builtin ]; then
                     echo "needs_ota=true" >> "$GITHUB_OUTPUT"
@@ -465,9 +480,8 @@ jobs:
                   # already in App Store Connect by then, so skip the wait.
                   wait-for-processing: 'false'
 
-            # Publish the native .0 record to this platform's channel. The other
-            # native job may reuse it only after exact source/floor/artifact checks;
-            # an existing record alone never counts as a successful upload.
+            # Publish a matching .0 only when this platform has no active legacy
+            # bridge. The shared record is verified before promotion.
             - name: Publish matching production OTA bundle
               if: steps.ota_floor.outputs.needs_ota == 'true' && github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'
               env:

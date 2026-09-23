@@ -1,13 +1,9 @@
 name: App Release Android & iOS
 
-# The single entry point for a store build. Click "Run workflow" on `dev`, `main`, or `release/android-kyc`; the
-# version is resolved here, not typed, and both platforms build from that one
-# number so they can never disagree about what a release is called.
-#
-# Nothing about this is automatic: no push, merge or commit reaches it. It is the
-# same deliberate act as the `git tag v… && git push` it replaces, minus the part
-# where a human picks the number — which is the part that let the native and OTA
-# lanes drift out of order (TASK-21793).
+# After every successful main-push OTA, build that same main commit for both
+# stores. A manual run on main retries the current head. The version is resolved
+# here, not typed, so iOS and Android share the same native version even though existing installs
+# remain on different versions.
 #
 # The tag is written afterwards, as the record of what shipped. A failed build
 # leaves no tag, so a re-run resolves the same number instead of burning one.
@@ -16,6 +12,10 @@ name: App Release Android & iOS
 # and to Play production stays a manual step in the respective consoles.
 
 on:
+    workflow_run:
+        workflows: ['App Release OTA']
+        types: [completed]
+        branches: [main]
     workflow_dispatch:
         inputs:
             track:
@@ -33,34 +33,45 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
-    # One mutex across every sanctioned production release: this workflow and its
-    # counterpart both end by writing the production Capgo channel, and interleaving
-    # them leaves it serving a bundle the newest binary rejects. An OTA that resolves
-    # its version before a concurrent native release publishes its `.0` is exactly the
-    # TASK-21793 shape, so the whole resolve-through-publish span holds the mutex.
+    # Retain each queued main push; GitHub's default single pending slot would
+    # silently cancel intermediate native releases during a busy merge period.
     group: production-release
     cancel-in-progress: false
+    queue: max
 
 jobs:
     resolve:
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success') }}
         runs-on: ubuntu-latest
+        environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # Only approved release branches may resolve a production version.
-            # Before dispatch, verify the selected commit includes the reviewed native
-            # changes and KYC fixes; the branch name alone does not prove readiness.
+            # The app tree in every job must be the exact main commit selected here.
             - name: Guard release ref
+              env:
+                  OTA_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || '' }}
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
-                      echo "::error::releases are cut from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "main" ] ||
+                     { [ "$GITHUB_EVENT_NAME" != "workflow_run" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; }; then
+                      echo "::error::native releases require a successful main OTA or a manual dispatch on main" >&2
+                      exit 1
+                  fi
+                  if [ "$GITHUB_EVENT_NAME" = workflow_run ] && [ "$GITHUB_SHA" != "$OTA_SOURCE_SHA" ]; then
+                      echo "::error::main advanced between OTA and native workflow start ($OTA_SOURCE_SHA -> $GITHUB_SHA)" >&2
                       exit 1
                   fi
 
             - uses: actions/checkout@v7
               with:
-                  # Full history + tags: the resolver reads the v<major>.<build>.0 tags.
+                  # workflow_run GITHUB_SHA is the default-branch commit. The guard
+                  # above proves it is the OTA's exact main commit.
+                  ref: ${{ github.sha }}
                   fetch-depth: 0
 
             - uses: actions/setup-node@v6
@@ -91,6 +102,26 @@ jobs:
                   fi
                   echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
+            - name: Require compatible legacy OTA lanes before either store upload
+              env:
+                  CAPGO_APP_ID: me.peanut.wallet
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: |
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+                  if [ "$BRIDGE" != active ]; then
+                      echo '::error::iOS 1.5.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
+                      exit 1
+                  fi
+                  node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
+                  echo "The iOS 1.5.x bridge remains compatible with this main commit"
+                  ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
+                  if [ "$ANDROID_BRIDGE" != active ]; then
+                      echo '::error::Android 1.6.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
+                      exit 1
+                  fi
+                  node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                  echo "The Android 1.6.x bridge remains compatible with this main commit"
+
             - name: Resolve next build version
               id: resolve
               run: |
@@ -119,7 +150,7 @@ jobs:
         secrets: inherit
         with:
             versionName: ${{ needs.resolve.outputs.version }}
-            track: ${{ inputs.track }}
+            track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}
             pushDebug: ${{ inputs.pushDebug }}
 
     tag:
@@ -129,6 +160,8 @@ jobs:
             contents: write
         steps:
             - uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.sha }}
 
             # GITHUB_TOKEN deliberately: GitHub does not start workflows from a push
             # made with it, so this records the release without re-triggering the
