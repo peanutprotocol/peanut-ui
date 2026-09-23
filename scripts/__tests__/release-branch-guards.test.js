@@ -51,7 +51,7 @@ function floorShell() {
         .join('\n')
 }
 
-function runFloors(manual) {
+function runFloors(bridgeActive) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-floors-'))
     const output = path.join(dir, 'output')
     const script = `
@@ -63,11 +63,12 @@ function runFloors(manual) {
                 *) return 1;;
             esac
         }
+        pnpm() { :; }
         ${floorShell()}
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
         encoding: 'utf8',
-        env: { ...process.env, MANUAL_MAIN_SOURCE: String(manual), GITHUB_OUTPUT: output },
+        env: { ...process.env, BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive', GITHUB_OUTPUT: output },
     })
     const floors = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
     fs.rmSync(dir, { recursive: true, force: true })
@@ -106,6 +107,8 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
         env: {
             ...process.env,
             RELEASE_VERSION: '1.6.4',
+            RELEASE_VERSION_IOS: '1.6.4-ios',
+            BRIDGE_ACTIVE: 'inactive',
             FLOOR_ANDROID: '1.6.0',
             FLOOR_IOS: '1.5.0',
             EXPECTED_MAIN_SHA: expectedMainSha,
@@ -160,9 +163,9 @@ describe('release-ota.yml publishes main source', () => {
         expect(workflow).toContain('OTA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}')
     })
 
-    it('limits the older main updater to its native version while retaining platform floors for new builds', () => {
-        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
-        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
+    it('holds the iOS delivery floor until the bridge is active', () => {
+        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
+        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
     })
 
     it('rechecks main after the build and immediately before each platform promotion', () => {
