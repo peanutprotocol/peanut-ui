@@ -435,7 +435,14 @@ export const SetupWrapper = memo(function SetupWrapper({
     const animatePanelIn = slideUpPanel && !prefersReducedMotion
 
     return (
-        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto">
+        <div
+            className={twMerge(
+                'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto',
+                // The first panel rises from below the viewport. Fill the exposed
+                // space with the same blue as the hero, not the page beige.
+                screenId === 'landing' && 'bg-background-setup-hero'
+            )}
+        >
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}

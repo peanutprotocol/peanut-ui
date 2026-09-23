@@ -278,6 +278,7 @@ describe('SetupWrapper transitions', () => {
         const shell = container.firstElementChild
         const hero = screen.getByTestId('mascot').closest('.setup-hero-background')
         const panel = screen.getByText('First step').closest('.bg-white')
+        expect(shell).toHaveClass('bg-background-setup-hero')
 
         rerender(
             <SetupWrapper
@@ -293,6 +294,7 @@ describe('SetupWrapper transitions', () => {
         )
 
         expect(container.firstElementChild).toBe(shell)
+        expect(shell).not.toHaveClass('bg-background-setup-hero')
         expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toBe(hero)
         expect(screen.getByText('Second step').closest('.bg-white')).toBe(panel)
         expect(hero).toHaveClass('h-[47dvh]', 'shrink-0')
