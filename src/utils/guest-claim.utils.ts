@@ -17,6 +17,9 @@ export const GUEST_CLAIM_ERROR_CODES = {
     amountMismatch: 'GUEST_CLAIM_AMOUNT_MISMATCH',
     overLimit: 'GUEST_CLAIM_OVER_LIMIT',
     alreadyClaimed: 'GUEST_CLAIM_ALREADY_CLAIMED',
+    claimInProgress: 'GUEST_CLAIM_IN_PROGRESS',
+    accountLimit: 'GUEST_CLAIM_ACCOUNT_LIMIT',
+    accountMismatch: 'GUEST_CLAIM_ACCOUNT_MISMATCH',
 } as const
 
 export function guestBankAccountMessage(sendLinkPubKey: string): string {
@@ -41,8 +44,24 @@ export function signWithLinkKey(link: string, message: string): Promise<string> 
     return privateKeyToAccount(linkKeys(link).privateKey).signMessage({ message })
 }
 
+/**
+ * The account owner's name as the provider records it: the business name for
+ * a business, else first and last name. The API checks the travel-rule
+ * beneficiary against it.
+ */
+export function accountOwnerNameOf(owner: { firstName?: string; lastName?: string; businessName?: string }): string {
+    return owner.businessName?.trim() || `${owner.firstName ?? ''} ${owner.lastName ?? ''}`.trim()
+}
+
 /** Which copy to show for a failed guest bank claim. */
-export type GuestClaimErrorKind = 'overLimit' | 'alreadyClaimed' | 'notClaimable' | 'unsupported' | 'linkInvalid'
+export type GuestClaimErrorKind =
+    | 'overLimit'
+    | 'alreadyClaimed'
+    | 'notClaimable'
+    | 'unsupported'
+    | 'linkInvalid'
+    | 'inProgress'
+    | 'accountLimit'
 
 /**
  * Map a guest claim refusal to its copy. A 403 without a code is the shared
@@ -59,9 +78,14 @@ export function guestClaimErrorKind(code: string | undefined, status: number | u
             return 'notClaimable'
         case GUEST_CLAIM_ERROR_CODES.senderNotEligible:
             return 'unsupported'
+        case GUEST_CLAIM_ERROR_CODES.claimInProgress:
+            return 'inProgress'
+        case GUEST_CLAIM_ERROR_CODES.accountLimit:
+            return 'accountLimit'
         case GUEST_CLAIM_ERROR_CODES.invalidSignature:
         case GUEST_CLAIM_ERROR_CODES.linkNotFound:
         case GUEST_CLAIM_ERROR_CODES.amountMismatch:
+        case GUEST_CLAIM_ERROR_CODES.accountMismatch:
             return 'linkInvalid'
     }
     if (status === 403) return 'unsupported'

@@ -1325,7 +1325,9 @@
                 "alreadyClaimed": "This link has already been claimed to a bank account.",
                 "notClaimable": "This link can no longer be claimed.",
                 "unsupported": "This link cannot be claimed to a bank account. Claim it to a wallet instead.",
-                "linkInvalid": "We could not verify this link. Open the link again and try once more."
+                "linkInvalid": "We could not verify this link. Open the link again and try once more.",
+                "inProgress": "This link is being claimed right now. Wait a moment and try again.",
+                "accountLimit": "Too many bank accounts were added for this link. Contact support to claim it."
             }
         },
         "manteca": {

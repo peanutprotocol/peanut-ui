@@ -15,7 +15,7 @@ import { getCountryFromPath } from '@/utils/bridge.utils'
 import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { guestBankAccountMessage, guestBankClaimMessage } from '@/utils/guest-claim.utils'
 import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
-import { createOfframpForGuest } from '@/app/actions/offramp'
+import { confirmOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { getUserById } from '@/app/actions/users'
 
 const ctx: Record<string, any> = {}
@@ -139,7 +139,11 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({ __esModule: true, de
 jest.mock('@/components/Common/CountryListRouter', () => ({ CountryListRouter: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => undefined }))
-jest.mock('@/components/Claim/useClaimLink', () => ({ __esModule: true, default: () => ({ claimLink: jest.fn() }) }))
+const mockClaimLink = jest.fn()
+jest.mock('@/components/Claim/useClaimLink', () => ({
+    __esModule: true,
+    default: () => ({ claimLink: mockClaimLink }),
+}))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
 jest.mock('@/utils/peanut-claim.utils', () => ({
     getContractAddress: () => '0x0',
@@ -250,4 +254,17 @@ test('an unsupported account refusal is returned to the form with its copy', asy
 
     expect(formResult).toEqual({ error: 'bank.guestErrors.unsupported' })
     expect(ctx.flowStep).toBe('bank-details-form')
+})
+
+test('claims on-chain to the deposit address and skips the login-only confirm call', async () => {
+    mockCreateGuestOfframp.mockResolvedValue({
+        data: { transferId: 'transfer-1', depositInstructions: { toAddress: '0xdeposit' } },
+    })
+    mockClaimLink.mockResolvedValue('0xclaimtx')
+    render(<BankFlowManager {...props} />)
+    await reachConfirmAndClaim()
+
+    expect(mockClaimLink).toHaveBeenCalledWith(expect.objectContaining({ address: '0xdeposit' }))
+    expect(confirmOfframp).not.toHaveBeenCalled()
+    expect(props.onCustom).toHaveBeenCalledWith('SUCCESS')
 })

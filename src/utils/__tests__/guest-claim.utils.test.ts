@@ -1,6 +1,7 @@
 import { verifyMessage } from 'viem'
 import {
     GUEST_CLAIM_ERROR_CODES,
+    accountOwnerNameOf,
     getSendLinkPubKey,
     guestBankAccountMessage,
     guestBankClaimMessage,
@@ -46,6 +47,9 @@ describe('guestClaimErrorKind', () => {
         [GUEST_CLAIM_ERROR_CODES.senderNotEligible, 409, 'unsupported'],
         [GUEST_CLAIM_ERROR_CODES.invalidSignature, 403, 'linkInvalid'],
         [GUEST_CLAIM_ERROR_CODES.amountMismatch, 400, 'linkInvalid'],
+        [GUEST_CLAIM_ERROR_CODES.accountMismatch, 400, 'linkInvalid'],
+        [GUEST_CLAIM_ERROR_CODES.claimInProgress, 409, 'inProgress'],
+        [GUEST_CLAIM_ERROR_CODES.accountLimit, 409, 'accountLimit'],
     ])('maps %s to %s copy', (code, status, kind) => {
         expect(guestClaimErrorKind(code, status)).toBe(kind)
     })
@@ -57,5 +61,15 @@ describe('guestClaimErrorKind', () => {
     it('leaves anything else to the API message', () => {
         expect(guestClaimErrorKind(undefined, 422)).toBeNull()
         expect(guestClaimErrorKind(undefined, undefined)).toBeNull()
+    })
+})
+
+describe('accountOwnerNameOf', () => {
+    it('uses the business name for a business owner', () => {
+        expect(accountOwnerNameOf({ businessName: 'Acme SA' })).toBe('Acme SA')
+    })
+
+    it('uses first and last name for a person', () => {
+        expect(accountOwnerNameOf({ firstName: 'Ana', lastName: 'Perez' })).toBe('Ana Perez')
     })
 })

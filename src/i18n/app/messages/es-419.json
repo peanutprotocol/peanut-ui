@@ -1325,7 +1325,9 @@
                 "alreadyClaimed": "Este enlace ya se reclamó a una cuenta bancaria.",
                 "notClaimable": "Este enlace ya no se puede reclamar.",
                 "unsupported": "Este enlace no se puede reclamar a una cuenta bancaria. Reclámalo a una billetera.",
-                "linkInvalid": "No pudimos verificar este enlace. Ábrelo de nuevo e inténtalo otra vez."
+                "linkInvalid": "No pudimos verificar este enlace. Ábrelo de nuevo e inténtalo otra vez.",
+                "inProgress": "Este enlace se está reclamando ahora mismo. Espera un momento e inténtalo otra vez.",
+                "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contacta a soporte para reclamarlo."
             }
         },
         "manteca": {

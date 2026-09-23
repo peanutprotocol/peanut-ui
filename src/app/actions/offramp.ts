@@ -66,6 +66,8 @@ export async function createOfframpForGuest(
         const response = await serverFetch('/bridge/offramp/create-for-guest', {
             method: 'POST',
             body: JSON.stringify(params),
+            // the guest's name, address and link signature must not reach telemetry
+            redactTelemetry: true,
             // same budget as createOfframp: the endorsement grant can run inside this request
             timeoutMs: 60_000,
         })

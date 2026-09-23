@@ -28,7 +28,7 @@ import {
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
-import { addBankAccount, getUserById } from '@/app/actions/users'
+import { addBankAccount } from '@/app/actions/users'
 import SavedAccountsView from '../../../Common/SavedAccountsView'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
@@ -54,6 +54,7 @@ import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-
 import {
     guestBankAccountMessage,
     guestBankClaimMessage,
+    accountOwnerNameOf,
     guestClaimErrorKind,
     getSendLinkPubKey,
     signWithLinkKey,
@@ -188,15 +189,19 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
                 setTransactionHash(claimTx)
 
-                try {
-                    await confirmOfframp(details.transferId, claimTx)
-                } catch (confirmErr) {
-                    // On-chain claim already executed; the BE has the transfer row
-                    // and Bridge will process the deposit. Log + fall through to the
-                    // SUCCESS view rather than throwing — re-confirming retries are
-                    // safe to drop since the BE poller/webhook will reconcile.
-                    Sentry.captureException(confirmErr)
-                    console.error('confirmOfframp failed after on-chain claim succeeded', confirmErr)
+                // Confirm needs a session, which a guest does not have. The BE
+                // poller/webhook completes a guest's transfer from Bridge's side.
+                if (bankClaimType !== BankClaimType.GuestBankClaim) {
+                    try {
+                        await confirmOfframp(details.transferId, claimTx)
+                    } catch (confirmErr) {
+                        // On-chain claim already executed; the BE has the transfer row
+                        // and Bridge will process the deposit. Log + fall through to the
+                        // SUCCESS view rather than throwing — re-confirming retries are
+                        // safe to drop since the BE poller/webhook will reconcile.
+                        Sentry.captureException(confirmErr)
+                        console.error('confirmOfframp failed after on-chain claim succeeded', confirmErr)
+                    }
                 }
 
                 if (setClaimType) setClaimType('claim-bank')
@@ -216,7 +221,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 throw e
             }
         },
-        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user, campaignTag, toFriendlyError]
+        [
+            claimLink,
+            claimLinkData.link,
+            setTransactionHash,
+            setClaimType,
+            onCustom,
+            user,
+            campaignTag,
+            toFriendlyError,
+            bankClaimType,
+        ]
     )
 
     /**
@@ -285,8 +300,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     ),
                     source,
                     destination,
-                    // travel rule: the guest claimer is the beneficiary
-                    beneficiaryName: `${account.firstName} ${account.lastName}`.trim(),
+                    // travel rule: the guest claimer — the account owner — is the beneficiary
+                    beneficiaryName: account.accountOwnerName || accountOwnerNameOf(account),
                     ...(account.street &&
                         account.city &&
                         account.country && {
@@ -520,6 +535,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     id: externalAccountResponse.id,
                     bridgeAccountId: externalAccountResponse.id,
                     name: externalAccountResponse.bank_name ?? rawData.name,
+                    // the owner as the provider records it — a business name for a business
+                    accountOwnerName: accountOwnerNameOf(payload.accountOwnerName),
                 }
                 setLocalBankDetails(finalBankDetails)
                 setBankDetails(finalBankDetails)
@@ -580,12 +597,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         const resolvedCountry = getCountryFromAccount(account)
                         if (resolvedCountry) setSelectedCountry(resolvedCountry)
 
-                        const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
-                        const userForOfframp = isGuestFlow
-                            ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                            : user?.user
-                        if (userForOfframp && !('error' in userForOfframp) && !isGuestFlow) {
-                            setReceiverFullName(userForOfframp.fullName ?? '')
+                        if (bankClaimType !== BankClaimType.GuestBankClaim && user?.user) {
+                            setReceiverFullName(user.user.fullName ?? '')
                         }
 
                         setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
