@@ -6,6 +6,8 @@ import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
+import { AmountKeyGrid } from './AmountKeyGrid'
+import { formatKeypadAmount } from './keypad.utils'
 
 // Used for internal calculations, not displayed to the user
 const DECIMAL_SCALE = 18 // Max expected decimal places for any denomination
@@ -69,11 +71,22 @@ const AmountInput = ({
     defaultSliderSuggestedAmount,
 }: AmountInputProps) => {
     const t = useTranslations('global')
+    const tAmount = useTranslations('payment.amountEntry')
     const [isFocused, setIsFocused] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
     const shouldAutoFocus = deviceType === DeviceType.WEB
     const showConversion = !hideCurrencyToggle && !!secondaryDenomination
+
+    useEffect(() => {
+        if (!window.matchMedia) return
+        const media = window.matchMedia('(max-width: 767px)')
+        const update = () => setIsMobile(media.matches)
+        update()
+        media.addEventListener?.('change', update)
+        return () => media.removeEventListener?.('change', update)
+    }, [])
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(initialAmount || '')
@@ -282,6 +295,32 @@ const AmountInput = ({
         onBalanceFilled?.(fillValue)
     }, [fillValue, onBalanceFilled])
 
+    const changeAmount = useCallback(
+        (value: string) => {
+            isEditingRef.current = true
+            const formatted = formatTokenAmount(value, denominations[displaySymbol].decimals, true) ?? value
+            if (formatted === displayValue) return
+            setDisplayValue(formatted)
+            setExactValue(Number(formatted.replace(/,/g, '')) * 10 ** DECIMAL_SCALE)
+        },
+        [denominations, displaySymbol, displayValue]
+    )
+
+    const switchCurrency = useCallback(() => {
+        isEditingRef.current = true
+        if (!hasValue) {
+            setDisplayValue('')
+            setExactValue(0)
+            setDisplaySymbol(alternativeDisplaySymbol)
+            return
+        }
+        setExactValue(alternativeValue)
+        setDisplayValue(
+            Number(alternativeDisplayValue.replace(/,/g, '')) === 0 ? '0' : alternativeDisplayValue.replace(/,/g, '')
+        )
+        setDisplaySymbol(alternativeDisplaySymbol)
+    }, [hasValue, alternativeDisplaySymbol, alternativeValue, alternativeDisplayValue])
+
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length
     // add extra space for decimal numbers to prevent cutoff
@@ -299,8 +338,75 @@ const AmountInput = ({
     // of mount and silently no-ops when the input mounts after a client-side
     // navigation/step transition (the add-money amount screen regressed this way).
     useEffect(() => {
-        if (shouldAutoFocus) inputRef.current?.focus()
-    }, [shouldAutoFocus])
+        if (shouldAutoFocus && !window.matchMedia?.('(max-width: 767px)').matches) inputRef.current?.focus()
+    }, [shouldAutoFocus, isMobile])
+
+    if (isMobile) {
+        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$'}${walletBalance}`
+        return (
+            <div className={`flex w-full flex-col items-center gap-4 ${className || ''}`}>
+                <div className="flex w-full flex-col items-center gap-2 py-3">
+                    {walletBalance && !hideBalance && (
+                        <div className="flex min-h-11 items-center justify-center gap-1 text-body-s text-foreground-secondary">
+                            <span>{t('amountInput.balance')}</span>
+                            {fillValue ? (
+                                <button
+                                    type="button"
+                                    onClick={fillBalance}
+                                    aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
+                                    className="min-h-11 min-w-11 px-1 underline underline-offset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                >
+                                    {balanceAmount}
+                                </button>
+                            ) : (
+                                <span>{balanceAmount}</span>
+                            )}
+                        </div>
+                    )}
+                    <output
+                        aria-label={tAmount('amountValue')}
+                        className="max-w-full truncate text-heading-big-input text-foreground-primary"
+                    >
+                        {formatKeypadAmount(displayValue, displaySymbol)}
+                    </output>
+                    {showConversion && (
+                        <div className="flex min-h-11 items-center gap-2">
+                            <span
+                                className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
+                            >
+                                ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}
+                            </span>
+                            <button
+                                type="button"
+                                aria-label={t('amountInput.switchCurrency')}
+                                onClick={switchCurrency}
+                                disabled={disabled}
+                                className="flex min-h-11 min-w-11 items-center justify-center focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                            >
+                                <IconComponent name="arrow-exchange" className="rotate-90" width={24} height={24} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+                {infoContent}
+                {showSlider && maxAmount && (
+                    <div className="h-14 w-full px-2">
+                        <Slider
+                            onValueChange={onSliderValueChange}
+                            value={[(exactValue / 10 ** DECIMAL_SCALE / maxAmount) * 100]}
+                            defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+                        />
+                    </div>
+                )}
+                <AmountKeyGrid
+                    value={displayValue}
+                    onChange={changeAmount}
+                    maxDecimals={denominations[displaySymbol].decimals}
+                    disabled={disabled}
+                />
+            </div>
+        )
+    }
 
     return (
         <form
@@ -330,18 +436,7 @@ const AmountInput = ({
                             // 48px input clipped the digits at the baseline
                             className={`h-16 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
-                            onChange={(e) => {
-                                isEditingRef.current = true
-                                let value = e.target.value
-                                const maxDecimals = denominations[displaySymbol].decimals
-                                const formattedAmount = formatTokenAmount(value, maxDecimals, true)
-                                if (formattedAmount !== undefined) {
-                                    value = formattedAmount
-                                }
-                                if (value === displayValue) return
-                                setDisplayValue(value)
-                                setExactValue(Number(value) * 10 ** DECIMAL_SCALE)
-                            }}
+                            onChange={(e) => changeAmount(e.target.value)}
                             ref={inputRef}
                             inputMode="decimal"
                             type="text"
@@ -422,23 +517,7 @@ const AmountInput = ({
                     className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
-                        // keep editing state true - user is interacting, prevent sync from initialAmount
-                        // that could cause feedback loops with async URL state updates
-                        isEditingRef.current = true
-                        // If no meaningful value entered, just switch symbol and keep empty
-                        if (!hasValue) {
-                            setDisplayValue('')
-                            setExactValue(0)
-                            setDisplaySymbol(alternativeDisplaySymbol)
-                            return
-                        }
-                        setExactValue(alternativeValue)
-                        setDisplayValue(
-                            Number(alternativeDisplayValue.replace(/,/g, '')) === 0
-                                ? '0'
-                                : alternativeDisplayValue.replace(/,/g, '')
-                        )
-                        setDisplaySymbol(alternativeDisplaySymbol)
+                        switchCurrency()
                     }}
                 >
                     <IconComponent

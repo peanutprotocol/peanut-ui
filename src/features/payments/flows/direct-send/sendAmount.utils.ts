@@ -1,17 +1,6 @@
-export type AmountKey = 'delete' | 'decimal' | `${number}`
+export { pressAmountKey } from '@/components/Global/AmountInput/keypad.utils'
 
 const MAX_WHOLE_DIGITS = 10
-
-export function pressAmountKey(current: string, key: AmountKey): string {
-    if (key === 'delete') return current.slice(0, -1)
-    if (key === 'decimal') return current.includes('.') ? current : `${current || '0'}.`
-
-    const value = current === '0' || current === '0.00' ? '' : current
-    const [whole, fraction] = value.split('.')
-    if (fraction !== undefined && fraction.length >= 2) return value
-    if (fraction === undefined && whole.replace(/^0+/, '').length >= MAX_WHOLE_DIGITS) return value
-    return `${value}${key}`
-}
 
 export function formatSendAmount(value: string): string {
     if (!value) return '$0'

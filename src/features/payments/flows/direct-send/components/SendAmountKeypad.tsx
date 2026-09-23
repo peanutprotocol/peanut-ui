@@ -2,30 +2,15 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { AmountKeyGrid } from '@/components/Global/AmountInput/AmountKeyGrid'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import { formatTokenAmount } from '@/utils/general.utils'
-import { formatSendAmount, parseClipboardAmount, pressAmountKey, type AmountKey } from '../sendAmount.utils'
-
-const KEYS: { label: string; value: AmountKey; ariaLabel?: string }[] = [
-    { label: '1', value: '1' },
-    { label: '2', value: '2' },
-    { label: '3', value: '3' },
-    { label: '4', value: '4' },
-    { label: '5', value: '5' },
-    { label: '6', value: '6' },
-    { label: '7', value: '7' },
-    { label: '8', value: '8' },
-    { label: '9', value: '9' },
-    { label: '.', value: 'decimal' },
-    { label: '0', value: '0' },
-    { label: '⌫', value: 'delete' },
-]
+import { formatSendAmount, parseClipboardAmount } from '../sendAmount.utils'
 
 interface SendAmountKeypadProps {
     amount: string
@@ -178,10 +163,8 @@ export function SendAmountKeypad({
             </div>
             <div className="mb-3 flex min-h-12 items-center justify-center">{children}</div>
             <div
-                role="group"
-                aria-label={t('keypad')}
                 aria-hidden={commentActive}
-                className={`grid w-full grid-cols-3 ${commentActive ? 'pointer-events-none invisible' : ''}`}
+                className={`w-full ${commentActive ? 'pointer-events-none invisible' : ''}`}
                 onPaste={(event) => {
                     if (disabled || commentActive) return
                     const parsed = parseClipboardAmount(event.clipboardData.getData('text'))
@@ -191,23 +174,12 @@ export function SendAmountKeypad({
                     }
                 }}
             >
-                {KEYS.map(({ label, value }, index) => (
-                    <div
-                        key={value}
-                        className={`${index % 3 !== 2 ? 'border-r' : ''} ${index < 9 ? 'border-b' : ''} border-border-subtle`}
-                    >
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-15 w-full rounded-none p-0 text-heading-s"
-                            onClick={() => onAmountChange(pressAmountKey(amount, value))}
-                            aria-label={value === 'delete' ? t('delete') : value === 'decimal' ? t('decimal') : label}
-                            disabled={disabled}
-                        >
-                            {label}
-                        </Button>
-                    </div>
-                ))}
+                <AmountKeyGrid
+                    value={amount}
+                    onChange={onAmountChange}
+                    disabled={disabled || commentActive}
+                    className={commentActive ? 'pointer-events-none invisible' : ''}
+                />
             </div>
         </div>
     )
