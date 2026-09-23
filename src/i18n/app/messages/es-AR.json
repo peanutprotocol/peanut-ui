@@ -190,7 +190,8 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR"
+                "qrPay": "Pagos QR",
+                "pixKey": "Pagos con clave Pix"
             },
             "chips": {
                 "active": "Disponible",
@@ -252,7 +253,8 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "pixKey": "Pagá cualquier clave Pix en Brasil."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
@@ -263,7 +265,8 @@
                 "usd": "Mové dólares entre tu banco y Peanut.",
                 "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guardá y mové euros sin un banco local.",
-                "qrPay": "Escaneá y pagá donde vivís."
+                "qrPay": "Escaneá y pagá donde vivís.",
+                "pixKey": "Pagá cualquier clave Pix, sin QR."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué podés hacer",
@@ -271,7 +274,8 @@
             },
             "waysTitle": "Agregar y retirar dinero",
             "waysSubtitle": "Mové dinero entre tu banco y Peanut en estas monedas.",
-            "qrPayNote": "Brasil y Argentina. Pagá en comercios escaneando un código QR."
+            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
+            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria."
         },
         "backup": {
             "nonCustodial": {

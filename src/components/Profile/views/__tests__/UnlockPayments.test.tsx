@@ -822,7 +822,7 @@ describe('UnlockPayments', () => {
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
             // lines at 375px; the description holds it in two
-            expect(screen.getByText('Brazil and Argentina. Pay in shops by scanning a QR code.')).toBeInTheDocument()
+            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
 
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
@@ -842,6 +842,27 @@ describe('UnlockPayments', () => {
                 within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
             ).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
+        // A Brazilian user read "QR payments" as scan-only and paid Pix keys
+        // in another app (2026-09-23). The key send is its own row.
+        it('names Pix key payments with the key types, and offers them to a user without QR', () => {
+            render()
+
+            expect(screen.getByText('Brazil. CPF, CNPJ, phone, email or random key.')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Pix key payments'))
+            expect(screen.getByText('unlock-modal-open:Pix key payments')).toBeInTheDocument()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('opens the send-to-Pix-key screen once the QR rail is live', () => {
+            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
+            render()
+
+            const pixKeyRow = screen.getByText('Pix key payments')
+            expect(within(pixKeyRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            fireEvent.click(pixKeyRow)
+            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
         })
 
         it('the bank list never mentions QR any more', () => {

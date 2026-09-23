@@ -39,7 +39,7 @@
             "mexico": "Mexico",
             "descriptions": {
                 "argentina": "Only Mercado Pago QR payments",
-                "brazil": "Only PIX QR payments"
+                "brazil": "Only Pix QR and Pix key payments"
             }
         },
         "tryDifferentCountry": "Please try a different country.",
@@ -365,7 +365,8 @@
                 "usd": "USD · Bank transfer",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments"
+                "qrPay": "QR payments",
+                "pixKey": "Pix key payments"
             },
             "chips": {
                 "active": "Available",
@@ -401,7 +402,7 @@
             "review": {
                 "sinceDate": "ID check in review since {submittedDate}",
                 "since": "ID check in review",
-                "body": "Nothing is needed from you. We'll notify you the moment there's a decision.",
+                "body": "Nothing to do now. We'll notify you of the decision.",
                 "escalation": "This is taking longer than usual.",
                 "messageUs": "Message us and we'll chase it"
             },
@@ -428,7 +429,8 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
+                "pixKey": "Pay any Pix key in Brazil."
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
@@ -439,7 +441,8 @@
                 "usd": "Move dollars between your bank and Peanut.",
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
-                "qrPay": "Scan and pay where you live."
+                "qrPay": "Scan and pay where you live.",
+                "pixKey": "Pay any Pix key, no QR needed."
             },
             "detailsDrawer": {
                 "aboutTitle": "What you can do",
@@ -447,7 +450,8 @@
             },
             "waysTitle": "Add and withdraw money",
             "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
-            "qrPayNote": "Brazil and Argentina. Pay in shops by scanning a QR code."
+            "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
+            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key."
         },
         "backup": {
             "title": "Backup",

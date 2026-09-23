@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Só pagamentos com QR do Mercado Pago",
-                "brazil": "Só pagamentos com QR Pix"
+                "brazil": "Só pagamentos Pix por QR ou chave"
             }
         },
         "tryDifferentCountry": "Tente outro país.",
@@ -365,7 +365,8 @@
                 "usd": "USD · Transferência bancária",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferência bancária",
-                "qrPay": "Pagamentos QR"
+                "qrPay": "Pagamentos QR",
+                "pixKey": "Pagamentos por chave Pix"
             },
             "chips": {
                 "active": "Disponível",
@@ -428,7 +429,8 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR."
+                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
+                "pixKey": "Pague qualquer chave Pix no Brasil."
             },
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
@@ -439,7 +441,8 @@
                 "usd": "Movimente dólares entre seu banco e o Peanut.",
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
-                "qrPay": "Escaneie e pague onde você mora."
+                "qrPay": "Escaneie e pague onde você mora.",
+                "pixKey": "Pague qualquer chave Pix, sem QR code."
             },
             "detailsDrawer": {
                 "aboutTitle": "O que você pode fazer",
@@ -447,7 +450,8 @@
             },
             "waysTitle": "Adicionar e sacar dinheiro",
             "waysSubtitle": "Movimente dinheiro entre seu banco e o Peanut nestas moedas.",
-            "qrPayNote": "Brasil e Argentina. Pague em lojas escaneando um código QR."
+            "qrPayNote": "Escaneie o QR code de uma loja no Brasil ou na Argentina.",
+            "pixKeyNote": "Brasil. CPF, CNPJ, telefone, e-mail ou chave aleatória."
         },
         "backup": {
             "title": "Backup",

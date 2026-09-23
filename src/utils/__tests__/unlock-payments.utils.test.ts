@@ -27,13 +27,31 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('the spending methods are their own group: the card, then QR payments', () => {
+    it('the spending methods are their own group: the card, QR payments, then Pix keys', () => {
         const groups = buildUnlockGroups(base())
         expect(groups[1].id).toBe('spend')
         expect(groups[1].rows.map((r) => [r.id, r.chip])).toEqual([
             ['card', 'unlock'],
             ['qr-pay', 'unlock'],
+            ['pix-key', 'unlock'],
         ])
+    })
+
+    it('Pix keys share the QR capability: a link to the key screen once available, else the LATAM offer', () => {
+        const payOnly = buildUnlockGroups(base({ canPayQr: true }))
+        expect(group(payOnly, 'spend').rows[2]).toEqual(
+            expect.objectContaining({ chip: 'active', href: '/withdraw/manteca?method=pix&country=brazil' })
+        )
+
+        const without = buildUnlockGroups(base())
+        expect(group(without, 'spend').rows[2]).toEqual(
+            expect.objectContaining({ chip: 'unlock', regionPath: 'latam' })
+        )
+        expect(group(without, 'spend').rows[2].href).toBeUndefined()
+
+        const restricted = buildUnlockGroups(base({ canPayQr: true, restrictions: { banking: true, card: false } }))
+        expect(group(restricted, 'spend').rows[2]).toEqual(expect.objectContaining({ chip: 'notAvailable' }))
+        expect(group(restricted, 'spend').rows[2].href).toBeUndefined()
     })
 
     it('QR payments read Available on the pay capability alone, with no bank access', () => {
