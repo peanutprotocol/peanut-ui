@@ -16,6 +16,7 @@ import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
 import { useRenameAccount } from '@/features/destinations/useRenameAccount'
@@ -73,9 +74,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
+    // A currency picked upstream (exchange-rate widget) pre-filters the
+    // all-methods list; it does not skip the saved accounts (TASK-22294).
     const [currencyCode] = useQueryState('currencyCode', parseAsString)
-    // if currencyCode is present, show all methods
-    const showAll = showAllParam || !!currencyCode
+    const [urlAmount] = useWithdrawAmount()
+    const showAll = showAllParam
 
     // The rail the user already picked, if any. Its own parameter on purpose:
     // `method` is the Send-flow origin marker (useSendFlowOrigin), and reusing it
@@ -238,6 +241,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                                     destination: account.identifier,
                                     isSavedAccount: 'true',
                                     sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                    // seeds the manteca amount step (useMantecaAmountSeed)
+                                    amount: urlAmount || undefined,
                                 })
                             )
                             return

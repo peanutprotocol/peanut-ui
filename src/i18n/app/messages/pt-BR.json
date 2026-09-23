@@ -708,7 +708,8 @@
             "free": "Grátis!",
             "arrivesHours": "Costuma chegar em horas.",
             "arrivesMinutes": "Costuma chegar em minutos.",
-            "selectCurrency": "Selecionar moeda"
+            "selectCurrency": "Selecionar moeda",
+            "belowMinimum": "O mínimo para este saque é {amount} {currency}."
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",

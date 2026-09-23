@@ -7,7 +7,11 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { resolveExchangeCurrencyPair, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import {
+    getExchangeRateWidgetRedirectRoute,
+    getExchangeRateWidgetRouteMinimum,
+    type ExchangeRateWidgetMinimumPolicy,
+} from '@/utils/exchangeRateWidget.utils'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
@@ -61,7 +65,18 @@ export default function ExchangeRatePage() {
     )
     const goesToAddMoney = destination.startsWith('/add-money')
 
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+    // The withdraw route's floor, resolved inside the widget with its own rate;
+    // null for add-money routes.
+    const minimumPolicy = useMemo<ExchangeRateWidgetMinimumPolicy>(
+        () => ({
+            resolve: (exchangeRate) =>
+                getExchangeRateWidgetRouteMinimum(routableFrom, routableTo, formattedBalance, exchangeRate),
+            label: (minimum) => t('widget.belowMinimum', { amount: minimum.amount, currency: minimum.currency }),
+        }),
+        [routableFrom, routableTo, formattedBalance, t]
+    )
+
+    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string, sourceAmount: number | null) => {
         if (balancePending) return
         // The widget is rendered below with `restrictToRoutable`, so these
         // arguments are already a resolved, non-colliding pair — resolved
@@ -73,12 +88,18 @@ export default function ExchangeRatePage() {
             destinationCurrency,
             toSupportedExchangeCurrency
         )
-        const redirectRoute = getExchangeRateWidgetRedirectRoute(
+        let redirectRoute = getExchangeRateWidgetRedirectRoute(
             clampedFrom,
             clampedTo,
             formattedBalance,
             unlockedRegionPaths
         )
+        // A withdrawal starts from USD, so "You send" is the `?amount=` every
+        // /withdraw/* screen reads. Taken from the tap, not this page's URL
+        // copy, which the widget writes only after its debounce (TASK-22294).
+        if (redirectRoute.startsWith('/withdraw') && sourceAmount !== null) {
+            redirectRoute += `${redirectRoute.includes('?') ? '&' : '?'}amount=${sourceAmount}`
+        }
 
         // The CTA drops the user into the add-money / withdraw roots, whose back
         // buttons reset to /home. Tell them where the user actually came from so
@@ -103,6 +124,7 @@ export default function ExchangeRatePage() {
                         ctaDisabled={balancePending}
                         restrictToRoutable
                         shadow={false}
+                        minimumPolicy={minimumPolicy}
                         labels={{
                             youSend: t('widget.youSend'),
                             recipientGets: t('widget.recipientGets'),

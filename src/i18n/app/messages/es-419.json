@@ -708,7 +708,8 @@
             "free": "¡Gratis!",
             "arrivesHours": "Suele llegar en horas.",
             "arrivesMinutes": "Suele llegar en minutos.",
-            "selectCurrency": "Seleccionar moneda"
+            "selectCurrency": "Seleccionar moneda",
+            "belowMinimum": "El mínimo para este retiro es {amount} {currency}."
         },
         "row": {
             "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",

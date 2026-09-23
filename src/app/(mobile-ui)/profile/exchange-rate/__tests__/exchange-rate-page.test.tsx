@@ -34,6 +34,7 @@ jest.mock('@/utils/regions.utils', () => ({
 
 const mockGetRedirectRoute = jest.fn()
 jest.mock('@/utils/exchangeRateWidget.utils', () => ({
+    ...jest.requireActual('@/utils/exchangeRateWidget.utils'),
     getExchangeRateWidgetRedirectRoute: (...args: any[]) => mockGetRedirectRoute(...args),
 }))
 
@@ -62,13 +63,24 @@ jest.mock('@/components/Global/NavHeader', () => ({
 // The real widget clamps its own currencies via `restrictToRoutable` — this
 // stub instead forwards whatever the URL currently says, so the CTA-handler
 // tests below exercise the page's own defensive clamp independently of that.
+// It also exposes the minimum policy the page hands it, and taps with the
+// on-screen amount the real widget passes (null when the field is empty).
+const mockMinimumPolicy: { current: any } = { current: null }
+const mockCtaAmount: { current: number | null } = { current: null }
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
-    default: ({ ctaAction, ctaLabel, ctaDisabled }: any) => (
-        <button disabled={ctaDisabled} data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
-            {ctaLabel}
-        </button>
-    ),
+    default: ({ ctaAction, ctaLabel, ctaDisabled, minimumPolicy }: any) => {
+        mockMinimumPolicy.current = minimumPolicy
+        return (
+            <button
+                disabled={ctaDisabled}
+                data-testid="widget-cta"
+                onClick={() => ctaAction(mockPair.from, mockPair.to, mockCtaAmount.current)}
+            >
+                {ctaLabel}
+            </button>
+        )
+    },
 }))
 
 import ExchangeRatePage from '../page'
@@ -86,6 +98,8 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockPair.from = 'USD'
     mockPair.to = 'EUR'
+    mockCtaAmount.current = null
+    mockMinimumPolicy.current = null
     mockUseWallet.mockReturnValue({ spendableBalance: 0n, isFetchingSpendableBalance: false })
     mockUseCapabilities.mockReturnValue({ rails: [] })
     mockGetRedirectRoute.mockReturnValue('/add-money')
@@ -139,6 +153,59 @@ describe('exchange-rate CTA', () => {
 
         fireEvent.click(screen.getByTestId('widget-cta'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?currencyCode=EUR&returnTo=%2Fprofile%2Fexchange-rate')
+    })
+
+    /*
+     * "You send" is the `?amount=` every /withdraw/* screen reads. It comes
+     * from the tap, not this page's URL copy (which the widget writes only
+     * after its debounce), so a just-typed amount travels (TASK-22294).
+     * Add-money routes get none: their typed side is local currency.
+     */
+    it('carries the tapped USD amount into the withdraw route, and not into add-money', () => {
+        mockCtaAmount.current = 100
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=ARS')
+        renderPage('?from=USD&to=ARS&amount=10')
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        const withdrawParams = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test').searchParams
+        expect(withdrawParams.get('amount')).toBe('100')
+        expect(withdrawParams.get('currencyCode')).toBe('ARS')
+        expect(withdrawParams.get('returnTo')).toBe('/profile/exchange-rate?from=USD&to=ARS&amount=10')
+
+        mockRouterPush.mockClear()
+        mockGetRedirectRoute.mockReturnValue('/add-money/argentina')
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
+    })
+
+    it('sends no amount when the field is empty', () => {
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=ARS')
+        renderPage()
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
+    })
+
+    /*
+     * The route's floor reaches the widget as a policy resolved with the
+     * widget's own rate — the same limits the withdraw flows enforce, so the
+     * CTA can say "1 BRL" before the tap instead of the PIX flow refusing the
+     * amount one screen later (TASK-22235, TASK-22297).
+     */
+    it('hands the widget the withdraw route minimum, in the unit that route states it', () => {
+        mockUseWallet.mockReturnValue({ spendableBalance: 5_000_000n, isFetchingSpendableBalance: false })
+        mockPair.to = 'BRL'
+        renderPage()
+
+        expect(mockMinimumPolicy.current).toBeTruthy()
+        const minimum = mockMinimumPolicy.current.resolve(5.2)
+        expect(minimum).toEqual({ amount: 1, currency: 'BRL' })
+        expect(mockMinimumPolicy.current.label(minimum)).toBe('The minimum for this withdrawal is 1 BRL.')
+    })
+
+    it('resolves no minimum for an add-money route (zero balance)', () => {
+        mockPair.to = 'BRL'
+        renderPage()
+
+        expect(mockMinimumPolicy.current.resolve(5.2)).toBeNull()
     })
 
     /*

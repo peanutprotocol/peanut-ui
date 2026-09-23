@@ -424,9 +424,44 @@ describe('WithdrawMethodView — what it tells the currency list', () => {
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-send-gate', 'false')
     })
 
-    it('/withdraw?currencyCode=EUR opens the list filtered to that currency', () => {
-        renderView({ currencyCode: 'EUR' })
+    it('/withdraw?currencyCode=EUR pre-filters the all-methods list to that currency', () => {
+        renderView({ currencyCode: 'EUR', showAll: 'true' })
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-initial-query', 'EUR')
+    })
+})
+
+/**
+ * The exchange-rate widget's "Withdraw now" lands here with `?currencyCode=`.
+ * It used to force the all-methods list, skipping the saved accounts the
+ * normal /withdraw entry and Send → Bank offer first — so a user with a saved
+ * CBU typed it again (TASK-22294). The currency pre-filters the list, it does
+ * not skip the accounts; and an amount that arrived with the URL follows the
+ * saved Manteca account into its flow.
+ */
+describe('WithdrawMethodView — arriving with a currency from the exchange-rate widget', () => {
+    it('shows the saved accounts first, like the Send entry', () => {
+        renderView({ currencyCode: 'ARS', amount: '25' })
+
+        expect(screen.getByTestId('account-cbu-12345678901234567890')).toBeInTheDocument()
+        expect(screen.queryByTestId('currency-list')).not.toBeInTheDocument()
+    })
+
+    it('carries the amount into the saved Manteca account flow', () => {
+        renderView({ currencyCode: 'ARS', amount: '25' })
+        fireEvent.click(screen.getByTestId('account-cbu-12345678901234567890'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.pathname).toBe('/withdraw/manteca')
+        expect(pushed.searchParams.get('destination')).toBe('cbu-12345678901234567890')
+        expect(pushed.searchParams.get('isSavedAccount')).toBe('true')
+        expect(pushed.searchParams.get('amount')).toBe('25')
+    })
+
+    it('sends no amount when none arrived', () => {
+        renderView({ currencyCode: 'ARS' })
+        fireEvent.click(screen.getByTestId('account-cbu-12345678901234567890'))
+
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
     })
 })
 

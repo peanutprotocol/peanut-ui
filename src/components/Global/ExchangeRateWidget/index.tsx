@@ -8,6 +8,7 @@ import {
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
+import { toRoutePayloadAmount, type ExchangeRateWidgetMinimumPolicy } from '@/utils/exchangeRateWidget.utils'
 import Image from 'next/image'
 import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -46,7 +47,9 @@ const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
 interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
-    ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
+    // `sourceAmount` is the amount on screen at the tap — the URL copy lags it
+    // by the debounce, so a caller that needs the amount must take it here.
+    ctaAction: (sourceCurrency: string, destinationCurrency: string, sourceAmount: number | null) => void
     ctaDisabled?: boolean
     labels?: Partial<ExchangeRateWidgetLabels>
     // Marketing send-to pages seed the URL with currencies that only need a
@@ -60,6 +63,10 @@ interface IExchangeRateWidgetProps {
     // that page's brutalist button styling); the in-app /profile/exchange-rate
     // screen drops it — not used on any other in-app card (TASK-22121).
     shadow?: boolean
+    // The floor the route behind the CTA enforces, resolved with this widget's
+    // rate: below it the CTA is disabled and the note names the limit in its
+    // own unit (TASK-22235, TASK-22297). Product callers only.
+    minimumPolicy?: ExchangeRateWidgetMinimumPolicy
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
@@ -70,6 +77,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     labels,
     restrictToRoutable = false,
     shadow = true,
+    minimumPolicy,
 }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -185,13 +193,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         [updateUrlParams, sourceCurrency]
     )
 
-    const [isSwapping, setIsSwapping] = useState(false)
-    const skipNextDebounceSyncRef = useRef(false)
-
+    // No loading flag of its own: the hook derives both amounts from the
+    // current pair and rate, so the skeleton is exactly `isLoading` (TASK-21369).
     const swapCurrencies = useCallback(() => {
-        setIsSwapping(true)
         setIsEditingDestination(false)
-        skipNextDebounceSyncRef.current = true
         // Use the displayed net amount as the new source so post-swap values match
         // what the user saw in "Recipient Gets" before swapping.
         const newAmount =
@@ -201,14 +206,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount })
     }, [sourceCurrency, destinationCurrency, netDestinationAmount, updateUrlParams])
 
-    // clear swapping state once exchange rate hook finishes recalculating
-    useEffect(() => {
-        if (isSwapping && !isLoading) {
-            setIsSwapping(false)
-        }
-    }, [isSwapping, isLoading])
-
-    const showLoading = isLoading || isSwapping
+    const showLoading = isLoading
 
     // Enforce USD rule: at least one currency must be USD
     useEffect(() => {
@@ -218,12 +216,13 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         }
     }, [sourceCurrency, destinationCurrency, updateUrlParams])
 
-    // Update URL when source amount changes (only for valid numbers)
+    // Update URL when the typed source amount settles. Only a change of the
+    // debounced value writes — a swap moves the URL on its own, and the
+    // still-debouncing old amount must not write back over it.
+    const lastSyncedAmountRef = useRef(debouncedSourceAmount)
     useEffect(() => {
-        if (skipNextDebounceSyncRef.current) {
-            skipNextDebounceSyncRef.current = false
-            return
-        }
+        if (debouncedSourceAmount === lastSyncedAmountRef.current) return
+        lastSyncedAmountRef.current = debouncedSourceAmount
         if (typeof debouncedSourceAmount === 'number' && debouncedSourceAmount !== urlSourceAmount) {
             updateUrlParams({ amount: debouncedSourceAmount })
         }
@@ -258,6 +257,27 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         toSupportedExchangeCurrency(sourceCurrency) !== null &&
         toSupportedExchangeCurrency(destinationCurrency) !== null
     const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError && isRoutablePair
+
+    // The amount the CTA hands on: the on-screen source amount at the token's
+    // payload precision, never the debounced URL copy.
+    const ctaSourceAmount =
+        typeof sourceAmount === 'number' && sourceAmount > 0 ? toRoutePayloadAmount(sourceAmount) : null
+
+    // The route's floor, checked against the side it is stated in: a USD floor
+    // against the payload amount above, a local one (1 BRL for PIX) against the
+    // cents "You get" shows. Both truncate, never round up: 0.995 USD is below
+    // a $1 floor here exactly as it is on the route.
+    const routeMinimum = minimumPolicy && hasQuote ? minimumPolicy.resolve(exchangeRate) : null
+    const belowMinimum = useMemo(() => {
+        if (!routeMinimum) return false
+        if (routeMinimum.currency === sourceCurrency) {
+            return ctaSourceAmount !== null && ctaSourceAmount < routeMinimum.amount
+        }
+        if (routeMinimum.currency === destinationCurrency && typeof netDestinationAmount === 'number') {
+            return Math.floor(netDestinationAmount * 100 + 1e-9) / 100 < routeMinimum.amount
+        }
+        return false
+    }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, netDestinationAmount])
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
@@ -414,8 +434,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             )}
 
             <Button
-                disabled={ctaDisabled}
-                onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
+                disabled={ctaDisabled || belowMinimum}
+                onClick={() => ctaAction(sourceCurrency, destinationCurrency, ctaSourceAmount)}
                 icon={ctaIcon}
                 shadowSize="4"
                 className="w-full"
@@ -424,7 +444,13 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             </Button>
 
             {hasAmount && (
-                <p className="min-h-4 text-body-xs text-foreground-secondary">{hasQuote ? deliveryTimeText : ''}</p>
+                <p className="min-h-4 text-body-xs text-foreground-secondary">
+                    {belowMinimum && routeMinimum
+                        ? minimumPolicy?.label(routeMinimum)
+                        : hasQuote
+                          ? deliveryTimeText
+                          : ''}
+                </p>
             )}
         </Card>
     )
