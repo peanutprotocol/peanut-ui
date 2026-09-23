@@ -370,7 +370,7 @@ describe('ExchangeRateWidget currency selectors under a pending debounce', () =>
  */
 describe('ExchangeRateWidget BRL floor at 5.8 with the real hook', () => {
     const policy: ExchangeRateWidgetMinimumPolicy = {
-        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate),
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate, null),
         label: (m) => `Minimum ${m.amount} ${m.currency}`,
     }
     const renderBrl = async () => {

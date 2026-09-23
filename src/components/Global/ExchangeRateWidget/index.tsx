@@ -302,6 +302,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         }
         return false
     }, [routeMinimum, sourceCurrency, destinationCurrency, ctaSourceAmount, fundedDestinationAmount])
+    // The route's floor is not known (rate pending or failed): the CTA waits,
+    // whatever the display quote says. Only a failure is announced.
+    const minimumBlocked = minimumPolicy?.blocked
+    const minimumUnavailable = minimumBlocked === 'unavailable' && hasQuote
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
@@ -461,8 +465,11 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             )}
 
             <Button
-                disabled={ctaDisabled || belowMinimum}
-                onClick={() => ctaAction(sourceCurrency, destinationCurrency, ctaSourceAmount)}
+                disabled={ctaDisabled || belowMinimum || !!minimumBlocked}
+                onClick={() => {
+                    if (belowMinimum || minimumBlocked) return
+                    ctaAction(sourceCurrency, destinationCurrency, ctaSourceAmount)
+                }}
                 icon={ctaIcon}
                 shadowSize="4"
                 className="w-full"
@@ -473,13 +480,21 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             {hasAmount && (
                 <p
                     className="min-h-4 text-body-xs text-foreground-secondary"
-                    data-testid={belowMinimum ? 'exchange-rate-minimum' : undefined}
+                    data-testid={
+                        belowMinimum
+                            ? 'exchange-rate-minimum'
+                            : minimumUnavailable
+                              ? 'exchange-rate-minimum-unavailable'
+                              : undefined
+                    }
                 >
                     {belowMinimum && routeMinimum
                         ? minimumPolicy?.label(routeMinimum)
-                        : hasQuote
-                          ? deliveryTimeText
-                          : ''}
+                        : minimumUnavailable
+                          ? l.rateUnavailable
+                          : hasQuote
+                            ? deliveryTimeText
+                            : ''}
                 </p>
             )}
         </Card>

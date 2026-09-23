@@ -8,10 +8,12 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { resolveExchangeCurrencyPair, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import {
+    getExchangeRateWidgetBankCountry,
     getExchangeRateWidgetRedirectRoute,
     getExchangeRateWidgetRouteMinimum,
     type ExchangeRateWidgetMinimumPolicy,
 } from '@/utils/exchangeRateWidget.utils'
+import { useBankWithdrawMinimum } from '@/features/withdraw/useBankWithdrawMinimum'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
@@ -64,19 +66,34 @@ export default function ExchangeRatePage() {
     )
     const goesToAddMoney = destination.startsWith('/add-money')
 
-    // The withdraw route's floor, resolved inside the widget with its own rate;
-    // null for add-money routes.
+    // A Bridge bank withdrawal's floor comes from Bridge's own rate — the same
+    // gate the amount step and the bank submit enforce — never from the
+    // widget's indicative display rate. Queried only for that route.
+    const bankCountry = getExchangeRateWidgetBankCountry(routableFrom, routableTo, formattedBalance)
+    const bankMinimum = useBankWithdrawMinimum(bankCountry ?? '', { enabled: bankCountry !== null })
+    const minimumBlocked = bankCountry !== null && bankMinimum.status !== 'ready' ? bankMinimum.status : undefined
+
+    // The withdraw route's floor; null for add-money routes.
     const minimumPolicy = useMemo<ExchangeRateWidgetMinimumPolicy>(
         () => ({
             resolve: (exchangeRate) =>
-                getExchangeRateWidgetRouteMinimum(routableFrom, routableTo, formattedBalance, exchangeRate),
+                getExchangeRateWidgetRouteMinimum(
+                    routableFrom,
+                    routableTo,
+                    formattedBalance,
+                    exchangeRate,
+                    bankMinimum.minUsd
+                ),
             label: (minimum) => t('widget.belowMinimum', { amount: minimum.amount, currency: minimum.currency }),
+            blocked: minimumBlocked,
         }),
-        [routableFrom, routableTo, formattedBalance, t]
+        [routableFrom, routableTo, formattedBalance, bankMinimum.minUsd, minimumBlocked, t]
     )
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string, sourceAmount: number | null) => {
         if (balancePending) return
+        // no usable Bridge rate behind the route's minimum: nothing proceeds
+        if (minimumBlocked) return
         // The widget is rendered below with `restrictToRoutable`, so these
         // arguments are already a resolved, non-colliding pair — resolved
         // again here, through the same function, so the route can never

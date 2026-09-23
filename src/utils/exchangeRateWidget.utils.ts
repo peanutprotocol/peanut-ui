@@ -2,7 +2,6 @@ import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { countryData } from '@/components/AddMoney/consts'
 import { addMoneyCountryUrl, withdrawCountryUrl } from '@/utils/native-routes'
 import { getCountryFromPath } from '@/utils/bridge.utils'
-import { bankWithdrawMinUsd } from '@/features/withdraw/amount-validation'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import {
     MIN_MANTECA_QR_PAYMENT_AMOUNT,
@@ -20,6 +19,11 @@ export interface RouteMinimum {
 export interface ExchangeRateWidgetMinimumPolicy {
     resolve: (exchangeRate: number) => RouteMinimum | null
     label: (minimum: RouteMinimum) => string
+    /**
+     * The route's floor cannot be known yet ('pending') or at all ('unavailable'):
+     * the CTA is disabled either way; 'unavailable' also says the rate is unavailable.
+     */
+    blocked?: 'pending' | 'unavailable'
 }
 
 /**
@@ -141,20 +145,42 @@ export const getExchangeRateWidgetRedirectRoute = (
     return route === '/withdraw' ? withdrawCountryUrl(countryPath) : addMoneyCountryUrl(countryPath)
 }
 
+const MANTECA_WIDGET_CURRENCIES = new Set(['BRL', 'ARS'])
+
+/**
+ * The Bridge bank country ('' for the euro area) the widget's CTA withdraws to,
+ * or null when that route is not a Bridge bank withdrawal (add-money, USD→USD,
+ * or a Manteca currency).
+ */
+export function getExchangeRateWidgetBankCountry(
+    sourceCurrency: string,
+    destinationCurrency: string,
+    userBalance: number
+): string | null {
+    if (sourceCurrency !== 'USD' || destinationCurrency === 'USD' || userBalance <= 0) return null
+    if (MANTECA_WIDGET_CURRENCIES.has(destinationCurrency)) return null
+    const countryPath = countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.path
+    return (countryPath && getCountryFromPath(countryPath)?.iso2) || ''
+}
+
 /**
  * The floor the withdraw route behind the CTA enforces, read from that route's
  * own constants, in the unit it states it (TASK-22235, TASK-22297):
  * - BRL: PIX-key send via qr-pay — the stricter of MIN_PIX_AMOUNT_BRL and the
- *   MIN_MANTECA_QR_PAYMENT_AMOUNT USD floor at this rate.
+ *   MIN_MANTECA_QR_PAYMENT_AMOUNT USD floor at this display rate.
  * - ARS: MIN_MANTECA_WITHDRAW_AMOUNT (USD).
- * - Bridge corridors: bankWithdrawMinUsd, the amount step's own conversion.
+ * - Bridge corridors: `bankMinimumUsd`, the useBankWithdrawMinimum gate's floor
+ *   from Bridge's own rate — never the display rate, which the withdrawal
+ *   does not use. Null (rate pending or failed) yields null; the caller blocks
+ *   through the policy's `blocked`, so null never reads as "no minimum".
  * Add-money routes return null: the widget holds no authoritative floor for them.
  */
 export function getExchangeRateWidgetRouteMinimum(
     sourceCurrency: string,
     destinationCurrency: string,
     userBalance: number,
-    exchangeRate: number
+    exchangeRate: number,
+    bankMinimumUsd: number | null
 ): RouteMinimum | null {
     if (sourceCurrency !== 'USD' || destinationCurrency === 'USD' || userBalance <= 0) return null
 
@@ -168,10 +194,5 @@ export function getExchangeRateWidgetRouteMinimum(
         return { amount: MIN_MANTECA_WITHDRAW_AMOUNT, currency: 'USD' }
     }
 
-    const countryPath = countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.path
-    const countryIso2 = (countryPath && getCountryFromPath(countryPath)?.iso2) || ''
-    return {
-        amount: bankWithdrawMinUsd(countryIso2, exchangeRate > 0 ? String(exchangeRate) : null),
-        currency: 'USD',
-    }
+    return bankMinimumUsd === null ? null : { amount: bankMinimumUsd, currency: 'USD' }
 }

@@ -39,9 +39,8 @@ import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount } from './useWithdrawAmount'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
-import { AccountType } from '@/interfaces/interfaces'
+import { validateBankOfframpAmount } from './amount-validation'
+import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
     bankReferenceDestinationFields,
@@ -62,6 +61,7 @@ import {
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
+    const tRate = useTranslations('exchangeRate')
     const toFriendlyError = useFriendlyError()
     // Copy shown when the on-chain deposit to the Bridge address succeeded but the
     // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
@@ -142,20 +142,9 @@ export function useBridgeOfframpFlow() {
     // iso2, not id: the UK record is { id: 'GBR', iso2: 'GB' } and an id-keyed
     // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
     const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
-    const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
-    const { exchangeRate } = useGetExchangeRate({
-        accountType:
-            countryIso2 === 'GB'
-                ? AccountType.GB
-                : countryIso2 === 'MX'
-                  ? AccountType.CLABE
-                  : countryIso2 === 'CO'
-                    ? AccountType.CO_BANK_TRANSFER
-                    : AccountType.IBAN,
-        enabled: minNeedsRate,
-    })
-    const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
-    const isMinReady = !minNeedsRate || parseFloat(exchangeRate || '0') > 0
+    const bankMinimum = useBankWithdrawMinimum(countryIso2)
+    const minUsd = bankMinimum.minUsd
+    const isMinReady = bankMinimum.status === 'ready'
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -295,10 +284,10 @@ export function useBridgeOfframpFlow() {
             return
         }
 
-        // The GB/MX rail minimum converts through the FX rate — the submit is
-        // disabled until it loads; reaching here early is a race, not a user
-        // error: no-op rather than under-enforce.
-        if (!isMinReady) return
+        // The GB/MX rail minimum converts through Bridge's rate — the submit is
+        // disabled until it is usable; reaching here without it is a race or a
+        // failed rate, never a user error: no-op rather than guess a minimum.
+        if (!isMinReady || minUsd === null) return
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
@@ -524,7 +513,10 @@ export function useBridgeOfframpFlow() {
         error,
         isLoading,
         submittedTxHash,
-        balanceErrorMessage,
+        // The view renders this as the blocking notice under the disabled
+        // submit; a failed Bridge rate blocks the same way and must say why.
+        balanceErrorMessage:
+            balanceErrorMessage ?? (bankMinimum.status === 'unavailable' ? tRate('widget.rateUnavailable') : null),
         confirmPendingCopy,
         reference,
         setReference,

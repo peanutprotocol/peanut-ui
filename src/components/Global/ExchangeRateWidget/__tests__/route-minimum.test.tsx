@@ -58,6 +58,53 @@ beforeEach(() => ctaAction.mockClear())
 
 const cta = () => screen.getByRole('button', { name: /Withdraw now/ })
 
+/**
+ * Chip review 5291270247: a Bridge corridor's floor is the withdrawal's own
+ * (Bridge rate), handed in by the page; the display rate only prices the
+ * quote. With display 17 and Bridge 16.5 the floor is $4, not ceil(50/17) = $3.
+ */
+describe('ExchangeRateWidget route minimum — a Bridge floor independent of the display rate', () => {
+    const bridgeFloor: ExchangeRateWidgetMinimumPolicy = {
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, rate, 4),
+        label: (m) => `Minimum ${m.amount} ${m.currency}`,
+    }
+
+    it('display 17: $3 is refused against the $4 Bridge floor', () => {
+        mockUseExchangeRate.mockReturnValue(quote(3, 17))
+        renderWidget('MXN', bridgeFloor)
+
+        expect(cta()).toBeDisabled()
+        expect(screen.getByTestId('exchange-rate-minimum')).toHaveTextContent('Minimum 4 USD')
+    })
+
+    it('display 17: exactly $4 is accepted and forwarded as 4', () => {
+        mockUseExchangeRate.mockReturnValue(quote(4, 17))
+        renderWidget('MXN', bridgeFloor)
+
+        expect(cta()).toBeEnabled()
+        fireEvent.click(cta())
+        expect(ctaAction).toHaveBeenCalledWith('USD', 'MXN', 4)
+    })
+
+    it('Bridge rate pending: the CTA waits and says nothing yet', () => {
+        mockUseExchangeRate.mockReturnValue(quote(100, 17))
+        renderWidget('MXN', { ...bridgeFloor, resolve: () => null, blocked: 'pending' })
+
+        expect(cta()).toBeDisabled()
+        expect(screen.queryByTestId('exchange-rate-minimum-unavailable')).not.toBeInTheDocument()
+    })
+
+    it('Bridge rate failed with a display quote on screen: blocked, and it says the rate is unavailable', () => {
+        mockUseExchangeRate.mockReturnValue(quote(100, 17))
+        renderWidget('MXN', { ...bridgeFloor, resolve: () => null, blocked: 'unavailable' })
+
+        expect(cta()).toBeDisabled()
+        expect(screen.getByTestId('exchange-rate-minimum-unavailable')).toHaveTextContent('Rate currently unavailable')
+        // the indicative quote itself stays — it is an estimate, not the withdrawal
+        expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('1 USD = 17.0000 MXN')
+    })
+})
+
 describe('ExchangeRateWidget route minimum — a local-currency floor (1 BRL for PIX)', () => {
     const brlFloor = policyFor({ amount: 1, currency: 'BRL' })
 
@@ -101,7 +148,7 @@ describe('ExchangeRateWidget route minimum — a local-currency floor (1 BRL for
  */
 describe('ExchangeRateWidget — the rates-and-fees fixtures', () => {
     const realPolicy: ExchangeRateWidgetMinimumPolicy = {
-        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate),
+        resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, rate, null),
         label: (m) => `The minimum for this withdrawal is ${m.amount} ${m.currency}.`,
     }
     const destination = () => (screen.getAllByRole('spinbutton')[1] as HTMLInputElement).value

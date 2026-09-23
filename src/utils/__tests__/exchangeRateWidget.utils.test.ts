@@ -1,5 +1,6 @@
 import {
     getExchangeRateWidgetRedirectRoute,
+    getExchangeRateWidgetBankCountry,
     getExchangeRateWidgetRouteMinimum,
     toRoutePayloadAmount,
 } from '@/utils/exchangeRateWidget.utils'
@@ -114,7 +115,7 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
 describe('getExchangeRateWidgetRouteMinimum', () => {
     it('is the 1 BRL PIX network minimum for Brazil, not the 0.1 USD provider floor beneath it', () => {
         // 1 BRL ≈ 0.19 USD at 5.2, above the 0.1 USD floor — the BRL floor binds
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 5.2)).toEqual({
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 5.2, null)).toEqual({
             amount: MIN_PIX_AMOUNT_BRL,
             currency: 'BRL',
         })
@@ -122,45 +123,67 @@ describe('getExchangeRateWidgetRouteMinimum', () => {
 
     it('names the USD provider floor only if the rate ever put 1 BRL beneath it', () => {
         // a hypothetical 20 BRL per USD makes 1 BRL = 0.05 USD, so 0.1 USD binds
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 20)).toEqual({
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 20, null)).toEqual({
             amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
             currency: 'USD',
         })
     })
 
     it('keeps the BRL floor while no rate has landed', () => {
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 0)).toEqual({
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 0, null)).toEqual({
             amount: MIN_PIX_AMOUNT_BRL,
             currency: 'BRL',
         })
     })
 
     it('is the Manteca offramp minimum, in USD, for Argentina', () => {
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'ARS', 50, 1350)).toEqual({
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'ARS', 50, 1350, null)).toEqual({
             amount: MIN_MANTECA_WITHDRAW_AMOUNT,
             currency: 'USD',
         })
     })
 
-    it('converts a Bridge corridor local minimum the way the amount step does (GB £3 → $4 at 0.79)', () => {
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'GBP', 50, 0.79)).toEqual({ amount: 4, currency: 'USD' })
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, 18.5)).toEqual({ amount: 3, currency: 'USD' })
+    /*
+     * Chip review 5291270247: the widget derived the Bridge floor from its
+     * display rate (17 → $3) while the withdrawal converts through Bridge's own
+     * rate (16.5 → $4). The Bridge floor is now the gate's, never the display's.
+     */
+    it("takes a Bridge corridor's floor from the gate, not from the display rate", () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, 17, 4)).toEqual({ amount: 4, currency: 'USD' })
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'GBP', 50, 0.5, 4)).toEqual({ amount: 4, currency: 'USD' })
     })
 
-    it('falls back to the Bridge $1 floor for a corridor whose rate has not landed', () => {
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'GBP', 50, 0)).toEqual({
-            amount: BRIDGE_OFFRAMP_MIN_USD,
+    it('has no Bridge floor while the gate has none — the caller blocks instead of assuming $1', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, 17, null)).toBeNull()
+    })
+
+    it('is the gate floor for the euro area (fixed $1, no rate)', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'EUR', 50, 0.86, BRIDGE_OFFRAMP_MIN_USD)).toEqual({
+            amount: 1,
             currency: 'USD',
         })
     })
 
-    it('is $1 for the euro area (€1 ≈ $1, no country path)', () => {
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'EUR', 50, 0.86)).toEqual({ amount: 1, currency: 'USD' })
+    it('has no floor for add-money routes: local → USD, or a zero balance', () => {
+        expect(getExchangeRateWidgetRouteMinimum('BRL', 'USD', 50, 0.19, 1)).toBeNull()
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 0, 5.2, 1)).toBeNull()
+    })
+})
+
+describe('getExchangeRateWidgetBankCountry', () => {
+    it('names the Bridge country a USD withdrawal lands in', () => {
+        expect(getExchangeRateWidgetBankCountry('USD', 'MXN', 50)).toBe('MX')
+        expect(getExchangeRateWidgetBankCountry('USD', 'GBP', 50)).toBe('GB')
+        expect(getExchangeRateWidgetBankCountry('USD', 'COP', 50)).toBe('CO')
+        expect(getExchangeRateWidgetBankCountry('USD', 'EUR', 50)).toBe('')
     })
 
-    it('has no floor for add-money routes: local → USD, or a zero balance', () => {
-        expect(getExchangeRateWidgetRouteMinimum('BRL', 'USD', 50, 0.19)).toBeNull()
-        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 0, 5.2)).toBeNull()
+    it('is null for Manteca currencies, USD → USD and add-money routes', () => {
+        expect(getExchangeRateWidgetBankCountry('USD', 'BRL', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'ARS', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'USD', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('MXN', 'USD', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'MXN', 0)).toBeNull()
     })
 })
 

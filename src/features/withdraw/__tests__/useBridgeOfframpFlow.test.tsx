@@ -78,13 +78,14 @@ jest.mock('@/utils/bridge.utils', () => ({
 }))
 
 // sell rate: local currency per 1 USD (0.79 GBP ≈ 1 USD → £3 ≈ $4)
-let mockExchangeRate: string | undefined = '0.79'
+let mockExchangeRate: string | null | undefined = '0.79'
+let mockExchangeRateError = false
 const mockExchangeRateCalls: Array<{ accountType: unknown; enabled?: boolean }> = []
 jest.mock('@/hooks/useGetExchangeRate', () => ({
     __esModule: true,
     default: (args: { accountType: unknown; enabled?: boolean }) => {
         mockExchangeRateCalls.push(args)
-        return { exchangeRate: mockExchangeRate, isFetchingRate: false }
+        return { exchangeRate: mockExchangeRate, isFetchingRate: false, isError: mockExchangeRateError }
     },
 }))
 
@@ -224,6 +225,7 @@ beforeEach(() => {
     mockCountryId = 'US'
     mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
     mockExchangeRate = '0.79'
+    mockExchangeRateError = false
     mockExchangeRateCalls.length = 0
     mockPointsCalls.length = 0
     mockBankAccount = bankAccount
@@ -356,6 +358,52 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
 
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '5' }))
+    })
+
+    it.each([
+        ['3.99', false],
+        ['4', true],
+    ])('GB at Bridge 0.79 (minimum $4): $%s proceeds = %s', async (amount, proceeds) => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        const view = renderFlow({ amount, step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        if (proceeds) expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount }))
+        else expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+
+    /*
+     * The Bridge rate failed. It used to resolve as '1' and the flow demanded a
+     * fabricated minimum; now there is no rate and nothing is submitted — and
+     * the blocking notice says why.
+     */
+    it('GB: a failed Bridge rate blocks the submit, says the rate is unavailable, and never creates an offramp', async () => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(false)
+        expect(view.result.current.balanceErrorMessage).toBe('exchangeRate.widget.rateUnavailable')
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('US: a fixed-floor destination needs no rate and is never blocked by one', () => {
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(true)
+        expect(view.result.current.balanceErrorMessage).toBeNull()
     })
 
     it('GB: while the FX rate behind the minimum loads, submit is not ready and the click no-ops', async () => {

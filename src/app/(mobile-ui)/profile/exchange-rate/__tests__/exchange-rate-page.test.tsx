@@ -6,8 +6,17 @@
  * the bug these tests lock down: every CTA target carries ?returnTo back here.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import { AccountType } from '@/interfaces/interfaces'
+
+// Bridge's execution-side rate — the only network the real minimum gate
+// (useBankWithdrawMinimum → useGetExchangeRate) makes here.
+const mockGetBridgeRate = jest.fn()
+jest.mock('@/app/actions/exchange-rate', () => ({
+    getExchangeRate: (...args: unknown[]) => mockGetBridgeRate(...args),
+}))
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -87,17 +96,24 @@ jest.mock('@/components/Global/ExchangeRateWidget', () => ({
 
 import ExchangeRatePage from '../page'
 
+let queryClient: QueryClient
 const renderPage = (search = '') => {
     window.history.replaceState({}, '', `/profile/exchange-rate${search}`)
     return render(
-        <IntlWrapper>
-            <ExchangeRatePage />
-        </IntlWrapper>
+        <QueryClientProvider client={queryClient}>
+            <IntlWrapper>
+                <ExchangeRatePage />
+            </IntlWrapper>
+        </QueryClientProvider>
     )
 }
 
+afterEach(() => queryClient.clear())
+
 beforeEach(() => {
     jest.clearAllMocks()
+    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
+    mockGetBridgeRate.mockResolvedValue({ error: 'not mocked for this test' })
     mockPair.from = 'USD'
     mockPair.to = 'EUR'
     mockCtaAmount.current = null
@@ -208,6 +224,79 @@ describe('exchange-rate CTA', () => {
         renderPage()
 
         expect(mockMinimumPolicy.current.resolve(5.2)).toBeNull()
+    })
+
+    /*
+     * Chip review 5291270247. The Bridge floor comes from Bridge's own rate
+     * through the shared gate — the one the amount step and bank submit
+     * enforce — never from the widget's indicative display rate.
+     */
+    describe('a Bridge corridor (MXN) floor', () => {
+        beforeEach(() => {
+            mockUseWallet.mockReturnValue({ spendableBalance: 50_000_000n, isFetchingSpendableBalance: false })
+            mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=MXN')
+            mockPair.to = 'MXN'
+        })
+
+        it('display 17, Bridge 16.5: $4, not the display-derived $3', async () => {
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '16.5' } })
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 4, currency: 'USD' })
+            expect(mockGetBridgeRate).toHaveBeenCalledWith(AccountType.CLABE)
+        })
+
+        it('display 17, Bridge 17: $3', async () => {
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '17' } })
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 3, currency: 'USD' })
+        })
+
+        it('Bridge rate failing while a display quote exists: blocked, no floor, and the tap does nothing', async () => {
+            mockGetBridgeRate.mockResolvedValue({ error: 'upstream 500' })
+            mockCtaAmount.current = 100
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBe('unavailable'))
+            expect(mockMinimumPolicy.current.resolve(17)).toBeNull()
+            fireEvent.click(screen.getByTestId('widget-cta'))
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+
+        it('Bridge rate pending: blocked, the tap does nothing', () => {
+            mockGetBridgeRate.mockReturnValue(new Promise(() => {}))
+            mockCtaAmount.current = 100
+            renderPage()
+
+            expect(mockMinimumPolicy.current.blocked).toBe('pending')
+            fireEvent.click(screen.getByTestId('widget-cta'))
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+    })
+
+    it.each([
+        ['EUR (fixed $1 floor)', 'EUR', { amount: 1, currency: 'USD' }],
+        ['BRL (Manteca PIX floor)', 'BRL', { amount: 1, currency: 'BRL' }],
+        ['ARS (Manteca floor)', 'ARS', { amount: 1, currency: 'USD' }],
+    ])('%s: no Bridge rate request, never blocked', (_label, to, minimum) => {
+        mockUseWallet.mockReturnValue({ spendableBalance: 50_000_000n, isFetchingSpendableBalance: false })
+        mockPair.to = to
+        renderPage()
+
+        expect(mockMinimumPolicy.current.blocked).toBeUndefined()
+        expect(mockMinimumPolicy.current.resolve(5.2)).toEqual(minimum)
+        expect(mockGetBridgeRate).not.toHaveBeenCalled()
+    })
+
+    it('a zero-balance (add-money) MXN route makes no Bridge request and is not blocked', () => {
+        mockPair.to = 'MXN'
+        renderPage()
+
+        expect(mockMinimumPolicy.current.blocked).toBeUndefined()
+        expect(mockGetBridgeRate).not.toHaveBeenCalled()
     })
 
     // The widget shows no fee rows; the app hands it the translated rate note
