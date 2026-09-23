@@ -2570,8 +2570,7 @@
             },
             "NOT_SO_SHHHH": {
                 "name": "Boca grande",
-                "description": "Você não conseguiu ficar quieto — e ainda recebeu por isso.",
-                "perk": "US$ 10 por amigo convidado que ativar o cartão Peanut"
+                "description": "Você não conseguiu ficar quieto — e ainda recebeu por isso."
             },
             "ARBITRUM": {
                 "name": "Nativo da Arbitrum",
@@ -2599,8 +2598,7 @@
             },
             "OFFRAMP_USER": {
                 "name": "Usuário de saque",
-                "description": "Você migrou para Peanut. A gente recebeu você bem.",
-                "perk": "US$ 10 ao gastar US$ 100 com seu cartão Peanut, até 31 de dezembro de 2026"
+                "description": "Você migrou para Peanut. A gente recebeu você bem."
             },
             "PSYOPS_DIVISION": {
                 "name": "Divisão Psyops",

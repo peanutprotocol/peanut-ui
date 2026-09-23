@@ -50,16 +50,11 @@ export const BadgeDetailDrawer = ({
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
     })
 
-    // What holding the badge gives. Avatar counts come from the generated
-    // manifest, so a badge gets its line the day its art lands. A perk line
-    // exists only for a badge that a live Perk requires; its copy restates that
-    // Perk's amount and conditions, so it changes when the Perk does.
+    // What holding the badge gives: the avatars it unlocks, counted from the
+    // generated manifest, so a badge gets its box the day its art lands. Perk
+    // rewards stay out on purpose: a reward tied to the card needs Rain's review
+    // before any copy names it.
     const avatarCount = code ? badgeAvatarKeys([code]).length : 0
-    const perkKey = `catalog.${code}.perk` as Parameters<typeof t>[0]
-    const benefits = [
-        ...(avatarCount > 0 ? [t('benefit.avatars', { count: avatarCount })] : []),
-        ...(code && t.has(perkKey) ? [t(perkKey)] : []),
-    ]
 
     return (
         <Drawer
@@ -92,7 +87,13 @@ export const BadgeDetailDrawer = ({
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        {benefits.length > 0 && <Callout priority="success" title={t('whatYouGet')} items={benefits} />}
+                        {avatarCount > 0 && (
+                            <Callout
+                                priority="success"
+                                title={t('whatYouGet')}
+                                items={[t('benefit.avatars', { count: avatarCount })]}
+                            />
+                        )}
                         {earned ? (
                             <ShareButton
                                 title=""

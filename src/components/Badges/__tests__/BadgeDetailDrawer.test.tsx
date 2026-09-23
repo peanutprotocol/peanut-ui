@@ -78,21 +78,6 @@ function renderLockedModal(code = 'FIRST_INVITE') {
     )
 }
 
-function renderOfframpModal() {
-    return render(
-        <NextIntlClientProvider locale="en" messages={en}>
-            <BadgeDetailDrawer
-                isOpen
-                onClose={onClose}
-                code="OFFRAMP_USER"
-                title="Offramp User"
-                description="You migrated to Peanut."
-                logo="/badges/offramp_user.png"
-            />
-        </NextIntlClientProvider>
-    )
-}
-
 beforeEach(() => {
     jest.clearAllMocks()
 })
@@ -119,19 +104,15 @@ describe('BadgeDetailDrawer', () => {
         expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
     })
 
-    it('adds the perk line for a badge that a live perk requires', () => {
-        renderOfframpModal()
+    it('lists the avatars a locked badge would unlock above how to unlock it', () => {
+        renderLockedModal('CARD_SPENT_1K')
 
+        const whatYouGet = screen.getByText(en.badges.whatYouGet)
         expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
-        expect(screen.getByText(en.badges.catalog.OFFRAMP_USER.perk)).toBeInTheDocument()
-    })
-
-    it('shows a perk on a locked badge that has no avatar art yet', () => {
-        renderLockedModal('NOT_SO_SHHHH')
-
-        expect(screen.getByText(en.badges.catalog.NOT_SO_SHHHH.perk)).toBeInTheDocument()
-        expect(screen.queryByText(/avatars? for your profile/)).not.toBeInTheDocument()
-        expect(screen.getByText(en.badges.howToUnlock)).toBeInTheDocument()
+        expect(
+            whatYouGet.compareDocumentPosition(screen.getByText(en.badges.howToUnlock)) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
     })
 
     it('keeps the translated generic share copy outside English', async () => {
@@ -154,7 +135,7 @@ describe('BadgeDetailDrawer', () => {
         expect(mockShareButton).not.toHaveBeenCalled()
     })
 
-    it('hides the benefit box for a badge with no avatar art and no perk', () => {
+    it('hides the benefit box for a badge with no avatar art', () => {
         renderLockedModal()
 
         expect(screen.queryByText(en.badges.whatYouGet)).not.toBeInTheDocument()
