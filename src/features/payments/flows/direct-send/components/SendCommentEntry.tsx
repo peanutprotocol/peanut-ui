@@ -2,9 +2,9 @@
 
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { pickCommentEmojis } from '../sendAmount.utils'
 
 const MAX_COMMENT_LENGTH = 140
@@ -21,6 +21,7 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
     const [emojis, setEmojis] = useState<string[]>([])
     const inputRef = useRef<HTMLInputElement>(null)
     const editorRef = useRef<HTMLDivElement>(null)
+    const hasComment = value.trim().length > 0
 
     const insertEmoji = (emoji: string) => {
         const input = inputRef.current
@@ -53,49 +54,66 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
         )
     }
 
+    const finishEditing = () => {
+        setIsOpen(false)
+        onEditingChange(false)
+    }
+
     return (
         <div
             ref={editorRef}
-            className="relative h-12 w-full"
+            className={`flex h-12 w-full overflow-hidden rounded-sm border bg-background-disabled focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-solid ${hasComment ? 'border-action-primary focus-within:outline-action-primary' : 'border-action-primary/50 focus-within:outline-action-primary/50'}`}
             onBlur={(event) => {
                 if (!editorRef.current?.contains(event.relatedTarget)) {
-                    setIsOpen(false)
-                    onEditingChange(false)
+                    finishEditing()
                 }
             }}
         >
-            <BaseInput
-                ref={inputRef}
-                id="send-comment"
-                aria-label={t('comment')}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                placeholder={t('comment')}
-                className="pr-36"
-                enterKeyHint="done"
-                maxLength={MAX_COMMENT_LENGTH}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault()
-                        inputRef.current?.blur()
-                    }
-                }}
-            />
-            <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
-                {emojis.map((emoji) => (
-                    <Button
-                        key={emoji}
-                        type="button"
-                        variant="ghost"
-                        className="h-11 w-11 shrink-0 p-0 opacity-50 hover:opacity-80 focus-visible:opacity-100"
-                        aria-label={t('insertEmoji', { emoji })}
-                        onPointerDown={(event) => event.preventDefault()}
-                        onClick={() => insertEmoji(emoji)}
-                    >
-                        <span className={emoji.length > 2 ? 'text-body-m' : 'text-heading-s'}>{emoji}</span>
-                    </Button>
-                ))}
+            <div className="relative min-w-0 flex-1">
+                <input
+                    ref={inputRef}
+                    id="send-comment"
+                    type="text"
+                    aria-label={t('comment')}
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                    placeholder={t('comment')}
+                    className="h-full w-full border-0 bg-transparent pr-36 pl-3 text-body-s-semibold text-foreground-primary outline-none placeholder:text-foreground-secondary"
+                    enterKeyHint="done"
+                    maxLength={MAX_COMMENT_LENGTH}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault()
+                            finishEditing()
+                        }
+                    }}
+                />
+                <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
+                    {emojis.map((emoji) => (
+                        <Button
+                            key={emoji}
+                            type="button"
+                            variant="ghost"
+                            className="h-11 w-11 shrink-0 p-0 opacity-50 hover:opacity-80 focus-visible:opacity-100 active:opacity-100"
+                            aria-label={t('insertEmoji', { emoji })}
+                            onPointerDown={(event) => event.preventDefault()}
+                            onClick={() => insertEmoji(emoji)}
+                        >
+                            <span className={emoji.length > 2 ? 'text-body-m' : 'text-heading-s'}>{emoji}</span>
+                        </Button>
+                    ))}
+                </div>
             </div>
+            <button
+                type="button"
+                aria-label={t('saveComment')}
+                disabled={!hasComment}
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={finishEditing}
+                className="flex h-full w-15 shrink-0 items-center justify-center bg-action-primary text-foreground-primary disabled:opacity-50"
+            >
+                <Icon name="check-circle" size={24} />
+            </button>
         </div>
     )
 }

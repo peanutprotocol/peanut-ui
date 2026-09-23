@@ -1119,6 +1119,7 @@
             "addMoney": "Agregar dinero",
             "editComment": "Editar comentario",
             "comment": "Comentario",
+            "saveComment": "Guardar comentario",
             "insertEmoji": "Agregar {emoji} al comentario"
         },
         "validation": {
