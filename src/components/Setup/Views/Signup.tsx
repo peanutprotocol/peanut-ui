@@ -6,20 +6,67 @@ import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { invitesApi } from '@/services/invites'
+import { toInviteCode } from '@/utils/invite-code.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername } = useSetupFlowContext()
+    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
+        useSetupFlowContext()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
+    const [showInviterInput, setShowInviterInput] = useState(Boolean(inviterUsername))
+    const [inviterValid, setInviterValid] = useState(false)
+    const [inviterChanging, setInviterChanging] = useState(false)
+    const [inviterError, setInviterError] = useState('')
+    const inviterValueRef = useRef(inviterUsername)
+    const inviterInputId = useId()
+    const prefersReducedMotion = useReducedMotion()
+
+    const validateInviter = async (value: string): Promise<boolean> => {
+        setInviterError('')
+        const result = await invitesApi.validateInviteCode(value)
+        const valid = result.success && result.attributionResolved
+        if (inviterValueRef.current !== value) return valid
+        posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid, source: 'signup_optional_inviter' })
+        if (!valid) setInviterError(t('signupStep.inviterNotFound'))
+        return valid
+    }
+
+    const toggleInviterInput = () => {
+        if (showInviterInput) {
+            inviterValueRef.current = ''
+            clearManualInvite()
+            setInviterUsername('')
+            setInviterValid(false)
+            setInviterChanging(false)
+            setInviterError('')
+        } else {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+        }
+        setShowInviterInput(!showInviterInput)
+    }
+
+    const onNext = () =>
+        handleNext(async () => {
+            if (!isValid) return false
+            const code = toInviteCode(inviterUsername)
+            if (showInviterInput && code) {
+                if (!inviterValid || inviterChanging) return false
+                applyManualInvite(code)
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
+            }
+            return true
+        })
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
@@ -132,22 +179,78 @@ const SignupStep = () => {
                             isInputChanging={isChanging}
                             className="rounded-sm"
                         />
-                        {/* Reserve error height so validation does not move the button. */}
                         <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={toggleInviterInput}
+                        aria-expanded={showInviterInput}
+                        aria-controls={inviterInputId}
+                        className="self-center text-body-s text-foreground-secondary underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                    >
+                        {t('signupStep.whoInvitedYou')}
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                        {showInviterInput && (
+                            <motion.div
+                                id={inviterInputId}
+                                initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
+                                transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+                                className="flex w-full flex-col gap-1"
+                            >
+                                <ValidatedInput
+                                    aria-label={t('signupStep.inviterUsernameLabel')}
+                                    placeholder={t('signupStep.inviterUsernamePlaceholder')}
+                                    value={inviterUsername}
+                                    debounceTime={750}
+                                    validate={validateInviter}
+                                    shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
+                                    onUpdate={({ value, isValid, isChanging }) => {
+                                        inviterValueRef.current = value
+                                        setInviterUsername(value)
+                                        setInviterValid(isValid)
+                                        setInviterChanging(isChanging)
+                                        if (isChanging) {
+                                            clearManualInvite()
+                                            setInviterError('')
+                                        }
+                                    }}
+                                    isSetupFlow
+                                    isInputChanging={inviterChanging}
+                                />
+                                {inviterError ? (
+                                    <FieldError>{inviterError}</FieldError>
+                                ) : (
+                                    <p className="text-body-xs text-foreground-secondary">
+                                        {t('signupStep.inviterHelp')}
+                                    </p>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <Button
                         size="large"
                         className="w-full"
                         loading={isLoading}
                         shadowSize="4"
-                        onClick={() => handleNext(async () => isValid)}
-                        disabled={!isValid || isChanging || isLoading}
+                        onClick={onNext}
+                        disabled={
+                            !isValid ||
+                            isChanging ||
+                            isLoading ||
+                            (showInviterInput && !!toInviteCode(inviterUsername) && (!inviterValid || inviterChanging))
+                        }
                     >
                         {t('next')}
                     </Button>
                 </div>
                 <div>
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <DocsLink href="/terms" className="underline underline-offset-2">

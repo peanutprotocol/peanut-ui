@@ -71,7 +71,7 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[35dvh] shrink-0 md:h-dvh',
+    signup: 'h-[47dvh] shrink-0 md:h-dvh',
 }
 
 const setupHeroProgress = (step: number | undefined, totalSteps: number | undefined, screenId: ScreenId) => {
@@ -258,7 +258,7 @@ const ImageSection = ({
                 className={imageClassName || MASCOT_HERO_CLASS}
             />
         ) : 'scene' in image ? (
-            <PeanutMascotScene scene={image.scene} className="scale-100 md:scale-200" />
+            <PeanutMascotScene scene={image.scene} className="scale-150 md:scale-200" />
         ) : (
             <Image
                 src={image.src}

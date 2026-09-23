@@ -16,7 +16,6 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
-import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
@@ -219,11 +218,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // only way forward. The keep-web cookie bypasses this for public guest links.
     if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
         return <SunsetScreen />
-    }
-
-    // Show waitlist page if user doesn't have app access
-    if (!isFetchingUser && user && !user?.user.hasAppAccess && !isPublicPath) {
-        return <JoinWaitlistPage />
     }
 
     return (

@@ -1,5 +1,6 @@
 const mockInit = jest.fn()
 const mockSentryInit = jest.fn()
+const mockCaptureSignupAttribution = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
@@ -17,6 +18,10 @@ jest.mock('@sentry/nextjs', () => ({
 }))
 jest.mock('../defer-analytics', () => ({ whenIdle: jest.fn() }))
 jest.mock('../web-vitals-shim', () => ({ startWebVitalsShim: jest.fn() }))
+jest.mock('@/utils/signup-attribution', () => ({
+    captureSignupAttribution: mockCaptureSignupAttribution,
+    signupAttributionPosthogProperties: jest.fn(() => ({})),
+}))
 
 const payload = '/qr-pay?qrCode=private-payload&pixKey=private-key'
 const savedEnv = { ...process.env }
@@ -35,6 +40,7 @@ it.each([false, true])('installs QR privacy for PostHog pageviews, replay and na
     delete process.env.NEXT_PUBLIC_PERF_BARE
     mockInit.mockClear()
     mockSentryInit.mockClear()
+    mockCaptureSignupAttribution.mockClear()
     window.history.replaceState({}, '', payload)
     jest.isolateModules(() => require('../../../instrumentation-client'))
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -55,8 +61,11 @@ it.each([false, true])('installs QR privacy for PostHog pageviews, replay and na
         config.before_send({ event: 'web_vital', properties: { navigationURL: payload } }).properties.navigationURL
     ).toBe('[REDACTED QR DATA]')
     if (native) {
+        expect(mockCaptureSignupAttribution).not.toHaveBeenCalled()
         const sentry = mockSentryInit.mock.calls[0][0]
         expect(sentry.beforeSendTransaction({ transaction: payload }).transaction).toBe('[REDACTED QR DATA]')
         expect(sentry.beforeSend({ request: { url: payload } }).request.url).toBe('[REDACTED QR DATA]')
+    } else {
+        expect(mockCaptureSignupAttribution).toHaveBeenCalledWith({ includeDocumentReferrer: true })
     }
 })

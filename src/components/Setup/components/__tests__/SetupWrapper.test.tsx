@@ -295,7 +295,7 @@ describe('SetupWrapper transitions', () => {
         expect(container.firstElementChild).toBe(shell)
         expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toBe(hero)
         expect(screen.getByText('Second step').closest('.bg-white')).toBe(panel)
-        expect(hero).toHaveClass('h-[35dvh]', 'shrink-0')
+        expect(hero).toHaveClass('h-[47dvh]', 'shrink-0')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-100%')
         expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '48')

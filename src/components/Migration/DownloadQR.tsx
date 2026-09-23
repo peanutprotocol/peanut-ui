@@ -19,7 +19,16 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
     const t = useTranslations('migration')
     const [payload, setPayload] = useState<string>()
     useEffect(() => {
-        setPayload(handoff ? buildDeferredPayload(handoff.dest, handoff.invite) : undefined)
+        if (!handoff) {
+            setPayload(undefined)
+            return
+        }
+        try {
+            setPayload(buildDeferredPayload(handoff.dest, handoff.invite))
+        } catch {
+            // An unusable handoff must not hide the QR or store links.
+            setPayload(undefined)
+        }
     }, [handoff])
 
     useEffect(() => {

@@ -1222,8 +1222,8 @@ export function slugify(text: string): string {
  * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
  * and matches the old suffixes), so existing shared links keep working.
  *
- * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
- * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
+ * Also tolerates copied profile handles (`@alice ` or ` Alice`): trims
+ * whitespace and strips a leading @.
  */
 export { toInviteCode }
 export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'

@@ -162,13 +162,17 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
-    '02-a-joinwaitlist': {
-        ...SURFACE_META['02-a-joinwaitlist'],
-        render: () => <SetupScreen screenId="welcome" />,
+    '02-a-advantage-payments': {
+        ...SURFACE_META['02-a-advantage-payments'],
+        render: () => <SetupScreen screenId="advantage-payments" />,
     },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
+    },
+    '04-a-advantage-rewards': {
+        ...SURFACE_META['04-a-advantage-rewards'],
+        render: () => <SetupScreen screenId="advantage-rewards" />,
     },
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
@@ -182,6 +186,10 @@ export const SURFACES: Record<string, Surface> = {
     '07-a-setuppasskey': {
         ...SURFACE_META['07-a-setuppasskey'],
         render: () => <SetupScreen screenId="passkey-permission" />,
+    },
+    '07-b-advantage-control': {
+        ...SURFACE_META['07-b-advantage-control'],
+        render: () => <SetupScreen screenId="advantage-control" />,
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],

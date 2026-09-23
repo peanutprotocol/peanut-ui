@@ -1,6 +1,5 @@
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
-import JoinWaitlist from './Views/JoinWaitlist'
+import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -13,15 +12,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
-        screenId: 'welcome',
-        layoutType: 'signup',
-        image: { pose: 'pointing' },
-        component: JoinWaitlist,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
-    },
-    {
         screenId: 'signup',
         layoutType: 'signup',
         image: { pose: 'thinking' },
@@ -29,6 +19,15 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+    },
+    {
+        screenId: 'advantage-payments',
+        layoutType: 'signup',
+        image: { pose: 'pointing' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 pt-8 md:justify-center',
     },
     {
         screenId: 'residence',
@@ -44,6 +43,15 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
+        screenId: 'advantage-rewards',
+        layoutType: 'signup',
+        image: { scene: 'coins' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 pt-8 md:justify-center',
+    },
+    {
         screenId: 'passkey-permission',
         layoutType: 'signup',
         image: { scene: 'safe' },
@@ -51,6 +59,15 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+    },
+    {
+        screenId: 'advantage-control',
+        layoutType: 'signup',
+        image: { pose: 'too-cool' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 pt-8 md:justify-center',
     },
     {
         screenId: 'sign-test-transaction',

@@ -8,8 +8,11 @@ export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'advantage-payments'
     | 'residence'
+    | 'advantage-rewards'
     | 'passkey-permission'
+    | 'advantage-control'
     | 'passkey-success'
     | 'notification-permission'
     | 'add-wallets'
@@ -23,11 +26,14 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    'advantage-payments': undefined
     residence: undefined
+    'advantage-rewards': undefined
     'passkey-permission': {
         handle: string
     }
     'passkey-success': undefined
+    'advantage-control': undefined
     'notification-permission': undefined
     'add-wallets': undefined
     success: undefined

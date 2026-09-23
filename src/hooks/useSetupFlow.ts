@@ -8,7 +8,7 @@ import { isNativeBridge } from '@/utils/capacitor'
 import { useCallback, useMemo } from 'react'
 
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
- * that skips the invite gate (see determineInitialStep). */
+ * that opens the signup form directly (see determineInitialStep). */
 export const SETUP_SCREEN_PARAM = 'screen'
 
 /*

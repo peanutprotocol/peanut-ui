@@ -3,11 +3,15 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
+import { EInviteType } from '@/services/services.types'
+import { clearInvite, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
+
+type ManualInvite = { code: string; previousCode: string; previousType: EInviteType }
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
- * runtime decision), the inviter input, the typed username, residence
- * answers, and transient loading/animation state. Mounted at the
+ * runtime decision), the typed username and
+ * residence answers, and transient loading/animation state. Mounted at the
  * (setup) layout — flow-scoped, like the withdraw provider (TASK-21816). The
  * step CURSOR is not here: it is a named screen id in the URL (?screen=,
  * TASK-21460), which is what killed the redux numeric index and its silent
@@ -25,8 +29,10 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
-    inviteCodeInput: string
-    setInviteCodeInput: (inviteCode: string) => void
+    inviterUsername: string
+    setInviterUsername: (username: string) => void
+    applyManualInvite: (code: string) => void
+    clearManualInvite: () => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
@@ -56,11 +62,32 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
-    const [inviteCodeInput, setInviteCodeInput] = useState('')
+    const [inviterUsername, setInviterUsername] = useState('')
+    const [manualInvite, setManualInvite] = useState<ManualInvite | null>(null)
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
+
+    const clearManualInvite = useCallback(() => {
+        if (manualInvite && manualInvite.code === readInviteCode()) {
+            if (manualInvite.previousCode) stashInvite(manualInvite.previousCode, manualInvite.previousType)
+            else clearInvite()
+        }
+        setManualInvite(null)
+    }, [manualInvite])
+
+    const applyManualInvite = useCallback(
+        (code: string) => {
+            const currentCode = readInviteCode()
+            if (manualInvite?.code === code && currentCode === code) return
+            const previousCode = manualInvite?.code === currentCode ? manualInvite.previousCode : currentCode
+            const previousType = manualInvite?.code === currentCode ? manualInvite.previousType : readInviteType()
+            stashInvite(code, EInviteType.DIRECT)
+            setManualInvite({ code, previousCode, previousType })
+        },
+        [manualInvite]
+    )
 
     // "start fresh" on the existing-session interstitial: the provider stays
     // mounted through the logout, so the typed state clears explicitly
@@ -68,11 +95,12 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
         setIsLoading(false)
         setDirection(0)
         setUsername('')
-        setInviteCodeInput('')
+        setInviterUsername('')
+        clearManualInvite()
         setResidenceCountry('')
         setSecondResidenceCountry('')
         setNoBackLockScreenId(null)
-    }, [])
+    }, [clearManualInvite])
 
     const value = useMemo(
         () => ({
@@ -85,8 +113,10 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setDirection,
             username,
             setUsername,
-            inviteCodeInput,
-            setInviteCodeInput,
+            inviterUsername,
+            setInviterUsername,
+            applyManualInvite,
+            clearManualInvite,
             residenceCountry,
             setResidenceCountry,
             secondResidenceCountry,
@@ -103,7 +133,9 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             isLoading,
             direction,
             username,
-            inviteCodeInput,
+            inviterUsername,
+            applyManualInvite,
+            clearManualInvite,
             residenceCountry,
             secondResidenceCountry,
             signupEntryFlow,

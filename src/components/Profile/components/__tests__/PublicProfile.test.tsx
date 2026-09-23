@@ -183,6 +183,16 @@ describe('PublicProfile guest door', () => {
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, expect.anything())
     })
 
+    it('routes a registered user directly even when a cached legacy access flag is false', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+
+        expect(mockPush).toHaveBeenCalledWith('/request/satoshi')
+        expect(screen.queryByTestId('invite-drawer')).not.toBeInTheDocument()
+    })
+
     it('holds the impression back until auth has settled', async () => {
         mockAuth = { user: null, isFetchingUser: true }
         renderWithIntl(<PublicProfile username="satoshi" />)
