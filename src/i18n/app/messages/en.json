@@ -552,7 +552,7 @@
         },
         "update": {
             "title": "Update ready",
-            "description": "Restart Peanut to finish installing version {version}.",
+            "description": "Restart Peanut to finish installing the update.",
             "restartNow": "Restart now",
             "notNow": "Not now",
             "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
