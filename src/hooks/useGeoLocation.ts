@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react'
 const GEO_CACHE_KEY = 'user_geo_country_code'
 const GEO_CACHE_TIMESTAMP_KEY = 'user_geo_country_code_timestamp'
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+// The lookup only sorts lists. Past this it answers "unknown", so no screen
+// waits on a third party that has stopped answering (TASK-22967).
+export const GEO_LOOKUP_TIMEOUT_MS = 3000
 
 // in-memory cache to share across all hook instances in the same session
 let memoryCache: { countryCode: string | null; timestamp: number } | null = null
@@ -31,6 +34,8 @@ export const useGeoLocation = () => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), GEO_LOOKUP_TIMEOUT_MS)
         const fetchCountry = async () => {
             try {
                 // check memory cache first (fastest)
@@ -56,7 +61,7 @@ export const useGeoLocation = () => {
                 }
 
                 // no valid cache, fetch from api
-                const response = await fetch('https://ipapi.co/country')
+                const response = await fetch('https://ipapi.co/country', { signal: controller.signal })
                 if (!response.ok) {
                     throw new Error('Failed to fetch country')
                 }
@@ -71,6 +76,7 @@ export const useGeoLocation = () => {
             } catch (err) {
                 setError(err instanceof Error ? err.message : String(err))
             } finally {
+                clearTimeout(timeout)
                 setIsLoading(false)
             }
         }

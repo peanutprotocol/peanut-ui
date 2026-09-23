@@ -11,7 +11,6 @@ import Image from 'next/image'
 import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card/card.utils'
 import { useHomeCountry } from '@/features/destinations/useHomeCountry'
-import { CountryListSkeleton } from './CountryListSkeleton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
@@ -105,7 +104,7 @@ export const CountryList = ({
     const searchTerm = controlledSearchTerm ?? ownSearchTerm
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
-    const { countryCode: homeCountryCode, isLoading: isHomeCountryLoading } = useHomeCountry()
+    const { countryCode: homeCountryCode } = useHomeCountry()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
 
@@ -172,139 +171,138 @@ export const CountryList = ({
                     />
                 </div>
             )}
-            {isHomeCountryLoading ? (
-                <CountryListSkeleton />
-            ) : (
-                <div className="flex-1 overflow-y-auto">
-                    {!searchTerm && viewMode === 'add-withdraw' && onCryptoClick && (
-                        <div className="mb-2">
+            {/* The list is static and bundled, so it renders at once. The home
+                country only re-sorts it when the lookup answers: a stalled
+                lookup must never hold the list back (TASK-22967). */}
+            <div className="flex-1 overflow-y-auto">
+                {!searchTerm && viewMode === 'add-withdraw' && onCryptoClick && (
+                    <div className="mb-2">
+                        <ListItem
+                            key="crypto"
+                            title={
+                                flow === 'withdraw'
+                                    ? t('countryList.cryptoWithdrawTitle')
+                                    : t('countryList.cryptoDepositTitle')
+                            }
+                            body={
+                                <div>
+                                    {flow === 'add'
+                                        ? t('countryList.cryptoDepositDescription')
+                                        : t('countryList.cryptoWithdrawDescription')}
+                                </div>
+                            }
+                            onClick={() => onCryptoClick(flow!)}
+                            position={'solo'}
+                            chevron
+                            leading={<IconBubble icon="coins" color="blue" size="s" />}
+                        />
+                    </div>
+                )}
+                {filteredCountries.length > 0 ? (
+                    filteredCountries.map((country, index) => {
+                        const twoLetterCountryCode =
+                            ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
+                        const position = continuesGroup
+                            ? index === filteredCountries.length - 1
+                                ? 'bottom'
+                                : 'middle'
+                            : getCardPosition(index, filteredCountries.length)
+                        const displayName = countryName(country)
+
+                        // "Does this country have a live Bridge bank corridor" is read from
+                        // the one corridor table (bank-corridors.ts) that the offramp route
+                        // and the withdraw form read too — so Colombia's `co_bank_transfer`,
+                        // and any future corridor, reach every list without a second country
+                        // list to keep in step. See the parity test in bank-corridors.test.ts.
+                        const hasBankCorridor = hasBridgeBankCorridor(country.id)
+                        const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
+
+                        // determine if country is supported based on view mode
+                        let isSupported = false
+
+                        if (isCountrySupported) {
+                            isSupported = isCountrySupported(country)
+                        } else if (viewMode === 'add-withdraw') {
+                            // send->bank has a stricter gate (Argentina stays out) —
+                            // see isSendToBankCountry
+                            if (enforceSupportedCountries) {
+                                isSupported = isSendToBankCountry(country)
+                            } else {
+                                isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
+                            }
+                        } else if (viewMode === 'general-verification') {
+                            // all countries can verify even if they cant
+                            // withdraw
+                            isSupported = true
+                        } else if (viewMode === 'claim-request') {
+                            // a Bridge bank corridor or a Manteca country; non-euro SEPA
+                            // members have no corridor and stay on the waitlist.
+                            isSupported = hasBankCorridor || isMantecaSupportedCountry
+                        } else {
+                            // support all countries
+                            isSupported = true
+                        }
+
+                        const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
+                        const trailing =
+                            customRight ??
+                            (showLoadingState && clickedCountryId === country.id ? <Loading /> : undefined)
+
+                        return (
                             <ListItem
-                                key="crypto"
-                                title={
-                                    flow === 'withdraw'
-                                        ? t('countryList.cryptoWithdrawTitle')
-                                        : t('countryList.cryptoDepositTitle')
-                                }
-                                body={
-                                    <div>
-                                        {flow === 'add'
-                                            ? t('countryList.cryptoDepositDescription')
-                                            : t('countryList.cryptoWithdrawDescription')}
+                                key={country.id}
+                                title={displayName}
+                                trailing={trailing}
+                                chevron={!trailing}
+                                // A caller-supplied set is "the countries this currency
+                                // pays out in", and the caller's own row names that
+                                // currency. The country's local code under it ("Poland
+                                // PLN" inside EUR) promised a payout the rail does not make.
+                                body={countries ? undefined : country.currency}
+                                onClick={() => {
+                                    // check for easter egg countries first
+                                    if (EASTER_EGG_COUNTRIES[country.id]) {
+                                        setEasterEggCountry(country.id)
+                                        return
+                                    }
+                                    if (!isSupported) {
+                                        setWaitlistCountry(country)
+                                        return
+                                    }
+                                    // set loading state immediately for visual feedback
+                                    setClickedCountryId(country.id)
+                                    onCountryClick(country)
+                                }}
+                                position={position}
+                                disabled={clickedCountryId === country.id}
+                                leading={
+                                    <div className="relative h-8 w-8">
+                                        <Image
+                                            src={getFlagUrl(twoLetterCountryCode)}
+                                            alt={t('countryList.flagAlt', { country: displayName })}
+                                            width={80}
+                                            height={80}
+                                            className="h-8 w-8 rounded-full object-cover"
+                                            // priority load first 10 flags for better perceived performance
+                                            priority={index < 10}
+                                            loading={index < 10 ? 'eager' : 'lazy'}
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none'
+                                            }}
+                                        />
                                     </div>
                                 }
-                                onClick={() => onCryptoClick(flow!)}
-                                position={'solo'}
-                                chevron
-                                leading={<IconBubble icon="coins" color="blue" size="s" />}
                             />
-                        </div>
-                    )}
-                    {filteredCountries.length > 0 ? (
-                        filteredCountries.map((country, index) => {
-                            const twoLetterCountryCode =
-                                ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
-                            const position = continuesGroup
-                                ? index === filteredCountries.length - 1
-                                    ? 'bottom'
-                                    : 'middle'
-                                : getCardPosition(index, filteredCountries.length)
-                            const displayName = countryName(country)
-
-                            // "Does this country have a live Bridge bank corridor" is read from
-                            // the one corridor table (bank-corridors.ts) that the offramp route
-                            // and the withdraw form read too — so Colombia's `co_bank_transfer`,
-                            // and any future corridor, reach every list without a second country
-                            // list to keep in step. See the parity test in bank-corridors.test.ts.
-                            const hasBankCorridor = hasBridgeBankCorridor(country.id)
-                            const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
-
-                            // determine if country is supported based on view mode
-                            let isSupported = false
-
-                            if (isCountrySupported) {
-                                isSupported = isCountrySupported(country)
-                            } else if (viewMode === 'add-withdraw') {
-                                // send->bank has a stricter gate (Argentina stays out) —
-                                // see isSendToBankCountry
-                                if (enforceSupportedCountries) {
-                                    isSupported = isSendToBankCountry(country)
-                                } else {
-                                    isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
-                                }
-                            } else if (viewMode === 'general-verification') {
-                                // all countries can verify even if they cant
-                                // withdraw
-                                isSupported = true
-                            } else if (viewMode === 'claim-request') {
-                                // a Bridge bank corridor or a Manteca country; non-euro SEPA
-                                // members have no corridor and stay on the waitlist.
-                                isSupported = hasBankCorridor || isMantecaSupportedCountry
-                            } else {
-                                // support all countries
-                                isSupported = true
-                            }
-
-                            const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
-                            const trailing =
-                                customRight ??
-                                (showLoadingState && clickedCountryId === country.id ? <Loading /> : undefined)
-
-                            return (
-                                <ListItem
-                                    key={country.id}
-                                    title={displayName}
-                                    trailing={trailing}
-                                    chevron={!trailing}
-                                    // A caller-supplied set is "the countries this currency
-                                    // pays out in", and the caller's own row names that
-                                    // currency. The country's local code under it ("Poland
-                                    // PLN" inside EUR) promised a payout the rail does not make.
-                                    body={countries ? undefined : country.currency}
-                                    onClick={() => {
-                                        // check for easter egg countries first
-                                        if (EASTER_EGG_COUNTRIES[country.id]) {
-                                            setEasterEggCountry(country.id)
-                                            return
-                                        }
-                                        if (!isSupported) {
-                                            setWaitlistCountry(country)
-                                            return
-                                        }
-                                        // set loading state immediately for visual feedback
-                                        setClickedCountryId(country.id)
-                                        onCountryClick(country)
-                                    }}
-                                    position={position}
-                                    disabled={clickedCountryId === country.id}
-                                    leading={
-                                        <div className="relative h-8 w-8">
-                                            <Image
-                                                src={getFlagUrl(twoLetterCountryCode)}
-                                                alt={t('countryList.flagAlt', { country: displayName })}
-                                                width={80}
-                                                height={80}
-                                                className="h-8 w-8 rounded-full object-cover"
-                                                // priority load first 10 flags for better perceived performance
-                                                priority={index < 10}
-                                                loading={index < 10 ? 'eager' : 'lazy'}
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none'
-                                                }}
-                                            />
-                                        </div>
-                                    }
-                                />
-                            )
-                        })
-                    ) : (
-                        <EmptyState
-                            title={t('countryList.noResultsTitle')}
-                            description={t('countryList.noResultsDescription')}
-                            icon="search"
-                        />
-                    )}
-                </div>
-            )}
+                        )
+                    })
+                ) : (
+                    <EmptyState
+                        title={t('countryList.noResultsTitle')}
+                        description={t('countryList.noResultsDescription')}
+                        icon="search"
+                    />
+                )}
+            </div>
 
             {waitlistCountry && (
                 <CountryWaitlist
