@@ -1051,7 +1051,6 @@
         }
     },
     "request": {
-        "leaveEmptyHint": "Deixe sem valor para o pagador escolher.",
         "createRequest": "Criar cobrança",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
@@ -1092,13 +1091,10 @@
             "exactNote": "Quem paga por banco em {currency} vê este valor exato. Os demais veem uma estimativa."
         },
         "bankInstructions": {
-            "title": "Compartilhe seus dados bancários",
-            "description": "Qualquer pessoa que abrir este link vê seus dados bancários e seu nome completo.",
-            "anyonePays": "Assim, pode te pagar por transferência bancária.",
+            "title": "Deixe que te paguem por transferência bancária",
+            "disclosure": "Quem paga vê seu nome completo e seus dados bancários.",
             "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
-            "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida.",
-            "titleOff": "Seus dados bancários ficam privados",
-            "descriptionOff": "Quem paga pode te pagar com a Peanut ou cripto."
+            "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida."
         },
         "paidByBank": {
             "rowLabel": "Transferência bancária",
@@ -3546,11 +3542,10 @@
         },
         "peanutActionCard": {
             "requestTitle": "Peça dinheiro",
-            "requestDescription": "Para amigos, seu empregador ou qualquer pessoa no mundo",
+            "requestDescription": "Não precisa de conta, é só mandar uma DM.",
             "sendTitle": "Crie um link de pagamento",
             "sendDescription": "Qualquer pessoa com o link pode receber o dinheiro",
-            "perfectToDm": "Perfeito para mandar na DM!",
-            "requestPerfectToShare": "Perfeito para mandar por DM ou WhatsApp!"
+            "perfectToDm": "Perfeito para mandar na DM!"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "Você está enviando para {recipient}",
@@ -4064,9 +4059,11 @@
         "list": {
             "addTitle": "Adicionar dinheiro",
             "addHeading": "Como você quer adicionar dinheiro?",
-            "searchPlaceholder": "Busque país, moeda ou conta",
-            "noMatchTitle": "Nenhum resultado para “{query}”",
-            "clearSearch": "Limpar busca",
+            "bankTopUpTitle": "Adicione dinheiro do seu banco",
+            "oneOffBody": {
+                "BANK_TRANSFER_AR": "Transferência única pelo Mercado Pago",
+                "PIX_BR": "Transferência Pix única"
+            },
             "countriesTitle": "Formas de enviar dinheiro para você",
             "countriesPitch": "Escolha o país do seu banco.",
             "sectionTitle": "Seus números de conta",

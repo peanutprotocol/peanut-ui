@@ -88,7 +88,7 @@ export default function FeedbackPage() {
                                 default: '-',
                                 required: true,
                                 description:
-                                    'completed | pending | processing | failed | cancelled | refunded | soon | closed | custom',
+                                    'completed | pending | processing | failed | cancelled | refunded | soon | closed | neutral | custom',
                             },
                             { name: 'type', type: "'text' | 'icon'", default: "'text'" },
                             { name: 'size', type: "'small' | 'medium'", default: "'small'" },
@@ -96,7 +96,7 @@ export default function FeedbackPage() {
                                 name: 'customText',
                                 type: 'string',
                                 default: '(none)',
-                                description: 'Text when status="custom"',
+                                description: 'Text when status="custom" or "neutral" (neutral has no default word)',
                             },
                             { name: 'className', type: 'string', default: "''", description: 'Override styles' },
                         ]}
@@ -109,7 +109,7 @@ export default function FeedbackPage() {
                         label="Usage"
                         code={`<Badge status="completed" />
 <Badge status="pending" size="medium" />
-<Badge status="custom" customText="Active" />`}
+<Badge status="neutral" customText="1 of 2 used" />`}
                     />
                 </DocSection.Code>
             </DocSection>

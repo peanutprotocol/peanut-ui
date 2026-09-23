@@ -23,19 +23,13 @@ export function rowStatusBadge(row: UnlockRow, t: (key: any) => string) {
             return <Badge status="processing" customText={t('chips.processing')} />
         case 'attention':
             return <Badge status="pending" customText={t('chips.attention')} />
+        // a DS badge, not a pill of its own: a dead end, or nothing done yet,
+        // is a fact with no tone, which is what neutral says (Konrad,
+        // 2026-09-23). Every row on the list draws it the same way.
         case 'notAvailable':
-            if (row.labelKey === 'card') {
-                return (
-                    <Badge
-                        status="custom"
-                        customText={t('chips.notAvailable')}
-                        className="bg-background-badge-helper"
-                    />
-                )
-            }
-            return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
+            return <Badge status="neutral" customText={t('chips.notAvailable')} />
         case 'unlock':
-            return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
+            return <Badge status="neutral" customText={t('chips.unlock')} />
     }
 }
 
