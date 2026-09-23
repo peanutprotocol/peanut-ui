@@ -2442,6 +2442,7 @@
         "earned": "Earned",
         "locked": "Locked",
         "howToUnlock": "How to unlock",
+        "whatYouGet": "What you get",
         "emptyTitle": "No badges found",
         "emptyDescription": "Earn badges as you use Peanut. Make payments, invite friends, and join events to unlock them and display them on your profile.",
         "loadErrorTitle": "Couldn't load badges",
@@ -2467,6 +2468,9 @@
             "ensPayment": "Send or receive a payment using an ENS name.",
             "campaign": "Join an eligible Peanut campaign or event.",
             "specialRecognition": "Earn this through a Peanut milestone, contribution, or special recognition."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar} other {# avatars}} for your profile"
         },
         "catalog": {
             "FIRST_INVITE": {

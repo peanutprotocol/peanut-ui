@@ -10,6 +10,7 @@ import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
 import { twMerge } from '@/utils/tw'
 
 type BadgeDetailDrawerProps = {
@@ -49,6 +50,12 @@ export const BadgeDetailDrawer = ({
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
     })
 
+    // What holding the badge gives: the avatars it unlocks, counted from the
+    // generated manifest, so a badge gets its box the day its art lands. Perk
+    // rewards stay out on purpose: a reward tied to the card needs Rain's review
+    // before any copy names it.
+    const avatarCount = code ? badgeAvatarKeys([code]).length : 0
+
     return (
         <Drawer
             open={isOpen}
@@ -79,23 +86,32 @@ export const BadgeDetailDrawer = ({
                             <DrawerDescription>{description}</DrawerDescription>
                         </DrawerHeader>
                     </div>
-                    {earned ? (
-                        <ShareButton
-                            title=""
-                            className="w-full"
-                            onSuccess={() => {
-                                captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
-                                onClose()
-                            }}
-                            generateText={() => Promise.resolve(shareText)}
-                        >
-                            {t('shareAchievement')}
-                        </ShareButton>
-                    ) : (
-                        <Callout priority="helper" title={t('howToUnlock')} className="w-full">
-                            {unlockText}
-                        </Callout>
-                    )}
+                    <div className="flex w-full flex-col gap-4">
+                        {avatarCount > 0 && (
+                            <Callout
+                                priority="success"
+                                title={t('whatYouGet')}
+                                items={[t('benefit.avatars', { count: avatarCount })]}
+                            />
+                        )}
+                        {earned ? (
+                            <ShareButton
+                                title=""
+                                className="w-full"
+                                onSuccess={() => {
+                                    captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
+                                    onClose()
+                                }}
+                                generateText={() => Promise.resolve(shareText)}
+                            >
+                                {t('shareAchievement')}
+                            </ShareButton>
+                        ) : (
+                            <Callout priority="helper" title={t('howToUnlock')}>
+                                {unlockText}
+                            </Callout>
+                        )}
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>
