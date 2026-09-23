@@ -40,7 +40,15 @@ const SafeBox = () => (
 )
 
 /** Reusable mascot scenes; all looping movement stops for reduced motion. */
-export const PeanutMascotScene = ({ scene, className }: { scene: PeanutMascotSceneName; className?: string }) => {
+export const PeanutMascotScene = ({
+    scene,
+    className,
+    mascotClassName,
+}: {
+    scene: PeanutMascotSceneName
+    className?: string
+    mascotClassName?: string
+}) => {
     const reducedMotion = useReducedMotion()
 
     return (
@@ -108,7 +116,10 @@ export const PeanutMascotScene = ({ scene, className }: { scene: PeanutMascotSce
 
             {scene === 'coins' && (
                 <>
-                    <PeanutMascot pose="cheering" className="absolute bottom-0 left-1/2 h-40 w-auto -translate-x-1/2" />
+                    <PeanutMascot
+                        pose="cheering"
+                        className={twMerge('absolute bottom-0 left-1/2 h-40 w-auto -translate-x-1/2', mascotClassName)}
+                    />
                     <motion.div
                         className="absolute top-11 left-2 h-10 w-10"
                         animate={

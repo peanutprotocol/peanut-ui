@@ -255,10 +255,23 @@ const ImageSection = ({
             <PeanutMascot
                 pose={image.pose}
                 alt={t('illustrationAlt')}
-                className={imageClassName || MASCOT_HERO_CLASS}
+                className={twMerge(
+                    imageClassName || MASCOT_HERO_CLASS,
+                    // The wide landing pose reads much larger horizontally. Scale
+                    // only this first appearance down by 20%.
+                    screenId === 'landing' && 'scale-[0.8]'
+                )}
             />
         ) : 'scene' in image ? (
-            <PeanutMascotScene scene={image.scene} className="scale-150 md:scale-200" />
+            <PeanutMascotScene
+                scene={image.scene}
+                className={
+                    image.scene === 'coins'
+                        ? 'top-4 h-56 scale-150 md:top-0 md:h-64 md:scale-200'
+                        : 'scale-150 md:scale-200'
+                }
+                mascotClassName={image.scene === 'coins' ? 'h-56 md:h-64' : undefined}
+            />
         ) : (
             <Image
                 src={image.src}

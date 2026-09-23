@@ -24,7 +24,9 @@ jest.mock('@capacitor/status-bar', () => ({
 jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
-    default: ({ pose }: { pose: string }) => <div data-testid="mascot" data-mascot-pose={pose} />,
+    default: ({ pose, className }: { pose: string; className?: string }) => (
+        <div data-testid="mascot" data-mascot-pose={pose} className={className} />
+    ),
 }))
 jest.mock('framer-motion', () => ({
     useReducedMotion: () => mockReducedMotion.value,
@@ -111,6 +113,45 @@ const StepWithImageOverride = () => {
 }
 
 describe('SetupWrapper transitions', () => {
+    it('sizes the landing pose down while keeping the other setup illustrations comparable', () => {
+        const { rerender, container } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="landing" image={{ pose: 'waving-chill' }}>
+                <div>Landing</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByTestId('mascot')).toHaveClass('scale-[0.8]')
+
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="signup" image={{ pose: 'thinking' }}>
+                <div>Signup</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByTestId('mascot')).not.toHaveClass('scale-[0.8]')
+
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="sign-test-transaction" image={{ pose: 'waving-chill' }}>
+                <div>Ready</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByTestId('mascot')).not.toHaveClass('scale-[0.8]')
+
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="advantage-rewards" image={{ scene: 'coins' }}>
+                <div>Rewards</div>
+            </SetupWrapper>
+        )
+        expect(container.querySelector('[data-mascot-scene="coins"]')).toHaveClass('h-56', 'md:h-64')
+        expect(screen.getByTestId('mascot')).toHaveClass('h-56', 'md:h-64')
+
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="passkey-permission" image={{ scene: 'safe' }}>
+                <div>Passkey</div>
+            </SetupWrapper>
+        )
+        expect(container.querySelector('[data-mascot-scene="safe"]')).toHaveClass('h-52')
+        expect(container.querySelector('[data-mascot-scene="safe"]')).not.toHaveClass('h-64')
+    })
+
     it('updates the older Android status bar to the destination color', async () => {
         jest.useFakeTimers()
         mockCapacitor.value = true
