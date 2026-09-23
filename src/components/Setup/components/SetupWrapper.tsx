@@ -5,6 +5,7 @@ import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
@@ -217,7 +218,7 @@ const ImageSection = ({
 
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageKey = 'pose' in image ? image.pose : image.src
+    const imageKey = 'pose' in image ? image.pose : 'scene' in image ? image.scene : image.src
     const illustration =
         'pose' in image ? (
             <PeanutMascot
@@ -225,6 +226,8 @@ const ImageSection = ({
                 alt={t('illustrationAlt')}
                 className={imageClassName || MASCOT_HERO_CLASS}
             />
+        ) : 'scene' in image ? (
+            <PeanutMascotScene scene={image.scene} className="scale-100 md:scale-200" />
         ) : (
             <Image
                 src={image.src}

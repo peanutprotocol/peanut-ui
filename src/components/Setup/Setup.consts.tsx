@@ -46,7 +46,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
-        image: { pose: 'too-cool' },
+        image: { scene: 'safe' },
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
