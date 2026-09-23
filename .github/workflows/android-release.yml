@@ -229,7 +229,11 @@ jobs:
               run: |
                   BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
                   if [ "$BRIDGE" = active ]; then
-                      node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                      # A same-version replacement already passed the narrow
+                      # legacy-compatible scope check in the version step.
+                      if [ "$IS_REBUILD" != true ]; then
+                          node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                      fi
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
                       echo "Keeping the Android 1.6.x bridge for older installs"
                       exit 0
