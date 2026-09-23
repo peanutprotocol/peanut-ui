@@ -339,13 +339,15 @@ export const SURFACES: Record<string, Surface> = {
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
+            // a real badge with avatar art and a perk, so the gallery shows
+            // every row of the "What you get" box
             <BadgeDetailDrawer
                 isOpen
                 onClose={noop}
-                code="first-invite"
-                title="First Invite"
-                description="You invited your first friend to Peanut."
-                logo="/badges/first-invite.webp"
+                code="OFFRAMP_USER"
+                title="Offramp User"
+                description="You migrated to Peanut. We welcomed you."
+                logo="/badges/offramp_user.png"
             />
         ),
     },
