@@ -102,7 +102,7 @@
                 },
                 "outbound": {
                     "title": "Make your first payment",
-                    "description": "Start paying to Pix and MercadoPago QR codes",
+                    "description": "Pay Pix keys and Pix or MercadoPago QRs",
                     "cta": "Start Spending"
                 }
             },
@@ -123,7 +123,7 @@
             },
             "spendWithPeanut": {
                 "title": "Spend with Peanut",
-                "description": "Pay with your card or scan Pix and MercadoPago QR codes"
+                "description": "Pay by card, Pix key, or Pix and MercadoPago QR"
             },
             "spendChooser": {
                 "title": "How do you want to spend?",
@@ -200,7 +200,7 @@
             },
             "kyc": {
                 "title": "Unlock <b>QR code payments</b>",
-                "description": "Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes"
+                "description": "Confirm your ID to pay <b>Pix</b> keys and <b>Mercado Pago</b> or <b>Pix</b> QRs"
             },
             "closePrompt": "Close prompt",
             "closeTitled": "Close {title}",
@@ -811,7 +811,7 @@
                 "cardClause": "You can also apply for a Peanut Card after verifying your identity.",
                 "rails": {
                     "pix": "PIX transfers",
-                    "arQr": "QR payments and transfers",
+                    "arQr": "QR payments and transfers with your own account",
                     "spei": "Mexican peso bank transfers",
                     "usdAch": "US dollar bank transfers",
                     "eurSepa": "Euro bank transfers",
@@ -834,7 +834,7 @@
                 "items": {
                     "p2p": "Peanut-to-Peanut payments",
                     "pix": "PIX payments & transfers",
-                    "arQr": "QR payments & transfers",
+                    "arQr": "QR payments & own-account transfers",
                     "spei": "Mexican peso bank transfers",
                     "usdAch": "US dollar bank transfers",
                     "eurSepa": "Euro bank transfers",
@@ -1019,6 +1019,8 @@
             "bankTitle": "Bank transfer",
             "bankDescription": "EUR, USD, MXN, ARS and more",
             "instantTransfers": "Instant transfers",
+            "sendBankDescription": "EUR, USD, MXN, BRL & more",
+            "pixKeyDescription": "Any Pix key",
             "exchangeOrWalletTitle": "Crypto",
             "exchangeOrWalletDescription": "Binance, MetaMask and more"
         },
@@ -1365,7 +1367,7 @@
         },
         "kyc": {
             "unlockTitle": "Unlock QR payments",
-            "unlockDescription": "Confirm your ID to pay with a QR code. Takes about a minute.",
+            "unlockDescription": "Confirm your ID to pay any Pix key or QR. Takes a minute.",
             "unlockCta": "Unlock now",
             "inProgressTitle": "Almost there",
             "inProgressDescription": "We're confirming your ID. Pick up where you left off and you'll be paying in no time.",
@@ -4193,7 +4195,7 @@
                 "railName": "Pix",
                 "residenceTitle": "Residence required",
                 "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
-                "qrPay": "You can still pay a Pix QR code in Brazil from your balance."
+                "qrPay": "You can still pay any Pix key or Pix QR code in Brazil from your balance."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",

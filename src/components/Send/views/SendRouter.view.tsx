@@ -112,7 +112,8 @@ export const SendRouterView = () => {
                     return {
                         ...method,
                         title: t('methods.bankTitle'),
-                        description: t('methods.bankDescription'),
+                        // ARS stays off this list: Send → Bank lists Argentina as Soon
+                        description: t('methods.sendBankDescription'),
                         identifierIcon: <IconBubble icon="bank" size="s" color="gray" />,
                     }
                 case 'exchange-or-wallet':
@@ -125,7 +126,7 @@ export const SendRouterView = () => {
                 case 'pix':
                     return {
                         ...method,
-                        description: t('methods.instantTransfers'),
+                        description: t('methods.pixKeyDescription'),
                         identifierIcon: <Image src={PIX} alt="Pix" className="size-8 min-w-8" />,
                     }
                 default:

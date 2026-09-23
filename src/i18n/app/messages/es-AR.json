@@ -22,7 +22,7 @@
                 },
                 "outbound": {
                     "title": "Hacé tu primer pago",
-                    "description": "Empezá a pagar códigos QR de Pix y Mercado Pago"
+                    "description": "Pagá claves Pix y códigos QR de Pix o Mercado Pago"
                 }
             },
             "addEmail": {
@@ -36,7 +36,7 @@
             },
             "spendWithPeanut": {
                 "title": "Pagá con Peanut",
-                "description": "Pagá con tu tarjeta o escaneá códigos QR de Pix y Mercado Pago"
+                "description": "Pagá con tu tarjeta, una clave Pix o códigos QR de Pix y Mercado Pago"
             },
             "spendChooser": {
                 "title": "¿Cómo querés gastar?",
@@ -98,7 +98,7 @@
             },
             "kyc": {
                 "title": "Desbloqueá <b>pagos con QR</b>",
-                "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
+                "description": "Confirmá tu identidad para pagar cualquier clave <b>Pix</b> y códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
             },
             "iosCopy": {
                 "invite": {
@@ -508,7 +508,7 @@
                 "items": {
                     "p2p": "Pagos de Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias",
+                    "arQr": "Pagos QR y transferencias con tu cuenta",
                     "spei": "Transferencias bancarias en pesos mexicanos",
                     "usdAch": "Transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "Transferencias bancarias en euros",
@@ -749,7 +749,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloqueá los pagos con QR",
-            "unlockDescription": "Confirmá tu identidad para pagar con un código QR. Toma alrededor de un minuto.",
+            "unlockDescription": "Confirmá tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
@@ -1390,7 +1390,7 @@
                 },
                 "taxId": {
                     "title": "Tu identificación fiscal",
-                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales.",
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para transferencias bancarias locales.",
                     "bodyAR": "CUIT o CUIL, de tu DNI. Se necesita para las transferencias bancarias locales.",
                     "bodyBR": "CPF. Se necesita para las transferencias bancarias locales."
                 },
@@ -1849,7 +1849,7 @@
             },
             "PIX_BR": {
                 "residenceRequired": "Solo los residentes legales de Brasil pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
-                "qrPay": "De todas formas podés pagar códigos QR de Pix en Brasil con tu saldo.",
+                "qrPay": "De todas formas podés pagar cualquier clave Pix o código QR de Pix en Brasil con tu saldo.",
                 "residenceTitle": "Necesitás residencia"
             }
         },

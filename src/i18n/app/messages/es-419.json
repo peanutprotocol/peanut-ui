@@ -102,7 +102,7 @@
                 },
                 "outbound": {
                     "title": "Haz tu primer pago",
-                    "description": "Empieza a pagar códigos QR de Pix y MercadoPago",
+                    "description": "Paga claves Pix y códigos QR de Pix o MercadoPago",
                     "cta": "Empezar a gastar"
                 }
             },
@@ -123,7 +123,7 @@
             },
             "spendWithPeanut": {
                 "title": "Paga con Peanut",
-                "description": "Paga con tu tarjeta o escanea códigos QR de Pix y MercadoPago"
+                "description": "Paga con tu tarjeta, una clave Pix o códigos QR de Pix y MercadoPago"
             },
             "spendChooser": {
                 "title": "¿Cómo quieres gastar?",
@@ -200,7 +200,7 @@
             },
             "kyc": {
                 "title": "Desbloquea <b>pagos con QR</b>",
-                "description": "Confirma tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
+                "description": "Confirma tu identidad para pagar cualquier clave <b>Pix</b> y códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
             },
             "closePrompt": "Cerrar aviso",
             "closeTitled": "Cerrar {title}",
@@ -811,7 +811,7 @@
                 "cardClause": "También puedes solicitar una tarjeta Peanut después de verificar tu identidad.",
                 "rails": {
                     "pix": "transferencias PIX",
-                    "arQr": "pagos y transferencias con QR",
+                    "arQr": "pagos QR y transferencias con tu propia cuenta",
                     "spei": "transferencias bancarias en pesos mexicanos",
                     "usdAch": "transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "transferencias bancarias en euros",
@@ -834,7 +834,7 @@
                 "items": {
                     "p2p": "Pagos de Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias",
+                    "arQr": "Pagos QR y transferencias con tu cuenta",
                     "spei": "Transferencias bancarias en pesos mexicanos",
                     "usdAch": "Transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "Transferencias bancarias en euros",
@@ -1019,6 +1019,8 @@
             "bankTitle": "Transferencia bancaria",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
+            "sendBankDescription": "EUR, USD, MXN, BRL y más",
+            "pixKeyDescription": "Cualquier clave Pix",
             "exchangeOrWalletTitle": "Cripto",
             "exchangeOrWalletDescription": "Binance, MetaMask y más"
         },
@@ -1365,7 +1367,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloquea los pagos con QR",
-            "unlockDescription": "Confirma tu identidad para pagar con un código QR. Toma alrededor de un minuto.",
+            "unlockDescription": "Confirma tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
             "unlockCta": "Desbloquear ahora",
             "inProgressTitle": "Ya casi",
             "inProgressDescription": "Estamos confirmando tu identidad. Retoma donde quedaste y estarás pagando en un momento.",
@@ -3111,7 +3113,7 @@
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Tu identificación fiscal",
-                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales.",
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para transferencias bancarias locales.",
                     "bodyAR": "CUIT o CUIL, de tu DNI. Se necesita para las transferencias bancarias locales.",
                     "bodyBR": "CPF. Se necesita para las transferencias bancarias locales."
                 },
@@ -4193,7 +4195,7 @@
                 "railName": "Pix",
                 "residenceTitle": "Necesitas residencia",
                 "residenceRequired": "Solo los residentes legales de Brasil pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
-                "qrPay": "De todas formas puedes pagar códigos QR de Pix en Brasil con tu saldo."
+                "qrPay": "De todas formas puedes pagar cualquier clave Pix o código QR de Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
