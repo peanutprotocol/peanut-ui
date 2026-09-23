@@ -61,18 +61,33 @@ function renderModal(locale: 'en' | 'pt-BR') {
     )
 }
 
-function renderLockedModal() {
+function renderLockedModal(code = 'FIRST_INVITE') {
     return render(
         <NextIntlClientProvider locale="en" messages={en}>
             <BadgeDetailDrawer
                 isOpen
                 onClose={onClose}
-                code="FIRST_INVITE"
+                code={code}
                 title="First Invite"
                 description="Invite a friend"
                 logo="/badges/first_invite.svg"
                 earned={false}
                 unlockText="Invite one friend who joins Peanut."
+            />
+        </NextIntlClientProvider>
+    )
+}
+
+function renderOfframpModal() {
+    return render(
+        <NextIntlClientProvider locale="en" messages={en}>
+            <BadgeDetailDrawer
+                isOpen
+                onClose={onClose}
+                code="OFFRAMP_USER"
+                title="Offramp User"
+                description="You migrated to Peanut."
+                logo="/badges/offramp_user.png"
             />
         </NextIntlClientProvider>
     )
@@ -97,6 +112,28 @@ describe('BadgeDetailDrawer', () => {
         expect(onClose).toHaveBeenCalledTimes(1)
     })
 
+    it('lists the avatars an earned badge unlocks', () => {
+        renderModal('en')
+
+        expect(screen.getByText(en.badges.whatYouGet)).toBeInTheDocument()
+        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+    })
+
+    it('adds the perk line for a badge that a live perk requires', () => {
+        renderOfframpModal()
+
+        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+        expect(screen.getByText(en.badges.catalog.OFFRAMP_USER.perk)).toBeInTheDocument()
+    })
+
+    it('shows a perk on a locked badge that has no avatar art yet', () => {
+        renderLockedModal('NOT_SO_SHHHH')
+
+        expect(screen.getByText(en.badges.catalog.NOT_SO_SHHHH.perk)).toBeInTheDocument()
+        expect(screen.queryByText(/avatars? for your profile/)).not.toBeInTheDocument()
+        expect(screen.getByText(en.badges.howToUnlock)).toBeInTheDocument()
+    })
+
     it('keeps the translated generic share copy outside English', async () => {
         renderModal('pt-BR')
 
@@ -105,6 +142,7 @@ describe('BadgeDetailDrawer', () => {
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
         expect(text).toContain('/invite?code=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
+        expect(screen.getByText('3 avatares para o seu perfil')).toBeInTheDocument()
     })
 
     it('shows the unlock requirement instead of sharing for a locked badge', () => {
@@ -114,5 +152,11 @@ describe('BadgeDetailDrawer', () => {
         expect(screen.getByText('Invite one friend who joins Peanut.')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.badges.shareAchievement })).not.toBeInTheDocument()
         expect(mockShareButton).not.toHaveBeenCalled()
+    })
+
+    it('hides the benefit box for a badge with no avatar art and no perk', () => {
+        renderLockedModal()
+
+        expect(screen.queryByText(en.badges.whatYouGet)).not.toBeInTheDocument()
     })
 })

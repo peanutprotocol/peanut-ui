@@ -2437,6 +2437,7 @@
         "earned": "Earned",
         "locked": "Locked",
         "howToUnlock": "How to unlock",
+        "whatYouGet": "What you get",
         "emptyTitle": "No badges found",
         "emptyDescription": "Earn badges as you use Peanut. Make payments, invite friends, and join events to unlock them and display them on your profile.",
         "loadErrorTitle": "Couldn't load badges",
@@ -2462,6 +2463,9 @@
             "ensPayment": "Send or receive a payment using an ENS name.",
             "campaign": "Join an eligible Peanut campaign or event.",
             "specialRecognition": "Earn this through a Peanut milestone, contribution, or special recognition."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar} other {# avatars}} for your profile"
         },
         "catalog": {
             "FIRST_INVITE": {
@@ -2566,7 +2570,8 @@
             },
             "NOT_SO_SHHHH": {
                 "name": "Loud Mouth",
-                "description": "You couldn't keep it quiet — and you got paid for it."
+                "description": "You couldn't keep it quiet — and you got paid for it.",
+                "perk": "$10 for every friend you invite who activates their Peanut Card"
             },
             "ARBITRUM": {
                 "name": "Arbitrum Native",
@@ -2594,7 +2599,8 @@
             },
             "OFFRAMP_USER": {
                 "name": "Offramp User",
-                "description": "You migrated to Peanut. We welcomed you."
+                "description": "You migrated to Peanut. We welcomed you.",
+                "perk": "$10 when you spend $100 with your Peanut Card, until 31 Dec 2026"
             },
             "PSYOPS_DIVISION": {
                 "name": "Psyops Division",

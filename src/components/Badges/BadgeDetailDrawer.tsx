@@ -10,6 +10,7 @@ import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
 import { twMerge } from '@/utils/tw'
 
 type BadgeDetailDrawerProps = {
@@ -49,6 +50,17 @@ export const BadgeDetailDrawer = ({
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
     })
 
+    // What holding the badge gives. Avatar counts come from the generated
+    // manifest, so a badge gets its line the day its art lands. A perk line
+    // exists only for a badge that a live Perk requires; its copy restates that
+    // Perk's amount and conditions, so it changes when the Perk does.
+    const avatarCount = code ? badgeAvatarKeys([code]).length : 0
+    const perkKey = `catalog.${code}.perk` as Parameters<typeof t>[0]
+    const benefits = [
+        ...(avatarCount > 0 ? [t('benefit.avatars', { count: avatarCount })] : []),
+        ...(code && t.has(perkKey) ? [t(perkKey)] : []),
+    ]
+
     return (
         <Drawer
             open={isOpen}
@@ -79,23 +91,26 @@ export const BadgeDetailDrawer = ({
                             <DrawerDescription>{description}</DrawerDescription>
                         </DrawerHeader>
                     </div>
-                    {earned ? (
-                        <ShareButton
-                            title=""
-                            className="w-full"
-                            onSuccess={() => {
-                                captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
-                                onClose()
-                            }}
-                            generateText={() => Promise.resolve(shareText)}
-                        >
-                            {t('shareAchievement')}
-                        </ShareButton>
-                    ) : (
-                        <Callout priority="helper" title={t('howToUnlock')} className="w-full">
-                            {unlockText}
-                        </Callout>
-                    )}
+                    <div className="flex w-full flex-col gap-4">
+                        {benefits.length > 0 && <Callout priority="success" title={t('whatYouGet')} items={benefits} />}
+                        {earned ? (
+                            <ShareButton
+                                title=""
+                                className="w-full"
+                                onSuccess={() => {
+                                    captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
+                                    onClose()
+                                }}
+                                generateText={() => Promise.resolve(shareText)}
+                            >
+                                {t('shareAchievement')}
+                            </ShareButton>
+                        ) : (
+                            <Callout priority="helper" title={t('howToUnlock')}>
+                                {unlockText}
+                            </Callout>
+                        )}
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

@@ -2437,6 +2437,7 @@
         "earned": "Ganho",
         "locked": "Bloqueado",
         "howToUnlock": "Como desbloquear",
+        "whatYouGet": "O que você ganha",
         "emptyTitle": "Nenhum selo encontrado",
         "emptyDescription": "Ganhe selos conforme usa o Peanut. Faça pagamentos, convide amigos e participe de eventos para desbloqueá-los e exibi-los no seu perfil.",
         "loadErrorTitle": "Não foi possível carregar os selos",
@@ -2462,6 +2463,9 @@
             "ensPayment": "Envie ou receba um pagamento usando um nome ENS.",
             "campaign": "Participe de uma campanha ou evento elegível do Peanut.",
             "specialRecognition": "Conquiste este selo por um marco, contribuição ou reconhecimento especial no Peanut."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar para o seu perfil} other {# avatares para o seu perfil}}"
         },
         "catalog": {
             "FIRST_INVITE": {
@@ -2566,7 +2570,8 @@
             },
             "NOT_SO_SHHHH": {
                 "name": "Boca grande",
-                "description": "Você não conseguiu ficar quieto — e ainda recebeu por isso."
+                "description": "Você não conseguiu ficar quieto — e ainda recebeu por isso.",
+                "perk": "US$ 10 por amigo convidado que ativar o cartão Peanut"
             },
             "ARBITRUM": {
                 "name": "Nativo da Arbitrum",
@@ -2594,7 +2599,8 @@
             },
             "OFFRAMP_USER": {
                 "name": "Usuário de saque",
-                "description": "Você migrou para Peanut. A gente recebeu você bem."
+                "description": "Você migrou para Peanut. A gente recebeu você bem.",
+                "perk": "US$ 10 ao gastar US$ 100 com seu cartão Peanut, até 31 de dezembro de 2026"
             },
             "PSYOPS_DIVISION": {
                 "name": "Divisão Psyops",
