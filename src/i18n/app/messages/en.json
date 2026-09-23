@@ -1051,7 +1051,6 @@
         }
     },
     "request": {
-        "leaveEmptyHint": "Leave empty to let payers choose amounts.",
         "createRequest": "Create request",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
@@ -1092,13 +1091,10 @@
             "exactNote": "A payer who pays by bank in {currency} sees this exact amount. Other payers see an estimate."
         },
         "bankInstructions": {
-            "title": "Share your bank details",
-            "description": "Anyone who opens this link sees your bank details and full name.",
-            "anyonePays": "They can then pay you by bank transfer.",
+            "title": "Let them pay by bank transfer",
+            "disclosure": "Payers see your full name and bank details.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
-            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
-            "titleOff": "Your bank details stay private",
-            "descriptionOff": "Payers can pay you with Peanut or crypto."
+            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
@@ -3547,11 +3543,10 @@
         },
         "peanutActionCard": {
             "requestTitle": "Request money",
-            "requestDescription": "For friends, your employer, or anyone in the world",
+            "requestDescription": "No account needed, just send a DM.",
             "sendTitle": "Create a payment link",
             "sendDescription": "Anyone with the link can receive the money",
-            "perfectToDm": "Perfect to DM friends!",
-            "requestPerfectToShare": "Perfect to send via DM or WhatsApp!"
+            "perfectToDm": "Perfect to DM friends!"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "You're sending {recipient}",
@@ -4065,9 +4060,11 @@
         "list": {
             "addTitle": "Add money",
             "addHeading": "How would you like to add money?",
-            "searchPlaceholder": "Search country, currency or account",
-            "noMatchTitle": "No match for “{query}”",
-            "clearSearch": "Clear search",
+            "bankTopUpTitle": "Add money from your bank",
+            "oneOffBody": {
+                "BANK_TRANSFER_AR": "One-off transfer via Mercado Pago",
+                "PIX_BR": "One-off Pix transfer"
+            },
             "countriesTitle": "Ways to send yourself money",
             "countriesPitch": "Pick the country your bank is in.",
             "sectionTitle": "Your account numbers",

@@ -27,14 +27,14 @@ const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
                         ? t('peanutActionCard.requestDescription')
                         : t('peanutActionCard.sendDescription')}
                 </div>
-                <div className="flex items-center gap-1">
-                    <Image src={SOCIALS_ICON} alt="Socials" width={32} height={13} />
-                    <p className="text-body-s text-foreground-secondary">
-                        {type === 'request'
-                            ? t('peanutActionCard.requestPerfectToShare')
-                            : t('peanutActionCard.perfectToDm')}
-                    </p>
-                </div>
+                {/* the request card is two lines at most (Konrad, 2026-09-23):
+                    its description already says to send it as a DM */}
+                {type === 'send' && (
+                    <div className="flex items-center gap-1">
+                        <Image src={SOCIALS_ICON} alt="Socials" width={32} height={13} />
+                        <p className="text-body-s text-foreground-secondary">{t('peanutActionCard.perfectToDm')}</p>
+                    </div>
+                )}
             </div>
         </Card>
     )

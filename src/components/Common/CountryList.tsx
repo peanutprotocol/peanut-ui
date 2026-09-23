@@ -168,6 +168,7 @@ export const CountryList = ({
                         onChange={setOwnSearchTerm}
                         onClear={() => setOwnSearchTerm('')}
                         placeholder={t('countryList.searchPlaceholder')}
+                        aria-label={t('countryList.searchPlaceholder')}
                     />
                 </div>
             )}
