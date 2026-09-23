@@ -46,10 +46,11 @@ export const HAND_WIDE = 4
 
 /**
  * Whether a roll keeps the current pick in the hand. The 2x3 hand always does.
- * The 2x2 hand has two dealt slots, so pinning the pick beside the guaranteed
- * earned sticker would deal the same hand again: it lets the pick go, unless
- * the pick is the user's only badge art, where letting it go would drop the
- * badge sticker and pinning it still leaves one slot for the die to change.
+ * The 2x2 hand has two dealt slots: it lets the pick go only when some other
+ * badge art would be pinned beside it, because the two pinned tiles would then
+ * fill the hand and every roll would deal it again. Otherwise one slot still
+ * rolls, so the pick stays: a pick that is the user's only badge art keeps the
+ * badge tile, and a user with no badge art keeps their basic pick.
  */
 export const rollKeepsPick = (dealt: number, pick: string | null, unlocked: readonly string[]): boolean =>
     dealt > HAND_NARROW || !unlocked.some((key) => key !== pick)
