@@ -89,7 +89,7 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
-let mockIdentity: { status: string; submittedAt?: string } = { status: 'not_started' }
+let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
 let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
@@ -107,7 +107,12 @@ jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegrad
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
 let mockUser: {
-    residence?: { declared: string | null; verified: string | null; pending?: string | null }
+    residence?: {
+        declared: string | null
+        verified: string | null
+        pending?: string | null
+        declaredSecond?: string | null
+    }
     user?: { userId: string }
 } | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
@@ -121,7 +126,10 @@ let mockBridgeLimits: unknown = null
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ mantecaLimits: mockMantecaLimits, bridgeLimits: mockBridgeLimits }),
 }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+const mockSetIsSupportModalOpen = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockSetIsSupportModalOpen }),
+}))
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
@@ -150,13 +158,29 @@ jest.mock('@/components/Home/PendingVerificationTasks', () => ({ __esModule: tru
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({ KycProcessingModal: () => null }))
+jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
+    KycProcessingModal: ({ visible, pendingSince }: { visible: boolean; pendingSince?: string | null }) =>
+        visible ? <div>processing-modal-open:{pendingSince ?? 'fresh'}</div> : null,
+}))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
 jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
     __esModule: true,
-    default: ({ visible, methodLabel }: { visible: boolean; methodLabel: string | null }) =>
-        visible ? <div>unlock-modal-open:{methodLabel}</div> : null,
+    default: ({
+        visible,
+        methodLabel,
+        onUnlock,
+    }: {
+        visible: boolean
+        methodLabel: string | null
+        onUnlock: () => void
+    }) =>
+        visible ? (
+            <div>
+                unlock-modal-open:{methodLabel}
+                <button onClick={onUnlock}>unlock now</button>
+            </div>
+        ) : null,
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
     __esModule: true,
@@ -208,17 +232,35 @@ describe('UnlockPayments', () => {
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
-        mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 2 * 86400000).toISOString() }
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        }
         render()
         expect(screen.getByText(/ID check in review since/)).toBeInTheDocument()
         expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
     })
 
-    it('escalates the in-review line after 7 days', () => {
+    it('does not show or escalate the notice without a confirmed submission signal', () => {
         mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 8 * 86400000).toISOString() }
         render()
+        expect(screen.queryByText(/ID check in review/)).not.toBeInTheDocument()
+        expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
+    })
+
+    it('escalates the in-review line after 7 days', () => {
+        mockIdentity = {
+            status: 'processing',
+            reviewPending: true,
+            submittedAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+        }
+        render()
         expect(screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
-        expect(screen.getByText("Message us and we'll chase it")).toBeInTheDocument()
+        const supportLink = screen.getByRole('button', { name: "Message us and we'll chase it" })
+        expect(supportLink).toHaveClass('underline')
+        fireEvent.click(supportLink)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
     })
 
     it('degraded mode shows the outage banner and blocks bank-method taps', () => {
@@ -345,7 +387,7 @@ describe('UnlockPayments', () => {
         // Limits are one tap down, not a standing card above the fold.
         expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByText(/BRL/))
+        fireEvent.click(screen.getByText('BRL · Pix'))
         expect(within(screen.getByRole('dialog')).getByText(/left this month/)).toBeInTheDocument()
     })
 
@@ -593,6 +635,7 @@ describe('UnlockPayments', () => {
     })
 
     it('every other fixable rejection here still takes resubmit — Manteca is untouched', () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
         mockRails = [
             {
                 ...residenceParkedRail,
@@ -635,6 +678,7 @@ describe('UnlockPayments', () => {
         }
 
         it('a QR-pool user can pay by QR, and is offered the bank unlock', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
             mockRails = [qrPoolRail]
             mockIsKycApproved = true
             render()
@@ -650,6 +694,7 @@ describe('UnlockPayments', () => {
         })
 
         it('a full Manteca account reads Available on both rows', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
             mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
             mockIsKycApproved = true
             render()
@@ -694,6 +739,8 @@ describe('UnlockPayments', () => {
         const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
 
         it('names each currency on its own row, in its own group', () => {
+            // a dual resident, so both Manteca rows are offered and no residence note shows
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
             render()
             for (const title of ['BRL · Pix', 'ARS · Bank transfer', 'USD · Bank transfer', 'MXN · SPEI']) {
                 expect(screen.getByText(title)).toBeInTheDocument()
@@ -789,5 +836,113 @@ describe('UnlockPayments', () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
         render()
         expect(screen.getByText('Change to Spain pending verification')).toBeInTheDocument()
+    })
+})
+
+/**
+ * The awaiting-action ghost (2026-09-22). A user who started the Argentine
+ * verification, left, and later verified elsewhere keeps a PENDING Argentine
+ * rail that only the Argentine action could clear. The modal used to pick the
+ * first non-final Manteca rail whatever the row, so the Brazilian row opened
+ * "Setting up your account…" forever (189 users in prod). The modal now reads
+ * the rails of the tapped row's own country — the same scope its chip uses.
+ */
+describe("a row's modal reads the rails of its own country", () => {
+    const argentineGhost = {
+        id: 'manteca.bank_transfer_ar',
+        provider: 'manteca',
+        channel: 'bank',
+        country: 'AR',
+        currency: 'ARS',
+        status: 'pending',
+        pendingSince: '2026-08-01T00:00:00.000Z',
+    }
+    const dualResident = () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockRails = [argentineGhost]
+    }
+
+    it('the Brazilian row offers the unlock; the Argentine ghost is not its story', () => {
+        dualResident()
+        render()
+        fireEvent.click(screen.getByText('BRL · Pix'))
+        expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+        expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
+    })
+
+    it('the Argentine row still owns its pending rail, and hands the drawer when it went pending', () => {
+        dualResident()
+        render()
+        fireEvent.click(screen.getByText('ARS · Bank transfer'))
+        expect(screen.getByText('processing-modal-open:2026-08-01T00:00:00.000Z')).toBeInTheDocument()
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+    })
+
+    it("a Manteca tap names the row's country, so the backend starts that flow and not a residence guess", () => {
+        dualResident()
+        mockRails = []
+        render()
+        fireEvent.click(screen.getByText('ARS · Bank transfer'))
+        fireEvent.click(screen.getByText('unlock now'))
+        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
+
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('unlock now'))
+        // the backend refuses any non-Manteca target country, so Bridge rows send none
+        expect(mockInitiateKyc).toHaveBeenLastCalledWith('EU', undefined, true, undefined)
+    })
+})
+
+/**
+ * The Manteca corridors are for legal residents of Brazil and Argentina: the
+ * Argentine account opens to residents alone, and the Brazilian one needs a CPF,
+ * checked here through a Brazilian residence (a client-side pre-check). A
+ * Portuguese resident was offered "BRL · Pix",
+ * tapped it, and met the Argentine ghost's drawer; now the row is not offered,
+ * and says why.
+ */
+describe('a resident of neither country is not offered the Manteca bank rows', () => {
+    const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
+
+    it('both rows read Not available, with the reason under the list, and a tap does nothing', () => {
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockRails = [
+            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'pending' },
+        ]
+        render()
+
+        expect(badgeFor('BRL · Pix').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('ARS · Bank transfer').queryByText('Processing')).not.toBeInTheDocument()
+        expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
+        // the Bridge rows keep their offer, and so does QR — it needs no account
+        expect(badgeFor('EUR · Bank transfer').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('BRL · Pix'))
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
+    })
+
+    it('a Brazilian rail that already works stays Available after a move', () => {
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' },
+            },
+        ]
+        render()
+
+        expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
+        expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
+        expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
     })
 })

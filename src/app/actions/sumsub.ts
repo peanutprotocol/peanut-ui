@@ -78,6 +78,12 @@ const caughtError = (e: unknown): SumsubActionError =>
 
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
+    /**
+     * The deposit corridor the user is verifying for (a rail method code, e.g.
+     * `BANK_TRANSFER_CO`). The backend reads the level, the rails and the
+     * endorsement from its corridor table; `regionIntent` is the older form.
+     */
+    corridor?: string
     regionIntent?: KYCRegionIntent
     levelName?: string
     crossRegion?: boolean
@@ -85,6 +91,7 @@ export const initiateSumsubKyc = async (params?: {
     correctSession?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
+        corridor: params?.corridor,
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
         crossRegion: params?.crossRegion,
@@ -341,7 +348,8 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
 }
 
 export interface StartKycActionResponse {
-    token: string
+    token?: string
+    session?: VerificationActionSession
     levelName: string
     externalActionId?: string
 }
@@ -367,7 +375,7 @@ export const startKycAction = async (
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to start verification', 'start_action_failed')
         }
-        if (!responseJson.sumsubAccessToken) {
+        if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return {
@@ -375,6 +383,7 @@ export const startKycAction = async (
                 token: responseJson.sumsubAccessToken,
                 levelName: responseJson.levelName,
                 externalActionId: responseJson.externalActionId,
+                session: responseJson.session,
             },
         }
     } catch (e: unknown) {

@@ -76,6 +76,13 @@ it('verifies the exact structured bundle record', () => {
     expect(verify([goodBundle]).status).toBe(0)
     expect(verify({ data: [goodBundle] }).status).toBe(0)
 })
+it('binds a manual release to the pinned main commit instead of the dev workflow commit', () => {
+    const mainSha = 'b'.repeat(40)
+    const mainBundle = { ...goodBundle, link: `https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}` }
+    expect(verify([mainBundle], { OTA_SOURCE_SHA: mainSha }).status).toBe(0)
+    expect(verify([goodBundle], { OTA_SOURCE_SHA: mainSha }).status).toBe(1)
+    expect(verify([mainBundle], { OTA_SOURCE_SHA: '' }).status).toBe(1)
+})
 it.each(['1.6.2', '1.6.30', '11.6.3', '1.6.3-rc1', '1.6.3.1'])(
     'cannot use %s even when its subject names the requested version',
     (name) => {
@@ -111,6 +118,27 @@ it('follows pagination using exact names', () => {
     const result = invoke('verify-bundle', [{ body: candidate }, { body: older }, { body: [goodBundle] }])
     expect(result.status).toBe(0)
     expect(result.requests[2].url).toContain('page=1')
+})
+it('accepts Capgo’s empty-page response after an exactly full bundle page', () => {
+    const terminalPage = {
+        status: 400,
+        body: { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    }
+    const rows = [goodBundle, ...Array.from({ length: 49 }, (_, i) => ({ name: `1.6.${i + 100}` }))]
+    const result = invoke('verify-bundle', [{ body: candidate }, { body: rows }, terminalPage])
+    expect(result.status).toBe(0)
+    expect(result.requests[2].url).toContain('page=1')
+    expect(invoke('current-release', [...policyResponses(), { body: rows }, terminalPage]).status).toBe(0)
+})
+it('does not treat other HTTP 400 errors as the end of bundle pagination', () => {
+    const rows = Array.from({ length: 50 }, (_, i) => ({ name: `1.6.${i + 100}` }))
+    for (const body of [
+        { error: 'cannot_get_bundle', message: "You can't access this app", moreInfo: { app_id: env.CAPGO_APP_ID } },
+        { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: { code: 'DB_ERROR' } } },
+        { error: 'some_other_error', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    ]) {
+        expect(invoke('verify-bundle', [{ body: candidate }, { body: rows }, { status: 400, body }]).status).toBe(1)
+    }
 })
 it.each([{ status: 401 }, { status: 500 }, { networkError: true }, { invalidJson: true }])(
     'fails closed on API failure: %j',
@@ -370,6 +398,7 @@ it('bypasses the candidate checksum collision only for the second platform recor
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
     const step = source.slice(source.indexOf('- name: Upload bundles'), source.indexOf('- name: Verify the floors'))
     const shell = step.match(/run: \|\n([\s\S]*)/)[1]
+    const mainSha = 'b'.repeat(40)
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-platform-uploads-'))
     const calls = path.join(dir, 'calls')
     try {
@@ -395,6 +424,7 @@ it('bypasses the candidate checksum collision only for the second platform recor
                     FLOOR_ANDROID: '1.6.0',
                     FLOOR_IOS: '1.5.0',
                     GITHUB_SHA: SHA,
+                    OTA_SOURCE_SHA: mainSha,
                     CALLS_FILE: calls,
                 },
             }
@@ -402,6 +432,8 @@ it('bypasses the candidate checksum collision only for the second platform recor
         expect(result.status).toBe(0)
         const [ios, android] = fs.readFileSync(calls, 'utf8').trim().split('\n')
         expect(ios).toContain('--bundle 1.6.4-ios')
+        expect(ios).toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}`)
+        expect(ios).not.toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${SHA}`)
         expect(ios).toContain('--min-update-version 1.5.0')
         expect(ios).not.toContain('--ignore-checksum-check')
         expect(android).toContain('--bundle 1.6.4-android')

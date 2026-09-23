@@ -9,12 +9,20 @@ const workflowsDir = path.join(__dirname, '..', '..', '.github', 'workflows')
 // Execute only the branch guard, never the version resolver or deployment steps.
 function guardOf(file) {
     const workflow = fs.readFileSync(path.join(workflowsDir, file), 'utf8')
+    if (file === 'release-ota.yml') {
+        const step = workflow.slice(workflow.indexOf('- name: Guard release ref'))
+        return step
+            .match(/run: \|\n([\s\S]*?)\n\s+- name: Check out release tooling/)[1]
+            .split('\n')
+            .map((line) => line.replace(/^ {18}/, ''))
+            .join('\n')
+    }
     return workflow.match(/if \[ "\$GITHUB_REF_NAME"[^\n]+; then\n[\s\S]*?\n\s+fi/)[0]
 }
 
-function run(guard, branch) {
+function run(guard, branch, event = 'workflow_dispatch') {
     return spawnSync('bash', ['-eu', '-c', guard], {
-        env: { ...process.env, GITHUB_REF_NAME: branch },
+        env: { ...process.env, GITHUB_REF_NAME: branch, GITHUB_EVENT_NAME: event },
         encoding: 'utf8',
     })
 }
@@ -29,6 +37,41 @@ function promotionShell() {
         .split('\n')
         .map((line) => line.replace(/^ {18}/, ''))
         .join('\n')
+}
+
+function floorShell() {
+    const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+    const step = workflow.indexOf('- name: Resolve per-platform OTA floors')
+    const runStart = workflow.indexOf('run: |', step)
+    const nextStep = workflow.indexOf('\n            - name:', runStart)
+    return workflow
+        .slice(runStart + 'run: |\n'.length, nextStep)
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+}
+
+function runFloors(manual) {
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-floors-'))
+    const output = path.join(dir, 'output')
+    const script = `
+        node() {
+            case "$*" in
+                *native-floor*) printf '1.6.0\\n';;
+                *'--platform android'*) printf '1.6.0\\n';;
+                *'--platform ios'*) printf '1.5.0\\n';;
+                *) return 1;;
+            esac
+        }
+        ${floorShell()}
+    `
+    const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+        encoding: 'utf8',
+        env: { ...process.env, MANUAL_MAIN_SOURCE: String(manual), GITHUB_OUTPUT: output },
+    })
+    const floors = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { status: result.status, floors }
 }
 
 function runPromotion({ firstMainSha, staleAfterFirst = false }) {
@@ -85,23 +128,41 @@ function runPromotion({ firstMainSha, staleAfterFirst = false }) {
  * the v1.6.0 release. Merging to `main` is now the decision to ship; `dev` goes
  * to staging, which no production device sees.
  */
-describe('release-ota.yml ships from main only', () => {
+describe('release-ota.yml publishes main source', () => {
     const guard = guardOf('release-ota.yml')
 
-    it('accepts main', () => {
-        expect(run(guard, 'main').status).toBe(0)
+    it('accepts a main push and a manual dispatch of dev tooling', () => {
+        expect(run(guard, 'main', 'push').status).toBe(0)
+        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(0)
     })
 
-    it.each(['dev', 'release/android-kyc', 'feature/kyc', 'release/other', 'main-fix', ''])('refuses %s', (branch) => {
-        const result = run(guard, branch)
+    it.each([
+        ['main', 'workflow_dispatch'],
+        ['dev', 'push'],
+        ['release/android-kyc', 'workflow_dispatch'],
+        ['feature/kyc', 'push'],
+        ['', 'workflow_dispatch'],
+    ])('refuses %s on %s', (branch, event) => {
+        const result = run(guard, branch, event)
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('::error::')
     })
 
-    it('only auto-runs on pushes to main', () => {
+    it('auto-runs only on main pushes and manually runs dev tooling against main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
-        expect(workflow).not.toContain('workflow_dispatch')
+        expect(workflow).toContain('workflow_dispatch:')
+        expect(workflow).toContain("github.event_name == 'workflow_dispatch' && 'main' || github.sha")
+        expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
+        expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
+        expect(workflow).toContain('path: app')
+        expect(workflow).toContain('path: release-tooling')
+        expect(workflow).toContain('OTA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}')
+    })
+
+    it('limits the older main updater to its native version while retaining platform floors for new builds', () => {
+        expect(runFloors(true)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.6.0\n' })
+        expect(runFloors(false)).toEqual({ status: 0, floors: 'android=1.6.0\nios=1.5.0\n' })
     })
 
     it('rechecks main after the build and immediately before each platform promotion', () => {
@@ -116,8 +177,8 @@ describe('release-ota.yml ships from main only', () => {
         expect(afterBuild).toBeLessThan(verifyBundles)
         expect(verifyBundles).toBeLessThan(promotion)
         expect(perPlatformGuard).toBeGreaterThan(promotion)
-        expect(workflow.match(/git ls-remote origin refs\/heads\/main/g)).toHaveLength(2)
-        expect(workflow).toContain('EXPECTED_MAIN_SHA: ${{ github.sha }}')
+        expect(workflow.match(/git ls-remote origin refs\/heads\/main/g)).toHaveLength(3)
+        expect(workflow).toContain('EXPECTED_MAIN_SHA: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('guard_current_main\n                    # Bundle selection and rollout disablement')
     })
 

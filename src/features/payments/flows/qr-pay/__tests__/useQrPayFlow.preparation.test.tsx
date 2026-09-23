@@ -124,7 +124,10 @@ jest.mock('@/hooks/wallet/spendPreflight', () => ({
     resolveSpendStrategy: jest.fn(),
     runCollateralSpendPreflight: jest.fn(),
 }))
-jest.mock('@/utils/webauthn.utils', () => ({ capturePasskeySignFailure: jest.fn() }))
+jest.mock('@/utils/webauthn.utils', () => ({
+    ...jest.requireActual('@/utils/webauthn.utils'),
+    capturePasskeySignFailure: jest.fn(),
+}))
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
     withCeremonyPurpose: (_purpose: string, fn: () => unknown) => fn(),
     withCeremonyFlow: (_flow: string, fn: () => unknown) => fn(),
@@ -536,7 +539,9 @@ describe('Pay on a locked amount', () => {
                 ['strategy_ready', null],
                 ['attempt_finished', 'failed'],
             ])
-            expect(stages().find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'collateral-only' })
+            // Routed collateral-only executes on the mixed pipeline, so that is
+            // the strategy the attempt reports.
+            expect(stages().find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'mixed' })
             expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
             expect(fakeClient.account.signTypedData).not.toHaveBeenCalled()
             expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()

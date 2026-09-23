@@ -1544,10 +1544,10 @@ export const AUDIT_ITEMS: AuditItem[] = [
         catLabel: 'Type tokens',
         layer: 'tokens',
         role: 'NEW semantic display (marketing hero)',
-        usages: 1,
-        status: 'canonical',
-        source: 'src/styles/globals.css:255 @theme --text-display (3.75rem)',
-        notes: 'The intended single display step. Same 3.75rem as legacy text-heading but with NO line-height or weight pair — the only new type token that is size-only. 1 adoption vs 14 remaining text-heading.',
+        usages: 0,
+        status: 'dead',
+        source: 'deleted from src/styles/globals.css @theme (2026-09-17 ruling, ui#3334)',
+        notes: 'DELETED. Was the intended single display step, but 3.75rem size-only duplicated --text-heading at the same size, so the 2026-09-17 ruling dropped it rather than adopt it. No live consumer had to move. text-heading is the survivor.',
     },
     {
         name: 'text-h1',
@@ -5637,7 +5637,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Type tokens',
         name: 'display',
         from: 9,
-        rec: 'ONE display step. --text-display (3.75rem) now EXISTS as the answer but has 1 adoption against 43 legacy sites. The headingLarge/Medium/heading trio is still marketing-only and still duplicates 7xl/8xl/9xl by exact size (7rem/10rem/12rem) — kill the camelCase heading* names and the >=5xl overrides, migrate marketing to text-display + a clamp().',
+        rec: 'ONE display step. --text-display (3.75rem) now EXISTS as the answer but has 1 adoption against 43 legacy sites. The headingLarge/Medium/heading trio is still marketing-only and still duplicates 7xl/8xl/9xl by exact size (7rem/10rem/12rem) — kill the camelCase heading* names and the >=5xl overrides, migrate marketing to text-display + a clamp(). superseded: --text-display deleted (2026-09-17 ruling, ui#3334)',
         collapses: [
             'text-headingLarge',
             'text-headingMedium',
@@ -5805,7 +5805,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Typographic styles',
         name: 'Display (brand/hero)',
         from: 4,
-        rec: 'One Display style for hero/marketing. --text-display (3.75rem) already exists in the semantic block and is used once - make it the survivor and retire the headingLarge/Medium/heading trio and the 6xl-9xl overrides. Keep Title.tsx as an opt-in decorative brand variant (its single real use is MarketingHero); do not let it leak into in-app screens.',
+        rec: 'One Display style for hero/marketing. --text-display (3.75rem) already exists in the semantic block and is used once - make it the survivor and retire the headingLarge/Medium/heading trio and the 6xl-9xl overrides. Keep Title.tsx as an opt-in decorative brand variant (its single real use is MarketingHero); do not let it leak into in-app screens. superseded: --text-display deleted (2026-09-17 ruling, ui#3334)',
         collapses: [
             'text-headingLarge / headingMedium / heading (38)',
             'text-6xl/7xl/8xl/9xl (17)',

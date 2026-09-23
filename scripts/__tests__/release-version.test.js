@@ -93,6 +93,15 @@ describe('release version resolver', () => {
     })
 
     describe('ota', () => {
+        it('resolves from an explicitly selected app checkout, not the tooling checkout', () => {
+            const tooling = repo('9.0.0', { tags: ['v9.1.0'] })
+            const app = repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] })
+            const result = run(tooling, ['ota', '--current', '1.6.2', '--root', app])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.3')
+            expect(run(tooling, ['ota', '--current', '1.6.2', '--root']).status).toBe(1)
+        })
+
         it('advances beyond shipped tags after channels are reset to builtin', () => {
             const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] }), ['ota', '--current', 'builtin'])
             expect(result.status).toBe(0)

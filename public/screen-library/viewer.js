@@ -24,10 +24,17 @@ const LOCALE_CODES = {
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
+const DEVICE_PROFILES = {
+    '393x852': { platform: 'iphone', label: 'iPhone' },
+    '440x956': { platform: 'iphone', label: 'iPhone Pro Max' },
+    '360x800': { platform: 'android', label: 'Android' },
+    '320x712': { platform: 'android', label: 'Android small' },
+}
 const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
+const entryProfile = (entry) => entry?.profile ?? '393x852'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -93,7 +100,9 @@ const image = (name, alt, options) => {
 }
 let rows = [],
     report,
+    activeComparison,
     active,
+    activeMode = 'screen',
     viewMode = 'all',
     indexEntries = [],
     reportLocaleEntries = [],
@@ -102,11 +111,21 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
 const availableScreen = (row) =>
     [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
     (report?.type === 'collection' ? row?.after : undefined)
-const collectionRows = (collection, locale) =>
+const collectionRows = (collection, locale, comparison) =>
     collection.items.map((item) => {
+        if (comparison) {
+            const matched = comparison.screens.find((screen) => screen.id === item.id)
+            return {
+                ...item,
+                ...(matched ?? { status: 'unavailable', before: null, after: null }),
+                order: item.order,
+                ...(item.note ? { note: item.note } : {}),
+            }
+        }
         const variant = item.variants?.[locale]
         const screen = {
             status: variant?.status === 'captured' ? 'captured' : 'unavailable',
@@ -131,13 +150,16 @@ function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
+    const profile = overrides.profile ?? $('profile').value
     if (source) params.set('source', source)
     if (locale) params.set('locale', locale)
+    if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
         const date = overrides.date ?? $('date-strip').dataset.selectedDate
         if (parseIsoDate(date)) params.set('date', date)
     }
     if (report) {
+        if (activeComparison) params.set('compare', requestedFilter('compare'))
         const query = overrides.q ?? $('search').value.trim()
         const flow = overrides.flow ?? $('flow').value
         const status = overrides.status ?? $('status').value
@@ -156,38 +178,99 @@ function syncShareableUrl() {
     if (!offline && typeof history !== 'undefined' && typeof history.replaceState === 'function')
         history.replaceState(null, '', shareableHref())
 }
+function previewDevice() {
+    const capture = report?.type === 'comparison' ? report.after : report
+    const profile = `${capture?.profile ?? report?.profile ?? ''}`.toLowerCase()
+    const profileSize = /(\d{3,4})x(\d{3,4})/.exec(profile)
+    const width = Number(capture?.width ?? report?.width ?? profileSize?.[1] ?? 393)
+    const height = Number(capture?.height ?? report?.height ?? profileSize?.[2] ?? 852)
+    const preset = DEVICE_PROFILES[`${width}x${height}`]
+    const platform = preset?.platform ?? (profile.includes('android') ? 'android' : 'iphone')
+    return {
+        width,
+        height,
+        platform,
+        label: preset?.label ?? (platform === 'android' ? 'Android' : 'iPhone'),
+    }
+}
+function phonePreview(content, label) {
+    const device = previewDevice()
+    const preview = el('figure', undefined, 'device-preview')
+    const frame = el('div', undefined, `device-frame ${device.platform}`)
+    frame.style.aspectRatio = `${device.width} / ${device.height}`
+    frame.setAttribute('aria-label', `${device.label} preview at ${device.width} by ${device.height}`)
+    const screen = el('div', undefined, 'device-screen')
+    screen.append(content)
+    frame.append(
+        el('span', undefined, 'device-button device-button-top'),
+        el('span', undefined, 'device-button device-button-bottom'),
+        screen,
+        el('span', undefined, 'device-camera'),
+        el('span', undefined, 'device-home')
+    )
+    preview.append(frame, el('figcaption', label, 'device-label'))
+    return preview
+}
+function activePreviewIndex() {
+    const exact = filteredRows.indexOf(active)
+    return exact >= 0 ? exact : filteredRows.findIndex((row) => row.id === active?.id)
+}
+function updatePreviewPosition() {
+    const index = activePreviewIndex()
+    const device = previewDevice()
+    $('zoom-position').textContent =
+        `${index + 1} of ${filteredRows.length} · ${device.label} · ${device.width} × ${device.height}`
+    const onlyOne = filteredRows.length <= 1
+    $('zoom-prev').disabled = onlyOne
+    $('zoom-next').disabled = onlyOne
+}
 function zoom(row, mode = 'side') {
     active = row
-    const single = mode === 'screen' || report?.type !== 'comparison' || viewMode === 'all'
+    const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
     if (single) mode = 'screen'
+    activeMode = mode
     $('zoom-title').textContent = row.name
     $('zoom-images').replaceChildren()
     $('slider-label').hidden = mode !== 'overlay'
+    $('zoom-controls').hidden = single
     $('side').hidden = single
     $('overlay').hidden = single
     $('difference').hidden = single
+    for (const name of ['side', 'overlay', 'difference']) $(name).setAttribute('aria-pressed', String(name === mode))
     const before = row.before,
         after = row.after
     if (mode === 'screen') {
         const screen = availableScreen(row)
-        if (screen?.image) $('zoom-images').append(image(screen.image, row.name, { preview: false }))
+        if (screen?.image)
+            $('zoom-images').append(phonePreview(image(screen.image, row.name, { preview: false }), 'Screen'))
         else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
-        if (row.diff) $('zoom-images').append(image(row.diff, 'Pixel difference', { preview: false }))
+        if (row.diff)
+            $('zoom-images').append(phonePreview(image(row.diff, 'Pixel difference', { preview: false }), 'Difference'))
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
         n.append(image(before.image, 'Before', { preview: false }), image(after.image, 'After', { preview: false }))
-        $('zoom-images').append(n)
+        $('zoom-images').append(phonePreview(n, 'Before / after'))
         $('slider').value = '50'
     } else {
         for (const [label, s] of [
             ['Before', before],
             ['After', after],
         ])
-            if (s?.image) $('zoom-images').append(image(s.image, label, { preview: false }))
+            if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
     }
-    if (!$('zoom').open) $('zoom').showModal()
+    updatePreviewPosition()
+    if (!$('zoom').open) {
+        $('zoom').showModal()
+        $('close').focus?.()
+    }
+}
+function navigatePreview(direction) {
+    if (filteredRows.length <= 1) return
+    const index = activePreviewIndex()
+    const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
+    zoom(filteredRows[next], activeMode)
 }
 function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
@@ -216,7 +299,7 @@ function renderTile(row) {
     head.append(el('span', row.status, `tag ${row.status}`), el('h2', row.name), el('div', detail, 'meta'))
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
-    const showSingle = report.type !== 'comparison' || viewMode === 'all'
+    const showSingle = !comparisonMode() || (report.type === 'comparison' && viewMode === 'all')
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
         ? [['Screen', availableScreen(row)]]
@@ -369,6 +452,22 @@ function populateLocale(entries, selected) {
     $('locale').value = value ?? ''
     return value
 }
+function populateProfile(entries, selected, source) {
+    const profiles = ['393x852', '440x956', '360x800', '320x712'].filter((profile) =>
+        entries.some((entry) => entryProfile(entry) === profile)
+    )
+    $('profile-control').hidden = source !== 'synthetic' || profiles.length <= 1
+    $('profile').replaceChildren(
+        ...profiles.map((value) => {
+            const option = el('option', value.replace('x', ' × '))
+            option.value = value
+            return option
+        })
+    )
+    const value = profiles.includes(selected) ? selected : profiles.includes('393x852') ? '393x852' : profiles[0]
+    $('profile').value = value ?? ''
+    return value
+}
 function updateDateNavigation() {
     const strip = $('date-strip')
     const scrollLeft = Number(strip.scrollLeft) || 0
@@ -442,9 +541,18 @@ function renderDateStrip(availableEntries) {
 function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
+    const selectedProfile = populateProfile(
+        sourceEntries,
+        $('profile').value || requestedFilter('profile'),
+        selectedSource
+    )
+    const profileEntries =
+        selectedSource === 'synthetic'
+            ? sourceEntries.filter((entry) => entryProfile(entry) === selectedProfile)
+            : sourceEntries
     const current = $('locale').value
-    const selected = populateLocale(sourceEntries, current || requestedFilter('locale'))
-    const localeEntries = sourceEntries.filter((entry) => entry.locale === selected)
+    const selected = populateLocale(profileEntries, current || requestedFilter('locale'))
+    const localeEntries = profileEntries.filter((entry) => entry.locale === selected)
     const selectedDate = renderDateStrip(localeEntries)
     const visible = localeEntries.filter((entry) => !selectedDate || entry.date === selectedDate)
     const real = selectedSource === 'nutcracker'
@@ -453,7 +561,7 @@ function renderLanding() {
         ? 'Screens captured while Nutcracker drives the real Peanut backend and provider sandboxes.'
         : 'Browse app states and compare versions of Peanut.'
     $('coverage').textContent =
-        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : 'app-state'} ${visible.length === 1 ? 'run' : 'runs'}${selectedDate ? ` on ${formatCaptureDate(selectedDate)}` : ''}`
+        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : `${selectedProfile.replace('x', ' × ')} app-state`} ${visible.length === 1 ? 'run' : 'runs'}${selectedDate ? ` on ${formatCaptureDate(selectedDate)}` : ''}`
     $('versions').replaceChildren()
     const grouped = new Map()
     for (const entry of visible) {
@@ -472,7 +580,11 @@ function renderLanding() {
             const top = el('div', undefined, 'version-top')
             top.append(
                 el('span', formatCaptureDate(v.date), 'version-card-date'),
-                el('span', details.kind, 'version-kind')
+                el(
+                    'span',
+                    `${details.kind}${selectedSource === 'synthetic' && details.kind === 'Full library' ? ` · ${entryProfile(v).replace('x', ' × ')}` : ''}`,
+                    'version-kind'
+                )
             )
             const branch = el('strong', details.branch || 'Unknown branch', 'version-branch')
             const meta = el('div', undefined, 'version-meta')
@@ -499,9 +611,11 @@ function renderCoverage() {
     }, {})
     $('coverage').textContent = `${
         report.type === 'collection'
-            ? report.complete
-                ? 'Complete curated collection'
-                : 'Collection capture in progress'
+            ? activeComparison
+                ? 'Curated before/after comparison'
+                : report.complete
+                  ? 'Complete curated collection'
+                  : 'Collection capture in progress'
             : report.type === 'journeys'
               ? report.complete
                   ? 'Complete Nutcracker run'
@@ -517,11 +631,17 @@ function renderCoverage() {
 }
 async function configureReportLocales(reportPath) {
     if (report.type === 'collection') {
-        reportLocaleEntries = report.locales.map((locale) => ({ locale }))
+        reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
+            locale,
+        }))
         reportSourceEntries = []
-        populateLocale(reportLocaleEntries, $('locale').value || requestedCollectionLocale(report))
+        populateLocale(
+            reportLocaleEntries,
+            activeComparison?.locale || $('locale').value || requestedCollectionLocale(report)
+        )
         $('source-control').hidden = true
-        $('dashboard-filters').hidden = report.locales.length <= 1
+        $('profile-control').hidden = true
+        $('dashboard-filters').hidden = reportLocaleEntries.length <= 1
         $('date-filter').hidden = true
         return
     }
@@ -529,6 +649,7 @@ async function configureReportLocales(reportPath) {
         reportLocaleEntries = []
         reportSourceEntries = []
         $('dashboard-filters').hidden = true
+        $('profile-control').hidden = true
         $('date-filter').hidden = true
         return
     }
@@ -542,6 +663,7 @@ async function configureReportLocales(reportPath) {
     if (!reportSourceEntries.some((entry) => entry.path === reportPath))
         reportSourceEntries.push({ path: reportPath, locale: report.locale ?? 'en', source: currentSource })
     populateSource([...indexEntries, ...reportSourceEntries], currentSource)
+    $('profile-control').hidden = true
     const basePath = withoutLocale(reportPath)
     reportLocaleEntries = reportSourceEntries.filter((entry) => withoutLocale(entry.path) === basePath)
     const currentLocale = report.locale ?? 'en'
@@ -592,13 +714,33 @@ async function start() {
           : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
     if (!report || report.schema !== 1 || !['capture', 'comparison', 'journeys', 'collection'].includes(report.type))
         throw new Error('Unsupported report')
+    const comparisonPath = collectionMatch ? requestedFilter('compare') : ''
+    activeComparison = undefined
+    if (comparisonPath) {
+        if (
+            !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
+                comparisonPath
+            )
+        )
+            throw new Error('Invalid comparison path')
+        const comparison = await loadJSON(`/screen-data/reports/${comparisonPath}/manifest.json`)
+        if (
+            report.type !== 'collection' ||
+            comparison?.schema !== 1 ||
+            comparison.type !== 'comparison' ||
+            !report.locales.includes(comparison.locale) ||
+            !Array.isArray(comparison.screens)
+        )
+            throw new Error('Unsupported comparison for this collection')
+        activeComparison = comparison
+    }
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
     $('filters-row').hidden = false
     $('view-mode-row').hidden = report.type !== 'comparison'
     rows = orderRows(
         report.type === 'collection'
-            ? collectionRows(report, requestedCollectionLocale(report))
+            ? collectionRows(report, activeComparison?.locale ?? requestedCollectionLocale(report), activeComparison)
             : report.type !== 'comparison'
               ? report.screens.map((s) => ({
                     ...s,
@@ -607,8 +749,8 @@ async function start() {
                 }))
               : report.screens
     )
-    const before = report.before,
-        after = report.type === 'comparison' ? report.after : report
+    const before = activeComparison?.before ?? report.before,
+        after = activeComparison?.after ?? (report.type === 'comparison' ? report.after : report)
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
     $('view-mode').checked = viewMode === 'all'
     $('title').textContent =
@@ -625,20 +767,33 @@ async function start() {
     $('description').append(captureDate ? el('strong', captureDate) : el('span', ''))
     $('footer').textContent =
         report.type === 'collection'
-            ? `${localeLabel(requestedCollectionLocale(report))} · Curated collection · Synthetic app states`
+            ? `${localeLabel(activeComparison?.locale ?? requestedCollectionLocale(report))} · ${activeComparison ? 'Curated before/after comparison' : 'Curated collection'} · Synthetic app states`
             : report.type === 'journeys'
               ? `${localeLabel(report.locale)} · ${report.width} × ${report.height} viewport · Nutcracker sandbox backend`
-              : `${localeLabel(report.locale)} · 393 × 852 · Synthetic data`
+              : `${localeLabel(report.locale)} · ${after.width} × ${after.height} viewport · Synthetic data`
     if (report.type === 'collection') {
-        for (const locale of report.locales) {
-            const source = report.source?.[locale]
-            const n = el('div')
-            n.append(
-                el('strong', `${localeLabel(locale)} · ${source?.commit ?? 'capture pending'}`),
-                el('div', source?.reportPath ?? 'On-demand capture')
-            )
-            $('provenance').append(n)
-        }
+        if (activeComparison) {
+            for (const [label, capture] of [
+                ['Before', before],
+                ['After', after],
+            ]) {
+                const n = el('div')
+                n.append(
+                    el('strong', `${label} ${capture?.commit ?? 'unknown revision'}`),
+                    el('div', capture?.capturedAt ?? '')
+                )
+                $('provenance').append(n)
+            }
+        } else
+            for (const locale of report.locales) {
+                const source = report.source?.[locale]
+                const n = el('div')
+                n.append(
+                    el('strong', `${localeLabel(locale)} · ${source?.commit ?? 'capture pending'}`),
+                    el('div', source?.reportPath ?? 'On-demand capture')
+                )
+                $('provenance').append(n)
+            }
     } else if (report.type === 'journeys') {
         const n = el('div')
         n.append(
@@ -761,6 +916,7 @@ $('source').addEventListener('change', () => {
     }
     renderLanding()
 })
+$('profile').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''
@@ -771,6 +927,18 @@ $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
+$('zoom-prev').onclick = () => navigatePreview(-1)
+$('zoom-next').onclick = () => navigatePreview(1)
+$('zoom').addEventListener('keydown', (event) => {
+    if (!$('zoom').open) return
+    if (event.key === 'Escape') {
+        event.preventDefault()
+        $('zoom').close()
+    } else if (event.target !== $('slider') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault()
+        navigatePreview(event.key === 'ArrowLeft' ? -1 : 1)
+    }
+})
 $('date-prev').onclick = () => scrollDateStrip(-1)
 $('date-next').onclick = () => scrollDateStrip(1)
 $('date-strip').addEventListener('scroll', updateDateNavigation)

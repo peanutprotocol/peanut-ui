@@ -21,6 +21,8 @@ const shareCopy = (account: DepositAccount, user: string) => ({
     introPooled: `Bank details to pay ${user} in ${account.currency}:`,
     outro: 'Sent from Peanut · peanut.me',
     payerLine: { 'business-only': 'Pay from a business account.', unknown: 'A transfer may be returned.' },
+    referenceLine: 'Add the reference to every transfer.',
+    eurOwnNameLine: 'A euro transfer from another name can be returned.',
 })
 
 describe('bridge adapter', () => {

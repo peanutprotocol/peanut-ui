@@ -1,4 +1,5 @@
 import { instructionRows, type RailLabels } from './instructionRows'
+import { corridorFromRailId } from './rails'
 import type { DepositAccountView, DepositRowLabels } from './types'
 
 export interface ShareTextCopy {
@@ -13,6 +14,15 @@ export interface ShareTextCopy {
      * none either: those details are never shared.
      */
     payerLine: { 'business-only': string; unknown: string }
+    /** "Add the reference to every transfer …" — only where the account has one */
+    referenceLine: string
+    /**
+     * The euro caveat. EUR is offered to anyone, and the one third-party SEPA
+     * transfer seen so far was returned by the provider as a third-party
+     * payment; until a third-party credit is proven, the payer is told to use
+     * an account in their own name where they can.
+     */
+    eurOwnNameLine: string
 }
 
 /**
@@ -21,7 +31,8 @@ export interface ShareTextCopy {
  *
  * The possessive is the one care here. "My bank details" is only true when the
  * account is in the user's own name; where our banking partner holds it,
- * calling it "my account" is a claim we cannot make to a third party. So the
+ * calling it "my account" is a claim we cannot make to a third party. An
+ * unverified holder relationship is neutral for the same reason. So the
  * framing reads `nameOnAccount` — never a per-string judgement.
  *
  * The holder's full terms are NOT in the copied text: they render on screen
@@ -48,6 +59,10 @@ export function buildShareText(
 
     const sender = account.matching.sender
     if (sender === 'business-only' || sender === 'unknown') lines.push('', copy.payerLine[sender])
+    // A reference row alone reads as one more field to copy; the payer has to
+    // know the transfer is not matched without it.
+    if (account.instructions.depositMessage) lines.push('', copy.referenceLine)
+    if (corridorFromRailId(account.railId) === 'SEPA_EU') lines.push('', copy.eurOwnNameLine)
 
     lines.push('', copy.outro)
     return lines.join('\n')

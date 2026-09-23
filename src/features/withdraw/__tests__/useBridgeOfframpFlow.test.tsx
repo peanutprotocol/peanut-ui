@@ -194,8 +194,10 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     }),
 }))
 
+import posthog from 'posthog-js'
 import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
 import { useWithdrawAmount } from '../useWithdrawAmount'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { AccountType } from '@/interfaces/interfaces'
 
 // ---------- helpers ----------
@@ -389,6 +391,45 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
 // the selected account. The URL is the sole durable amount store — the
 // recovery redirect must carry ?amount= forward, or the user re-enters the
 // amount they already typed (Chip round 10).
+/**
+ * The spend engine checks the card controller before it prepares or signs
+ * anything, and that check can end the attempt: the user dismissed the
+ * re-approval prompt, or left the screen. No funds moved and no deposit was
+ * made, so the screen must not read as a failed withdrawal.
+ */
+describe('useBridgeOfframpFlow — card re-approval cancelled before the money leg', () => {
+    it('confirms nothing, shows no error and reports no failure', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+        })
+        mockSendMoney.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockConfirmOfframp).not.toHaveBeenCalled()
+        expect(mockSetError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(posthog.capture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
+    it('a real send failure still surfaces and is reported', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+        })
+        mockSendMoney.mockRejectedValue(new Error('bundler 502'))
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSetError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(posthog.capture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+})
+
 describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amount (Chip round 10)', () => {
     it('review without a selected account: recovery to country selection carries ?amount=', () => {
         mockBankAccount = null

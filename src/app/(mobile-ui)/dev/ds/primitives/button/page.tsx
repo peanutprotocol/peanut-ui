@@ -11,6 +11,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function ButtonPage() {
     return (
@@ -19,7 +20,7 @@ export default function ButtonPage() {
                 title="Button"
                 description="Primary interaction component. Supports variants, sizes, shadows, icons, loading, and long-press."
                 status="production"
-                usages="120+ usages"
+                usages="275 usages"
             />
 
             <WhenToUse
@@ -111,20 +112,24 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
-            <DocSection title="Variants" description="The three board rows. There is no fourth variant.">
+            <DocSection
+                title="Variants"
+                description="The three board rows. There is no fourth variant. Counts are Button call sites in product code, /dev and tests excluded — primary includes the 102 that pass no variant at all."
+            >
                 <DocSection.Content>
                     <div className="space-y-4">
                         {(
                             [
-                                ['primary', 'the default CTA'],
-                                ['secondary', 'the outlined one'],
-                                ['ghost', 'the text-only one'],
+                                ['primary', 'the default CTA', '199 usages'],
+                                ['secondary', 'the outlined one', '52 usages'],
+                                ['ghost', 'the text-only one', '24 usages'],
                             ] as const
-                        ).map(([variant, role]) => (
+                        ).map(([variant, role, count]) => (
                             <div key={variant}>
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
                                     <span className="text-body-xs text-foreground-secondary">{role}</span>
+                                    <span className="text-label-m text-foreground-secondary">{count}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
@@ -372,6 +377,56 @@ export default function ButtonPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Payment success — back home + receipt"
+                    path="src/features/payments/shared/components/PaymentSuccessView.tsx"
+                    description="The success screen stacks the two buttons full width: primary goes home, secondary opens the receipt."
+                    code={`<Button onClick={handleDone} shadowSize="4">
+  {t('success.backToHome')}
+</Button>
+<Button
+  variant="secondary"
+  shadowSize="4"
+  onClick={() => openTransactionDetails(receiptTransaction)}
+>
+  {t('success.seeReceipt')}
+</Button>`}
+                >
+                    <div className="flex w-full flex-col gap-4">
+                        <Button shadowSize="4">Back to home</Button>
+                        <Button variant="secondary" shadowSize="4">
+                            See receipt
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Signup — Next beside the username field"
+                    path="src/components/Setup/Views/Signup.tsx"
+                    description="Inline CTA on one row with the input: large size, 4/12 width, loading while the username check runs."
+                    code={`<Button
+  size="large"
+  className="w-4/12"
+  loading={isLoading}
+  shadowSize="4"
+  onClick={() => handleNext(async () => isValid)}
+  disabled={!isValid || isChanging || isLoading}
+>
+  {t('next')}
+</Button>`}
+                >
+                    <div className="flex items-center gap-2">
+                        <div className="input flex h-12 flex-1 items-center px-4 text-body-s text-foreground-secondary">
+                            kushagra
+                        </div>
+                        <Button size="large" className="w-4/12" shadowSize="4">
+                            Next
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

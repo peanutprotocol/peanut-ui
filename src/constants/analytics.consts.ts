@@ -274,10 +274,9 @@ export const ANALYTICS_EVENTS = {
 
     // Public card application entry.
     CARD_APPLICATION_CTA_CLICKED: 'card_application_cta_clicked',
-    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
-    // opens the badge detail modal (or the badges list for several).
+    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced;
+    // non-interactive: toasts carry no actions.
     BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
-    BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
     // Activation reward — $10 perk minted on first $100 spend (and same to referrer).
     CARD_ACTIVATION_THRESHOLD_REACHED: 'card_activation_threshold_reached',
     CARD_ACTIVATION_REWARD_CLAIMED: 'card_activation_reward_claimed',

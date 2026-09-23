@@ -1,7 +1,7 @@
 'use client'
 
 import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
@@ -173,14 +173,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Alternative options section with divider */}
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
-                        <FieldColumn error={fieldError}>
+                        <Field error={fieldError}>
                             <GeneralRecipientInput
                                 placeholder={t('initial.recipientPlaceholder')}
                                 recipient={recipient}
                                 onUpdate={handleRecipientUpdate}
                                 showInfoText={false}
                             />
-                        </FieldColumn>
+                        </Field>
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
                         <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>

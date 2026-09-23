@@ -9,9 +9,11 @@ import { captureException } from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { Marquee } from '@/components/LandingPage/marquee'
+import { JsonLd } from '@/components/Marketing/JsonLd'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { useAuth } from '@/context/authContext'
+import { faqSchema } from '@/lib/seo/schemas'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
@@ -99,10 +101,17 @@ export default function ShhhhhLandingPage() {
         t('marquee.noMonthlyFee'),
     ]
 
+    // The page is the only card FAQ crawlers see, so mirror the visible copy into FAQPage
+    // structured data from the same keys and strings.
+    const faqJsonLd = faqSchema(
+        faqKeys.map((key) => ({ question: t(`faq.${key}.question`), answer: t(`faq.${key}.answer`) }))
+    )
+
     return (
         // The decorations are pure garnish, so the springs stop for anyone who
         // asked the OS for less motion.
         <MotionConfig reducedMotion="user">
+            {faqJsonLd && <JsonLd data={faqJsonLd} />}
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24">
                 <HeroBackNav />

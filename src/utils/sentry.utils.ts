@@ -3,7 +3,7 @@ import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
 import { isMutatingMethod } from '../../sentry.utils'
-import { hasRecentFailure, reportNetworkError } from './connectivity'
+import { getConnectivityGeneration, hasRecentFailure, reportNetworkError } from './connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 
 /**
@@ -606,6 +606,7 @@ export const fetchWithSentry = async (
     optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
+    const connectivityGeneration = getConnectivityGeneration()
     const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
@@ -753,7 +754,7 @@ export const fetchWithSentry = async (
          * a distinct user-visible event rather than a poll repeating itself.
          */
         const repeatFailure = !isMutatingMethod(method) && hasRecentFailure(endpoint)
-        reportNetworkError(endpoint)
+        reportNetworkError(endpoint, connectivityGeneration)
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.

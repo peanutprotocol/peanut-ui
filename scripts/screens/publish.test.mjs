@@ -124,6 +124,45 @@ test('publication writes the entry commit marker before shared pointers', async 
     }
 })
 
+test('extra viewport capture publishes its full resolution without advancing default latest', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-viewport-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const png = new PNG({ width: 320, height: 712 })
+        png.data.fill(127)
+        const name = storeAsset(assets, PNG.sync.write(png))
+        const input = { ...capture(name), profile: 'en-320x712', width: 320, height: 712 }
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(input))
+        const storage = memoryStorage()
+        const path = `2026-09-21/dev/en/320x712/${commit}/run-123-1`
+        await publishReport({
+            inputDir: dir,
+            reportPath: path,
+            storage,
+            env: { SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example', EXPECTED_HEAD: commit },
+        })
+        const entry = JSON.parse(storage.objects.get(`entries/${path.replaceAll('/', '_')}.json`))
+        assert.equal(entry.profile, '320x712')
+        assert.equal(storage.objects.has('latest.json'), false)
+        const publicReport = JSON.parse(storage.objects.get(`reports/${path}/manifest.json`))
+        const { default: sharp } = await import('sharp')
+        const output = await sharp(storage.objects.get(`assets/${publicReport.screens[0].image}`)).metadata()
+        assert.deepEqual([output.width, output.height], [320, 712])
+        await assert.rejects(
+            publishReport({
+                inputDir: dir,
+                reportPath: `2026-09-21/dev/en/360x800/${commit}/run-123-1`,
+                storage,
+                env: { SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example' },
+            }),
+            /profile/
+        )
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
 test('publication compares exact PNGs before rewriting only the public report to WebP', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'screen-publish-comparison-test-'))
     try {

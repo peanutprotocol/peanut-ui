@@ -9,6 +9,9 @@
  * passes them in, so this stays unit-testable with plain values.
  */
 
+import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
+
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
 /** Chip for a bank region before residence restrictions are applied. */
@@ -92,9 +95,32 @@ const BANK_ROWS: readonly {
     flag: string
     regionPath: NonNullable<UnlockRow['regionPath']>
     limitRefs: NonNullable<UnlockRow['limitRefs']>
+    /**
+     * The deposit corridor whose residence rule the row inherits. The Manteca
+     * rows only: the Argentine account opens to a legal resident alone, and
+     * the Brazilian one needs a CPF, pre-checked through a Brazilian residence
+     * (`residenceGate`, client-side). The row is not an offer to anyone else.
+     */
+    corridor?: DepositCorridor
 }[] = [
-    { key: 'brl', group: 'southAmerica', country: 'BR', flag: 'br', regionPath: 'latam', limitRefs: ['BRL'] },
-    { key: 'ars', group: 'southAmerica', country: 'AR', flag: 'ar', regionPath: 'latam', limitRefs: ['ARS'] },
+    {
+        key: 'brl',
+        group: 'southAmerica',
+        country: 'BR',
+        flag: 'br',
+        regionPath: 'latam',
+        limitRefs: ['BRL'],
+        corridor: 'PIX_BR',
+    },
+    {
+        key: 'ars',
+        group: 'southAmerica',
+        country: 'AR',
+        flag: 'ar',
+        regionPath: 'latam',
+        limitRefs: ['ARS'],
+        corridor: 'BANK_TRANSFER_AR',
+    },
     {
         key: 'usd',
         group: 'northAmerica',
@@ -122,9 +148,22 @@ export const BANK_ROW_COUNTRIES: Record<BankRowKey, string> = Object.fromEntries
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
     const { bankChips, canPayQr, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
+    // `residenceIso2` is already verified-else-declared; the same derivation
+    // the top-up gates read (`useResidenceIso2s`), so the row and the flow
+    // behind it can never disagree about who lives where.
+    const gatingResidences = gatingResidenceIso2s({ verified: residenceIso2, second: secondResidenceIso2 })
 
     const bankRow = (spec: (typeof BANK_ROWS)[number]): UnlockRow => {
-        const chip: UnlockChip = restrictions.banking ? 'notAvailable' : bankChips[spec.key]
+        const railChip = bankChips[spec.key]
+        // A residence-gated corridor is not offered outside its country: the
+        // account behind it is for residents, so an Unlock here could only end
+        // in a refusal — and a Processing chip would narrate a rail the user
+        // can never finish. Fails closed on an unknown residence;
+        // the residence row above is the way to state one. A rail that already
+        // works stays a fact: the user opened it while they lived there.
+        const residenceGated =
+            spec.corridor !== undefined && railChip !== 'active' && !residenceAllows(spec.corridor, gatingResidences)
+        const chip: UnlockChip = restrictions.banking || residenceGated ? 'notAvailable' : railChip
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,

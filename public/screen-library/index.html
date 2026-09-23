@@ -61,6 +61,7 @@
                     <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
                         <label id="source-control">Source<select id="source"></select></label>
                         <label id="locale-control">Locale<select id="locale"></select></label>
+                        <label id="profile-control" hidden>Viewport<select id="profile"></select></label>
                     </nav>
                     <nav id="screen-filters" class="filters" aria-label="Filter screens">
                         <label id="search-control"
@@ -118,19 +119,27 @@
             <section id="screens" aria-label="Screens"></section>
             <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
         </main>
-        <dialog id="zoom">
+        <dialog id="zoom" aria-labelledby="zoom-title">
             <div class="dialog-head">
-                <h2 id="zoom-title"></h2>
+                <div>
+                    <p id="zoom-position" class="zoom-position"></p>
+                    <h2 id="zoom-title"></h2>
+                </div>
                 <button id="close" aria-label="Close enlarged screen">Close ×</button>
             </div>
-            <div class="zoom-controls">
+            <div id="zoom-controls" class="zoom-controls">
                 <button id="side">Side by side</button><button id="overlay">Overlay</button
                 ><button id="difference">Pixel difference</button
                 ><label id="slider-label" hidden
                     >Before / after<input id="slider" type="range" min="0" max="100" value="50"
                 /></label>
             </div>
-            <div id="zoom-images"></div>
+            <div class="preview-stage">
+                <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
+                <div id="zoom-images"></div>
+                <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+            </div>
+            <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
         </dialog>
         <footer id="footer">English · 393 × 852 · Synthetic data</footer>
         <section id="auth-gate" class="auth-gate" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">

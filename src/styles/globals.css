@@ -233,7 +233,6 @@
     --text-button-s: 0.875rem;
     --text-button-s--line-height: 0.875rem;
     --text-button-s--font-weight: 700;
-    --text-display: 3.75rem;
 
     /* physical-card geometry (CardFace) — deliberately off the ui radius
        scale, like the id-1 aspect ratio. visual-qa verdict ui#3201. */

@@ -23,10 +23,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 
 ## The Peanut Card
 
-- A **virtual Visa card** that spends your digital-dollar balance anywhere Visa is accepted.
-- Free to issue, free to top up. You pay only the exchange-rate spread when spending in another currency — no separate card fee.
-- **Available in most countries** — the US, Europe, the UK, Latin America, Africa, and more. Requires identity verification.
-- A short list of countries can't be issued the card (the issuer's restricted-region list — including China, India, Russia, Turkey, Vietnam, Iran, and Israel, among a handful of others).
+The Peanut Card is a virtual Visa card for spending your Peanut balance wherever Visa is accepted. Complete identity verification in the app and apply; applications are subject to approval. No monthly or annual fees; a 1% Visa international service assessment applies to cross-currency purchases, and standard fees and limits apply under the cardholder terms. Get your card at https://peanut.me/shhhhh.
 
 ## Send & receive money
 
@@ -61,7 +58,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 - **Local QR spending live now:** Argentina (MercadoPago) and Brazil (PIX).
 - **Bank deposit/withdraw live:** 36 SEPA-zone European countries (EUR), United States (ACH/wire), Mexico (SPEI), United Kingdom (Faster Payments).
 - **Crypto deposit/withdraw:** available globally in all non-restricted countries.
-- **Peanut Card:** available in most countries (a short restricted list is excluded — e.g. China, India, Russia, Turkey, Vietnam).
+- **Peanut Card:** apply in the app after identity verification; applications are subject to approval — https://peanut.me/shhhhh
 - **Coming soon (not live):** local QR/payment methods in many more countries — Mexico (CoDi), Colombia (Transfiya), Peru (Yape), Spain (Bizum), Portugal (MB WAY), India (UPI), and others. These are roadmap; only Argentina and Brazil have live local spending today.
 
 ## Who it's for
@@ -75,6 +72,7 @@ Tourists, digital nomads, expats, remote workers, freelancers, and families movi
 - Pay with MercadoPago (Argentina): https://peanut.me/en/pay-with/mercadopago
 - Brazil guide: https://peanut.me/en/brazil
 - Argentina guide: https://peanut.me/en/argentina
+- Peanut Card: https://peanut.me/shhhhh
 - Help center: https://peanut.me/en/help
 - Careers: https://peanut.me/careers
 - Support: https://peanut.me/support

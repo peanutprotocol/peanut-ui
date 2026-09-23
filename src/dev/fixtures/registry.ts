@@ -209,9 +209,9 @@ const PEER_CONTACT = (peer: (typeof AVATAR_PEERS)[number], relationship: string)
 })
 /**
  * Sandbox opens every account in the user's own name, so each fixture below
- * carries the demo user as the holder and `nameOnAccount: 'user'`. The one
- * exception is DEPOSIT_ACCOUNT_PROVIDER_HELD, which exists to prove the other
- * branch.
+ * carries the demo user as the holder and `nameOnAccount: 'user'`. The
+ * exceptions are the provider-held and unknown-ownership fixtures, which
+ * prove both non-possessive branches.
  *
  * `matching.sender` and `rules` are copied from what the backend returns per
  * rail (peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`). The screens
@@ -359,6 +359,17 @@ const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
 } satisfies DepositAccount
 
 /**
+ * Bridge returned the real holder but its verified identity snapshot was not
+ * available. The screen keeps the holder row and payer terms, but makes no
+ * claim about who legally holds the account.
+ */
+const DEPOSIT_ACCOUNT_OWNERSHIP_UNKNOWN = {
+    ...DEPOSIT_ACCOUNT_EUR,
+    id: 'fixture-deposit-ownership-unknown',
+    matching: { ...DEPOSIT_ACCOUNT_EUR.matching, nameOnAccount: 'unknown' },
+} satisfies DepositAccount
+
+/**
  * The Bridge bank rails, the set a user verified through Bridge carries.
  *
  * The corridor rows come from the user's rails — `corridorsFromRails` in
@@ -438,8 +449,10 @@ const BRIDGE_CO_CAPABILITIES = {
     restrictions: [],
 }
 
-/** Every verified-user deposit-account fixture answers the gate the same way. */
-const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
+/** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
+const VA_READY_RESPONSE = {
+    'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
+}
 
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
@@ -489,6 +502,7 @@ export const FIXTURES: Record<string, Fixture> = {
                             kind: 'bridge-hosted',
                             purpose: 'unlock-bridge-ach',
                             requirementKey: 'proof_of_address',
+                            currency: 'USD',
                         },
                     ],
                     restrictions: [],
@@ -864,6 +878,38 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'identity-awaiting-upload': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID upload still required: no in-review notice or support escalation.',
+        responses: {
+            'GET /users/me': {
+                // The demo baseline is verified; clear its prior decision and
+                // submission so this state really represents an unsubmitted upload.
+                identityVerification: {
+                    status: 'action_required',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'identity-review-overdue': {
+        route: '/profile/accounts-and-payments',
+        about: 'ID submitted for review over seven days ago: overdue notice with support text link.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: {
+                    status: 'processing',
+                    reviewPending: true,
+                    submittedAt: '2026-08-20T12:00:00.000Z',
+                    reviewedAt: null,
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts-and-payments',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
@@ -1073,6 +1119,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_PROVIDER_HELD] },
+        },
+    },
+    'get-paid-details-ownership-unknown': {
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
+        about: 'Euro details with a real holder name but no verified provider identity for an ownership claim.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_OWNERSHIP_UNKNOWN] },
         },
     },
     'get-paid-provisioning': {

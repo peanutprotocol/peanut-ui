@@ -95,6 +95,13 @@ export interface RailCapability {
      * fields remain until the BE's step-5 cleanup.
      */
     resolved?: ResolvedRail
+    /**
+     * ISO timestamp of the last change to a `pending` rail; absent on every
+     * other status, and on an API deployed before the field. A pending rail
+     * untouched for a day is stuck, not provisioning — the processing drawer
+     * stops promising a quick setup past that.
+     */
+    pendingSince?: string
 }
 
 /**
@@ -226,6 +233,8 @@ export interface IdentityVerification {
     rejectLabels?: string[]
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
+    /** Set by the API only for an uploaded identity check awaiting a decision. */
+    reviewPending?: boolean
     /** ISO timestamp the decision landed. */
     reviewedAt?: string
 }

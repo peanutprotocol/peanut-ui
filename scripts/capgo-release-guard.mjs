@@ -50,7 +50,9 @@ export function verifyBundle(bundle, env) {
     const android = required(env, 'FLOOR_ANDROID')
     const ios = required(env, 'FLOOR_IOS')
     const nativeFloor = required(env, 'NATIVE_FLOOR')
-    const sha = required(env, 'GITHUB_SHA')
+    // A manual dispatch runs the workflow file from dev but builds main in a
+    // separate checkout. Bind the artifact to that pinned main commit.
+    const sha = required(env, env.OTA_SOURCE_SHA === undefined ? 'GITHUB_SHA' : 'OTA_SOURCE_SHA')
     // Native .0 records are shared, so their one server floor must be the
     // stricter of the two compatible platform floors. OTA records are distinct
     // even when their web assets are identical and use their platform floor.
@@ -145,7 +147,22 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
     const apiKey = required(env, 'CAPGO_API_KEY')
     const json = async (url, init = {}) => {
         const response = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(30000), redirect: 'error' })
-        if (!response.ok) throw new Error(`Capgo request failed (HTTP ${response.status})`)
+        if (!response.ok) {
+            let details
+            try {
+                details = await response.json()
+            } catch {
+                // Keep the HTTP status when an upstream error is not JSON.
+            }
+            const error = new Error(
+                `Capgo request failed (HTTP ${response.status}) at ${new URL(url).pathname}${details?.error ? `: ${details.error}` : ''}`
+            )
+            error.status = response.status
+            error.apiError = details?.error
+            error.apiMessage = details?.message
+            error.moreInfo = details?.moreInfo
+            throw error
+        }
         return response.json()
     }
     const request = async (resource, { query = {}, body } = {}) => {
@@ -204,7 +221,25 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
     const bundles = async () => {
         const rows = []
         for (let page = 0; page < 100; page++) {
-            const response = await request('bundle', { query: { page: String(page) } })
+            let response
+            try {
+                response = await request('bundle', { query: { page: String(page) } })
+            } catch (error) {
+                // Capgo returns 400/cannot_get_bundle (rather than an empty
+                // array) when a page beyond the last full page has no rows.
+                // Accept only that documented empty-page shape; auth, database
+                // and other API failures must still stop the release.
+                if (
+                    page > 0 &&
+                    error.status === 400 &&
+                    error.apiError === 'cannot_get_bundle' &&
+                    error.apiMessage === 'Cannot get bundle' &&
+                    error.moreInfo?.supabaseError === null
+                ) {
+                    return rows
+                }
+                throw error
+            }
             const batch = Array.isArray(response) ? response : response?.data
             if (!Array.isArray(batch)) throw new Error('invalid bundle-list response')
             rows.push(...batch)

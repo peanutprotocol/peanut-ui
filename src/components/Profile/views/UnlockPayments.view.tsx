@@ -11,6 +11,7 @@ import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -53,6 +54,7 @@ import {
     type BankRowKey,
     type UnlockGroup,
     type UnlockRow,
+    type UnlockRowLabelKey,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -102,7 +104,7 @@ const UnlockPayments = () => {
     const [openView, setOpenView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, railsForProvider, nextActionsForRail, canDo, gateFor } = useCapabilities()
+    const { rails, isKycApproved, nextActionsForRail, canDo, gateFor } = useCapabilities()
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
@@ -113,8 +115,6 @@ const UnlockPayments = () => {
     const { setIsSupportModalOpen } = useModalsContext()
 
     const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
-    const bridgeRejection = useMemo(() => deriveProviderRejection(rails, 'BRIDGE'), [rails])
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const isSumsubApproved = isKycApproved
 
     // ── list model ──────────────────────────────────────────────────────────
@@ -230,6 +230,12 @@ const UnlockPayments = () => {
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
+    // The tapped row, so the modal reads the rails of THAT row's country. A
+    // region intent covers two countries (Brazil and Argentina share LATAM),
+    // and a provider-wide read let a Brazilian row narrate an Argentine rail —
+    // the abandoned awaiting-action ghost, "setting up your account" forever
+    // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
+    const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
     // Card recovery deep-links here when only a pending residence change is
     // blocking issuance. Keep the deep link live rather than snapshotting it,
     // and clear it when the drawer closes so refresh/native restore cannot
@@ -246,12 +252,21 @@ const UnlockPayments = () => {
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
+    // Same scope `bankChipFor` reads the chip from: the QR row has no country
+    // of its own (the pool rails span both), so it keeps the provider-wide read.
+    const clickedRowCountry =
+        selectedRowKey && selectedRowKey in BANK_ROW_COUNTRIES ? BANK_ROW_COUNTRIES[selectedRowKey as BankRowKey] : null
+    const clickedRegionRails = useMemo(() => {
+        if (!selectedRegion || !clickedRegionProvider) return []
+        return rails.filter(
+            (rail) =>
+                rail.provider === clickedRegionProvider && (!clickedRowCountry || rail.country === clickedRowCountry)
+        )
+    }, [selectedRegion, clickedRegionProvider, clickedRowCountry, rails])
     const clickedRegionRail =
-        selectedRegion && clickedRegionProvider
-            ? (railsForProvider(clickedRegionProvider).find(
-                  (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
-              ) ?? railsForProvider(clickedRegionProvider)[0])
-            : undefined
+        clickedRegionRails.find(
+            (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
+        ) ?? clickedRegionRails[0]
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
@@ -266,7 +281,13 @@ const UnlockPayments = () => {
         return isTerminalRailRejection(clickedRegionRail, byKey)
     }, [clickedRegionRail, nextActionsForRail])
 
-    const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
+    // Scoped like the rail above: a rejection on another country's rail is not
+    // a verdict on this row. A provider-wide restriction marks every rail of
+    // that provider, so it still shows here.
+    const providerRejectionForRegion = useMemo(
+        () => deriveProviderRejection(clickedRegionRails, clickedRegionProvider === 'bridge' ? 'BRIDGE' : 'MANTECA'),
+        [clickedRegionRails, clickedRegionProvider]
+    )
     const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
     const providerRejectionMessage = providerRejectionReasonKey
         ? tIdentity(providerRejectionReasonKey)
@@ -280,6 +301,7 @@ const UnlockPayments = () => {
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
+        setSelectedRowKey(null)
         setActiveRegionIntent(undefined)
     }, [])
 
@@ -288,12 +310,14 @@ const UnlockPayments = () => {
         onKycSuccess: handleFinalKycSuccess,
         onManualClose: () => {
             setSelectedRegion(null)
+            setSelectedRowKey(null)
             setActiveRegionIntent(undefined)
         },
     })
 
     const handleModalClose = useCallback(() => {
         setSelectedRegion(null)
+        setSelectedRowKey(null)
     }, [])
 
     // Deliberately NO card redirect here (the old screen's Europe→/card hijack):
@@ -305,10 +329,16 @@ const UnlockPayments = () => {
         setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
+        setSelectedRowKey(null)
+        // The backend only reads a target country as a Manteca geo (and refuses
+        // any other), so the row's country goes along for the Manteca rows: it
+        // names which of the two LATAM flows the tap meant, where a residence
+        // fallback would guess for a dual resident.
+        const targetCountry = clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined
         // Always cross-region: a locked method has no functional rail behind it,
         // and the flag is a no-op for first-time KYC (retired UnlockedRegions view).
-        await flow.handleInitiateKyc(intent, undefined, true)
-    }, [flow.handleInitiateKyc, selectedRegion])
+        await flow.handleInitiateKyc(intent, undefined, true, targetCountry)
+    }, [flow.handleInitiateKyc, selectedRegion, clickedRegionProvider, clickedRowCountry])
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
@@ -326,6 +356,7 @@ const UnlockPayments = () => {
             // here the shared UnlockMethodModal is ours, so gate the tap itself.
             if (isKycDegraded) return
             setSelectedMethodLabel(t(`rows.${row.labelKey}`))
+            setSelectedRowKey(row.labelKey)
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
@@ -365,6 +396,11 @@ const UnlockPayments = () => {
     // repeated it. The banking note stays — it covers rails whose rows are
     // absent from the list entirely.
     const showBankRestrictionNote = restrictions.banking
+    // A bank row withheld for residence alone (the Manteca corridors outside
+    // their country) gets its reason in one line under the list, the same way
+    // the restriction note explains rows the restriction hides.
+    const showResidenceNote =
+        !restrictions.banking && bankGroups.some((group) => group.rows.some((row) => row.chip === 'notAvailable'))
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <Badge status="completed" customText={t('residence.verified')} />
@@ -425,7 +461,7 @@ const UnlockPayments = () => {
                 </Callout>
             )}
 
-            {isIdentityInReview && !isKycDegraded && (
+            {isIdentityInReview && identity.reviewPending === true && !isKycDegraded && (
                 <Callout
                     priority="helper"
                     title={
@@ -433,13 +469,15 @@ const UnlockPayments = () => {
                             ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
                             : t('review.since')
                     }
-                    ctas={
-                        reviewEscalation
-                            ? [{ label: t('review.messageUs'), onClick: () => setIsSupportModalOpen(true) }]
-                            : undefined
-                    }
                 >
-                    {reviewEscalation ? t('review.escalation') : t('review.body')}
+                    {reviewEscalation ? (
+                        <div className="flex flex-col items-start gap-1">
+                            <span>{t('review.escalation')}</span>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>{t('review.messageUs')}</LinkButton>
+                        </div>
+                    ) : (
+                        t('review.body')
+                    )}
                 </Callout>
             )}
 
@@ -476,6 +514,7 @@ const UnlockPayments = () => {
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
             )}
+            {showResidenceNote && <p className="text-body-xs text-foreground-secondary">{t('residenceNote')}</p>}
 
             {/* Region-restricted users get the one honest region screen instead
                 of an unlock offer that can only end in the same rejection: the
@@ -519,7 +558,17 @@ const UnlockPayments = () => {
                 }}
             />
 
-            <KycProcessingModal visible={modalVariant === 'processing'} onClose={handleModalClose} />
+            <KycProcessingModal
+                visible={modalVariant === 'processing'}
+                onClose={handleModalClose}
+                pendingSince={clickedRegionRail?.pendingSince}
+                waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                onResume={handleStartKyc}
+                onContactSupport={() => {
+                    handleModalClose()
+                    setIsSupportModalOpen(true)
+                }}
+            />
 
             <KycActionRequiredModal
                 visible={modalVariant === 'action_required'}

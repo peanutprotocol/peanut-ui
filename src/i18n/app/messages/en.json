@@ -376,6 +376,7 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "residenceNote": "Bank transfers in BRL and ARS are for residents of Brazil and Argentina. Update your residence if you moved.",
             "unlockModal": {
                 "title": "Unlock {method}",
                 "titleGeneric": "Unlock this payment method",
@@ -593,8 +594,8 @@
                 "deviceCopyFailed": "Could not copy the device ID.",
                 "leftStillBeta": "Left beta updates, but the app is still running the beta build. Reinstall it from the store to get back to the released version.",
                 "left": "Beta updates off. This device is back on the released version.",
-                "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
-                "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
+                "leftOverride": "Capgo still assigns this device to a different update channel. Ask support to review its channel assignment.",
+                "leftUnconfirmed": "The app could not confirm the release channel. Beta updates are still selected. Try turning them off again; if this keeps happening, contact support with this device ID.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
@@ -1336,6 +1337,7 @@
     },
     "qrPay": {
         "youArePaying": "You're paying",
+        "reviewUpdatedQuote": "Review the updated quote to continue.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Processing your payment",
@@ -1891,6 +1893,7 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Review the updated quote to continue.",
         "amountToWithdraw": "Amount to withdraw",
         "amountToSend": "Amount to send",
         "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
@@ -2449,7 +2452,6 @@
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
-        "toastTapToView": "Tap to view",
         "unlock": {
             "invites": "Invite {target, plural, one {# friend who joins Peanut} other {# friends who join Peanut}}.",
             "rewards": "Earn ${targetUsd} in rewards.",
@@ -2658,8 +2660,7 @@
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
         },
-        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
-        "toastChooseAvatar": "Choose avatar"
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}"
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
@@ -2700,6 +2701,10 @@
         "actionRequiredDescription": "We need a bit more from you to confirm your ID.",
         "processingTitle": "Setting up your account…",
         "processingDescription": "We're confirming your ID. This usually takes less than a minute.",
+        "processingStaleTitle": "Still setting up your account",
+        "processingUnfinishedDescription": "This is taking longer than usual. If you left the verification unfinished, continue it now. If you already finished it, contact support and we'll check.",
+        "processingReviewDescription": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
+        "continueVerification": "Continue verification",
         "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
         "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "unexpectedError": "An unexpected error occurred",
@@ -3205,6 +3210,8 @@
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",
+            "manteca_action_expired": "Your bank account setup timed out. Finish the short verification to unlock local deposits and withdrawals.",
+            "manteca_action_correction_required": "Please correct the information for your bank account verification.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
@@ -3463,6 +3470,7 @@
             "successTitle": "Card re-enabled",
             "successDescription": "Your card is ready — please try your withdrawal again.",
             "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
+            "rotatedError": "Your card was updated while we were saving. Tap Re-enable card once more.",
             "unexpectedError": "We couldn't re-enable your card. Please try again.",
             "reEnableCta": "Re-enable card",
             "workingCta": "Working…",
@@ -4076,6 +4084,7 @@
             "benefitStable": "Hand these details over once — they stay the same for every payment after.",
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
             "conditionNoReference": "No reference or memo to remember.",
+            "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
             "faqMinimum": "Minimum deposit is {min}.",
@@ -4096,6 +4105,8 @@
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
+            "referenceRequired": "Every transfer needs this reference. Without it the money cannot be matched to your account.",
+            "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
@@ -4110,6 +4121,8 @@
             "sheetTitleOwn": "My bank details",
             "sheetTitlePooled": "Bank details to pay {user}",
             "payerBusinessOnly": "Please pay from a business account. A transfer from a personal account is returned.",
+            "referenceRequired": "Add the reference to every transfer. Without it the money cannot be matched.",
+            "eurOwnName": "A euro transfer from an account in another name can be returned. If you can, pay from an account in your own name.",
             "payerUnconfirmed": "This account may return a transfer from another person or business. Check with me before you send."
         },
         "rows": {
@@ -4138,6 +4151,7 @@
                 "bre_b": "Bre-B"
             },
             "brCode": "Pix code",
+            "reference": "Reference",
             "breBKey": "Bre-B key"
         },
         "corridors": {
@@ -4159,7 +4173,10 @@
             },
             "PIX_BR": {
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceTitle": "Residence required",
+                "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay a Pix QR code in Brazil from your balance."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",

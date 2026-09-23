@@ -110,7 +110,7 @@ describe('usePushProvisioning', () => {
         expect(result.current.nativeAvailable).toBe(false)
     })
 
-    it('flips the row back to the carousel after a successful add', async () => {
+    it('keeps the native row when a paired Watch can still take the card after an iPhone add', async () => {
         mockedAddCard.mockResolvedValue({ added: true, last4: '0420' })
         const { result } = renderHook(() => usePushProvisioning(card))
         await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
@@ -129,11 +129,44 @@ describe('usePushProvisioning', () => {
             last4: '0420',
             address: provisioningData.billingAddress,
         })
-        expect(result.current.nativeAvailable).toBe(false)
+        expect(mockedAvailability).toHaveBeenCalledTimes(2)
+        expect(result.current.nativeAvailable).toBe(true)
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED, {
             wallet: 'apple',
             error: undefined,
         })
+    })
+
+    it('flips back to the carousel when neither device can take the card after a successful add', async () => {
+        mockedAddCard.mockResolvedValue({ added: true, last4: '0420' })
+        mockedAvailability
+            .mockResolvedValueOnce({ available: true, alreadyInWallet: false })
+            .mockResolvedValueOnce({ available: false, alreadyInWallet: true })
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        await act(async () => {
+            await result.current.addToWallet()
+        })
+
+        expect(result.current.nativeAvailable).toBe(false)
+    })
+
+    it('preserves a successful add if the follow-up availability check fails', async () => {
+        mockedAddCard.mockResolvedValue({ added: true, last4: '0420' })
+        mockedAvailability
+            .mockResolvedValueOnce({ available: true, alreadyInWallet: false })
+            .mockRejectedValueOnce(new Error('PassKit lookup failed'))
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let outcome!: Awaited<ReturnType<typeof result.current.addToWallet>>
+        await act(async () => {
+            outcome = await result.current.addToWallet()
+        })
+
+        expect(outcome).toEqual({ added: true, last4: '0420' })
+        expect(result.current.nativeAvailable).toBe(false)
     })
 
     it('flips the row back when the plugin reports the card is already in the wallet', async () => {

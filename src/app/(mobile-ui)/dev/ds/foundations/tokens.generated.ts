@@ -805,12 +805,6 @@ export const TEXT_STYLES: TextStyle[] = [
         "fontWeight": "700"
     },
     {
-        "name": "display",
-        "section": "semantic",
-        "previewClass": "text-display",
-        "fontSize": "3.75rem"
-    },
-    {
         "name": "0",
         "section": "parity",
         "previewClass": "text-0",

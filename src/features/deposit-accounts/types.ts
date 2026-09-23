@@ -68,8 +68,9 @@ export type DepositMatching = DepositAccount['matching']
  * them.
  *
  * `matching` carries no `nameOnAccount`: that field compares the holder name
- * the provider returns against the user's, and no account has returned one
- * yet.
+ * the provider returns against its verified identity for the user, and no
+ * account has returned one yet. A held account can return `unknown` when that
+ * provider identity is not available; the UI then makes no ownership claim.
  */
 export type ClaimableCorridor = DepositAccountsResponse['claimable'][number]
 
@@ -178,6 +179,7 @@ export type DepositRowKey =
     | 'clabe'
     | 'brCode'
     | 'breBKey'
+    | 'reference'
     | 'bankAddress'
     | 'beneficiaryAddress'
     | 'accepts'

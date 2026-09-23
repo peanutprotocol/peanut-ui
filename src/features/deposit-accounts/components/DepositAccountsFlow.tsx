@@ -5,7 +5,7 @@ import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
-import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS } from '../params'
+import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS, type DepositAccountScreen } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
@@ -54,13 +54,20 @@ export interface DepositAccountsFlowProps {
     isLoading?: boolean
     /** the accounts could not be read; the list says so instead of offering claims */
     isError?: boolean
+    /**
+     * May a new account be opened? False while the rollout flag is off: the
+     * accounts the user already holds stay readable, the claim step and the
+     * gate screens behind it do not render.
+     */
+    claimsEnabled?: boolean
     userName: string
     claimingCorridor?: DepositCorridor
     claimError?: DepositClaimError
     /** leaving the flow entirely — the list is a destination now, not a tab root */
     onExit: () => void
     onClaim: (corridor: DepositCorridor) => void
-    onResolveGate: (gate: GateState) => void
+    /** the corridor rides along: the verification it starts is that corridor's level */
+    onResolveGate: (gate: GateState, corridor: DepositCorridor) => void
     onRetry: () => void
     /**
      * The one shared support door, for the things the app cannot settle
@@ -104,6 +111,7 @@ export function DepositAccountsFlow({
     gates,
     isLoading = false,
     isError = false,
+    claimsEnabled = true,
     userName,
     claimingCorridor,
     claimError,
@@ -146,8 +154,14 @@ export function DepositAccountsFlow({
     // every user, and the screen behind it is what explains the rule.
     const offered = isLoading || corridors.includes(corridor) || isResidenceGated(corridor)
     const terms = claimable?.[corridor]
+    // With claims off, a link to the claim step lands on the list; details of
+    // a held account resolve as they always do.
+    const withClaimsGate = (next: DepositAccountScreen): DepositAccountScreen =>
+        next === 'claim' && !claimsEnabled ? 'list' : next
     const resolved =
-        isError || !offered || namesUnknownCorridor ? 'list' : resolveScreen(screen, rail, account, gate, terms)
+        isError || !offered || namesUnknownCorridor
+            ? 'list'
+            : withClaimsGate(resolveScreen(screen, rail, account, gate, terms))
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
@@ -257,6 +271,7 @@ export function DepositAccountsFlow({
             : rawGateNotice
     if (
         screen !== 'list' &&
+        claimsEnabled &&
         !namesUnknownCorridor &&
         !isLoading &&
         !isError &&
@@ -280,7 +295,7 @@ export function DepositAccountsFlow({
                     if (withheldAction === 'support') return onContactSupport(corridor, 'blocked')
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
-                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
+                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate, corridor)
                     if (gateNotice.action === 'finish-review') return void review?.start(corridor)
                     if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
                     return onContactSupport(

@@ -1,39 +1,37 @@
 import { renderHook } from '@testing-library/react'
-
-const mockIsFeatureEnabled = jest.fn()
-
-jest.mock('posthog-js', () => ({
-    __esModule: true,
-    default: {
-        isFeatureEnabled: (key: string) => mockIsFeatureEnabled(key),
-        onFeatureFlags: () => () => {},
-    },
-}))
-// `featureFlag.utils` reads BASE_URL once at import, so the domain is fixed per
-// test file. This file is the production domain; the non-prod half of the gate
-// lives in useDepositAccountsEnabled.nonprod.test.tsx.
-jest.mock('@/constants/general.consts', () => ({
-    ...jest.requireActual('@/constants/general.consts'),
-    BASE_URL: 'https://peanut.me',
-}))
-
+import { useAuth } from '@/context/authContext'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 
-describe('useDepositAccountsEnabled on the production domain', () => {
-    beforeEach(() => mockIsFeatureEnabled.mockReset())
+jest.mock('@/context/authContext', () => ({
+    useAuth: jest.fn(),
+}))
 
-    it('is off while the flag is off', () => {
-        mockIsFeatureEnabled.mockReturnValue(false)
-        expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(false)
-    })
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 
-    it('fails closed while PostHog has no answer', () => {
-        mockIsFeatureEnabled.mockReturnValue(undefined)
-        expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(false)
-    })
+function mockUser(user: unknown) {
+    mockUseAuth.mockReturnValue({ user } as unknown as ReturnType<typeof useAuth>)
+}
 
-    it('is on once the flag is on', () => {
-        mockIsFeatureEnabled.mockReturnValue(true)
+describe('useDepositAccountsEnabled', () => {
+    afterEach(() => jest.resetAllMocks())
+
+    it('is on when the API reports the rollout open for this user', () => {
+        mockUser({ depositAccounts: { enabled: true } })
         expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(true)
+    })
+
+    it('is off when the API reports the rollout closed', () => {
+        mockUser({ depositAccounts: { enabled: false } })
+        expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(false)
+    })
+
+    it('fails closed on an API that predates the field', () => {
+        mockUser({ capabilities: { rails: [], nextActions: [], restrictions: [] } })
+        expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(false)
+    })
+
+    it('fails closed while there is no user', () => {
+        mockUser(null)
+        expect(renderHook(() => useDepositAccountsEnabled()).result.current).toBe(false)
     })
 })

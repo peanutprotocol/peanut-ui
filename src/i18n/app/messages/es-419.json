@@ -376,6 +376,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "residenceNote": "Las transferencias bancarias en BRL y ARS son para residentes de Brasil y Argentina. Actualiza tu residencia si te mudaste.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloquea este método de pago",
@@ -593,8 +594,8 @@
                 "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
                 "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
                 "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
-                "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
-                "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
+                "leftOverride": "Capgo todavía asigna este dispositivo a otro canal de actualizaciones. Pedí a soporte que revise la asignación del canal.",
+                "leftUnconfirmed": "La app no pudo confirmar el canal de la versión publicada. Las actualizaciones beta siguen seleccionadas. Intentá desactivarlas otra vez; si el problema continúa, contactá a soporte con el ID de este dispositivo.",
                 "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
@@ -1336,6 +1337,7 @@
     },
     "qrPay": {
         "youArePaying": "Estás pagando",
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Procesando tu pago",
@@ -1891,6 +1893,7 @@
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "amountToWithdraw": "Monto a retirar",
         "amountToSend": "Monto a enviar",
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
@@ -2449,7 +2452,6 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
-        "toastTapToView": "Toca para ver",
         "unlock": {
             "invites": "Invita a {target, plural, one {# amigo que se una a Peanut} other {# amigos que se unan a Peanut}}.",
             "rewards": "Gana ${targetUsd} en recompensas.",
@@ -2658,8 +2660,7 @@
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
-        "toastChooseAvatar": "Elegir avatar"
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -2700,6 +2701,10 @@
         "actionRequiredDescription": "Necesitamos un poco más de información para confirmar tu identidad.",
         "processingTitle": "Configurando tu cuenta…",
         "processingDescription": "Estamos confirmando tu identidad. Normalmente toma menos de un minuto.",
+        "processingStaleTitle": "Todavía estamos configurando tu cuenta",
+        "processingUnfinishedDescription": "Está tardando más de lo normal. Si dejaste la verificación sin terminar, continúala ahora. Si ya la terminaste, contacta a soporte y lo revisamos.",
+        "processingReviewDescription": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos.",
+        "continueVerification": "Continuar verificación",
         "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región. Te avisaremos apenas se habiliten.",
         "railsUnavailableError": "Tu identidad está verificada, pero no podemos configurar los pagos para tu región en este momento. Contacta con soporte y lo resolvemos.",
         "unexpectedError": "Ocurrió un error inesperado",
@@ -3205,6 +3210,8 @@
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
             "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
             "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
+            "manteca_action_expired": "La configuración de tu cuenta bancaria venció. Completa la breve verificación para habilitar depósitos y retiros locales.",
+            "manteca_action_correction_required": "Corrige la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que requieren los depósitos y retiros locales. Puedes verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado."
@@ -3463,6 +3470,7 @@
             "successTitle": "Tarjeta reactivada",
             "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
+            "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Toca Reactivar tarjeta una vez más.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
             "reEnableCta": "Reactivar tarjeta",
             "workingCta": "Procesando…",
@@ -4076,6 +4084,7 @@
             "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
             "conditionNoReference": "Sin referencia ni concepto que recordar.",
+            "conditionReference": "Cada transferencia debe incluir la referencia que aparece con tus datos; sin ella no se puede asignar a tu cuenta.",
             "cta": "Abrir cuenta en {currency}",
             "errorTitle": "No pudimos abrir la cuenta",
             "faqMinimum": "El depósito mínimo es {min}.",
@@ -4096,6 +4105,8 @@
             "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y escribe a soporte para reemplazarlos.",
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
+            "referenceRequired": "Cada transferencia debe incluir esta referencia. Sin ella el dinero no se puede asignar a tu cuenta.",
+            "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si puedes, deposita desde una cuenta a tu nombre.",
             "whoCanPay": "Quién puede pagarte",
             "residenceCta": "Actualiza tu residencia",
             "qrPayCta": "Pagar un código QR"
@@ -4110,6 +4121,8 @@
             "sheetTitleOwn": "Mis datos bancarios",
             "sheetTitlePooled": "Datos bancarios para pagarle a {user}",
             "payerBusinessOnly": "Paga desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
+            "referenceRequired": "Incluye la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
+            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si puedes, paga desde una cuenta a tu nombre.",
             "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consúltame antes de enviar."
         },
         "rows": {
@@ -4138,6 +4151,7 @@
                 "bre_b": "Bre-B"
             },
             "brCode": "Código Pix",
+            "reference": "Referencia",
             "breBKey": "Llave Bre-B"
         },
         "corridors": {
@@ -4159,7 +4173,10 @@
             },
             "PIX_BR": {
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceTitle": "Necesitas residencia",
+                "residenceRequired": "Solo los residentes legales de Brasil pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
+                "qrPay": "De todas formas puedes pagar códigos QR de Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
