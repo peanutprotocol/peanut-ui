@@ -74,6 +74,37 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'h-[35dvh] shrink-0 md:h-dvh',
 }
 
+const setupHeroProgress = (step: number | undefined, totalSteps: number | undefined, screenId: ScreenId) => {
+    // Use the filtered journey length: skipped steps should not leave the last
+    // screen short of pink. The standalone /setup/finish route has no cursor.
+    return step !== undefined && totalSteps !== undefined && totalSteps > 1
+        ? Math.max(0, Math.min(1, step / (totalSteps - 1)))
+        : screenId === 'sign-test-transaction'
+          ? 1
+          : 0
+}
+
+const setupHeroBackground = (progress: number) => {
+    const bluePercent = Math.round((1 - progress) * 100)
+    return `color-mix(in oklab, var(--color-background-setup-hero) ${bluePercent}%, var(--color-action-primary))`
+}
+
+/** The older Android OS status bar needs a hex value rather than a CSS color. */
+const setupHeroNativeHex = (progress: number): string | null => {
+    const styles = getComputedStyle(document.documentElement)
+    const blue = styles.getPropertyValue('--color-background-setup-hero').trim()
+    const pink = styles.getPropertyValue('--color-action-primary').trim()
+    if (!/^#[\da-f]{6}$/i.test(blue) || !/^#[\da-f]{6}$/i.test(pink)) return null
+    const channels = [1, 3, 5].map((index) => {
+        const start = Number.parseInt(blue.slice(index, index + 2), 16)
+        const end = Number.parseInt(pink.slice(index, index + 2), 16)
+        return Math.round(start + (end - start) * progress)
+            .toString(16)
+            .padStart(2, '0')
+    })
+    return `#${channels.join('')}`
+}
+
 const stepVariants = {
     enter: (direction: number) => ({ x: direction < 0 ? -48 : 48, opacity: 0 }),
     center: { x: 0, opacity: 1 },
@@ -264,7 +295,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-background-setup-hero px-4 md:h-dvh md:w-7/12 md:px-6'
+                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -300,7 +331,8 @@ const ImageSection = ({
         <div
             className={twMerge(
                 containerClass,
-                'relative flex w-full flex-row items-center justify-center overflow-hidden bg-background-setup-hero md:h-dvh md:w-7/12',
+                'relative flex w-full flex-row items-center justify-center overflow-hidden transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12',
+                screenId !== 'success' && 'setup-hero-background',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
@@ -352,6 +384,42 @@ export const SetupWrapper = memo(function SetupWrapper({
     useLayoutEffect(() => {
         previousStep.current = step
     }, [step])
+    const heroProgress = setupHeroProgress(step, totalSteps, screenId)
+    const heroBackground = setupHeroBackground(heroProgress)
+    useLayoutEffect(() => {
+        // The hero, banner, and safe-area strips share one value so no blue seam
+        // remains above a later pink step. Layout effect applies it before paint.
+        document.documentElement.style.setProperty('--setup-hero-background', heroBackground)
+        return () => {
+            document.documentElement.style.removeProperty('--setup-hero-background')
+        }
+    }, [heroBackground])
+    useEffect(() => {
+        if (!isCapacitor()) return
+        let cancelled = false
+        // Let the native status bar reach the same destination as the CSS tint.
+        // A pending older step is cancelled when navigation changes rapidly.
+        const durationToken = getComputedStyle(document.documentElement)
+            .getPropertyValue('--transition-duration-fast')
+            .trim()
+        let duration = 200
+        if (durationToken.endsWith('ms')) duration = Number.parseFloat(durationToken)
+        else if (durationToken.endsWith('s')) duration = Number.parseFloat(durationToken) * 1000
+        if (prefersReducedMotion) duration = 0
+        const timeout = window.setTimeout(() => {
+            const color = setupHeroNativeHex(heroProgress)
+            if (!color) return
+            void import('@capacitor/status-bar')
+                .then(async ({ StatusBar }) => {
+                    if (!cancelled) await StatusBar.setBackgroundColor({ color })
+                })
+                .catch(() => {})
+        }, duration)
+        return () => {
+            cancelled = true
+            window.clearTimeout(timeout)
+        }
+    }, [heroProgress, prefersReducedMotion])
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
     // migration notice window's download-only landing: drop the fixed-height

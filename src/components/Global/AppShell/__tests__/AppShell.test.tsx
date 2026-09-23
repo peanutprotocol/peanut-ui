@@ -78,3 +78,17 @@ describe('AppShell bottom nav slot', () => {
         expect(column).toHaveClass('max-w-md', 'px-4', 'mx-auto')
     })
 })
+
+describe('AppShell onboarding tint', () => {
+    it('uses the shared hero color for the banner and edge-to-edge safe areas', () => {
+        const { container } = render(
+            <AppShell variant="onboarding" bottomInsetClassName="setup-hero-background" banner={<div>Banner</div>}>
+                <div>Setup</div>
+            </AppShell>
+        )
+
+        expect(screen.getByText('Banner').parentElement).toHaveClass('setup-hero-background')
+        expect(container.querySelector('.top-0.h-safe-top')).toHaveClass('setup-hero-background')
+        expect(container.querySelector('.bottom-0.h-safe-bottom')).toHaveClass('setup-hero-background')
+    })
+})

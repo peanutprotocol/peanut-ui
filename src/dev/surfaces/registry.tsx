@@ -110,6 +110,7 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
+            totalSteps={setupSteps.length}
         >
             {children ?? <View />}
         </SetupWrapper>

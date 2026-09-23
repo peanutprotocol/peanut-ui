@@ -782,6 +782,11 @@
     [type='button'] {
         -webkit-tap-highlight-color: transparent;
     }
+
+    /* One animated setup tint shared by the hero and native safe-area fills. */
+    .setup-hero-background {
+        background-color: var(--setup-hero-background, var(--color-background-setup-hero));
+    }
 }
 
 /* ── component classes ported from the v3 plugin (addComponents). chains like

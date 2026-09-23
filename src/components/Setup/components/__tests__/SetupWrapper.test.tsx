@@ -4,15 +4,23 @@
  * inverts on hover/active, and a hard-coded black stroke vanished into it).
  */
 import React from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { SetupWrapper, useSetupImageOverride } from '../SetupWrapper'
 
 const mockReducedMotion = { value: true }
+const mockCapacitor = { value: false }
+const mockSetBackgroundColor = jest.fn()
 
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
-jest.mock('@/utils/capacitor', () => ({ ...jest.requireActual('@/utils/capacitor'), isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: () => mockCapacitor.value,
+}))
+jest.mock('@capacitor/status-bar', () => ({
+    StatusBar: { setBackgroundColor: (...args: unknown[]) => mockSetBackgroundColor(...args) },
+}))
 jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
@@ -103,6 +111,127 @@ const StepWithImageOverride = () => {
 }
 
 describe('SetupWrapper transitions', () => {
+    it('updates the older Android status bar to the destination color', async () => {
+        jest.useFakeTimers()
+        mockCapacitor.value = true
+        mockReducedMotion.value = false
+        mockSetBackgroundColor.mockClear()
+        document.documentElement.style.setProperty('--color-background-setup-hero', '#90a8ed')
+        document.documentElement.style.setProperty('--color-action-primary', '#ff90e8')
+        try {
+            const { rerender } = renderWithIntl(
+                <SetupWrapper
+                    layoutType="signup"
+                    screenId="landing"
+                    step={0}
+                    totalSteps={6}
+                    image={{ pose: 'waving-chill' }}
+                >
+                    <div>Landing</div>
+                </SetupWrapper>
+            )
+            await act(async () => {
+                jest.advanceTimersByTime(220)
+                await Promise.resolve()
+            })
+            expect(mockSetBackgroundColor).toHaveBeenCalledWith({ color: '#90a8ed' })
+
+            rerender(
+                <SetupWrapper
+                    layoutType="signup"
+                    screenId="sign-test-transaction"
+                    step={5}
+                    totalSteps={6}
+                    image={{ pose: 'waving-chill' }}
+                >
+                    <div>Finish</div>
+                </SetupWrapper>
+            )
+            await act(async () => {
+                jest.advanceTimersByTime(220)
+                await Promise.resolve()
+            })
+            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#ff90e8' })
+        } finally {
+            mockCapacitor.value = false
+            mockReducedMotion.value = true
+            document.documentElement.style.removeProperty('--color-background-setup-hero')
+            document.documentElement.style.removeProperty('--color-action-primary')
+            jest.useRealTimers()
+        }
+    })
+
+    it('blends the hero from blue to pink across the journey and reverses on Back', () => {
+        const { container, rerender } = renderWithIntl(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="landing"
+                step={0}
+                totalSteps={6}
+                image={{ pose: 'waving-chill' }}
+            >
+                <div>Landing</div>
+            </SetupWrapper>
+        )
+        const hero = container.querySelector('.setup-hero-background')
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'color-mix(in oklab, var(--color-background-setup-hero) 100%, var(--color-action-primary))'
+        )
+        expect(hero).toHaveClass('transition-colors', 'motion-reduce:transition-none')
+
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="signup" step={2} totalSteps={6} image={{ pose: 'thinking' }}>
+                <div>Signup</div>
+            </SetupWrapper>
+        )
+        expect(container.querySelector('.setup-hero-background')).toBe(hero)
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'color-mix(in oklab, var(--color-background-setup-hero) 60%, var(--color-action-primary))'
+        )
+
+        rerender(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="sign-test-transaction"
+                step={3}
+                totalSteps={4}
+                image={{ pose: 'waving-chill' }}
+            >
+                <div>Finish</div>
+            </SetupWrapper>
+        )
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'color-mix(in oklab, var(--color-background-setup-hero) 0%, var(--color-action-primary))'
+        )
+
+        rerender(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="landing"
+                step={0}
+                totalSteps={6}
+                image={{ pose: 'waving-chill' }}
+            >
+                <div>Landing</div>
+            </SetupWrapper>
+        )
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'color-mix(in oklab, var(--color-background-setup-hero) 100%, var(--color-action-primary))'
+        )
+    })
+
+    it('uses pink on the standalone finish route without a step cursor', () => {
+        const { container } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="sign-test-transaction" image={{ pose: 'waving-chill' }}>
+                <div>Finish</div>
+            </SetupWrapper>
+        )
+        expect(container.querySelector('.setup-hero-background')).toBeInTheDocument()
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'color-mix(in oklab, var(--color-background-setup-hero) 0%, var(--color-action-primary))'
+        )
+    })
+
     it('keeps white progress dots above the mascot and updates the active step', () => {
         const { rerender } = renderWithIntl(
             <SetupWrapper layoutType="signup" screenId="signup" step={2} totalSteps={6} image={{ pose: 'thinking' }}>
@@ -111,7 +240,7 @@ describe('SetupWrapper transitions', () => {
         )
         const dots = screen.getByRole('group', { name: 'Step 3 of 6' })
         expect(dots).toHaveClass('absolute', 'top-8', 'z-20')
-        expect(dots.closest('.bg-background-setup-hero')).toContainElement(screen.getByTestId('mascot'))
+        expect(dots.closest('.setup-hero-background')).toContainElement(screen.getByTestId('mascot'))
         expect(dots.children).toHaveLength(6)
         expect(dots.children[2]).toHaveClass('w-6', 'bg-white')
         expect(dots.children[3]).toHaveClass('bg-white/60')
@@ -147,7 +276,7 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
         const shell = container.firstElementChild
-        const hero = screen.getByTestId('mascot').closest('.bg-background-setup-hero')
+        const hero = screen.getByTestId('mascot').closest('.setup-hero-background')
         const panel = screen.getByText('First step').closest('.bg-white')
 
         rerender(
@@ -164,7 +293,7 @@ describe('SetupWrapper transitions', () => {
         )
 
         expect(container.firstElementChild).toBe(shell)
-        expect(screen.getByTestId('mascot').closest('.bg-background-setup-hero')).toBe(hero)
+        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toBe(hero)
         expect(screen.getByText('Second step').closest('.bg-white')).toBe(panel)
         expect(hero).toHaveClass('h-[35dvh]', 'shrink-0')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')
