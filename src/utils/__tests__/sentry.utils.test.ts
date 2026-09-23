@@ -23,6 +23,7 @@ jest.mock('@sentry/nextjs', () => ({
 jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
+    getConnectivityGeneration: jest.fn(() => 0),
     reportNetworkError: jest.fn(),
     hasRecentFailure: jest.fn(() => false),
 }))
@@ -675,7 +676,7 @@ describe('fetchWithSentry — one report per endpoint per outage window', () => 
     it('still records the failure for the connectivity banner either way', async () => {
         hasRecentFailure.mockReturnValue(true)
         await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow()
-        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me')
+        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me', 0)
     })
 })
 

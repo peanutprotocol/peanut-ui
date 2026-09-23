@@ -3,8 +3,10 @@ import {
     clearRecentFailures,
     FAILURE_WINDOW_MS,
     getRecentFailures,
+    getConnectivityGeneration,
     hasRecentFailure,
     reportNetworkError,
+    setConnectivityAppActive,
     subscribeConnectivity,
 } from '../connectivity'
 
@@ -19,6 +21,51 @@ afterEach(() => {
 })
 
 describe('connectivity', () => {
+    it('hides previous foreground failures when the native app leaves the foreground', () => {
+        reportNetworkError('/a')
+        reportNetworkError('/b')
+        const listener = jest.fn()
+        const unsubscribe = subscribeConnectivity(listener)
+
+        setConnectivityAppActive(false)
+        expect(getRecentFailures()).toBe(0)
+        expect(listener).toHaveBeenCalledTimes(1)
+        setConnectivityAppActive(true)
+        expect(getRecentFailures()).toBe(0)
+        unsubscribe()
+    })
+
+    it('ignores interrupted requests even when their rejection arrives after resume', () => {
+        const generation = getConnectivityGeneration()
+        setConnectivityAppActive(false)
+        reportNetworkError('/a', generation)
+        setConnectivityAppActive(true)
+        reportNetworkError('/b', generation)
+        expect(getRecentFailures()).toBe(0)
+        expect(hasRecentFailure('/a')).toBe(true)
+        expect(hasRecentFailure('/b')).toBe(true)
+    })
+
+    it('ignores requests started in the background that reject after resume', () => {
+        setConnectivityAppActive(false)
+        const generation = getConnectivityGeneration()
+        expect(generation).toBeNull()
+        setConnectivityAppActive(true)
+        reportNetworkError('/a', generation)
+        expect(getRecentFailures()).toBe(0)
+        expect(hasRecentFailure('/a')).toBe(true)
+    })
+
+    it('counts new foreground failures and does not clear them on duplicate lifecycle events', () => {
+        setConnectivityAppActive(false)
+        setConnectivityAppActive(true)
+        const generation = getConnectivityGeneration()
+        reportNetworkError('/a', generation)
+        setConnectivityAppActive(true)
+        reportNetworkError('/b', generation)
+        expect(getRecentFailures()).toBe(2)
+    })
+
     it('counts distinct failing endpoints inside the window', () => {
         expect(getRecentFailures()).toBe(0)
 
