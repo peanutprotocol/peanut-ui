@@ -17,7 +17,9 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 }))
 jest.mock('../StoreBadges', () => ({
     __esModule: true,
-    default: ({ payload }: { payload?: string }) => <div data-testid="stores" data-payload={payload ?? ''} />,
+    default: ({ payload, iosPayload }: { payload?: string; iosPayload?: string }) => (
+        <div data-testid="stores" data-payload={payload ?? ''} data-ios-payload={iosPayload ?? ''} />
+    ),
 }))
 
 it('keeps generic downloads bare even when ambient context exists', () => {
@@ -35,6 +37,15 @@ it('puts an explicit campaign handoff in both the QR and store fallbacks', () =>
     expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', 'pnutdl=1&badgeCampaign=door&dest=%2Fcard')
     rerender(<DownloadQR surface="landing_hero" />)
     expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
+})
+
+it('passes a separate unbounded payload to the iOS store fallback', () => {
+    jest.mocked(buildDeferredPayload)
+        .mockImplementationOnce(() => 'pnutdl=1&at=small')
+        .mockImplementationOnce(() => 'pnutdl=1&at=full-journey')
+    render(<DownloadQR surface="landing_door" handoff={{ dest: '/card' }} />)
+    expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', 'pnutdl=1&at=small')
+    expect(screen.getByTestId('stores')).toHaveAttribute('data-ios-payload', 'pnutdl=1&at=full-journey')
 })
 
 it('keeps the bare QR and store links when an explicit handoff cannot be built', () => {

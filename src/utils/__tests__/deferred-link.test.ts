@@ -182,6 +182,43 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
     })
 
+    it('keeps a fitting badge before marketing attribution on Play and keeps the full journey on iOS', () => {
+        const tag = 'x'.repeat(64)
+        saveToCookie('campaignTag', 'nita')
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: tag,
+                utmMedium: tag,
+                utmCampaign: tag,
+                utmContent: tag,
+                path: '/en/blog/guide',
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: tag,
+                utmMedium: tag,
+                utmCampaign: tag,
+                utmContent: tag,
+                path: '/en/blog/next',
+            },
+        })
+
+        const playPayload = buildDeferredPayload('/home', undefined, 'android')
+        const iosPayload = buildDeferredPayload('/home', undefined, 'ios')
+        expect(encodeURIComponent(playPayload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(playPayload)?.badgeCampaigns).toEqual(['nita'])
+        expect(parseDeferredPayload(playPayload)?.attribution).toBeUndefined()
+        expect(encodeURIComponent(iosPayload).length).toBeGreaterThan(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(iosPayload)?.badgeCampaigns).toEqual(['nita'])
+        expect(parseDeferredPayload(iosPayload)?.attribution?.journeyId).toBe('33333333-3333-4333-8333-333333333333')
+    })
+
     it('keeps the store handoff usable when even the inviter exceeds the Play limit', () => {
         window.history.replaceState({}, '', '/es-419/home')
         const payload = buildDeferredPayload('/home', 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))

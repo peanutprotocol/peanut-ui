@@ -202,7 +202,7 @@ function stripLocalePrefix(path: string): string {
  * `invite` overrides the cookie for surfaces that know the code before any
  * cookie is written (the claim page's invite-link CTA).
  */
-export function buildDeferredPayload(dest?: string, invite?: string): string {
+export function buildDeferredPayload(dest?: string, invite?: string, store: 'android' | 'ios' = 'android'): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
@@ -226,14 +226,14 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
     const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
     if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
+    // The clipboard has no Play referrer limit. Keep the full valid journey on
+    // iOS, including attribution that cannot fit in Android's 512 characters.
+    if (store === 'ios') return params.toString()
+
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
-        // Destination and badge identities are useful but optional. Preserve
-        // the inviter ahead of marketing attribution: the invite creates the
-        // durable person-to-person rewards edge, while attribution can still
-        // be captured directly by the newly installed app.
+        // A destination can be reopened from the original link. Preserve
+        // referral and badge identities before optional marketing evidence.
         params.delete('dest')
-        params.delete('badge_campaign')
-        params.delete('badgeCampaign')
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
@@ -241,12 +241,19 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
-        // Keep the inviter ahead of the locale. A malformed or unexpectedly
-        // long invite must not prevent the QR and store links from rendering.
         params.delete('lang')
     }
 
+    // Keep as many badge campaigns as fit, in their original priority order.
+    const campaigns = params.getAll(BADGE_CAMPAIGN_QUERY_PARAM)
+    while (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH && campaigns.length > 0) {
+        campaigns.pop()
+        params.delete(BADGE_CAMPAIGN_QUERY_PARAM)
+        for (const campaign of campaigns) params.append(BADGE_CAMPAIGN_QUERY_PARAM, campaign)
+    }
+
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        // A malformed or unexpectedly long invite must not break the store link.
         params.delete('invite')
     }
 
