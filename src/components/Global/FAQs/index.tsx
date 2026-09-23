@@ -58,8 +58,10 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, variant = 'band'
         // drift fix: was near-miss hex — snapped to the page-background token
         <section
             className={
+                // card: no top padding, so the prose block above sets the gap
+                // (its own bottom margin: 16 under an h2, 24 under a paragraph)
                 isCard
-                    ? 'relative overflow-hidden px-4 py-12 text-foreground-primary'
+                    ? 'relative overflow-hidden px-4 pb-12 text-foreground-primary'
                     : 'relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32'
             }
         >
