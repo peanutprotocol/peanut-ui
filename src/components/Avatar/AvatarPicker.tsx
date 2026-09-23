@@ -186,7 +186,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                 >
                                     {earned && (
                                         <Badge
-                                            status="custom"
+                                            status="completed"
                                             customText={t('earned')}
                                             className="absolute top-1 right-1"
                                         />

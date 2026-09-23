@@ -7,7 +7,7 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
-import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/Badge'
+import Badge from '@/components/Global/Badges/Badge'
 import { useTranslations } from 'next-intl'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
@@ -35,7 +35,6 @@ export function PerkRewardReceipt({
     actions: ReactNode
 }) {
     const t = useTranslations('transaction')
-    const tCommon = useTranslations('common')
     const formatDate = useReceiptDateFormatter()
 
     return (
@@ -49,18 +48,14 @@ export function PerkRewardReceipt({
                         <h2 className="text-body-xs text-foreground-secondary">{t('perk.title')}</h2>
                         <p className="text-heading-m text-foreground-primary">{amountDisplay}</p>
                     </div>
-                    {transaction.status !== 'completed' &&
-                        (transaction.status === 'pending' || transaction.status === 'processing' ? (
-                            <span className="rounded-full bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
-                                {tCommon('status.processing')}
-                            </span>
-                        ) : (
-                            <span className="rounded-full bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
-                                {tCommon(
-                                    (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
-                                )}
-                            </span>
-                        ))}
+                    {/* design.md badges: a pending reward is in progress on our side, so it
+                        reads "Processing" in info blue; every other status keeps its own colour. */}
+                    {transaction.status && transaction.status !== 'completed' && (
+                        <Badge
+                            status={transaction.status === 'pending' ? 'processing' : transaction.status}
+                            size="medium"
+                        />
+                    )}
                     <p className="text-body-s text-foreground-secondary">{t('perk.subtitle')}</p>
                 </div>
             </div>
