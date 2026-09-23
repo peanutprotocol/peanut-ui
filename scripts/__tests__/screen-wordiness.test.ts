@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { countMessageWords, isScreenRoot, measureScreens } from '../screen-wordiness-core.cjs'
+import { countMessageWords, findRegressions, isScreenRoot, measureScreens } from '../screen-wordiness-core.cjs'
 
 describe('countMessageWords', () => {
     it('counts an argument as one rendered word', () => {
@@ -110,5 +110,52 @@ export default function OtherModal() {
         const modal = screens.find((s: { screen: string }) => s.screen === 'components/Other/OtherModal.tsx')
         expect(modal?.words).toBe(1)
         expect(screens).toHaveLength(2)
+    })
+})
+
+describe('iOS copy overrides', () => {
+    let root: string
+    const write = (rel: string, body: string) => {
+        const file = join(root, rel)
+        mkdirSync(dirname(file), { recursive: true })
+        writeFileSync(file, body)
+    }
+    const catalog = (override: string) =>
+        write(
+            'src/i18n/app/messages/en.json',
+            JSON.stringify({ rewards: { empty: 'No rewards yet', iosCopy: { empty: override } } })
+        )
+    const score = () =>
+        measureScreens(root).find((s: { screen: string }) => s.screen === 'components/Rewards/RewardsScreen.tsx')
+
+    beforeAll(() => {
+        root = mkdtempSync(join(tmpdir(), 'screen-wordiness-ios-'))
+        write(
+            'src/components/Rewards/RewardsScreen.tsx',
+            `import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+export function RewardsScreen() {
+    const t = useAppTranslations('rewards')
+    return <p>{t('empty')}</p>
+}`
+        )
+    })
+
+    afterAll(() => rmSync(root, { recursive: true, force: true }))
+
+    it('scores a useAppTranslations key at the longer of the base and its iosCopy override', () => {
+        catalog('No cashback')
+        expect(score()?.words).toBe(3)
+        catalog('No cashback yet, pay with Peanut to start earning')
+        expect(score()?.words).toBe(9)
+    })
+
+    it('fails the check when only the override grows', () => {
+        catalog('No cashback')
+        const baseline = { budget: 5, screens: {} }
+        expect(findRegressions(measureScreens(root), baseline)).toHaveLength(0)
+        catalog('No cashback yet, pay with Peanut to start earning')
+        expect(findRegressions(measureScreens(root), baseline).map((s: { screen: string }) => s.screen)).toEqual([
+            'components/Rewards/RewardsScreen.tsx',
+        ])
     })
 })

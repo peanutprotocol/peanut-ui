@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const { measureScreens } = require('./screen-wordiness-core.cjs')
+const { measureScreens, findRegressions } = require('./screen-wordiness-core.cjs')
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASELINE_PATH = join(ROOT, 'scripts', 'screen-wordiness-baseline.json')
@@ -51,8 +51,7 @@ if (args.includes('--update-baseline')) {
 }
 
 const budget = baseline.budget ?? DEFAULT_BUDGET
-const limitFor = (s) => Math.max(budget, baseline.screens[s.screen] ?? 0)
-const regressions = screens.filter((s) => s.words > limitFor(s))
+const regressions = findRegressions(screens, { budget, screens: baseline.screens })
 const improved = screens.filter((s) => baseline.screens[s.screen] !== undefined && s.words < baseline.screens[s.screen])
 const measured = new Set(screens.map((s) => s.screen))
 const stale = Object.keys(baseline.screens).filter((k) => !measured.has(k))

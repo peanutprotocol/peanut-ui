@@ -235,21 +235,31 @@ function parse(file) {
     return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 }
 
-/** The one namespace a hook module binds, if it binds exactly one. */
-function hookModuleNamespace(ctx, file) {
+/**
+ * A translator factory call as `{ ns, ios }`, or null when it reads another
+ * catalog. `ios` marks useAppTranslations, which renders `<ns>.iosCopy.<key>`
+ * instead of `<ns>.<key>` on iOS when that override exists.
+ */
+function translatorOf(call) {
+    const ns = factoryNamespace(call)
+    return ns === null ? null : { ns, ios: calleeText(call) === 'useAppTranslations' }
+}
+
+/** The one translator a hook module binds, if it binds exactly one. */
+function hookModuleTranslator(ctx, file) {
     if (ctx.hookNs.has(file)) return ctx.hookNs.get(file)
-    const found = new Set()
+    const found = new Map()
     const visit = (n) => {
         if (ts.isCallExpression(n) && TRANSLATOR_FACTORIES.has(calleeText(n))) {
-            const ns = factoryNamespace(n)
-            if (ns !== null) found.add(ns)
+            const tr = translatorOf(n)
+            if (tr) found.set(`${tr.ns}|${tr.ios}`, tr)
         }
         ts.forEachChild(n, visit)
     }
     visit(parse(file))
-    const ns = found.size === 1 ? [...found][0] : undefined
-    ctx.hookNs.set(file, ns)
-    return ns
+    const tr = found.size === 1 ? [...found.values()][0] : undefined
+    ctx.hookNs.set(file, tr)
+    return tr
 }
 
 /**
@@ -273,24 +283,24 @@ function analyzeFile(ctx, file) {
         }
     }
 
-    // translator name -> namespace ('' = root). A file-wide map: the same name
-    // bound to two namespaces in one file is rare, and the later wins.
+    // translator name -> { ns ('' = root), ios }. A file-wide map: the same
+    // name bound to two namespaces in one file is rare, and the later wins.
     const translators = new Map()
     const bindFrom = (nameNode, init) => {
         init = unwrapAwait(init)
         if (!init || !ts.isCallExpression(init)) return
         const callee = calleeText(init)
-        let ns
-        if (TRANSLATOR_FACTORIES.has(callee)) ns = factoryNamespace(init)
+        let tr
+        if (TRANSLATOR_FACTORIES.has(callee)) tr = translatorOf(init)
         else if (callee && /^use[A-Z]/.test(callee) && importsByName.has(callee)) {
-            ns = hookModuleNamespace(ctx, importsByName.get(callee))
+            tr = hookModuleTranslator(ctx, importsByName.get(callee))
         }
-        if (ns === null || ns === undefined) return
-        if (ts.isIdentifier(nameNode)) translators.set(nameNode.text, ns)
+        if (!tr) return
+        if (ts.isIdentifier(nameNode)) translators.set(nameNode.text, tr)
         else if (ts.isObjectBindingPattern(nameNode)) {
             for (const el of nameNode.elements) {
                 const prop = el.propertyName ? el.propertyName.getText() : el.name.getText()
-                if (prop === 't' && ts.isIdentifier(el.name)) translators.set(el.name.text, ns)
+                if (prop === 't' && ts.isIdentifier(el.name)) translators.set(el.name.text, tr)
             }
         }
     }
@@ -300,7 +310,7 @@ function analyzeFile(ctx, file) {
     }
     collectBindings(sf)
 
-    const keyUses = [] // { alts, weight, fallback }
+    const keyUses = [] // { ns, ios, alts, weight }
     let literalWords = 0
     let callouts = 0
     const visit = (n, weight) => {
@@ -324,10 +334,11 @@ function analyzeFile(ctx, file) {
             }
             if (name && n.arguments.length) {
                 if (translators.has(name)) {
-                    keyUses.push({ ns: translators.get(name), alts: keyAlternatives(n.arguments[0]), weight })
+                    const { ns, ios } = translators.get(name)
+                    keyUses.push({ ns, ios, alts: keyAlternatives(n.arguments[0]), weight })
                 } else if (/^t([A-Z]\w*)?$/.test(name)) {
                     // a translator passed in as a prop: namespace unknown here
-                    keyUses.push({ ns: undefined, alts: keyAlternatives(n.arguments[0]), weight })
+                    keyUses.push({ ns: undefined, ios: false, alts: keyAlternatives(n.arguments[0]), weight })
                 }
             }
         }
@@ -353,6 +364,12 @@ function analyzeFile(ctx, file) {
     return result
 }
 
+/** `rewards.title` -> `rewards.iosCopy.title` for a translator bound to `rewards`. */
+function iosOverrideKey(ns, key) {
+    if (!ns) return `iosCopy.${key}`
+    return key.startsWith(`${ns}.`) ? `${ns}.iosCopy.${key.slice(ns.length + 1)}` : null
+}
+
 /** Resolve one key use to { key, words }: the heaviest alternative, or null. */
 function resolveKeyUse(ctx, use) {
     let best = null
@@ -369,8 +386,13 @@ function resolveKeyUse(ctx, use) {
             candidates = ctx.catalogKeys.filter((k) => re.test(k))
         }
         for (const key of candidates) {
-            if (!ctx.catalog.has(key)) continue
-            const words = ctx.catalog.get(key)
+            // on iOS a useAppTranslations key renders its iosCopy override when
+            // one exists, so the key weighs whichever of the two is longer
+            const override = use.ios ? iosOverrideKey(use.ns, key) : null
+            const base = ctx.catalog.get(key)
+            const ios = override ? ctx.catalog.get(override) : undefined
+            if (base === undefined && ios === undefined) continue
+            const words = Math.max(base ?? 0, ios ?? 0)
             if (!best || words > best.words) best = { key, words }
         }
     }
@@ -392,10 +414,6 @@ function buildContext(root) {
     return { root, catalog, catalogKeys, suffixIndex, files: new Map(), hookNs: new Map() }
 }
 
-/**
- * Files a screen owns: the root plus the .tsx components it imports,
- * transitively, stopping at other screens and at shared primitives.
- */
 /** `components/Kyc/x/y.tsx` -> `components/Kyc`; `app/(mobile-ui)/home/page.tsx` -> its route dir. */
 function featureRoot(rel) {
     const parts = rel.split('/')
@@ -468,4 +486,13 @@ function measureScreens(root) {
     return screens.sort((a, b) => b.words - a.words || a.screen.localeCompare(b.screen))
 }
 
-module.exports = { countMessageWords, measureScreens, isScreenRoot }
+/**
+ * Screens over their limit: the baseline entry, or the budget for a screen
+ * with no entry (or one under budget).
+ */
+function findRegressions(screens, baseline) {
+    const budget = baseline.budget
+    return screens.filter((s) => s.words > Math.max(budget, baseline.screens[s.screen] ?? 0))
+}
+
+module.exports = { countMessageWords, measureScreens, isScreenRoot, findRegressions }
