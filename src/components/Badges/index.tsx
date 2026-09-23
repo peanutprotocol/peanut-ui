@@ -104,7 +104,7 @@ export const Badges = () => {
         <div className="flex h-full w-full flex-col gap-10">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2" aria-label={t('collectionLabel')}>
+                <div className="grid grid-cols-2 gap-2" aria-label={t('collectionLabel')}>
                     {badges.map((badge) => (
                         <button
                             key={badge.code}
@@ -112,7 +112,11 @@ export const Badges = () => {
                             aria-label={`${badge.name}, ${badge.earned ? t('earned') : t('locked')}`}
                             onClick={() => setSelectedBadge(badge)}
                             className={twMerge(
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                // Two tiles per row on every phone: three squeezed names and copy at 320-430px
+                                // (TASK-22677). The 32px top padding clears the Earned pill (20px tall, 4px down) by 8px so
+                                // the tag never touches the art. Under xs (390px) the art is 48px and the
+                                // name margin and bottom padding tighter, so a 140-167px tile is close to square.
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
@@ -123,15 +127,16 @@ export const Badges = () => {
                                 src={badge.logo!}
                                 alt=""
                                 className={twMerge(
-                                    'h-16 w-full object-contain',
+                                    'h-12 w-full object-contain xs:h-14',
                                     !badge.earned && 'opacity-40 grayscale'
                                 )}
                                 height={100}
                                 width={100}
                                 unoptimized
                             />
-                            <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
-                            <span className="line-clamp-3 h-12 w-full text-body-xs text-foreground-secondary">
+                            <span className="mt-1 line-clamp-2 h-8 w-full text-label-m xs:mt-2">{badge.name}</span>
+                            {/* two lines: the tap opens the detail drawer with the full description */}
+                            <span className="line-clamp-2 h-8 w-full text-body-xs text-foreground-secondary">
                                 {badge.description}
                             </span>
                         </button>
