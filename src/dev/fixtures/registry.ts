@@ -547,6 +547,34 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
+    // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
+    // "From Bank". The euro rail is under provider review (waiting-on-provider),
+    // so the tap opens the "We're reviewing your details" modal (TASK-22153).
+    'add-money-country-provider-wait': {
+        route: '/add-money/spain',
+        about: 'Add money by bank, Spain: the euro rail is under provider review, so "From Bank" opens the wait modal.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: BRIDGE_BANK_RAILS.map((rail) =>
+                        rail.id === 'bridge.sepa_eu'
+                            ? {
+                                  ...rail,
+                                  status: 'requires-info',
+                                  blockingActions: ['wait:provider-review'],
+                                  reason: {
+                                      code: 'provider_review',
+                                      userMessage: 'Our banking partner is reviewing your euro account details.',
+                                  },
+                              }
+                            : { ...rail, status: 'enabled' }
+                    ),
+                    nextActions: [{ key: 'wait:provider-review', kind: 'wait', purpose: 'provider-review' }],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     withdraw: {
         route: '/withdraw',
         about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',

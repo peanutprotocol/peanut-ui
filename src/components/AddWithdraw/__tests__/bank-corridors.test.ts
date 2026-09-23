@@ -1,8 +1,10 @@
 import { bankCorridorFor, corridorAcceptsAddressCountry, hasBridgeBankCorridor } from '../bank-corridors'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
-import { liveRailsForCountry } from '@/features/destinations/country-rails'
+import { liveRailsForCountry, soleLiveRailForCountry } from '@/features/destinations/country-rails'
+import { liveWithdrawCurrencies, withdrawPayoutCurrency } from '@/features/withdraw/components/withdraw-currencies'
 import { isMantecaCountry } from '@/constants/manteca.consts'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 const fieldNames = (country: string) => bankCorridorFor(country)?.fields.map((field) => field.name)
 const fieldFor = (country: string, name: string) =>
@@ -136,6 +138,39 @@ describe('hasBridgeBankCorridor — the single bank-withdraw predicate', () => {
 
     it('is false for a country with no rail', () => {
         expect(hasBridgeBankCorridor('IN')).toBe(false)
+    })
+})
+
+/**
+ * Four non-euro SEPA members were reported as "local currency" withdrawals
+ * (TASK-22153). They are not: each keeps its own currency at home, but its
+ * only withdraw rail is the IBAN corridor, which pays euros over SEPA. The
+ * picker lists them under EUR, never under a row that would promise lek,
+ * koruna, forint or leu.
+ */
+describe('the non-euro SEPA members reported on the withdraw list', () => {
+    it.each([
+        ['Albania', 'AL', 'ALL'],
+        ['Czechia', 'CZE', 'CZK'],
+        ['Hungary', 'HUN', 'HUF'],
+        ['Moldova', 'MD', 'MDL'],
+    ])('%s (%s, home currency %s) withdraws over the IBAN corridor, paid in euros', (_name, id, currency) => {
+        const country = countryData.find((entry) => entry.type === 'country' && entry.id === id)
+        expect(country?.currency).toBe(currency)
+        expect(bankCorridorFor(getCountryCodeForWithdraw(id))?.accountType).toBe(BridgeAccountType.IBAN)
+        expect(hasBridgeBankCorridor(id)).toBe(true)
+        expect(soleLiveRailForCountry(id, 'withdraw')?.path).toBe(`/withdraw/${id.toLowerCase()}/bank`)
+        expect(withdrawPayoutCurrency(country!)).toBe('EUR')
+    })
+
+    it('the picker files them under the EUR row and offers no row in their home currency', () => {
+        const currencies = liveWithdrawCurrencies()
+        const eur = currencies.find((row) => row.code === 'EUR')
+        expect(eur?.countries.map((country) => country.id)).toEqual(expect.arrayContaining(['AL', 'CZE', 'HUN', 'MD']))
+        expect(currencies.map((row) => row.code)).not.toEqual(expect.arrayContaining(['ALL']))
+        expect(currencies.map((row) => row.code)).not.toEqual(expect.arrayContaining(['CZK']))
+        expect(currencies.map((row) => row.code)).not.toEqual(expect.arrayContaining(['HUF']))
+        expect(currencies.map((row) => row.code)).not.toEqual(expect.arrayContaining(['MDL']))
     })
 })
 

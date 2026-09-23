@@ -11,7 +11,7 @@ import {
     type RailOperation,
     type UserCapabilities,
 } from '@/types/capabilities'
-import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
+import { capabilityStateForProfile, deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
 import { isDemoMode } from '@/utils/demo'
 import { useCallback, useMemo } from 'react'
@@ -111,8 +111,8 @@ export function useCapabilities(): UseCapabilitiesResult {
     // The gate's "identity verified" precondition reads the second read-model
     // directly (NOT the rail-level isKycApproved — that's any-rail-enabled
     // which falsely flips for card-only or pool-tier users, the CodeRabbit
-    // semantic finding folded in alongside Profile/ProfileEdit).
-    const identityVerified = user?.identityVerification?.status === 'verified'
+    // semantic finding folded in alongside Profile/ProfileEdit). It is read in
+    // `capabilityStateForProfile`, which `gateFor` below resolves through.
 
     // Index nextActions by key for O(1) lookup (blockingActions resolution).
     const nextActionByKey = useMemo(() => {
@@ -197,8 +197,8 @@ export function useCapabilities(): UseCapabilitiesResult {
 
     const gateFor = useCallback(
         (op: RailOperation, scope?: GateScope): GateState =>
-            deriveGate({ rails, nextActions, identityVerified, isLoading: isFetchingUser }, op, scope),
-        [rails, nextActions, identityVerified, isFetchingUser]
+            deriveGate(capabilityStateForProfile(user, isFetchingUser), op, scope),
+        [user, isFetchingUser]
     )
 
     const bankRails = useCallback(
