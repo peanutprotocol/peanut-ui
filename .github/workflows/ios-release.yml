@@ -50,6 +50,10 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
     # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
     # `production-release` here (which serialises iOS and Android for that path only —
@@ -59,27 +63,19 @@ concurrency:
     # deadlocking against its parent. A direct dispatch of this workflow is
     # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
     group: >-
-        ${{ github.event_name == 'push' && 'production-release'
+        ${{ github.event_name == 'push' && inputs.versionName == '' && 'production-release'
         || format('ios-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
-    retired-shared-channel:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Reject retired shared-channel release tooling
-              run: |
-                  echo '::error::This workflow publishes to the retired production channel. Use the platform-aware iOS release workflow on dev.' >&2
-                  exit 1
-
     release:
-        needs: retired-shared-channel
         runs-on: macos-15
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
             - uses: actions/checkout@v7
               with:
+                  fetch-depth: 0
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
@@ -133,21 +129,29 @@ jobs:
             - name: Check production OTA floor
               id: ota_floor
               env:
+                  CAPGO_APP_ID: me.peanut.wallet
+                  PLATFORM: ios
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ -z "$CURRENT" ]; then
-                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to ship a binary that may strand the fleet's OTA path" >&2
-                      exit 1
+                  # The 1.5.x bridge is the only production path for native 1.5.0
+                  # clients. Publishing a new .0 to this channel would strand them.
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      # New TestFlight binaries also check the bridge on launch.
+                      # Keep their iOS native contract compatible with its JS.
+                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the iOS 1.5.x bridge; the following OTA run publishes fresh main JS there"
+                      exit 0
                   fi
-                  # Fail closed on an anomalous read. CURRENT is scraped from a CLI
-                  # whose stdout format is not contractual, so a stray version-like
-                  # token that sorts ABOVE this release would make needs_ota false,
-                  # silently skip the matching publish, and recreate TASK-21793 with
-                  # CI green. A production bundle ahead of a brand-new binary cannot
-                  # happen in the version scheme, so treat it as a bad read.
+                  CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
+                  if [ "$CURRENT" = builtin ]; then
+                    echo "needs_ota=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  # A channel ahead of a brand-new native release is inconsistent
+                  # with the release sequence; stop instead of skipping its upload.
                   if [ "$(node scripts/semver-newer.mjs "$CURRENT" "$VERSION_NAME")" = "true" ]; then
                       echo "::error::production bundle $CURRENT sorts above the release $VERSION_NAME — impossible in the version scheme, so the channel read is unreliable; refusing to ship" >&2
                       exit 1
@@ -404,41 +408,17 @@ jobs:
                   # already in App Store Connect by then, so skip the wait.
                   wait-for-processing: 'false'
 
-            # The binary that just shipped is ahead of every production OTA bundle, so
-            # its devices would refuse all existing bundles. Publish the exact JS baked
-            # into this binary (the build step leaves it in out/) under the binary's own
-            # version — the lanes can no longer drift apart. A failure here is the floor
-            # guard firing: the job goes red instead of the fleet going silently dark.
-            # Upload flags in lockstep with release-ota.yml; android-release.yml
-            # publishes the same version from the same tag, which --version-exists-ok
-            # turns into a verified no-op.
+            # Publish a matching .0 only when this platform has no active legacy
+            # bridge. The shared record is verified before promotion.
             - name: Publish matching production OTA bundle
               if: steps.ota_floor.outputs.needs_ota == 'true'
               env:
+                  CAPGO_APP_ID: me.peanut.wallet
+                  PLATFORM: ios
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
-              run: |
-                  if [ ! -f out/index.html ]; then
-                      echo "::error::out/ is missing its static export — cannot publish the matching OTA bundle, and without it every device on the $VERSION binary refuses OTA updates" >&2
-                      exit 1
-                  fi
-                  npx @capgo/cli@8.42.4 bundle upload \
-                    --channel production \
-                    --apikey "$CAPGO_API_KEY" \
-                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
-                    --path ./out \
-                    --bundle "$VERSION" \
-                    --min-update-version "$VERSION" \
-                    --version-exists-ok \
-                    --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ "$CURRENT" != "$VERSION" ]; then
-                      echo "::error::production channel serves '${CURRENT:-<none>}', expected $VERSION — devices on the $VERSION binary have no OTA path" >&2
-                      exit 1
-                  fi
-                  echo "Production channel now serves $VERSION"
+              run: bash scripts/publish-native-ota.sh
 
             - name: Upload IPA as build artifact
               if: always()

@@ -1,17 +1,214 @@
 name: Android 1.6 OTA recovery bridge
 
-# Register workflow_dispatch on the default branch. The reviewed release
-# implementation lives on dev and always builds the current main app tree.
+# Run on main to retry the first OTA bridge if its automatic run failed. The pinned main
+# tree is uploaded as a 1.6.x Android bundle so the old numeric gate on native
+# 1.6.0 can install it. Keep this bridge on Android production while those
+# clients migrate, including devices that were offline during the first run.
 on:
     workflow_dispatch:
 
 permissions:
     contents: read
 
+concurrency:
+    group: production-release
+    cancel-in-progress: false
+    queue: max
+
+env:
+    CAPGO_APP_ID: me.peanut.wallet
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 jobs:
-    use-dev-tooling:
+    bridge:
         runs-on: ubuntu-latest
+        environment: Production
+        defaults:
+            run:
+                working-directory: app
         steps:
-            - run: |
-                  echo '::error::Select the dev workflow ref for the Android recovery bridge; its app source is pinned to main.' >&2
-                  exit 1
+            - name: Require dispatch from main
+              working-directory: .
+              run: |
+                  if [ "$GITHUB_REF_NAME" != main ]; then
+                    echo '::error::Run the bridge workflow on main.' >&2
+                    exit 1
+                  fi
+
+            - name: Check out release tooling
+              uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.sha }}
+                  path: release-tooling
+
+            - name: Check out main app source
+              uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.sha }}
+                  path: app
+                  fetch-depth: 0
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+              with:
+                  package_json_file: app/package.json
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '20'
+                  cache: pnpm
+                  cache-dependency-path: app/pnpm-lock.yaml
+
+            - name: Pin and verify main source
+              id: source
+              run: |
+                  SOURCE_SHA="$(git rev-parse HEAD)"
+                  LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+                  if [ "$SOURCE_SHA" != "$LATEST_MAIN_SHA" ]; then
+                    echo '::error::main advanced during checkout' >&2
+                    exit 1
+                  fi
+                  if ! git merge-base --is-ancestor v1.6.0 HEAD; then
+                    echo '::error::main must contain the v1.6.0 native release' >&2
+                    exit 1
+                  fi
+                  echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+            - name: Require the initial bridge transition
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: |
+                  if [ "$(node ../release-tooling/scripts/capgo-release-guard.mjs android-bridge-status)" != inactive ]; then
+                    echo '::error::the Android bridge is already active; use App Release OTA for subsequent main updates' >&2
+                    exit 1
+                  fi
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Prove the main client can carry platform floors
+              run: |
+                  pnpm exec jest src/utils/__tests__/ota-native-gate.test.ts \
+                    --runInBand --silent \
+                    --testNamePattern='carries the admitting floors from the check to the next launch'
+
+            - name: Verify both native surfaces and resolve floors
+              id: floors
+              run: |
+                  IOS="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform ios --root "$PWD")"
+                  ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform android --root "$PWD")"
+                  if [ "$IOS" != '1.5.0' ] || [ "$ANDROID" != '1.6.0' ]; then
+                    echo "::error::bridge only supports iOS 1.5.0 and Android 1.6.0 surfaces; found $IOS and $ANDROID" >&2
+                    exit 1
+                  fi
+                  node ../release-tooling/scripts/check-native-ota-surface.mjs v1.5.0 --platform ios --root "$PWD"
+                  node ../release-tooling/scripts/check-native-ota-surface.mjs v1.6.0 --platform android --root "$PWD"
+                  echo "ios=$IOS" >> "$GITHUB_OUTPUT"
+                  echo "android=$ANDROID" >> "$GITHUB_OUTPUT"
+
+            - name: Reserve a unique Android bridge version
+              id: version
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: |
+                  VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-android-bridge)"
+                  echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Android bridge bundle: $VERSION"
+
+            - name: Bake main as a native static export
+              env:
+                  FLOOR_IOS: ${{ steps.floors.outputs.ios }}
+                  FLOOR_ANDROID: ${{ steps.floors.outputs.android }}
+              run: |
+                  cat > .env.production.local <<'EOF'
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID }}
+                  NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL }}
+                  NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN=peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+                  NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+                  NEXT_PUBLIC_GA_KEY=${{ vars.NEXT_PUBLIC_GA_KEY }}
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
+                  NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
+                  NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
+                  EOF
+                  echo "NEXT_PUBLIC_OTA_FLOOR_ANDROID=$FLOOR_ANDROID" >> .env.production.local
+                  echo "NEXT_PUBLIC_OTA_FLOOR_IOS=$FLOOR_IOS" >> .env.production.local
+                  node scripts/native-build.js
+                  test -f out/index.html
+
+            - name: Guard current main after build
+              env:
+                  SOURCE_SHA: ${{ steps.source.outputs.sha }}
+              run: |
+                  if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$SOURCE_SHA" ]; then
+                    echo '::error::main advanced during the build' >&2
+                    exit 1
+                  fi
+
+            - name: Reset disabled candidate channel
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: node ../release-tooling/scripts/capgo-release-guard.mjs prepare-candidate
+
+            - name: Upload Android bridge from main
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
+                  SOURCE_SHA: ${{ steps.source.outputs.sha }}
+                  VERSION: ${{ steps.version.outputs.name }}
+              run: |
+                  COMMENT="${SOURCE_SHA:0:7} — Android 1.6 recovery bridge [ota-floors: android=1.6.0 ios=1.5.0]"
+                  npx @capgo/cli@8.42.4 bundle upload \
+                    --channel ota-candidate --ignore-checksum-check \
+                    --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+                    --path ./out --bundle "$VERSION" --min-update-version 1.6.0 \
+                    --comment "$COMMENT" --link "https://github.com/peanutprotocol/peanut-ui/commit/$SOURCE_SHA"
+
+            - name: Verify the uploaded artifact
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  OTA_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+                  PLATFORM: android
+                  VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.floors.outputs.ios }}
+                  NATIVE_FLOOR: ${{ steps.floors.outputs.android }}
+                  ANDROID_LEGACY_BRIDGE: '1'
+              run: node ../release-tooling/scripts/capgo-release-guard.mjs verify-bundle
+
+            - name: Promote Android bridge to production
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  OTA_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+                  PLATFORM: android
+                  VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.floors.outputs.ios }}
+                  NATIVE_FLOOR: ${{ steps.floors.outputs.android }}
+                  ANDROID_LEGACY_BRIDGE: '1'
+              run: |
+                  if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$OTA_SOURCE_SHA" ]; then
+                    echo '::error::main advanced before bridge promotion' >&2
+                    exit 1
+                  fi
+                  node ../release-tooling/scripts/capgo-release-guard.mjs promote-android-bridge
+                  node ../release-tooling/scripts/capgo-release-guard.mjs verify-android-bridge
+
+            - name: Deployment summary
+              run: |
+                  {
+                    echo "## Android 1.6 recovery bridge"
+                    echo "- **Bundle:** ${{ steps.version.outputs.name }}"
+                    echo "- **Main source:** ${{ steps.source.outputs.sha }}"
+                    echo '- **Channel:** android-mobile-release'
+                    echo '- **Native floor:** 1.6.0'
+                    echo '- **Keep the bridge active until legacy adoption is verified.**'
+                  } >> "$GITHUB_STEP_SUMMARY"
