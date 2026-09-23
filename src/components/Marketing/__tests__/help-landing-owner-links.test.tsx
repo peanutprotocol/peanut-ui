@@ -1,10 +1,13 @@
-import { renderWithIntl } from '@/test-utils/intl'
+import { IntlWrapper, renderWithIntl } from '@/test-utils/intl'
 import HelpLanding from '../HelpLanding'
 import { act } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { isNativeHelpContext } from '@/utils/native-help-context'
 
 let mockSearchParams = new URLSearchParams()
 
+// Use the Node serializer while hydrating in jsdom, which lacks MessageChannel.
+jest.mock('react-dom/server', () => jest.requireActual('react-dom/server.node'))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => mockSearchParams,
 }))
@@ -57,11 +60,21 @@ describe('HelpLanding owner links', () => {
         expect(hrefs).toEqual(['/es-419/help/passkeys', '/es-ar/help/mercadopago-qr'])
     })
 
-    it.each([false, true])('only shows the chat-bubble instructions for web visits (native: %s)', (native) => {
-        jest.mocked(isNativeHelpContext).mockReturnValue(native)
-        const { queryByText } = renderWithIntl(<HelpLanding articles={[]} categories={[]} strings={STRINGS} />)
-        expect(queryByText(STRINGS.cantFindDesc) !== null).toBe(!native)
-    })
+    it.each([false, true])(
+        'keeps support instructions hidden until browser context is known (native: %s)',
+        (native) => {
+            jest.mocked(isNativeHelpContext).mockReturnValue(native)
+            const page = <HelpLanding articles={[]} categories={[]} strings={STRINGS} />
+            const html = renderToString(<IntlWrapper>{page}</IntlWrapper>)
+            // Static HTML can be visible for seconds before mobile JS hydrates.
+            expect(html).not.toContain(STRINGS.cantFindDesc)
+            const container = document.createElement('div')
+            container.innerHTML = html
+            document.body.appendChild(container)
+            const { queryByText } = renderWithIntl(page, { container, hydrate: true })
+            expect(queryByText(STRINGS.cantFindDesc) !== null).toBe(!native)
+        }
+    )
 
     it('opens chat when a native visitor explicitly follows the Support link', () => {
         jest.useFakeTimers()

@@ -54,7 +54,9 @@ function CategoryRows({ articles }: { articles: HelpArticle[] }) {
 
 export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
-    const [showSupportCallout, setShowSupportCallout] = useState(true)
+    // The static page cannot know whether it was opened by the native app.
+    // Reveal browser-only support instructions after that context is resolved.
+    const [showSupportCallout, setShowSupportCallout] = useState(false)
     const searchParams = useSearchParams()
 
     // Auto-open Crisp chat when ?chat=open (e.g. redirected from /support)
