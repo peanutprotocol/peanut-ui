@@ -326,15 +326,22 @@ it('promotes a verified bridge and disables native-version downgrade protection 
     const version = '1.5.1000-ios'
     const bridge = { ...goodBundle, name: version }
     const promoted = { ...channelPolicy('ios', version), disable_auto_update_under_native: false }
-    const result = invoke('promote-ios-bridge', [
-        ...policyResponses(),
-        { body: [bridge] },
-        { body: { status: 'success' } },
-        ...policyResponses([promoted, channels[1]]),
-    ], { VERSION: version, IOS_LEGACY_BRIDGE: '1' })
+    const result = invoke(
+        'promote-ios-bridge',
+        [
+            ...policyResponses(),
+            { body: [bridge] },
+            { body: { status: 'success' } },
+            ...policyResponses([promoted, channels[1]]),
+        ],
+        { VERSION: version, IOS_LEGACY_BRIDGE: '1' }
+    )
     expect(result.status).toBe(0)
     expect(result.requests[4].body).toMatchObject({
-        channel: 'ios-mobile-release', version, disableAutoUpdateUnderNative: false, rolloutEnabled: false,
+        channel: 'ios-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: false,
+        rolloutEnabled: false,
     })
     expect(invoke('verify-promotion', policyResponses([promoted, channels[1]])).status).toBe(1)
 })
