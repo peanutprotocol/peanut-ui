@@ -16,5 +16,4 @@ describe('iOS release workflow', () => {
             "steps.ota_floor.outputs.needs_ota == 'true' && github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'"
         )
     })
-
 })
