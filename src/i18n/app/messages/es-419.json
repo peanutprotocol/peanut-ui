@@ -759,6 +759,13 @@
         },
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
+        "cta": {
+            "claimName": "Quiero ese nombre",
+            "payments": "Suena bien",
+            "home": "Aquí vivo",
+            "rewards": "¡Quiero recompensas!",
+            "control": "Vamos a terminar"
+        },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
@@ -770,10 +777,10 @@
             "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
         },
         "signupStep": {
-            "usernamePlaceholder": "Tu usuario",
+            "usernamePlaceholder": "tu usuario",
             "whoInvitedYou": "¿Quién te invitó?",
             "inviterUsernameLabel": "Usuario de Peanut de quien te invitó",
-            "inviterUsernamePlaceholder": "Su usuario",
+            "inviterUsernamePlaceholder": "su usuario",
             "inviterHelp": "Quien te invitó puede ganar recompensas cuando uses Peanut.",
             "inviterNotFound": "No pudimos verificar ese usuario. Revísalo e inténtalo de nuevo.",
             "errors": {

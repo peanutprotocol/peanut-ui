@@ -759,6 +759,13 @@
         },
         "next": "Avançar",
         "logIn": "Entrar",
+        "cta": {
+            "claimName": "Esse nome é meu",
+            "payments": "Boa, quero ver",
+            "home": "É aqui que moro",
+            "rewards": "Oba, recompensas!",
+            "control": "Vamos terminar"
+        },
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
             "signUp": "Criar conta",
@@ -770,10 +777,10 @@
             "loginUnexpectedError": "Ocorreu um erro inesperado ao fazer login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Seu usuário",
+            "usernamePlaceholder": "seu usuário",
             "whoInvitedYou": "Quem convidou você?",
             "inviterUsernameLabel": "Usuário do Peanut de quem convidou você",
-            "inviterUsernamePlaceholder": "Usuário de quem convidou você",
+            "inviterUsernamePlaceholder": "usuário de quem convidou você",
             "inviterHelp": "Quem convidou você pode ganhar recompensas quando você usar o Peanut.",
             "inviterNotFound": "Não conseguimos verificar esse usuário. Confira e tente de novo.",
             "errors": {

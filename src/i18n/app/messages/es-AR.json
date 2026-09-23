@@ -457,6 +457,13 @@
             }
         },
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
+        "cta": {
+            "claimName": "Me quedo con ese nombre",
+            "payments": "Me gusta",
+            "home": "Acá vivo",
+            "rewards": "¡Quiero recompensas!",
+            "control": "Terminemos"
+        },
         "landing": {
             "signUp": "Registrate",
             "recoverWallet": "¿Necesitás recuperar tu cuenta de Peanut?"
@@ -466,7 +473,8 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "usernamePlaceholder": "Tu usuario",
+            "usernamePlaceholder": "tu usuario",
+            "inviterUsernamePlaceholder": "su usuario",
             "inviterNotFound": "No pudimos verificar ese usuario. Revisalo e intentá de nuevo.",
             "errors": {
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",

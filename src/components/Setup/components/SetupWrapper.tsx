@@ -529,7 +529,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     initial={animatePanelIn ? { y: '100%' } : false}
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-                    className="flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-6 pb-8 md:h-dvh md:justify-center"
+                    className={twMerge(
+                        'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-4 pb-6 md:h-dvh md:justify-center',
+                        screenId === 'landing' && 'pt-3 pb-3'
+                    )}
                 >
                     <AnimatePresence initial={false} custom={transitionDirection} mode="wait">
                         <TransitioningContent
@@ -550,6 +553,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 <div
                                     className={twMerge(
                                         'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
+                                        screenId === 'landing' && 'space-y-2',
                                         (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
                                         sunsetLanding && 'md:h-auto md:max-h-none'
                                     )}
@@ -557,7 +561,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     {title && (
                                         <h1
                                             className={twMerge(
-                                                'w-full text-left text-heading-xs leading-tight',
+                                                'w-full text-left text-heading-s',
                                                 sunsetLanding && 'md:text-center',
                                                 titleClassName
                                             )}

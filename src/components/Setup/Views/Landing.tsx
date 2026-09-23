@@ -20,6 +20,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
@@ -64,7 +65,7 @@ const LandingStep = () => {
     }
 
     return (
-        <div className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-col gap-2">
             {blockSignup ? (
                 <div className="space-y-2 pb-2">
                     {/* heading only above the desktop QR — a lone store button
@@ -100,11 +101,12 @@ const LandingStep = () => {
             >
                 {t('logIn')}
             </Button>
-            <div className="pt-2 text-center">
+            <div className="pt-1 text-center">
                 <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     {t('landing.recoverWallet')}
                 </SetupDocLink>
             </div>
+            <SetupLanguageSwitcher />
         </div>
     )
 }

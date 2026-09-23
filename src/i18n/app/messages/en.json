@@ -759,6 +759,13 @@
         },
         "next": "Next",
         "logIn": "Log In",
+        "cta": {
+            "claimName": "Claim my name",
+            "payments": "Sounds good",
+            "home": "That's my home",
+            "rewards": "Ooh, rewards",
+            "control": "Let's finish"
+        },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
@@ -770,10 +777,10 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Username",
+            "usernamePlaceholder": "username",
             "whoInvitedYou": "Who invited you?",
             "inviterUsernameLabel": "Inviter's Peanut username",
-            "inviterUsernamePlaceholder": "Their username",
+            "inviterUsernamePlaceholder": "their username",
             "inviterHelp": "Your inviter may earn rewards when you use Peanut.",
             "inviterNotFound": "We couldn't verify that username. Check it and try again.",
             "errors": {

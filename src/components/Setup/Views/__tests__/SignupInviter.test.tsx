@@ -49,22 +49,58 @@ describe('optional inviter on signup', () => {
     it('lets a direct signup continue without an inviter', async () => {
         renderSignup()
         expect(screen.queryByRole('textbox', { name: "Inviter's Peanut username" })).not.toBeInTheDocument()
-        const username = screen.getByPlaceholderText('Username')
-        const next = screen.getByRole('button', { name: 'Next' })
+        const username = screen.getByPlaceholderText('username')
+        const next = screen.getByRole('button', { name: 'Claim my name' })
         expect(next).toHaveClass('w-full')
         expect(username.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         fireEvent.change(username, { target: { value: 'newuser' } })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled())
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim my name' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Claim my name' }))
         await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
         expect(mockStoredInvite.code).toBe('')
+    })
+
+    it('suggests ten handles after four idle seconds, then restores the placeholder', () => {
+        jest.useFakeTimers()
+        try {
+            renderSignup()
+            const username = screen.getByRole('textbox', { name: 'username' })
+            expect(username).toHaveAttribute('placeholder', 'username')
+            act(() => jest.advanceTimersByTime(3999))
+            expect(screen.queryByText('batman?')).not.toBeInTheDocument()
+            act(() => jest.advanceTimersByTime(1))
+            expect(screen.getByText('batman?')).toBeInTheDocument()
+            for (let idea = 1; idea < 10; idea++) {
+                act(() => jest.advanceTimersByTime(2000))
+            }
+            expect(screen.getByText('peanutpirate?')).toBeInTheDocument()
+            act(() => jest.advanceTimersByTime(2000))
+            expect(username).toHaveAttribute('placeholder', 'username')
+            expect(screen.getByText('peanutpirate?')).not.toBeVisible()
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('stops handle suggestions when the username field receives focus', () => {
+        jest.useFakeTimers()
+        try {
+            renderSignup()
+            const username = screen.getByRole('textbox', { name: 'username' })
+            fireEvent.focus(username)
+            act(() => jest.advanceTimersByTime(24000))
+            expect(username).toHaveAttribute('placeholder', 'username')
+            expect(screen.queryByText('batman?')).not.toBeInTheDocument()
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     it('reveals, validates, and stores a manual inviter without losing an existing referral on edit', async () => {
         mockStoredInvite.code = 'original-referral'
         renderSignup()
-        fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'newuser' } })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled())
+        fireEvent.change(screen.getByPlaceholderText('username'), { target: { value: 'newuser' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim my name' })).toBeEnabled())
 
         const reveal = screen.getByRole('button', { name: 'Who invited you?' })
         fireEvent.click(reveal)
@@ -72,8 +108,8 @@ describe('optional inviter on signup', () => {
         const inviter = screen.getByRole('textbox', { name: "Inviter's Peanut username" })
         fireEvent.change(inviter, { target: { value: '@Alice ' } })
         await waitFor(() => expect(mockValidateInviter).toHaveBeenCalledWith('@Alice '))
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled())
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim my name' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Claim my name' }))
         await waitFor(() => expect(mockStoredInvite.code).toBe('alice'))
 
         fireEvent.change(inviter, { target: { value: 'bob' } })

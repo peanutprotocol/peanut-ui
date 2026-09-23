@@ -13,8 +13,22 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+
+// Valid username-shaped ideas, so the joke can double as inspiration.
+const USERNAME_IDEAS = [
+    'batman?',
+    'moonpickle?',
+    'tinywizard?',
+    'pizzaninja?',
+    'sleepytoast?',
+    'cosmicbean?',
+    'sneakywalnut?',
+    'jellycaptain?',
+    'waffleking?',
+    'peanutpirate?',
+] as const
 
 const SignupStep = () => {
     const t = useTranslations('setup')
@@ -31,6 +45,26 @@ const SignupStep = () => {
     const inviterValueRef = useRef(inviterUsername)
     const inviterInputId = useId()
     const prefersReducedMotion = useReducedMotion()
+    const [suggestionIndex, setSuggestionIndex] = useState(-1)
+    const [placeholderStopped, setPlaceholderStopped] = useState(false)
+
+    useEffect(() => {
+        if (username || placeholderStopped || prefersReducedMotion) return
+        let interval: ReturnType<typeof setInterval> | undefined
+        let next = 0
+        const start = setTimeout(() => {
+            setSuggestionIndex(0)
+            interval = setInterval(() => {
+                next += 1
+                setSuggestionIndex(next < USERNAME_IDEAS.length ? next : -1)
+                if (next >= USERNAME_IDEAS.length) clearInterval(interval)
+            }, 2000)
+        }, 4000)
+        return () => {
+            clearTimeout(start)
+            clearInterval(interval)
+        }
+    }, [username, placeholderStopped, prefersReducedMotion])
 
     const validateInviter = async (value: string): Promise<boolean> => {
         setInviterError('')
@@ -153,6 +187,8 @@ const SignupStep = () => {
         isChanging: boolean
         isValid: boolean
     }) => {
+        setPlaceholderStopped(true)
+        setSuggestionIndex(-1)
         setUsername(value.toLowerCase())
         setIsValid(isValid)
         setIsChanging(isChanging)
@@ -168,17 +204,41 @@ const SignupStep = () => {
             <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
                 <div className="mb-auto flex w-full flex-col gap-4">
                     <div className="flex flex-col gap-1">
-                        <ValidatedInput
-                            placeholder={t('signupStep.usernamePlaceholder')}
-                            value={username}
-                            debounceTime={750}
-                            validate={checkUsernameValidity}
-                            shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
-                            onUpdate={handleInputUpdate}
-                            isSetupFlow
-                            isInputChanging={isChanging}
-                            className="rounded-sm"
-                        />
+                        <div
+                            className="relative"
+                            onFocusCapture={() => {
+                                setPlaceholderStopped(true)
+                                setSuggestionIndex(-1)
+                            }}
+                        >
+                            <ValidatedInput
+                                aria-label={t('signupStep.usernamePlaceholder')}
+                                placeholder={suggestionIndex < 0 ? t('signupStep.usernamePlaceholder') : ''}
+                                value={username}
+                                debounceTime={750}
+                                validate={checkUsernameValidity}
+                                shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
+                                onUpdate={handleInputUpdate}
+                                isSetupFlow
+                                isInputChanging={isChanging}
+                                className="rounded-sm"
+                            />
+                            <AnimatePresence>
+                                {suggestionIndex >= 0 && !username && !placeholderStopped && (
+                                    <motion.span
+                                        key={suggestionIndex}
+                                        aria-hidden="true"
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -5 }}
+                                        transition={{ duration: 0.18 }}
+                                        className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-body-s text-foreground-secondary"
+                                    >
+                                        {USERNAME_IDEAS[suggestionIndex]}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                        </div>
                         <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
 
@@ -246,7 +306,7 @@ const SignupStep = () => {
                             (showInviterInput && !!toInviteCode(inviterUsername) && (!inviterValid || inviterChanging))
                         }
                     >
-                        {t('next')}
+                        {t('cta.claimName')}
                     </Button>
                 </div>
                 <div>
