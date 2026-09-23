@@ -1051,6 +1051,7 @@
         }
     },
     "transaction": {
+        "returnedReasonThirdParty": "El banco devolvió esta transferencia a quien pagó porque salió de la cuenta de otra persona. Revisá en las reglas de esta cuenta quién puede pagarte.",
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {
             "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."

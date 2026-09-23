@@ -2225,7 +2225,7 @@
             "converted": "Converted"
         },
         "returnedReason": "The bank sent this payment back. This usually happens when the details did not match the sender's name, or the sender's bank refused it.",
-        "returnedReasonThirdParty": "The bank returned this transfer to the sender. Payments from someone else's account are not accepted on this account yet.",
+        "returnedReasonThirdParty": "The bank returned this transfer to the sender because it came from someone else's account. Check who can pay into this account in its rules.",
         "returnedStatus": "Returned",
         "perkBanner": {
             "title": "You earned a reward!",

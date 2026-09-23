@@ -89,7 +89,7 @@ it('says a payment from someone else was returned, instead of the general reason
     )
     expect(
         screen.getByText(
-            "The bank returned this transfer to the sender. Payments from someone else's account are not accepted on this account yet."
+            "The bank returned this transfer to the sender because it came from someone else's account. Check who can pay into this account in its rules."
         )
     ).toBeInTheDocument()
     expect(screen.queryByText(/The bank sent this payment back/)).not.toBeInTheDocument()
