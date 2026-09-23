@@ -865,6 +865,22 @@ describe('UnlockPayments', () => {
             expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
         })
 
+        // Chip review on ui#3400: a Bridge-only user reads QR payments through
+        // the legacy region fallback, but /qr-pay gates on the Manteca pay
+        // capability. The Pix key row must not link them into that gate.
+        it('a Bridge-only user never gets a Pix key link', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            // the QR row still reads Available through the fallback
+            const qrRow = screen.getByText('QR payments')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            const pixKeyRow = screen.getByText('Pix key payments')
+            expect(within(pixKeyRow.closest('.border') as HTMLElement).queryByText('Available')).not.toBeInTheDocument()
+            fireEvent.click(pixKeyRow)
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
         it('the bank list never mentions QR any more', () => {
             render()
 

@@ -4,6 +4,7 @@ import { buildUnlockGroups, dedupeHeldBankRows, type BuildUnlockGroupsInput } fr
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
     bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
     canPayQr: false,
+    canPayPixKey: false,
     restrictions: { banking: false, card: false },
     card: 'get',
     residenceIso2: null,
@@ -37,8 +38,8 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('Pix keys share the QR capability: a link to the key screen once available, else the LATAM offer', () => {
-        const payOnly = buildUnlockGroups(base({ canPayQr: true }))
+    it('Pix keys read the Manteca pay capability: a link to the key screen once held, else the LATAM offer', () => {
+        const payOnly = buildUnlockGroups(base({ canPayQr: true, canPayPixKey: true }))
         expect(group(payOnly, 'spend').rows[2]).toEqual(
             expect.objectContaining({ chip: 'active', href: '/withdraw/manteca?method=pix&country=brazil' })
         )
@@ -49,7 +50,9 @@ describe('buildUnlockGroups', () => {
         )
         expect(group(without, 'spend').rows[2].href).toBeUndefined()
 
-        const restricted = buildUnlockGroups(base({ canPayQr: true, restrictions: { banking: true, card: false } }))
+        const restricted = buildUnlockGroups(
+            base({ canPayQr: true, canPayPixKey: true, restrictions: { banking: true, card: false } })
+        )
         expect(group(restricted, 'spend').rows[2]).toEqual(expect.objectContaining({ chip: 'notAvailable' }))
         expect(group(restricted, 'spend').rows[2].href).toBeUndefined()
     })
@@ -70,6 +73,17 @@ describe('buildUnlockGroups', () => {
         // QR reads the Brazilian corridor: Pix is the bigger of the two.
         const pending = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'processing' } }))
         expect(group(pending, 'spend').rows[1].chip).toBe('processing')
+    })
+
+    // Chip review on ui#3400: the legacy Bridge-only cohort pays by QR through
+    // the region fallback, but /qr-pay gates on the Manteca pay capability, so
+    // a key link would end in a verification prompt.
+    it('a Bridge-only QR user keeps the QR row but gets the Pix key unlock offer, not a link', () => {
+        const groups = buildUnlockGroups(base({ canPayQr: true, canPayPixKey: false }))
+        expect(group(groups, 'spend').rows[1]).toEqual(expect.objectContaining({ id: 'qr-pay', chip: 'active' }))
+        const pixKey = group(groups, 'spend').rows[2]
+        expect(pixKey).toEqual(expect.objectContaining({ id: 'pix-key', chip: 'unlock', regionPath: 'latam' }))
+        expect(pixKey.href).toBeUndefined()
     })
 
     it('a banking restriction takes QR payments away with the bank rows', () => {

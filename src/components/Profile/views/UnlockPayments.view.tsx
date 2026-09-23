@@ -201,6 +201,9 @@ const UnlockPayments = () => {
                 canPayQr:
                     canDo('pay', { provider: 'manteca' }) ||
                     unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
+                // the /qr-pay gate itself (useQrPayKycGate), so the Pix key row
+                // never links a user that screen would turn back
+                canPayPixKey: canDo('pay', { provider: 'manteca' }),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
