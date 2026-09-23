@@ -426,11 +426,11 @@ const UnlockPayments = () => {
             <div className="flex flex-col gap-1">
                 <ListItem
                     leading={<IconBubble icon="globe" size="s" color="blue" />}
-                    title={
-                        residenceCountryName
-                            ? t('residence.label', { country: residenceCountryName })
-                            : t('residence.unknown')
-                    }
+                    // two-line row: the country sits on its own body line and wraps rather than
+                    // truncating beside the status pill (TASK-22994, hugo)
+                    title={residenceCountryName ? t('residence.label') : t('residence.unknown')}
+                    body={residenceCountryName ?? undefined}
+                    bodyWrap
                     trailing={residenceTrailing}
                     chevron
                     onClick={() => setIsChangeModalOpen(true)}

@@ -340,7 +340,7 @@
             "title": "Contas e pagamentos",
             "description": "Suas contas, formas de pagamento e status de verificação.",
             "residence": {
-                "label": "Residência: {country}",
+                "label": "Residência",
                 "unknown": "Residência não definida",
                 "verified": "Verificado",
                 "unverified": "Não confirmada",
