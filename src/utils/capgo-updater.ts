@@ -464,10 +464,28 @@ async function readStagedBundleImpl(
     callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
 ): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const [next, current] = await Promise.all([
-        CapacitorUpdater.getNextBundle().catch(() => null),
+    const [nextResult, current] = await Promise.all([
+        CapacitorUpdater.getNextBundle().then(
+            (bundle) => ({ bundle, readable: true }),
+            () => ({ bundle: null, readable: false })
+        ),
         CapacitorUpdater.current().catch(() => null),
     ])
+    const next = nextResult.bundle
+    const stagedId = readStoredValue(STAGED_BUNDLE_KEY)
+    if (stagedId && stagedId === current?.bundle?.id) {
+        // After set() starts the saved bundle, Capgo can retain the old
+        // running bundle as the native disarm sentinel. Rewrite that sentinel
+        // to the NEW running bundle before treating any queue entry as an OTA.
+        if (!nextResult.readable) return null
+        if (next?.id && next.id !== stagedId && !(await disarmBackgroundApply())) {
+            console.error('[capgo-apply] could not clear the previous bundle after a successful OTA apply')
+            return null
+        }
+        removeStoredValue(STAGED_BUNDLE_KEY)
+        forgetStagedFloors()
+        return null
+    }
     if (next?.version && next.id !== current?.bundle?.id) {
         // A prior JS release may have armed next(). Migrate it before any
         // passkey or external app switch can trigger native installation.
@@ -485,13 +503,7 @@ async function readStagedBundleImpl(
         return next
     }
 
-    const stagedId = readStoredValue(STAGED_BUNDLE_KEY)
     if (!stagedId) return null
-    if (stagedId === current?.bundle?.id) {
-        removeStoredValue(STAGED_BUNDLE_KEY)
-        forgetStagedFloors()
-        return null
-    }
     // Native app upgrades and rollback cleanup can remove downloaded files.
     const bundles = await CapacitorUpdater.list().catch(() => null)
     const staged = bundles?.bundles.find((bundle) => bundle.id === stagedId)

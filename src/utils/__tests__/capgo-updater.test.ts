@@ -9,6 +9,7 @@ const mockUpdater = {
     addListener: jest.fn().mockResolvedValue({ remove: jest.fn() }),
     getLatest: jest.fn(),
     download: jest.fn(),
+    set: jest.fn(),
     next: jest.fn().mockResolvedValue(undefined),
     setChannel: jest.fn(),
     unsetChannel: jest.fn().mockResolvedValue(undefined),
@@ -55,6 +56,7 @@ beforeEach(() => {
     mockUpdater.unsetChannel.mockReset().mockResolvedValue(undefined)
     mockUpdater.getChannel.mockReset()
     mockUpdater.download.mockReset().mockResolvedValue({ id: 'b-1', version: '1.5.4' })
+    mockUpdater.set.mockReset().mockResolvedValue(undefined)
     mockUpdater.current.mockReset().mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
     mockUpdater.getNextBundle.mockReset().mockResolvedValue(null)
     mockUpdater.list.mockReset().mockResolvedValue({ bundles: [] })
@@ -106,6 +108,43 @@ it('drops the saved bundle after it becomes the running version', async () => {
     mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-1', version: '1.5.4' } })
     await expect(readStagedBundle()).resolves.toBeNull()
     expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+})
+
+it('does not roll back to a disarm sentinel after a migrated OTA reloads', async () => {
+    const { applyStagedBundleOnLaunch } = await import('../capgo-updater')
+    const old = { id: 'ota-a', version: '1.5.2' }
+    const offered = { id: 'ota-b', version: '1.5.3' }
+    mockUpdater.current.mockResolvedValue({ bundle: old })
+    mockUpdater.getNextBundle.mockResolvedValue(offered)
+    mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.14' })
+    mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+        mockUpdater.getNextBundle.mockResolvedValue(id === old.id ? old : offered)
+    })
+    mockUpdater.set.mockImplementation(async ({ id }: { id: string }) => {
+        if (id === offered.id) mockUpdater.current.mockResolvedValue({ bundle: offered })
+        // Native set() does not clear getNextBundle(). Its old sentinel remains.
+    })
+
+    await expect(applyStagedBundleOnLaunch()).resolves.toEqual(offered)
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: offered.id })
+    expect(mockUpdater.getNextBundle).toHaveBeenCalledWith()
+
+    // Simulate the new page's startup after native set() reloads the WebView.
+    await expect(applyStagedBundleOnLaunch()).resolves.toBeNull()
+    expect(mockUpdater.set).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.next).toHaveBeenLastCalledWith({ id: offered.id })
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+})
+
+it('retains the saved marker when the post-reload queue cannot be disarmed', async () => {
+    window.localStorage.setItem('capgoDownloadedBundleId', 'ota-b')
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'ota-b', version: '1.5.3' } })
+    mockUpdater.getNextBundle.mockResolvedValue({ id: 'ota-a', version: '1.5.2' })
+    mockUpdater.next.mockRejectedValue(new Error('native queue unavailable'))
+
+    await expect(readStagedBundle()).resolves.toBeNull()
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('ota-b')
+    expect(error).toHaveBeenCalledWith('[capgo-apply] could not clear the previous bundle after a successful OTA apply')
 })
 
 it('drops a saved bundle that is incompatible with this native binary', async () => {
