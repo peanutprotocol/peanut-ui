@@ -2096,14 +2096,13 @@
         "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",
-            "reference": "Receipt reference",
-            "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
                 "issuedBy": "Issued by Squirrel Labs Ltd",
                 "type": "Type",
                 "status": "Status",
-                "from": "From"
+                "from": "From",
+                "date": "Date"
             }
         },
         "receiptUnavailable": {
@@ -2200,14 +2199,15 @@
             "received": "Received",
             "refunded": "Refunded",
             "closedAt": "Closed at",
+            "from": "From",
+            "fromNameNotProvided": "Bank transfer (name not provided)",
             "to": "To",
-            "tokenAmount": "Token amount",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on {chain}",
             "txId": "Transaction ID",
             "fee": "Fee",
             "transferId": "Transfer ID",
-            "senderReference": "Sender's reference",
+            "senderNote": "Sender's note",
             "paymentReference": "Reference we sent",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
@@ -2216,7 +2216,8 @@
             "reason": "Reason",
             "accountNumber": "Account number",
             "address": "Address",
-            "estimateConversion": "Estimate conversion"
+            "estimateConversion": "Estimate conversion",
+            "converted": "Converted"
         },
         "returnedReason": "The bank sent this payment back. This usually happens when the details did not match the sender's name, or the sender's bank refused it.",
         "perkBanner": {
