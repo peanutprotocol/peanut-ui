@@ -56,6 +56,7 @@ jest.mock('@/components/LandingPage/marquee', () => ({
     Marquee: ({ message }: { message: string[] }) => <div data-testid="marquee">{message.join(' ')}</div>,
 }))
 jest.mock('framer-motion', () => ({
+    MotionConfig: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     motion: new Proxy(
         {},
         {
@@ -109,7 +110,8 @@ const getCard = () => {
 
 it('offers the public product and keeps a guest card destination through signup', async () => {
     getCard()
-    expect(screen.getByRole('heading', { level: 1, name: 'Go Pink.' })).toBeInTheDocument()
+    // the wordmark is part of the h1, so search engines read the product name
+    expect(screen.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeInTheDocument()
     expect(screen.queryByText(/waitlist|closed beta|try the door/i)).not.toBeInTheDocument()
     // the honesty beat and the door marquee came back from the old page
     expect(screen.getByRole('heading', { level: 2, name: 'Probably not for you.' })).toBeInTheDocument()

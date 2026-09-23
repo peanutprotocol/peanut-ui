@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, MotionConfig } from 'framer-motion'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { captureException } from '@sentry/nextjs'
@@ -100,7 +100,9 @@ export default function ShhhhhLandingPage() {
     ]
 
     return (
-        <>
+        // The decorations are pure garnish, so the springs stop for anyone who
+        // asked the OS for less motion.
+        <MotionConfig reducedMotion="user">
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24">
                 <HeroBackNav />
@@ -135,11 +137,13 @@ export default function ShhhhhLandingPage() {
                     <div className="min-w-0">
                         {/* The star above sits where the eyebrow starts, so the eyebrow
                             steps right of it on phones. */}
-                        <p className="font-roboto-flex-extrabold pl-12 text-body-s-semibold tracking-widest uppercase md:pl-0">
-                            {t('hero.wordmark')}
-                        </p>
-                        <h1 className="font-roboto-flex-extrabold mt-2 text-headingMedium font-extraBlack md:text-headingLarge">
-                            {t('hero.title')}
+                        <h1>
+                            <span className="font-roboto-flex-extrabold block pl-12 text-body-s-semibold tracking-widest uppercase md:pl-0">
+                                {t('hero.wordmark')}
+                            </span>
+                            <span className="font-roboto-flex-extrabold mt-2 block text-headingMedium font-extraBlack md:text-headingLarge">
+                                {t('hero.title')}
+                            </span>
                         </h1>
                         <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-heading-s uppercase md:text-heading-m">
                             {t('hero.pitch')}
@@ -197,7 +201,7 @@ export default function ShhhhhLandingPage() {
                         {stats.map(({ value, labelKey }) => (
                             <div
                                 key={labelKey}
-                                className="flex flex-col items-center justify-center rounded-sm border-2 border-border-default bg-background-default px-3 py-8 text-center shadow-[4px_4px_0_#000] md:py-10"
+                                className="flex flex-col items-center justify-center rounded-sm border-2 border-border-default bg-background-default px-3 py-8 text-center shadow-4 md:py-10"
                             >
                                 <div className="font-roboto-flex-extrabold text-heading-l md:text-heading-xl">
                                     {value}
@@ -252,7 +256,7 @@ export default function ShhhhhLandingPage() {
                         {steps.map((step) => (
                             <li
                                 key={step}
-                                className="rounded-sm border-2 border-border-default bg-background-default px-4 py-4 shadow-[4px_4px_0_#000]"
+                                className="rounded-sm border-2 border-border-default bg-background-default px-4 py-4 shadow-4"
                             >
                                 <div className="font-roboto-flex-extrabold text-heading-s uppercase">
                                     {t(`howToApply.${step}Title`)}
@@ -340,6 +344,6 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
             {storeHandoffModal}
-        </>
+        </MotionConfig>
     )
 }
