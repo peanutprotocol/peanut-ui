@@ -23,6 +23,7 @@
 interface FailureEntry {
     t: number
     endpoint: string
+    generation: number | null
 }
 
 const listeners = new Set<() => void>()
@@ -35,6 +36,19 @@ export const FAILURE_THRESHOLD = 2
 
 let failures: FailureEntry[] = []
 const expiryTimers = new Set<ReturnType<typeof setTimeout>>()
+let appActive = true
+let requestGeneration = 0
+
+export function getConnectivityGeneration(): number | null {
+    return appActive ? requestGeneration : null
+}
+
+export function setConnectivityAppActive(isActive: boolean): void {
+    if (appActive === isActive) return
+    appActive = isActive
+    requestGeneration++
+    emit()
+}
 
 function emit(): void {
     listeners.forEach((fn) => fn())
@@ -47,13 +61,13 @@ function prune(): void {
 
 // A request never completed (timeout / DNS / connection refused). `endpoint`
 // should be a sanitized url so retries of the same route dedupe to one entry.
-export function reportNetworkError(endpoint: string): void {
+export function reportNetworkError(endpoint: string, generation = getConnectivityGeneration()): void {
     prune()
     // An un-expired entry already covers this endpoint; re-stamping it would
     // slide the window forward on every retry and never let a continuous
     // outage age out.
-    if (failures.some((f) => f.endpoint === endpoint)) return
-    failures.push({ t: Date.now(), endpoint })
+    if (failures.some((f) => f.endpoint === endpoint && f.generation === generation)) return
+    failures.push({ t: Date.now(), endpoint, generation })
     // notify again once this entry has aged out so subscribers re-read the
     // pruned count; on freeze/sleep the overdue timer fires at resume, which
     // is exactly when a re-read is needed.
@@ -77,7 +91,9 @@ export function hasRecentFailure(endpoint: string): boolean {
 // Distinct endpoints that failed inside the current window.
 export function getRecentFailures(): number {
     prune()
-    return new Set(failures.map((f) => f.endpoint)).size
+    if (!appActive) return 0
+    // Keep interrupted failures for Sentry dedupe, but not the resumed connection's toast.
+    return new Set(failures.filter((f) => f.generation === requestGeneration).map((f) => f.endpoint)).size
 }
 
 // The device just came back online — the recorded failures belong to the dead
@@ -104,4 +120,6 @@ export function __resetConnectivityForTests(): void {
     expiryTimers.clear()
     failures = []
     listeners.clear()
+    appActive = true
+    requestGeneration = 0
 }
