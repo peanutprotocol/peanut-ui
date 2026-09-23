@@ -758,6 +758,17 @@ describe('UnlockPayments', () => {
             expect(badgeFor('MXN · SPEI').getByText('Unlock')).toBeInTheDocument()
         })
 
+        // Konrad, 2026-09-23: "Unlock" is a DS badge in the neutral status,
+        // never a pill style of its own and never the accent colour.
+        it('draws Unlock as a neutral badge', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            const unlock = badgeFor('MXN · SPEI').getByText('Unlock')
+            expect(unlock).toHaveClass('bg-background-badge-helper')
+            expect(unlock).not.toHaveClass('bg-background-badge-accent')
+        })
+
         it('a Brazil-only Manteca rail says Available on BRL and never on ARS', () => {
             mockRails = [
                 { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' },

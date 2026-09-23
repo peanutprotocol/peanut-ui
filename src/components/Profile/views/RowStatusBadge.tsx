@@ -25,17 +25,13 @@ export function rowStatusBadge(row: UnlockRow, t: (key: any) => string) {
             return <Badge status="pending" customText={t('chips.attention')} />
         case 'notAvailable':
             if (row.labelKey === 'card') {
-                return (
-                    <Badge
-                        status="custom"
-                        customText={t('chips.notAvailable')}
-                        className="bg-background-badge-helper"
-                    />
-                )
+                return <Badge status="neutral" customText={t('chips.notAvailable')} />
             }
             return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
+        // a DS badge, not a pill of its own: nothing is wrong and nothing is
+        // done yet, which is what neutral says (Konrad, 2026-09-23)
         case 'unlock':
-            return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
+            return <Badge status="neutral" customText={t('chips.unlock')} />
     }
 }
 
