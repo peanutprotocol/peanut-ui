@@ -56,7 +56,7 @@ export function DepositAccountDetailsScreen({
     /** revoked details have no self-service fix — this is the only way out */
     onContactSupport: () => void
 }) {
-    const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines } = useDepositAccountCopy()
 
     if (account.status === 'revoked') {
         return (
@@ -117,7 +117,7 @@ export function DepositAccountDetailsScreen({
     }
 
     const provisioning = account.status === 'provisioning'
-    // The heading already names the rail, so the card does not repeat it.
+    // The heading names this account's own rails, so the card does not repeat them.
     const rows = account.instructions
         ? instructionRows(account.instructions, rowLabels, railLabels).filter((row) => row.key !== 'accepts')
         : []
@@ -131,7 +131,10 @@ export function DepositAccountDetailsScreen({
             <div className="flex flex-col gap-6">
                 <TitleBlock
                     size="s"
-                    title={t('details.heading', { currency: rail.currency, rail: railName(rail.corridor) })}
+                    title={t('details.heading', {
+                        currency: rail.currency,
+                        rail: accountRailName(rail.corridor, account.instructions),
+                    })}
                     description={provisioning ? t('details.provisioning') : undefined}
                 />
 

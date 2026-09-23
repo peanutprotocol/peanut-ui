@@ -1,12 +1,19 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
-import type { RailLabels } from './instructionRows'
+import { railLabel, type RailLabels } from './instructionRows'
 import { depositRuleLines, type DepositRuleKey } from './ruleLines'
-import type { DepositCorridor, DepositRail, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
+import type {
+    DepositCorridor,
+    DepositInstructions,
+    DepositRail,
+    DepositRowLabels,
+    DepositRules,
+    DepositSenderTerms,
+} from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -67,6 +74,7 @@ export interface ResolvedRuleLine {
  */
 export function useDepositAccountCopy() {
     const t = useTranslations('depositAccounts')
+    const format = useFormatter()
 
     const rowLabels: DepositRowLabels = useMemo(
         () => ({
@@ -150,12 +158,26 @@ export function useDepositAccountCopy() {
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
 
+    /**
+     * The rails ONE account takes, for the heading above its details. The
+     * provider's own rails win over the corridor's name: a dollar account that
+     * only takes ACH must not read "ACH or wire", or its holder asks a payer
+     * for a wire that never arrives. The share text names the same rails, from
+     * the same list. Before the details exist, the corridor's name stands in.
+     */
+    const accountRailName = (corridor: DepositCorridor, instructions: DepositInstructions | undefined) => {
+        const rails = [...new Set((instructions?.paymentRails ?? []).map((rail) => railLabel(rail, railLabels)))]
+        if (rails.length === 0) return railName(corridor)
+        return format.list(rails, { type: 'disjunction' })
+    }
+
     return {
         t,
         rowLabels,
         railLabels,
         ruleLines,
         railName,
+        accountRailName,
         arrivalDetail,
         claimErrorBody,
         feeLine,

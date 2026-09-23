@@ -310,3 +310,36 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.getAllByText(messages.depositAccounts.rules.ownName.line)).toHaveLength(1)
     })
 })
+
+/**
+ * The card no longer carries an "Accepts" row, so the heading has to state the
+ * rails of THIS account. A static "ACH or wire" over an ACH-only account would
+ * send its holder asking a payer for a wire that never arrives.
+ */
+describe('the details heading names the rails the account takes', () => {
+    const usd = (paymentRails: string[]): DepositAccountView => ({
+        ...provisioning,
+        status: 'active',
+        instructions: { accountHolderName: 'Ana Pérez', accountNumber: '9600', routingNumber: '0210', paymentRails },
+    })
+
+    it('says ACH alone on an ACH-only dollar account, and no wire anywhere', () => {
+        details(usd(['ach_push']), () => {}, true)
+
+        expect(screen.getByText('USD · ACH')).toBeInTheDocument()
+        expect(screen.queryByText(/wire/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
+    })
+
+    it('names both rails when the account takes both', () => {
+        details(usd(['ach_push', 'wire']), () => {}, true)
+
+        expect(screen.getByText('USD · ACH or Wire')).toBeInTheDocument()
+    })
+
+    it('falls back to the corridor name while the details are being set up', () => {
+        details(provisioning)
+
+        expect(screen.getByText(`USD · ${messages.depositAccounts.corridors.ACH_US.railName}`)).toBeInTheDocument()
+    })
+})
