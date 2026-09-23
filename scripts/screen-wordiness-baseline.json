@@ -10,7 +10,6 @@
         "app/(mobile-ui)/home/page.tsx": 475,
         "app/(mobile-ui)/profile/backup/page.tsx": 352,
         "app/(mobile-ui)/profile/view/page.tsx": 158,
-        "app/(mobile-ui)/qr/[code]/success/page.tsx": 61,
         "app/(mobile-ui)/receipt/page.tsx": 568,
         "app/(mobile-ui)/recover-funds/page.tsx": 99,
         "app/(mobile-ui)/rewards/page.tsx": 82,
