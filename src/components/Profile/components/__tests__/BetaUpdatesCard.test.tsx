@@ -102,14 +102,16 @@ it('confirms the exit when the app did not reload', async () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('released version')))
 })
 
-it('sends dashboard-assigned testers to an admin, since the app cannot unassign them', async () => {
+it('asks support to review a channel assignment that still wins after a local unset', async () => {
     setup({
         isBeta: true,
         status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left-override'),
     })
     fireEvent.click(screen.getByRole('switch'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Capgo dashboard')))
+    await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('review its channel assignment'))
+    )
 })
 
 it('keeps the switch on when the exit could not be confirmed', async () => {
@@ -119,7 +121,9 @@ it('keeps the switch on when the exit could not be confirmed', async () => {
         ...switching('left-unconfirmed'),
     })
     fireEvent.click(screen.getByRole('switch'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('still on the beta build')))
+    await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('could not confirm the release channel'))
+    )
     expect(screen.getByRole('switch')).toBeChecked()
 })
 

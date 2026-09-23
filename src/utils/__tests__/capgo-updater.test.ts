@@ -13,6 +13,7 @@ const mockUpdater = {
     setChannel: jest.fn(),
     unsetChannel: jest.fn().mockResolvedValue(undefined),
     getChannel: jest.fn(),
+    getDeviceId: jest.fn().mockResolvedValue({ deviceId: 'test-device' }),
     current: jest.fn(),
     reset: jest.fn().mockResolvedValue(undefined),
     getPluginVersion: jest.fn(),
@@ -49,6 +50,9 @@ beforeEach(() => {
     window.localStorage.clear()
     mockPlatform.android = true
     mockPlatform.binaryVersion = '1.5.0'
+    mockUpdater.getLatest.mockReset()
+    mockUpdater.unsetChannel.mockReset().mockResolvedValue(undefined)
+    mockUpdater.getChannel.mockReset()
     mockUpdater.download.mockReset().mockResolvedValue({ id: 'b-1', version: '1.5.4' })
     mockUpdater.current.mockReset().mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
     mockUpdater.getNextBundle.mockReset().mockResolvedValue(null)
@@ -108,6 +112,35 @@ it.each(['no_new_version_available', 'No new version available'])(
         expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
     }
 )
+
+it.each([
+    ['rejected', () => mockUpdater.getLatest.mockRejectedValueOnce(new Error('no_channel'))],
+    ['resolved', () => mockUpdater.getLatest.mockResolvedValueOnce({ kind: 'failed', error: 'no_channel' })],
+])('clears a legacy local channel and retries one update check when no_channel is %s', async (_case, arrange) => {
+    arrange()
+    mockUpdater.getChannel.mockResolvedValue({ channel: 'production', status: 'default' })
+    mockUpdater.getLatest.mockResolvedValueOnce({ kind: 'up_to_date' })
+    await launch()
+    expect(mockUpdater.unsetChannel).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.getLatest).toHaveBeenCalledTimes(2)
+    expect(error).not.toHaveBeenCalled()
+})
+
+it('stops after one recovery attempt when Capgo still has no mobile default', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('no_channel'))
+    mockUpdater.getChannel.mockResolvedValue({ channel: 'production', status: 'default' })
+    await launch()
+    expect(mockUpdater.unsetChannel).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.getLatest).toHaveBeenCalledTimes(2)
+})
+
+it('does not clear a beta preference when Capgo reports no_channel', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('no_channel'))
+    mockUpdater.getChannel.mockResolvedValue({ channel: 'staging', status: 'ok' })
+    await launch()
+    expect(mockUpdater.unsetChannel).not.toHaveBeenCalled()
+    expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
+})
 
 it.each([
     'disable_auto_update_to_major',
@@ -200,6 +233,24 @@ describe('beta channel opt-in', () => {
         mockUpdater.getChannel.mockResolvedValue({ channel: null, status: 'default' })
         mockUpdater.current.mockResolvedValue({ bundle: { id: 'beta-bundle', version: '1.1.10846' } })
         mockUpdater.getLatest.mockRejectedValue(new Error('no_new_version_available'))
+    })
+
+    it('clears a legacy production preference when reading the About card', async () => {
+        const { readOtaChannelStatus } = await import('../capgo-updater')
+        mockUpdater.getChannel
+            .mockResolvedValueOnce({ channel: 'production', status: 'default' })
+            .mockResolvedValueOnce({ channel: 'android-mobile-release', status: 'ok' })
+        const status = await readOtaChannelStatus()
+        expect(mockUpdater.unsetChannel).toHaveBeenCalledTimes(1)
+        expect(status.channel).toBe('android-mobile-release')
+    })
+
+    it('keeps a selected beta channel when reading the About card', async () => {
+        const { readOtaChannelStatus } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: 'staging', status: 'ok' })
+        const status = await readOtaChannelStatus()
+        expect(mockUpdater.unsetChannel).not.toHaveBeenCalled()
+        expect(status.channel).toBe('staging')
     })
 
     // The launch check can still be downloading when the tester joins. Two
@@ -328,11 +379,22 @@ describe('beta channel opt-in', () => {
         }
     )
 
-    it('reports an override when beta still sticks after unsetting the local channel', async () => {
-        const { leaveBetaOtaChannel, OtaChannelOverrideError, hasPendingBetaExit, BETA_OTA_CHANNEL } =
+    it('retries a stale locally persisted beta answer before resetting', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.getChannel
+            .mockResolvedValueOnce({ channel: 'staging', status: 'ok' })
+            .mockResolvedValueOnce({ channel: 'android-mobile-release', status: 'ok' })
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.unsetChannel).toHaveBeenCalledTimes(2)
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('keeps the exit retriable without claiming a dashboard override when beta still sticks', async () => {
+        const { leaveBetaOtaChannel, OtaChannelUnknownError, hasPendingBetaExit, BETA_OTA_CHANNEL } =
             await import('../capgo-updater')
         mockUpdater.getChannel.mockResolvedValue({ channel: BETA_OTA_CHANNEL, status: 'ok' })
-        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelUnknownError)
+        expect(mockUpdater.unsetChannel).toHaveBeenCalledTimes(2)
         expect(mockUpdater.reset).not.toHaveBeenCalled()
         expect(hasPendingBetaExit()).toBe(true)
     })
