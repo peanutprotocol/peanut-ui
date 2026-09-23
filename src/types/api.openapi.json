@@ -1256,6 +1256,182 @@
                 }
             }
         },
+        "/bridge/guest-claim/external-accounts": {
+            "post": {
+                "description": "Creates the external account on the send-link sender's Bridge customer. Authorized by a signature from the link key; the response never names the customer.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "accountCategory": {
+                                        "type": "string"
+                                    },
+                                    "accountNumber": {
+                                        "type": "string"
+                                    },
+                                    "accountOwnerName": {
+                                        "properties": {
+                                            "businessName": {
+                                                "type": "string"
+                                            },
+                                            "firstName": {
+                                                "type": "string"
+                                            },
+                                            "lastName": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "accountOwnerType": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "business"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "individual"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "accountType": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "iban"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "us"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "clabe"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "gb"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "co_bank_transfer"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "address": {
+                                        "properties": {
+                                            "city": {
+                                                "type": "string"
+                                            },
+                                            "country": {
+                                                "type": "string"
+                                            },
+                                            "postalCode": {
+                                                "type": "string"
+                                            },
+                                            "state": {
+                                                "type": "string"
+                                            },
+                                            "street": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "street",
+                                            "city",
+                                            "country",
+                                            "postalCode"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "bankCode": {
+                                        "type": "string"
+                                    },
+                                    "bic": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "documentNumber": {
+                                        "type": "string"
+                                    },
+                                    "documentType": {
+                                        "type": "string"
+                                    },
+                                    "phoneNumber": {
+                                        "type": "string"
+                                    },
+                                    "reuseOnError": {
+                                        "type": "boolean"
+                                    },
+                                    "routingNumber": {
+                                        "type": "string"
+                                    },
+                                    "sendLinkPubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "signature": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "sortCode": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "accountNumber",
+                                    "country",
+                                    "accountOwnerName",
+                                    "accountOwnerType",
+                                    "accountType",
+                                    "sendLinkPubKey",
+                                    "signature"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Add a bank account for a guest send-link claim",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
         "/bridge/offramp/create": {
             "post": {
                 "description": "This endpoint initiates a new off-ramp transfer. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user.",
@@ -1627,7 +1803,7 @@
         },
         "/bridge/offramp/create-for-guest": {
             "post": {
-                "description": "This endpoint initiates a new off-ramp transfer for a guest user. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user. This is intended for server-to-server use where the user is not authenticated.",
+                "description": "Creates the Bridge off-ramp for a guest send-link claim, under the link sender's Bridge customer, and returns the deposit instructions the link is claimed to. Authorized by a signature from the link key. One payout per link: a repeat claim to the same account returns the same transfer.",
                 "parameters": [
                     {
                         "in": "header",
@@ -1644,6 +1820,7 @@
                             "schema": {
                                 "properties": {
                                     "amount": {
+                                        "minLength": 1,
                                         "type": "string"
                                     },
                                     "beneficiaryAddress": {
@@ -1809,6 +1986,11 @@
                                         "type": "string"
                                     },
                                     "sendLinkPubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "signature": {
+                                        "minLength": 1,
                                         "type": "string"
                                     },
                                     "source": {
@@ -1902,15 +2084,15 @@
                                             "paymentRail"
                                         ],
                                         "type": "object"
-                                    },
-                                    "userId": {
-                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "userId",
+                                    "amount",
+                                    "sendLinkPubKey",
+                                    "signature",
                                     "source",
-                                    "destination"
+                                    "destination",
+                                    "beneficiaryName"
                                 ],
                                 "type": "object"
                             }
@@ -1996,11 +2178,35 @@
                         },
                         "description": "Default Response"
                     },
-                    "401": {
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -2019,6 +2225,9 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -2032,11 +2241,14 @@
                         },
                         "description": "Default Response"
                     },
-                    "503": {
+                    "409": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -2051,7 +2263,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Initiate an off-ramp transfer for a guest",
+                "summary": "Claim a send link to a bank account as a guest",
                 "tags": [
                     "offramp"
                 ]

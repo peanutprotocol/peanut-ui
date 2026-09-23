@@ -1,4 +1,4 @@
-import { type TCreateOfframpRequest } from '../../services/services.types'
+import { type TCreateGuestOfframpRequest, type TCreateOfframpRequest } from '../../services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 
 export type CreateOfframpSuccessResponse = {
@@ -53,22 +53,33 @@ export async function createOfframp(
     }
 }
 
+/**
+ * Claim a send link to a bank account as a guest. The API resolves the sender
+ * from the link and checks `signature` — the link key's signature over
+ * guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId).
+ * A repeat to the same account returns the same transfer.
+ */
 export async function createOfframpForGuest(
-    params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+    params: TCreateGuestOfframpRequest
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; status?: number }> {
     try {
         const response = await serverFetch('/bridge/offramp/create-for-guest', {
             method: 'POST',
-            body: JSON.stringify({
-                ...params,
-                provider: 'bridge',
-            }),
+            body: JSON.stringify(params),
+            // the guest's name, address and link signature must not reach telemetry
+            redactTelemetry: true,
+            // same budget as createOfframp: the endorsement grant can run inside this request
+            timeoutMs: 60_000,
         })
 
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer for guest.' }
+            return {
+                error: data.error || 'Failed to create off-ramp transfer for guest.',
+                code: data.code,
+                status: response.status,
+            }
         }
 
         return { data }

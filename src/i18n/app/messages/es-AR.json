@@ -717,7 +717,16 @@
         },
         "bank": {
             "selectCountry": "Seleccioná el país de tu cuenta bancaria",
-            "processAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo."
+            "processAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo.",
+            "guestErrors": {
+                "overLimit": "Este enlace supera el límite de $100.000 para reclamar a una cuenta bancaria. Reclamalo a una billetera.",
+                "alreadyClaimed": "Este enlace ya se reclamó a una cuenta bancaria.",
+                "notClaimable": "Este enlace ya no se puede reclamar.",
+                "unsupported": "Este enlace no se puede reclamar a una cuenta bancaria. Reclamalo a una billetera.",
+                "linkInvalid": "No pudimos verificar este enlace. Abrilo de nuevo e intentalo otra vez.",
+                "inProgress": "Este enlace se está reclamando ahora mismo. Esperá un momento e intentalo otra vez.",
+                "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contactá a soporte para reclamarlo."
+            }
         },
         "manteca": {
             "enterAccountDetails": "Ingresá los datos de la cuenta",

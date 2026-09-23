@@ -67,9 +67,9 @@ describe('action functions should NOT include apiKey in body', () => {
         expect(body).not.toHaveProperty('apiKey')
     })
 
-    it('should not include apiKey in createBridgeExternalAccountForGuest body', async () => {
-        const { createBridgeExternalAccountForGuest } = require('@/app/actions/external-accounts')
-        await createBridgeExternalAccountForGuest('customer-123', {
+    it('should not include apiKey in createGuestClaimExternalAccount body', async () => {
+        const { createGuestClaimExternalAccount } = require('@/app/actions/external-accounts')
+        await createGuestClaimExternalAccount('0xlink', '0xsignature', {
             accountType: 'iban',
             accountOwnerType: 'individual',
             iban: 'DE89370400440532013000',
