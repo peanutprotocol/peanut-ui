@@ -259,7 +259,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
     // Space is reserved whenever there is an amount, but a CLAIM about that
-    // corridor needs a landed quote. Marketing callers do not pass
+    // corridor (the delivery time) needs a landed, routable quote; the rate
+    // note only qualifies the estimate shown. Marketing callers do not pass
     // restrictToRoutable and seed ~20 currencies the FX feed quotes but no rail
     // supports (see the prop comment), so "arrives in minutes" gated on the
     // typed amount alone promised fulfilment on corridors with neither a rate
@@ -455,8 +456,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
                     {/* /fx/rate is an indicative display rate; the widget holds no
                         fee data, so the only honest line here is that fees are
-                        shown at confirmation (TASK-21104) */}
-                    {hasQuote && (
+                        shown at confirmation (TASK-21104). It goes with any
+                        estimate on screen, routable or not (a marketing THB quote
+                        is still an estimate); route claims stay on hasQuote. */}
+                    {hasUsableQuote && (
                         <p
                             className="text-left text-body-xs text-foreground-secondary"
                             data-testid="exchange-rate-note"

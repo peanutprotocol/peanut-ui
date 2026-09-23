@@ -2,11 +2,11 @@
  * Two rules that pull against each other.
  *
  * The card must not grow when the quote lands — that was the layout shift.
- * But a note about the rate or a delivery time is a CLAIM about a corridor,
- * and marketing callers do not pass `restrictToRoutable`: they seed ~20
- * currencies the FX feed quotes but no rail supports. So the boxes hold their
- * height on the typed amount, and the claims inside them wait for a landed
- * quote.
+ * But a delivery time is a CLAIM about a corridor, and marketing callers do
+ * not pass `restrictToRoutable`: they seed ~20 currencies the FX feed quotes
+ * but no rail supports. So the boxes hold their height on the typed amount,
+ * the rate note waits for a landed quote (any pair: it qualifies the
+ * estimate), and the delivery time waits for a landed quote on a routable pair.
  *
  * The box carries no fee rows: /fx/rate is an indicative display rate and the
  * widget holds no fee data, so "Bank fee — Free!" was a claim it could not
@@ -111,16 +111,41 @@ describe('ExchangeRateWidget before the quote arrives', () => {
         expect(screen.queryByTestId('exchange-rate-note')).not.toBeInTheDocument()
     })
 
-    it('makes no rate note or delivery claim on a corridor with a rate but no rail', () => {
-        // THB is one of the ~20 the FX feed prices and no rail serves, so the
-        // quote lands and the promise still must not
+    /*
+     * THB is one of the ~20 the FX feed prices and no rail serves. The estimate
+     * it shows still needs its disclosure (Chip 5294496093), but a delivery
+     * time or a route minimum is a claim about a corridor Peanut does not run.
+     */
+    it('discloses a quote on a corridor with a rate but no rail, and makes no delivery claim', () => {
         mockUseExchangeRate.mockReturnValue(quote({ destinationAmount: 340.2, exchangeRate: 34.02 }))
+        renderMarketingWidget('THB')
+
+        // the estimate is on screen…
+        expect(screen.getByText(/34\.0200 THB/)).toBeInTheDocument()
+        expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(340.2)
+        // …so is its disclosure, in the reserved box
+        expect(screen.getByTestId('exchange-rate-note')).toHaveTextContent(RATE_NOTE)
+        expect(feeCard()).toContainElement(screen.getByTestId('exchange-rate-note'))
+        // …and nothing that depends on a route
+        expect(screen.queryByText('Should arrive in minutes.')).not.toBeInTheDocument()
+        expect(screen.queryByText('Should arrive in hours.')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate-minimum-unavailable')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['failed', { destinationAmount: '', exchangeRate: 0, isError: true }],
+        ['loading', { destinationAmount: '', exchangeRate: 0, isLoading: true }],
+        ['zero', { destinationAmount: 0, exchangeRate: 0 }],
+        ['negative', { destinationAmount: -5, exchangeRate: -0.5 }],
+    ])('a %s THB quote gets no rate note and no delivery claim', (_case, over) => {
+        mockUseExchangeRate.mockReturnValue(quote(over))
         renderMarketingWidget('THB')
 
         expect(screen.queryByTestId('exchange-rate-note')).not.toBeInTheDocument()
         expect(screen.queryByText('Should arrive in minutes.')).not.toBeInTheDocument()
-        // the rate itself is fine to show — it is a quote, not a guarantee
-        expect(screen.getByText(/34\.0200 THB/)).toBeInTheDocument()
+        // the space stays held while there is an amount
+        expect(feeCard()).toBeInTheDocument()
     })
 
     it('still states them on a marketing page whose corridor Peanut actually serves', () => {
@@ -146,6 +171,23 @@ describe('ExchangeRateWidget before the quote arrives', () => {
         )
 
         expect(screen.getByTestId('exchange-rate-note')).toHaveTextContent('A cotação é uma estimativa.')
+    })
+
+    it('a localized marketing page discloses its THB quote in its own language', () => {
+        mockUseExchangeRate.mockReturnValue(quote({ destinationAmount: 340.2, exchangeRate: 34.02 }))
+        render(
+            <NuqsTestingAdapter searchParams={{ from: 'USD', to: 'THB', amount: '10' }}>
+                <ExchangeRateWidget
+                    ctaLabel="Go"
+                    ctaIcon="arrow-down"
+                    ctaAction={jest.fn()}
+                    labels={{ rateNote: 'A cotação é uma estimativa.', arrivesMinutes: 'Chega em minutos.' }}
+                />
+            </NuqsTestingAdapter>
+        )
+
+        expect(screen.getByTestId('exchange-rate-note')).toHaveTextContent('A cotação é uma estimativa.')
+        expect(screen.queryByText('Chega em minutos.')).not.toBeInTheDocument()
     })
 
     it('drops both boxes only when the user clears the amount', () => {
