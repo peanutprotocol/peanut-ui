@@ -113,15 +113,19 @@ export const Badges = () => {
                             onClick={() => setSelectedBadge(badge)}
                             className={twMerge(
                                 // Two tiles per row on every phone: three squeezed names and copy at 320-430px
-                                // (TASK-22677). pt-9 clears the Earned pill (20px tall at top-2) by 8px so
+                                // (TASK-22677). The 32px top padding clears the Earned pill (20px tall, 6px down) by 6px so
                                 // the tag never touches the art. Under xs (390px) the art is 48px and the
                                 // gaps tighter, so a 140-167px tile is close to square.
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
                             {badge.earned && (
-                                <Badge status="custom" customText={t('earned')} className="absolute top-2 right-2" />
+                                <Badge
+                                    status="custom"
+                                    customText={t('earned')}
+                                    className="absolute top-1.5 right-1.5"
+                                />
                             )}
                             <BadgeImage
                                 src={badge.logo!}

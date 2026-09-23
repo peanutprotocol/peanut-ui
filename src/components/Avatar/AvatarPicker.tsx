@@ -169,11 +169,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
-                                        // pt-9 clears the Earned tag (20px tall at top-2) by 8px so it never touches the sticker.
+                                        // The 32px top padding clears the Earned tag (20px tall, 6px down) by 6px so it never touches the sticker.
                                         // Under xs (390px) the sticker is 48px, which with one reserved text line each
                                         // makes the tile about as tall as it is wide. The chosen tile fills with the pink that
                                         // buttons press to (action-primary); its 1px border stays.
-                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-9 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                         checked && 'bg-action-primary'
                                     )}
                                 >
@@ -181,7 +181,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         <Badge
                                             status="custom"
                                             customText={t('earned')}
-                                            className="absolute top-2 right-2"
+                                            className="absolute top-1.5 right-1.5"
                                         />
                                     )}
                                     <UserAvatar
