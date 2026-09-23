@@ -8,6 +8,7 @@ import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -62,6 +63,12 @@ function SetupPageContent() {
     const { setIsSupportModalOpen } = useModalsContext()
     const { steps, resetSetupFlow, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
+    useEffect(() => {
+        const nextImage = steps[currentStepIndex + 1]?.image
+        if (nextImage && 'pose' in nextImage) {
+            void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
+        }
+    }, [steps, currentStepIndex])
     const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
