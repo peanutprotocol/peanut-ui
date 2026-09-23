@@ -60,7 +60,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
             <CrispLauncher />
             {/* Intercept href="#chat" clicks to open Crisp (mousedown fires before navigation) */}
             <Script id="crisp-chat-links" strategy="lazyOnload">
-                {`document.addEventListener("click",function(e){var a=e.target.closest('[href="#chat"]');if(a&&window.$crisp){e.preventDefault();e.stopPropagation();window.$crisp.push(["do","chat:open"])}},true);`}
+                {`document.addEventListener("click",function(e){var a=e.target.closest('[href="#chat"]');if(a&&window.$crisp){e.preventDefault();e.stopPropagation();window.$crisp.push(["do","chat:show"]);window.$crisp.push(["do","chat:open"])}},true);`}
             </Script>
         </main>
     )
