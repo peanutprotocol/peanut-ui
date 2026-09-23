@@ -218,6 +218,8 @@ export type CounterpartyUser = User & {
     canReceiveBankOfframp: boolean
     /** Provider-agnostic identity-verified signal (BE-computed). The "verified" badge. */
     isVerified: boolean
+    /** Server switch for the guest send-link claim to a bank. The same for every user. */
+    guestBankClaimEnabled?: boolean
 }
 
 // based on the API's AccountType

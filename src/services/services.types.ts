@@ -378,6 +378,20 @@ export interface TCreateOfframpRequest {
     }
 }
 
+/** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
+export interface TCreateGuestOfframpRequest {
+    /** Must equal the link amount, as a decimal of its token. */
+    amount: string
+    sendLinkPubKey: string
+    /** Link key signature over guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId). */
+    signature: string
+    source: TCreateOfframpRequest['source']
+    destination: TCreateOfframpRequest['destination']
+    /** travel rule: the guest claimer is the beneficiary */
+    beneficiaryName: string
+    beneficiaryAddress?: TCreateOfframpRequest['beneficiaryAddress']
+}
+
 export interface TCreateOfframpResponse {
     transferId: string
     depositInstructions: {

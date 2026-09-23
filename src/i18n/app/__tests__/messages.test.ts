@@ -217,6 +217,22 @@ describe('badge invite requirement agreement', () => {
     })
 })
 
+describe('badge avatar benefit agreement', () => {
+    const EXPECTED = {
+        en: ['1 avatar for your profile', '3 avatars for your profile'],
+        'es-419': ['1 avatar para tu perfil', '3 avatares para tu perfil'],
+        'es-AR': ['1 avatar para tu perfil', '3 avatares para tu perfil'],
+        'pt-BR': ['1 avatar para o seu perfil', '3 avatares para o seu perfil'],
+    } satisfies Record<AppLocale, [string, string]>
+
+    it.each(APP_LOCALES)('%s agrees the avatar count with its noun', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'badges' })
+
+        expect([t('benefit.avatars', { count: 1 }), t('benefit.avatars', { count: 3 })]).toEqual(EXPECTED[locale])
+    })
+})
+
 // TASK-22143: the ENS badge reached production with no `badges.catalog` entry, so
 // `useBadgeCopy` fell back to the backend's English name and the Spanish and
 // Portuguese Badges screens rendered "Name Dropper" in the middle of translated

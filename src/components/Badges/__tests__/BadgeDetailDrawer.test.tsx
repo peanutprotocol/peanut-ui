@@ -61,13 +61,13 @@ function renderModal(locale: 'en' | 'pt-BR') {
     )
 }
 
-function renderLockedModal() {
+function renderLockedModal(code = 'FIRST_INVITE') {
     return render(
         <NextIntlClientProvider locale="en" messages={en}>
             <BadgeDetailDrawer
                 isOpen
                 onClose={onClose}
-                code="FIRST_INVITE"
+                code={code}
                 title="First Invite"
                 description="Invite a friend"
                 logo="/badges/first_invite.svg"
@@ -97,6 +97,24 @@ describe('BadgeDetailDrawer', () => {
         expect(onClose).toHaveBeenCalledTimes(1)
     })
 
+    it('lists the avatars an earned badge unlocks', () => {
+        renderModal('en')
+
+        expect(screen.getByText(en.badges.whatYouGet)).toBeInTheDocument()
+        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+    })
+
+    it('lists the avatars a locked badge would unlock above how to unlock it', () => {
+        renderLockedModal('CARD_SPENT_1K')
+
+        const whatYouGet = screen.getByText(en.badges.whatYouGet)
+        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+        expect(
+            whatYouGet.compareDocumentPosition(screen.getByText(en.badges.howToUnlock)) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+    })
+
     it('keeps the translated generic share copy outside English', async () => {
         renderModal('pt-BR')
 
@@ -105,6 +123,7 @@ describe('BadgeDetailDrawer', () => {
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
         expect(text).toContain('/invite?code=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
+        expect(screen.getByText('3 avatares para o seu perfil')).toBeInTheDocument()
     })
 
     it('shows the unlock requirement instead of sharing for a locked badge', () => {
@@ -114,5 +133,11 @@ describe('BadgeDetailDrawer', () => {
         expect(screen.getByText('Invite one friend who joins Peanut.')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.badges.shareAchievement })).not.toBeInTheDocument()
         expect(mockShareButton).not.toHaveBeenCalled()
+    })
+
+    it('hides the benefit box for a badge with no avatar art', () => {
+        renderLockedModal()
+
+        expect(screen.queryByText(en.badges.whatYouGet)).not.toBeInTheDocument()
     })
 })

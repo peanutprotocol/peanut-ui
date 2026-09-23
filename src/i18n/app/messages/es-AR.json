@@ -719,7 +719,16 @@
         },
         "bank": {
             "selectCountry": "Seleccioná el país de tu cuenta bancaria",
-            "processAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo."
+            "processAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo.",
+            "guestErrors": {
+                "overLimit": "Este enlace supera el límite de $100.000 para reclamar a una cuenta bancaria. Reclamalo a una billetera.",
+                "alreadyClaimed": "Este enlace ya se reclamó a una cuenta bancaria.",
+                "notClaimable": "Este enlace ya no se puede reclamar.",
+                "unsupported": "Este enlace no se puede reclamar a una cuenta bancaria. Reclamalo a una billetera.",
+                "linkInvalid": "No pudimos verificar este enlace. Abrilo de nuevo e intentalo otra vez.",
+                "inProgress": "Este enlace se está reclamando ahora mismo. Esperá un momento e intentalo otra vez.",
+                "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contactá a soporte para reclamarlo."
+            }
         },
         "manteca": {
             "enterAccountDetails": "Ingresá los datos de la cuenta",
@@ -1125,6 +1134,7 @@
         "pleaseWait": "Esperá un momento..."
     },
     "badges": {
+        "whatYouGet": "Lo que ganás",
         "emptyDescription": "Ganá insignias a medida que usás Peanut. Hacé pagos, invitá amigos y participá en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorDescription": "Revisá tu conexión e intentá de nuevo.",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}"
@@ -1689,16 +1699,22 @@
     "shhhhh": {
         "hero": {
             "tagline": "Tu plata. Lista para pagar.",
-            "body": "Usá tu Peanut Card en línea y, sin contacto, con Apple Pay o Google Pay donde estén disponibles, donde se acepta Visa.",
             "cta": "Conseguí tu tarjeta"
         },
         "whatItDoes": {
-            "body": "Agregá dinero a Peanut por transferencia bancaria, desde un exchange o con stablecoins compatibles. Pagá en línea o agregá tu tarjeta a Apple Pay o Google Pay donde estén disponibles."
+            "body": "Cargala como ya movés tu plata: transferencia bancaria, retiro desde un exchange o stablecoins. Después pagá donde se acepta Visa."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para vos.",
+            "body1": "Si tu plata vive en un solo país y una sola moneda, tu tarjeta bancaria ya funciona. Quedate con ella.",
+            "body2": "Si tu plata vive en otro lado, cruza fronteras, está en dólares o en más de un lugar, la Peanut Card se hizo para vos."
         },
         "howToApply": {
-            "verify": "Iniciá sesión y completá la verificación de identidad.",
-            "terms": "Revisá y aceptá los términos del titular.",
-            "spend": "Una vez aprobada, agregá fondos y empezá a pagar."
+            "signInTitle": "Iniciá sesión.",
+            "signInBody": "O creá tu cuenta. Toma un minuto.",
+            "verifyTitle": "Verificá.",
+            "spendTitle": "Pagá.",
+            "spendBody": "¿Aprobada? Agregá plata y pagá."
         },
         "marquee": {
             "available": "OBTENÉ TU TARJETA"
@@ -1718,8 +1734,7 @@
             }
         },
         "ready": {
-            "title": "Obtené tu Peanut Card",
-            "subtitle": "Empezá tu solicitud hoy."
+            "subtitle": "Iniciá sesión, verificá, pagá."
         }
     },
     "avatar": {

@@ -1320,7 +1320,16 @@
             "accountNumber": "Número da conta",
             "routingNumber": "Routing Number",
             "countryNotSelected": "País não selecionado",
-            "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo."
+            "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo.",
+            "guestErrors": {
+                "overLimit": "Este link passa do limite de $100.000 para resgatar em uma conta bancária. Resgate em uma carteira.",
+                "alreadyClaimed": "Este link já foi resgatado em uma conta bancária.",
+                "notClaimable": "Este link não pode mais ser resgatado.",
+                "unsupported": "Este link não pode ser resgatado em uma conta bancária. Resgate em uma carteira.",
+                "linkInvalid": "Não conseguimos verificar este link. Abra o link de novo e tente outra vez.",
+                "inProgress": "Este link está sendo resgatado agora. Espere um pouco e tente outra vez.",
+                "accountLimit": "Muitas contas bancárias foram adicionadas para este link. Fale com o suporte para resgatá-lo."
+            }
         },
         "manteca": {
             "youWillReceive": "Você vai receber",
@@ -2097,14 +2106,13 @@
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
-            "reference": "Referência do recibo",
-            "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",
                 "issuedBy": "Emitido pela Squirrel Labs Ltd",
                 "type": "Tipo",
                 "status": "Status",
-                "from": "De"
+                "from": "De",
+                "date": "Data"
             }
         },
         "receiptUnavailable": {
@@ -2201,14 +2209,15 @@
             "received": "Recebido",
             "refunded": "Reembolsado",
             "closedAt": "Fechado em",
+            "from": "De",
+            "fromNameNotProvided": "Transferência bancária (nome não informado)",
             "to": "Para",
-            "tokenAmount": "Valor do token",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na {chain}",
             "txId": "ID da transação",
             "fee": "Taxa",
             "transferId": "ID da transferência",
-            "senderReference": "Referência do remetente",
+            "senderNote": "Nota do remetente",
             "paymentReference": "Referência que enviamos",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
@@ -2217,7 +2226,8 @@
             "reason": "Motivo",
             "accountNumber": "Número da conta",
             "address": "Endereço",
-            "estimateConversion": "Conversão estimada"
+            "estimateConversion": "Conversão estimada",
+            "converted": "Convertido"
         },
         "returnedReason": "O banco devolveu este pagamento. Isso costuma acontecer quando os dados não batem com o nome de quem envia, ou quando o banco dessa pessoa recusa.",
         "perkBanner": {
@@ -2437,6 +2447,7 @@
         "earned": "Ganho",
         "locked": "Bloqueado",
         "howToUnlock": "Como desbloquear",
+        "whatYouGet": "O que você ganha",
         "emptyTitle": "Nenhum selo encontrado",
         "emptyDescription": "Ganhe selos conforme usa o Peanut. Faça pagamentos, convide amigos e participe de eventos para desbloqueá-los e exibi-los no seu perfil.",
         "loadErrorTitle": "Não foi possível carregar os selos",
@@ -2462,6 +2473,9 @@
             "ensPayment": "Envie ou receba um pagamento usando um nome ENS.",
             "campaign": "Participe de uma campanha ou evento elegível do Peanut.",
             "specialRecognition": "Conquiste este selo por um marco, contribuição ou reconhecimento especial no Peanut."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar para o seu perfil} other {# avatares para o seu perfil}}"
         },
         "catalog": {
             "FIRST_INVITE": {
@@ -3779,20 +3793,38 @@
         "hero": {
             "wordmark": "Cartão Peanut",
             "tagline": "Seu dinheiro. Pronto para pagar.",
-            "body": "Use seu Peanut Card online e, por aproximação, com Apple Pay ou Google Pay onde estiverem disponíveis, onde Visa é aceita.",
             "cta": "Peça seu cartão",
-            "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular."
+            "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
+            "title": "Go Pink.",
+            "pitch": "Um saldo. 150 milhões de lugares para gastar.",
+            "lead": "Um cartão Visa virtual que paga com seu saldo Peanut. Online e em lojas com Apple Pay ou Google Pay onde estiverem disponíveis."
         },
         "whatItDoes": {
-            "titleLine1": "Um cartão.",
-            "titleLine2": "Seus pagamentos do dia a dia.",
-            "body": "Adicione dinheiro ao Peanut por transferência bancária, saque de corretora ou stablecoins compatíveis. Pague online ou adicione seu cartão ao Apple Pay ou Google Pay onde estiverem disponíveis."
+            "titleLine1": "É um cartão.",
+            "titleLine2": "Esse é o truque todo.",
+            "body": "Recarregue do jeito que você já movimenta dinheiro: transferência bancária, saque de corretora ou stablecoins. Depois, pague onde Visa é aceita.",
+            "statMerchants": "lojas que aceitam Visa",
+            "statBalance": "saldo",
+            "statMonthlyFees": "mensalidade",
+            "statAnnualFees": "anuidade"
+        },
+        "whoItsFor": {
+            "title": "Feito para dinheiro que não fica parado.",
+            "body": "Nômades, expatriados, quem trabalha remoto, quem viaja sempre. Um só saldo para pagar onde Visa é aceita."
+        },
+        "notForYou": {
+            "title": "Talvez não seja para você.",
+            "body1": "Se seu dinheiro vive em um só país e uma só moeda, seu cartão do banco já resolve. Fique com ele.",
+            "body2": "Se seu dinheiro vive em outro lugar, cruza fronteiras, está em dólares ou em mais de um lugar, o Peanut Card foi feito para você."
         },
         "howToApply": {
-            "title": "Como pedir seu cartão",
-            "verify": "Entre na sua conta e conclua a verificação de identidade.",
-            "terms": "Leia e aceite os termos do titular.",
-            "spend": "Após a aprovação, adicione saldo e comece a pagar."
+            "title": "Como pedir.",
+            "signInTitle": "Entre.",
+            "signInBody": "Ou crie sua conta. Leva um minuto.",
+            "verifyTitle": "Verifique.",
+            "verifyBody": "Uma verificação de identidade, mais os termos do titular.",
+            "spendTitle": "Pague.",
+            "spendBody": "Aprovado? Adicione saldo e pague."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -3802,7 +3834,7 @@
             "noMonthlyFee": "SEM MENSALIDADE"
         },
         "faq": {
-            "title": "Perguntas sobre o Peanut Card",
+            "title": "Perguntas.",
             "q1": {
                 "question": "O que é o Peanut Card?",
                 "answer": "Peanut Card é um cartão Visa virtual para usar seu saldo Peanut online e com carteiras digitais compatíveis."
@@ -3833,8 +3865,9 @@
             }
         },
         "ready": {
-            "title": "Peça seu Peanut Card",
-            "subtitle": "Comece sua solicitação hoje."
+            "title": "Pronto?",
+            "subtitle": "Entre, verifique, pague.",
+            "disclaimer": "Sujeito a elegibilidade. Verificação de identidade obrigatória."
         }
     },
     "unsupportedWebView": {

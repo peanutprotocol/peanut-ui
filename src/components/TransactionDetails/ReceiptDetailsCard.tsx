@@ -18,18 +18,26 @@ import { useReceiptDateFormatter } from '@/components/TransactionDetails/useRece
 import {
     bankAccountLabelKey,
     getAccountCopyValue,
-    receiptIssuedAt,
+    receiptStatusDate,
     type BankAccountLabelKey,
+    type ReceiptStatusDateKind,
 } from './transaction-details.utils'
+import {
+    isSettledConversion,
+    receiptConversionLine,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from './receipt-conversion.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { getTransactionSign } from '@/utils/history.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency } from '@/utils/general.utils'
+import { formatAmount } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
-import { middleEllipsisAccount, printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
+import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
 
@@ -50,14 +58,10 @@ export function ReceiptDetailsCard({
     transaction,
     vm,
     shouldShowQrShare,
-    convertedAmount,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
-    /** "BRL 15.00" — local-fiat / destination-token equivalent for the
-     *  "Estimate conversion" row (board 17835:84507). */
-    convertedAmount?: string
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -80,6 +84,18 @@ export function ReceiptDetailsCard({
             : t('rows.received')
     }
 
+    const statusDate = receiptStatusDate(transaction)
+    const statusDateLabel = (kind: ReceiptStatusDateKind) => {
+        if (kind === 'claimed') return t('rows.claimed')
+        if (kind === 'cancelled') return t('rows.cancelled')
+        if (kind === 'refunded') return t('rows.refunded')
+        if (kind === 'closed') return t('rows.closedAt')
+        return getCompletedLabel()
+    }
+
+    const convertedAmount = receiptConvertedAmount(transaction)
+    const exchangeRate = receiptExchangeRate(transaction)
+
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     return (
@@ -94,31 +110,20 @@ export function ReceiptDetailsCard({
                 />
             )}
 
-            {rowVisibilityConfig.cancelled && (
-                <DataRow
-                    label={t('rows.cancelled')}
-                    value={formatDate(new Date(transaction.cancelledDate || transaction.createdAt || transaction.date))}
-                />
-            )}
-
-            {rowVisibilityConfig.claimed && (
-                <DataRow label={t('rows.claimed')} value={formatDate(new Date(transaction.claimedAt!))} />
-            )}
-
-            {rowVisibilityConfig.completed && (
-                <DataRow label={getCompletedLabel()} value={formatDate(new Date(transaction.completedAt!))} />
-            )}
-
-            {rowVisibilityConfig.refunded && (
-                <DataRow label={t('rows.refunded')} value={formatDate(new Date(transaction.date))} />
-            )}
-
-            {rowVisibilityConfig.closed && transaction.cancelledDate && (
-                <DataRow label={t('rows.closedAt')} value={formatDate(new Date(transaction.cancelledDate))} />
+            {rowVisibilityConfig.statusDate && statusDate && (
+                <DataRow label={statusDateLabel(statusDate.kind)} value={formatDate(statusDate.date)} />
             )}
 
             {/* Contributors after the date rows, per the request board. */}
             <RequestPotContributorRows vm={vm} />
+
+            {/* plain text: the payer's bank wrote it */}
+            {rowVisibilityConfig.from && (
+                <DataRow
+                    label={t('rows.from')}
+                    value={transaction.extraDataForDrawer?.payerName ?? t('rows.fromNameNotProvided')}
+                />
+            )}
 
             {rowVisibilityConfig.to && (
                 /* printableAddress shortens Solana/Tron/EVM and passes
@@ -170,19 +175,29 @@ export function ReceiptDetailsCard({
                 <MantecaDepositInfo transaction={transaction} country={country} />
             )}
 
-            {/* Local-fiat / destination-token equivalent (board: "Estimate
-                conversion ≈ BRL 15.00"), suppressed on cancelled receipts
-                like the other money rows. */}
-            {convertedAmount && transaction.status !== 'cancelled' && (
-                <DataRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
-            )}
+            {/* One conversion, one row (board: "Estimate conversion ≈ BRL
+                15.00"). Settled, it reads as what happened, with the rate on a
+                second line; pending, it stays an estimate. */}
+            {rowVisibilityConfig.conversion &&
+                convertedAmount &&
+                (isSettledConversion(transaction) ? (
+                    <DataRow
+                        label={t('rows.converted')}
+                        value={
+                            <span className="flex flex-col items-end">
+                                <span>{receiptConversionLine(transaction, getTransactionSign(transaction))}</span>
+                                {exchangeRate && (
+                                    <span className="text-body-s text-foreground-secondary">{exchangeRate}</span>
+                                )}
+                            </span>
+                        }
+                    />
+                ) : (
+                    <DataRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
+                ))}
 
-            {/* Exchange rate and original currency for completed bank_deposit transactions */}
-            {rowVisibilityConfig.exchangeRate && transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                <DataRow
-                    label={tCommon('exchangeRate')}
-                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
-                />
+            {rowVisibilityConfig.exchangeRate && exchangeRate && (
+                <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
@@ -207,9 +222,7 @@ export function ReceiptDetailsCard({
                 />
             )}
 
-            {/* The reference that left our systems with the payout. Named for
-                who sent it, so it cannot be read as the receipt's own id in
-                the "Receipt reference" row below. */}
+            {/* The reference that left our systems with the payout. */}
             {rowVisibilityConfig.paymentReference && (
                 <DataRow
                     label={t('rows.paymentReference')}
@@ -228,9 +241,10 @@ export function ReceiptDetailsCard({
                 />
             )}
 
+            {/* plain text: a third party typed it */}
             {rowVisibilityConfig.senderReference && (
                 <DataRow
-                    label={t('rows.senderReference')}
+                    label={t('rows.senderNote')}
                     value={transaction.extraDataForDrawer!.senderReference}
                     allowCopy
                     copyValue={transaction.extraDataForDrawer!.senderReference}
@@ -283,23 +297,6 @@ export function ReceiptDetailsCard({
                         </LinkButton>
                     }
                 />
-            )}
-
-            {/* document rows, last (TASK-22452): the id every receipt can be
-                traced by and its issuance date. the id prints in its own case
-                — upper-casing it turned a `0x` hash into `0X` and made a uuid
-                look like a different value from the one you copy. */}
-            {rowVisibilityConfig.reference && (
-                <DataRow
-                    label={t('officialReceipt.reference')}
-                    value={middleEllipsisAccount(transaction.id, 20)}
-                    allowCopy
-                    copyValue={transaction.id}
-                />
-            )}
-
-            {rowVisibilityConfig.issuedOn && (
-                <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(receiptIssuedAt(transaction))} />
             )}
         </Card>
     )

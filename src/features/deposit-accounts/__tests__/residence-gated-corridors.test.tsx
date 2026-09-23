@@ -4,7 +4,7 @@
  * reais stay on the Pix top-up, and Colombia is gated by a provider review.
  * Nationality never decides anything here.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -13,6 +13,7 @@ import { corridorRecord, emptyCorridorRecord } from '../rails'
 import { residenceAllows } from '../residenceGate'
 import type { DepositAccountView, DepositCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
+import { tapGateButton } from '../__fixtures__/gateDrawer'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('next/navigation', () => ({
@@ -140,7 +141,7 @@ describe('tapping a corridor the gate has not cleared', () => {
         blocked({ kind: 'needs-identity' })
 
         expect(screen.getByText(messages.depositAccounts.gate.verifyTitle)).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.verifyCta }))
+        tapGateButton(screen.getByRole('button', { name: messages.depositAccounts.gate.verifyCta }))
         expect(onResolveGate).toHaveBeenCalledWith({ kind: 'needs-identity' }, 'SEPA_EU')
     })
 

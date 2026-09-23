@@ -65,7 +65,7 @@ import type { LucideIcon } from 'lucide-react'
 
 /** e2e/flows/icon-regression.spec.ts needs the fill as an inline style, and
     scripts/ds-lint-counts.mjs counts literal `style={{` objects — so the object
-    lives here once and both raw-lucide render sites reference it. */
+    lives here once and every raw-lucide render site references it. */
 export const LUCIDE_FILL_NONE = { fill: 'none' } as const
 
 export interface NavItem {
@@ -76,8 +76,12 @@ export interface NavItem {
     icon: LucideIcon
     /** shown on the tier index card */
     description?: string
-    /** catalog badge: production | limited | unused */
-    status?: 'production' | 'limited' | 'unused'
+    /** catalog badge */
+    status?: 'production' | 'limited' | 'unused' | 'needs-refactor'
+    /** catalog quality score, shown on the tier index card */
+    quality?: 1 | 2 | 3 | 4 | 5
+    /** product usage count, shown on the tier index card */
+    usages?: number
 }
 
 export interface NavTier {
@@ -104,13 +108,57 @@ export const TIERS: NavTier[] = [
 
 export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
     foundations: [
-        { label: 'Colors', icon: Palette, href: '/dev/ds/foundations/colors' },
-        { label: 'Typography', icon: Type, href: '/dev/ds/foundations/typography' },
-        { label: 'Spacing', icon: Ruler, href: '/dev/ds/foundations/spacing' },
-        { label: 'Shadows', icon: Layers, href: '/dev/ds/foundations/shadows' },
-        { label: 'Icons', icon: Shapes, href: '/dev/ds/foundations/icons' },
-        { label: 'Borders', icon: Square, href: '/dev/ds/foundations/borders' },
-        { label: 'Motion & haptics', icon: Vibrate, href: '/dev/ds/foundations/motion-haptics' },
+        {
+            label: 'Colors',
+            icon: Palette,
+            href: '/dev/ds/foundations/colors',
+            description: 'Semantic tokens, legacy palettes, and color usage rules',
+            status: 'production',
+        },
+        {
+            label: 'Typography',
+            icon: Type,
+            href: '/dev/ds/foundations/typography',
+            description: 'Font families, weights, text sizes, and the Knerd display font',
+            status: 'production',
+        },
+        {
+            label: 'Spacing',
+            icon: Ruler,
+            href: '/dev/ds/foundations/spacing',
+            description: 'Spacing scale, layout utilities (.row, .col), and gap conventions',
+            status: 'production',
+        },
+        {
+            label: 'Shadows',
+            icon: Layers,
+            href: '/dev/ds/foundations/shadows',
+            description: 'Shadow tokens and visual comparison. shadowSize=4 is the standard',
+            status: 'production',
+        },
+        {
+            label: 'Icons',
+            icon: Shapes,
+            href: '/dev/ds/foundations/icons',
+            description:
+                'The 89-name product Icon registry (81 lucide, 8 custom) with searchable grid and copy-to-clipboard',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Borders',
+            icon: Square,
+            href: '/dev/ds/foundations/borders',
+            description: 'Border radius and semantic border styles',
+            status: 'production',
+        },
+        {
+            label: 'Motion & haptics',
+            icon: Vibrate,
+            href: '/dev/ds/foundations/motion-haptics',
+            description: 'Duration and easing tokens, reduced motion, and native feedback primitives',
+            status: 'limited',
+        },
     ],
     primitives: [
         {
@@ -350,16 +398,86 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         },
     ],
     patterns: [
-        { label: 'Modal', icon: PanelTop, href: '/dev/ds/patterns/modal' },
-        { label: 'Drawer', icon: PanelBottom, href: '/dev/ds/patterns/drawer' },
-        { label: 'Navigation', icon: Compass, href: '/dev/ds/patterns/navigation' },
-        { label: 'Loading', icon: LoaderCircle, href: '/dev/ds/patterns/loading' },
-        { label: 'Feedback', icon: MessageSquare, href: '/dev/ds/patterns/feedback' },
-        { label: 'Copy & Share', icon: Share2, href: '/dev/ds/patterns/copy-share' },
-        { label: 'Layouts', icon: LayoutGrid, href: '/dev/ds/patterns/layouts' },
-        { label: 'Cards (Global)', icon: CreditCard, href: '/dev/ds/patterns/cards-global' },
-        { label: 'AmountInput', icon: Coins, href: '/dev/ds/patterns/amount-input' },
-        { label: 'Slider', icon: SlidersHorizontal, href: '/dev/ds/patterns/slider' },
+        {
+            label: 'Modal',
+            icon: PanelTop,
+            href: '/dev/ds/patterns/modal',
+            description: 'ActionModal for short decisions and confirmations',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Drawer',
+            icon: PanelBottom,
+            href: '/dev/ds/patterns/drawer',
+            description: 'Vaul-based bottom sheet with compound component API',
+            status: 'production',
+            quality: 5,
+        },
+        {
+            label: 'Navigation',
+            icon: Compass,
+            href: '/dev/ds/patterns/navigation',
+            description: 'NavHeader for screen navigation',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Loading',
+            icon: LoaderCircle,
+            href: '/dev/ds/patterns/loading',
+            description: 'One Loading component — spinner and mascot variants',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Feedback',
+            icon: MessageSquare,
+            href: '/dev/ds/patterns/feedback',
+            description: 'Badge, inline errors, and EmptyState',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Copy & Share',
+            icon: Share2,
+            href: '/dev/ds/patterns/copy-share',
+            description: 'CopyField, CopyToClipboard, and ShareButton',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Layouts',
+            icon: LayoutGrid,
+            href: '/dev/ds/patterns/layouts',
+            description: 'Page layout recipes: centered CTA, pinned footer, scrollable list',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'Cards (Global)',
+            icon: CreditCard,
+            href: '/dev/ds/patterns/cards-global',
+            description: 'Global Card for stacked lists with position-aware borders',
+            status: 'production',
+            quality: 4,
+        },
+        {
+            label: 'AmountInput',
+            icon: Coins,
+            href: '/dev/ds/patterns/amount-input',
+            description: 'Large currency input with conversion, slider, balance display',
+            status: 'needs-refactor',
+            quality: 3,
+        },
+        {
+            label: 'Slider',
+            icon: SlidersHorizontal,
+            href: '/dev/ds/patterns/slider',
+            description: 'Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot',
+            status: 'production',
+            usages: 1,
+        },
     ],
     audit: [
         { label: 'Code Audit', icon: FileSearch, href: '/dev/ds/audit' },
@@ -369,9 +487,24 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
     // Playground items are standalone harnesses that live under /dev (not /dev/ds), so
     // clicking one leaves the doc-site chrome. The /dev/ds/playground index links to them.
     playground: [
-        { label: 'Shake & Confetti', icon: PartyPopper, href: '/dev/shake-test' },
-        { label: 'Perk Success', icon: Gift, href: '/dev/perk-success-test' },
-        { label: 'Share Builder', icon: Wrench, href: '/dev/share-builder' },
+        {
+            label: 'Shake & Confetti',
+            icon: PartyPopper,
+            href: '/dev/shake-test',
+            description: 'Tune shake intensity + hold-to-claim progress and fire the double-star confetti burst.',
+        },
+        {
+            label: 'Perk Success',
+            icon: Gift,
+            href: '/dev/perk-success-test',
+            description: 'The perk-unlock success screen with mock perks — preview the celebration + confetti flow.',
+        },
+        {
+            label: 'Share Builder',
+            icon: Wrench,
+            href: '/dev/share-builder',
+            description: 'Iterator for the D3 card share asset — stress-test tiers, names and edge cases.',
+        },
     ],
 }
 

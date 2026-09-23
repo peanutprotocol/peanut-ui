@@ -811,6 +811,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bridge/guest-claim/external-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a bank account for a guest send-link claim
+         * @description Creates the external account on the send-link sender's Bridge customer. Authorized by a signature from the link key; the response never names the customer.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        accountCategory?: string;
+                        accountNumber: string;
+                        accountOwnerName: {
+                            businessName?: string;
+                            firstName?: string;
+                            lastName?: string;
+                        };
+                        accountOwnerType: "business" | "individual";
+                        accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
+                        address?: {
+                            city: string;
+                            country: string;
+                            postalCode: string;
+                            state?: string;
+                            street: string;
+                        };
+                        bankCode?: string;
+                        bic?: string;
+                        country: string;
+                        documentNumber?: string;
+                        documentType?: string;
+                        phoneNumber?: string;
+                        reuseOnError?: boolean;
+                        routingNumber?: string;
+                        sendLinkPubKey: string;
+                        signature: string;
+                        sortCode?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bridge/offramp/create": {
         parameters: {
             query?: never;
@@ -923,8 +994,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Initiate an off-ramp transfer for a guest
-         * @description This endpoint initiates a new off-ramp transfer for a guest user. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user. This is intended for server-to-server use where the user is not authenticated.
+         * Claim a send link to a bank account as a guest
+         * @description Creates the Bridge off-ramp for a guest send-link claim, under the link sender's Bridge customer, and returns the deposit instructions the link is claimed to. Authorized by a signature from the link key. One payout per link: a repeat claim to the same account returns the same transfer.
          */
         post: {
             parameters: {
@@ -938,7 +1009,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        amount?: string;
+                        amount: string;
                         beneficiaryAddress?: {
                             city: string;
                             country: string;
@@ -946,7 +1017,7 @@ export interface paths {
                             state?: string;
                             street: string;
                         };
-                        beneficiaryName?: string;
+                        beneficiaryName: string;
                         destination: {
                             achReference?: string;
                             coBankTransferReference?: string;
@@ -959,13 +1030,13 @@ export interface paths {
                             wireMessage?: string;
                         };
                         provider?: string;
-                        sendLinkPubKey?: string;
+                        sendLinkPubKey: string;
+                        signature: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
                             fromAddress?: string;
                             paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
                         };
-                        userId: string;
                     };
                 };
             };
@@ -999,12 +1070,25 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                401: {
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -1016,17 +1100,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
                 };
                 /** @description Default Response */
-                503: {
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -12982,6 +13068,7 @@ export interface paths {
                             avatarKey: string | null;
                             canReceiveBankOfframp: boolean;
                             fullName: string | null;
+                            guestBankClaimEnabled: boolean;
                             isVerified: boolean;
                             showFullName: boolean;
                             userId: string;
