@@ -2446,6 +2446,7 @@
         "earned": "Ganho",
         "locked": "Bloqueado",
         "howToUnlock": "Como desbloquear",
+        "whatYouGet": "O que você ganha",
         "emptyTitle": "Nenhum selo encontrado",
         "emptyDescription": "Ganhe selos conforme usa o Peanut. Faça pagamentos, convide amigos e participe de eventos para desbloqueá-los e exibi-los no seu perfil.",
         "loadErrorTitle": "Não foi possível carregar os selos",
@@ -2471,6 +2472,9 @@
             "ensPayment": "Envie ou receba um pagamento usando um nome ENS.",
             "campaign": "Participe de uma campanha ou evento elegível do Peanut.",
             "specialRecognition": "Conquiste este selo por um marco, contribuição ou reconhecimento especial no Peanut."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar para o seu perfil} other {# avatares para o seu perfil}}"
         },
         "catalog": {
             "FIRST_INVITE": {

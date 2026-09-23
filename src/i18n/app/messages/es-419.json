@@ -2446,6 +2446,7 @@
         "earned": "Ganado",
         "locked": "Bloqueado",
         "howToUnlock": "Cómo desbloquearla",
+        "whatYouGet": "Lo que ganas",
         "emptyTitle": "No se encontraron insignias",
         "emptyDescription": "Gana insignias a medida que usas Peanut. Haz pagos, invita amigos y participa en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorTitle": "No pudimos cargar las insignias",
@@ -2471,6 +2472,9 @@
             "ensPayment": "Envía o recibe un pago usando un nombre ENS.",
             "campaign": "Participa en una campaña o evento elegible de Peanut.",
             "specialRecognition": "Obtén esta insignia por un hito, una contribución o un reconocimiento especial en Peanut."
+        },
+        "benefit": {
+            "avatars": "{count, plural, one {# avatar para tu perfil} other {# avatares para tu perfil}}"
         },
         "catalog": {
             "FIRST_INVITE": {
