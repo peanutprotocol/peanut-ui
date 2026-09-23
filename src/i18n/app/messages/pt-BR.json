@@ -674,7 +674,7 @@
         },
         "increase": {
             "cta": "Aumentar meus limites",
-            "submitted": "Documento enviado! Seus limites serão atualizados em breve."
+            "submitted": "Documento enviado para análise."
         },
         "error": {
             "description": "Não foi possível carregar os limites. Tente de novo."
@@ -1448,7 +1448,7 @@
             "title": "Este QR agora é seu!",
             "description": "Seu adesivo agora está vinculado ao seu perfil para sempre.",
             "putItAnywhere": "Cole onde quiser!",
-            "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite e contribuir para os seus pontos para sempre.",
+            "stickerDescription": "Cole onde as pessoas possam te encontrar. Quem escanear vai poder entrar no Peanut com o seu convite e somar aos seus pontos.",
             "shareQr": "Compartilhar código QR",
             "linkCopied": "Link copiado",
             "shareTitle": "Meu código QR do Peanut",
@@ -1467,7 +1467,7 @@
                 "inviteQrDescription": "Compartilhe onde quiser. Quem escanear pode entrar no Peanut com você."
             },
             "claimSuccess": {
-                "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite."
+                "stickerDescription": "Cole onde as pessoas possam te encontrar. Quem escanear vai poder entrar no Peanut com o seu convite."
             }
         },
         "result": {

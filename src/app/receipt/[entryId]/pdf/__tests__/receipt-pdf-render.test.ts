@@ -68,3 +68,16 @@ describe('renderReceiptPdf', () => {
         expect(buffer.subarray(-1024).toString('latin1')).toContain('%%EOF')
     }, 30_000)
 })
+
+describe('PDF token map', () => {
+    test('matches the semantic tokens in globals.css', async () => {
+        const { readFileSync } = await import('fs')
+        const { join } = await import('path')
+        const { PDF_TOKENS } = await import('../ReceiptPdfDocument')
+        const css = readFileSync(join(process.cwd(), 'src/styles/globals.css'), 'utf8')
+        const token = (name: string) => css.match(new RegExp(`--color-${name}:\\s*([^;]+);`))?.[1].trim()
+
+        expect(PDF_TOKENS.foregroundPrimary).toBe(token('foreground-primary'))
+        expect(PDF_TOKENS.foregroundSecondary).toBe(token('foreground-secondary'))
+    })
+})

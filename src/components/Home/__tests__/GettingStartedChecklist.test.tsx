@@ -71,14 +71,15 @@ describe('GettingStartedChecklist', () => {
         mockOverview = null
     })
 
-    // ListItem renders a div[role=button] only for tappable rows and marks done
-    // rows aria-disabled, so rows are counted by test id and state read off aria.
+    // ListItem renders a div[role=button] only for tappable rows. Done rows are
+    // plain rows, not disabled ones, so rows are counted by test id.
     it('renders exactly three rows with registration pre-checked', () => {
         render()
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
         expect(screen.getAllByRole('button')).toHaveLength(2)
         expect(screen.getByText('Create your account')).toBeInTheDocument()
-        expect(screen.getByTestId('checklist-create-account')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('aria-disabled')
+        expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('role')
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
@@ -164,7 +165,8 @@ describe('GettingStartedChecklist', () => {
     it('marks add money done once funded', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
         render()
-        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
+        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
     })
 
     // Any outgoing peer payment (a send to a saved contact included) completes
@@ -178,7 +180,7 @@ describe('GettingStartedChecklist', () => {
             residence: { declared: 'BR', verified: 'BR' },
         }
         render()
-        expect(screen.getByTestId('checklist-first-payment')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByTestId('checklist-first-payment')).not.toHaveAttribute('role')
         expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
         expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('role', 'button')
     })

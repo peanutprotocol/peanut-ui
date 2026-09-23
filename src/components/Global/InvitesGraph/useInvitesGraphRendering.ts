@@ -306,7 +306,8 @@ export function useInvitesGraphRendering({
                 ctx.font = `600 ${fontSize}px Inter, system-ui, -apple-system, sans-serif`
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'middle'
-                ctx.fillStyle = activityStatus === 'inactive' && filter.enabled ? 'rgba(17, 24, 39, 0.3)' : '#111827'
+                // canvas cannot read classes: #000000 is the foreground-primary token
+                ctx.fillStyle = activityStatus === 'inactive' && filter.enabled ? 'rgba(0, 0, 0, 0.3)' : '#000000'
 
                 const labelY = node.y + size + fontSize + 2
 

@@ -785,7 +785,7 @@
         },
         "claimSuccess": {
             "putItAnywhere": "¡Pegalo donde quieras!",
-            "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
+            "stickerDescription": "Pegalo donde la gente te encuentre. Quien lo escanee va a poder unirse a Peanut con tu invitación y sumar a tus puntos.",
             "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
         },
         "iosCopy": {
@@ -799,7 +799,7 @@
                 "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
             },
             "claimSuccess": {
-                "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+                "stickerDescription": "Pegalo donde la gente te encuentre. Quien lo escanee va a poder unirse a Peanut con tu invitación."
             }
         },
         "result": {
