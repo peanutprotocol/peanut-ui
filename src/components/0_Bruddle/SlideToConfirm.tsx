@@ -92,7 +92,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
         >
             <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-14 right-2 flex items-center text-button-l text-foreground-primary"
+                className="pointer-events-none absolute inset-y-0 right-2 left-14 flex items-center text-button-l text-foreground-primary"
             >
                 <span className="min-w-0 truncate">{label}</span>
             </span>
