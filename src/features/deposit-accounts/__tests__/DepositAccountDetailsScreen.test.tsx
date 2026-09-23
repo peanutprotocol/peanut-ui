@@ -3,6 +3,7 @@ import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import messages from '@/i18n/app/messages/en.json'
 import { NextIntlClientProvider } from 'next-intl'
 import { DepositAccountDetailsScreen } from '../components/DepositAccountDetailsScreen'
+import { DEPOSIT_RAIL_POLICY } from '../__fixtures__/railPolicy'
 import { DEPOSIT_RAILS } from '../rails'
 import type { DepositAccountView, DepositRail } from '../types'
 
@@ -40,6 +41,9 @@ const details = (
             </ToastProvider>
         </NextIntlClientProvider>
     )
+
+const openTerms = () =>
+    fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.details.termsToggle }))
 
 /**
  * The provider never answered inside the wait the app gives it. The backend
@@ -173,7 +177,7 @@ describe('the euro caveat on the details screen', () => {
         instructions: { accountHolderName: 'Ana Pérez', iban: 'DE89', paymentRails: ['sepa'] },
     })
 
-    it('tells the euro holder that transfers from another name can be returned', () => {
+    it('tells the euro holder, under the toggle, that transfers from another name can be returned', () => {
         details(
             active('bridge.sepa_eu', 'EUR'),
             () => {},
@@ -181,13 +185,97 @@ describe('the euro caveat on the details screen', () => {
             () => {},
             DEPOSIT_RAILS.SEPA_EU
         )
+        openTerms()
 
         expect(screen.getByText(messages.depositAccounts.details.eurOwnName)).toBeInTheDocument()
     })
 
     it('says nothing of the kind on the dollar account', () => {
         details(active('bridge.ach_us', 'USD'), () => {}, true)
+        openTerms()
 
         expect(screen.queryByText(messages.depositAccounts.details.eurOwnName)).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * The founders review (2026-09-23) called this the heaviest screen in the app.
+ * Closed, it carries what a bank's own account-details screen carries: a
+ * title, one card of numbers, and the actions that hand them over. Who can
+ * pay, fees and timing sit behind one toggle.
+ */
+describe('the details screen, collapsed and open', () => {
+    const eur: DepositAccountView = {
+        ...provisioning,
+        id: 'acct-eur',
+        railId: 'bridge.sepa_eu',
+        currency: 'EUR',
+        status: 'active',
+        rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+        instructions: {
+            accountHolderName: 'Ana Pérez',
+            iban: 'DE89 3704 0044 0532 0130 00',
+            bic: 'MTBEBEBB',
+            paymentRails: ['sepa'],
+        },
+    }
+    const secondary = [
+        messages.depositAccounts.rules.ownAccount.line,
+        messages.depositAccounts.rules.businessAny.line,
+        messages.depositAccounts.details.eurOwnName,
+        messages.depositAccounts.fees.converted,
+        messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
+    ]
+    const renderEur = () =>
+        details(
+            eur,
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.SEPA_EU
+        )
+
+    it('shows only the title, the card, the toggle and the actions while closed', () => {
+        renderEur()
+
+        expect(screen.getByText('DE89 3704 0044 0532 0130 00')).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.rows.iban)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: messages.depositAccounts.details.termsToggle })).toHaveAttribute(
+            'aria-expanded',
+            'false'
+        )
+        expect(screen.getByRole('button', { name: messages.depositAccounts.details.shareCta })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta })).toBeInTheDocument()
+        for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.sectionTitle)).not.toBeInTheDocument()
+    })
+
+    it('reveals who can pay, the fee and the timing when the toggle opens', () => {
+        renderEur()
+        openTerms()
+
+        for (const line of secondary) expect(screen.getByText(line)).toBeInTheDocument()
+        expect(screen.getByTestId('deposit-fee-rates')).toBeInTheDocument()
+    })
+
+    it('keeps an own-name-only rule beside the card, where it decides who can use the account', () => {
+        details(
+            {
+                ...eur,
+                railId: 'manteca.pix_br',
+                currency: 'BRL',
+                matching: { nameOnAccount: 'user', sender: 'own-name-only' },
+                rules: undefined,
+            },
+            () => {},
+            false,
+            () => {},
+            DEPOSIT_RAILS.PIX_BR
+        )
+
+        expect(screen.getByText(messages.depositAccounts.rules.ownName.line)).toBeInTheDocument()
+        openTerms()
+        expect(screen.getAllByText(messages.depositAccounts.rules.ownName.line)).toHaveLength(1)
     })
 })

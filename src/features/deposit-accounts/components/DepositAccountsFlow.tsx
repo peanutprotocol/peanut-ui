@@ -224,7 +224,7 @@ export function DepositAccountsFlow({
                     <TitleBlock
                         size="s"
                         title={t('details.heading', { currency: rail.currency, rail: railName(rail.corridor) })}
-                        description={t('details.provisioning', { currency: rail.currency })}
+                        description={t('details.provisioning')}
                     />
                     <DepositDetailsSkeleton rows={rail.detailRowCount} />
                 </div>
