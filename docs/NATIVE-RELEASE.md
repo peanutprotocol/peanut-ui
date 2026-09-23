@@ -234,9 +234,9 @@ Use the workflow that matches the release:
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
-Merging reviewed code to `main` starts production OTA for that exact commit. A successful
-OTA then starts the native TestFlight and Play internal build for the same commit. To retry
-the current `main` commit manually, dispatch **App Release OTA** on `main`:
+Merging reviewed code to `main` starts production OTA for that exact commit. During
+the OTA-first stage, native builds require a separate manual dispatch. To retry
+OTA for the current `main` commit manually, dispatch **App Release OTA** on `main`:
 
 ```sh
 gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref main
