@@ -3,7 +3,7 @@
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar"
+        "slideToProceed": "Deslizá y continuá"
     },
     "home": {
         "activation": {
@@ -851,13 +851,13 @@
         },
         "cancel": {
             "body": "No vas a poder volver a usarla.",
-            "slideToCancel": "Deslizá para cancelar",
+            "slideToCancel": "Deslizá y cancelá",
             "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
         },
         "lockModal": {
             "lockSuccessBody": "Volvé cuando quieras para desbloquearla.",
-            "slideToLock": "Deslizá para bloquear"
+            "slideToLock": "Deslizá y bloqueá"
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
@@ -1545,7 +1545,7 @@
             "selfCustody": "Con Peanut, sos el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
             "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la perdés, no se puede recuperar, porque solo vos tenés acceso.",
             "learnMore": "Aprendé a mantener tu passkey segura en <link>{platform}</link>.",
-            "slideToContinue": "Deslizá para continuar"
+            "slideToContinue": "Deslizá y continuá"
         },
         "guestLoginModal": {
             "title": "Iniciá sesión con tu Peanut Wallet",
@@ -1563,7 +1563,7 @@
         },
         "tokenAndNetworkConfirmationModal": {
             "title": "Enviá solo tokens compatibles en redes compatibles",
-            "slideToProceed": "Deslizá para continuar"
+            "slideToProceed": "Deslizá y continuá"
         },
         "rainCooldownIntroModal": {
             "title": "Esperá un momento",
