@@ -168,6 +168,24 @@ describe('AvatarPicker', () => {
         expect(tiles().map((el) => el.textContent)).toEqual(rolled)
     })
 
+    // a tap after a narrow roll clears the release, so a failed save still puts
+    // the saved pick back in the hand, checked
+    it('restores the saved pick when a save fails after a narrow roll', async () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        mockUser.user.avatarKey = 'basic.cactus'
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(die())
+        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
+        fireEvent.click(tile(A))
+
+        await server.settle(0, { error: 'Could not save' })
+
+        await waitFor(() => expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true'))
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+    })
+
     it('is the hand and nothing else: no title, no description, no header', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 

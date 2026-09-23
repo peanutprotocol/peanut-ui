@@ -175,7 +175,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
                                         // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
-                                        // The 32px top padding clears the Earned tag (20px tall, 6px down) by 6px so it never touches the sticker.
+                                        // The 32px top padding clears the Earned tag (20px tall, 4px down) by 8px so it never touches the sticker.
                                         // Under xs (390px) the sticker is 48px, which with one reserved text line each
                                         // makes the tile about as tall as it is wide. The chosen tile follows the selected-rows
                                         // rule in design.md: action-primary fill, over-color ink on every line, and a second
@@ -188,7 +188,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         <Badge
                                             status="custom"
                                             customText={t('earned')}
-                                            className="absolute top-1.5 right-1.5"
+                                            className="absolute top-1 right-1"
                                         />
                                     )}
                                     <UserAvatar

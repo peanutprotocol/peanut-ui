@@ -43,7 +43,7 @@
          those classes today. both need their call-sites triaged first.
        ─────────────────────────────────────────────────────────────────────── */
     /* the one phone breakpoint: under it the badge tiles and the avatar hand use
-       the narrow layout (2x2 hand, 48px art). Keep in step with HAND_WIDE_MIN_PX
+       the narrow layout (2x2 hand, 48px art). Keep in step with HAND_WIDE_MIN
        in src/components/Avatar/avatarPicker.utils.ts (TASK-22677). */
     --breakpoint-xs: 24.375rem;
 
