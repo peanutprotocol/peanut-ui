@@ -108,12 +108,19 @@ const mockGateForOp = jest.fn()
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
-function setCapabilities(gateKind: string, rails: Array<{ status: string; channel?: string; country?: string }>) {
+type GateScopeArg = { channel?: string; country?: string } | undefined
+function setCapabilities(
+    gateKind: string,
+    rails: Array<{ status: string; channel?: string; country?: string }>,
+    // a per-scope answer, for the case where the screen's country-scoped gate
+    // and another read (the ToS guard's unscoped deposit read) disagree
+    gateByScope?: (op: string, scope: GateScopeArg) => string
+) {
     mockUseCapabilities.mockReturnValue({
         isKycApproved: rails.some((r) => r.status === 'enabled'),
-        gateFor: (op: string) => {
-            mockGateForOp(op)
-            return { kind: gateKind }
+        gateFor: (op: string, scope: GateScopeArg) => {
+            mockGateForOp(op, scope)
+            return { kind: gateByScope?.(op, scope) ?? gateKind }
         },
         // bankRails is intentionally NOT consumed by the component any more;
         // expose a faithful (scope-honoring) impl so a future re-introduction
@@ -156,9 +163,7 @@ jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
-jest.mock('@/hooks/useTosGuard', () => ({
-    useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
-}))
+// useTosGuard is real: its own unscoped deposit read is what the ToS regressions below exercise
 let mockCooldown: { retryAt?: string } | null = null
 const mockDismissCooldown = jest.fn()
 beforeEach(() => {
@@ -259,7 +264,10 @@ jest.mock('@/components/Global/TokenAndNetworkConfirmationDrawer', () => ({ __es
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
+jest.mock('@/components/Kyc/BridgeTosStep', () => ({
+    BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
+        props.visible ? <div data-testid="bridge-tos-step" data-reason={props.reasonCode} /> : null,
+}))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     __esModule: true,
     default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
@@ -735,16 +743,20 @@ describe('AddWithdrawCountriesList — gates on the flow it is running', () => {
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
     })
 
+    // the country-scoped read is the screen's own; the ToS guard's unscoped
+    // deposit read (no country) is not the screen asking
+    const countryScoped = expect.objectContaining({ country: 'US' })
+
     it('the withdraw flow asks the gate for the withdraw capability, never deposit', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
-        expect(mockGateForOp).toHaveBeenCalledWith('withdraw')
-        expect(mockGateForOp).not.toHaveBeenCalledWith('deposit')
+        expect(mockGateForOp).toHaveBeenCalledWith('withdraw', countryScoped)
+        expect(mockGateForOp).not.toHaveBeenCalledWith('deposit', countryScoped)
     })
 
     it('the add flow asks the gate for the deposit capability', () => {
         render(<AddWithdrawCountriesList flow="add" />)
-        expect(mockGateForOp).toHaveBeenCalledWith('deposit')
-        expect(mockGateForOp).not.toHaveBeenCalledWith('withdraw')
+        expect(mockGateForOp).toHaveBeenCalledWith('deposit', countryScoped)
+        expect(mockGateForOp).not.toHaveBeenCalledWith('withdraw', expect.anything())
     })
 })
 
@@ -1009,6 +1021,26 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
         expect(screen.queryByTestId('row-loading')).toBeNull()
     })
 
+    /**
+     * The selected country's withdraw rail needs terms while another deposit
+     * rail is ready. The ToS guard's unscoped deposit read says ready; the step
+     * opens on the country-scoped verdict this screen resolved.
+     */
+    it('withdraw flow: the selected country needs terms although a deposit rail is ready — the terms step opens', () => {
+        mockLiveRails = twoWithdrawRails
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = [...previousWithdraw, cryptoRail]
+        setCapabilities('ready', enabledUs, (op, scope) =>
+            op === 'withdraw' && scope?.country === 'US' ? 'accept-tos' : 'ready'
+        )
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-to bank'))
+
+        expect(screen.getByTestId('bridge-tos-step')).toBeInTheDocument()
+        expect(screen.queryByTestId('bank-form')).toBeNull()
+        expect(mockSetSelectedMethod).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
     it('a wait-only gate says so instead of dropping the tap', () => {
         setCapabilities('waiting-on-provider', [])
         render(<AddWithdrawCountriesList flow="add" />)
@@ -1204,6 +1236,33 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
 
                 expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
                 expect(addBankAccount).not.toHaveBeenCalled()
+            })
+
+            /**
+             * The ToS guard's own read is the unscoped deposit gate, which still
+             * says ready here. The step opens on the verdict this screen resolved.
+             */
+            it('ready → accept-tos from the fetched profile: the terms step opens, account unsent', async () => {
+                const tosRail = {
+                    ...enabledUsBankRail,
+                    status: 'requires-info',
+                    blockingActions: ['tos:bridge'],
+                    reason: { code: 'tos_required', userMessage: 'Accept the terms to continue.' },
+                }
+                mockFetchUser.mockResolvedValue(
+                    profileWith(tosRail, [{ key: 'tos:bridge', kind: 'accept-tos', tosUrl: 'https://tos.example' }])
+                )
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                await act(async () => {
+                    await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
+                })
+
+                expect(screen.getByTestId('bridge-tos-step')).toHaveAttribute('data-reason', 'tos_required')
+                expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+                expect(addBankAccount).not.toHaveBeenCalled()
+                expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()
+                expect(mockPush).not.toHaveBeenCalled()
             })
 
             it('ready → blocked-rejection: the KYC modal presents the reason of the gate that blocked', async () => {

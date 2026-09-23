@@ -239,7 +239,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         if (fetchedBlock && user !== fetchedBlock.seenUser) setFetchedBlock(null)
     }, [user, fetchedBlock])
     const gate = fetchedBlock?.gate ?? renderGate
-    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    // `openTos`, not `guardWithTos`: the verdict is resolved here, for this
+    // country and operation (or the fetched profile); the guard's own unscoped
+    // deposit read can still say ready
+    const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
     // wait-only gates (provider review, provisioning) get the amount steps' "please wait"
@@ -293,7 +296,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
             if (gate.kind === 'accept-tos') {
                 pendingAfterTosRef.current = replay
-                guardWithTos()
+                openTos()
             } else if (gate.kind === 'provide-email') {
                 setShowProvideEmail(true)
             } else {
@@ -301,7 +304,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
             return true
         },
-        [gate, guardWithTos, currentCountry?.path, openPendingModal]
+        [gate, openTos, currentCountry?.path, openPendingModal]
     )
 
     const handleFormSubmit = async (
@@ -336,7 +339,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 // no user action available — show the wait, not a KYC modal
                 openPendingModal()
             } else if (settled.kind === 'accept-tos') {
-                guardWithTos()
+                openTos()
             } else if (settled.kind === 'provide-email') {
                 // A rail that flipped to email-blocked between form-open and submit
                 // is self-serve — open the email sheet, NOT the contact-support KYC
