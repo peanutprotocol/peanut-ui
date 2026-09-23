@@ -376,7 +376,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <Badge status={status!} size="medium" />}
+                {showBadge && (
+                    <Badge
+                        status={status!}
+                        size="medium"
+                        // a bank deposit sent back to the payer: the heading says
+                        // "Returned to sender", so the badge uses the same word
+                        customText={actionLabelKey === 'type.returnedToSender' ? t('returnedStatus') : undefined}
+                    />
+                )}
             </div>
         </div>
     )
