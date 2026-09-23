@@ -48,6 +48,7 @@ jobs:
     resolve:
         if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success') }}
         runs-on: ubuntu-latest
+        environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:

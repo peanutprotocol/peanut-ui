@@ -39,6 +39,7 @@ concurrency:
 jobs:
     resolve:
         runs-on: ubuntu-latest
+        environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             ios_version: ${{ steps.resolve.outputs.ios_version }}
