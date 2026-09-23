@@ -36,7 +36,8 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const onBack = useSafeBack('/home')
-    const { user: authUser, isFetchingUser, userFetchError } = useAuth()
+    const { user: authUser, isFetchingUser, userFetchError, fetchUser } = useAuth()
+    const authUnavailable = !authUser && !!userFetchError
     const router = useRouter()
     const contact = useRequestContact(username)
     const needsSetup = !!authUser && !authUser.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
@@ -167,7 +168,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         if (
             isRecipientUserLoading ||
             isFetchingUser ||
-            authUser === undefined ||
+            (authUser === undefined && !userFetchError) ||
             (!userFetchError && (!authUser || needsSetup)) ||
             contact.isLoading
         ) {
@@ -217,7 +218,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (
         isRecipientUserLoading ||
         isFetchingUser ||
-        authUser === undefined ||
+        (authUser === undefined && !userFetchError) ||
         (!userFetchError && (!authUser || needsSetup)) ||
         contact.isLoading
     ) {
@@ -239,20 +240,20 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         )
     }
 
-    if (userFetchError || contact.isError || !contact.data) {
+    if (authUnavailable || contact.isError || !contact.data) {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader onPrev={onBack} title={tNav('request')} />
                 <PageStack.Center className="gap-4">
                     <Notification priority="error">
                         {t(
-                            userFetchError || contact.isError
+                            authUnavailable || contact.isError
                                 ? 'errors.contactsUnavailable'
                                 : 'errors.moneyContactsOnly'
                         )}
                     </Notification>
-                    {contact.isError && (
-                        <Button onClick={() => contact.refetch()} icon="retry">
+                    {(authUnavailable || contact.isError) && (
+                        <Button onClick={() => (authUnavailable ? fetchUser() : contact.refetch())} icon="retry">
                             {tCommon('retry')}
                         </Button>
                     )}

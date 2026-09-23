@@ -10,6 +10,7 @@ jest.mock('@/hooks/useSafeBack', () => ({
 }))
 
 const mockReplace = jest.fn()
+const mockFetchUser = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
 let mockAuth: any
 let mockContact: any
@@ -105,7 +106,11 @@ const renderView = () =>
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
-    mockAuth = { user: { user: { userId: 'sender' }, accounts: [{ type: 'peanut-wallet' }] }, isFetchingUser: false }
+    mockAuth = {
+        user: { user: { userId: 'sender' }, accounts: [{ type: 'peanut-wallet' }] },
+        isFetchingUser: false,
+        fetchUser: mockFetchUser,
+    }
     mockContact = {
         data: { relationshipTypes: ['received_money'] },
         isLoading: false,
@@ -157,6 +162,39 @@ describe('addressed requests', () => {
                 toAddress: '0x000000000000000000000000000000000000dEaD',
             })
         )
+    })
+
+    test('keeps an eligible cached session usable when the auth refresh fails', async () => {
+        const { rerender } = renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
+        mockAuth = { ...mockAuth, userFetchError: new Error('Auth refresh unavailable') }
+        rerender(
+            <IntlWrapper>
+                <DirectRequestInitialView username="alice" />
+            </IntlWrapper>
+        )
+
+        expect(screen.getByTestId('amount-input')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
+        expect(screen.queryByText('We could not check your contacts. Please try again.')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '5' }))
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    test.each([null, undefined])('offers auth retry when no cached user exists (%s)', (user) => {
+        mockAuth = { ...mockAuth, user, userFetchError: new Error('Auth unavailable') }
+        mockContact = { ...mockContact, data: undefined }
+        renderView()
+
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+        expect(screen.getByText('We could not check your contacts. Please try again.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(mockRequestByUsername).not.toHaveBeenCalled()
     })
 
     test.each([
