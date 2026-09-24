@@ -26,7 +26,9 @@ export function bankListItems(
                 className="min-h-18"
                 disabled={row.chip === 'notAvailable'}
                 leading={row.flag ? <CorridorFlag iso2={row.flag} /> : undefined}
-                title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
+                title={
+                    <span className="break-words whitespace-normal">{row.currency ?? t(`rows.${row.labelKey}`)}</span>
+                }
                 trailing={rowStatusBadge(row, t)}
                 chevron={tappable}
                 onClick={tappable ? () => onRowClick(row) : undefined}

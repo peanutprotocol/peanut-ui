@@ -4,6 +4,8 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { Section } from '@/components/0_Bruddle/Section'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { HistorySkeleton } from '@/components/Home/HomeHistory'
 import Badge from '@/components/Global/Badges/Badge'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
@@ -40,7 +42,7 @@ export default function VaAwareAccountRows({
     isKycDegraded: boolean
 }) {
     const { accounts, gates, isLoading, isError, refetch } = useDepositAccounts()
-    const { t, railName } = useDepositAccountCopy()
+    const { t } = useDepositAccountCopy()
     const tRows = useTranslations('profile.unlockPayments')
     const router = useRouter()
     const held = DEPOSIT_RAIL_ORDER.filter((corridor) => isHeld(accounts[corridor]))
@@ -54,9 +56,8 @@ export default function VaAwareAccountRows({
     const heldRow = (corridor: (typeof held)[number]) => (
         <ListItem
             key={corridor}
-            // a ReactNode title wraps, as the hub's rows do;
-            // "GBP · Faster Payments" does not fit at 375
-            title={<span>{`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}</span>}
+            // currency only: the flag and the details drawer already name the rail
+            title={DEPOSIT_RAILS[corridor].currency}
             leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
             trailing={
                 canShare(accounts[corridor], gates[corridor]) ? (
@@ -90,9 +91,24 @@ export default function VaAwareAccountRows({
             )}
             <Section title={tRows('waysTitle')}>
                 <p className="text-body-s text-foreground-secondary">{tRows('waysSubtitle')}</p>
-                <ListGroup>
-                    {bankListItems(dedupeHeldBankRows(bankRows, activeCurrencies), onRowClick, isKycDegraded, tRows)}
-                </ListGroup>
+                {/* the bank rows are deduped against active accounts, so they wait
+                    for the fetch instead of rendering twice and jumping */}
+                {isLoading ? (
+                    <div className="flex flex-col">
+                        {bankRows.map((row, index) => (
+                            <HistorySkeleton key={row.id} position={getCardPosition(index, bankRows.length)} />
+                        ))}
+                    </div>
+                ) : (
+                    <ListGroup>
+                        {bankListItems(
+                            dedupeHeldBankRows(bankRows, activeCurrencies),
+                            onRowClick,
+                            isKycDegraded,
+                            tRows
+                        )}
+                    </ListGroup>
+                )}
             </Section>
         </>
     )

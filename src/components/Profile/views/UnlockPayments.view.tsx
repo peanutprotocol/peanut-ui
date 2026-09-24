@@ -224,7 +224,7 @@ const UnlockPayments = () => {
     )
 
     // The three lists this screen shows, named by group id rather than by
-    // position: the bank rows feed the "Add and withdraw money" list, the
+    // position: the bank rows feed the "Bank transfers" list, the
     // other two get their own sections below it.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
@@ -423,7 +423,6 @@ const UnlockPayments = () => {
     return (
         <PageStack gap="6" className="pb-10">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-            <p className="text-body-s">{t('description')}</p>
 
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">

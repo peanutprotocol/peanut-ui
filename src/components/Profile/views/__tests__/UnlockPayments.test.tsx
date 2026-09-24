@@ -267,7 +267,7 @@ describe('UnlockPayments', () => {
         mockKycDegraded = true
         render()
         expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -279,7 +279,7 @@ describe('UnlockPayments', () => {
         // an empty "Your account numbers" heading would promise details that do
         // not exist.
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-        const accountsHeading = screen.getByText('Add and withdraw money')
+        const accountsHeading = screen.getByText('Bank transfers')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
@@ -290,7 +290,7 @@ describe('UnlockPayments', () => {
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
         mockRegionRestricted = true
         render()
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(screen.getByText('region-restricted-modal')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
@@ -298,7 +298,7 @@ describe('UnlockPayments', () => {
 
     it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
         render()
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         expect(screen.getByText('unlock-modal-open:EUR · Bank transfer')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
@@ -319,8 +319,8 @@ describe('UnlockPayments', () => {
         // Region headers are gone (2026-09-18 currency-first merge), so the
         // "floats up" contract now shows in row order: the residence's own
         // region (South America) sorts before the others in the merged list.
-        const brazilRow = screen.getByText('BRL · Pix')
-        const europeRow = screen.getByText('EUR · Bank transfer')
+        const brazilRow = screen.getByText('BRL')
+        const europeRow = screen.getByText('EUR')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
@@ -337,7 +337,7 @@ describe('UnlockPayments', () => {
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
         // Both P2P and crypto are always-on and untouched by a bank/card restriction.
         expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -396,7 +396,7 @@ describe('UnlockPayments', () => {
         // Limits are one tap down, not a standing card above the fold.
         expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('BRL · Pix'))
+        fireEvent.click(screen.getByText('BRL'))
         expect(within(screen.getByRole('dialog')).getByText(/left this month/)).toBeInTheDocument()
     })
 
@@ -414,7 +414,7 @@ describe('UnlockPayments', () => {
         it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
             render()
 
-            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
+            expect(screen.getByText('Bank transfers')).toBeInTheDocument()
             expect(screen.getByText('Move money between your bank and Peanut in these currencies.')).toBeInTheDocument()
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
@@ -443,7 +443,7 @@ describe('UnlockPayments', () => {
             render()
 
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
+            expect(screen.getByText('Bank transfers')).toBeInTheDocument()
         })
 
         it('an account held: it gets its own section, its own words, and Ready', () => {
@@ -473,7 +473,7 @@ describe('UnlockPayments', () => {
         expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
         expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('USD · Bank transfer'))
+        fireEvent.click(screen.getByText('USD'))
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Per bank deposit')).toBeInTheDocument()
         expect(within(drawer).getByText('Per bank withdrawal')).toBeInTheDocument()
@@ -504,15 +504,31 @@ describe('UnlockPayments', () => {
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
         expect(screen.getByText('Your account numbers')).toBeInTheDocument()
-        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('EUR · SEPA'))
+        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
         )
         // An active EUR account covers the same corridor as the active "Euro
         // bank transfers" row (2026-09-18 currency-first merge) — the merged
         // list shows it once, not twice.
-        expect(screen.queryByText('EUR · Bank transfer')).not.toBeInTheDocument()
+        expect(screen.getAllByText('EUR')).toHaveLength(1)
+    })
+
+    it('holds the bank rows behind skeletons until the accounts load, so the deduped list does not jump', () => {
+        mockDepositEnabled = true
+        mockReadDepositAccounts.mockReturnValueOnce({
+            accounts: {},
+            gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
+            isLoading: true,
+            isError: false,
+            refetch: jest.fn(),
+        })
+        render()
+
+        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+        expect(screen.queryByText('EUR')).not.toBeInTheDocument()
+        expect(screen.queryByText('USD')).not.toBeInTheDocument()
     })
 
     it('keeps the bank row when the account cannot stand in for it', () => {
@@ -524,8 +540,8 @@ describe('UnlockPayments', () => {
         }
         render()
 
-        expect(screen.getByText('EUR · SEPA')).toBeInTheDocument()
-        expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
+        // one title for the held account row, one for the bank row
+        expect(screen.getAllByText('EUR')).toHaveLength(2)
     })
 
     /**
@@ -569,9 +585,7 @@ describe('UnlockPayments', () => {
         // ListGroup positions its direct children: every row after the first
         // drops its top border. Rows behind a wrapper component each kept all
         // four and rendered as separate cards.
-        const rows = ['EUR · Bank transfer', 'USD · Bank transfer'].map((title) =>
-            screen.getByText(title).closest('.border')
-        )
+        const rows = ['EUR', 'USD'].map((title) => screen.getByText(title).closest('.border'))
         const group = rows[0]?.parentElement
         expect(rows[1]?.parentElement).toBe(group)
         expect(group?.querySelectorAll(':scope > .border:not(.border-t-0)')).toHaveLength(1)
@@ -584,9 +598,9 @@ describe('UnlockPayments', () => {
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
-        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-        expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
+        expect(screen.getByText('EUR')).toBeInTheDocument()
     })
 
     it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
@@ -634,7 +648,7 @@ describe('UnlockPayments', () => {
         mockRails = [residenceParkedRail]
         mockIsKycApproved = true
         render()
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('Upload document'))
 
         expect(mockFixableRejection).toHaveBeenCalledWith(
@@ -661,7 +675,7 @@ describe('UnlockPayments', () => {
         ]
         mockIsKycApproved = true
         render()
-        fireEvent.click(screen.getByText('BRL · Pix'))
+        fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('Upload document'))
 
         expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
@@ -692,7 +706,7 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const bankRow = screen.getByText('BRL · Pix')
+            const bankRow = screen.getByText('BRL')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
             const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
@@ -708,7 +722,7 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const bankRow = screen.getByText('BRL · Pix')
+            const bankRow = screen.getByText('BRL')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
             const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
@@ -732,7 +746,7 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const row = screen.getByText('USD · Bank transfer').closest('.border') as HTMLElement
+            const row = screen.getByText('USD').closest('.border') as HTMLElement
             expect(within(row).queryByText('Available')).not.toBeInTheDocument()
             expect(within(row).getByText('Processing')).toBeInTheDocument()
         })
@@ -751,7 +765,7 @@ describe('UnlockPayments', () => {
             // a dual resident, so both Manteca rows are offered and no residence note shows
             mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
             render()
-            for (const title of ['BRL · Pix', 'ARS · Bank transfer', 'USD · Bank transfer', 'MXN · SPEI']) {
+            for (const title of ['BRL', 'ARS', 'USD', 'MXN']) {
                 expect(screen.getByText(title)).toBeInTheDocument()
             }
             expect(screen.queryByText(/USD and MXN/)).not.toBeInTheDocument()
@@ -762,9 +776,9 @@ describe('UnlockPayments', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            expect(badgeFor('USD · Bank transfer').getByText('Available')).toBeInTheDocument()
-            expect(badgeFor('MXN · SPEI').queryByText('Available')).not.toBeInTheDocument()
-            expect(badgeFor('MXN · SPEI').getByText('Unlock')).toBeInTheDocument()
+            expect(badgeFor('USD').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('MXN').queryByText('Available')).not.toBeInTheDocument()
+            expect(badgeFor('MXN').getByText('Unlock')).toBeInTheDocument()
         })
 
         // Konrad, 2026-09-23: "Unlock" is a DS badge in the neutral status,
@@ -773,7 +787,7 @@ describe('UnlockPayments', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            const unlock = badgeFor('MXN · SPEI').getByText('Unlock')
+            const unlock = badgeFor('MXN').getByText('Unlock')
             expect(unlock).toHaveClass('bg-background-badge-helper')
             expect(unlock).not.toHaveClass('bg-background-badge-accent')
         })
@@ -784,13 +798,13 @@ describe('UnlockPayments', () => {
             ]
             render()
 
-            expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
-            expect(badgeFor('ARS · Bank transfer').queryByText('Available')).not.toBeInTheDocument()
+            expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('ARS').queryByText('Available')).not.toBeInTheDocument()
         })
 
         it('sibling rows still route into the one verification that opens both', () => {
             render()
-            fireEvent.click(screen.getByText('MXN · SPEI'))
+            fireEvent.click(screen.getByText('MXN'))
             expect(screen.getByText('unlock-modal-open:MXN · SPEI')).toBeInTheDocument()
         })
 
@@ -798,7 +812,7 @@ describe('UnlockPayments', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            fireEvent.click(screen.getByText('USD · Bank transfer'))
+            fireEvent.click(screen.getByText('USD'))
             const drawer = screen.getByRole('dialog')
             expect(within(drawer).getByText('Add and withdraw dollars using US bank transfers.')).toBeInTheDocument()
             expect(within(drawer).queryByText(/Mexican pesos/)).not.toBeInTheDocument()
@@ -816,7 +830,7 @@ describe('UnlockPayments', () => {
             render()
 
             const spendHeading = screen.getByText('Spend')
-            const bankHeading = screen.getByText('Add and withdraw money')
+            const bankHeading = screen.getByText('Bank transfers')
             expect(bankHeading.compareDocumentPosition(spendHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
@@ -884,7 +898,7 @@ describe('UnlockPayments', () => {
         it('the bank list never mentions QR any more', () => {
             render()
 
-            const bankRow = screen.getByText('BRL · Pix')
+            const bankRow = screen.getByText('BRL')
             expect(bankRow.textContent).not.toMatch(/QR/)
         })
     })
@@ -923,7 +937,7 @@ describe("a row's modal reads the rails of its own country", () => {
     it('the Brazilian row offers the unlock; the Argentine ghost is not its story', () => {
         dualResident()
         render()
-        fireEvent.click(screen.getByText('BRL · Pix'))
+        fireEvent.click(screen.getByText('BRL'))
         expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
     })
@@ -931,7 +945,7 @@ describe("a row's modal reads the rails of its own country", () => {
     it('the Argentine row still owns its pending rail, and hands the drawer when it went pending', () => {
         dualResident()
         render()
-        fireEvent.click(screen.getByText('ARS · Bank transfer'))
+        fireEvent.click(screen.getByText('ARS'))
         expect(screen.getByText('processing-modal-open:2026-08-01T00:00:00.000Z')).toBeInTheDocument()
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
@@ -940,11 +954,11 @@ describe("a row's modal reads the rails of its own country", () => {
         dualResident()
         mockRails = []
         render()
-        fireEvent.click(screen.getByText('ARS · Bank transfer'))
+        fireEvent.click(screen.getByText('ARS'))
         fireEvent.click(screen.getByText('unlock now'))
         expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
 
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('unlock now'))
         // the backend refuses any non-Manteca target country, so Bridge rows send none
         expect(mockInitiateKyc).toHaveBeenLastCalledWith('EU', undefined, true, undefined)
@@ -970,17 +984,17 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         ]
         render()
 
-        expect(badgeFor('BRL · Pix').getByText('Not available')).toBeInTheDocument()
-        expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('ARS').getByText('Not available')).toBeInTheDocument()
         // the same neutral pill as the card's "Not available" (Konrad, 2026-09-23)
-        expect(badgeFor('BRL · Pix').getByText('Not available')).toHaveClass('bg-background-badge-helper')
-        expect(badgeFor('ARS · Bank transfer').queryByText('Processing')).not.toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Not available')).toHaveClass('bg-background-badge-helper')
+        expect(badgeFor('ARS').queryByText('Processing')).not.toBeInTheDocument()
         expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
         // the Bridge rows keep their offer, and so does QR — it needs no account
-        expect(badgeFor('EUR · Bank transfer').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('EUR').getByText('Unlock')).toBeInTheDocument()
         expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('BRL · Pix'))
+        fireEvent.click(screen.getByText('BRL'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
     })
@@ -1000,8 +1014,8 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         ]
         render()
 
-        expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
-        expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
+        expect(badgeFor('ARS').getByText('Not available')).toBeInTheDocument()
         expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
     })
 })

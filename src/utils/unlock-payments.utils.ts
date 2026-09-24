@@ -47,6 +47,8 @@ export interface UnlockRow {
      * Absent on `p2p`/`card`, which keep their icons in the "Peanut" group.
      */
     flag?: string
+    /** bank rows: the ISO code the accounts page shows as the row title (2026-09-24) */
+    currency?: string
 }
 
 export interface UnlockGroup {
@@ -100,6 +102,7 @@ const BANK_ROWS: readonly {
     group: Extract<UnlockGroupLabelKey, 'southAmerica' | 'northAmerica' | 'europe'>
     country: string
     flag: string
+    currency: string
     regionPath: NonNullable<UnlockRow['regionPath']>
     limitRefs: NonNullable<UnlockRow['limitRefs']>
     /**
@@ -112,6 +115,7 @@ const BANK_ROWS: readonly {
 }[] = [
     {
         key: 'brl',
+        currency: 'BRL',
         group: 'southAmerica',
         country: 'BR',
         flag: 'br',
@@ -121,6 +125,7 @@ const BANK_ROWS: readonly {
     },
     {
         key: 'ars',
+        currency: 'ARS',
         group: 'southAmerica',
         country: 'AR',
         flag: 'ar',
@@ -130,6 +135,7 @@ const BANK_ROWS: readonly {
     },
     {
         key: 'usd',
+        currency: 'USD',
         group: 'northAmerica',
         country: 'US',
         flag: 'us',
@@ -138,13 +144,22 @@ const BANK_ROWS: readonly {
     },
     {
         key: 'mxn',
+        currency: 'MXN',
         group: 'northAmerica',
         country: 'MX',
         flag: 'mx',
         regionPath: 'north-america',
         limitRefs: ['bridge'],
     },
-    { key: 'sepa', group: 'europe', country: 'EU', flag: 'eu', regionPath: 'europe', limitRefs: ['bridge'] },
+    {
+        key: 'sepa',
+        currency: 'EUR',
+        group: 'europe',
+        country: 'EU',
+        flag: 'eu',
+        regionPath: 'europe',
+        limitRefs: ['bridge'],
+    },
 ]
 
 /** The rail jurisdiction each bank row reads its chip from. */
@@ -187,6 +202,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             chip,
             limitRefs: spec.limitRefs,
             flag: spec.flag,
+            currency: spec.currency,
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath: spec.regionPath }),
         }
