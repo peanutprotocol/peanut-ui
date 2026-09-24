@@ -1,6 +1,5 @@
 'use client'
 
-import { PageStack } from '@/components/0_Bruddle/PageStack'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { trackShared } from '../analytics'
@@ -36,8 +35,10 @@ export function DepositShareActions({
         railLabels
     )
 
+    // not PageStack.Footer: its mt-auto pushed the CTAs to the screen bottom,
+    // leaving a gap under the short details card. they follow the content.
     return (
-        <PageStack.Footer>
+        <div className="flex flex-col gap-3">
             <ShareButton
                 generateText={async () => {
                     trackShared(rail.corridor, 'share-sheet')
@@ -57,6 +58,6 @@ export function DepositShareActions({
                 label={t('share.copyCta')}
                 onCopy={() => trackShared(rail.corridor, 'copy')}
             />
-        </PageStack.Footer>
+        </div>
     )
 }

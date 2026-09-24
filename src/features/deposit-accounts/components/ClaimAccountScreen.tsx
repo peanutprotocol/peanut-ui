@@ -5,10 +5,10 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
@@ -95,15 +95,15 @@ export function ClaimAccountScreen({
                  */}
                 <ListGroup>
                     <ListItem
-                        leading={<Icon name="wallet" size={24} className="self-start text-foreground-primary" />}
+                        leading={<IconBubble icon="wallet" size="s" color="gray" className="self-start" />}
                         title={<span>{t('claim.benefitBalance')}</span>}
                     />
                     <ListItem
-                        leading={<Icon name="clock" size={24} className="self-start text-foreground-primary" />}
+                        leading={<IconBubble icon="clock" size="s" color="gray" className="self-start" />}
                         title={<span>{arrivalDetail(rail.corridor)}</span>}
                     />
                     <ListItem
-                        leading={<Icon name="link" size={24} className="self-start text-foreground-primary" />}
+                        leading={<IconBubble icon="link" size="s" color="gray" className="self-start" />}
                         title={<span>{t('claim.benefitStable')}</span>}
                     />
                 </ListGroup>
