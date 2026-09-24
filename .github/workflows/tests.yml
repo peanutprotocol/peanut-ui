@@ -102,6 +102,7 @@ jobs:
 
             - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
             - run: pnpm screens:test
+            - run: node --test scripts/backdoor-scan.test.mjs
 
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
