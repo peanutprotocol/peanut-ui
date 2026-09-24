@@ -11,6 +11,7 @@
 
 import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
@@ -18,7 +19,7 @@ export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'atte
 export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 
 /** Exact key unions so next-intl's typed t() accepts the derived keys. */
-export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'
+export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'pixKey' | 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'
 
 /** The bank corridors, one per currency (2026-09-21). */
 export type BankRowKey = Extract<UnlockRowLabelKey, 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'>
@@ -28,11 +29,11 @@ export interface UnlockRow {
     id: string
     /** i18n key under profile.unlockPayments.rows */
     labelKey: UnlockRowLabelKey
-    icon: 'qr-code' | 'bank' | 'credit-card' | 'wallet' | 'coins'
+    icon: 'qr-code' | 'arrow-up-right' | 'bank' | 'credit-card' | 'wallet' | 'coins'
     chip: UnlockChip
     /** region path the tap routes into (existing region modal machinery); absent = not tappable */
     regionPath?: 'europe' | 'north-america' | 'latam'
-    /** card row only: navigate instead of opening a region modal */
+    /** card and Pix-key rows: navigate instead of opening a region modal */
     href?: string
     /**
      * Which limits apply once the row is active: Manteca per-currency
@@ -65,6 +66,12 @@ export interface BuildUnlockGroupsInput {
     bankChips: Record<BankRowKey, BankRegionChip>
     /** whether the user can pay by QR in Brazil or Argentina today (the `pay` capability) */
     canPayQr: boolean
+    /**
+     * whether the user holds the Manteca `pay` capability itself — the exact
+     * gate /qr-pay enforces. Narrower than `canPayQr`, which also counts the
+     * legacy Bridge-only QR cohort that /qr-pay would send back to verification.
+     */
+    canPayPixKey: boolean
     restrictions: { banking: boolean; card: boolean }
     card: 'active' | 'get' | 'notAvailable'
     /** ISO-2 residence (verified preferred, else declared) for the "Your region" tag */
@@ -146,7 +153,16 @@ export const BANK_ROW_COUNTRIES: Record<BankRowKey, string> = Object.fromEntries
 ) as Record<BankRowKey, string>
 
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
-    const { bankChips, canPayQr, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const {
+        bankChips,
+        canPayQr,
+        canPayPixKey,
+        restrictions,
+        card,
+        residenceIso2,
+        secondResidenceIso2,
+        isEuropeResidence,
+    } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
     // `residenceIso2` is already verified-else-declared; the same derivation
     // the top-up gates read (`useResidenceIso2s`), so the row and the flow
@@ -204,6 +220,26 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         limitRefs: ['BRL', 'ARS'],
         ...(qrChip === 'active' || qrChip === 'notAvailable' ? {} : { regionPath: 'latam' as const }),
     }
+    // Paying a Pix key rides the QR-payment rail (the method=pix delegation
+    // in /withdraw/manteca hands off to /qr-pay). Its own row exists because
+    // users read "QR payments" as scan-only and paid Pix keys elsewhere
+    // (2026-09-23, hugo). It reads Available only on the Manteca pay
+    // capability /qr-pay checks, never on the QR row's legacy Bridge-only
+    // fallback: that cohort would reach key entry and then be sent back to
+    // verification. Everyone else gets the LATAM unlock offer.
+    const pixKeyOfferChip: UnlockChip = bankChips.brl === 'active' ? 'unlock' : bankChips.brl
+    const pixKeyChip: UnlockChip = restrictions.banking ? 'notAvailable' : canPayPixKey ? 'active' : pixKeyOfferChip
+    const pixKeyRow: UnlockRow = {
+        id: 'pix-key',
+        labelKey: 'pixKey',
+        icon: 'arrow-up-right',
+        chip: pixKeyChip,
+        ...(pixKeyChip === 'active'
+            ? { href: mantecaWithdrawUrl({ method: 'pix', country: 'brazil' }) }
+            : pixKeyChip === 'notAvailable'
+              ? {}
+              : { regionPath: 'latam' as const }),
+    }
 
     const groups: UnlockGroup[] = [
         {
@@ -219,13 +255,13 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             ],
         },
         // Spending, named apart from adding and withdrawing money (2026-09-21):
-        // the card and QR payments both pay a shop, and neither moves money
-        // between a bank and Peanut.
+        // the card, QR payments and Pix keys all pay someone, and none moves
+        // money between a bank and Peanut.
         {
             id: 'spend',
             labelKey: 'spend',
             isYourRegion: false,
-            rows: [cardRow, qrRow],
+            rows: [cardRow, qrRow, pixKeyRow],
         },
         // One row per currency, not per unlock (ruled 2026-09-21, hugo). Brazil
         // and Argentina still share one Manteca verification and the US and

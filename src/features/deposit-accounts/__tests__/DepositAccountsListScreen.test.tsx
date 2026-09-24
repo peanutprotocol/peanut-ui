@@ -244,7 +244,7 @@ describe('DepositAccountsListScreen', () => {
             expect(within(screen.getByTestId('bank-top-up')).getByTestId('deposit-account-BANK_TRANSFER_AR')).toBe(row)
             expect(screen.queryByTestId('your-accounts')?.contains(row) ?? false).toBe(false)
             expect(within(row).getByText('One-off transfer via Mercado Pago')).toBeInTheDocument()
-            for (const badge of ['Available', 'Ready', 'Not set up', 'Unavailable'])
+            for (const badge of ['Available', 'Ready', 'Not set up', 'Not available'])
                 expect(within(row).queryByText(badge)).not.toBeInTheDocument()
         })
 
@@ -371,7 +371,7 @@ describe('DepositAccountsListScreen', () => {
     it('badges no pointer row at all', () => {
         const { container } = list(false, { corridors: ['PIX_BR'] })
 
-        expect(inRow(container, 'PIX_BR').queryByText('Unavailable')).not.toBeInTheDocument()
+        expect(inRow(container, 'PIX_BR').queryByText('Not available')).not.toBeInTheDocument()
         expect(inRow(container, 'PIX_BR').queryByText('Not set up')).not.toBeInTheDocument()
         expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Not set up')).not.toBeInTheDocument()
     })
@@ -546,10 +546,23 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
             expect(screen.queryByText(LIST.accountLimitNote.replace('{cap}', '2'))).not.toBeInTheDocument()
         })
 
-        it('explains the limit from a real button, for touch and keyboard', () => {
+        // The count is the Section's trailing slot, beside the heading rather
+        // than inside it, so the heading is named by its title alone (A8).
+        it('sits beside the heading, not inside it', () => {
             list(false)
 
-            const why = within(screen.getByTestId('account-counter')).getByRole('button')
+            const heading = screen.getByRole('heading', { name: LIST.sectionTitle })
+            expect(heading).toHaveTextContent(new RegExp(`^${LIST.sectionTitle}$`))
+            expect(heading.contains(screen.getByTestId('account-counter'))).toBe(false)
+            expect(heading.parentElement?.contains(screen.getByTestId('account-counter'))).toBe(true)
+        })
+
+        it('explains the limit from a real, named button, for touch and keyboard', () => {
+            list(false)
+
+            const why = within(screen.getByTestId('account-counter')).getByRole('button', {
+                name: LIST.accountLimitWhyLabel,
+            })
             fireEvent.click(why)
             expect(screen.getByText(LIST.accountLimitWhy)).toBeInTheDocument()
         })
@@ -1260,7 +1273,7 @@ describe('a withheld corridor, by the reason the backend gives', () => {
 
 /*
  * Konrad, 2026-09-23: `custom` is a new element, and its accent colour made the
- * counter, "Not set up" and "Unavailable" read as one thing. A fact with no
+ * counter, "Not set up" and "Not available" read as one thing. A fact with no
  * tone takes the neutral status; nothing on this screen borrows the accent.
  */
 describe('badges on the hub state status in DS colours', () => {

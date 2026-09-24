@@ -155,10 +155,20 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
+    // audit #61 (hugo, 2026-09-23): the safe way out keeps its words and its stroke button weight
+    it('offers "Keep my card" as the one button, and it closes without canceling', () => {
+        setup(OVERVIEW)
+        const onClose = jest.fn()
+        render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
+        fireEvent.click(screen.getByRole('button', { name: 'Keep my card' }))
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(mockCancelCard).not.toHaveBeenCalled()
+    })
+
     it('forces collateral-only routing and delivers the withdrawal to the cancel call', async () => {
         setup(OVERVIEW)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
@@ -167,7 +177,7 @@ describe('CancelCardModal', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
@@ -176,7 +186,7 @@ describe('CancelCardModal', () => {
     it('cancels without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })

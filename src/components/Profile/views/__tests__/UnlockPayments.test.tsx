@@ -312,14 +312,23 @@ describe('UnlockPayments', () => {
     it("shows the verified residence anchor and floats that region's rows to the top of the merged list", () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR' } }
         render()
-        expect(screen.getByText('Residence: Brazil')).toBeInTheDocument()
-        expect(screen.getByText('Verified')).toBeInTheDocument()
+        // two-line row: the country never shares a truncating line with the pill
+        expect(screen.getByText('Residence')).toBeInTheDocument()
+        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
+        expect(screen.getByText('Verified')).toHaveClass('bg-background-badge-success')
         // Region headers are gone (2026-09-18 currency-first merge), so the
         // "floats up" contract now shows in row order: the residence's own
         // region (South America) sorts before the others in the merged list.
         const brazilRow = screen.getByText('BRL · Pix')
         const europeRow = screen.getByText('EUR · Bank transfer')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('an unconfirmed residence reads as a neutral badge, beside the verified one', () => {
+        mockUser = { residence: { declared: 'BR', verified: null } }
+        render()
+        expect(screen.getByText('Not confirmed')).toHaveClass('bg-background-badge-helper')
+        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
     })
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
@@ -813,7 +822,7 @@ describe('UnlockPayments', () => {
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
             // lines at 375px; the description holds it in two
-            expect(screen.getByText('Brazil and Argentina. Pay in shops by scanning a QR code.')).toBeInTheDocument()
+            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
 
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
@@ -833,6 +842,43 @@ describe('UnlockPayments', () => {
                 within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
             ).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
+        // A Brazilian user read "QR payments" as scan-only and paid Pix keys
+        // in another app (2026-09-23). The key send is its own row.
+        it('names Pix key payments with the key types, and offers them to a user without QR', () => {
+            render()
+
+            expect(screen.getByText('Brazil. CPF, CNPJ, phone, email or random key.')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Pix key payments'))
+            expect(screen.getByText('unlock-modal-open:Pix key payments')).toBeInTheDocument()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('opens the send-to-Pix-key screen once the QR rail is live', () => {
+            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
+            render()
+
+            const pixKeyRow = screen.getByText('Pix key payments')
+            expect(within(pixKeyRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            fireEvent.click(pixKeyRow)
+            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        })
+
+        // Chip review on ui#3400: a Bridge-only user reads QR payments through
+        // the legacy region fallback, but /qr-pay gates on the Manteca pay
+        // capability. The Pix key row must not link them into that gate.
+        it('a Bridge-only user never gets a Pix key link', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            // the QR row still reads Available through the fallback
+            const qrRow = screen.getByText('QR payments')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            const pixKeyRow = screen.getByText('Pix key payments')
+            expect(within(pixKeyRow.closest('.border') as HTMLElement).queryByText('Available')).not.toBeInTheDocument()
+            fireEvent.click(pixKeyRow)
+            expect(mockPush).not.toHaveBeenCalled()
         })
 
         it('the bank list never mentions QR any more', () => {

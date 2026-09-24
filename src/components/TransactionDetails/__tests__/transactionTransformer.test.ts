@@ -610,6 +610,21 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.actionLabelKey).toBe('type.returnedToSender')
             expect(result.status).toBe('refunded')
         })
+
+        it('carries why the bank sent it back to the receipt', () => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.REFUNDED,
+                extraData: {
+                    kind: 'ONRAMP',
+                    provider: 'BRIDGE',
+                    returnReason: { code: 'third_party', text: 'Risk Rejection: Third Party Payment' },
+                },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.extraDataForDrawer?.returnReasonCode).toBe('third_party')
+        })
     })
 
     describe('refund credit rows (status + sign + flag)', () => {

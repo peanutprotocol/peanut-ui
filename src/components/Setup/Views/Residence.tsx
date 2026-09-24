@@ -2,8 +2,10 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -28,7 +30,6 @@ type PartialRestriction = 'card' | 'banking'
 // tap target to the 44px minimum without moving the text (design.md touch law).
 const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
-const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
 
 const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
@@ -295,14 +296,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.congrats.continue')}
                     </Button>
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -325,14 +322,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.partial.continue')}
                     </Button>
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -378,14 +371,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                             {t('residenceStep.restricted.notifyMe')}
                         </Button>
                     )}
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -448,10 +437,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                 const summary = residenceAvailability(restrictionSets, iso2)
                                 const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
                                 return (
-                                    <div
-                                        key={iso2}
-                                        className="rounded-sm border border-border-default bg-background-default p-3"
-                                    >
+                                    <div key={iso2} className={`${CARD_SURFACE} p-3`}>
                                         <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>

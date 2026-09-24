@@ -429,6 +429,34 @@ it('promotes a verified bridge and disables native-version downgrade protection 
     })
     expect(invoke('verify-promotion', policyResponses([promoted, channels[1]])).status).toBe(1)
 })
+it('keeps bridge bundle numbers separate from the next public OTA number', () => {
+    const bridgeChannels = [
+        { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false },
+        { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false },
+    ]
+    const releases = [
+        { name: '1.6.7-ios' },
+        { name: '1.6.7-android' },
+        { name: '1.5.1000-ios' },
+        { name: '1.6.1000-android' },
+        { name: '1.5.1001-ios', deleted: true },
+        { name: '1.6.1001-android', deleted: true },
+    ]
+    const result = invoke('current-release', [...policyResponses(bridgeChannels), { body: releases }], {
+        ALLOW_IOS_BRIDGE: '1',
+        ALLOW_ANDROID_BRIDGE: '1',
+    })
+    expect(result.status).toBe(0)
+    expect(result.result).toBe('1.6.7')
+    const bridgeEnv = { ALLOW_IOS_BRIDGE: '1', ALLOW_ANDROID_BRIDGE: '1' }
+    expect(invoke('next-ios-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result).toBe(
+        '1.5.1002-ios'
+    )
+    expect(
+        invoke('next-android-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result
+    ).toBe('1.6.1002-android')
+})
+
 it('verifies the selected production artifact after promotion', () => {
     const rows = [channelPolicy('ios', env.VERSION), channels[1]]
     expect(invoke('verify-production', [...policyResponses(rows), { body: [goodBundle] }]).status).toBe(0)

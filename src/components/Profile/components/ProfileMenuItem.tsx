@@ -61,7 +61,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                     <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
                 <label className="text-body-m text-foreground-primary">{label}</label>
-                {badge && <Badge status="custom" customText={badge} />}
+                {badge && <Badge status="neutral" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
                         <Icon name="info" size={16} fill="black" />
