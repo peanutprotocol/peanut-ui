@@ -298,6 +298,13 @@ export interface Translations {
     footerSendTo: string // "Send to {name}"
     footerSendFrom: string // "Send from {name}"
     footerPeanutVs: string // "Peanut vs {name}"
+    // Learn More link labels, looked up by footer-manifest slug (SEOFooter)
+    footerLinkPricing: string
+    footerLinkSupportedNetworks: string
+    footerLinkDigitalNomads: string
+    footerLinkFamilies: string
+    footerLinkRemoteWorkers: string
+    footerLinkVerification: string
 
     // Misc
     lastUpdated: string // "Last updated: {date}"

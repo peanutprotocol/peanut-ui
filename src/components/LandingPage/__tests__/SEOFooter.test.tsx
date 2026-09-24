@@ -30,3 +30,20 @@ describe('SEOFooter locale ownership', () => {
         expect(hrefs).toContain('/es-ar/compare/peanut-vs-wise')
     })
 })
+
+describe('SEOFooter labels', () => {
+    const linkTexts = (container: HTMLElement) =>
+        [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) => link.textContent)
+
+    it('keeps the English Learn More labels on en', () => {
+        const texts = linkTexts(render(<SEOFooter locale="en" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Help Center', 'Fees and Pricing', 'Verification Guide']))
+    })
+
+    it('translates the Learn More labels instead of showing manifest names', () => {
+        const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Central de Ajuda', 'Taxas e preços', 'Guia de verificação']))
+        expect(texts).not.toContain('Supported Networks')
+        expect(texts).not.toContain('Send Money to Family')
+    })
+})
