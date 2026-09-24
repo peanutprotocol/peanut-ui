@@ -73,12 +73,15 @@ jobs:
                           echo
                           echo "## ⚠️ This PR changes CI workflows or the backdoor scan itself"
                           echo
-                          echo "The scan in \`tests.yml\` runs this PR's own workflow, so a change here could switch it off. Someone other than the author must read these files before anyone runs the branch:"
+                          echo "The scan in \`tests.yml\` runs this PR's own workflow, so a change here could switch it off. This check stays red until the change is merged. Someone other than the author must read these files before anyone runs the branch:"
                           echo
                           sed 's/^/- `/; s/$/`/' "$RUNNER_TEMP/guarded.txt"
                       fi
                   } > "$RUNNER_TEMP/comment.md"
                   gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
-            - name: Fail when the scan blocks
-              if: steps.scan.outputs.status == '1'
+            # A change to a workflow or the scanner fails too. tests.yml runs the PR's own
+            # copy, so such a PR can switch its scan off; a red check here is the signal
+            # that someone other than the author must read it before anyone runs it.
+            - name: Fail when the scan blocks or the gates change
+              if: steps.scan.outputs.status == '1' || steps.scan.outputs.guarded == 'true'
               run: exit 1
