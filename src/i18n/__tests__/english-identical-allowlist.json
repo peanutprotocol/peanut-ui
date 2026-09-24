@@ -33,6 +33,6 @@
         "withdraw.bankForm.documentTypeCe": "Colombian ID document name; en already holds the Spanish legal term \"Cédula de extranjería\"",
         "depositAccounts.rows.rails.faster_payments": "UK payment rail name (Faster Payments), a proper noun",
         "depositAccounts.corridors.FASTER_PAYMENTS_GB.railName": "UK payment rail name (Faster Payments), a proper noun",
-        "shhhhh.hero.title": "brand line, translation decision pending (24 Sep)"
+        "shhhhh.hero.title": "brand line, kept in English (Konrad 24 Sep 2026)"
     }
 }
