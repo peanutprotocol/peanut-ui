@@ -91,28 +91,50 @@ export function execTier(path) {
 	return null
 }
 
-/** Added lines per file from a unified diff: [{ path, line, text }]. */
+/**
+ * Added lines per file from a unified diff: [{ path, line, text }].
+ *
+ * Hunk bodies are consumed by their line counts. A header is only read
+ * between hunks: otherwise an added line whose text is `++ b/README.md` shows
+ * up as `+++ b/README.md` and would re-label every line after it as a
+ * markdown file, out of reach of the code checks.
+ */
 export function addedLines(diff) {
 	const out = []
+	const rows = diff.split('\n')
 	let path = null
-	let line = 0
-	for (const raw of diff.split('\n')) {
+	for (let i = 0; i < rows.length; i += 1) {
+		const raw = rows[i]
+		if (raw.startsWith('diff --git ')) {
+			path = null
+			continue
+		}
 		if (raw.startsWith('+++ ')) {
 			const target = raw.slice(4).trim()
 			path = target === '/dev/null' ? null : target.replace(/^b\//, '')
 			continue
 		}
-		if (raw.startsWith('@@')) {
-			const match = raw.match(/\+(\d+)(?:,\d+)?/)
-			line = match ? Number(match[1]) : 0
-			continue
-		}
-		if (!path || raw.startsWith('---')) continue
-		if (raw.startsWith('+')) {
-			out.push({ path, line, text: raw.slice(1) })
-			line += 1
-		} else if (raw.startsWith(' ')) {
-			line += 1
+		const hunk = raw.match(/^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/)
+		if (!hunk) continue
+		let oldLeft = hunk[1] === undefined ? 1 : Number(hunk[1])
+		let newLeft = hunk[3] === undefined ? 1 : Number(hunk[3])
+		let line = Number(hunk[2])
+		while ((oldLeft > 0 || newLeft > 0) && i + 1 < rows.length) {
+			i += 1
+			const body = rows[i]
+			if (body.startsWith('\\')) continue // "\ No newline at end of file"
+			const kind = body[0]
+			if (kind === '+') {
+				if (path) out.push({ path, line, text: body.slice(1) })
+				line += 1
+				newLeft -= 1
+			} else if (kind === '-') {
+				oldLeft -= 1
+			} else {
+				line += 1
+				oldLeft -= 1
+				newLeft -= 1
+			}
 		}
 	}
 	return out
