@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react'
-import { IconBubble } from '../IconBubble'
+import { IconBubble, type IconBubbleColor } from '../IconBubble'
 import { CONCEPT_ICONS, type Concept } from '../conceptIcons'
 
 const CONCEPTS = Object.keys(CONCEPT_ICONS) as Concept[]
@@ -24,7 +24,8 @@ describe('CONCEPT_ICONS', () => {
     })
 
     test('gray stays the inactive tone: no concept is gray', () => {
-        expect(CONCEPTS.filter((concept) => CONCEPT_ICONS[concept].color === 'gray')).toEqual([])
+        const colors: IconBubbleColor[] = CONCEPTS.map((concept) => CONCEPT_ICONS[concept].color)
+        expect(colors).not.toContain('gray')
     })
 
     // QA-32: the Send picker drew crypto with the card glyph
