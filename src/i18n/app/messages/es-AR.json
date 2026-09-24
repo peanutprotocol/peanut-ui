@@ -633,7 +633,12 @@
             "enterRecipient": "Ingresá una dirección de destinatario",
             "rateUnavailable": "Ahora no hay un tipo de cambio para {currency}. Intentá de nuevo o solicitá en USD.",
             "invalidRequestedAmount": "Este monto no es válido en {currency}. Revisá los decimales e intentá de nuevo.",
-            "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicitá en USD."
+            "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicitá en USD.",
+            "signInRequired": "Iniciá sesión para solicitar dinero.",
+            "moneyContactsOnly": "Solo podés solicitar dinero a personas a las que les hayas pagado o de las que hayas recibido un pago.",
+            "requestLimit": "Demasiadas solicitudes de pago. Intentá más tarde.",
+            "walletOwnership": "Usá tu propia billetera Peanut para recibir este pago.",
+            "contactsUnavailable": "No pudimos consultar tus contactos. Intentá de nuevo."
         },
         "currency": {
             "select": "Elegí la moneda de la solicitud"
