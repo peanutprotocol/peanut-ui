@@ -29,6 +29,8 @@ test('scans added code even when a previously committed attribute disables text 
         const ordinaryDiff = git('diff', '--unified=0', `${base}...HEAD`)
         assert.match(ordinaryDiff, /Binary files .* differ/)
         assert.doesNotMatch(ordinaryDiff, /eval\('1'\)/)
+        const forcedDiff = git('diff', '--text', '--unified=0', `${base}...HEAD`)
+        assert.match(forcedDiff, /\+module\.exports = \{\};.*eval\('1'\)/)
 
         for (const args of [
             ['--base', base, '--head', 'HEAD'],
