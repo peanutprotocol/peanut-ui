@@ -338,7 +338,6 @@
         },
         "unlockPayments": {
             "title": "Accounts and payments",
-            "description": "Your accounts, payment methods and verification status.",
             "residence": {
                 "label": "Residence",
                 "unknown": "Residence not set",
@@ -448,7 +447,7 @@
                 "aboutTitle": "What you can do",
                 "limitsTitle": "Limits"
             },
-            "waysTitle": "Add and withdraw money",
+            "waysTitle": "Bank transfers",
             "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
             "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
             "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key."
@@ -1014,8 +1013,8 @@
             "cta": "Send via link"
         },
         "methods": {
-            "contactsTitle": "Peanut username",
-            "contactsDescription": "Enter an exact @username or choose a contact",
+            "contactsTitle": "Peanut user",
+            "contactsDescription": "Send to your Peanut friends",
             "bankTitle": "Bank transfer",
             "bankDescription": "EUR, USD, MXN, ARS and more",
             "instantTransfers": "Instant transfers",
@@ -4080,7 +4079,6 @@
         "title": "Your bank details",
         "list": {
             "addTitle": "Add money",
-            "addHeading": "How would you like to add money?",
             "bankTopUpTitle": "Add money from your bank",
             "oneOffBody": {
                 "BANK_TRANSFER_AR": "One-off transfer via Mercado Pago",

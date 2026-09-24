@@ -338,7 +338,6 @@
         },
         "unlockPayments": {
             "title": "Contas e pagamentos",
-            "description": "Suas contas, formas de pagamento e status de verificação.",
             "residence": {
                 "label": "Residência",
                 "unknown": "Residência não definida",
@@ -448,7 +447,7 @@
                 "aboutTitle": "O que você pode fazer",
                 "limitsTitle": "Limites"
             },
-            "waysTitle": "Adicionar e sacar dinheiro",
+            "waysTitle": "Transferências bancárias",
             "waysSubtitle": "Movimente dinheiro entre seu banco e o Peanut nestas moedas.",
             "qrPayNote": "Escaneie o QR code de uma loja no Brasil ou na Argentina.",
             "pixKeyNote": "Brasil. CPF, CNPJ, telefone, e-mail ou chave aleatória."
@@ -1015,7 +1014,7 @@
         },
         "methods": {
             "contactsTitle": "Usuário do Peanut",
-            "contactsDescription": "Digite um @usuário exato ou escolha um contato",
+            "contactsDescription": "Envie para seus amigos do Peanut",
             "bankTitle": "Transferência bancária",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
@@ -4080,7 +4079,6 @@
         "title": "Seus dados bancários",
         "list": {
             "addTitle": "Adicionar dinheiro",
-            "addHeading": "Como você quer adicionar dinheiro?",
             "bankTopUpTitle": "Adicione dinheiro do seu banco",
             "oneOffBody": {
                 "BANK_TRANSFER_AR": "Transferência única pelo Mercado Pago",
