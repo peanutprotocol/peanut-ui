@@ -243,6 +243,9 @@ export async function jevFindings(lines, { key, fetchImpl = fetch, budget = 6000
 					const answers = (await response.json()).answers || {}
 					const malicious = Number(answers.malicious?.noul)
 					const hidden = Number(answers.hidden_or_obfuscated?.noul)
+					// A reply without a score is no verdict. Stored as NaN it would
+					// win every later comparison and mask a real 0.95 on another chunk.
+					if (!Number.isFinite(malicious)) throw new Error('reply had no malicious score')
 					const worst = verdicts.get(path)
 					if (!worst || malicious > worst.malicious) verdicts.set(path, { malicious, hidden })
 				} catch (error) {
