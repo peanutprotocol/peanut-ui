@@ -134,6 +134,7 @@
     "landingPayLocalBody": "Pay MercadoPago QR in Argentina. Send PIX in Brazil. Just your passport.",
     "landingMercadoPagoAria": "How MercadoPago QR works",
     "landingPixAria": "How PIX works without a CPF",
+    "landingPayLocalPhoneAlt": "Peanut app on a phone: scan a QR code to pay, or show your own QR code to get paid",
     "landingSecurityHeading": "SECURITY. CONTROL. SUPPORT.",
     "landingSecurityTotalTitle": "TOTAL SECURITY",
     "landingSecurityTotalDesc": "Peanut is 100% non-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets. Not even us.",

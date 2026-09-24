@@ -108,6 +108,7 @@ export interface Translations {
     landingPayLocalBody: string
     landingMercadoPagoAria: string
     landingPixAria: string
+    landingPayLocalPhoneAlt: string
 
     // Landing page — security section
     landingSecurityHeading: string
