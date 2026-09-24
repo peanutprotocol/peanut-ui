@@ -129,6 +129,7 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
         return buildUnlockGroups({
             bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
             canPayQr: false,
+            canPayPixKey: false,
             restrictions,
             card: 'get',
             residenceIso2: iso2,
