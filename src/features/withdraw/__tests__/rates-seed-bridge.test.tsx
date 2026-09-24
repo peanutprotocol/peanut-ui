@@ -27,15 +27,27 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), init: jest.fn() } }))
 
-// the quote the MXN field converts with (Bridge rate, fees included)
+// the quote the MXN field converts with (Bridge rate, fees included). It is
+// also the rate behind the MX minimum (50 MXN): the amount step reads no other.
 const mockGetOfframpQuote = jest.fn()
 jest.mock('@/app/actions/offramp', () => ({
     getOfframpQuote: (...args: unknown[]) => mockGetOfframpQuote(...args),
 }))
-// the Bridge sell rate behind the MX minimum (50 MXN)
-jest.mock('@/hooks/useGetExchangeRate', () => ({
-    __esModule: true,
-    default: () => ({ exchangeRate: '17', isError: false }),
+// A rate-only answer in the GET /bridge/offramp/quote contract. The quote hook
+// refuses an answer for another currency (TASK-19427), so the mock names its
+// currency and pricing as the API does. Bridge-rate pricing: collection off.
+const mxnRateQuote = (rate: string) => ({
+    destinationCurrency: 'mxn',
+    rate,
+    updatedAt: new Date().toISOString(),
+    pricing: 'bridge_rate',
+})
+// The public withdrawal rate (GET /bridge/offramp/rate): the MX minimum's
+// source only where no quote exists yet — a Bridge country picked before any
+// account is saved. Mocked at the fetch, so the real rate hook and minimum run.
+jest.mock('@/utils/fx.utils', () => ({
+    ...jest.requireActual('@/utils/fx.utils'),
+    fetchOfframpRate: jest.fn(async () => 17),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: parseUnits('100', 6), formattedSpendableBalance: '100.00' }),
@@ -97,12 +109,12 @@ const continueButton = () => screen.getByRole('button', { name: 'Continue' })
 const lastPush = () => new URL(mockRouterPush.mock.calls.at(-1)?.[0], 'https://peanut.test')
 const setLiveRate = (rate: string) =>
     act(() => {
-        queryClient.setQueryData(['bridgeOfframpQuote', 'mxn', null], { rate })
+        queryClient.setQueryData(['bridgeOfframpQuote', 'mxn', null], mxnRateQuote(rate))
     })
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockGetOfframpQuote.mockResolvedValue({ data: { rate: '17' } })
+    mockGetOfframpQuote.mockResolvedValue({ data: mxnRateQuote('17') })
 })
 
 describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
@@ -122,7 +134,7 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
     })
 
     it('waits for a delayed quote, then opens on the same seed', async () => {
-        let resolveQuote!: (value: { data: { rate: string } }) => void
+        let resolveQuote!: (value: { data: ReturnType<typeof mxnRateQuote> }) => void
         mockGetOfframpQuote.mockReturnValueOnce(new Promise((resolve) => (resolveQuote = resolve)))
         renderFromRatesCta({ currencyCode: 'MXN', amount: '10' })
         fireEvent.click(screen.getByText('Saved CLABE'))
@@ -130,7 +142,7 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         expect(await screen.findByTestId('loading')).toBeInTheDocument()
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
 
-        await act(async () => resolveQuote({ data: { rate: '17' } }))
+        await act(async () => resolveQuote({ data: mxnRateQuote('17') }))
         await waitFor(() => expect(field().value).toBe('10'))
     })
 
@@ -174,7 +186,7 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
 
-        mockGetOfframpQuote.mockResolvedValue({ data: { rate: '17' } })
+        mockGetOfframpQuote.mockResolvedValue({ data: mxnRateQuote('17') })
         fireEvent.click(retry)
         await waitFor(() => expect(field().value).toBe('10'))
     }, 15_000)
