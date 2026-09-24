@@ -1206,6 +1206,62 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    // Data titles at their longest: a bank name as the bank prints it, an
+    // address saved whole as its own nickname (before nicknames were capped),
+    // and a contact whose full name runs past any row. Each stays one line.
+    'withdraw-long-destination-names': {
+        route: '/withdraw',
+        about: 'Saved destinations whose names are data at full length: they truncate to one line.',
+        responses: {
+            'GET /users/me': {
+                accounts: [
+                    WALLET_ACCOUNT,
+                    {
+                        ...BANK_ACCOUNTS[0],
+                        id: 'fixture-clabe-long',
+                        type: 'clabe',
+                        identifier: '646180546701072890',
+                        label: null,
+                        details: {
+                            bankName: 'Sistema de Transferencias y Pagos STP, S.A. de C.V., SOFOM E.N.R.',
+                            accountOwnerName: 'Demo User',
+                            countryCode: 'MEX',
+                            countryName: 'mexico',
+                        },
+                    },
+                ],
+            },
+            'GET /users/saved-addresses': {
+                savedAddresses: [
+                    {
+                        id: 'fixture-saved-long',
+                        address: '0x28c6c06298d514db089934071355e5743bf21d60',
+                        chainId: '42161',
+                        nickname: '0x28c6c06298d514db089934071355e5743bf21d60',
+                        lastUsedAt: '2026-08-14T09:00:00.000Z',
+                        createdAt: '2026-05-01T00:00:00.000Z',
+                    },
+                ],
+            },
+        },
+    },
+    'send-contacts-long-names': {
+        route: '/send?view=contacts',
+        about: 'Contacts with a full name and a username longer than the row: one line each.',
+        responses: {
+            'GET /users/contacts': {
+                contacts: [
+                    {
+                        ...PEER_CONTACT(AVATAR_PEERS[0], 'sent_money'),
+                        username: LONG_USERNAME + LONG_USERNAME,
+                        fullName: LONG_FULL_NAME,
+                    },
+                ],
+                total: 1,
+                hasMore: false,
+            },
+        },
+    },
     'home-send-drawer': {
         route: '/home?drawer=send',
         about: 'The Send drawer — send to friends, or withdraw to own accounts.',

@@ -34,4 +34,11 @@ describe('Accordion', () => {
         fireEvent.click(trigger)
         expect(screen.queryByText('Hidden content')).not.toBeInTheDocument()
     })
+
+    test('disabled item keeps the default border, only the fill goes gray', () => {
+        renderAccordion()
+        const item = screen.getByRole('button', { name: /Disabled section/ }).closest('h3')?.parentElement
+        expect(item).toHaveClass('border-border-default', 'data-[disabled]:bg-background-disabled')
+        expect(item?.className).not.toContain('border-border-subtle')
+    })
 })

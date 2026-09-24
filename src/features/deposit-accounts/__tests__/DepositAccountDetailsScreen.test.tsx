@@ -174,42 +174,6 @@ describe('the details screen on an account with a reference', () => {
 })
 
 /**
- * EUR is offered to anyone, and the one third-party SEPA transfer seen so far
- * was returned by the provider as a third-party payment. Until a third-party
- * euro credit is proven, the holder reads what to ask of a payer beside the
- * terms.
- */
-describe('the euro caveat on the details screen', () => {
-    const active = (railId: string, currency: string): DepositAccountView => ({
-        ...provisioning,
-        railId,
-        currency,
-        status: 'active',
-        instructions: { accountHolderName: 'Ana Pérez', iban: 'DE89', paymentRails: ['sepa'] },
-    })
-
-    it('tells the euro holder, under the toggle, that transfers from another name can be returned', () => {
-        details(
-            active('bridge.sepa_eu', 'EUR'),
-            () => {},
-            true,
-            () => {},
-            DEPOSIT_RAILS.SEPA_EU
-        )
-        openTerms()
-
-        expect(screen.getByText(messages.depositAccounts.details.eurOwnName)).toBeInTheDocument()
-    })
-
-    it('says nothing of the kind on the dollar account', () => {
-        details(active('bridge.ach_us', 'USD'), () => {}, true)
-        openTerms()
-
-        expect(screen.queryByText(messages.depositAccounts.details.eurOwnName)).not.toBeInTheDocument()
-    })
-})
-
-/**
  * The founders review (2026-09-23) called this the heaviest screen in the app.
  * Closed, it carries what a bank's own account-details screen carries: a
  * title, one card of numbers, and the actions that hand them over. Who can
@@ -231,9 +195,11 @@ describe('the details screen, collapsed and open', () => {
         },
     }
     const secondary = [
-        messages.depositAccounts.rules.ownAccount.line,
-        messages.depositAccounts.rules.businessAny.line,
-        messages.depositAccounts.details.eurOwnName,
+        messages.depositAccounts.rules.ownOrBusinessAny.line,
+        // a round amount without cents, and no closing period (QA 2026-09-24)
+        'Anyone else: under €4,000 per transfer',
+        messages.depositAccounts.rules.individualCapFamily.line,
+        'Minimum deposit: €1',
         messages.depositAccounts.fees.converted,
         messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
     ]
@@ -262,8 +228,6 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.queryByText(messages.depositAccounts.details.sectionTitle)).not.toBeInTheDocument()
         // the heading already names the rail
         expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
-        // anyone may pay into a euro account, so there is no who-may-pay line
-        expect(screen.queryByText(messages.depositAccounts.senderLimit.businessOnly.line)).not.toBeInTheDocument()
     })
 
     // The shared copy control confirms on itself; a copy that worked is not a
@@ -280,7 +244,11 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.queryByText('Details copied')).not.toBeInTheDocument()
     })
 
-    it('says a business-only account limits who may pay without opening anything, and keeps the rows inside', () => {
+    /*
+     * QA 2026-09-24: each rule is stated once per screen. A business-only
+     * account used to repeat its rule in a sentence above the toggle.
+     */
+    it('states a business-only rule once, inside the toggle', () => {
         details(
             {
                 ...eur,
@@ -301,10 +269,11 @@ describe('the details screen, collapsed and open', () => {
             DEPOSIT_RAILS.FASTER_PAYMENTS_GB
         )
 
-        expect(screen.getByText(messages.depositAccounts.senderLimit.businessOnly.line)).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.rules.individualNotYet.line)).not.toBeInTheDocument()
         openTerms()
-        expect(screen.getByText(messages.depositAccounts.rules.individualNotYet.line)).toBeInTheDocument()
+        expect(screen.getAllByText(messages.depositAccounts.rules.individualNotYet.line)).toHaveLength(1)
+        expect(screen.getAllByText(messages.depositAccounts.rules.ownOrBusinessAny.line)).toHaveLength(1)
+        expect(screen.getByText('Minimum deposit: £2')).toBeInTheDocument()
     })
 
     it('reveals who can pay, the fee and the timing when the toggle opens', () => {

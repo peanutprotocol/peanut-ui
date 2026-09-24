@@ -94,23 +94,22 @@ it('says a payment from someone else was returned, instead of the general reason
     expect(screen.getByText('Returned')).toBeInTheDocument()
 })
 
-// QA 2026-09-24 (QA-08): "Do we have the actual reason? If so, show it."
-it("shows the bank's own reason when it gave one", () => {
-    const withReason: TransactionDetails = {
+// QA-08: the provider's text is for support (it can carry Bridge's risk
+// wording), so an unrecognised reason gets the general line, never the text
+it("never shows the provider's own text", () => {
+    const withText = {
         ...returned,
         extraDataForDrawer: {
             originalType: 'TRANSACTION_INTENT',
             originalUserRole: EHistoryUserRole.RECIPIENT,
             returnReasonCode: 'other',
-            returnReasonText: 'Account closed',
         },
-    }
+    } as TransactionDetails
     render(
         <ToastProvider>
-            <TransactionDetailsReceipt transaction={withReason} isPublic={false} />
+            <TransactionDetailsReceipt transaction={withText} isPublic={false} />
         </ToastProvider>,
         { wrapper: IntlWrapper }
     )
-    expect(screen.getByText("Bank's reason: Account closed")).toBeInTheDocument()
-    expect(screen.queryByText(/The bank sent this payment back/)).not.toBeInTheDocument()
+    expect(screen.getByText('The bank sent this payment back.')).toBeInTheDocument()
 })

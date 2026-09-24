@@ -94,19 +94,16 @@ export const TransactionDetailsReceipt = ({
     const headSign = headline.sign
 
     // Why a deposit went back: the one reason line under the Returned badge
-    // (design.md status words). A third-party return gets our own sentence,
-    // because the provider's words for it ("Risk Rejection: Third Party
-    // Payment") explain nothing; any other reason the bank gave is shown as
-    // given, since it is the user's only clue what to fix (QA 2026-09-24).
-    const drawerData = transaction.extraDataForDrawer
+    // (design.md status words). A reason code the API recognised gets our own
+    // sentence. The provider's text is never shown: the API stores Bridge's
+    // `refund.reason` joined with its undocumented `risk_rejection_reason`,
+    // and marks the result "for support, not for display" (QA-08, 2026-09-24).
     const returnReasonLine =
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
-            : drawerData?.returnReasonCode === 'third_party'
+            : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
               ? t('returnedReasonThirdParty')
-              : drawerData?.returnReasonText
-                ? t('returnedReasonText', { reason: drawerData.returnReasonText })
-                : t('returnedReason')
+              : t('returnedReason')
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the

@@ -26,11 +26,16 @@ const keysOf = (matchingIn: DepositMatching, rules: DepositRules | undefined) =>
  * which told the holder their OWN top-up would bounce. It never would.
  */
 describe('depositRuleLines', () => {
-    it('USD: own account yes, a business unlimited, the cap and the family exemption as separate lines', () => {
+    /*
+     * QA 2026-09-24: "From your own account: yes" above "From a business: any
+     * amount" read as two different rules for one answer. Payers with the same
+     * answer share one line.
+     */
+    it('USD: own account and a business on one line, then the cap and the family exemption', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.ACH_US
         const lines = depositRuleLines(matching({ sender }), rules, money)
         // the family exemption is its own bullet, after the per-payment cap
-        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCap', 'individualCapFamily'])
+        expect(lines.map((l) => l.key)).toEqual(['ownOrBusinessAny', 'individualCap', 'individualCapFamily'])
         expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'USD 4000' })
         expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toBeUndefined()
     })
@@ -48,27 +53,25 @@ describe('depositRuleLines', () => {
         expect(keysOf(restricted, undefined)).toEqual(['ownName'])
     })
 
-    it('EUR: own account yes, a business unlimited, another person capped like the US rail, with a floor', () => {
+    it('EUR: own account and a business on one line, another person capped like the US rail, with a floor', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.SEPA_EU
         const lines = depositRuleLines(matching({ sender }), rules, money)
-        expect(lines.map((l) => l.key)).toEqual([
-            'ownAccount',
-            'businessAny',
-            'individualCap',
-            'individualCapFamily',
-            'minimum',
-        ])
+        expect(lines.map((l) => l.key)).toEqual(['ownOrBusinessAny', 'individualCap', 'individualCapFamily', 'minimum'])
         expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'EUR 4000' })
     })
 
     it('GBP: the same shape, with the sterling floor', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
-        expect(keysOf(matching({ sender }), rules)).toEqual([
-            'ownAccount',
-            'businessAny',
-            'individualNotYet',
-            'minimum',
-        ])
+        expect(keysOf(matching({ sender }), rules)).toEqual(['ownOrBusinessAny', 'individualNotYet', 'minimum'])
+    })
+
+    it('one line for everybody where every payer may pay any amount', () => {
+        const rules = {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'allowed' },
+        } as const
+        expect(keysOf(matching(), rules)).toEqual(['anyoneAny'])
     })
 
     /**
@@ -116,8 +119,7 @@ describe('depositRuleLines', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
         expect(keysOf(matching({ nameOnAccount: 'provider', sender }), rules)).toEqual([
             'providerHeld',
-            'ownAccount',
-            'businessAny',
+            'ownOrBusinessAny',
             'individualNotYet',
             'minimum',
         ])
@@ -126,8 +128,7 @@ describe('depositRuleLines', () => {
     it('unknown ownership makes no holder claim and preserves the sender terms', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
         expect(keysOf(matching({ nameOnAccount: 'unknown', sender }), rules)).toEqual([
-            'ownAccount',
-            'businessAny',
+            'ownOrBusinessAny',
             'individualNotYet',
             'minimum',
         ])

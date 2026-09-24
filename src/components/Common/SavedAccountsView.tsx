@@ -158,10 +158,10 @@ export function SavedAccountsMapping({
                 <ListItem
                     key={account.id}
                     title={destinationLabel(destination)}
+                    truncate
                     body={destination.identifier}
                     position="solo"
                     onClick={() => onItemClick(account, path)}
-                    className="p-4 py-2"
                     chevron={!onItemEdit}
                     trailing={
                         onItemEdit ? (

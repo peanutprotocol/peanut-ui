@@ -92,6 +92,7 @@ export function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summari
                         <ListItem
                             key={summary.asset}
                             title={summary.asset}
+                            truncate
                             body={
                                 <div className="flex flex-col gap-2">
                                     <span>

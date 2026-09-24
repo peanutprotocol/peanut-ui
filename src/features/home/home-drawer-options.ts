@@ -1,3 +1,4 @@
+import { type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type HomeDrawer } from './useHomeDrawer'
 
@@ -16,6 +17,8 @@ export interface DrawerOption {
     titleKey: ['drawers', HomeDrawerKey] | ['methods', AddMethodKey]
     bodyKey?: ['drawers', HomeDrawerBodyKey] | ['methods', AddMethodBodyKey]
     icon: IconName
+    /** bubble colour, matched to the same method on the Send page (SendRouter) */
+    iconColor: IconBubbleColor
     href: string
 }
 
@@ -26,6 +29,7 @@ const BANK_ONE_OFF: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
     icon: 'bank',
+    iconColor: 'gray',
     href: '/add-money?method=bank',
 }
 
@@ -39,6 +43,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             // drawer are already arrows, so repeating them here said nothing.
             // friends = several people, own accounts = one person (you).
             icon: 'users',
+            iconColor: 'yellow',
             href: '/send',
         },
         {
@@ -46,6 +51,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             titleKey: ['drawers', 'withdrawToOwnAccounts'],
             bodyKey: ['drawers', 'withdrawToOwnAccountsDescription'],
             icon: 'user',
+            iconColor: 'gray',
             href: '/withdraw',
         },
     ],
@@ -59,6 +65,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             titleKey: ['methods', 'crypto'],
             bodyKey: ['methods', 'cryptoDescription'],
             icon: 'coins',
+            iconColor: 'blue',
             href: '/add-money/crypto',
         },
     ],
@@ -72,6 +79,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             titleKey: ['drawers', 'shareRequestLink'],
             bodyKey: ['drawers', 'shareRequestLinkDescription'],
             icon: 'link',
+            iconColor: 'blue',
             href: '/request',
         },
     ],
@@ -85,6 +93,7 @@ const SHARE_BANK_DETAILS: DrawerOption = {
     titleKey: ['drawers', 'shareBankDetails'],
     bodyKey: ['drawers', 'shareBankDetailsDescription'],
     icon: 'bank',
+    iconColor: 'gray',
     href: '/add-money?method=bank',
 }
 
@@ -115,6 +124,7 @@ const BANK_STANDING: DrawerOption = {
     titleKey: ['methods', 'bankTransfer'],
     bodyKey: ['methods', 'bankTransferDescription'],
     icon: 'bank',
+    iconColor: 'gray',
     href: '/add-money?method=bank',
 }
 

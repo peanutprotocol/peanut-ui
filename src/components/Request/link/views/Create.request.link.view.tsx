@@ -42,7 +42,6 @@ export const CreateRequestLinkView = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
-        resetRequest,
     } = useCreateRequestLink()
     // The amount field reports its sides through three setters in one pass,
     // `setSecondaryAmount` last. They are collected here and handed on once,
@@ -58,7 +57,6 @@ export const CreateRequestLinkView = () => {
                 currency={currency}
                 bankPayable={bankInstructionsShared}
                 onDone={onDone}
-                onCreateAnother={resetRequest}
             />
         )
     }

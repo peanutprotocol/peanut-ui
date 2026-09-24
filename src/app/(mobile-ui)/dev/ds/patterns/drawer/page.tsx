@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Field } from '@/components/0_Bruddle/Field'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import {
     Drawer,
     DrawerContent,
@@ -208,7 +208,7 @@ export default function DrawerPage() {
           <ListItem
             key={option.key}
             position={getCardPosition(index, all.length)}
-            leading={<Icon name={option.icon} size={24} className="text-foreground-primary" />}
+            leading={<IconBubble icon={option.icon} size="s" color={option.iconColor} />}
             title={...}
             body={...}
             bodyWrap
@@ -235,7 +235,7 @@ export default function DrawerPage() {
                                 <div className="flex flex-col">
                                     <ListItem
                                         position="top"
-                                        leading={<Icon name="bank" size={24} className="text-foreground-primary" />}
+                                        leading={<IconBubble icon="bank" size="s" color="gray" />}
                                         title="Bank transfer"
                                         body="Send from your bank account in your local currency"
                                         bodyWrap
@@ -244,7 +244,7 @@ export default function DrawerPage() {
                                     />
                                     <ListItem
                                         position="bottom"
-                                        leading={<Icon name="coins" size={24} className="text-foreground-primary" />}
+                                        leading={<IconBubble icon="coins" size="s" color="blue" />}
                                         title="Crypto"
                                         body="Deposit USDC from a wallet or an exchange"
                                         bodyWrap
