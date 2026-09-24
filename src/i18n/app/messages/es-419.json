@@ -56,7 +56,7 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar",
+        "slideToProceed": "Desliza y continúa",
         "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
@@ -1080,7 +1080,12 @@
             "rateUnavailable": "Ahora no hay un tipo de cambio para {currency}. Intenta de nuevo o solicita en USD.",
             "invalidRequestedAmount": "Este monto no es válido en {currency}. Revisa los decimales e intenta de nuevo.",
             "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicita en USD.",
-            "validatingRecipient": "Validando destinatario..."
+            "validatingRecipient": "Validando destinatario...",
+            "signInRequired": "Inicia sesión para solicitar dinero.",
+            "moneyContactsOnly": "Solo puedes solicitar dinero a personas a las que les hayas pagado o de las que hayas recibido un pago.",
+            "requestLimit": "Demasiadas solicitudes de pago. Inténtalo más tarde.",
+            "walletOwnership": "Usa tu propia billetera Peanut para recibir este pago.",
+            "contactsUnavailable": "No pudimos consultar tus contactos. Inténtalo de nuevo."
         },
         "validation": {
             "invalidRecipientTitle": "Destinatario inválido",
@@ -1547,7 +1552,7 @@
             "keepCard": "Conservar mi tarjeta",
             "body": "No vas a poder volver a usarla.",
             "canceling": "Cancelando…",
-            "slideToCancel": "Desliza para cancelar",
+            "slideToCancel": "Desliza y cancela",
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayúdanos a mejorar nuestro producto para ti",
@@ -1567,7 +1572,7 @@
             "unlockSuccess": "Tarjeta desbloqueada",
             "unlockSuccessBody": "Tu tarjeta está activa otra vez.",
             "locking": "Bloqueando…",
-            "slideToLock": "Desliza para bloquear",
+            "slideToLock": "Desliza y bloquea",
             "unlockCta": "Desbloquear",
             "lockFailed": "No se pudo bloquear la tarjeta",
             "unlockFailed": "No se pudo desbloquear la tarjeta"
@@ -3447,7 +3452,7 @@
             "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
             "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",
             "yourDevice": "tu dispositivo",
-            "slideToContinue": "Desliza para continuar"
+            "slideToContinue": "Desliza y continúa"
         },
         "guestLoginModal": {
             "title": "Inicia sesión con tu Peanut Wallet",
@@ -3475,7 +3480,7 @@
             "warning": "Enviar el token equivocado o usar la red equivocada resultará en una pérdida permanente.",
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
-            "slideToProceed": "Desliza para continuar"
+            "slideToProceed": "Desliza y continúa"
         },
         "rainCooldownIntroModal": {
             "title": "Espera un momento",

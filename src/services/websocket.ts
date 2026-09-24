@@ -1,10 +1,8 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
-import { type PendingPerk } from '@/services/perks'
 import { isDemoMode } from '@/utils/demo'
 import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { isCapacitor } from '@/utils/capacitor'
 import { getSessionTokenForSocket } from '@/utils/auth-token'
-export type { PendingPerk }
 
 function isValidWsUrl(url: string): boolean {
     if (!url) return false
@@ -57,10 +55,9 @@ export type WebSocketMessage = {
         | 'manteca_kyc_status_update'
         | 'sumsub_kyc_status_update'
         | 'persona_tos_status_update'
-        | 'pending_perk'
         | 'user_rail_status_changed'
         | 'rain_card_balance_changed'
-    data?: HistoryEntry | PendingPerk | RailStatusUpdate | RainCardBalanceChangedData
+    data?: HistoryEntry | RailStatusUpdate | RainCardBalanceChangedData
 }
 
 export class PeanutWebSocket {
@@ -234,12 +231,6 @@ export class PeanutWebSocket {
                 case 'persona_tos_status_update':
                     if (message.data && 'status' in (message.data as object)) {
                         this.emit('persona_tos_status_update', message.data)
-                    }
-                    break
-
-                case 'pending_perk':
-                    if (message.data && 'id' in (message.data as object)) {
-                        this.emit('pending_perk', message.data)
                     }
                     break
 

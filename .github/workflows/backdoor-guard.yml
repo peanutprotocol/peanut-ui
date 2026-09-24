@@ -14,7 +14,7 @@ name: Backdoor guard
 
 on:
     pull_request_target:
-        types: [opened, synchronize, reopened, ready_for_review]
+        types: [opened, synchronize, reopened, ready_for_review, edited]
 
 concurrency:
     group: backdoor-guard-${{ github.event.pull_request.number }}
@@ -46,12 +46,12 @@ jobs:
                   node scripts/backdoor-scan.mjs --base "$BASE_SHA" --head refs/guard/head --allow-ref "$BASE_SHA" --jev > "$RUNNER_TEMP/scan.txt" 2>&1
                   status=$?
                   cat "$RUNNER_TEMP/scan.txt"
-                  git diff --name-only "$BASE_SHA...refs/guard/head" \
+                  git -c core.quotePath=false diff --name-only -z "$BASE_SHA...refs/guard/head" | tr '\0' '\n' \
                       | grep -E '^(\.github/workflows/|\.github/backdoor-scan-allow\.txt$|scripts/backdoor-scan\.mjs$)' > "$RUNNER_TEMP/guarded.txt"
                   echo "status=$status" >> "$GITHUB_OUTPUT"
                   if [ -s "$RUNNER_TEMP/guarded.txt" ]; then echo "guarded=true" >> "$GITHUB_OUTPUT"; fi
             - name: Comment on the PR
-              if: steps.scan.outputs.status == '1' || steps.scan.outputs.guarded == 'true'
+              if: steps.scan.outputs.status != '0' || steps.scan.outputs.guarded == 'true'
               env:
                   GH_TOKEN: ${{ github.token }}
                   PR: ${{ github.event.pull_request.number }}
@@ -59,6 +59,11 @@ jobs:
                   STATUS: ${{ steps.scan.outputs.status }}
               run: |
                   {
+                      if [ "$STATUS" != "0" ] && [ "$STATUS" != "1" ]; then
+                        echo "## 🚨 backdoor-scan could not finish on \`${HEAD_SHA:0:8}\` (status $STATUS)"
+                        echo
+                        echo "An unscanned change counts as unsafe. **Do not run this branch** until the scan passes. See the workflow log."
+                      fi
                       if [ "$STATUS" = "1" ]; then
                           echo "## 🚨 backdoor-scan blocked \`${HEAD_SHA:0:8}\`"
                           echo
@@ -79,9 +84,10 @@ jobs:
                       fi
                   } > "$RUNNER_TEMP/comment.md"
                   gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
-            # A change to a workflow or the scanner fails too. tests.yml runs the PR's own
+            # Fail closed: a scanner error (status 2, e.g. a diff too large to read) is
+            # not a clean scan. A change to a workflow or the scanner fails too. tests.yml runs the PR's own
             # copy, so such a PR can switch its scan off; a red check here is the signal
             # that someone other than the author must read it before anyone runs it.
-            - name: Fail when the scan blocks or the gates change
-              if: steps.scan.outputs.status == '1' || steps.scan.outputs.guarded == 'true'
+            - name: Fail when the scan blocks, errors, or the gates change
+              if: steps.scan.outputs.status != '0' || steps.scan.outputs.guarded == 'true'
               run: exit 1

@@ -53,7 +53,7 @@ export const ClaimAddressConfirmationModal = ({
                         }}
                     />
                     <Button
-                        variant="secondary"
+                        variant="ghost"
                         className="w-full"
                         onClick={() => {
                             setShowConfirmationModal(false)

@@ -3,7 +3,7 @@
  * PerkClaimGiftBox — keyboard entry into the claim trigger.
  *
  * tabIndex made the gift box focusable (TASK-22452), which opened a NEW
- * path into onHoldComplete → perksApi.claimPerk (a money-moving call).
+ * path into onHoldComplete.
  * These tests pin that wiring: a held Enter completes the hold exactly
  * once while idle, and a non-idle phase rejects keyboard input entirely.
  */

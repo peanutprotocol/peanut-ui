@@ -38,7 +38,8 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const CODE_FILE = /\.(c|m)?(j|t)sx?$|\.(sh|bash|zsh|ya?ml|json|py)$|(^|\/)(Dockerfile|Makefile)$|(^|\/)\.[a-z]+rc$/i
+// .html/.vue/.svelte/.astro: inline <script> runs in the browser, and in dev.
+const CODE_FILE = /\.(c|m)?(j|t)sx?$|\.(sh|bash|zsh|ya?ml|json|py|html?|vue|svelte|astro)$|(^|\/)(Dockerfile|Makefile)$|(^|\/)\.[a-z]+rc$/i
 
 // Files that run on their own when someone installs, runs `pnpm dev`, builds
 // or opens the repo. The 2025 payload lived in one. Nobody reads these closely,
@@ -52,7 +53,9 @@ const EXEC_CONFIG = [
 	/(^|\/)\.husky\//,
 	/(^|\/)\.vscode\//,
 	/(^|\/)\.devcontainer\//,
-	/(^|\/)(instrumentation|middleware)\.(t|j)s$/,
+	/(^|\/)(instrumentation|instrumentation-client|middleware|proxy)\.(t|j)s$/, // Next.js loads these on its own
+	// decides what git shows as a diff: `-diff` turned a file into "Binary files differ"
+	/(^|\/)\.gitattributes$/,
 ]
 // Also run by hooks or CI, but they legitimately start processes and fetch
 // things, so a suspicious pattern here is a warning, not a block.
@@ -92,6 +95,34 @@ export function execTier(path) {
 }
 
 /**
+ * Git quotes a path it considers unusual: "b/caf\\303\\251.js", with octal
+ * bytes and C escapes. Left quoted, the path matches no rule and every check
+ * on it is skipped, so decode it back to the real name.
+ */
+export function unquotePath(raw) {
+	if (!raw.startsWith('"') || !raw.endsWith('"')) return raw
+	const bytes = []
+	const body = raw.slice(1, -1)
+	const simple = { n: 10, t: 9, r: 13, '"': 34, '\\': 92, a: 7, b: 8, f: 12, v: 11 }
+	for (let i = 0; i < body.length; i += 1) {
+		const ch = body[i]
+		if (ch !== '\\') {
+			bytes.push(...Buffer.from(ch, 'utf8'))
+			continue
+		}
+		const next = body[i + 1]
+		if (/[0-7]/.test(next)) {
+			bytes.push(parseInt(body.slice(i + 1, i + 4), 8))
+			i += 3
+		} else {
+			bytes.push(simple[next] ?? next.charCodeAt(0))
+			i += 1
+		}
+	}
+	return Buffer.from(bytes).toString('utf8')
+}
+
+/**
  * Added lines per file from a unified diff: [{ path, line, text }].
  *
  * Hunk bodies are consumed by their line counts. A header is only read
@@ -110,7 +141,7 @@ export function addedLines(diff) {
 			continue
 		}
 		if (raw.startsWith('+++ ')) {
-			const target = raw.slice(4).trim()
+			const target = unquotePath(raw.slice(4).trim())
 			path = target === '/dev/null' ? null : target.replace(/^b\//, '')
 			continue
 		}
@@ -140,6 +171,24 @@ export function addedLines(diff) {
 	return out
 }
 
+/** Files the diff reports as binary. For a code file that means its lines were never read. */
+export function binaryFiles(diff) {
+	const out = []
+	for (const raw of diff.split('\n')) {
+		const match = raw.match(/^Binary files (.+?) and (.+?) differ$/)
+		if (!match) continue
+		const [before, after] = [unquotePath(match[1]).replace(/^a\//, ''), unquotePath(match[2]).replace(/^b\//, '')]
+		out.push(after === '/dev/null' ? before : after)
+	}
+	return out
+}
+
+export function binaryFindings(paths) {
+	return paths
+		.filter((path) => CODE_FILE.test(path) || execTier(path))
+		.map((path) => ({ level: 'block', rule: 'binary-code-change', path, line: 0, detail: 'a code or config file changed as "binary", so its lines could not be read' }))
+}
+
 export function lineHash(text) {
 	return createHash('sha256').update(text.trim()).digest('hex')
 }
@@ -156,8 +205,9 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 		const tier = execTier(entry.path)
 		const exec = tier === 'config'
 		if (tier) surfaces.add(entry.path)
-		if (BIDI.test(entry.text)) add('block', 'bidi-control', entry, 'right-to-left/isolate control character (Trojan Source)')
+		// Code only: with --text, image and font bytes can spell these characters by chance.
 		if (!CODE_FILE.test(entry.path)) continue
+		if (BIDI.test(entry.text)) add('block', 'bidi-control', entry, 'right-to-left/isolate control character (Trojan Source)')
 		if (HIDDEN_RUN.test(entry.text)) {
 			const run = entry.text.match(/[ \t]{60,}/)[0].length
 			add('block', 'hidden-code', entry, `${run} spaces, then more code off-screen`)
@@ -191,38 +241,60 @@ const JEV_QUESTIONS = {
 	},
 }
 
-/** Second layer: one Jev call per file with added code, in parallel. */
-export async function jevFindings(lines, { key, fetchImpl = fetch, maxFiles = 25, budget = 60000 } = {}) {
+/**
+ * Second layer: Jev judges every file with added code, whole, in chunks that
+ * fit its context. Nothing is skipped: a short file behind 25 large ones, or
+ * the tail of a large file, is exactly where a payload would go.
+ */
+export async function jevFindings(lines, { key, fetchImpl = fetch, budget = 60000, concurrency = 8 } = {}) {
 	const byFile = new Map()
 	for (const entry of lines) {
 		if (!CODE_FILE.test(entry.path)) continue
 		byFile.set(entry.path, `${byFile.get(entry.path) || ''}${entry.text}\n`)
 	}
-	// Riskiest files first: the exec surface, then the most added text.
-	const files = [...byFile.entries()]
-		.sort((a, b) => Number(Boolean(execTier(b[0]))) - Number(Boolean(execTier(a[0]))) || b[1].length - a[1].length)
-		.slice(0, maxFiles)
-	const findings = []
+	const jobs = []
+	for (const [path, text] of byFile) {
+		for (let start = 0; start < text.length; start += budget) jobs.push({ path, text: text.slice(start, start + budget) })
+	}
+	const verdicts = new Map()
+	const failed = new Map()
+	const queue = [...jobs]
 	await Promise.all(
-		files.map(async ([path, text]) => {
-			try {
-				const response = await fetchImpl('https://api.typesafe.ai/v1/systemone', {
-					method: 'POST',
-					headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-					body: JSON.stringify({ model: 'jev-latest', state: { file: path, added_lines: text.slice(0, budget) }, questions: JEV_QUESTIONS }),
-					signal: AbortSignal.timeout(20000),
-				})
-				if (!response.ok) throw new Error(`HTTP ${response.status}`)
-				const answers = (await response.json()).answers || {}
-				const malicious = Number(answers.malicious?.noul)
-				const hidden = Number(answers.hidden_or_obfuscated?.noul)
-				if (malicious >= 0.8) findings.push({ level: 'block', rule: 'jev-malicious', path, line: 0, detail: `Jev: ${malicious.toFixed(2)} likely malicious, ${hidden.toFixed(2)} hidden/obfuscated` })
-				else if (malicious >= 0.5) findings.push({ level: 'warn', rule: 'jev-suspicious', path, line: 0, detail: `Jev: ${malicious.toFixed(2)} likely malicious` })
-			} catch (error) {
-				findings.push({ level: 'warn', rule: 'jev-unavailable', path, line: 0, detail: `Jev did not answer (${error.message}); deterministic checks still ran` })
+		Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
+			while (queue.length) {
+				const { path, text } = queue.shift()
+				try {
+					const response = await fetchImpl('https://api.typesafe.ai/v1/systemone', {
+						method: 'POST',
+						headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+						body: JSON.stringify({ model: 'jev-latest', state: { file: path, added_lines: text }, questions: JEV_QUESTIONS }),
+						signal: AbortSignal.timeout(20000),
+					})
+					if (!response.ok) throw new Error(`HTTP ${response.status}`)
+					const answers = (await response.json()).answers || {}
+					// A reply without a real score is no verdict. Number() would turn
+					// null or '' into 0 (a silent "clean") and undefined into NaN (which
+					// masks a real 0.95 on a later chunk), so only a number in [0, 1] counts.
+					const raw = answers.malicious?.noul
+					if (typeof raw !== 'number' || !(raw >= 0 && raw <= 1)) throw new Error('reply had no malicious score')
+					const malicious = raw
+					const hidden = Number(answers.hidden_or_obfuscated?.noul)
+					const worst = verdicts.get(path)
+					if (!worst || malicious > worst.malicious) verdicts.set(path, { malicious, hidden })
+				} catch (error) {
+					failed.set(path, error.message)
+				}
 			}
 		})
 	)
+	const findings = []
+	for (const [path, { malicious, hidden }] of verdicts) {
+		if (malicious >= 0.8) findings.push({ level: 'block', rule: 'jev-malicious', path, line: 0, detail: `Jev: ${malicious.toFixed(2)} likely malicious, ${hidden.toFixed(2)} hidden/obfuscated` })
+		else if (malicious >= 0.5) findings.push({ level: 'warn', rule: 'jev-suspicious', path, line: 0, detail: `Jev: ${malicious.toFixed(2)} likely malicious` })
+	}
+	for (const [path, message] of failed) {
+		findings.push({ level: 'warn', rule: 'jev-unavailable', path, line: 0, detail: `Jev did not answer (${message}); deterministic checks still ran` })
+	}
 	return findings
 }
 
@@ -277,14 +349,17 @@ async function main() {
 	else if (opts.local) {
 		const baseRef = typeof opts.base === 'string' ? opts.base : 'origin/dev'
 		const mergeBase = git(['merge-base', baseRef, 'HEAD']).trim()
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--unified=0', mergeBase])
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', mergeBase])
 	} else {
 		if (!opts.base) throw new Error('--base <ref> is required (or --local / --diff-file)')
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
+		// --text: a PR can add `.gitattributes` with `file -diff`, which prints
+		// "Binary files differ" instead of the lines. --no-textconv: nor may it
+		// swap in a filter that rewrites what we read.
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
 	}
 	const lines = addedLines(diff)
 	const allowRef = typeof opts['allow-ref'] === 'string' ? opts['allow-ref'] : typeof opts.base === 'string' ? opts.base : null
-	const findings = scanLines(lines, { allow: readAllowList(allowRef) })
+	const findings = [...scanLines(lines, { allow: readAllowList(allowRef) }), ...binaryFindings(binaryFiles(diff))]
 	const key = process.env.TYPESAFE_API_KEY
 	if (opts.jev && key) findings.push(...(await jevFindings(lines, { key })))
 	else if (opts.jev) findings.push({ level: 'warn', rule: 'jev-unavailable', path: '-', line: 0, detail: 'no TYPESAFE_API_KEY; deterministic checks only' })
