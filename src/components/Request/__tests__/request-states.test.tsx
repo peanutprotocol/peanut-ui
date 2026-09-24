@@ -285,6 +285,10 @@ jest.mock('@/context/loadingStates.context', () => {
 // not), so stubbing them globally is safe. Defaults resolve to a logged-in user
 // viewing a valid recipient, so the main form (incl. AmountInput) renders.
 
+jest.mock('@/hooks/useRequestContact', () => ({
+    useRequestContact: () => ({ data: { relationshipTypes: ['sent_money'] }, isLoading: false, isError: false }),
+}))
+
 const mockUseUserByUsername = jest.fn(() => ({
     user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
     isLoading: false,
@@ -370,7 +374,7 @@ function applyDefaults() {
     mockCopyTextToClipboard.mockResolvedValue(true)
 
     mockUseAuth.mockReturnValue({
-        user: { user: { username: 'test-user', userId: 'user-1' } },
+        user: { user: { username: 'test-user', userId: 'user-1' }, accounts: [{ type: 'peanut-wallet' }] },
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })

@@ -243,6 +243,39 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
+    'request-contact-blocked': {
+        route: '/request?recipient=alice',
+        about: 'Addressed request blocked for a user without a prior money transfer.',
+        responses: { 'GET /users/contacts': { contacts: [], total: 0, hasMore: false } },
+    },
+    'profile-request-blocked': {
+        route: '/profile/view?username=alice',
+        about: 'Public profile: Request disabled for a user without a prior money transfer.',
+        responses: { 'GET /users/contacts': { contacts: [], total: 0, hasMore: false } },
+    },
+    'request-contact-received': {
+        route: '/request?recipient=alice',
+        about: 'Addressed request allowed after receiving money from the contact.',
+        responses: {
+            'GET /users/contacts': {
+                contacts: [
+                    {
+                        userId: 'demo-alice',
+                        username: 'alice',
+                        fullName: 'Alice',
+                        isVerified: false,
+                        showFullName: true,
+                        relationshipTypes: ['received_money'],
+                        firstInteractionDate: '2026-01-01T00:00:00.000Z',
+                        lastInteractionDate: '2026-01-01T00:00:00.000Z',
+                        transactionCount: 1,
+                    },
+                ],
+                total: 1,
+                hasMore: false,
+            },
+        },
+    },
 
     // ---------------------------------------------------------------------
     // Hazards — user text and numbers that break layouts.

@@ -610,7 +610,12 @@
         "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
-            "enterRecipient": "Ingresá una dirección de destinatario"
+            "enterRecipient": "Ingresá una dirección de destinatario",
+            "signInRequired": "Iniciá sesión para solicitar dinero.",
+            "moneyContactsOnly": "Solo podés solicitar dinero a personas a las que les hayas pagado o de las que hayas recibido un pago.",
+            "requestLimit": "Demasiadas solicitudes de pago. Intentá más tarde.",
+            "walletOwnership": "Usá tu propia billetera Peanut para recibir este pago.",
+            "contactsUnavailable": "No pudimos consultar tus contactos. Intentá de nuevo."
         },
         "validation": {
             "invalidRecipientMessage": "El usuario al que intentás solicitar no es un usuario válido de Peanut o no existe. Asegurate de tener el nombre de usuario de Peanut correcto.",
