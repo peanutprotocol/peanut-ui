@@ -9,11 +9,11 @@ export interface ShareTextCopy {
     introPooled: string
     outro: string
     /**
-     * Who may pay, in one line, for the policies where a payer can get it
-     * wrong. `anyone` has no line: nothing to warn about. `own-name-only` has
-     * none either: those details are never shared.
+     * Who may pay, in one line, where the corridor limits it — the payer's
+     * voice of `senderLimit`, the same line the payer's bank-transfer screen
+     * shows. Absent when anyone may pay.
      */
-    payerLine: { 'business-only': string; unknown: string }
+    payerLine?: string
     /** "Add the reference to every transfer …" — only where the account has one */
     referenceLine: string
     /**
@@ -57,8 +57,7 @@ export function buildShareText(
             .map((row) => `${row.label}: ${row.value}`),
     ]
 
-    const sender = account.matching.sender
-    if (sender === 'business-only' || sender === 'unknown') lines.push('', copy.payerLine[sender])
+    if (copy.payerLine) lines.push('', copy.payerLine)
     // A reference row alone reads as one more field to copy; the payer has to
     // know the transfer is not matched without it.
     if (account.instructions.depositMessage) lines.push('', copy.referenceLine)

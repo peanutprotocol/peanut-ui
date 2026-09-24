@@ -2,10 +2,10 @@
 
 import { useFormatter, useTranslations } from 'next-intl'
 import { useCallback, useMemo } from 'react'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
 import { railLabel, type RailLabels } from './instructionRows'
-import { depositRuleLines, senderLimitKey, type DepositRuleKey, type FormatMoney } from './ruleLines'
+import { depositRuleLines, senderLimitKey, type DepositRuleKey } from './ruleLines'
 import type {
     DepositCorridor,
     DepositInstructions,
@@ -57,14 +57,10 @@ const RAIL_LABEL_KEYS = [
     'transfer_ar',
 ] as const
 
-/** "$4,000", never "$4,000.00": a rule states a round amount without cents */
-const formatRuleAmount: FormatMoney = (amount, currency) => formatCurrencyAmount(amount, currency).replace(/\.00$/, '')
-
-/** one rule, in the three voices the screens and the shared text need */
+/** one rule: the line the holder reads, and the explanation behind its (i) */
 export interface ResolvedRuleLine {
     key: DepositRuleKey
     text: string
-    payer: string
     why: string
 }
 
@@ -106,23 +102,19 @@ export function useDepositAccountCopy() {
     }, [t])
 
     /**
-     * The rules for one account, resolved into the three voices a rule needs:
-     * `text` for the holder reading their own screen, `payer` for the text
-     * that leaves the app, and `why` for the (i) behind the line.
-     *
-     * One resolver, so a rule can never be stated on screen and missing from
-     * the message a payer actually reads.
+     * The rules for one account: `text` for the holder reading their own
+     * screen, `why` for the (i) behind the line. The shared text carries only
+     * `senderLimit`, not the full rules (`buildShareText`).
      */
     const ruleLines = useCallback(
         (matching: DepositSenderTerms, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
-            depositRuleLines(matching, rules, formatRuleAmount).map(({ key, values }) => {
+            depositRuleLines(matching, rules, formatBankAmount).map(({ key, values }) => {
                 // `user` is only read by the provider-held line; passing it to
                 // every string is cheaper than a per-key values table.
                 const all = { user, ...values }
                 return {
                     key,
                     text: t(`rules.${key}.line`, all),
-                    payer: t(`rules.${key}.payer`, all),
                     why: t(`rules.${key}.why`, all),
                 }
             }),

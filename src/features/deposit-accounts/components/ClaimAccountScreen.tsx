@@ -85,23 +85,18 @@ export function ClaimAccountScreen({
                     description={t('claim.subheading')}
                 />
 
-                {/*
-                 * `title` is a plain string here on purpose, wrapped in a span:
-                 * ListItem truncates a bare string title to one line, and these
-                 * are full sentences, not row labels.
-                 */}
                 <ListGroup>
                     <ListItem
                         leading={<IconBubble icon="wallet" size="s" color="gray" className="self-start" />}
-                        title={<span>{t('claim.benefitBalance')}</span>}
+                        title={t('claim.benefitBalance')}
                     />
                     <ListItem
                         leading={<IconBubble icon="clock" size="s" color="gray" className="self-start" />}
-                        title={<span>{arrivalDetail(rail.corridor)}</span>}
+                        title={arrivalDetail(rail.corridor)}
                     />
                     <ListItem
                         leading={<IconBubble icon="link" size="s" color="gray" className="self-start" />}
-                        title={<span>{t('claim.benefitStable')}</span>}
+                        title={t('claim.benefitStable')}
                     />
                 </ListGroup>
 

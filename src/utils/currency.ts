@@ -22,12 +22,9 @@ export const formatCurrencyAmount = (amount: string | number, currencyCode: stri
     return `${symbol}${formatted}`
 }
 
-/** A bank amount as the recipient reads it: "€2,000" or "€2,000.50" — no ".00" on a round amount. */
-export const formatBankAmount = (amount: string | number, currencyCode: string): string => {
-    const value = Number(amount)
-    const formatted = value.toLocaleString('en-US', {
-        minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-        maximumFractionDigits: 2,
-    })
-    return `${getDisplayCurrencySymbol(currencyCode)}${formatted}`
-}
+/**
+ * A bank amount as people read it: "€2,000" or "€2,000.50" — no ".00" on a
+ * round amount (design.md, copy). Rounds to the cent first, so 1999.999 is "€2,000".
+ */
+export const formatBankAmount = (amount: string | number, currencyCode: string): string =>
+    formatCurrencyAmount(amount, currencyCode).replace(/\.00$/, '')
