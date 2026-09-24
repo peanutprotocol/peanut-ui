@@ -34,11 +34,20 @@ test('scans added code even when a previously committed attribute disables text 
             ['--base', base, '--head', 'HEAD'],
             ['--local', '--base', base],
         ]) {
-            const result = spawnSync(process.execPath, [scanner, ...args], { cwd, encoding: 'utf8' })
-            assert.equal(result.status, 1, `${args.join(' ')}: ${result.stdout}${result.stderr}`)
-            assert.match(result.stdout, /BLOCK hidden-code/)
-            assert.match(result.stdout, /BLOCK suspicious/)
-            assert.match(result.stdout, /2 blocking finding\(s\) in 1 added lines/)
+            for (const [githubActions, rulePrefix] of [
+                ['', 'BLOCK '],
+                ['true', 'title=backdoor-scan '],
+            ]) {
+                const result = spawnSync(process.execPath, [scanner, ...args], {
+                    cwd,
+                    encoding: 'utf8',
+                    env: { ...process.env, GITHUB_ACTIONS: githubActions },
+                })
+                assert.equal(result.status, 1, `${args.join(' ')}: ${result.stdout}${result.stderr}`)
+                assert.ok(result.stdout.includes(`${rulePrefix}hidden-code`))
+                assert.ok(result.stdout.includes(`${rulePrefix}suspicious`))
+                assert.match(result.stdout, /2 blocking finding\(s\) in 1 added lines/)
+            }
         }
     } finally {
         rmSync(cwd, { recursive: true, force: true })
