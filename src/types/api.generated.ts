@@ -1234,6 +1234,7 @@ export interface paths {
                                 reference?: string;
                                 sortCode?: string;
                             };
+                            flexibleAmount: boolean;
                             transferId: string;
                         };
                     };
@@ -2209,6 +2210,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Fiat the simulated payer sent, when it differs from the quote. Flexible-amount top-ups only. */
+                        depositedAmount?: string;
                         developerFee?: string;
                         exchangeRate?: number;
                         /** @description Either a TransactionIntent.id or a Bridge transfer id. */

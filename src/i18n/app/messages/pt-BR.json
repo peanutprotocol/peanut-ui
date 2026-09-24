@@ -1753,7 +1753,6 @@
         "selectNewMethod": "Escolher outro método",
         "howMuchToAdd": "Valor a adicionar",
         "mustMatchBankTransfer": "Isso precisa ser exatamente igual ao que você envia do seu banco",
-        "amountMustMatchBank": "O valor precisa ser igual ao que você envia do seu banco!",
         "eurAccountsOnlyTitle": "Somente contas em EUR",
         "eurAccountsOnlyDescription": "Só funcionam contas em EUR com IBAN para adicionar dinheiro. Sua conta em moeda local pode não funcionar.",
         "chainTokenOnly": "{chain} · somente {tokens}",
@@ -1857,12 +1856,13 @@
             "sendExactly": "Enviar exatamente <b>{currency}{amount}</b> (o valor exato mostrado)",
             "copyReferenceCode": "Copiar o código de referência de uso único exatamente",
             "pasteReference": "Colar no campo de descrição/referência",
-            "mismatchTitle": "Se o valor ou a referência não baterem:",
+            "mismatchTitle": "Se a referência faltar ou estiver errada:",
             "mismatchDescription": "Seu depósito vai falhar e vai levar de 2 a 10 dias para voltar ao seu banco, e pode ter taxas. O código de referência é de uso único."
         },
         "bankDetails": {
             "amountToSend": "Valor a enviar",
             "sendExactAmount": "Envie exatamente este valor!",
+            "sendAnyAmount": "Envie qualquer valor. Inclua a referência.",
             "depositReference": "Referência do depósito",
             "pasteInReferenceField": "Cole no campo de referência do banco",
             "title": "Dados bancários",

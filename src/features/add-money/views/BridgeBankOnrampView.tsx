@@ -190,8 +190,6 @@ export function BridgeBankOnrampView() {
                     {/* limits warning/error card */}
                     {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
-                    {!limitsValidation.isBlocking && <Callout priority="attention">{t('amountMustMatchBank')}</Callout>}
-
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
                         <Callout priority="info" title={t('eurAccountsOnlyTitle')}>
@@ -230,8 +228,6 @@ export function BridgeBankOnrampView() {
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
                     onConfirm={handleWarningConfirm}
-                    amount={rawTokenAmount}
-                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
 
                 <InitiateKycModal

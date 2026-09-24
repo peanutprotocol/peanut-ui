@@ -49,7 +49,14 @@ jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
     default: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ onPrev }: { onPrev?: () => void }) => (
+        <button data-testid="nav-back" onClick={onPrev}>
+            Back
+        </button>
+    ),
+}))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="loading" /> }))
 
 // SavedAccountsView: expose the callbacks the view wires up
@@ -169,9 +176,10 @@ const mockSavedBaseAddress = {
     nickname: 'Binance',
     lastUsedAt: '2026-09-01T00:00:00Z',
 }
+let mockSavedAddresses: (typeof mockSavedBaseAddress)[] = [mockSavedBaseAddress]
 jest.mock('@/hooks/useSavedAddresses', () => ({
     useSavedAddresses: () => ({
-        savedAddresses: [mockSavedBaseAddress],
+        savedAddresses: mockSavedAddresses,
         isLoading: false,
         findSaved: () => undefined,
         rename: { mutateAsync: jest.fn() },
@@ -268,6 +276,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockIsBankFromSend = false
     mockUserAccounts = BANK_ACCOUNTS
+    mockSavedAddresses = [mockSavedBaseAddress]
 })
 
 // ---------- tests ----------
@@ -486,6 +495,60 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
     it('no rail chosen: the crypto row still leads the list', () => {
         renderView({ showAll: 'true' })
         expect(screen.getByTestId('currency-crypto-row')).toBeInTheDocument()
+    })
+})
+
+// Staging 2026-09-24: Withdraw → Crypto went to an empty destination form while
+// the user had saved addresses. The address book must come first on Withdraw;
+// Send → Bank still never shows it (QA-30).
+describe('WithdrawMethodView — Withdraw → Crypto shows the address book first', () => {
+    const renderWithMemory = (searchParams: Record<string, string>) =>
+        render(
+            <NuqsTestingAdapter searchParams={searchParams} hasMemory>
+                <WithdrawMethodView
+                    pageTitle="Withdraw"
+                    mainHeading="Where to?"
+                    onExit={mockOnExit}
+                    onMethodChosen={mockOnMethodChosen}
+                />
+            </NuqsTestingAdapter>
+        )
+
+    it('Crypto on the full list, with saved addresses: the saved addresses, not the form', async () => {
+        renderWithMemory({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('currency-crypto-row'))
+
+        expect(await screen.findByTestId(`saved-address-${mockSavedBaseAddress.id}`)).toBeInTheDocument()
+        expect(screen.getByTestId('crypto-row')).toBeInTheDocument()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('Crypto on the full list, nothing saved: straight to the destination form', () => {
+        mockSavedAddresses = []
+        mockUserAccounts = []
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('currency-crypto-row'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    it('only crypto addresses saved: back from the bank list returns to them, not out of Withdraw', async () => {
+        mockUserAccounts = []
+        renderWithMemory({ showAll: 'true', rail: 'bank' })
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(await screen.findByTestId(`saved-address-${mockSavedBaseAddress.id}`)).toBeInTheDocument()
+        expect(mockOnExit).not.toHaveBeenCalled()
+    })
+
+    it('Send → Bank: back from the bank list still leaves, the address book stays hidden', () => {
+        mockIsBankFromSend = true
+        mockUserAccounts = []
+        renderView({ showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(mockOnExit).toHaveBeenCalled()
+        expect(screen.queryByTestId(`saved-address-${mockSavedBaseAddress.id}`)).not.toBeInTheDocument()
     })
 })
 

@@ -52,8 +52,10 @@ export default function WithdrawBankPage() {
         return null
     }
 
-    // the USDC for a typed bank amount comes from its quote — nothing to review without it
-    if (step === 'review' && bankAmount && !bankAmount.quote) {
+    // the USDC for a typed bank amount comes from its quote — nothing to review
+    // before the first one. A later refresh that fails keeps this page, and any
+    // open KYC, terms or confirm step, mounted: the review shows the error inline.
+    if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading && !flow.submittedTxHash) {
         return (
             <RateGateScreen
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
@@ -107,6 +109,7 @@ export default function WithdrawBankPage() {
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
                     onDone={() => router.push('/home')}
+                    onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                 />
             )}
 
