@@ -7,6 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
 import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS, type DepositAccountScreen } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { DRAWER_CLOSE_MS } from '../drawer'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
@@ -31,9 +32,6 @@ import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
 import { DepositAccountsListScreen } from './DepositAccountsListScreen'
 import { AccountOpenedScreen } from './AccountOpenedScreen'
-
-/** vaul's close animation: a sheet the gate drawer hands off to opens after it */
-export const GATE_DRAWER_CLOSE_MS = 500
 
 export interface DepositAccountsFlowProps {
     /** the corridors this user has a rail for — a deep link to any other lands on the list */
@@ -338,7 +336,7 @@ export function DepositAccountsFlow({
                     const afterGateCloses = (act: () => void) => {
                         closeGate()
                         clearTimeout(pendingGateAct.current)
-                        pendingGateAct.current = setTimeout(act, GATE_DRAWER_CLOSE_MS)
+                        pendingGateAct.current = setTimeout(act, DRAWER_CLOSE_MS)
                     }
                     // A corridor the backend withheld for support is not
                     // something the capability gate can resolve: its own answer
