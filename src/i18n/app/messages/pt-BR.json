@@ -1954,7 +1954,7 @@
             "invalid": "Chave Pix inválida"
         },
         "bank": {
-            "exactRateInfo": "A taxa inclui uma pequena margem que mantém o valor exato se o câmbio mudar antes de a transferência chegar.",
+            "exactRateInfo": "Inclui uma pequena margem para o valor ser exato.",
             "rateChanged": "A taxa de câmbio mudou. Confira o novo valor e tente de novo.",
             "eurTitle": "Enviamos EUR para o seu banco",
             "eurDescription": "Os saques são enviados em EUR. Seu banco pode cobrar taxas de conversão ou recusar a transação se não aceitar depósitos em EUR.",

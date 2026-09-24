@@ -1954,7 +1954,7 @@
             "invalid": "Clave Pix inválida"
         },
         "bank": {
-            "exactRateInfo": "La tasa incluye un pequeño margen que mantiene el monto exacto si el tipo de cambio se mueve antes de que llegue la transferencia.",
+            "exactRateInfo": "Incluye un pequeño margen para que el monto sea exacto.",
             "rateChanged": "El tipo de cambio cambió. Revisa el nuevo monto e intenta de nuevo.",
             "eurTitle": "Enviamos EUR a tu banco",
             "eurDescription": "Los retiros se envían en EUR. Tu banco puede cobrar comisiones de conversión o rechazar la transacción si no admite depósitos en EUR.",

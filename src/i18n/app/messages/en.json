@@ -1954,7 +1954,7 @@
             "invalid": "Invalid Pix key"
         },
         "bank": {
-            "exactRateInfo": "The rate includes a small margin that keeps the amount exact if the rate moves before the transfer arrives.",
+            "exactRateInfo": "Includes a small margin so the amount stays exact.",
             "rateChanged": "The exchange rate changed. Check the new amount and try again.",
             "eurTitle": "We send EUR to your bank",
             "eurDescription": "Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.",
