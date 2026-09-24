@@ -88,7 +88,11 @@ export function ReceiptDetailsCard({
     const statusDateLabel = (kind: ReceiptStatusDateKind) => {
         if (kind === 'claimed') return t('rows.claimed')
         if (kind === 'cancelled') return t('rows.cancelled')
-        if (kind === 'refunded') return t('rows.refunded')
+        // a deposit the bank sent back is Returned everywhere on the receipt,
+        // never Refunded (design.md status words)
+        if (kind === 'refunded') {
+            return transaction.actionLabelKey === 'type.returnedToSender' ? t('returnedStatus') : t('rows.refunded')
+        }
         if (kind === 'closed') return t('rows.closedAt')
         return getCompletedLabel()
     }

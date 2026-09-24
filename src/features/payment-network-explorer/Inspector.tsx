@@ -95,6 +95,7 @@ export default function Inspector({
                                         key={relationship.id}
                                         onClick={() => onSelectRelationship(relationship)}
                                         title={nodesById.get(otherId)?.username ?? otherId}
+                                        truncate
                                         body={outgoing ? 'Sent to' : 'Received from'}
                                         trailing={
                                             <span className="text-body-xs text-foreground-secondary">

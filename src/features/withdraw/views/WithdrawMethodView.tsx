@@ -87,6 +87,9 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // account" row, or as Send → Bank. Offering Crypto again reads as the app
     // not having registered that tap, and taking it abandons the bank flow.
     const bankRailChosen = isBankFromSend || railParam === 'bank'
+    // The crypto address book belongs to the crypto rail, so it counts only
+    // while crypto is still on offer (QA 2026-09-24: Send → Bank listed it).
+    const offeredAddresses = bankRailChosen ? [] : savedAddresses
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -100,6 +103,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             ) ?? []
         return bankAccounts as unknown as Account[]
     }, [user])
+
+    const hasSavedDestinations = savedAccounts.length > 0 || offeredAddresses.length > 0
 
     // check if we're coming from request fulfillment or similar flow
     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
@@ -212,7 +217,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         )
     }
 
-    if (!showAll && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
+    if (!showAll && hasSavedDestinations) {
         return (
             <>
                 <DestinationEditDrawer destination={editing} onClose={() => setEditing(null)} />
@@ -248,7 +253,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         void setShowAll(true)
                         void setRail('bank')
                     }}
-                    savedAddresses={savedAddresses}
+                    savedAddresses={offeredAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
                     onSavedAddressEdit={(saved) =>
                         setEditing({
@@ -270,7 +275,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                             rename: renameAccount,
                         })
                     }
-                    onCryptoClick={handleCryptoTileClick}
+                    railSections
+                    onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
                 />
             </>
         )
@@ -288,7 +294,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         return
                     }
                     // toggle back to saved accounts when the user navigated to "select new method"
-                    if (showAllParam && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
+                    if (showAllParam && hasSavedDestinations) {
                         void setShowAll(null)
                         // back on the hub the user has picked nothing again
                         void setRail(null)

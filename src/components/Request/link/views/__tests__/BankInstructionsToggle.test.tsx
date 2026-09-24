@@ -129,7 +129,7 @@ describe('BankInstructionsToggle', () => {
 
             expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
             expect(screen.queryByText(/Only businesses/)).not.toBeInTheDocument()
-            expect(screen.queryByText(/is not confirmed on this account/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Transfers from other people are not confirmed/)).not.toBeInTheDocument()
         })
 
         // A friend's transfer into a business-only corridor comes back to them.
@@ -139,7 +139,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
         })
 
         // Nothing a third party can pay into, so there is nothing to offer.
@@ -158,7 +158,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/is not confirmed on this account/)).toBeInTheDocument()
+            expect(screen.getByText(/Transfers from other people are not confirmed/)).toBeInTheDocument()
         })
     })
 
@@ -170,7 +170,7 @@ describe('BankInstructionsToggle', () => {
 
         renderToggle(true)
 
-        expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
+        expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
     })
 
     describe('one title, and one line about what a payer sees', () => {
@@ -201,7 +201,7 @@ describe('BankInstructionsToggle', () => {
             renderToggle(true)
 
             expect(
-                screen.getByText(/^Payers see your full name and bank details\. Only businesses can pay this/)
+                screen.getByText(/^Payers see your full name and bank details\. Only you or a business can pay in/)
             ).toBeInTheDocument()
         })
 
@@ -210,7 +210,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(false)
 
-            expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Only you or a business can pay in\./)).not.toBeInTheDocument()
         })
 
         // A name that flips with the state reads "Don't share…, switch, off".

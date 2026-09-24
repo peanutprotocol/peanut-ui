@@ -156,6 +156,7 @@ export type ClosedRow = { label: string } & (
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
+    | { kind: 'card-restricted' }
     | { kind: 'verification-down' }
 )
 

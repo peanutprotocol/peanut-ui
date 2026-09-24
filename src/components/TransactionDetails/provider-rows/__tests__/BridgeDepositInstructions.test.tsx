@@ -9,7 +9,7 @@
  * confusion. Nested primitives are stubbed.
  */
 import React from 'react'
-import { render as rtlRender, screen, type RenderOptions } from '@testing-library/react'
+import { act, render as rtlRender, screen, type RenderOptions } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -60,5 +60,36 @@ describe('BridgeDepositInstructions deposit message', () => {
         const copyTexts = screen.getAllByTestId('copy').map((el) => el.getAttribute('data-text'))
         expect(copyTexts).toContain(SHORT_REFERENCE)
         expect(copyTexts).not.toContain(FULL_REFERENCE)
+    })
+})
+
+// QA 2026-09-24 (QA-10): the MXN receipt showed "Bank address" with nothing under it
+describe('BridgeDepositInstructions bank details', () => {
+    const open = () => screen.getByText('See bank details').click()
+
+    it('leaves out a row the rail does not provide', () => {
+        const spei = {
+            extraDataForDrawer: {
+                depositInstructions: {
+                    deposit_message: FULL_REFERENCE,
+                    bank_name: 'STP',
+                    account_holder_name: 'Peanut',
+                    clabe: '646180546701072890',
+                },
+            },
+        } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+        render(<BridgeDepositInstructions transaction={spei} />)
+        act(open)
+
+        expect(screen.getByText('STP')).toBeInTheDocument()
+        expect(screen.getByText('646180546701072890')).toBeInTheDocument()
+        expect(screen.queryByText('Bank Address')).not.toBeInTheDocument()
+    })
+
+    it('keeps the row where the rail provides it', () => {
+        render(<BridgeDepositInstructions transaction={transaction} />)
+        act(open)
+        expect(screen.getByText('Bank Address')).toBeInTheDocument()
+        expect(screen.getByText('Frankfurt, Germany')).toBeInTheDocument()
     })
 })
