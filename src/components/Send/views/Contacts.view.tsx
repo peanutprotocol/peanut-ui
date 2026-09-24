@@ -16,6 +16,7 @@ import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 import { useTranslations } from 'next-intl'
 import { isPlausibleUsername } from '@/constants/routes'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { usersApi } from '@/services/users'
@@ -177,7 +178,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             position="solo"
                             title={t('contacts.usernameFound', { username: exactUsername })}
                             body={t('contacts.continueToSend')}
-                            leading={<IconBubble icon="user" size="s" color="green" />}
+                            leading={<IconBubble {...CONCEPT_ICONS.peanutUser} size="s" />}
                             chevron
                             onClick={() => handleUserSelect(exactUsername)}
                         />

@@ -281,7 +281,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}
             status={status}
-            context="header"
             size="m"
             countryCode={countryCode}
         />

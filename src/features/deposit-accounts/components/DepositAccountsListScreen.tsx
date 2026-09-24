@@ -11,6 +11,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import NavHeader from '@/components/Global/NavHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { withReturnTo } from '@/utils/return-to.utils'
@@ -368,7 +369,7 @@ export function DepositAccountsListScreen({
             body={tMethods('cryptoDescription')}
             bodyWrap
             chevron
-            leading={<IconBubble icon="coins" color="blue" size="s" />}
+            leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
             onClick={() => router.push(CRYPTO_HREF)}
             data-testid="add-money-crypto"
         />
@@ -531,7 +532,7 @@ export function DepositAccountsListScreen({
                             title={t('list.countriesTitle')}
                             body={t('list.countriesPitch')}
                             bodyWrap
-                            leading={<IconBubble icon="globe" color="blue" size="s" />}
+                            leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
                             trailing={
                                 <Icon
                                     name="chevron-down"

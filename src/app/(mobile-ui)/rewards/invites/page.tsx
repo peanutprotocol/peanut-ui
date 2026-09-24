@@ -171,7 +171,6 @@ const InvitesPage = () => {
                                             avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
-                                            context="card"
                                             size="m"
                                         />
                                     </div>

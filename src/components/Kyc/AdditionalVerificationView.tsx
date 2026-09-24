@@ -6,6 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
@@ -110,7 +111,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                     left-aligned, and a centered paragraph above it reads as a
                     second column. */}
                 <Card className="gap-3 p-4">
-                    <IconBubble icon="user-id" size="l" color="blue" className="self-center" />
+                    <IconBubble {...CONCEPT_ICONS.verification} size="l" className="self-center" />
                     <p className="text-body-s text-foreground-secondary">
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>

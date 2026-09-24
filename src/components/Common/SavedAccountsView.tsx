@@ -13,6 +13,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '../Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 
@@ -78,7 +79,7 @@ export default function SavedAccountsView({
                             )}
                             <ListItem
                                 position="solo"
-                                leading={<IconBubble icon="bank" size="s" color="gray" />}
+                                leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                                 // a ReactNode title wraps; a bare string is cut to one
                                 // line, and the pt-BR label does not fit at 375
                                 title={<span>{tWithdraw('withdrawToBank')}</span>}
@@ -98,7 +99,7 @@ export default function SavedAccountsView({
                             )}
                             <ListItem
                                 position="solo"
-                                leading={<IconBubble icon="credit-card" size="s" color="blue" />}
+                                leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                                 title={tWithdraw('withdrawToCrypto')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
                                 trailing={plusTrailing}
@@ -190,7 +191,7 @@ export function SavedAccountsMapping({
                                 className="size-8 min-w-8 rounded-full object-cover"
                             />
                         ) : (
-                            <IconBubble icon="bank" size="s" color="gray" />
+                            <IconBubble {...CONCEPT_ICONS.bank} size="s" />
                         )
                     }
                 />

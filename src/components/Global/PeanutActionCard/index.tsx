@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import Card from '../Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import SOCIALS_ICON from '@/assets/icons/socials.svg'
 
 interface PeanutActionCardProps {
@@ -17,7 +18,7 @@ const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
     const t = useTranslations('global')
     return (
         <Card className="flex flex-col items-center gap-2 p-6 text-center">
-            <IconBubble icon={type === 'request' ? 'dollar' : 'link'} size="m" color="blue" />
+            <IconBubble {...CONCEPT_ICONS[type === 'request' ? 'requestLink' : 'sendLink']} size="m" />
             <div className="flex flex-col items-center gap-1">
                 <div className="text-heading-card text-foreground-primary">
                     {type === 'request' ? t('peanutActionCard.requestTitle') : t('peanutActionCard.sendTitle')}
