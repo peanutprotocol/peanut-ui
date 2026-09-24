@@ -1,5 +1,5 @@
 import { DEPOSIT_RAIL_POLICY } from '../__fixtures__/railPolicy'
-import { depositRuleLines } from '../ruleLines'
+import { depositRuleLines, senderLimitKey } from '../ruleLines'
 import type { DepositMatching, DepositRules } from '../types'
 
 const money = (amount: string, currency: string) => `${currency} ${amount}`
@@ -156,4 +156,21 @@ it('states business support with separate per-payment and monthly limits', () =>
         { key: 'maximum', values: { max: 'COP 11552000' } },
         { key: 'monthlyLimit', values: { limit: 'USD 500000' } },
     ])
+})
+
+/**
+ * One line says who may pay in, on every screen a third party's transfer
+ * depends on: the account details, the request toggle and the payer's screen
+ * (QA 2026-09-24).
+ */
+describe('senderLimitKey', () => {
+    it('names the limit where the corridor has one', () => {
+        expect(senderLimitKey(matching({ sender: 'business-only' }))).toBe('businessOnly')
+        expect(senderLimitKey(matching({ sender: 'unknown' }))).toBe('othersUnconfirmed')
+    })
+
+    it('says nothing where anyone may pay, or where nobody else can be given the details', () => {
+        expect(senderLimitKey(matching({ sender: 'anyone' }))).toBeUndefined()
+        expect(senderLimitKey(matching({ sender: 'own-name-only' }))).toBeUndefined()
+    })
 })

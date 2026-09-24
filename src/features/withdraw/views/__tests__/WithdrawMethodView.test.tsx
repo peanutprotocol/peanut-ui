@@ -58,7 +58,7 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
     default: (props: {
         savedAccounts: Account[]
         onAccountClick: (account: Account, path?: string) => void
-        onCryptoClick: () => void
+        onCryptoClick?: () => void
         onSelectNewMethodClick: () => void
         savedAddresses: { id: string; address: string; chainId: string; nickname: string }[]
         onSavedAddressClick: (saved: { id: string; address: string; chainId: string; nickname: string }) => void
@@ -85,9 +85,11 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
                     {saved.nickname}
                 </button>
             ))}
-            <button data-testid="crypto-row" onClick={props.onCryptoClick}>
-                Crypto
-            </button>
+            {props.onCryptoClick && (
+                <button data-testid="crypto-row" onClick={props.onCryptoClick}>
+                    Crypto
+                </button>
+            )}
         </div>
     ),
 }))
@@ -225,15 +227,13 @@ const IBAN_ACCOUNT = {
     details: { countryName: 'germany' },
 } as unknown as Account
 
+const BANK_ACCOUNTS = [
+    { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
+    { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
+]
+let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({
-        user: {
-            accounts: [
-                { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
-                { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
-            ],
-        },
-    }),
+    useAuth: () => ({ user: { accounts: mockUserAccounts } }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -272,6 +272,7 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockIsBankFromSend = false
+    mockUserAccounts = BANK_ACCOUNTS
 })
 
 // ---------- tests ----------
@@ -466,6 +467,30 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
         mockIsBankFromSend = true
         renderView({ showAll: 'true', method: 'bank' })
         expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
+    })
+
+    // QA 2026-09-24 (QA-30): Send → Bank listed the crypto address book under
+    // the saved bank accounts.
+    it('Send → Bank with saved accounts: the bank accounts only, no address book and no crypto row', () => {
+        mockIsBankFromSend = true
+        renderView({ method: 'bank' })
+        expect(screen.getByTestId('account-DE89370400440532013000')).toBeInTheDocument()
+        expect(screen.queryByTestId('saved-address-saved-1')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('crypto-row')).not.toBeInTheDocument()
+    })
+
+    it('Send → Bank with only crypto addresses saved: straight to the bank list', () => {
+        mockIsBankFromSend = true
+        mockUserAccounts = []
+        renderView({ method: 'bank' })
+        expect(screen.getByTestId('currency-list')).toBeInTheDocument()
+        expect(screen.queryByTestId('saved-address-saved-1')).not.toBeInTheDocument()
+    })
+
+    it('own-account withdraw keeps both rails on the saved screen', () => {
+        renderView()
+        expect(screen.getByTestId('saved-address-saved-1')).toBeInTheDocument()
+        expect(screen.getByTestId('crypto-row')).toBeInTheDocument()
     })
 
     it('no rail chosen: the crypto row still leads the list', () => {

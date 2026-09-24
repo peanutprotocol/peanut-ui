@@ -8,6 +8,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import VirtualAccountsHub from './VirtualAccountsHub'
 import { AccountsHubList } from '@/features/deposit-accounts/components/AccountsHubList'
+import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
+import type { ClosedRow } from '@/features/deposit-accounts/hubRows'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
@@ -52,6 +54,7 @@ import { useAuth } from '@/context/authContext'
 import {
     BANK_ROW_COUNTRIES,
     buildUnlockGroups,
+    withPixSend,
     type BankRowKey,
     type UnlockGroup,
     type UnlockRow,
@@ -144,6 +147,19 @@ const UnlockPayments = () => {
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
+    const pixKeyRow = spendGroup?.rows.find((row) => row.id === 'pix-key')
+    const accountBankRows = useMemo(() => withPixSend(bankRows, pixKeyRow), [bankRows, pixKeyRow])
+    // A Spend row the user cannot use explains why on tap, like the bank rows
+    // (hugo, 2026-09-24: "always show the rails, tell the user why").
+    const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
+    const closeSpendRow = useCallback(
+        (row: UnlockRow) =>
+            setClosedSpendRow({
+                kind: row.labelKey === 'card' && !restrictions.banking ? 'card-restricted' : 'restricted-country',
+                label: t(`rows.${row.labelKey}`),
+            }),
+        [restrictions.banking, t]
+    )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
@@ -284,7 +300,7 @@ const UnlockPayments = () => {
 
     // What both forms of the shared list take from this screen.
     const hubProps = {
-        bankRows,
+        bankRows: accountBankRows,
         onBankRowClick: handleRowClick,
         onChangeResidence: () => setIsChangeModalOpen(true),
         isKycDegraded,
@@ -423,7 +439,19 @@ const UnlockPayments = () => {
 
             {/* Spending methods, apart from the ways money moves between a bank
                 and Peanut. */}
-            {spendGroup && <RowSection group={spendGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />}
+            {spendGroup && (
+                <RowSection
+                    group={spendGroup}
+                    onRowClick={handleRowClick}
+                    onClosedRowClick={closeSpendRow}
+                    isKycDegraded={isKycDegraded}
+                />
+            )}
+            <ClosedRowDrawer
+                closed={closedSpendRow}
+                onClose={() => setClosedSpendRow(null)}
+                onChangeResidence={() => setIsChangeModalOpen(true)}
+            />
 
             {peanutGroup && (
                 <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
@@ -698,10 +726,13 @@ function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
 const RowSection = ({
     group,
     onRowClick,
+    onClosedRowClick,
     isKycDegraded,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
+    /** a Not available row: the tap explains why instead of doing nothing */
+    onClosedRowClick?: (row: UnlockRow) => void
     isKycDegraded: boolean
 }) => {
     const t = useTranslations('profile.unlockPayments')
@@ -710,30 +741,29 @@ const RowSection = ({
         <Section title={t(`groups.${group.labelKey}`)}>
             <ListGroup>
                 {group.rows.map((row) => {
+                    const closed = row.chip === 'notAvailable' && onClosedRowClick
                     const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
                             className="min-h-18"
-                            disabled={row.chip === 'notAvailable'}
+                            // a closed row that explains itself is still a tap target,
+                            // as the bank rows are (AccountsHubList)
+                            disabled={row.chip === 'notAvailable' && !closed}
                             leading={peanutRowLeading(row)}
-                            title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
+                            title={t(`rows.${row.labelKey}`)}
                             // QR payments and Pix keys are the rows people do
                             // not recognise by name, so each carries its
                             // explainer under the title — the countries and
                             // key types, which wrapped the title over three
                             // lines at 375px.
-                            body={
-                                row.labelKey === 'qrPay'
-                                    ? t('qrPayNote')
-                                    : row.labelKey === 'pixKey'
-                                      ? t('pixKeyNote')
-                                      : undefined
-                            }
+                            body={row.note && t(row.note)}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
-                            chevron={tappable}
-                            onClick={tappable ? () => onRowClick(row) : undefined}
+                            chevron={tappable || !!closed}
+                            onClick={
+                                closed ? () => onClosedRowClick(row) : tappable ? () => onRowClick(row) : undefined
+                            }
                         />
                     )
                 })}

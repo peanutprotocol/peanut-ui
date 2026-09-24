@@ -1,7 +1,7 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets/icons'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
-import { type RailCapability } from '@/types/capabilities'
+import { type RailCapability, type RailOperation } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { BANKING_RESTRICTED_RESIDENCE_ISO2, RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
@@ -287,20 +287,22 @@ export const isBridgeSupportedCountry = (code: string): boolean => {
 }
 
 /**
- * True when the user has an enabled bank rail in `countryCode` — provider-blind.
+ * True when the user may run `op` on a bank rail in `countryCode` — provider-blind.
  *
- *   - LATAM country (AR/BR/…): bank rail for that country with `deposit` op
- *     enabled (full-tier — pool-only rails enable `pay` only).
+ *   - LATAM country (AR/BR/…): the bank rail for that country with `op`
+ *     enabled. The operation matters: a pool-tier rail enables `pay` only,
+ *     so every verified user can pay a Pix key while adding money (`deposit`)
+ *     and withdrawing to an own account (`withdraw`) need the full account.
  *   - Other countries: any enabled bank rail.
  */
-export function isVerifiedForCountry(rails: RailCapability[], countryCode: string): boolean {
+export function isVerifiedForCountry(rails: RailCapability[], countryCode: string, op: RailOperation): boolean {
     const upper = countryCode.toUpperCase()
     if (isMantecaSupportedCountryCode(upper)) {
         return rails.some(
             (rail) =>
                 rail.channel === 'bank' &&
                 rail.country.toUpperCase() === upper &&
-                (rail.operations?.deposit ?? rail.status) === 'enabled'
+                (rail.operations?.[op] ?? rail.status) === 'enabled'
         )
     }
     return rails.some((rail) => rail.channel === 'bank' && rail.status === 'enabled')
