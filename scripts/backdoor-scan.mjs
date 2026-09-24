@@ -21,9 +21,9 @@
 //
 // It never executes the code it reads.
 //
-// Canonical copy: mono/scripts/backdoor-scan.mjs. peanut-ui and peanut-api-ts
-// carry identical copies at scripts/backdoor-scan.mjs; CI runs the copy from
-// the PR's BASE branch, so a PR cannot weaken the scan that judges it.
+// Originated in mono/scripts/backdoor-scan.mjs and mirrored into peanut-ui and
+// peanut-api-ts. Keep security fixes in sync across copies. CI runs the copy
+// from the PR's BASE branch, so a PR cannot weaken the scan that judges it.
 //
 // Usage:
 //   node scripts/backdoor-scan.mjs --base origin/dev [--head HEAD] [--jev] [--allow-ref origin/dev]
@@ -277,10 +277,12 @@ async function main() {
 	else if (opts.local) {
 		const baseRef = typeof opts.base === 'string' ? opts.base : 'origin/dev'
 		const mergeBase = git(['merge-base', baseRef, 'HEAD']).trim()
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--unified=0', mergeBase])
+		// Repository attributes can mark source files as binary (-diff). Always
+		// inspect their added text anyway, or a later PR can hide executable code.
+		diff = git(['diff', '--text', '--no-color', '--no-ext-diff', '--unified=0', mergeBase])
 	} else {
 		if (!opts.base) throw new Error('--base <ref> is required (or --local / --diff-file)')
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
+		diff = git(['diff', '--text', '--no-color', '--no-ext-diff', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
 	}
 	const lines = addedLines(diff)
 	const allowRef = typeof opts['allow-ref'] === 'string' ? opts['allow-ref'] : typeof opts.base === 'string' ? opts.base : null
