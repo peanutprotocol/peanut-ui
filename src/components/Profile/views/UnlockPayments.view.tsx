@@ -224,7 +224,7 @@ const UnlockPayments = () => {
     )
 
     // The three lists this screen shows, named by group id rather than by
-    // position: the bank rows feed the "Bank transfers" list, the
+    // position: the bank rows feed the "Add and withdraw money" list, the
     // other two get their own sections below it.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')

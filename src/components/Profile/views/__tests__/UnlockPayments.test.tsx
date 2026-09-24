@@ -279,7 +279,7 @@ describe('UnlockPayments', () => {
         // an empty "Your account numbers" heading would promise details that do
         // not exist.
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-        const accountsHeading = screen.getByText('Bank transfers')
+        const accountsHeading = screen.getByText('Add and withdraw money')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
@@ -414,7 +414,7 @@ describe('UnlockPayments', () => {
         it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
             render()
 
-            expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
             expect(screen.getByText('Move money between your bank and Peanut in these currencies.')).toBeInTheDocument()
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
@@ -443,7 +443,7 @@ describe('UnlockPayments', () => {
             render()
 
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-            expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         })
 
         it('an account held: it gets its own section, its own words, and Ready', () => {
@@ -504,7 +504,7 @@ describe('UnlockPayments', () => {
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
         expect(screen.getByText('Your account numbers')).toBeInTheDocument()
-        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
@@ -526,7 +526,7 @@ describe('UnlockPayments', () => {
         })
         render()
 
-        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         expect(screen.queryByText('USD')).not.toBeInTheDocument()
     })
@@ -598,7 +598,7 @@ describe('UnlockPayments', () => {
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
-        expect(screen.getByText('Bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })
@@ -830,7 +830,7 @@ describe('UnlockPayments', () => {
             render()
 
             const spendHeading = screen.getByText('Spend')
-            const bankHeading = screen.getByText('Bank transfers')
+            const bankHeading = screen.getByText('Add and withdraw money')
             expect(bankHeading.compareDocumentPosition(spendHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
