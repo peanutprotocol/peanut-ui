@@ -110,17 +110,12 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        // Same precedence as before, with the localized string standing
-                        // in for `badge.description`: the backend's third-person
-                        // `publicDescription` still wins when you are not the owner.
-                        const { name: displayName, description: selfDescription } = badgeCopy(
-                            badge.code,
-                            badge.name,
-                            badge.description
-                        )
-                        const displayDescription = isSelfProfile
-                            ? selfDescription
-                            : (badge.publicDescription ?? selfDescription)
+                        const {
+                            name: displayName,
+                            description: selfDescription,
+                            publicDescription,
+                        } = badgeCopy(badge.code, badge.name, badge.description, badge.publicDescription)
+                        const displayDescription = isSelfProfile ? selfDescription : publicDescription
 
                         return (
                             <Tooltip

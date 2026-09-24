@@ -2488,199 +2488,283 @@
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primera invitación",
-                "description": "Trajiste a un amigo a la mesa. Ahora falta toda la red."
+                "description": "Trajiste a un amigo a la mesa. Ahora falta toda la red.",
+                "publicDescription": "Trajo a un amigo a la mesa. Ahora falta toda la red."
             },
             "SECOND_INVITE": {
                 "name": "Segunda invitación",
-                "description": "Se corre la voz: dos amigos adentro y subiendo."
+                "description": "Se corre la voz: dos amigos adentro y subiendo.",
+                "publicDescription": "Se corre la voz: dos amigos adentro y subiendo."
             },
             "THIRD_INVITE": {
                 "name": "Tercera invitación",
-                "description": "Tres amigos, ningún fallo. Un aplauso."
+                "description": "Tres amigos, ningún fallo. Un aplauso.",
+                "publicDescription": "Tres amigos, ningún fallo. Un aplauso."
             },
             "MINI_INFLUENCER": {
                 "name": "Mini influencer",
-                "description": "Armaste un pequeño club de fans, una invitación a la vez."
+                "description": "Armaste un pequeño club de fans, una invitación a la vez.",
+                "publicDescription": "Armó un pequeño club de fans, una invitación a la vez."
             },
             "INFLUENCER_25": {
                 "name": "Influencer",
-                "description": "Veinticinco en la cuenta. Los likes no paran."
+                "description": "Veinticinco en la cuenta. Los likes no paran.",
+                "publicDescription": "Veinticinco en la cuenta. Los likes no paran."
             },
             "MEGA_INFLUENCER": {
                 "name": "Mega influencer",
-                "description": "Cien amigos adentro. Ahora sí es oficial."
+                "description": "Cien amigos adentro. Ahora sí es oficial.",
+                "publicDescription": "Cien amigos adentro. Ahora sí es oficial."
             },
             "DUNBAR": {
                 "name": "Dunbar",
-                "description": "150: más gente de la que uno puede recordar. Llegaste al número de Dunbar."
+                "description": "150: más gente de la que uno puede recordar. Llegaste al número de Dunbar.",
+                "publicDescription": "150: más gente de la que uno puede recordar. Llegó al número de Dunbar."
             },
             "MOST_INVITES": {
                 "name": "Más invitaciones",
-                "description": "¡Sumaste más usuarios que los anuncios de Coinbase!"
+                "description": "¡Sumaste más usuarios que los anuncios de Coinbase!",
+                "publicDescription": "¡Sumó más usuarios que los anuncios de Coinbase!"
             },
             "CERTIFIED_YAPPER": {
                 "name": "Charlatán certificado",
-                "description": "Ruido certificado. Habló de Peanut para que nosotros no tuviéramos que hacerlo."
+                "description": "Ruido certificado. Hablaste de Peanut para que nosotros no tuviéramos que hacerlo.",
+                "publicDescription": "Ruido certificado. Habló de Peanut para que nosotros no tuviéramos que hacerlo."
             },
             "GIGA_YAPPER": {
                 "name": "Giga charlatán",
-                "description": "Ruido nivel giga. No menciona Peanut, la difunde."
+                "description": "Ruido nivel giga. No mencionas Peanut, la difundes.",
+                "publicDescription": "Ruido nivel giga. No menciona Peanut, la difunde."
             },
             "FIRST_CRUMB": {
                 "name": "Primer dólar",
-                "description": "Primer dólar ganado. Prueba de que rinde."
+                "description": "Primer dólar ganado. Prueba de que rinde.",
+                "publicDescription": "Primer dólar ganado. Prueba de que rinde."
             },
             "DOUBLE_DIGITS": {
                 "name": "Dos dígitos",
-                "description": "Pasaste a dos dígitos. Ahora sí es dinero de verdad."
+                "description": "Pasaste a dos dígitos. Ahora sí es dinero de verdad.",
+                "publicDescription": "Pasó a dos dígitos. Ahora sí es dinero de verdad."
             },
             "CARD_FIRST_SWIPE": {
                 "name": "Primera compra",
-                "description": "Pusiste tu tarjeta a trabajar."
+                "description": "Pusiste tu tarjeta a trabajar.",
+                "publicDescription": "Primera compra. Puso su tarjeta a trabajar."
             },
             "CARD_SPENT_1K": {
                 "name": "Club de los $1K",
-                "description": "$1K gastados: apostaste donde estaba tu dinero."
+                "description": "$1K gastados: apostaste donde estaba tu dinero.",
+                "publicDescription": "$1K gastados. Apostó donde estaba su dinero."
             },
             "CARD_PIONEER": {
                 "name": "Pionero de la tarjeta",
-                "description": "¡Reservaste tu lugar para la tarjeta Peanut. Los beneficios de pionero ya vienen!"
+                "description": "¡Reservaste tu lugar para la tarjeta Peanut. Los beneficios de pionero ya vienen!",
+                "publicDescription": "Reservó su lugar para la tarjeta Peanut. ¡Los beneficios de pionero ya vienen!"
             },
             "FOUNDING_PIONEER": {
                 "name": "Pionero fundador",
-                "description": "Ya construías Peanut antes de que existiera el lanzamiento."
+                "description": "Ya construías Peanut antes de que existiera el lanzamiento.",
+                "publicDescription": "Ya construía Peanut antes de que existiera el lanzamiento."
             },
             "ENS": {
                 "name": "Nombre propio",
-                "description": "Pagaste a un nombre. O te pagaron al tuyo."
+                "description": "Pagaste a un nombre. O te pagaron al tuyo.",
+                "publicDescription": "Pagó a un nombre. O le pagaron al suyo."
             },
             "VERIFIED": {
                 "name": "Verificado",
-                "description": "Documento revisado, identidad confirmada. Verificación oficial completa."
+                "description": "Documento revisado, identidad confirmada. Verificación oficial completa.",
+                "publicDescription": "Documento revisado, identidad confirmada. Verificación oficial completa."
             },
             "BETA_TESTER": {
                 "name": "Beta tester",
-                "description": "Rompiste cosas para que otros no tengan que hacerlo. Te damos la bienvenida al club del caos."
+                "description": "Rompiste cosas para que otros no tengan que hacerlo. Te damos la bienvenida al club del caos.",
+                "publicDescription": "En el laboratorio con nosotros. Llegó lo bastante temprano para ser parte del experimento."
+            },
+            "PEANUT_TEAM": {
+                "name": "Equipo Peanut",
+                "description": "Encontraste el interruptor. Las versiones beta ya son tuyas.",
+                "publicDescription": "Sabe dónde está el interruptor."
             },
             "OG_2025_10_12": {
                 "name": "OG",
-                "description": "Un OG de verdad. Estabas con Peanut antes de que fuera moda."
+                "description": "Un OG de verdad. Estabas con Peanut antes de que fuera moda.",
+                "publicDescription": "Un OG de verdad. Estaba con Peanut antes de que fuera moda."
             },
             "CARD_CLOSED_BETA": {
                 "name": "Beta cerrada",
-                "description": "IYKYK. Probaron la tarjeta antes de que supieras que existía."
+                "description": "IYKYK. Probaste la tarjeta antes de que nadie supiera que existía.",
+                "publicDescription": "IYKYK. Probó la tarjeta antes de que nadie supiera que existía."
             },
             "CARD_ALPHA": {
                 "name": "Tester del alfa cerrado",
-                "description": "Probaste la tarjeta cuando todavía era cinta adhesiva y esperanza."
+                "description": "Probaste la tarjeta cuando todavía era cinta adhesiva y esperanza.",
+                "publicDescription": "Probó la tarjeta cuando todavía era cinta adhesiva y esperanza."
             },
             "BUG_WHISPERER": {
                 "name": "Cazador de bugs",
-                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta."
+                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta.",
+                "publicDescription": "Encontró un bug real, lo reportó y se quedó. La cerveza va por nuestra cuenta."
+            },
+            "WHITE_HAT": {
+                "name": "Sombrero blanco",
+                "description": "Entraste, nos contaste cómo y saliste por la puerta principal. Respeto.",
+                "publicDescription": "Entró, nos contó cómo y salió por la puerta principal."
             },
             "SUPPORT_SURVIVOR": {
                 "name": "Sobreviviente de soporte",
-                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta."
+                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta.",
+                "publicDescription": "Encontró un bug real, lo reportó y se quedó. La cerveza va por nuestra cuenta."
             },
             "SHHHHH": {
                 "name": "Shhhhh",
-                "description": "El que sabe, sabe."
+                "description": "El que sabe, sabe.",
+                "publicDescription": "El que sabe, sabe."
             },
             "NOT_SO_SHHHH": {
                 "name": "Bocón",
-                "description": "No pudiste quedarte callado, y encima te pagamos por eso."
+                "description": "No pudiste quedarte callado, y encima te pagamos por eso.",
+                "publicDescription": "No pudo quedarse callado, y encima le pagamos por eso."
             },
             "ARBITRUM": {
                 "name": "Nativo de Arbitrum",
-                "description": "Te encontramos en Arbitrum: onboarding mutuo logrado."
+                "description": "Te encontramos en Arbitrum: onboarding mutuo logrado.",
+                "publicDescription": "Nos encontramos en Arbitrum: onboarding mutuo logrado."
+            },
+            "TRON": {
+                "name": "Nativo de Tron",
+                "description": "Nos encontramos en Tron. Donde los dólares de verdad se mueven.",
+                "publicDescription": "Nos encontramos en Tron. Donde los dólares de verdad se mueven."
             },
             "FOUNDER_HOUSE": {
                 "name": "Founder Haus",
-                "description": "Estuviste en Founder Haus. Energía on-chain, apretones de mano off-chain."
+                "description": "Estuviste en Founder Haus. Energía on-chain, apretones de mano off-chain.",
+                "publicDescription": "Estuvo en Founder Haus. Energía on-chain, apretones de mano off-chain."
             },
             "ETHFLORIPA_HUB": {
                 "name": "EthFloripa Hub",
-                "description": "Ilha da Magia, baby. Cocos y consenso."
+                "description": "Ilha da Magia, baby. Cocos y consenso.",
+                "publicDescription": "Ilha da Magia, baby. Cocos y consenso."
             },
             "IRL_NOMADS": {
                 "name": "Modo nómada",
-                "description": "Sin dirección fija, solo buen café y mejor wifi. Nómada oficial."
+                "description": "Sin dirección fija, solo buen café y mejor wifi. Nómada oficial.",
+                "publicDescription": "Sin dirección fija, solo buen café y mejor wifi. Nómada oficial."
             },
             "EVENT_ALUMNI": {
                 "name": "Veterano de eventos",
-                "description": "Old school. Estuviste en la sala antes que la mayoría."
+                "description": "Old school. Estuviste en la sala antes que la mayoría.",
+                "publicDescription": "Old school. Estuvo en la sala antes que la mayoría."
             },
             "TOUCHED_GRASS": {
                 "name": "Tocaste pasto",
-                "description": "Te desconectaste y tocaste pasto de verdad con Peanut."
+                "description": "Te desconectaste y tocaste pasto de verdad con Peanut.",
+                "publicDescription": "Se desconectó y tocó pasto de verdad con Peanut."
+            },
+            "PEANUT_SHAPER": {
+                "name": "Ayuda a moldear Peanut",
+                "description": "Hablaste. Tomamos nota. Peanut mejoró.",
+                "publicDescription": "Habló. Tomamos nota. Peanut mejoró."
             },
             "OFFRAMP_USER": {
                 "name": "Usuario de retiro",
-                "description": "Migraste a Peanut. Te recibimos bien."
+                "description": "Migraste a Peanut. Te recibimos bien.",
+                "publicDescription": "Migró a Peanut. Le dimos la bienvenida."
+            },
+            "SPLITTER": {
+                "name": "Splitter",
+                "description": "Amigos saldados, cuentas divididas. Recuerdos hechos.",
+                "publicDescription": "Amigos saldados, cuentas divididas. Recuerdos hechos."
             },
             "PSYOPS_DIVISION": {
                 "name": "División Psyops",
-                "description": "Entraste a la División Psyops. Te damos la bienvenida al juego de la influencia."
+                "description": "Entraste a la División Psyops. Te damos la bienvenida al juego de la influencia.",
+                "publicDescription": "Entró a la División Psyops. Ya está en el juego de la influencia."
             },
             "TOKEN_NATION_SP_2026": {
                 "name": "Token Nation 2026",
-                "description": "São Paulo, baby. Viniste, reclamaste y firmaste el muro."
+                "description": "São Paulo, baby. Viniste, reclamaste y firmaste el muro.",
+                "publicDescription": "São Paulo, baby. Vino, reclamó y firmó el muro."
             },
             "FESTA_JUNINA_2026": {
                 "name": "Arraiá aprobado",
-                "description": "Bailaste la quadrilha con nosotros. Arraiá desbloqueado."
+                "description": "Bailaste la quadrilha con nosotros. Arraiá desbloqueado.",
+                "publicDescription": "Bailó la quadrilha con nosotros. Arraiá desbloqueado."
             },
             "MANICERO": {
                 "name": "Manicero",
-                "description": "Maní chico. Energía grande. Manicero."
+                "description": "Maní chico. Energía grande. Manicero.",
+                "publicDescription": "Maní chico. Energía grande. Manicero."
             },
             "NITA": {
                 "name": "Recomendación de Nita",
-                "description": "Nita te mandó. Te saltaste la fila de la tarjeta con su palabra."
+                "description": "Nita te mandó. Te saltaste la fila de la tarjeta con su palabra.",
+                "publicDescription": "Llegó de parte de Nita. Se saltó la fila de la tarjeta con su palabra."
             },
             "NAIJA": {
                 "name": "9JA",
-                "description": "Naija no dey carry last. Llegaste primero."
+                "description": "Naija no dey carry last. Llegaste primero.",
+                "publicDescription": "Naija no dey carry last. Llegó primero."
             },
             "TERERE": {
                 "name": "Tereré",
-                "description": "Tereré desbloqueado. Estuviste en la primera ronda."
+                "description": "Tereré desbloqueado. Estuviste en la primera ronda.",
+                "publicDescription": "Tereré desbloqueado. Estuvo en la primera ronda."
+            },
+            "ACAI_POWERED": {
+                "name": "Con energía de açaí",
+                "description": "Te saltaste la espera. Cuchara en mano, directo por la puerta.",
+                "publicDescription": "Se saltó la espera. Cuchara en mano, directo por la puerta."
             },
             "DEVCONNECT_BA_2025": {
                 "name": "Devconnect 2025",
-                "description": "Nada de anon. Tocaste pasto, diste la mano y respiraste el mismo aire que Vitalik."
+                "description": "Nada de anon. Tocaste pasto, diste la mano y respiraste el mismo aire que Vitalik.",
+                "publicDescription": "Buenos Aires, baby. Vino, reclamó y se comió el bife."
             },
             "SEEDLING_DEVCONNECT_BA_2025": {
                 "name": "Semilla",
-                "description": "Corriendo la voz sobre Peanut junto a nosotros."
+                "description": "Corriendo la voz sobre Peanut junto a nosotros.",
+                "publicDescription": "Promociona Peanut para que nosotros no tengamos que hacerlo. Ardilla honoraria."
+            },
+            "SURF_UP": {
+                "name": "Surf's Up",
+                "description": "Agarraste la ola temprano.",
+                "publicDescription": "Agarró la ola temprano."
             },
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "name": "Peanut 🤝 Arbiverse",
-                "description": "Nos acompañaste en el stand de Arbiverse en Devconnect 2025."
+                "description": "Nos acompañaste en el stand de Arbiverse en Devconnect 2025.",
+                "publicDescription": "Nos acompañó en el stand de Arbiverse en Devconnect 2025."
             },
             "PRODUCT_HUNT": {
                 "name": "Product Hunt",
-                "description": "¡Vendedor de esperanza. Tu upvote se sintió como un term sheet de un VC!"
+                "description": "¡Vendedor de esperanza. Tu upvote se sintió como un term sheet de un VC!",
+                "publicDescription": "Vendedor de esperanza. ¡Su upvote se sintió como un term sheet de un VC!"
             },
             "MOST_RESTAURANTS_DEVCON": {
                 "name": "Más restaurantes en Devcon",
-                "description": "¡Todo un gourmet!"
+                "description": "¡Todo un gourmet!",
+                "publicDescription": "Más restaurantes que la guía Michelin. Probó todos los menús de BA."
             },
             "BIG_SPENDER_5K": {
                 "name": "Big Spender 5K",
-                "description": "Estás entre los que más gastan."
+                "description": "Estás entre los que más gastan.",
+                "publicDescription": "No vino a Devconnect a hacer networking. Vino a gastar."
             },
             "MOST_PAYMENTS_DEVCON": {
                 "name": "Más pagos en Devcon",
-                "description": "Máquina de dinero: mover dinero te sale fácil. ¡Más pagos hechos!"
+                "description": "Máquina de dinero: mover dinero te sale fácil. ¡Más pagos hechos!",
+                "publicDescription": "Máquina de dinero: mover dinero le sale fácil. ¡Más pagos hechos!"
             },
             "BIGGEST_REQUEST_POT": {
                 "name": "Bote más grande",
-                "description": "¿Alto rodador o maestro del pedido? Creaste el bote con más participantes."
+                "description": "¿Alto rodador o maestro del pedido? Creaste el bote con más participantes.",
+                "publicDescription": "¿Alto rodador o maestro del pedido? Creó el bote con más participantes."
             },
             "WAITLIST_SKIP": {
                 "name": "Pase directo",
-                "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
+                "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo.",
+                "publicDescription": "Se saltó la lista de espera. Un amigo le dio la llave y entró directo."
             }
         },
         "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"

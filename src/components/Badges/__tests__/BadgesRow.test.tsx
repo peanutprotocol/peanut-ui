@@ -68,19 +68,20 @@ describe('BadgesRow', () => {
 
     // The test above uses a code with no `badges.catalog` entry, so it passes even
     // if the localized copy swallows the audience choice. This one uses a real code.
-    it('keeps the backend public description for a badge that IS in the catalog', () => {
+    it('localizes both the self and the public description of a badge in the catalog', () => {
         const apiBadge = {
-            ...badge('VERIFIED', '2026-08-04T00:00:00.000Z'),
+            ...badge('CARD_FIRST_SWIPE', '2026-08-04T00:00:00.000Z'),
             description: 'You earned this badge.',
             publicDescription: 'They earned this badge.',
         }
 
         const { rerender } = render(<BadgesRow badges={[apiBadge]} isSelfProfile />)
-        expect(screen.getByText(/officially verified/)).toBeInTheDocument()
+        expect(screen.getByText('You put your card to work.')).toBeInTheDocument()
 
         rerender(<BadgesRow badges={[apiBadge]} isSelfProfile={false} />)
-        expect(screen.getByText('They earned this badge.')).toBeInTheDocument()
-        expect(screen.queryByText(/officially verified/)).not.toBeInTheDocument()
+        expect(screen.getByText('First swipe. They put their card to work.')).toBeInTheDocument()
+        expect(screen.queryByText('They earned this badge.')).not.toBeInTheDocument()
+        expect(screen.queryByText('You put your card to work.')).not.toBeInTheDocument()
     })
 
     it('keeps an earned badge visible with generic art when the backend icon fails', () => {
