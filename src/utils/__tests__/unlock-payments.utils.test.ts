@@ -220,11 +220,41 @@ describe('buildUnlockGroups — residence decides the Manteca rows', () => {
     const latamRows = (input?: Partial<BuildUnlockGroupsInput>) =>
         group(buildUnlockGroups(base(input)), 'southAmerica').rows.map((r) => [r.id, r.chip, r.regionPath])
 
-    it('a resident of neither country reads Not available on both, with no tap target', () => {
+    // Adding reais by Pix is for residents; sending to a Pix key is not
+    // (hugo, 2026-09-24, QA-12). So Argentina reads Not available and Brazil
+    // carries the Pix key offer instead.
+    it('a resident of neither country: ARS is Not available, BRL offers sending by Pix', () => {
         expect(latamRows({ residenceIso2: 'PT' })).toEqual([
-            ['brl-bank', 'notAvailable', undefined],
+            ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'notAvailable', undefined],
         ])
+        const brl = group(buildUnlockGroups(base({ residenceIso2: 'PT' })), 'southAmerica').rows[0]
+        expect(brl.note).toBe('pixSendNote')
+    })
+
+    it('a non-resident who can pay by Pix reads Available, and the tap opens Pix key sending', () => {
+        const groups = buildUnlockGroups(base({ residenceIso2: 'PT', canPayQr: true, canPayPixKey: true }))
+        expect(group(groups, 'southAmerica').rows[0]).toEqual(
+            expect.objectContaining({
+                chip: 'active',
+                note: 'pixSendNote',
+                href: '/withdraw/manteca?method=pix&country=brazil',
+            })
+        )
+    })
+
+    it('a Brazilian resident keeps the add-and-withdraw row, with no send-only note', () => {
+        const brl = group(buildUnlockGroups(base({ residenceIso2: 'BR', canPayPixKey: true })), 'southAmerica').rows[0]
+        expect(brl.note).toBeUndefined()
+        expect(brl.href).toBeUndefined()
+    })
+
+    it('a banking restriction still closes the Pix row for a non-resident', () => {
+        const groups = buildUnlockGroups(
+            base({ residenceIso2: 'PT', canPayPixKey: true, restrictions: { banking: true, card: false } })
+        )
+        expect(group(groups, 'southAmerica').rows[0]).toEqual(expect.objectContaining({ chip: 'notAvailable' }))
+        expect(group(groups, 'southAmerica').rows[0].note).toBeUndefined()
     })
 
     it('each country opens its own row, and a dual resident gets both', () => {
@@ -233,7 +263,7 @@ describe('buildUnlockGroups — residence decides the Manteca rows', () => {
             ['ars-bank', 'notAvailable', undefined],
         ])
         expect(latamRows({ residenceIso2: 'PT', secondResidenceIso2: 'AR' })).toEqual([
-            ['brl-bank', 'notAvailable', undefined],
+            ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'unlock', 'latam'],
         ])
         expect(latamRows({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })).toEqual([
@@ -242,16 +272,16 @@ describe('buildUnlockGroups — residence decides the Manteca rows', () => {
         ])
     })
 
-    it('an unknown residence fails closed, as the backend does', () => {
+    it('an unknown residence fails closed for adding, as the backend does', () => {
         expect(latamRows({ residenceIso2: null })).toEqual([
-            ['brl-bank', 'notAvailable', undefined],
+            ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'notAvailable', undefined],
         ])
     })
 
     it("another country's mid-flight rail is not narrated on a row that is not offered", () => {
         expect(latamRows({ residenceIso2: 'PT', bankChips: { ...base().bankChips, ars: 'processing' } })).toEqual([
-            ['brl-bank', 'notAvailable', undefined],
+            ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'notAvailable', undefined],
         ])
     })
@@ -328,10 +358,11 @@ describe('gatingResidenceIso2s', () => {
         expect(gatingResidenceIso2s({})).toEqual([])
     })
 
-    it('the row and the top-up agree: verified PT + declared BR reads not offered on both', () => {
+    it('the row and the top-up agree: verified PT + declared BR cannot add reais by Pix on either', () => {
         const residences = gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })
         expect(residenceAllows('PIX_BR', residences)).toBe(false)
         const groups = buildUnlockGroups(base({ residenceIso2: 'PT' }))
-        expect(group(groups, 'southAmerica').rows[0].chip).toBe('notAvailable')
+        // the row offers sending to a Pix key instead of adding
+        expect(group(groups, 'southAmerica').rows[0].note).toBe('pixSendNote')
     })
 })

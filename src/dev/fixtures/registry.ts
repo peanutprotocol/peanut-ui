@@ -1206,6 +1206,10 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'home-send-drawer': {
+        route: '/home?drawer=send',
+        about: 'The Send drawer — send to friends, or withdraw to own accounts.',
+    },
     'home-add-drawer': {
         route: '/home?drawer=add',
         about: 'The Add drawer — where bank transfer now leads to the standing account.',

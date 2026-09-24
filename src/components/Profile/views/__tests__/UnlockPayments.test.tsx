@@ -956,13 +956,14 @@ describe("a row's modal reads the rails of its own country", () => {
  * Argentine account opens to residents alone, and the Brazilian one needs a CPF,
  * checked here through a Brazilian residence (a client-side pre-check). A
  * Portuguese resident was offered "BRL · Pix",
- * tapped it, and met the Argentine ghost's drawer; now the row is not offered,
- * and says why.
+ * tapped it, and met the Argentine ghost's drawer; now the ARS row is not
+ * offered, and says why. Sending to a Pix key is open to every verified user
+ * (hugo, QA 2026-09-24), so the BRL row speaks for sending instead.
  */
-describe('a resident of neither country is not offered the Manteca bank rows', () => {
+describe('a resident of neither country is not offered the Manteca bank accounts', () => {
     const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
 
-    it('both rows read Not available, with the reason under the list, and a tap does nothing', () => {
+    it('ARS reads Not available and a tap does nothing; BRL offers sending to a Pix key', () => {
         mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
         mockIsKycApproved = true
         mockRails = [
@@ -970,19 +971,41 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         ]
         render()
 
-        expect(badgeFor('BRL · Pix').getByText('Not available')).toBeInTheDocument()
+        expect(badgeFor('BRL · Pix').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('BRL · Pix').getByText('Send to any Pix key')).toBeInTheDocument()
         expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toBeInTheDocument()
         // the same neutral pill as the card's "Not available" (Konrad, 2026-09-23)
-        expect(badgeFor('BRL · Pix').getByText('Not available')).toHaveClass('bg-background-badge-helper')
+        expect(badgeFor('ARS · Bank transfer').getByText('Not available')).toHaveClass('bg-background-badge-helper')
         expect(badgeFor('ARS · Bank transfer').queryByText('Processing')).not.toBeInTheDocument()
         expect(screen.getByText(/residents of Brazil and Argentina/)).toBeInTheDocument()
         // the Bridge rows keep their offer, and so does QR — it needs no account
         expect(badgeFor('EUR · Bank transfer').getByText('Unlock')).toBeInTheDocument()
         expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('BRL · Pix'))
+        fireEvent.click(screen.getByText('ARS · Bank transfer'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
+    })
+
+    it('a verified non-resident who can pay by Pix reads Available, and the tap opens Pix key sending', () => {
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        // pool tier: paying is open, adding and own-account withdraw are not
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            },
+        ]
+        render()
+
+        expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL · Pix'))
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
     it('a Brazilian rail that already works stays Available after a move', () => {

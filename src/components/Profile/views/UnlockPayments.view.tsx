@@ -808,19 +808,13 @@ const RowSection = ({
                             className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
                             leading={peanutRowLeading(row)}
-                            title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
+                            title={t(`rows.${row.labelKey}`)}
                             // QR payments and Pix keys are the rows people do
                             // not recognise by name, so each carries its
                             // explainer under the title — the countries and
                             // key types, which wrapped the title over three
                             // lines at 375px.
-                            body={
-                                row.labelKey === 'qrPay'
-                                    ? t('qrPayNote')
-                                    : row.labelKey === 'pixKey'
-                                      ? t('pixKeyNote')
-                                      : undefined
-                            }
+                            body={row.note && t(row.note)}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
                             chevron={tappable}

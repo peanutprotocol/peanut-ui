@@ -254,9 +254,9 @@
         "hideBalance": "Hide balance",
         "drawers": {
             "sendToFriends": "Send to friends",
-            "sendToFriendsDescription": "Link, contacts, bank transfer and crypto",
-            "withdrawToOwnAccounts": "Withdraw to your own accounts",
-            "withdrawToOwnAccountsDescription": "Bank transfer and crypto",
+            "sendToFriendsDescription": "Link, contacts, bank and crypto",
+            "withdrawToOwnAccounts": "Withdraw to own account",
+            "withdrawToOwnAccountsDescription": "Bank and crypto",
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
@@ -451,7 +451,8 @@
             "waysTitle": "Add and withdraw money",
             "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
             "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
-            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key."
+            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key.",
+            "pixSendNote": "Send to any Pix key"
         },
         "backup": {
             "title": "Backup",
@@ -1111,9 +1112,7 @@
         },
         "bankInstructions": {
             "title": "Let them pay by bank transfer",
-            "disclosure": "Payers see your full name and bank details.",
-            "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
-            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
+            "disclosure": "Payers see your full name and bank details."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
@@ -1233,8 +1232,6 @@
             "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
             "amountNoteSameCurrency": "Send this amount and the request is marked paid.",
             "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
-            "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
-            "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned.",
             "otherWays": "See other ways to pay",
             "chooseCurrency": "Choose a currency"
         },
@@ -2107,8 +2104,8 @@
             "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
-        "withdrawToBank": "Withdraw to a bank account",
-        "withdrawToCrypto": "Withdraw to a crypto address",
+        "withdrawToBank": "Add new bank account",
+        "withdrawToCrypto": "Add new crypto address",
         "currencyList": {
             "searchPlaceholder": "Search currency or country",
             "flagAlt": "{currency} flag",
@@ -2243,8 +2240,9 @@
             "estimateConversion": "Estimate conversion",
             "converted": "Converted"
         },
-        "returnedReason": "The bank sent this payment back. This usually happens when the details did not match the sender's name, or the sender's bank refused it.",
-        "returnedReasonThirdParty": "The bank returned this transfer to the sender because it came from someone else's account. Check who can pay into this account in its rules.",
+        "returnedReason": "The bank sent this payment back.",
+        "returnedReasonThirdParty": "It came from someone else's account, which this account does not accept.",
+        "returnedReasonText": "Bank's reason: {reason}",
         "returnedStatus": "Returned",
         "perkBanner": {
             "title": "You earned a reward!",
@@ -3564,9 +3562,8 @@
         "peanutActionCard": {
             "requestTitle": "Request money",
             "requestDescription": "No account needed, just send a DM.",
-            "sendTitle": "Create a payment link",
-            "sendDescription": "Anyone with the link can receive the money",
-            "perfectToDm": "Perfect to DM friends!"
+            "sendTitle": "Send with a link",
+            "sendDescription": "Anyone with the link can claim it"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "You're sending {recipient}",
@@ -4142,7 +4139,6 @@
             "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
             "termsToggle": "Limits and fees",
-            "businessOnly": "Only you or a business can pay in. Other transfers are returned.",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
         },
@@ -4251,6 +4247,16 @@
             "actFailed": "We could not open the check. Try again in a moment.",
             "topUpCta": "Send from your own bank",
             "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
+        },
+        "senderLimit": {
+            "businessOnly": {
+                "line": "Only you or a business can pay in. Other transfers are returned.",
+                "payer": "Only the account holder or a business can pay in. Other transfers are returned."
+            },
+            "othersUnconfirmed": {
+                "line": "Transfers from other people are not confirmed and may be returned.",
+                "payer": "This account has not confirmed transfers from other people, so yours may be returned."
+            }
         },
         "rules": {
             "providerHeld": {

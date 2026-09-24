@@ -275,7 +275,8 @@
             "waysTitle": "Agregar y retirar dinero",
             "waysSubtitle": "Mové dinero entre tu banco y Peanut en estas monedas.",
             "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria."
+            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {
             "nonCustodial": {
@@ -657,8 +658,7 @@
             "createWallet": "Creá tu Peanut Wallet"
         },
         "bankInstructions": {
-            "title": "Dejá que te paguen por transferencia bancaria",
-            "unknownPays": "Una transferencia de alguien que no seas vos no está confirmada en esta cuenta y puede devolverse."
+            "title": "Dejá que te paguen por transferencia bancaria"
         }
     },
     "payment": {
@@ -1068,7 +1068,6 @@
         }
     },
     "transaction": {
-        "returnedReasonThirdParty": "El banco devolvió esta transferencia a quien pagó porque salió de la cuenta de otra persona. Revisá en las reglas de esta cuenta quién puede pagarte.",
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {
             "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
@@ -1613,7 +1612,7 @@
         "peanutActionCard": {
             "requestTitle": "Pedí dinero",
             "requestDescription": "No hace falta una cuenta, solo mandá un DM.",
-            "sendTitle": "Creá un enlace de pago"
+            "sendTitle": "Enviá con un enlace"
         },
         "createAccountButton": {
             "label": "Creá una cuenta de <logo></logo>"
@@ -1794,7 +1793,6 @@
         },
         "details": {
             "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si pod\u00e9s, deposit\u00e1 desde una cuenta a tu nombre.",
-            "businessOnly": "Solo vos o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
@@ -1823,6 +1821,11 @@
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Enviá desde tu propio banco",
             "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
+        },
+        "senderLimit": {
+            "businessOnly": {
+                "line": "Solo vos o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven."
+            }
         },
         "rules": {
             "ownAccount": {

@@ -81,12 +81,12 @@ export const ListItem = ({
         >
             <div className="flex min-w-0 items-center gap-3">
                 {leading}
-                {/* plain strings get the board one-line truncation; custom nodes render
-                    in a block wrapper untruncated (a div inside a span is invalid html
-                    and truncate only ellipsizes text anyway) */}
+                {/* a title wraps, never ellipsizes: a cut title hid the row's meaning
+                    at 375px ("Withdraw to your own accou…", QA 2026-09-24). Custom
+                    nodes get a div, since a div inside a span is invalid html */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
+                        <span className={twMerge('text-body-m-semibold break-words', titleColor)}>{title}</span>
                     ) : (
                         <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}

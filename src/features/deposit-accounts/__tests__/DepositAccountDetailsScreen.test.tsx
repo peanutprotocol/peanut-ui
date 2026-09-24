@@ -263,7 +263,7 @@ describe('the details screen, collapsed and open', () => {
         // the heading already names the rail
         expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
         // anyone may pay into a euro account, so there is no who-may-pay line
-        expect(screen.queryByText(messages.depositAccounts.details.businessOnly)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.senderLimit.businessOnly.line)).not.toBeInTheDocument()
     })
 
     // The shared copy control confirms on itself; a copy that worked is not a
@@ -301,7 +301,7 @@ describe('the details screen, collapsed and open', () => {
             DEPOSIT_RAILS.FASTER_PAYMENTS_GB
         )
 
-        expect(screen.getByText(messages.depositAccounts.details.businessOnly)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.senderLimit.businessOnly.line)).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.rules.individualNotYet.line)).not.toBeInTheDocument()
         openTerms()
         expect(screen.getByText(messages.depositAccounts.rules.individualNotYet.line)).toBeInTheDocument()

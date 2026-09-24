@@ -84,15 +84,20 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                             </div>
                         }
                     />
-                    <DataRow
-                        label={t('bridge.bankAddress')}
-                        value={
-                            <div className="flex items-center gap-2">
-                                <span>{instructions.bank_address}</span>
-                                <CopyToClipboard textToCopy={instructions.bank_address} iconSize="4" />
-                            </div>
-                        }
-                    />
+                    {/* presence decides, never currency: Mexican SPEI has no bank
+                        address, and an empty row with a copy icon reads as missing
+                        data (QA 2026-09-24) */}
+                    {instructions.bank_address?.trim() && (
+                        <DataRow
+                            label={t('bridge.bankAddress')}
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{instructions.bank_address}</span>
+                                    <CopyToClipboard textToCopy={instructions.bank_address} iconSize="4" />
+                                </div>
+                            }
+                        />
+                    )}
 
                     {instructions.clabe ? (
                         // Mexican format (SPEI) — CLABE is the canonical 18-digit

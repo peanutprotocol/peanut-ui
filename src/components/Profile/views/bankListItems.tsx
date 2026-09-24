@@ -30,6 +30,8 @@ export function bankListItems(
                 trailing={rowStatusBadge(row, t)}
                 chevron={tappable}
                 onClick={tappable ? () => onRowClick(row) : undefined}
+                body={row.note && t(row.note)}
+                bodyWrap
             />
         )
     })

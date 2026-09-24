@@ -88,10 +88,29 @@ it('says a payment from someone else was returned, instead of the general reason
         { wrapper: IntlWrapper }
     )
     expect(
-        screen.getByText(
-            "The bank returned this transfer to the sender because it came from someone else's account. Check who can pay into this account in its rules."
-        )
+        screen.getByText("It came from someone else's account, which this account does not accept.")
     ).toBeInTheDocument()
     expect(screen.queryByText(/The bank sent this payment back/)).not.toBeInTheDocument()
     expect(screen.getByText('Returned')).toBeInTheDocument()
+})
+
+// QA 2026-09-24 (QA-08): "Do we have the actual reason? If so, show it."
+it("shows the bank's own reason when it gave one", () => {
+    const withReason: TransactionDetails = {
+        ...returned,
+        extraDataForDrawer: {
+            originalType: 'TRANSACTION_INTENT',
+            originalUserRole: EHistoryUserRole.RECIPIENT,
+            returnReasonCode: 'other',
+            returnReasonText: 'Account closed',
+        },
+    }
+    render(
+        <ToastProvider>
+            <TransactionDetailsReceipt transaction={withReason} isPublic={false} />
+        </ToastProvider>,
+        { wrapper: IntlWrapper }
+    )
+    expect(screen.getByText("Bank's reason: Account closed")).toBeInTheDocument()
+    expect(screen.queryByText(/The bank sent this payment back/)).not.toBeInTheDocument()
 })

@@ -93,6 +93,21 @@ export const TransactionDetailsReceipt = ({
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = headline.sign
 
+    // Why a deposit went back: the one reason line under the Returned badge
+    // (design.md status words). A third-party return gets our own sentence,
+    // because the provider's words for it ("Risk Rejection: Third Party
+    // Payment") explain nothing; any other reason the bank gave is shown as
+    // given, since it is the user's only clue what to fix (QA 2026-09-24).
+    const drawerData = transaction.extraDataForDrawer
+    const returnReasonLine =
+        transaction.actionLabelKey !== 'type.returnedToSender'
+            ? undefined
+            : drawerData?.returnReasonCode === 'third_party'
+              ? t('returnedReasonThirdParty')
+              : drawerData?.returnReasonText
+                ? t('returnedReasonText', { reason: drawerData.returnReasonText })
+                : t('returnedReason')
+
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
     // kind-keyed predicates so adding a new flow only needs a predicate update.
@@ -170,22 +185,8 @@ export const TransactionDetailsReceipt = ({
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+                statusNote={returnReasonLine}
             />
-
-            {/* Why a deposit went back. The status alone says the money left
-                the balance; only this says what to ask the sender to fix. A
-                reason the API did not name gets the general explanation. */}
-            {transaction.actionLabelKey === 'type.returnedToSender' && (
-                <Card position="solo" className="p-4">
-                    <span className="text-body-s text-foreground-secondary">
-                        {t(
-                            transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
-                                ? 'returnedReasonThirdParty'
-                                : 'returnedReason'
-                        )}
-                    </span>
-                </Card>
-            )}
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (

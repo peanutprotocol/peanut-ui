@@ -35,6 +35,8 @@ export interface UnlockRow {
     regionPath?: 'europe' | 'north-america' | 'latam'
     /** card and Pix-key rows: navigate instead of opening a region modal */
     href?: string
+    /** the explainer line under the title, as a key under profile.unlockPayments */
+    note?: 'qrPayNote' | 'pixKeyNote' | 'pixSendNote'
     /**
      * Which limits apply once the row is active: Manteca per-currency
      * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
@@ -169,6 +171,15 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     // behind it can never disagree about who lives where.
     const gatingResidences = gatingResidenceIso2s({ verified: residenceIso2, second: secondResidenceIso2 })
 
+    // Paying a Pix key rides the QR-payment rail (the method=pix delegation
+    // in /withdraw/manteca hands off to /qr-pay). It reads Available only on
+    // the Manteca pay capability /qr-pay checks, never on the QR row's legacy
+    // Bridge-only fallback: that cohort would reach key entry and then be sent
+    // back to verification. Everyone else gets the LATAM unlock offer.
+    const pixKeyOfferChip: UnlockChip = bankChips.brl === 'active' ? 'unlock' : bankChips.brl
+    const pixKeyChip: UnlockChip = restrictions.banking ? 'notAvailable' : canPayPixKey ? 'active' : pixKeyOfferChip
+    const pixKeyHref = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
+
     const bankRow = (spec: (typeof BANK_ROWS)[number]): UnlockRow => {
         const railChip = bankChips[spec.key]
         // A residence-gated corridor is not offered outside its country: the
@@ -179,11 +190,21 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         // works stays a fact: the user opened it while they lived there.
         const residenceGated =
             spec.corridor !== undefined && railChip !== 'active' && !residenceAllows(spec.corridor, gatingResidences)
-        const chip: UnlockChip = restrictions.banking || residenceGated ? 'notAvailable' : railChip
+        // Only adding reais by Pix is for Brazilian residents: every verified
+        // user can send to any Pix key (hugo, 2026-09-24, QA-12). Outside
+        // Brazil the Pix row speaks for sending, with the Pix key row's status.
+        const pixSendOnly = residenceGated && spec.key === 'brl' && !restrictions.banking
+        const chip: UnlockChip = pixSendOnly
+            ? pixKeyChip
+            : restrictions.banking || residenceGated
+              ? 'notAvailable'
+              : railChip
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,
             icon: 'bank',
+            ...(pixSendOnly && { note: 'pixSendNote' as const }),
+            ...(pixSendOnly && chip === 'active' && { href: pixKeyHref }),
             chip,
             limitRefs: spec.limitRefs,
             flag: spec.flag,
@@ -217,25 +238,20 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         labelKey: 'qrPay',
         icon: 'qr-code',
         chip: qrChip,
+        note: 'qrPayNote',
         limitRefs: ['BRL', 'ARS'],
         ...(qrChip === 'active' || qrChip === 'notAvailable' ? {} : { regionPath: 'latam' as const }),
     }
-    // Paying a Pix key rides the QR-payment rail (the method=pix delegation
-    // in /withdraw/manteca hands off to /qr-pay). Its own row exists because
-    // users read "QR payments" as scan-only and paid Pix keys elsewhere
-    // (2026-09-23, hugo). It reads Available only on the Manteca pay
-    // capability /qr-pay checks, never on the QR row's legacy Bridge-only
-    // fallback: that cohort would reach key entry and then be sent back to
-    // verification. Everyone else gets the LATAM unlock offer.
-    const pixKeyOfferChip: UnlockChip = bankChips.brl === 'active' ? 'unlock' : bankChips.brl
-    const pixKeyChip: UnlockChip = restrictions.banking ? 'notAvailable' : canPayPixKey ? 'active' : pixKeyOfferChip
+    // Pix keys get their own row because users read "QR payments" as
+    // scan-only and paid Pix keys elsewhere (2026-09-23, hugo).
     const pixKeyRow: UnlockRow = {
         id: 'pix-key',
         labelKey: 'pixKey',
         icon: 'arrow-up-right',
         chip: pixKeyChip,
+        note: 'pixKeyNote',
         ...(pixKeyChip === 'active'
-            ? { href: mantecaWithdrawUrl({ method: 'pix', country: 'brazil' }) }
+            ? { href: pixKeyHref }
             : pixKeyChip === 'notAvailable'
               ? {}
               : { regionPath: 'latam' as const }),

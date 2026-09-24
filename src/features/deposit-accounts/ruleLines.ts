@@ -94,6 +94,24 @@ export function depositRuleLines(
     return lines
 }
 
+/** a corridor's limit on who may pay in, as a key under depositAccounts.senderLimit */
+export type SenderLimitKey = 'businessOnly' | 'othersUnconfirmed'
+
+/**
+ * The one line that says who may pay into an account, where the corridor
+ * limits it. `anyone` needs none, and `own-name-only` is never shared.
+ *
+ * One rule for every screen a third party's transfer depends on: the holder's
+ * account details, the request toggle that shares them, and the payer's
+ * bank-transfer screen. EUR is the case it was written for (QA 2026-09-24):
+ * the holder and businesses may pay in, a friend's transfer is returned.
+ */
+export function senderLimitKey(matching: DepositSenderTerms): SenderLimitKey | undefined {
+    if (matching.sender === 'business-only') return 'businessOnly'
+    if (matching.sender === 'unknown') return 'othersUnconfirmed'
+    return undefined
+}
+
 /**
  * What the holder's own transfer may do.
  *

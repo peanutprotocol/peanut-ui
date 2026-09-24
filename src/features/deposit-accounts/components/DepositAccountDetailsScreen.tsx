@@ -56,7 +56,7 @@ export function DepositAccountDetailsScreen({
     /** revoked details have no self-service fix — this is the only way out */
     onContactSupport: () => void
 }) {
-    const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines, senderLimit } = useDepositAccountCopy()
 
     if (account.status === 'revoked') {
         return (
@@ -125,6 +125,7 @@ export function DepositAccountDetailsScreen({
         ? instructionRows(account.instructions, rowLabels, railLabels).filter((row) => row.key !== 'accepts')
         : []
     const rules = ruleLines(account.matching, account.rules, userName)
+    const senderLine = senderLimit(account.matching)?.text
     const gateRules = rules.filter((rule) => GATE_RULE_KEYS.has(rule.key))
     const termRules = rules.filter((rule) => !GATE_RULE_KEYS.has(rule.key))
 
@@ -160,9 +161,7 @@ export function DepositAccountDetailsScreen({
                                 line (design.md, 2026-09-23): a user who shares these
                                 details with a friend has to see it without opening
                                 anything. The per-payer rows stay in the toggle. */}
-                            {account.matching.sender === 'business-only' && (
-                                <p className="text-body-xs text-foreground-secondary">{t('details.businessOnly')}</p>
-                            )}
+                            {senderLine && <p className="text-body-xs text-foreground-secondary">{senderLine}</p>}
                             {gateRules.map((rule) => (
                                 // a div, not a p: the (i) renders a div of its own
                                 <div key={rule.key} className="text-body-xs text-foreground-secondary">

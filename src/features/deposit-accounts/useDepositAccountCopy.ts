@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
 import { railLabel, type RailLabels } from './instructionRows'
-import { depositRuleLines, type DepositRuleKey } from './ruleLines'
+import { depositRuleLines, senderLimitKey, type DepositRuleKey } from './ruleLines'
 import type {
     DepositCorridor,
     DepositInstructions,
@@ -127,6 +127,16 @@ export function useDepositAccountCopy() {
     )
 
     /**
+     * Who may pay into this account, where the corridor limits it: `text` for
+     * the holder, `payer` for whoever pays them. Undefined when anyone may.
+     */
+    const senderLimit = (matching: DepositSenderTerms): { text: string; payer: string } | undefined => {
+        const key = senderLimitKey(matching)
+        if (!key) return undefined
+        return { text: t(`senderLimit.${key}.line`), payer: t(`senderLimit.${key}.payer`) }
+    }
+
+    /**
      * Why a claim failed, in the user's language. The backend answers in
      * English whatever the locale, so the code decides the sentence and the
      * backend's own message never reaches a screen.
@@ -176,6 +186,7 @@ export function useDepositAccountCopy() {
         rowLabels,
         railLabels,
         ruleLines,
+        senderLimit,
         railName,
         accountRailName,
         arrivalDetail,

@@ -254,9 +254,9 @@
         "hideBalance": "Ocultar saldo",
         "drawers": {
             "sendToFriends": "Enviar a amigos",
-            "sendToFriendsDescription": "Link, contactos, transferencia bancaria y cripto",
-            "withdrawToOwnAccounts": "Retirar a tus propias cuentas",
-            "withdrawToOwnAccountsDescription": "Transferencia bancaria y cripto",
+            "sendToFriendsDescription": "Link, contactos, banco y cripto",
+            "withdrawToOwnAccounts": "Retirar a cuenta propia",
+            "withdrawToOwnAccountsDescription": "Banco y cripto",
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
@@ -451,7 +451,8 @@
             "waysTitle": "Agregar y retirar dinero",
             "waysSubtitle": "Mueve dinero entre tu banco y Peanut en estas monedas.",
             "qrPayNote": "Escanea el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria."
+            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "pixSendNote": "Envía a cualquier clave Pix"
         },
         "backup": {
             "title": "Respaldo",
@@ -1111,9 +1112,7 @@
         },
         "bankInstructions": {
             "title": "Deja que te paguen por transferencia bancaria",
-            "disclosure": "Quien paga ve tu nombre completo y tus datos bancarios.",
-            "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
-            "unknownPays": "Una transferencia de alguien que no seas tú no está confirmada en esta cuenta y puede devolverse."
+            "disclosure": "Quien paga ve tu nombre completo y tus datos bancarios."
         },
         "paidByBank": {
             "rowLabel": "Transferencia bancaria",
@@ -1233,8 +1232,6 @@
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
             "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada.",
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Envía el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
-            "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
-            "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse.",
             "otherWays": "Ver otras formas de pagar",
             "chooseCurrency": "Elige una moneda"
         },
@@ -2107,8 +2104,8 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
-        "withdrawToBank": "Retira a una cuenta bancaria",
-        "withdrawToCrypto": "Retira a una dirección cripto",
+        "withdrawToBank": "Agregar nueva cuenta bancaria",
+        "withdrawToCrypto": "Agregar nueva dirección cripto",
         "currencyList": {
             "searchPlaceholder": "Buscar moneda o país",
             "flagAlt": "Bandera de {currency}",
@@ -2243,8 +2240,9 @@
             "estimateConversion": "Conversión estimada",
             "converted": "Convertido"
         },
-        "returnedReason": "El banco devolvió este pago. Suele pasar cuando los datos no coinciden con el nombre de quien envía, o cuando su banco lo rechaza.",
-        "returnedReasonThirdParty": "El banco devolvió esta transferencia a quien pagó porque salió de la cuenta de otra persona. Revisa en las reglas de esta cuenta quién puede pagarte.",
+        "returnedReason": "El banco devolvió este pago.",
+        "returnedReasonThirdParty": "Salió de la cuenta de otra persona, y esta cuenta no la acepta.",
+        "returnedReasonText": "Motivo del banco: {reason}",
         "returnedStatus": "Devuelto",
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
@@ -3564,9 +3562,8 @@
         "peanutActionCard": {
             "requestTitle": "Pide dinero",
             "requestDescription": "No hace falta una cuenta, solo envía un DM.",
-            "sendTitle": "Crea un enlace de pago",
-            "sendDescription": "Cualquiera con el enlace puede recibir el dinero",
-            "perfectToDm": "¡Ideal para enviar por mensaje!"
+            "sendTitle": "Envía con un enlace",
+            "sendDescription": "Cualquiera con el enlace puede reclamarlo"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "Le estás enviando a {recipient}",
@@ -4142,7 +4139,6 @@
             "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si puedes, deposita desde una cuenta a tu nombre.",
             "whoCanPay": "Quién puede pagarte",
             "termsToggle": "Límites y comisiones",
-            "businessOnly": "Solo tú o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "residenceCta": "Actualiza tu residencia",
             "qrPayCta": "Pagar un código QR"
         },
@@ -4251,6 +4247,16 @@
             "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
             "topUpCta": "Envía desde tu propio banco",
             "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas."
+        },
+        "senderLimit": {
+            "businessOnly": {
+                "line": "Solo tú o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
+                "payer": "Solo el titular o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven."
+            },
+            "othersUnconfirmed": {
+                "line": "Las transferencias de otras personas no están confirmadas y pueden devolverse.",
+                "payer": "Esta cuenta no confirmó transferencias de otras personas, así que la tuya puede devolverse."
+            }
         },
         "rules": {
             "providerHeld": {
