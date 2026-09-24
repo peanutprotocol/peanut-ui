@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cssUseSites, countAlphaSemanticTokens } from './ds-lint-styles.cjs'
 import {
     countOffScaleSpacing,
     countWeightStacks,
@@ -108,7 +109,12 @@ function* walk(dir) {
 }
 
 const files = []
+const cssFiles = []
 for (const p of walk(SRC)) {
+    if (p.endsWith('.css')) {
+        cssFiles.push({ path: relative(SRC, p), ...cssUseSites(readFileSync(p, 'utf8')) })
+        continue
+    }
     if (!/\.(tsx|ts)$/.test(p) || p.endsWith('.test.tsx') || p.endsWith('.test.ts')) continue
     files.push({ path: relative(SRC, p), text: readFileSync(p, 'utf8') })
 }
@@ -259,9 +265,8 @@ const COLOR_CLASS_RE = new RegExp(
         ')-([0-9]{1,3})\\b',
     'g'
 )
-// @apply rules inside globals.css consume tokens too (dark:bg-n-2 on body,
-// bg-purple-3 etc.) — strip the --color definitions so they don't self-count.
-const cssMinusDefs = GLOBALS_CSS.replace(/--color-[a-z0-9-]+\s*:[^;]+;/g, '')
+// css use sites exclude token definitions, selectors and comments.
+const cssMinusDefs = cssFiles.map((f) => `${f.apply}\n${f.declarations}`).join('\n')
 // files that quote class names as DATA, not styling: the /dev/ds audit
 // inventories and the generated token doc (its previewClass strings name every
 // token, so a token can never look dead while the doc lists it).
@@ -323,6 +328,46 @@ counts.handRolledCloseGlyphFiles = files.filter(
     (f) => !allowed(f.path) && !f.path.includes('0_Bruddle/') && hasHandRolledCloseGlyph(f.text)
 ).length
 
+// css expands the existing counters; it never goes through the typescript ast rules.
+for (const file of cssFiles) {
+    if (allowed(file.path)) continue
+    const hex = countMatches(`${file.apply}\n${file.declarations}`, HEX_RE)
+    if (!allowedLegacy(file.path, HEX_ALLOW)) {
+        counts.rawHex += hex
+        counts.rawHexFiles += Number(hex > 0)
+    }
+    if (!allowedLegacy(file.path)) counts.stockTextSize += countMatches(file.apply, STOCK_TEXT_RE)
+    counts.legacyTextScale += countMatches(file.apply, LEGACY_TEXT_RE)
+    counts.offScaleSpacing += countOffScaleSpacing(file.apply)
+    counts.offScaleRadius += countOffScaleRadius(file.apply)
+    counts.rawDuration += countMatches(file.apply, RAW_DURATION_RE)
+    counts.arbitraryFontSize += countMatches(file.apply, ARBITRARY_FONT_SIZE_RE)
+    if (!allowedPalette(file.path)) {
+        counts.legacyColorClasses += countMatches(file.apply, LEGACY_PALETTE_RE)
+        for (const match of file.apply.matchAll(RAMP_FAMILY_RE)) {
+            if (!RAMP_INDICES[match[1]].includes(Number(match[2]))) counts.offRampPalette++
+        }
+    }
+}
+
+const semanticColors = new Set([...DEFINED_COLOR_TOKENS].filter((name) => !/^[a-z]+-[0-9]+$/.test(name)))
+counts.alphaSemanticToken =
+    files
+        .filter((f) => !allowedPalette(f.path))
+        .reduce((sum, f) => sum + countAlphaSemanticTokens(f.text, semanticColors, { filename: f.path }), 0) +
+    cssFiles
+        .filter((f) => !allowedPalette(f.path))
+        .reduce(
+            (sum, f) =>
+                sum +
+                countAlphaSemanticTokens(f.declarations, semanticColors) +
+                f.classLists.reduce(
+                    (total, value) => total + countAlphaSemanticTokens(value, semanticColors, { classList: true }),
+                    0
+                ),
+            0
+        )
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -348,6 +393,7 @@ const DEBT_KEYS = [
     'arbitraryFontSize',
     'rawErrorText',
     'handRolledCloseGlyphFiles',
+    'alphaSemanticToken',
 ]
 
 const mode = process.argv[2] ?? ''
@@ -417,10 +463,11 @@ if (mode === '--json') {
 } else {
     console.log('design-system lint counts (src/, tests excluded)\n')
     console.log(
-        `  raw hex in tsx            ${counts.rawHex} (across ${counts.rawHexFiles} files; canvas/D3/og allowlisted)`
+        `  raw hex in tsx/css        ${counts.rawHex} (across ${counts.rawHexFiles} files; canvas/D3/og allowlisted)`
     )
     console.log(`  inline style={{           ${counts.inlineStyle}`)
     console.log(`  stock text sizes          ${counts.stockTextSize}`)
+    console.log(`  semantic color alpha      ${counts.alphaSemanticToken} (animated skeleton tint exempt)`)
     console.log(`  legacy text-h* scale      ${counts.legacyTextScale} (vs ${counts.dsTextScale} DS type-scale uses)`)
     console.log(
         `  non-DS classes in views   ${counts.nonDsClassesInViews} (page.tsx/*View files: stock palette + arbitrary values)`
