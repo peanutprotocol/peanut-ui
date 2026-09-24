@@ -201,6 +201,9 @@ const UnlockPayments = () => {
                 canPayQr:
                     canDo('pay', { provider: 'manteca' }) ||
                     unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
+                // the /qr-pay gate itself (useQrPayKycGate), so the Pix key row
+                // never links a user that screen would turn back
+                canPayPixKey: canDo('pay', { provider: 'manteca' }),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
@@ -806,12 +809,18 @@ const RowSection = ({
                             disabled={row.chip === 'notAvailable'}
                             leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
-                            // QR payments are the one row people do not
-                            // recognise by name, so it carries the explainer
-                            // under its title — including the two countries,
-                            // which used to sit in the title and wrapped it
-                            // over three lines at 375px.
-                            body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
+                            // QR payments and Pix keys are the rows people do
+                            // not recognise by name, so each carries its
+                            // explainer under the title — the countries and
+                            // key types, which wrapped the title over three
+                            // lines at 375px.
+                            body={
+                                row.labelKey === 'qrPay'
+                                    ? t('qrPayNote')
+                                    : row.labelKey === 'pixKey'
+                                      ? t('pixKeyNote')
+                                      : undefined
+                            }
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
                             chevron={tappable}
