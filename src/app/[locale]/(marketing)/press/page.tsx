@@ -6,6 +6,7 @@ import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Divider } from '@/components/0_Bruddle/Divider'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
@@ -140,25 +141,25 @@ export default async function PressPage({ params }: PageProps) {
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {fm.boilerplate.short && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Short</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.short}</p>
-                                    </Card>
-                                )}
-                                {fm.boilerplate.medium && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Medium</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.medium}</p>
-                                    </Card>
-                                )}
-                                {fm.boilerplate.press && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Press / Partner</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.press}</p>
-                                    </Card>
-                                )}
+                            <div>
+                                {/* labels stay english — untranslated before this change too */}
+                                {(
+                                    [
+                                        ['Short', fm.boilerplate.short],
+                                        ['Medium', fm.boilerplate.medium],
+                                        ['Press / Partner', fm.boilerplate.press],
+                                    ] as const
+                                )
+                                    .filter(([, text]) => !!text)
+                                    .map(([label, text], index) => (
+                                        <div key={label}>
+                                            {index > 0 && <Divider />}
+                                            <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                                {label}
+                                            </h3>
+                                            <p className="text-body-s text-foreground-primary">{text}</p>
+                                        </div>
+                                    ))}
                             </div>
                         </section>
                     )}
