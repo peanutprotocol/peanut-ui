@@ -442,7 +442,7 @@
                 "pixKey": "Pay any Pix key, no QR needed."
             },
             "detailsDrawer": {
-                "aboutTitle": "Features",
+                "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
             "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
@@ -609,7 +609,7 @@
         },
         "deleteAccount": {
             "button": "Delete account",
-            "confirmTitle": "Aw, leaving?",
+            "confirmTitle": "Leaving already?",
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
             "cancelCta": "Never mind, I'll stay",
@@ -807,7 +807,7 @@
                 "cardClause": "You can also apply for a Peanut Card after verifying your identity.",
                 "rails": {
                     "pix": "PIX transfers",
-                    "arQr": "QR payments and bank transfers",
+                    "arQr": "QR payments and own-account transfers",
                     "spei": "Mexican peso bank transfers",
                     "usdAch": "US dollar bank transfers",
                     "eurSepa": "Euro bank transfers",
@@ -1150,7 +1150,7 @@
             "withdrew": "Withdrawn",
             "justSent": "Sent",
             "sent": "Sent to ",
-            "requested": "Request to ",
+            "requested": "Requested from ",
             "added": "Added",
             "toPrefix": "to",
             "forPrefix": "for",
@@ -1555,7 +1555,7 @@
             "canceledTitle": "Card canceled",
             "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
             "feedbackLabel": "Help us improve",
-            "feedbackPlaceholder": "Reason",
+            "feedbackPlaceholder": "Why cancel?",
             "submit": "Submit",
             "thanksTitle": "Thank you for the feedback",
             "thanksBody": "We appreciate your feedback, it helps us improve the experience of our app.",
@@ -2425,7 +2425,7 @@
         "vanityTitle": "Claim the badge",
         "vanityDescription": "You earned a Peanut badge. To claim it, sign up or log in.",
         "vanityCta": "Sign up",
-        "inviterTitle": "Invite from {username}",
+        "inviterTitle": "{username} invited you to Peanut",
         "inviterDescription": "Members-only access. Use this invite to open your wallet and start sending and receiving money globally.",
         "inviterCta": "Claim a spot",
         "alreadyHaveAccount": "Already have an account? Log in!",
@@ -2452,7 +2452,7 @@
         "earned": "Earned",
         "locked": "Locked",
         "howToUnlock": "How to unlock",
-        "whatYouGet": "Benefits",
+        "whatYouGet": "What it unlocks",
         "emptyTitle": "No badges found",
         "emptyDescription": "Earn badges as you use Peanut. Make payments, invite friends, and join events to unlock them and display them on your profile.",
         "loadErrorTitle": "Couldn't load badges",

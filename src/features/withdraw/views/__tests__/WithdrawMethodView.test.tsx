@@ -505,12 +505,7 @@ describe('WithdrawMethodView — Withdraw → Crypto shows the address book firs
     const renderWithMemory = (searchParams: Record<string, string>) =>
         render(
             <NuqsTestingAdapter searchParams={searchParams} hasMemory>
-                <WithdrawMethodView
-                    pageTitle="Withdraw"
-                    mainHeading="Where to?"
-                    onExit={mockOnExit}
-                    onMethodChosen={mockOnMethodChosen}
-                />
+                <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
             </NuqsTestingAdapter>
         )
 

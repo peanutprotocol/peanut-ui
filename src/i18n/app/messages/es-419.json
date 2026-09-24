@@ -442,7 +442,7 @@
                 "pixKey": "Paga cualquier clave Pix, sin QR."
             },
             "detailsDrawer": {
-                "aboutTitle": "Funciones",
+                "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
             "qrPayNote": "Escanea el código QR de un comercio en Brasil o Argentina.",
@@ -807,7 +807,7 @@
                 "cardClause": "También puedes solicitar una tarjeta Peanut después de verificar tu identidad.",
                 "rails": {
                     "pix": "transferencias PIX",
-                    "arQr": "pagos QR y transferencias bancarias",
+                    "arQr": "pagos QR y transferencias desde cuenta propia",
                     "spei": "transferencias bancarias en pesos mexicanos",
                     "usdAch": "transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "transferencias bancarias en euros",
@@ -1150,7 +1150,7 @@
             "withdrew": "Retirado",
             "justSent": "Enviado",
             "sent": "Enviado a ",
-            "requested": "Solicitud a ",
+            "requested": "Solicitado a ",
             "added": "Agregado",
             "toPrefix": "a",
             "forPrefix": "por",
@@ -1555,7 +1555,7 @@
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayúdanos a mejorar",
-            "feedbackPlaceholder": "Motivo",
+            "feedbackPlaceholder": "¿Por qué cancelar?",
             "submit": "Enviar",
             "thanksTitle": "Gracias por los comentarios",
             "thanksBody": "Agradecemos tus comentarios, nos ayudan a mejorar la experiencia de nuestra app.",
@@ -2425,7 +2425,7 @@
         "vanityTitle": "Reclama la insignia",
         "vanityDescription": "Ganaste una insignia de Peanut. Para reclamarla, regístrate o inicia sesión.",
         "vanityCta": "Regístrate",
-        "inviterTitle": "Invitación de {username}",
+        "inviterTitle": "{username} te invitó a Peanut",
         "inviterDescription": "Acceso solo para miembros. Usa esta invitación para abrir tu billetera y empezar a enviar y recibir dinero en todo el mundo.",
         "inviterCta": "Reclamar lugar",
         "alreadyHaveAccount": "¿Ya tienes una cuenta? ¡Inicia sesión!",
@@ -2452,7 +2452,7 @@
         "earned": "Ganado",
         "locked": "Bloqueado",
         "howToUnlock": "Cómo desbloquearla",
-        "whatYouGet": "Beneficios",
+        "whatYouGet": "Qué desbloquea",
         "emptyTitle": "No se encontraron insignias",
         "emptyDescription": "Gana insignias a medida que usas Peanut. Haz pagos, invita amigos y participa en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorTitle": "No pudimos cargar las insignias",

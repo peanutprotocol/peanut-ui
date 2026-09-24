@@ -265,7 +265,7 @@
                 "pixKey": "Pagá cualquier clave Pix, sin QR."
             },
             "detailsDrawer": {
-                "aboutTitle": "Funciones",
+                "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
             "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
@@ -1142,7 +1142,7 @@
         "pleaseWait": "Esperá un momento..."
     },
     "badges": {
-        "whatYouGet": "Beneficios",
+        "whatYouGet": "Qué desbloquea",
         "emptyDescription": "Ganá insignias a medida que usás Peanut. Hacé pagos, invitá amigos y participá en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorDescription": "Revisá tu conexión e intentá de nuevo.",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}"
