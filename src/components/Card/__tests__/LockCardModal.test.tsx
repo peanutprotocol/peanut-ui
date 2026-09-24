@@ -155,8 +155,7 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
-    // audit #61 (hugo, 2026-09-23): the safe way out keeps its words and its stroke button weight
-    it('offers "Keep my card" as the one button, and it closes without canceling', () => {
+    it('offers "Keep my card" as a link action, and it closes without canceling', () => {
         setup(OVERVIEW)
         const onClose = jest.fn()
         render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })

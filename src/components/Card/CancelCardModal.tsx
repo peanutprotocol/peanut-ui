@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -197,15 +198,16 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                                 onClick: handleClose,
                             },
                         ]
-                      : [
-                            {
-                                text: t('cancel.keepCard'),
-                                variant: 'secondary',
-                                className: 'w-full',
-                                onClick: handleClose,
-                                disabled: phase === 'canceling',
-                            },
-                        ]
+                      : undefined
+            }
+            footer={
+                isConfirm ? (
+                    <div className="flex justify-center">
+                        <LinkButton onClick={handleClose} disabled={phase === 'canceling'}>
+                            {t('cancel.keepCard')}
+                        </LinkButton>
+                    </div>
+                ) : undefined
             }
         />
     )
