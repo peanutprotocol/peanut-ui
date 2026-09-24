@@ -45,3 +45,17 @@ export function withdrawCountryFormUrl(countryPath: string, method?: string | nu
     if (amount) search.set('amount', amount)
     return withdrawCountryUrl(countryPath, `?${search.toString()}`)
 }
+
+/**
+ * A country's rail list (several live rails, or none yet). The amount and the
+ * send origin ride along to the rail picked there. With an amount the list is
+ * named (`step=list`): an unnamed `?amount=` is an old link to the bank form.
+ */
+export function withdrawCountryRailsUrl(countryPath: string, method?: string | null, amount?: string | null): string {
+    const search = new URLSearchParams()
+    if (amount) search.set('step', 'list')
+    if (method) search.set('method', method)
+    if (amount) search.set('amount', amount)
+    const qs = search.toString()
+    return withdrawCountryUrl(countryPath, qs ? `?${qs}` : undefined)
+}

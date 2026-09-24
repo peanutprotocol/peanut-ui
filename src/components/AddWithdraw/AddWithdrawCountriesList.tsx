@@ -113,7 +113,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // `step` is the name every flow in the app gives its cursor; `?view=` stays
     // the native route selector (`?view=bank` is a rewritten path segment, not
     // a step) and old `?view=form` links are rewritten below.
-    const [stepParam, setStepParam] = useQueryState('step', parseAsStringEnum(['form']))
+    // `list` names the rail list when an amount rides along, so the old-link
+    // rewrite below does not take that amount for a bank-form link
+    const [stepParam, setStepParam] = useQueryState('step', parseAsStringEnum(['form', 'list']))
     const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
@@ -377,16 +379,19 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             // send origin travels in the dedicated `sendMethod` param — appending a
             // second `method=` would lose to the first and drop the send origin,
             // sending Back to Withdraw instead of Send. Mirror the single-rail
-            // redirect above, which already writes sendMethod.
-            const extraParams = isBankFromSend ? `sendMethod=${methodParam}` : undefined
-            router.push(rewriteMethodPath(method.path, extraParams))
+            // redirect above, which writes sendMethod and the amount.
+            const extra = new URLSearchParams()
+            if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
+            if (urlAmount) extra.set('amount', urlAmount)
+            router.push(rewriteMethodPath(method.path, extra.toString() || undefined))
         } else if (method.id.includes('default-bank-withdraw')) {
             if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
 
             // Bridge methods: set in context and open the bank-account form.
-            // The amount comes after the destination now (TASK-22589).
+            // The amount comes after the destination now (TASK-22589); one
+            // already in the URL stays there for the amount step.
             selectBankMethod(method.title)
-            void setViewParam('form')
+            void setStepParam('form')
             return
         } else if (method.path) {
             // other methods with paths — rewrite dynamic routes for native. Forward
@@ -545,8 +550,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         }
                         // Only update query state when staying on this route. A queued
                         // nuqs update can otherwise overwrite the country-list navigation.
-                        void setUrlAmount(null)
-                        void setStepParam(null)
+                        // An amount carried in stays for the rail picked next; the
+                        // list is then named, or the old-link rewrite reopens the form.
+                        void setStepParam(urlAmount ? 'list' : null)
                         void setViewParam(null)
                     }}
                 />

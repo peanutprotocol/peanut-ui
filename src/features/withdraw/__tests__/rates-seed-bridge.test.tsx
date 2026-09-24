@@ -51,9 +51,20 @@ jest.mock('@/hooks/useSavedAddresses', () => ({
 }))
 jest.mock('@/features/destinations/useRenameAccount', () => ({ useRenameAccount: () => jest.fn() }))
 jest.mock('@/features/destinations/DestinationEditDrawer', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/features/destinations/country-rails', () => ({
-    soleLiveRailForCountry: (id: string) => (id === 'MX' ? { id: 'mx-default-bank-withdraw', title: 'To Bank' } : null),
-}))
+// Mexico is pinned to its one bank rail; every other country reads the real
+// catalogue, unless a case turns on Brazil's second rail (Manteca bank transfer)
+let mockBrazilHasTwoRails = false
+jest.mock('@/features/destinations/country-rails', () => {
+    const actual = jest.requireActual('@/features/destinations/country-rails')
+    return {
+        ...actual,
+        soleLiveRailForCountry: (id: string, flow: string) => {
+            if (id === 'MX') return { id: 'mx-default-bank-withdraw', title: 'To Bank' }
+            if (id === 'BR' && mockBrazilHasTwoRails) return null
+            return actual.soleLiveRailForCountry(id, flow)
+        },
+    }
+})
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="loading" /> }))
 // The two lists' own behaviour has its own suites; here they hand over the
@@ -66,9 +77,18 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
 }))
 jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
     WithdrawCurrencyList: (props: { onCountryClick: (country: unknown) => void }) => (
-        <button onClick={() => props.onCountryClick({ id: 'MX', path: 'mexico', currency: 'MXN', title: 'Mexico' })}>
-            Mexico
-        </button>
+        <>
+            <button
+                onClick={() => props.onCountryClick({ id: 'MX', path: 'mexico', currency: 'MXN', title: 'Mexico' })}
+            >
+                Mexico
+            </button>
+            <button
+                onClick={() => props.onCountryClick({ id: 'BR', path: 'brazil', currency: 'BRL', title: 'Brazil' })}
+            >
+                Brazil
+            </button>
+        </>
     ),
 }))
 
@@ -196,5 +216,53 @@ describe('Rates & fees USD amount → a new Bridge destination', () => {
 
         expect(lastPush().searchParams.get('method')).toBe('bank')
         expect(lastPush().searchParams.get('amount')).toBe('10')
+    })
+})
+
+/**
+ * Chip 5311215266: USD → BRL 5, then a new Brazil destination. Today's
+ * catalogue leaves Brazil one live rail (Pix; its bank transfer is not live),
+ * so the pick goes straight to PIX with the amount. With both rails live the
+ * pick opens the rail list — that hop dropped the amount, and PIX then opened
+ * with no seed. The list forwards it to the picked rail (its own suite).
+ */
+describe('Rates & fees USD amount → a new Brazil destination', () => {
+    afterEach(() => {
+        mockBrazilHasTwoRails = false
+    })
+
+    it('one live rail (the catalogue today): straight to PIX with the amount', () => {
+        renderFromRatesCta({ currencyCode: 'BRL', amount: '5', showAll: 'true' })
+        fireEvent.click(screen.getByText('Brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&amount=5')
+    })
+
+    it('two live rails: the rail list gets the amount, named so it is not read as an old bank-form link', () => {
+        mockBrazilHasTwoRails = true
+        renderFromRatesCta({ currencyCode: 'BRL', amount: '5', showAll: 'true' })
+        fireEvent.click(screen.getByText('Brazil'))
+
+        expect(lastPush().pathname).toBe('/withdraw/brazil')
+        expect(lastPush().searchParams.get('step')).toBe('list')
+        expect(lastPush().searchParams.get('amount')).toBe('5')
+    })
+
+    it('two live rails from Send → Bank: the send origin rides along to the rail list', () => {
+        mockBrazilHasTwoRails = true
+        renderFromRatesCta({ amount: '5', showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByText('Brazil'))
+
+        expect(lastPush().pathname).toBe('/withdraw/brazil')
+        expect(lastPush().searchParams.get('method')).toBe('bank')
+        expect(lastPush().searchParams.get('amount')).toBe('5')
+    })
+
+    it('no amount: the rail list URL stays plain', () => {
+        mockBrazilHasTwoRails = true
+        renderFromRatesCta({ showAll: 'true' })
+        fireEvent.click(screen.getByText('Brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/brazil')
     })
 })
