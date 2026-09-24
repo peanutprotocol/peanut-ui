@@ -22,8 +22,9 @@ const mockMantecaCancel = jest.fn()
 jest.mock('@/services/manteca', () => ({
     mantecaApi: { cancelDeposit: (...args: unknown[]) => mockMantecaCancel(...args) },
 }))
+const mockChargesCancel = jest.fn()
 jest.mock('@/services/charges', () => ({
-    chargesApi: { cancel: jest.fn() },
+    chargesApi: { cancel: (...args: unknown[]) => mockChargesCancel(...args) },
 }))
 const mockInvalidateQueries = jest.fn()
 jest.mock('@tanstack/react-query', () => ({
@@ -214,5 +215,57 @@ describe('CancelDepositActions confirmation gate', () => {
         expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
         fireEvent.click(screen.getByText('Dismiss'))
         await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+    })
+})
+
+describe('CancelDepositActions controlled mode (receipt more-actions row)', () => {
+    const pendingBankRequest = {
+        id: 'charge-1',
+        status: 'pending',
+        extraDataForDrawer: { originalUserRole: 'SENDER', bridgeTransferId: 'bt-1' },
+    } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+
+    const renderControlled = (confirmOpen: boolean, onConfirmOpenChange = jest.fn()) =>
+        render(
+            <CancelDepositActions
+                transaction={pendingBankRequest}
+                isPendingBankRequest
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                confirmOpen={confirmOpen}
+                onConfirmOpenChange={onConfirmOpenChange}
+            />
+        )
+
+    it('renders no button of its own; the drawer follows the controlled flag', () => {
+        const { rerender } = renderControlled(false)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+
+        rerender(
+            <CancelDepositActions
+                transaction={pendingBankRequest}
+                isPendingBankRequest
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                confirmOpen
+                onConfirmOpenChange={jest.fn()}
+            />
+        )
+        expect(screen.getByText('Cancel this request?')).toBeInTheDocument()
+    })
+
+    it('confirming cancels the bridge onramp, then the charge, and closes through the callback', async () => {
+        mockChargesCancel.mockReset().mockResolvedValue(undefined)
+        const onConfirmOpenChange = jest.fn()
+        renderControlled(true, onConfirmOpenChange)
+
+        fireEvent.click(screen.getByText('Yes, cancel request'))
+
+        expect(onConfirmOpenChange).toHaveBeenCalledWith(false)
+        await waitFor(() => expect(mockChargesCancel).toHaveBeenCalledWith('charge-1'))
+        expect(mockCancelOnramp).toHaveBeenCalledWith('bt-1')
     })
 })

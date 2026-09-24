@@ -63,8 +63,8 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({
-    CancelDepositActions: ({ primary }: { primary?: boolean }) => (
-        <div data-testid="cancel-deposit" data-primary={String(!!primary)} />
+    CancelDepositActions: ({ primary, confirmOpen }: { primary?: boolean; confirmOpen?: boolean }) => (
+        <div data-testid="cancel-deposit" data-primary={String(!!primary)} data-confirm-open={String(!!confirmOpen)} />
     ),
 }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => <div data-testid="support-link" /> }))
@@ -265,5 +265,40 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
             cancel.compareDocumentPosition(screen.getByTestId('more-actions-trigger')) &
                 Node.DOCUMENT_POSITION_FOLLOWING
         ).toBeTruthy()
+    })
+
+    test('pending bank-paid request (sender): cancel is a drawer row, share stays the primary', () => {
+        const pendingRequest = {
+            ...transaction('P2P_REQUEST_FULFILL'),
+            status: 'pending',
+            extraDataForDrawer: {
+                kind: 'P2P_REQUEST_FULFILL',
+                originalUserRole: EHistoryUserRole.SENDER,
+                fulfillmentType: 'bridge',
+            },
+        } as unknown as TransactionDetails
+        render(
+            <ReceiptActions
+                transaction={pendingRequest}
+                vm={vm({ isPendingBankRequest: true })}
+                isPublic={false}
+                amountDisplay="$10"
+                shouldShowQrShare={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('pdf-share')).toBeInTheDocument()
+        // only the confirm host renders on the receipt, never a primary cancel button
+        const confirmHost = screen.getByTestId('cancel-deposit')
+        expect(confirmHost).toHaveAttribute('data-primary', 'false')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'false')
+
+        fireEvent.click(screen.getByTestId('more-actions-trigger'))
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        // the row closes the menu and opens the shared confirm
+        expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'false')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'true')
     })
 })

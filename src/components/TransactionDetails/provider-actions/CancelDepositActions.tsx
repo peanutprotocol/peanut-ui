@@ -25,7 +25,8 @@ import { useTranslations } from 'next-intl'
  *   - REQUEST pending + bridge fulfillment + sender role → cancelOnramp(bridgeTransferId) + chargesApi.cancel(transaction.id)
  *
  * Renders at most one button — conditions are mutually exclusive by
- * construction (different originalType / direction / role combos).
+ * construction (different originalType / direction / role combos). In
+ * controlled mode it renders only the confirm drawer and error message.
  */
 export function CancelDepositActions({
     transaction,
@@ -35,6 +36,8 @@ export function CancelDepositActions({
     onClose,
     setIsModalOpen,
     primary = false,
+    confirmOpen: controlledConfirmOpen,
+    onConfirmOpenChange,
 }: {
     transaction: TransactionDetails
     isPendingBankRequest: boolean
@@ -45,6 +48,10 @@ export function CancelDepositActions({
     setIsModalOpen?: (isModalOpen: boolean) => void
     /** The receipt passes true when the cancel is the screen's one primary action. */
     primary?: boolean
+    /** Controlled confirm drawer: pass both to open it from elsewhere (the
+     *  receipt's more-actions row). No cancel button renders in this mode. */
+    confirmOpen?: boolean
+    onConfirmOpenChange?: (open: boolean) => void
 }) {
     const t = useTranslations('transaction')
     const queryClient = useQueryClient()
@@ -52,11 +59,10 @@ export function CancelDepositActions({
     // Cancels are irreversible and the button sits next to the support link —
     // a real user cancelled a funded deposit while trying to report a problem
     // (no way to match the wire once cancelled). Every cancel confirms first.
-    const [pendingCancel, setPendingCancel] = useState<{ noun: string; run: () => Promise<void> } | null>(null)
-    // Visibility is separate from pendingCancel so the noun stays rendered
-    // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
-    // over 'request' titles).
-    const [confirmOpen, setConfirmOpen] = useState(false)
+    const [internalConfirmOpen, setInternalConfirmOpen] = useState(false)
+    const isControlled = onConfirmOpenChange !== undefined
+    const confirmOpen = isControlled ? !!controlledConfirmOpen : internalConfirmOpen
+    const setConfirmOpen = isControlled ? onConfirmOpenChange : setInternalConfirmOpen
     // Ref, not state: a double-tap on the confirm CTA during the modal's
     // fade-out lands both clicks before a re-render, so a state guard would
     // let the cancel fire twice. Refs are synchronous.
@@ -70,7 +76,7 @@ export function CancelDepositActions({
     const isCancellable = cancelKind !== null
     useEffect(() => {
         if (!isCancellable) setConfirmOpen(false)
-    }, [isCancellable])
+    }, [isCancellable, setConfirmOpen])
     // sync the confirm drawer to the parent details drawer (same contract as
     // the cancel-link drawer in ReceiptActions) so it stays open underneath.
     // The cleanup releases the lock on unmount for the same reason.
@@ -101,17 +107,42 @@ export function CancelDepositActions({
         }
     }
 
-    const armCancel = (noun: string, run: () => Promise<void>) => {
-        setPendingCancel({ noun, run })
-        setConfirmOpen(true)
+    // one cancel per kind; the kinds are mutually exclusive by construction
+    const runCancel = async () => {
+        // 1. Bridge onramp pending — generic bank deposit cancel.
+        if (cancelKind === 'bridge-onramp') {
+            const result = await cancelOnramp(transaction.id)
+            if (result.error) throw new Error(result.error)
+        }
+        // 2. Manteca onramp pending.
+        if (cancelKind === 'manteca-onramp') {
+            const result = await mantecaApi.cancelDeposit(transaction.id)
+            if (result.error) throw new Error(result.error)
+        }
+        // 3. REQUEST pending + bridge fulfillment + sender role — cancels the
+        // bridge-side onramp first, then the charge so the recipient stops
+        // seeing the request as outstanding.
+        if (cancelKind === 'bank-request') {
+            const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
+            if (!bridgeTransferId) {
+                throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
+            }
+            // Bridge cancel must succeed before we cancel the charge —
+            // otherwise the onramp orphans on Bridge's side while the user
+            // sees the request as cancelled.
+            const bridgeResult = await cancelOnramp(bridgeTransferId)
+            if (bridgeResult.error) throw new Error(bridgeResult.error)
+            await chargesApi.cancel(transaction.id)
+        }
     }
+    const noun = cancelKind === 'bank-request' ? 'request' : 'deposit'
 
     const confirmThenRun = async () => {
-        if (!pendingCancel || isCancelRunning.current) return
+        if (!cancelKind || isCancelRunning.current) return
         isCancelRunning.current = true
         setConfirmOpen(false)
         try {
-            await wrapAction(pendingCancel.run)
+            await wrapAction(runCancel)
         } finally {
             isCancelRunning.current = false
         }
@@ -137,9 +168,7 @@ export function CancelDepositActions({
                     <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
                         <IconBubble icon="ban" color="red" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                            <DrawerTitle>
-                                {t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
-                            </DrawerTitle>
+                            <DrawerTitle>{t('actions.cancelConfirm.title', { kind: noun })}</DrawerTitle>
                             <DrawerDescription>
                                 {t.rich('actions.cancelConfirm.description', {
                                     strong: (chunks) => <strong>{chunks}</strong>,
@@ -147,7 +176,7 @@ export function CancelDepositActions({
                             </DrawerDescription>
                         </DrawerHeader>
                         <Button shadowSize="4" className="w-full justify-center" onClick={confirmThenRun}>
-                            {t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' })}
+                            {t('actions.cancelConfirm.confirm', { kind: noun })}
                         </Button>
                     </div>
                 </DrawerContent>
@@ -155,66 +184,17 @@ export function CancelDepositActions({
         </div>
     )
 
-    // 1. Bridge onramp pending — generic bank deposit cancel.
-    if (cancelKind === 'bridge-onramp') {
-        return withError(
-            <CancelButton
-                primary={primary}
-                disabled={!!isLoading}
-                onClick={() =>
-                    armCancel('deposit', async () => {
-                        const result = await cancelOnramp(transaction.id)
-                        if (result.error) throw new Error(result.error)
-                    })
-                }
-            />
-        )
-    }
+    if (!cancelKind) return null
+    if (isControlled) return withError(null)
 
-    // 2. Manteca onramp pending.
-    if (cancelKind === 'manteca-onramp') {
-        return withError(
-            <CancelButton
-                primary={primary}
-                disabled={!!isLoading}
-                onClick={() =>
-                    armCancel('deposit', async () => {
-                        const result = await mantecaApi.cancelDeposit(transaction.id)
-                        if (result.error) throw new Error(result.error)
-                    })
-                }
-            />
-        )
-    }
-
-    // 3. REQUEST pending + bridge fulfillment + sender role — cancels the
-    // bridge-side onramp first, then the charge so the recipient stops seeing
-    // the request as outstanding.
-    if (cancelKind === 'bank-request') {
-        return withError(
-            <CancelButton
-                primary={primary}
-                label={t('actions.cancelDepositRequest')}
-                disabled={!!isLoading}
-                onClick={() =>
-                    armCancel('request', async () => {
-                        const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
-                        if (!bridgeTransferId) {
-                            throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
-                        }
-                        // Bridge cancel must succeed before we cancel the
-                        // charge — otherwise the onramp orphans on Bridge's
-                        // side while the user sees the request as cancelled.
-                        const bridgeResult = await cancelOnramp(bridgeTransferId)
-                        if (bridgeResult.error) throw new Error(bridgeResult.error)
-                        await chargesApi.cancel(transaction.id)
-                    })
-                }
-            />
-        )
-    }
-
-    return null
+    return withError(
+        <CancelButton
+            primary={primary}
+            label={cancelKind === 'bank-request' ? t('actions.cancelDepositRequest') : undefined}
+            disabled={!!isLoading}
+            onClick={() => setConfirmOpen(true)}
+        />
+    )
 }
 
 function CancelButton({

@@ -80,12 +80,7 @@ export function ReceiptActions({
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [showMoreActions, setShowMoreActions] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
-
-    // Sync child-drawer state to the parent details drawer — it keeps itself
-    // open while any of our drawers are up (vaul NestedRoot contract).
-    useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions)
-    }, [showCancelLinkDrawer, showMoreActions, setIsModalOpen])
+    const [showCancelRequestConfirm, setShowCancelRequestConfirm] = useState(false)
 
     // Every completed kind shares the same thing: the authenticated PDF file.
     // An action/payment URL is not necessarily a public receipt URL, so only
@@ -97,10 +92,26 @@ export function ReceiptActions({
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const showSplitCta = !isPublic && isSplittable(transaction)
-    // a pending deposit's next step is cancelling it, not sharing a receipt.
     // CancelDepositActions renders nothing without the loading/close handlers.
-    const cancelOwnsPrimary =
-        !isPublic && !!setIsLoading && !!onClose && getCancelDepositKind(transaction, isPendingBankRequest) !== null
+    const cancelKind =
+        !isPublic && setIsLoading && onClose ? getCancelDepositKind(transaction, isPendingBankRequest) : null
+    // a pending deposit's next step is cancelling it, not sharing a receipt.
+    // cancelling a bank-paid request is a menu row instead, so the receipt
+    // never stacks three buttons.
+    const cancelOwnsPrimary = cancelKind === 'bridge-onramp' || cancelKind === 'manteca-onramp'
+    const cancelInDrawer = cancelKind === 'bank-request'
+    // gated on cancelInDrawer: once the request stops being cancellable the
+    // confirm unmounts, and a stale open flag must not re-lock the parent.
+    const cancelRequestConfirmOpen = cancelInDrawer && showCancelRequestConfirm
+
+    // Sync child-drawer state to the parent details drawer — it keeps itself
+    // open while any of our drawers are up (vaul NestedRoot contract). The
+    // cancel-request confirm is included because it opens in the same render
+    // that closes the more-actions drawer; this effect runs after the child's
+    // and would otherwise release the lock the child just took.
+    useEffect(() => {
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelRequestConfirmOpen)
+    }, [showCancelLinkDrawer, showMoreActions, cancelRequestConfirmOpen, setIsModalOpen])
     // one primary per state: split, else cancel, else share (never two visible)
     const sharePrimary = !showSplitCta && !cancelOwnsPrimary && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
@@ -213,6 +224,19 @@ export function ReceiptActions({
                 },
                 disabled: !downloadViaUrl && (pdfFile.unavailable || pdfFile.busy !== null),
                 'data-testid': 'more-action-download',
+            })
+        }
+        if (cancelInDrawer) {
+            // same hand-off as the support row: close the menu, open the next surface
+            moreActions.push({
+                icon: 'ban',
+                title: t('actions.cancelDepositRequest'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    setShowCancelRequestConfirm(true)
+                },
+                disabled: isLoading,
+                'data-testid': 'more-action-cancel',
             })
         }
         if (referralAction && (showSplitCta || sharePrimary)) {
@@ -359,6 +383,21 @@ export function ReceiptActions({
                         >
                             {t('actions.moreActions')}
                         </Button>
+                    )}
+
+                    {/* bank-paid request: the trigger is the more-actions row, so
+                        only the confirm drawer and any error render here */}
+                    {cancelInDrawer && (
+                        <CancelDepositActions
+                            transaction={transaction}
+                            isPendingBankRequest={isPendingBankRequest}
+                            isLoading={isLoading}
+                            setIsLoading={setIsLoading}
+                            onClose={onClose}
+                            setIsModalOpen={setIsModalOpen}
+                            confirmOpen={showCancelRequestConfirm}
+                            onConfirmOpenChange={setShowCancelRequestConfirm}
+                        />
                     )}
                 </div>
             )}
