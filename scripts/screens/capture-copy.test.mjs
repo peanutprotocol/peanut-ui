@@ -11,8 +11,8 @@ const source = fileURLToPath(new URL('../../', import.meta.url))
 test('capture checkpoints follow the merged app locale catalogs', () => {
     const expected = {
         en: ['Continue', 'Start Spending', 'Earn from invites'],
-        'es-419': ['Continuar', 'Empezar a gastar', 'Gana con tus invitaciones'],
-        'es-AR': ['Continuar', 'Empezar a gastar', 'Ganá con tus invitaciones'],
+        'es-419': ['Continuar', 'Empezar a gastar', 'Gana con invitaciones'],
+        'es-AR': ['Continuar', 'Empezar a gastar', 'Ganá con invitaciones'],
         'pt-BR': ['Continuar', 'Começar a gastar', 'Ganhe com convites'],
     }
     for (const [locale, [continueText, spendingText, inviteText]] of Object.entries(expected)) {
