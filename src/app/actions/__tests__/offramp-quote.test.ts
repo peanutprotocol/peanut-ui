@@ -1,25 +1,24 @@
 /**
- * Exact-amount withdrawals (TASK-23054): the quote action, and the create
- * action handing back the new quote when the rate moved past the confirmed
- * amount.
+ * Withdrawals typed in the bank currency (TASK-23054): the quote action that
+ * turns a bank amount into the USDC to send.
  */
 const mockServerFetch = jest.fn()
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: (...args: unknown[]) => mockServerFetch(...args) }))
 
-import { createOfframp, getOfframpQuote } from '../offramp'
+import { getOfframpQuote } from '../offramp'
 
 const QUOTE = {
     destinationCurrency: 'eur',
-    rate: '0.89104478',
+    rate: '0.8955',
     updatedAt: '2026-09-24T15:54:16.373Z',
     destinationAmount: '2000.00',
-    sourceAmount: '2244.56',
+    sourceAmount: '2233.39',
 }
 
 beforeEach(() => jest.clearAllMocks())
 
 describe('getOfframpQuote', () => {
-    it('asks for the exact bank amount and returns the quote', async () => {
+    it('asks for the typed bank amount and returns the quote', async () => {
         mockServerFetch.mockResolvedValue({ ok: true, json: async () => QUOTE })
 
         const { data, error } = await getOfframpQuote('eur', '2000.00')
@@ -47,24 +46,5 @@ describe('getOfframpQuote', () => {
 
         expect(data).toBeUndefined()
         expect(error).toBe('no rate')
-    })
-})
-
-describe('createOfframp — rate moved past the confirmed amount', () => {
-    it('returns the code and the new quote, nothing else', async () => {
-        mockServerFetch.mockResolvedValue({
-            ok: false,
-            json: async () => ({
-                error: 'The exchange rate changed. Check the new amount.',
-                code: 'OFFRAMP_QUOTE_CHANGED',
-                quote: { ...QUOTE, sourceAmount: '2258.43' },
-            }),
-        })
-
-        const result = await createOfframp({ amount: '2244.56', destinationAmount: '2000.00' } as never)
-
-        expect(result.data).toBeUndefined()
-        expect(result.code).toBe('OFFRAMP_QUOTE_CHANGED')
-        expect(result.quote?.sourceAmount).toBe('2258.43')
     })
 })

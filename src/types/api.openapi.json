@@ -1461,10 +1461,6 @@
                                     "amount": {
                                         "type": "string"
                                     },
-                                    "destinationAmount": {
-                                        "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
-                                        "type": "string"
-                                    },
                                     "destination": {
                                         "properties": {
                                             "achReference": {
@@ -1791,54 +1787,6 @@
                                     },
                                     "required": [
                                         "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "quote": {
-                                            "properties": {
-                                                "destinationAmount": {
-                                                    "type": "string"
-                                                },
-                                                "destinationCurrency": {
-                                                    "type": "string"
-                                                },
-                                                "rate": {
-                                                    "type": "string"
-                                                },
-                                                "sourceAmount": {
-                                                    "type": "string"
-                                                },
-                                                "updatedAt": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "destinationCurrency",
-                                                "rate",
-                                                "updatedAt"
-                                            ],
-                                            "type": "object"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code",
-                                        "quote"
                                     ],
                                     "type": "object"
                                 }
@@ -2347,6 +2295,12 @@
                                         "mxn"
                                     ],
                                     "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "cop"
+                                    ],
+                                    "type": "string"
                                 }
                             ]
                         }
@@ -2403,7 +2357,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Quote an offramp that pays an exact bank amount",
+                "summary": "Quote the USDC for a withdrawal typed in the destination currency",
                 "tags": [
                     "offramp"
                 ]

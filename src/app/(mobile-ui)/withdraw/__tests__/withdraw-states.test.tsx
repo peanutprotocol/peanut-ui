@@ -108,11 +108,11 @@ jest.mock('@/utils/bridge.utils', () => ({
     railJurisdictionForBank: jest.fn(() => 'US'),
 }))
 
-// exact bank amount (TASK-23054): the quote rate the amount step converts with
-let mockExactRate: string | null = '0.9'
+// bank amount typed in its currency (TASK-23054): the quote rate the amount step converts with
+let mockBankRate: string | null = '0.9'
 jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
     useBridgeOfframpQuote: ({ currency }: { currency: string | null }) => ({
-        quote: currency && mockExactRate ? { rate: mockExactRate } : null,
+        quote: currency && mockBankRate ? { rate: mockBankRate } : null,
         isFetching: false,
         isError: false,
         refetch: jest.fn(),
@@ -344,7 +344,7 @@ beforeEach(() => {
     // then don't leak into later tests regardless of order or early failure.
     mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
     mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
-    mockExactRate = '0.9'
+    mockBankRate = '0.9'
 })
 
 // ============================================================
@@ -481,9 +481,9 @@ describe('GROUP 2: Amount Input', () => {
 })
 
 // ============================================================
-// GROUP 2b: exact bank amount for EUR, GBP, MXN and COP accounts (TASK-23054)
+// GROUP 2b: bank amount typed in EUR, GBP, MXN or COP (TASK-23054)
 // ============================================================
-describe('GROUP 2b: exact bank amount', () => {
+describe('GROUP 2b: bank amount typed in its currency', () => {
     beforeEach(() => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: 'germany' } }
@@ -517,7 +517,7 @@ describe('GROUP 2b: exact bank amount', () => {
     })
 
     test('waits for the rate before opening the field', () => {
-        mockExactRate = null
+        mockBankRate = null
         renderWithdraw({ step: 'amount' })
 
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()

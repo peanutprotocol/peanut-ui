@@ -10,7 +10,7 @@ import { WithdrawMethodView } from './views/WithdrawMethodView'
  * Root /withdraw flow: method → amount, both as named screen ids in the URL
  * (`?step=amount`). State machine lives in useWithdrawRootFlow; the views are
  * dumb. Downstream routes (/withdraw/crypto, /withdraw/manteca,
- * /withdraw/[country]/bank) receive the amount via `?amount=`, or the exact
+ * /withdraw/[country]/bank) receive the amount via `?amount=`, or the typed
  * bank amount via `?destinationAmount=` (EUR, GBP, MXN, COP accounts).
  */
 export default function WithdrawRoot() {
@@ -20,16 +20,16 @@ export default function WithdrawRoot() {
 
     if (flow.stepper.step === 'amount') {
         const pageTitle = flow.isFromSendFlow ? tNav('send') : tNav('withdraw')
-        const { exactAmount } = flow
-        // the exact-amount input converts with the quote rate: wait for it, and
+        const { bankAmount } = flow
+        // the bank-currency input converts with the quote rate: wait for it, and
         // keep the header so back always works (same gate as Manteca)
-        if (exactAmount && !exactAmount.rate) {
+        if (bankAmount && !bankAmount.rate) {
             return (
                 <RateGateScreen
                     title={pageTitle}
                     onBack={flow.handleAmountBack}
-                    isLoading={!exactAmount.rateFailed}
-                    onRetry={() => void exactAmount.refetchRate()}
+                    isLoading={!bankAmount.rateFailed}
+                    onRetry={() => void bankAmount.refetchRate()}
                 />
             )
         }
@@ -48,13 +48,13 @@ export default function WithdrawRoot() {
                 error={flow.error}
                 isCryptoWithdraw={flow.isCryptoWithdraw}
                 limitsValidation={flow.limitsValidation}
-                exactAmount={
-                    exactAmount?.rate
+                bankAmount={
+                    bankAmount?.rate
                         ? {
-                              currency: exactAmount.currency.toUpperCase(),
-                              rate: Number(exactAmount.rate),
-                              initialAmount: exactAmount.destinationAmount,
-                              onAmountChange: exactAmount.onDestinationAmountChange,
+                              currency: bankAmount.currency.toUpperCase(),
+                              rate: Number(bankAmount.rate),
+                              initialAmount: bankAmount.destinationAmount,
+                              onAmountChange: bankAmount.onDestinationAmountChange,
                           }
                         : undefined
                 }

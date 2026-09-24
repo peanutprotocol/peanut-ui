@@ -27,8 +27,8 @@ interface WithdrawBankReviewViewProps {
     bankAccount: Account
     /** USDC that leaves the balance. */
     amount: string
-    /** Exact bank amount (TASK-23054): what the recipient gets, and the quote rate behind `amount`. */
-    exactAmount?: { currency: string; destinationAmount: string; rate: string }
+    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -55,7 +55,7 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
-    exactAmount,
+    bankAmount,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -176,18 +176,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                     </>
                 )}
-                {exactAmount ? (
+                {bankAmount ? (
                     <>
                         <PaymentInfoRow
                             label={tCommon('exchangeRate')}
-                            moreInfoText={t('bank.exactRateInfo')}
-                            value={`1 USD = ${Number(exactAmount.rate).toFixed(4)} ${exactAmount.currency.toUpperCase()}`}
+                            value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
                         />
-                        <RecipientGetsRow
-                            amount={exactAmount.destinationAmount}
-                            currency={exactAmount.currency}
-                            exact
-                        />
+                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
                     </>
                 ) : (
                     <ExchangeRate

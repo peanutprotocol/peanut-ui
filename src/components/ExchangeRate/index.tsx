@@ -95,7 +95,6 @@ const ExchangeRate = ({
                     loading={isLoadingRate}
                     amount={localCurrencyAmount}
                     currency={currency}
-                    exact={false}
                 />
             )}
         </>

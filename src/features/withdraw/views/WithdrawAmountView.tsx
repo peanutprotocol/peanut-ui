@@ -31,10 +31,10 @@ interface WithdrawAmountViewProps {
     limitsValidation?: ReturnType<typeof useLimitsValidation>
     /**
      * Set for a bank account paid in EUR, GBP, MXN or COP (TASK-23054): the field
-     * takes the exact bank amount in that currency, and `onAmountChange` gets
+     * takes the bank amount in that currency, and `onAmountChange` gets
      * the USD it converts to — the Manteca amount pattern.
      */
-    exactAmount?: {
+    bankAmount?: {
         /** ISO code shown in the field, e.g. 'EUR'. */
         currency: string
         /** Destination units per 1 USD, fees included. */
@@ -60,7 +60,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     error,
     isCryptoWithdraw,
     limitsValidation,
-    exactAmount,
+    bankAmount,
 }) => {
     const tCommon = useTranslations('common')
 
@@ -76,17 +76,17 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
             <NavHeader title={pageTitle} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <div className="text-heading-xs text-foreground-primary">{heading}</div>
-                {exactAmount ? (
+                {bankAmount ? (
                     <AmountInput
-                        initialAmount={exactAmount.initialAmount}
-                        setPrimaryAmount={exactAmount.onAmountChange}
+                        initialAmount={bankAmount.initialAmount}
+                        setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
-                        primaryDenomination={{ symbol: exactAmount.currency, price: exactAmount.rate, decimals: 2 }}
+                        primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
                         secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                         walletBalance={walletBalance}
                         // the balance row is USD and the field is the bank currency:
                         // floor the USD to cents first so the fill never quotes above it
-                        balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * exactAmount.rate}
+                        balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * bankAmount.rate}
                         onBalanceFilled={onBalanceFilled}
                     />
                 ) : (

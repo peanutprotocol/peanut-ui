@@ -1006,7 +1006,6 @@
             "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria."
         },
         "bank": {
-            "rateChanged": "El tipo de cambio cambió. Revisá el nuevo monto e intentá de nuevo.",
             "referenceTooShort": "Mínimo {min} caracteres, o dejala vacía.",
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."
         },

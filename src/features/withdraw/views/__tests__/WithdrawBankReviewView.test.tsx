@@ -33,13 +33,13 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
-    exactAmount,
+    bankAmount,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
-    exactAmount?: { currency: string; destinationAmount: string; rate: string }
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -47,7 +47,7 @@ const Harness = ({
         <WithdrawBankReviewView
             bankAccount={account}
             amount="50"
-            exactAmount={exactAmount}
+            bankAmount={bankAmount}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -307,19 +307,18 @@ describe('WithdrawBankReviewView — the account owner row', () => {
     })
 })
 
-describe('WithdrawBankReviewView — exact bank amount (TASK-23054)', () => {
-    it('shows what the recipient gets, exactly, and the quote rate instead of an estimate', () => {
+describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
+    it('shows about what the recipient gets and the rate behind the USDC', () => {
         renderWithIntl(
-            <Harness rail="sepa" exactAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.89104478' }} />
+            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
         )
         expect(screen.getByText('Recipient gets')).toBeInTheDocument()
-        expect(screen.getByText('€2,000')).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 0.8910 EUR')).toBeInTheDocument()
-        expect(screen.queryByText(/≈/)).not.toBeInTheDocument()
+        expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
         expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
     })
 
-    it('without one, keeps the estimate from the exchange rate', () => {
+    it('without one, keeps the exchange-rate rows of a USD amount', () => {
         renderWithIntl(<Harness rail="sepa" />)
         expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
         expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()

@@ -909,7 +909,6 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount?: string;
-                        destinationAmount?: string;
                         destination: {
                             achReference?: string;
                             coBankTransferReference?: string;
@@ -974,25 +973,6 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code: string;
-                            error: string;
-                            quote: {
-                                destinationAmount?: string;
-                                destinationCurrency: string;
-                                rate: string;
-                                sourceAmount?: string;
-                                updatedAt: string;
-                            };
                         };
                     };
                 };
@@ -1152,11 +1132,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Quote an offramp that pays an exact bank amount */
+        /** Quote the USDC for a withdrawal typed in the destination currency */
         get: {
             parameters: {
                 query: {
-                    destinationCurrency: "eur" | "gbp" | "mxn";
+                    destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
                     destinationAmount?: string;
                 };
                 header: {

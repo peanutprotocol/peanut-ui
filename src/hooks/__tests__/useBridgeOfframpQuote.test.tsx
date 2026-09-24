@@ -18,7 +18,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 beforeEach(() => jest.clearAllMocks())
 
 describe('useBridgeOfframpQuote', () => {
-    it('returns the quote for the exact bank amount', async () => {
+    it('returns the quote for the typed bank amount', async () => {
         mockGetOfframpQuote.mockResolvedValue({ data: { rate: '0.891', sourceAmount: '2244.56' } })
 
         const { result } = renderHook(() => useBridgeOfframpQuote({ currency: 'eur', destinationAmount: '2000.00' }), {
@@ -29,7 +29,7 @@ describe('useBridgeOfframpQuote', () => {
         expect(mockGetOfframpQuote).toHaveBeenCalledWith('eur', '2000.00')
     })
 
-    it('does not ask outside exact mode', () => {
+    it('does not ask for a USD amount', () => {
         renderHook(() => useBridgeOfframpQuote({ currency: null }), { wrapper })
         expect(mockGetOfframpQuote).not.toHaveBeenCalled()
     })

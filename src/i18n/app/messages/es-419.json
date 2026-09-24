@@ -1954,8 +1954,6 @@
             "invalid": "Clave Pix inválida"
         },
         "bank": {
-            "exactRateInfo": "Incluye un pequeño margen para que el monto sea exacto.",
-            "rateChanged": "El tipo de cambio cambió. Revisa el nuevo monto e intenta de nuevo.",
             "eurTitle": "Enviamos EUR a tu banco",
             "eurDescription": "Los retiros se envían en EUR. Tu banco puede cobrar comisiones de conversión o rechazar la transacción si no admite depósitos en EUR.",
             "accountOwner": "Titular de la cuenta",

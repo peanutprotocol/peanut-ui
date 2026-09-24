@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 const QUOTE_REFRESH_MS = 30_000
 
 /**
- * The USDC a withdrawal of an exact bank amount costs now (TASK-23054).
+ * The USDC a withdrawal typed in the bank currency costs now (TASK-23054).
  * Without `destinationAmount` it returns only the rate, for the amount step.
  * No fallback rate: a failed quote is an error the screen must show, never a
  * guessed amount.
@@ -15,7 +15,7 @@ export function useBridgeOfframpQuote({
     destinationAmount,
     enabled = true,
 }: {
-    /** Lowercase destination currency (eur, gbp, mxn); null outside exact mode. */
+    /** Lowercase bank currency (eur, gbp, mxn, cop); null for a USD amount. */
     currency: string | null
     destinationAmount?: string
     enabled?: boolean

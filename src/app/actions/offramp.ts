@@ -24,7 +24,7 @@ export type CreateOfframpSuccessResponse = {
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; quote?: OfframpQuote }> {
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
     try {
         const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
@@ -44,8 +44,7 @@ export async function createOfframp(
         const data = await response.json()
 
         if (!response.ok) {
-            // OFFRAMP_QUOTE_CHANGED carries the new quote to show before a retry
-            return { error: data.error || 'Failed to create off-ramp transfer.', code: data.code, quote: data.quote }
+            return { error: data.error || 'Failed to create off-ramp transfer.' }
         }
 
         return { data }
@@ -59,8 +58,8 @@ export async function createOfframp(
 }
 
 /**
- * Quote a withdrawal that pays an exact bank amount: the USDC it costs at the
- * current rate. Without `destinationAmount`, only the rate.
+ * Quote a withdrawal typed in the bank currency: the USDC that pays that
+ * amount at the current rate. Without `destinationAmount`, only the rate.
  */
 export async function getOfframpQuote(
     destinationCurrency: string,

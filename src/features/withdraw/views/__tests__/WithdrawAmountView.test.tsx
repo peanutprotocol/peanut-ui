@@ -2,10 +2,10 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { WithdrawAmountView } from '../WithdrawAmountView'
 
-// TASK-23054: a bank account paid in EUR, GBP, MXN or COP takes the exact bank
-// amount in that currency; the USD it converts to (quote rate, fees
-// included) is what the amount checks run on.
-function setup(exactRate?: number) {
+// TASK-23054: a bank account paid in EUR, GBP, MXN or COP takes the bank
+// amount in that currency; the USD it converts to at the quote rate is what
+// the amount checks run on.
+function setup(bankRate?: number) {
     const onAmountChange = jest.fn()
     const onDestinationAmountChange = jest.fn()
     const onBalanceFilled = jest.fn()
@@ -23,11 +23,11 @@ function setup(exactRate?: number) {
             continueDisabled={false}
             error={{ showError: false, errorMessage: '' }}
             isCryptoWithdraw={false}
-            exactAmount={
-                exactRate
+            bankAmount={
+                bankRate
                     ? {
                           currency: 'EUR',
-                          rate: exactRate,
+                          rate: bankRate,
                           initialAmount: '',
                           onAmountChange: onDestinationAmountChange,
                       }
@@ -39,7 +39,7 @@ function setup(exactRate?: number) {
     return { field, onAmountChange, onDestinationAmountChange, onBalanceFilled }
 }
 
-describe('WithdrawAmountView — exact bank amount (TASK-23054)', () => {
+describe('WithdrawAmountView — bank amount typed in its currency (TASK-23054)', () => {
     it('opens in the bank currency, not USD', () => {
         setup(0.9)
         expect(screen.getByText('EUR')).toBeInTheDocument()
