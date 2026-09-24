@@ -1080,7 +1080,12 @@
             "rateUnavailable": "There is no {currency} rate right now. Try again, or request in USD.",
             "invalidRequestedAmount": "This amount is not valid in {currency}. Check the decimals and try again.",
             "currencyNotAvailable": "Requests in {currency} are not available yet. Request in USD.",
-            "validatingRecipient": "Validating recipient..."
+            "validatingRecipient": "Validating recipient...",
+            "signInRequired": "Sign in to request money.",
+            "moneyContactsOnly": "You can only request money from people you have paid or been paid by.",
+            "requestLimit": "Too many payment requests. Please try again later.",
+            "walletOwnership": "Use your own Peanut wallet to receive this request.",
+            "contactsUnavailable": "We could not check your contacts. Please try again."
         },
         "validation": {
             "invalidRecipientTitle": "Invalid recipient",
