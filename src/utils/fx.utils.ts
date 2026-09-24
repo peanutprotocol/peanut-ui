@@ -159,18 +159,8 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
     return rate
 }
 
-/**
- * GET /bridge/offramp/rate (public). TODO: hand-typed until the OpenAPI
- * snapshot is refreshed from the fees-v2 API branch; then derive it from
- * `paths['/bridge/offramp/rate']` like FxRateResponse above.
- */
-type OfframpRateResponse = {
-    destinationCurrency: string
-    /** Destination units per 1 USDC, all costs included (Peanut's margin with `fixed_output`). */
-    rate: string
-    updatedAt: string
-    pricing: 'bridge_rate' | 'fixed_output'
-}
+/** GET /bridge/offramp/rate (public): destination units per 1 USDC, Peanut's margin inside with `fixed_output`. */
+type OfframpRateResponse = paths['/bridge/offramp/rate']['get']['responses'][200]['content']['application/json']
 
 /** Whether a widget pair is a withdrawal the offramp quote prices: USD out to a EUR, GBP, MXN or COP bank. */
 export function isOfframpRatePair(fromCurrency: string, toCurrency: string): boolean {
