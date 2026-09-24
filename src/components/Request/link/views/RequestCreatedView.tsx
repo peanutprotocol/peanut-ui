@@ -19,7 +19,6 @@ interface RequestCreatedViewProps {
     currency: string
     bankPayable: boolean
     onDone: () => void
-    onCreateAnother: () => void
 }
 
 export function RequestCreatedView({
@@ -29,7 +28,6 @@ export function RequestCreatedView({
     currency,
     bankPayable,
     onDone,
-    onCreateAnother,
 }: RequestCreatedViewProps) {
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
@@ -50,7 +48,9 @@ export function RequestCreatedView({
             : t('shareOpenRequest')
 
     return (
-        <PageStack className="max-h-dvh overflow-hidden">
+        // no overflow-hidden here: it clipped the footer buttons' 4px offset shadow at the
+        // right and bottom edge. the center already scrolls on its own (min-h-0).
+        <PageStack className="max-h-dvh">
             <NavHeader hideBackBtn title={tNav('request')} />
             <PageStack.Center className="min-h-0 gap-4 overflow-y-auto text-center md:my-0">
                 <div className="flex flex-col items-center gap-4">
@@ -63,16 +63,15 @@ export function RequestCreatedView({
                 <RequestFulfillmentNotice requestId={requestId} bankPayable={bankPayable} />
             </PageStack.Center>
 
+            {/* ds button rule: at most two buttons, primary first. "create another" was
+                dropped; a new request starts from home like any other. */}
             <PageStack.Footer className="gap-3">
-                <ShareButton url={generatedLink} variant="secondary">
-                    {shareLabel}
-                </ShareButton>
-                <Button variant="ghost" className="w-full" onClick={onCreateAnother}>
-                    {t('created.createAnother')}
-                </Button>
                 <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('done')}
                 </Button>
+                <ShareButton url={generatedLink} variant="secondary">
+                    {shareLabel}
+                </ShareButton>
             </PageStack.Footer>
         </PageStack>
     )
