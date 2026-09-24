@@ -1,10 +1,8 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import AmountInput from '@/components/Global/AmountInput'
@@ -16,12 +14,15 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
-import { formatAmount } from '@/utils/general.utils'
+import { formatAmount, saveRedirectUrl } from '@/utils/general.utils'
 import { captureException } from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useRequestContact } from '@/hooks/useRequestContact'
+import { useRouter } from 'next/navigation'
+import { AccountType } from '@/interfaces/interfaces'
+import { apiErrorStatus } from '@/services/api-error'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
@@ -40,7 +41,19 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     // a guest on a broken request link is asked to join — during the migration
     // that means the app, not web signup
     const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
-    const { user: authUser } = useAuth()
+    const { user: authUser, isFetchingUser, userFetchError, fetchUser } = useAuth()
+    const authUnavailable = !authUser && !!userFetchError
+    const router = useRouter()
+    const contact = useRequestContact(username)
+    const needsSetup = !!authUser && !authUser.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
+
+    useEffect(() => {
+        if (isFetchingUser || authUser === undefined || userFetchError) return
+        if (!authUser || needsSetup) {
+            saveRedirectUrl()
+            router.replace(authUser ? '/setup/finish' : '/setup')
+        }
+    }, [authUser, isFetchingUser, userFetchError, needsSetup, router])
     const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -50,17 +63,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState } = useContext(loadingStateContext)
-    const [recipient, setRecipient] = useState<{ name: string | undefined; address: string }>({
-        address: '',
-        name: '',
-    })
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    // recipient/amount validation renders as the field's own error under the
-    // recipient input; errorState keeps API failures only (Callout + reset CTA)
-    const [fieldError, setFieldError] = useState<string>('')
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
 
     const {
@@ -68,8 +74,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         isLoading: isRecipientUserLoading,
         error: recipientUserError,
     } = useUserByUsername(username)
-
-    const { interactions } = useUserInteractions(recipientUser ? [recipientUser.userId] : [])
 
     const resetRequestState = () => {
         setView('initial')
@@ -88,23 +92,35 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const isButtonDisabled = useMemo(() => {
         const parsedAmount = parseFloat(currentInputValue)
         const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
-        const isIdentityLogicMissing = !!authUser?.user.userId ? !address : !recipient.address
-        return !recipientUser?.username || isAmountInvalid || isIdentityLogicMissing
-    }, [recipientUser?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
+        return (
+            !recipientUser?.username ||
+            recipientUser.username.toLowerCase() !== username?.toLowerCase() ||
+            isAmountInvalid ||
+            !authUser?.user.userId ||
+            !address ||
+            !contact.data ||
+            contact.isError
+        )
+    }, [
+        recipientUser?.username,
+        username,
+        currentInputValue,
+        address,
+        authUser?.user.userId,
+        contact.data,
+        contact.isError,
+    ])
 
     const isButtonLoading = useContext(loadingStateContext).isLoading
 
     const createRequestCharge = useCallback(async () => {
         if (isButtonDisabled) {
-            setFieldError(t('errors.missingUsernameOrAmount'))
             return
         }
         setLoadingState('Requesting')
-        setFieldError('')
         setErrorState({ showError: false, errorMessage: '' })
         try {
-            // Determine the recipient address
-            const toAddress = authUser?.user.userId ? address : recipient.address
+            const toAddress = address
             if (!toAddress) {
                 throw new Error('No recipient address available')
             }
@@ -118,11 +134,21 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             setLoadingState('Idle')
             setView('success')
         } catch (error) {
-            console.error('Error creating request charge:', error)
-            captureException(error)
+            const status = apiErrorStatus(error)
+            let errorMessage = t('errors.createRequestFailed')
+            if (status === 401) errorMessage = t('errors.signInRequired')
+            if (status === 429) errorMessage = t('errors.requestLimit')
+            if (status === 403 && error instanceof Error) {
+                if (error.message === 'Request sender does not own recipient address')
+                    errorMessage = t('errors.walletOwnership')
+                if (error.message === 'You can only request money from people you have paid or been paid by') {
+                    errorMessage = t('errors.moneyContactsOnly')
+                }
+            }
+            if (status !== 401 && status !== 403 && status !== 429) captureException(error)
             setErrorState({
                 showError: true,
-                errorMessage: error instanceof Error && error.message ? error.message : t('errors.createRequestFailed'),
+                errorMessage,
             })
             setLoadingState('Idle')
         }
@@ -133,14 +159,18 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         address,
         attachmentOptions,
         setLoadingState,
-        authUser,
-        recipient.address,
         setErrorState,
         t,
     ])
 
     useEffect(() => {
-        if (isRecipientUserLoading || authUser === undefined) {
+        if (
+            isRecipientUserLoading ||
+            isFetchingUser ||
+            (authUser === undefined && !userFetchError) ||
+            (!userFetchError && (!authUser || needsSetup)) ||
+            contact.isLoading
+        ) {
             return
         }
 
@@ -175,9 +205,28 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         }
 
         setValidationError(null)
-    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t, tMigration, handoffActive])
+    }, [
+        username,
+        authUser,
+        recipientUser,
+        recipientUserError,
+        isRecipientUserLoading,
+        isFetchingUser,
+        userFetchError,
+        needsSetup,
+        contact.isLoading,
+        t,
+        tMigration,
+        handoffActive,
+    ])
 
-    if (isRecipientUserLoading || authUser === undefined) {
+    if (
+        isRecipientUserLoading ||
+        isFetchingUser ||
+        (authUser === undefined && !userFetchError) ||
+        (!userFetchError && (!authUser || needsSetup)) ||
+        contact.isLoading
+    ) {
         return (
             <div className="flex min-h-inherit w-full items-center justify-center">
                 <Loading variant="mascot" />
@@ -196,6 +245,28 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
                     {storeHandoffModal}
                 </div>
+            </div>
+        )
+    }
+
+    if (authUnavailable || contact.isError || !contact.data) {
+        return (
+            <div className="flex min-h-inherit flex-col gap-8">
+                <NavHeader onPrev={onBack} title={tNav('request')} />
+                <PageStack.Center className="gap-4">
+                    <Callout priority="error">
+                        {t(
+                            authUnavailable || contact.isError
+                                ? 'errors.contactsUnavailable'
+                                : 'errors.moneyContactsOnly'
+                        )}
+                    </Callout>
+                    {(authUnavailable || contact.isError) && (
+                        <Button onClick={() => (authUnavailable ? fetchUser() : contact.refetch())} icon="retry">
+                            {tCommon('retry')}
+                        </Button>
+                    )}
+                </PageStack.Center>
             </div>
         )
     }
@@ -239,7 +310,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     fullName={recipientUser?.fullName}
                     avatarKey={recipientUser?.avatarKey}
                     isVerified={recipientUser?.isVerified ?? false}
-                    haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
+                    haveSentMoneyToUser={contact.data.relationshipTypes.includes('sent_money')}
                 />
 
                 <div className="space-y-4">
@@ -257,42 +328,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         maxLength={140}
                         onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
                     />
-                    {!authUser?.user.userId && (
-                        <Field error={fieldError}>
-                            <GeneralRecipientInput
-                                placeholder={t('recipientPlaceholder')}
-                                recipient={recipient}
-                                onUpdate={(update: GeneralRecipientUpdate) => {
-                                    setRecipient(update.recipient)
-                                    if (update.isChanging) {
-                                        setErrorState({ showError: false, errorMessage: '' })
-                                        setFieldError('')
-                                    } else {
-                                        if (!update.isValid && update.errorMessage) {
-                                            setFieldError(update.errorMessage)
-                                        } else {
-                                            if (
-                                                (update.isValid && update.recipient.address) ||
-                                                (!update.isValid && !update.errorMessage)
-                                            ) {
-                                                setFieldError('')
-                                            } else {
-                                                setFieldError(update.errorMessage || t('errors.validatingRecipient'))
-                                            }
-                                        }
-                                    }
-                                }}
-                                showInfoText={false}
-                            />
-                        </Field>
-                    )}
-
                     {errorState.showError ? (
                         <Button
                             variant="primary"
                             shadowSize="4"
                             onClick={() => {
-                                setRecipient({ address: '', name: '' })
                                 setErrorState({ showError: false, errorMessage: '' })
                             }}
                             loading={isButtonLoading}

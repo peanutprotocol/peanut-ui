@@ -1080,7 +1080,12 @@
             "rateUnavailable": "Não há uma cotação para {currency} agora. Tente de novo ou cobre em USD.",
             "invalidRequestedAmount": "Este valor não é válido em {currency}. Confira as casas decimais e tente de novo.",
             "currencyNotAvailable": "Cobranças em {currency} ainda não estão disponíveis. Cobre em USD.",
-            "validatingRecipient": "Validando destinatário..."
+            "validatingRecipient": "Validando destinatário...",
+            "signInRequired": "Entre na sua conta para solicitar dinheiro.",
+            "moneyContactsOnly": "Você só pode solicitar dinheiro a pessoas para quem já pagou ou de quem já recebeu um pagamento.",
+            "requestLimit": "Muitas solicitações de pagamento. Tente novamente mais tarde.",
+            "walletOwnership": "Use sua própria carteira Peanut para receber este pagamento.",
+            "contactsUnavailable": "Não foi possível consultar seus contatos. Tente novamente."
         },
         "validation": {
             "invalidRecipientTitle": "Destinatário inválido",
