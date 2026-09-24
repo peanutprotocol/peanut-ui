@@ -101,6 +101,11 @@ export function ReceiptActions({
     // gated on cancelInDrawer: once the entry stops being cancellable the
     // confirm unmounts, and a stale open flag must not re-lock the parent.
     const cancelConfirmOpen = cancelInDrawer && showCancelConfirm
+    // the confirm unmounts before its own reset can run, so clear the flag
+    // here too — otherwise a later pending refetch reopens it untapped.
+    useEffect(() => {
+        setShowCancelConfirm(false)
+    }, [cancelInDrawer, transaction.id])
 
     // Sync child-drawer state to the parent details drawer — it keeps itself
     // open while any of our drawers are up (vaul NestedRoot contract). The

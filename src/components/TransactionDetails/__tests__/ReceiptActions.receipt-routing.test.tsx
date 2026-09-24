@@ -293,4 +293,31 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'false')
         expect(confirmHost).toHaveAttribute('data-confirm-open', 'true')
     })
+
+    test('pending → completed → pending: the confirm stays closed and the parent lock is released', () => {
+        const setIsModalOpen = jest.fn()
+        const props = {
+            vm: vm(),
+            isPublic: false,
+            amountDisplay: '$10',
+            shouldShowQrShare: false,
+            setIsLoading: jest.fn(),
+            onClose: jest.fn(),
+            setIsModalOpen,
+        }
+        const { rerender } = render(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'true')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        const completed = { ...pendingDeposit, status: 'completed' } as unknown as TransactionDetails
+        rerender(<ReceiptActions transaction={completed} {...props} />)
+        expect(screen.queryByTestId('cancel-confirm-host')).not.toBeInTheDocument()
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
+
+        // a stale refetch shows the entry as pending again
+        rerender(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'false')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
+    })
 })
