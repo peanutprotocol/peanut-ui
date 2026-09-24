@@ -6,9 +6,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCountryFromAccount, getCountryFromPath } from '@/utils/bridge.utils'
 import { bankWithdrawMinUsd } from './amount-validation'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { AccountType } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -24,7 +22,7 @@ import { useTranslations } from 'next-intl'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
-import { bankAmountCurrency } from './bank-amount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { WITHDRAW_ROOT_STEPS } from './types'
 
@@ -140,23 +138,11 @@ export function useWithdrawRootFlow() {
     // by the hook. Empty while loading so we don't flash "$0.00".
     const walletBalance = balance === undefined ? '' : formattedSpendableBalance
 
-    // derive country and account type for minimum amount validation
-    const { countryIso2, rateAccountType } = useMemo(() => {
-        if (selectedBankAccount) {
-            const country = getCountryFromAccount(selectedBankAccount)
-            return { countryIso2: country?.iso2 || '', rateAccountType: selectedBankAccount.type as AccountType }
-        }
-        if (selectedMethod?.countryPath) {
-            const country = getCountryFromPath(selectedMethod.countryPath)
-            const iso2 = country?.iso2 || ''
-            let accountType: AccountType = AccountType.IBAN
-            if (iso2 === 'US') accountType = AccountType.US
-            else if (iso2 === 'GB') accountType = AccountType.GB
-            else if (iso2 === 'MX') accountType = AccountType.CLABE
-            else if (iso2 === 'CO') accountType = AccountType.CO_BANK_TRANSFER
-            return { countryIso2: iso2, rateAccountType: accountType }
-        }
-        return { countryIso2: '', rateAccountType: AccountType.US }
+    // derive the country for minimum amount validation
+    const countryIso2 = useMemo(() => {
+        if (selectedBankAccount) return getCountryFromAccount(selectedBankAccount)?.iso2 || ''
+        if (selectedMethod?.countryPath) return getCountryFromPath(selectedMethod.countryPath)?.iso2 || ''
+        return ''
     }, [selectedBankAccount, selectedMethod])
 
     // crypto withdrawals are plain on-chain transfers — fiat-rail minimums don't
@@ -171,12 +157,6 @@ export function useWithdrawRootFlow() {
     const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
 
-    // fetch exchange rate for non-USD countries to convert local minimum to USD
-    const { exchangeRate } = useGetExchangeRate({
-        accountType: rateAccountType,
-        enabled: !isCryptoWithdraw && rateAccountType !== AccountType.US && countryIso2 !== '',
-    })
-
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
         // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
@@ -185,9 +165,11 @@ export function useWithdrawRootFlow() {
         // (see withdraw/crypto), once the destination is known.
         if (isCryptoWithdraw) return 0
         // shared with the submit-side re-check in useBridgeOfframpFlow (Chip
-        // round 5) — one conversion, two enforcement points
-        return bankWithdrawMinUsd(countryIso2, exchangeRate)
-    }, [isCryptoWithdraw, countryIso2, exchangeRate])
+        // round 5) — one conversion, two enforcement points. It converts with the
+        // quote rate the amount itself uses: a GBP, MXN or COP account opens this
+        // step only once that rate has loaded.
+        return bankWithdrawMinUsd(countryIso2, bankRate.quote?.rate)
+    }, [isCryptoWithdraw, countryIso2, bankRate.quote?.rate])
 
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits
@@ -293,9 +275,15 @@ export function useWithdrawRootFlow() {
 
     const handleDestinationAmountChange = useCallback(
         (value: string) => {
-            void setDestinationAmount(value === '' || value === '0' ? null : value)
+            // "90." or ".5" mid-typing is stored the way the quote API accepts it
+            const next = normalizeBankAmount(value) ?? ''
+            // The field re-reports an unchanged amount when the quote rate refreshes.
+            // Writing it anyway replaces the URL, and in Next.js that discards a
+            // navigation in flight, such as Continue's push to the review.
+            if (next === destinationAmount) return
+            void setDestinationAmount(next || null)
         },
-        [setDestinationAmount]
+        [setDestinationAmount, destinationAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step

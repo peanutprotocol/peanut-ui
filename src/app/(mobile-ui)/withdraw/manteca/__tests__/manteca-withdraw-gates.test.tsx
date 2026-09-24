@@ -562,7 +562,8 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
     }, 20_000)
 
     it('an expired quote never signs: it re-locks and waits for a new confirmation', async () => {
-        await reachReview({ ...PRICE_LOCK, expiresAt: new Date(Date.now() - 60_000).toISOString() })
+        // the API measured no time left on the lock
+        await reachReview({ ...PRICE_LOCK, expiresInMs: 0 })
         mockInitiateWithdraw.mockClear()
 
         clickConfirm()
@@ -570,6 +571,22 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+    }, 20_000)
+
+    // A phone clock a few minutes fast read Manteca's expiresAt as already past
+    // and re-quoted on every attempt. The lock's remaining time decides.
+    it('a fast device clock does not expire a live quote: it signs', async () => {
+        await reachReview({
+            ...PRICE_LOCK,
+            expiresAt: new Date(Date.now() - 60_000).toISOString(),
+            expiresInMs: 120_000,
+        })
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
     }, 20_000)
 
     it('does not lock a price while limits are loading', async () => {

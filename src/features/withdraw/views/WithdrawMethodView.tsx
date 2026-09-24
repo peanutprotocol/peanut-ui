@@ -73,7 +73,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
-    const [currencyCode] = useQueryState('currencyCode', parseAsString)
+    const [currencyCode, setCurrencyCode] = useQueryState('currencyCode', parseAsString)
     // if currencyCode is present, show all methods
     const showAll = showAllParam || !!currencyCode
 
@@ -104,7 +104,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         return bankAccounts as unknown as Account[]
     }, [user])
 
-    const hasSavedDestinations = savedAccounts.length > 0 || offeredAddresses.length > 0
+    // What the saved-destinations screen lists once no rail is picked. Only Send →
+    // Bank leaves the address book out, so a Withdraw user whose only saved
+    // destinations are crypto addresses still has that screen to go back to.
+    const hasSavedDestinations = savedAccounts.length > 0 || (!isBankFromSend && savedAddresses.length > 0)
 
     // check if we're coming from request fulfillment or similar flow
     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
@@ -203,6 +206,18 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         setRecipient({ name: undefined, address: '' })
         setIsValidRecipient(false)
         openCryptoDestination()
+    }
+
+    // The Crypto row on the full method list: saved addresses come first, on the
+    // saved-destinations screen, instead of an empty destination form.
+    const handleListCryptoClick = () => {
+        if (offeredAddresses.length === 0) {
+            handleCryptoTileClick()
+            return
+        }
+        void setShowAll(null)
+        void setCurrencyCode(null)
+        void setRail(null)
     }
 
     // The saved-accounts vs no-accounts split needs the user to have resolved —
@@ -309,7 +324,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 enforceSupportedCountries={isBankFromSend}
                 initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}
-                onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
+                onCryptoClick={bankRailChosen ? undefined : handleListCryptoClick}
                 pendingPath={tappedCountryPath}
             />
         </div>

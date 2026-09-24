@@ -1,5 +1,5 @@
 import { AccountType, type Account } from '@/interfaces/interfaces'
-import { bankAmountCurrency } from '../bank-amount'
+import { bankAmountCurrency, normalizeBankAmount } from '../bank-amount'
 
 const account = (type: AccountType) => ({ id: 'a', type }) as unknown as Account
 
@@ -23,5 +23,20 @@ describe('bankAmountCurrency', () => {
 
     it('no account, no bank currency', () => {
         expect(bankAmountCurrency(null)).toBeNull()
+    })
+})
+
+describe('normalizeBankAmount', () => {
+    it.each([
+        ['90', '90'],
+        ['90.', '90'],
+        ['.5', '0.5'],
+        ['2,000.50', '2000.50'],
+    ])('%s is sent as %s', (typed, sent) => {
+        expect(normalizeBankAmount(typed)).toBe(sent)
+    })
+
+    it.each(['', '0', '0.', '.', '0.00', '1.234', 'abc', '1e3', '-5'])('%s is no amount', (typed) => {
+        expect(normalizeBankAmount(typed)).toBeNull()
     })
 })

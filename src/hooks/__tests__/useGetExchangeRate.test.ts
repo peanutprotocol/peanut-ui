@@ -53,11 +53,16 @@ describe('useGetExchangeRate', () => {
         }
     )
 
-    it('falls back to 1 when the network returns an error', async () => {
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-        getExchangeRateMock.mockResolvedValue({ error: 'upstream 500' })
-        const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.IBAN }), { wrapper })
-        await waitFor(() => expect(result.current.exchangeRate).toBe('1'))
-        consoleErrorSpy.mockRestore()
+    // The '1' fallback showed "1 USD = 1.0000 EUR" and made the COP minimum $4,000.
+    it('a failed call is an error with no rate, never 1', async () => {
+        jest.useFakeTimers()
+        try {
+            getExchangeRateMock.mockResolvedValue({ error: 'upstream 500' })
+            const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.IBAN }), { wrapper })
+            await waitFor(() => expect(result.current.isRateError).toBe(true), { timeout: 20000 })
+            expect(result.current.exchangeRate).toBeNull()
+        } finally {
+            jest.useRealTimers()
+        }
     })
 })

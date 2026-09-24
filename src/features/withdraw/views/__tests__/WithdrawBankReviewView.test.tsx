@@ -34,12 +34,14 @@ const Harness = ({
     account = ibanAccount,
     showError = false,
     bankAmount,
+    onRetryQuote,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
     bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    onRetryQuote?: () => void
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -63,6 +65,7 @@ const Harness = ({
             onReferenceChange={setReference}
             onSubmit={jest.fn()}
             onDone={jest.fn()}
+            onRetryQuote={onRetryQuote}
         />
     )
 }
@@ -322,5 +325,23 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         renderWithIntl(<Harness rail="sepa" />)
         expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
         expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
+    })
+
+    // a failed 30-second refresh: the review, and any step open over it, stays
+    it('a failed quote refresh is an inline error with a retry, on the same review', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        expect(screen.getByText('Recipient gets')).toBeInTheDocument()
+        expect(
+            screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+        expect(onRetryQuote).toHaveBeenCalled()
     })
 })

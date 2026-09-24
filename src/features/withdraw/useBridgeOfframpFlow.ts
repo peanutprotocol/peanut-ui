@@ -38,12 +38,10 @@ import { parseAsString, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
-import { bankAmountCurrency } from './bank-amount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
 import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
-import { AccountType } from '@/interfaces/interfaces'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
     bankReferenceDestinationFields,
@@ -77,7 +75,10 @@ export function useBridgeOfframpFlow() {
 
     const { selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
     const [urlAmount] = useWithdrawAmount()
-    const [destinationAmount] = useWithdrawDestinationAmount()
+    const [destinationAmountParam] = useWithdrawDestinationAmount()
+    // the URL is editable: "90." or ".5" is read the way the quote API accepts
+    // it, and anything else counts as no amount
+    const destinationAmount = normalizeBankAmount(destinationAmountParam) ?? ''
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
@@ -135,13 +136,8 @@ export function useBridgeOfframpFlow() {
     // leaves the balance is the quote's, at the provider's current rate, and
     // refreshes with the rate until the user confirms. That USDC is what the
     // offramp sends; the bank amount is an estimate.
-    const bankCurrency = destinationAmount ? bankAmountCurrency(bankAccount) : null
-    const bankQuote = useBridgeOfframpQuote({
-        currency: bankCurrency,
-        destinationAmount,
-        enabled: step === 'review' && !isLoading && !submittedTxHash,
-    })
-    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    const accountCurrency = bankAmountCurrency(bankAccount)
+    const bankCurrency = destinationAmount ? accountCurrency : null
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -160,19 +156,18 @@ export function useBridgeOfframpFlow() {
     // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
     const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
-    const { exchangeRate } = useGetExchangeRate({
-        accountType:
-            countryIso2 === 'GB'
-                ? AccountType.GB
-                : countryIso2 === 'MX'
-                  ? AccountType.CLABE
-                  : countryIso2 === 'CO'
-                    ? AccountType.CO_BANK_TRANSFER
-                    : AccountType.IBAN,
-        enabled: minNeedsRate,
+    // One rate for the amount and the minimum: the quote. Without a typed bank
+    // amount it is fetched for the rate alone, when the minimum needs one.
+    const bankQuote = useBridgeOfframpQuote({
+        currency: bankCurrency ?? (minNeedsRate ? accountCurrency : null),
+        destinationAmount: bankCurrency ? destinationAmount : undefined,
+        enabled: step === 'review' && !isLoading && !submittedTxHash,
     })
-    const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
-    const isMinReady = !minNeedsRate || parseFloat(exchangeRate || '0') > 0
+    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    // a quote whose refresh failed stays on screen but is not confirmed
+    const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
+    const minUsd = bankWithdrawMinUsd(countryIso2, bankQuote.quote?.rate)
+    const isMinReady = !minNeedsRate || (isQuoteCurrent && parseFloat(bankQuote.quote?.rate ?? '0') > 0)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -319,6 +314,9 @@ export function useBridgeOfframpFlow() {
         // disabled until it loads; reaching here early is a race, not a user
         // error: no-op rather than under-enforce.
         if (!isMinReady) return
+        // The ToS step calls this directly, past the disabled button: a quote
+        // whose refresh failed is never confirmed.
+        if (bankCurrency && !isQuoteCurrent) return
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
@@ -531,7 +529,7 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || !!bankQuote.quote),
+        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent),
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,

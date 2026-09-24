@@ -45,7 +45,7 @@ describe('useBridgeOfframpQuote', () => {
         expect(result.current.quote).toBeNull()
     })
 
-    it('a failed refresh drops the last quote instead of leaving it confirmable', async () => {
+    it('a failed refresh keeps the last quote on screen and reports that it is not current', async () => {
         mockGetOfframpQuote.mockResolvedValueOnce({ data: { rate: '0.8955', sourceAmount: '2233.39' } })
         const { result } = renderHook(() => useBridgeOfframpQuote({ currency: 'eur', destinationAmount: '2000.00' }), {
             wrapper,
@@ -56,6 +56,6 @@ describe('useBridgeOfframpQuote', () => {
         await result.current.refetch()
 
         await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 3000 })
-        expect(result.current.quote).toBeNull()
+        expect(result.current.quote?.sourceAmount).toBe('2233.39')
     })
 })

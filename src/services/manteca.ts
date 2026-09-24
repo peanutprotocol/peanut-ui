@@ -135,6 +135,9 @@ export type WithdrawPriceLock = {
     priceLockCode: string
     price: string
     expiresAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expiresAt`, against the device clock (see receivePriceLock). */
+    expiresInMs?: number
     usdAmount: string
     fiatAmount: string
     currency: string

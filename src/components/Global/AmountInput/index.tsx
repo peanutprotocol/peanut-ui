@@ -172,7 +172,11 @@ const AmountInput = ({
     // display value vs the converted one, so a stale read here reports the amounts
     // the wrong way round. The setPrimary/Secondary/DisplayedAmount props are left
     // out — they are the parent's identity, and including them re-fires this on
-    // every parent render.
+    // every parent render. For the same reason the denominations are read through
+    // the field-keyed memo, never the secondaryDenomination prop: callers pass an
+    // object literal, and a report on every render made each render write the
+    // URL when the setter is a URL state — which in Next.js discards a navigation
+    // in flight (TASK-23054: withdraw Continue on a EUR amount did nothing).
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
@@ -191,14 +195,7 @@ const AmountInput = ({
             setSecondaryAmount?.(rawDisplayValue)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        displayValue,
-        alternativeDisplayValue,
-        displaySymbol,
-        secondaryDenomination,
-        hasValue,
-        primaryDenomination.symbol,
-    ])
+    }, [displayValue, alternativeDisplayValue, displaySymbol, denominations, hasValue, primaryDenomination.symbol])
 
     const onSliderValueChange = useCallback(
         (value: number[]) => {
