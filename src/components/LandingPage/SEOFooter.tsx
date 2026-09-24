@@ -4,7 +4,7 @@ import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
 import { COUNTRIES_SEO } from '@/data/seo/corridors'
-import { localizedCountryName } from '@/utils/country-name.utils'
+import { localizedCountryName, ptBrFromPreposition } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest
 // (peanut-content/generated/footer-manifest.json). The manifest is bundled at
@@ -139,6 +139,11 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
         locale === DEFAULT_LOCALE
             ? entry.name
             : localizedCountryName(locale, COUNTRIES_SEO[entry.slug]?.iso2?.toUpperCase(), entry.name)
+    // pt-BR footerSendFrom is "Enviar {name}": the preposition carries the article.
+    const fromName = (entry: ManifestEntry) =>
+        locale === 'pt-br'
+            ? `${ptBrFromPreposition(COUNTRIES_SEO[entry.slug]?.iso2)} ${countryName(entry)}`
+            : countryName(entry)
     const learnMoreLabel = (entry: ManifestEntry) => {
         const key = LEARN_MORE_LABELS[entry.slug]
         return key ? i18n[key] : entry.name
@@ -156,7 +161,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                         ))}
                         {sendFrom.map((entry) => (
                             <FooterLink key={`from-${entry.slug}`} href={link(entry)}>
-                                {t(i18n.footerSendFrom, { name: countryName(entry) })}
+                                {t(i18n.footerSendFrom, { name: fromName(entry) })}
                             </FooterLink>
                         ))}
                     </FooterSection>

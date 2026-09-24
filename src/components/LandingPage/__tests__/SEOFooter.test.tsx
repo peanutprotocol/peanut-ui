@@ -53,4 +53,17 @@ describe('SEOFooter labels', () => {
         expect(texts).not.toContain('Enviar a Brazil')
         expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from UK')
     })
+
+    it('gives pt-BR send-from links the article the country takes', () => {
+        const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
+        expect(texts).toEqual(
+            expect.arrayContaining([
+                'Enviar da França',
+                'Enviar do Reino Unido',
+                'Enviar dos Estados Unidos',
+                'Enviar de Portugal',
+            ])
+        )
+        expect(texts).not.toContain('Enviar de França')
+    })
 })
