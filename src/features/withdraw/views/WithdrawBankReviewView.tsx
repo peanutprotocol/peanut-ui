@@ -255,10 +255,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             ) : error.showError ? (
                 <Button
-                    // Same guard as the normal submit below: the flow hook
-                    // returns early on a reference problem, so without this
-                    // Retry looks live and does nothing.
-                    disabled={isLoading || !!referenceProblem}
+                    // Same guards as the normal submit below: the flow hook
+                    // returns early on a reference problem or a quote that is
+                    // not current, so without them Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem || !isSubmitReady}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"

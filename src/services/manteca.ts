@@ -92,6 +92,9 @@ export type QrPaymentLock = {
     paymentAgainstAmount: string
     paymentAgainst: string
     expireAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expireAt`, against the device clock (see receiveLock). */
+    expiresInMs?: number
     creationTime: string
     /** Entity-aware Manteca deposit address served by the API (per-entity
      *  balances from 2026-09-14). Optional only while an older API without
@@ -136,7 +139,7 @@ export type WithdrawPriceLock = {
     price: string
     expiresAt: string
     /** Milliseconds the lock had left when the API answered. Read this, not
-     *  `expiresAt`, against the device clock (see receivePriceLock). */
+     *  `expiresAt`, against the device clock (see receiveLock). */
     expiresInMs?: number
     usdAmount: string
     fiatAmount: string

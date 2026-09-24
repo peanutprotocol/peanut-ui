@@ -229,6 +229,7 @@ function lockFixture(overrides: Record<string, unknown> = {}) {
         paymentAgainstAmount: '10',
         paymentAgainst: 'USD',
         expireAt: new Date(Date.now() + 120_000).toISOString(),
+        expiresInMs: 120_000,
         creationTime: new Date().toISOString(),
         depositAddress: SERVED_DEPOSIT,
         ...overrides,

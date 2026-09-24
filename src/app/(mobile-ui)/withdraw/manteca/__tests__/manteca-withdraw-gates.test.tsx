@@ -275,8 +275,13 @@ jest.mock('@/utils/sentry-critical-flow', () => ({
 jest.mock('@/utils/native-routes', () => ({
     withdrawCountryUrl: (country: string) => `/withdraw/${country}`,
 }))
+// the no-history Back fallback each render asks for
+const mockSafeBackFallbacks: string[] = []
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+    useSafeBack: (fallbackUrl: string) => {
+        mockSafeBackFallbacks.push(fallbackUrl)
+        return jest.fn()
+    },
 }))
 jest.mock('@/constants/countryCurrencyMapping', () => ({
     getFlagUrl: () => '/flag.png',
@@ -368,6 +373,17 @@ beforeEach(() => {
 })
 
 // ---------- tests ----------
+
+// Back with no in-app history landed on /withdraw?showAll=true, the full method
+// list, and skipped the saved destinations. /withdraw shows them when there are any.
+describe('manteca withdraw — Back without history', () => {
+    it('falls back to the withdraw entry, not the full method list', () => {
+        mockStepper.step = 'bank-details'
+        render(<MantecaWithdrawFlow />)
+
+        expect(mockSafeBackFallbacks.at(-1)).toBe('/withdraw')
+    })
+})
 
 describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
     it('all gates clear: the withdraw fires once with the locked price and amount', async () => {

@@ -1,5 +1,12 @@
 /** Route builders for the withdraw flow's cross-route navigations. */
 
+/**
+ * Where Back from a withdraw destination lands with no in-app history: the
+ * withdraw entry. It shows the saved destinations when the user has any, and
+ * the full method list otherwise. `?showAll=true` skipped the saved addresses.
+ */
+export const WITHDRAW_BACK_FALLBACK_URL = '/withdraw'
+
 import { withdrawCountryUrl } from '@/utils/native-routes'
 
 /**

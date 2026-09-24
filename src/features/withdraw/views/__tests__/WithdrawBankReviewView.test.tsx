@@ -35,6 +35,7 @@ const Harness = ({
     showError = false,
     bankAmount,
     onRetryQuote,
+    isSubmitReady = true,
 }: {
     rail: string
     submittedTxHash?: string | null
@@ -42,6 +43,7 @@ const Harness = ({
     showError?: boolean
     bankAmount?: { currency: string; destinationAmount: string; rate: string }
     onRetryQuote?: () => void
+    isSubmitReady?: boolean
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -52,7 +54,7 @@ const Harness = ({
             bankAmount={bankAmount}
             fromSendFlow={false}
             isLoading={false}
-            isSubmitReady
+            isSubmitReady={isSubmitReady}
             submittedTxHash={submittedTxHash}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
@@ -343,5 +345,23 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         ).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /retry/i }))
         expect(onRetryQuote).toHaveBeenCalled()
+    })
+
+    // Chip: a failed submit, then a failed quote refresh — the submit Retry must
+    // not look live while the flow refuses the quote that is no longer current
+    it('after a failed submit, the submit Retry waits for a current quote; the quote Retry stays live', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                showError
+                isSubmitReady={false}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
+        expect(submitRetry).toBeDisabled()
+        expect(quoteRetry).toBeEnabled()
     })
 })
