@@ -65,7 +65,9 @@ export function RequestCreatedView({
 
             {/* ds button rule: at most two buttons, primary first. "create another" was
                 dropped; a new request starts from home like any other. */}
-            <PageStack.Footer className="gap-3">
+            {/* pb-1 = the 4px button shadow: the stack is pinned to the viewport
+                height, so without it the last button's shadow is cut at the edge */}
+            <PageStack.Footer className="gap-3 pb-1">
                 <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('done')}
                 </Button>
