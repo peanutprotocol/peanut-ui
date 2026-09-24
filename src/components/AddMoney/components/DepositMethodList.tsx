@@ -1,6 +1,7 @@
 'use client'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Image from 'next/image'
 import { twMerge } from '@/utils/tw'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
@@ -67,9 +68,9 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                         body={<div className="text-body-xs">{method.description || method.currency}</div>}
                         leading={
                             method.type === 'crypto' ? (
-                                <IconBubble icon="coins" color="blue" size="s" />
+                                <IconBubble {...CONCEPT_ICONS.crypto} size="s" />
                             ) : method.id === 'bank-transfer-add' ? (
-                                <IconBubble icon="bank" color="blue" size="s" />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="s" />
                             ) : method.type === 'country' ? (
                                 <Image
                                     src={getFlagUrl(countryCodeForFlag)}
@@ -80,7 +81,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                     loading="lazy"
                                 />
                             ) : (
-                                <IconBubble icon="bank" color="blue" size="s" />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="s" />
                             )
                         }
                         onClick={() => onItemClick(method)}

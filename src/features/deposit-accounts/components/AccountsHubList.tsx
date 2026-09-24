@@ -1,6 +1,8 @@
 'use client'
 
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -207,7 +209,8 @@ export function AccountsHubList({
         return (
             <ListItem
                 key={row.id}
-                leading={row.flag ? <CorridorFlag iso2={row.flag} /> : undefined}
+                // a bank row with no country flag still names a bank
+                leading={row.flag ? <CorridorFlag iso2={row.flag} /> : <IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                 title={row.currency ?? label}
                 trailing={rowStatusBadge(row, tRows)}
                 body={row.note && tRows(row.note)}

@@ -1,7 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-import { PEANUTMAN } from '@/assets/mascot'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -14,6 +12,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -361,7 +360,7 @@ const UnlockPayments = () => {
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">
                 <ListItem
-                    leading={<IconBubble icon="globe" size="s" color="blue" />}
+                    leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
                     // two-line row: the country sits on its own body line and wraps rather than
                     // truncating beside the status pill (TASK-22994, hugo)
                     title={residenceCountryName ? t('residence.label') : t('residence.unknown')}
@@ -701,24 +700,16 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
 }
 
 /**
- * Peanut-native rows keep their own brand mark instead of the generic
- * status-color bubble every other row uses — same assets as elsewhere in the
- * app (grep, don't invent): the mascot-on-yellow from the Contacts entry row
- * (SendRouter.view.tsx) and the card-on-yellow avatar background rows use for
- * a card spend with no merchant logo (TransactionAvatarBadge's AVATAR_WALLET_BG).
+ * Peanut-native rows keep their concept bubble (CONCEPT_ICONS) instead of the
+ * status-color bubble every other row uses: the Peanut user and the card look
+ * the same here as on the Send page and in activity.
  */
 function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
     if (row.labelKey === 'p2p') {
-        return (
-            <IconBubble
-                icon={<Image src={PEANUTMAN} alt="" className={size === 's' ? 'h-5 w-auto' : 'h-8 w-auto'} />}
-                size={size}
-                color="yellow"
-            />
-        )
+        return <IconBubble {...CONCEPT_ICONS.peanutUser} size={size} />
     }
     if (row.labelKey === 'card') {
-        return <IconBubble icon="credit-card" size={size} color="yellow" />
+        return <IconBubble {...CONCEPT_ICONS.card} size={size} />
     }
     return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
 }
