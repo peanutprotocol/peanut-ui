@@ -9,6 +9,7 @@
  * passes them in, so this stays unit-testable with plain values.
  */
 
+import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
@@ -111,8 +112,6 @@ const BANK_ROWS: readonly {
     key: BankRowKey
     group: Extract<UnlockGroupLabelKey, 'southAmerica' | 'northAmerica' | 'europe'>
     country: string
-    flag: string
-    currency: string
     regionPath: NonNullable<UnlockRow['regionPath']>
     limitRefs: NonNullable<UnlockRow['limitRefs']>
     /**
@@ -120,56 +119,47 @@ const BANK_ROWS: readonly {
      * residence rule where there is one: the Argentine account opens to a
      * legal resident alone, and the Brazilian one needs a CPF, pre-checked
      * through a Brazilian residence (`residenceGate`, client-side). Those rows
-     * are not an offer to anyone else.
+     * are not an offer to anyone else. The row's currency and flag are the
+     * corridor's own (`DEPOSIT_RAILS`).
      */
     corridor: DepositCorridor
 }[] = [
     {
         key: 'brl',
-        currency: 'BRL',
         group: 'southAmerica',
         country: 'BR',
-        flag: 'br',
         regionPath: 'latam',
         limitRefs: ['BRL'],
         corridor: 'PIX_BR',
     },
     {
         key: 'ars',
-        currency: 'ARS',
         group: 'southAmerica',
         country: 'AR',
-        flag: 'ar',
         regionPath: 'latam',
         limitRefs: ['ARS'],
         corridor: 'BANK_TRANSFER_AR',
     },
     {
         key: 'usd',
-        currency: 'USD',
         group: 'northAmerica',
         country: 'US',
-        flag: 'us',
         regionPath: 'north-america',
         limitRefs: ['bridge'],
         corridor: 'ACH_US',
     },
     {
         key: 'mxn',
-        currency: 'MXN',
         group: 'northAmerica',
         country: 'MX',
-        flag: 'mx',
         regionPath: 'north-america',
         limitRefs: ['bridge'],
         corridor: 'SPEI_MX',
     },
     {
         key: 'sepa',
-        currency: 'EUR',
         group: 'europe',
         country: 'EU',
-        flag: 'eu',
         regionPath: 'europe',
         limitRefs: ['bridge'],
         corridor: 'SEPA_EU',
@@ -221,8 +211,8 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
             icon: 'bank',
             chip,
             limitRefs: spec.limitRefs,
-            flag: spec.flag,
-            currency: spec.currency,
+            flag: DEPOSIT_RAILS[spec.corridor].flagIso2,
+            currency: DEPOSIT_RAILS[spec.corridor].currency,
             corridor: spec.corridor,
             ...(chip === 'notAvailable'
                 ? {
@@ -342,18 +332,18 @@ export function withPixSend(rows: readonly UnlockRow[], pixKeyRow: UnlockRow | u
 }
 
 /**
- * The bank/QR rows that survive the currency-first "Your accounts" merge
- * (2026-09-18), once a VA account already covers the same corridor.
+ * The bank rows that survive once a virtual account already covers the same
+ * currency.
  *
  * A row goes only when nothing is lost with it: the account is ACTIVE and the
  * row's own chip is `active`. A revoked or provisioning account does not cover
  * the corridor, and a row with any other chip is the user's only way into the
  * fix or rejection modal for that rail.
  *
- * Scoped to the Bridge rows, which map 1:1 onto a VA product: `sepa` (EUR),
- * `usd` and `mxn`. Brazil/Argentina are deliberately left alone — the Manteca
- * Pix/QR rows are a distinct product from any Bridge BRL/ARS VA, not a
- * duplicate of it, so both may legitimately show at once.
+ * Scoped to rows whose corridor is itself a virtual-account product (EUR, USD,
+ * MXN). Brazil/Argentina are deliberately left alone — their one-off Manteca
+ * transfers are a distinct product from any virtual account in the same
+ * currency, so both may legitimately show at once.
  *
  * Known gap (2026-09-21): a dropped row takes its details drawer with it, and
  * the account surface it defers to does not state the Bridge per-transfer
@@ -364,11 +354,11 @@ export function dedupeHeldBankRows(
     rows: readonly UnlockRow[],
     activeAccountCurrencies: ReadonlySet<string>
 ): UnlockRow[] {
-    return rows.filter((row) => {
-        if (row.chip !== 'active') return true
-        if (row.labelKey === 'sepa') return !activeAccountCurrencies.has('EUR')
-        if (row.labelKey === 'usd') return !activeAccountCurrencies.has('USD')
-        if (row.labelKey === 'mxn') return !activeAccountCurrencies.has('MXN')
-        return true
-    })
+    return rows.filter(
+        (row) =>
+            row.chip !== 'active' ||
+            !row.corridor ||
+            !isClaimable(DEPOSIT_RAILS[row.corridor]) ||
+            !activeAccountCurrencies.has(DEPOSIT_RAILS[row.corridor].currency)
+    )
 }

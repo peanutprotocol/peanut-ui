@@ -1449,7 +1449,7 @@
             "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escribile a soporte si creés que es un error.",
-            "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
+            "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "manteca_action_expired": "La configuración de tu cuenta bancaria venció. Completá la breve verificación para habilitar depósitos y retiros locales.",
@@ -1787,10 +1787,8 @@
         },
         "share": {
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
-            "payerBusinessOnly": "Pagá desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
             "referenceRequired": "Incluí la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
-            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si podés, pagá desde una cuenta a tu nombre.",
-            "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consultame antes de enviar."
+            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si podés, pagá desde una cuenta a tu nombre."
         },
         "gate": {
             "verifyTitle": "Primero verificá la identidad",
@@ -1832,7 +1830,6 @@
                 "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
             },
             "individualVolume": {
-                "payer": "Desde otra persona: hasta {limit} en total. Pedile al titular que consulte el periodo con soporte.",
                 "why": "El total que otras personas pueden pagar a esta cuenta tiene un límite de {limit}. El periodo que cubre ese total no se publica, así que escribí a soporte antes de un pago grande. Una empresa puede pagar cualquier monto."
             },
             "individualUnconfirmed": {

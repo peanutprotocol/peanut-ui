@@ -16,7 +16,7 @@ export function DepositShareActions({
     account: DepositAccountView
     userName: string
 }) {
-    const { t, rowLabels, railLabels } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, senderLimit } = useDepositAccountCopy()
 
     if (!account.instructions) return null
 
@@ -27,7 +27,7 @@ export function DepositShareActions({
             introOwn: t('share.textIntroOwn', { currency: rail.currency }),
             introPooled: t('share.textIntroPooled', { user: userName, currency: rail.currency }),
             outro: t('share.textOutro'),
-            payerLine: { 'business-only': t('share.payerBusinessOnly'), unknown: t('share.payerUnconfirmed') },
+            payerLine: senderLimit(account.matching)?.payer,
             referenceLine: t('share.referenceRequired'),
             eurOwnNameLine: t('share.eurOwnName'),
         },
