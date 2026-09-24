@@ -1,12 +1,15 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import messages from '@/i18n/app/messages/en.json'
 import { NextIntlClientProvider } from 'next-intl'
 import { DepositAccountDetailsScreen } from '../components/DepositAccountDetailsScreen'
+import { DEPOSIT_RAIL_POLICY } from '../__fixtures__/railPolicy'
 import { DEPOSIT_RAILS } from '../rails'
 import type { DepositAccountView, DepositRail } from '../types'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+const mockCopy = jest.fn(async (_text: string) => true)
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
 
 const provisioning: DepositAccountView = {
     id: 'acct-usd',
@@ -41,6 +44,9 @@ const details = (
         </NextIntlClientProvider>
     )
 
+const openTerms = () =>
+    fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.details.termsToggle }))
+
 /**
  * The provider never answered inside the wait the app gives it. The backend
  * still says `provisioning` and never says otherwise, so the screen has to
@@ -52,6 +58,15 @@ describe('the details screen when the provisioning wait runs out', () => {
     it('keeps the skeleton while the account is still within its budget', () => {
         details(provisioning)
         expect(screen.getByTestId('deposit-details-skeleton')).toBeInTheDocument()
+    })
+
+    // The pulse is decorative: it stops when the user asks for reduced motion
+    // (sep-23 review, A34).
+    it('stops every skeleton pulse under reduced motion', () => {
+        details(provisioning)
+        const pulses = screen.getByTestId('deposit-details-skeleton').querySelectorAll('.animate-pulse')
+        expect(pulses.length).toBeGreaterThan(0)
+        pulses.forEach((el) => expect(el).toHaveClass('motion-reduce:animate-none'))
     })
 
     it('offers a retry once the wait has timed out', () => {
@@ -173,7 +188,7 @@ describe('the euro caveat on the details screen', () => {
         instructions: { accountHolderName: 'Ana Pérez', iban: 'DE89', paymentRails: ['sepa'] },
     })
 
-    it('tells the euro holder that transfers from another name can be returned', () => {
+    it('tells the euro holder, under the toggle, that transfers from another name can be returned', () => {
         details(
             active('bridge.sepa_eu', 'EUR'),
             () => {},
@@ -181,13 +196,177 @@ describe('the euro caveat on the details screen', () => {
             () => {},
             DEPOSIT_RAILS.SEPA_EU
         )
+        openTerms()
 
         expect(screen.getByText(messages.depositAccounts.details.eurOwnName)).toBeInTheDocument()
     })
 
     it('says nothing of the kind on the dollar account', () => {
         details(active('bridge.ach_us', 'USD'), () => {}, true)
+        openTerms()
 
         expect(screen.queryByText(messages.depositAccounts.details.eurOwnName)).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * The founders review (2026-09-23) called this the heaviest screen in the app.
+ * Closed, it carries what a bank's own account-details screen carries: a
+ * title, one card of numbers, and the actions that hand them over. Who can
+ * pay, fees and timing sit behind one toggle.
+ */
+describe('the details screen, collapsed and open', () => {
+    const eur: DepositAccountView = {
+        ...provisioning,
+        id: 'acct-eur',
+        railId: 'bridge.sepa_eu',
+        currency: 'EUR',
+        status: 'active',
+        rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+        instructions: {
+            accountHolderName: 'Ana Pérez',
+            iban: 'DE89 3704 0044 0532 0130 00',
+            bic: 'MTBEBEBB',
+            paymentRails: ['sepa'],
+        },
+    }
+    const secondary = [
+        messages.depositAccounts.rules.ownAccount.line,
+        messages.depositAccounts.rules.businessAny.line,
+        messages.depositAccounts.details.eurOwnName,
+        messages.depositAccounts.fees.converted,
+        messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
+    ]
+    const renderEur = () =>
+        details(
+            eur,
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.SEPA_EU
+        )
+
+    it('shows only the title, the card, the toggle and the actions while closed', () => {
+        renderEur()
+
+        expect(screen.getByText('DE89 3704 0044 0532 0130 00')).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.rows.iban)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: messages.depositAccounts.details.termsToggle })).toHaveAttribute(
+            'aria-expanded',
+            'false'
+        )
+        expect(screen.getByRole('button', { name: messages.depositAccounts.details.shareCta })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta })).toBeInTheDocument()
+        for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.sectionTitle)).not.toBeInTheDocument()
+        // the heading already names the rail
+        expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
+        // anyone may pay into a euro account, so there is no who-may-pay line
+        expect(screen.queryByText(messages.depositAccounts.details.businessOnly)).not.toBeInTheDocument()
+    })
+
+    // The shared copy control confirms on itself; a copy that worked is not a
+    // toast (sep-23 review, A35).
+    it('confirms "Copy all" on the button itself, with no toast', async () => {
+        renderEur()
+
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta }))
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: messages.global.copyField.copied })).toBeInTheDocument()
+        )
+        expect(mockCopy).toHaveBeenCalledWith(expect.stringContaining('DE89 3704 0044 0532 0130 00'))
+        expect(screen.queryByText('Details copied')).not.toBeInTheDocument()
+    })
+
+    it('says a business-only account limits who may pay without opening anything, and keeps the rows inside', () => {
+        details(
+            {
+                ...eur,
+                railId: 'bridge.faster_payments_gb',
+                currency: 'GBP',
+                matching: { nameOnAccount: 'provider', sender: 'business-only' },
+                rules: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.rules,
+                instructions: {
+                    accountHolderName: 'Pooled Ltd',
+                    sortCode: '040000',
+                    accountNumber: '12345678',
+                    paymentRails: ['faster_payments'],
+                },
+            },
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.FASTER_PAYMENTS_GB
+        )
+
+        expect(screen.getByText(messages.depositAccounts.details.businessOnly)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.rules.individualNotYet.line)).not.toBeInTheDocument()
+        openTerms()
+        expect(screen.getByText(messages.depositAccounts.rules.individualNotYet.line)).toBeInTheDocument()
+    })
+
+    it('reveals who can pay, the fee and the timing when the toggle opens', () => {
+        renderEur()
+        openTerms()
+
+        for (const line of secondary) expect(screen.getByText(line)).toBeInTheDocument()
+        expect(screen.getByTestId('deposit-fee-rates')).toBeInTheDocument()
+        // an inline link: no expanded hit area reaching into the lines around it (A27)
+        expect(screen.getByTestId('deposit-fee-rates').className).not.toMatch(/after:/)
+    })
+
+    it('keeps an own-name-only rule beside the card, where it decides who can use the account', () => {
+        details(
+            {
+                ...eur,
+                railId: 'manteca.pix_br',
+                currency: 'BRL',
+                matching: { nameOnAccount: 'user', sender: 'own-name-only' },
+                rules: undefined,
+            },
+            () => {},
+            false,
+            () => {},
+            DEPOSIT_RAILS.PIX_BR
+        )
+
+        expect(screen.getByText(messages.depositAccounts.rules.ownName.line)).toBeInTheDocument()
+        openTerms()
+        expect(screen.getAllByText(messages.depositAccounts.rules.ownName.line)).toHaveLength(1)
+    })
+})
+
+/**
+ * The card no longer carries an "Accepts" row, so the heading has to state the
+ * rails of THIS account. A static "ACH or wire" over an ACH-only account would
+ * send its holder asking a payer for a wire that never arrives.
+ */
+describe('the details heading names the rails the account takes', () => {
+    const usd = (paymentRails: string[]): DepositAccountView => ({
+        ...provisioning,
+        status: 'active',
+        instructions: { accountHolderName: 'Ana Pérez', accountNumber: '9600', routingNumber: '0210', paymentRails },
+    })
+
+    it('says ACH alone on an ACH-only dollar account, and no wire anywhere', () => {
+        details(usd(['ach_push']), () => {}, true)
+
+        expect(screen.getByText('USD · ACH')).toBeInTheDocument()
+        expect(screen.queryByText(/wire/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
+    })
+
+    it('names both rails when the account takes both', () => {
+        details(usd(['ach_push', 'wire']), () => {}, true)
+
+        expect(screen.getByText('USD · ACH or Wire')).toBeInTheDocument()
+    })
+
+    it('falls back to the corridor name while the details are being set up', () => {
+        details(provisioning)
+
+        expect(screen.getByText(`USD · ${messages.depositAccounts.corridors.ACH_US.railName}`)).toBeInTheDocument()
     })
 })

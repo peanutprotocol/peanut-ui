@@ -50,3 +50,7 @@ export type TransactionType =
     // arrow-down-left icon + "Refund" label and keeps the row visually
     // distinct from a plain 'receive'.
     | 'refund'
+
+/** Why the bank sent a deposit back (peanut-api-ts `DepositReturnReasonCode`).
+ *  `other` gets the general explanation. */
+export type DepositReturnReasonCode = 'third_party' | 'other'

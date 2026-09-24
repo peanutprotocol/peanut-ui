@@ -48,6 +48,7 @@ concurrency:
 jobs:
     resolve:
         runs-on: ubuntu-latest
+        environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             build_required: ${{ steps.native_change.outputs.required }}

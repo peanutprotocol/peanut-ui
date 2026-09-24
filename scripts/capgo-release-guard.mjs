@@ -331,11 +331,23 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             const current = (await policies())
                 .filter((row) => Object.values(PRODUCTION_CHANNELS).includes(row.name))
                 .map((row) => channelVersion(row, row.name))
-                .filter((name) => name !== 'builtin')
+                .filter(
+                    (name) =>
+                        name !== 'builtin' && !legacyBridgeVersion('ios', name) && !legacyBridgeVersion('android', name)
+                )
             // Include failed/partial and deleted platform uploads: their names
-            // remain reserved. Exclude staging's commit-count version sequence.
+            // remain reserved. The 1.5.1000+ iOS and 1.6.1000+ Android bridge
+            // lanes are internal compatibility IDs, not public release numbers.
+            // Exclude staging's commit-count version sequence too.
             current.push(
-                ...(await bundles()).map((row) => row.name).filter((name) => /^\d+\.\d+\.\d+-(ios|android)$/.test(name))
+                ...(await bundles())
+                    .map((row) => row.name)
+                    .filter(
+                        (name) =>
+                            /^\d+\.\d+\.\d+-(ios|android)$/.test(name) &&
+                            !legacyBridgeVersion('ios', name) &&
+                            !legacyBridgeVersion('android', name)
+                    )
             )
             const cores = current.map((name) => name.split('-')[0])
             cores.sort((a, b) => {

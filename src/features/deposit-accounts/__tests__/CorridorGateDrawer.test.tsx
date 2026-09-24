@@ -113,6 +113,15 @@ describe.each([
 })
 
 describe('the gate drawer', () => {
+    // The title and the button say it: one document to agree to. The identity
+    // sentence belonged to a different step (sep-23 review, A5).
+    it('asks for the terms with a heading and a button, and no identity sentence', () => {
+        renderFlow(flowProps({ gate: { kind: 'accept-tos', tosUrl: 'https://x', userMessage: null } as GateState }))
+        expect(drawer()).toHaveTextContent(GATE.tosTitle)
+        expect(drawer()).toHaveTextContent(GATE.tosCta)
+        expect(drawer()).not.toHaveTextContent(GATE.verifyBody)
+    })
+
     it('keeps updating while open: a wait picks up the provider message from the next poll', () => {
         const { rerenderFlow } = renderFlow(flowProps({ gate: { kind: 'pending' }, withTerms: false }))
         expect(drawer()).toHaveTextContent(GATE.waitBody)

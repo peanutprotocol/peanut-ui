@@ -173,10 +173,17 @@ export const TransactionDetailsReceipt = ({
             />
 
             {/* Why a deposit went back. The status alone says the money left
-                the balance; only this says what to ask the sender to fix. */}
+                the balance; only this says what to ask the sender to fix. A
+                reason the API did not name gets the general explanation. */}
             {transaction.actionLabelKey === 'type.returnedToSender' && (
                 <Card position="solo" className="p-4">
-                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
+                    <span className="text-body-s text-foreground-secondary">
+                        {t(
+                            transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
+                                ? 'returnedReasonThirdParty'
+                                : 'returnedReason'
+                        )}
+                    </span>
                 </Card>
             )}
 

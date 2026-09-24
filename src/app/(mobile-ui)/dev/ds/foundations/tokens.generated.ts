@@ -900,6 +900,13 @@ export const FONT_TOKENS: FontToken[] = [
 
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
 export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
+    "breakpoint": [
+        {
+            "name": "xs",
+            "value": "24.375rem",
+            "section": "semantic"
+        }
+    ],
     "radius": [
         {
             "name": "card",

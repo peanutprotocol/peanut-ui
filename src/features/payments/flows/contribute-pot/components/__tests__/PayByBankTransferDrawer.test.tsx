@@ -71,6 +71,8 @@ describe('PayByBankTransferDrawer', () => {
 
         expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
         expect(screen.getByText('Estimate')).toBeInTheDocument()
+        // design.md badges: an estimate is a fact with no tone, so it is neutral, not accent
+        expect(screen.getByText('Estimate')).toHaveClass('bg-background-badge-helper')
     })
 
     // The row must agree with the details it opens: a part contribution is the

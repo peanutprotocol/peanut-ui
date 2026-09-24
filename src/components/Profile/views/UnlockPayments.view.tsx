@@ -201,6 +201,9 @@ const UnlockPayments = () => {
                 canPayQr:
                     canDo('pay', { provider: 'manteca' }) ||
                     unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
+                // the /qr-pay gate itself (useQrPayKycGate), so the Pix key row
+                // never links a user that screen would turn back
+                canPayPixKey: canDo('pay', { provider: 'manteca' }),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
@@ -405,7 +408,7 @@ const UnlockPayments = () => {
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <Badge status="completed" customText={t('residence.verified')} />
     ) : (
-        <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
+        <Badge status="neutral" customText={t('residence.unverified')} />
     )
 
     // Detail-drawer facts. Limits live HERE and nowhere else on this screen
@@ -426,11 +429,11 @@ const UnlockPayments = () => {
             <div className="flex flex-col gap-1">
                 <ListItem
                     leading={<IconBubble icon="globe" size="s" color="blue" />}
-                    title={
-                        residenceCountryName
-                            ? t('residence.label', { country: residenceCountryName })
-                            : t('residence.unknown')
-                    }
+                    // two-line row: the country sits on its own body line and wraps rather than
+                    // truncating beside the status pill (TASK-22994, hugo)
+                    title={residenceCountryName ? t('residence.label') : t('residence.unknown')}
+                    body={residenceCountryName ?? undefined}
+                    bodyWrap
                     trailing={residenceTrailing}
                     chevron
                     onClick={() => setIsChangeModalOpen(true)}
@@ -806,12 +809,18 @@ const RowSection = ({
                             disabled={row.chip === 'notAvailable'}
                             leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
-                            // QR payments are the one row people do not
-                            // recognise by name, so it carries the explainer
-                            // under its title — including the two countries,
-                            // which used to sit in the title and wrapped it
-                            // over three lines at 375px.
-                            body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
+                            // QR payments and Pix keys are the rows people do
+                            // not recognise by name, so each carries its
+                            // explainer under the title — the countries and
+                            // key types, which wrapped the title over three
+                            // lines at 375px.
+                            body={
+                                row.labelKey === 'qrPay'
+                                    ? t('qrPayNote')
+                                    : row.labelKey === 'pixKey'
+                                      ? t('pixKeyNote')
+                                      : undefined
+                            }
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
                             chevron={tappable}

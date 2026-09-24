@@ -86,16 +86,18 @@ export default function ToastStackPage() {
 
                 <ProductUsage.Example
                     title="What a flow actually writes"
-                    path="src/features/deposit-accounts/components/DepositShareActions.tsx"
-                    description="A representative caller: no ToastStack, no props — the copy action reports through useToast() and the provider decides whether the stack has to exist. About 35 files call useToast() this way."
+                    path="src/components/Global/CopyToClipboard/index.tsx"
+                    description="A representative caller: no ToastStack, no props — a failed copy reports through useToast() and the provider decides whether the stack has to exist. A copy that works shows its own copied state on the control, never a toast. About 35 files call useToast() this way."
                     code={`const toast = useToast()
 
-if (copied) toast.success(t('share.copied'))
-else toast.error(t('share.copyFailed'))`}
+if (!didCopy) {
+    toast.error(t('copyToClipboard.copyFailed'))
+    return
+}`}
                 >
                     <div className="flex flex-col items-end gap-2">
                         <ToastStack
-                            toasts={[{ id: 'usage-copied', type: 'success', message: 'Account details copied' }]}
+                            toasts={[{ id: 'usage-copy-failed', type: 'error', message: 'Copy failed' }]}
                             dismiss={noop}
                         />
                     </div>

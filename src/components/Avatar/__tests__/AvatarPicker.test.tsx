@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -64,13 +64,22 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockHasUser ? mockUser : undefined, fetchUser: mockFetchUser }),
 }))
 
+// The picker reads the viewport through matchMedia: true deals the 2x3 hand
+// (four stickers), false the 2x2 hand (two). The suite runs wide by default.
+const matchMediaStub = (matches: boolean) => (query: string) =>
+    ({
+        matches,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+    }) as unknown as MediaQueryList
 const tiles = () => screen.getAllByRole('radio')
 const tile = (name: RegExp) => screen.getByRole('radio', { name })
 const die = () => screen.getByRole('button', { name: 'Roll the die' })
 
-// Math.random is pinned to 0 for the suite, which deals a fixed hand: the
-// initial, then apple, avocado, cactus, cloud, cube, donut and one earned
-// beetle. The cast copy is what a tile prints, so the tiles are named by it.
+// Math.random is pinned to 0 for the suite, which deals a fixed 2x3 hand: the
+// initial, one earned beetle, then apple, avocado and cactus. The cast copy is
+// what a tile prints, so the tiles are named by it.
 const A = /Jackpot Cherry/
 const B = /Watermelon Slice/
 const KEY_A = 'basic.apple'
@@ -107,6 +116,7 @@ beforeEach(() => {
     window.localStorage.clear()
     resetLetterAvatarCache()
     jest.spyOn(Math, 'random').mockReturnValue(0)
+    jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(true))
     mockBadgeParam = null
     mockHasUser = true
     mockUpdateUserById.mockResolvedValue({ data: {} })
@@ -124,11 +134,56 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 describe('AvatarPicker', () => {
-    it('deals a hand of eight tiles and the die', () => {
+    it('deals a hand of five tiles and the die', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tiles()).toHaveLength(8)
+        expect(tiles()).toHaveLength(5)
         expect(die()).toBeInTheDocument()
+    })
+
+    // 2x2 under 390px: the initial, two stickers, the die
+    it('deals three tiles and the die on a phone under 390px', () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles()).toHaveLength(3)
+        expect(die()).toBeInTheDocument()
+    })
+
+    // a narrow roll drops the pick on purpose; a user refetch (the pending-rail
+    // poller, a post-save fetchUser) must not deal it back and undo the roll
+    it('keeps a narrow roll when the user object refreshes', () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        mockUser.user.avatarKey = 'basic.cactus'
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
+
+        fireEvent.click(die())
+        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
+        const rolled = tiles().map((el) => el.textContent)
+
+        mockUser.user.badges = [...mockUser.user.badges]
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles().map((el) => el.textContent)).toEqual(rolled)
+    })
+
+    // a tap after a narrow roll clears the release, so a failed save still puts
+    // the saved pick back in the hand, checked
+    it('restores the saved pick when a save fails after a narrow roll', async () => {
+        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+        mockUser.user.avatarKey = 'basic.cactus'
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(die())
+        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
+        fireEvent.click(tile(A))
+
+        await server.settle(0, { error: 'Could not save' })
+
+        await waitFor(() => expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true'))
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
     })
 
     it('is the hand and nothing else: no title, no description, no header', () => {
@@ -146,7 +201,7 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tile(A)).toHaveTextContent('Two short of rich')
-        expect(tile(/Grumpy Raincloud/)).toHaveTextContent('Complains, still comes')
+        expect(tile(/Bold Chili/)).toHaveTextContent('Picked the spicy one')
         for (const el of tiles()) expect(el.textContent?.trim()).not.toBe('')
     })
 
@@ -223,6 +278,8 @@ describe('AvatarPicker', () => {
         // named after its art, lined with the badge that unlocked it
         expect(earned[0]).toHaveTextContent('Beetle')
         expect(earned[0]).toHaveTextContent('Bug Whisperer')
+        // design.md badges: "Earned" is done, so it reads success green
+        expect(within(earned[0]).getByText('Earned')).toHaveClass('bg-background-badge-success')
 
         unmount()
         mockUser.user.badges = []
@@ -233,11 +290,11 @@ describe('AvatarPicker', () => {
 
     // a radiogroup may only hold radios, so the die sits beside the tiles in
     // the same grid rather than inside the group
-    it('puts the eight tiles in the radiogroup and the die outside it', () => {
+    it('puts the tiles in the radiogroup and the die outside it', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
-        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(8).fill('radio'))
+        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(5).fill('radio'))
         expect(group.contains(die())).toBe(false)
     })
 
@@ -271,8 +328,8 @@ describe('AvatarPicker', () => {
         ]
         const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        // nothing to deal from yet: eight tiles, but no badge and no initial
-        expect(tiles()).toHaveLength(8)
+        // nothing to deal from yet: five tiles, but no badge and no initial
+        expect(tiles()).toHaveLength(5)
         expect(screen.queryByText('Earned')).not.toBeInTheDocument()
         expect(screen.queryByText('Just S')).not.toBeInTheDocument()
 
@@ -514,7 +571,7 @@ describe('AvatarPicker', () => {
         await server.settle(0, { error: 'Could not save' })
 
         await waitFor(() => expect(tile(/Shell/)).toHaveAttribute('aria-checked', 'true'))
-        expect(tiles()).toHaveLength(8)
+        expect(tiles()).toHaveLength(5)
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
     })
 

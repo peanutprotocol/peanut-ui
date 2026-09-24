@@ -29,6 +29,11 @@ export function validateCapture(input) {
     assert(input.profile === `${captureLocale}-${size}`, 'Unsupported capture profile')
     const profile = captureProfile(size)
     assert(input.width === profile.width && input.height === profile.height, 'Unsupported capture profile')
+    let device
+    if (input.device !== undefined) {
+        assert(JSON.stringify(input.device) === JSON.stringify(profile.device), 'Unsupported capture device')
+        device = profile.device
+    }
     assert(
         Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
         'Invalid catalogue'
@@ -93,6 +98,7 @@ export function validateCapture(input) {
         profile: input.profile,
         width: input.width,
         height: input.height,
+        ...(device ? { device } : {}),
         screens,
         inventory,
         adapterFiles,
@@ -200,8 +206,10 @@ export function validateJourneys(input) {
     }
 }
 export function sameEnvironment(a, b) {
-    return ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
-        (k) => a[k] === b[k]
+    return (
+        ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
+            (k) => a[k] === b[k]
+        ) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
     )
 }
 export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {

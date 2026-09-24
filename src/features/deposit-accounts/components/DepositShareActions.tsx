@@ -1,10 +1,8 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { trackShared } from '../analytics'
 import { buildShareText } from '../shareText'
 import type { DepositAccountView, DepositRail } from '../types'
@@ -19,7 +17,6 @@ export function DepositShareActions({
     account: DepositAccountView
     userName: string
 }) {
-    const toast = useToast()
     const { t, rowLabels, railLabels } = useDepositAccountCopy()
 
     if (!account.instructions) return null
@@ -51,19 +48,15 @@ export function DepositShareActions({
             >
                 {t('details.shareCta')}
             </ShareButton>
-            <Button
-                variant="secondary"
+            {/* The shared copy control: it confirms on itself, and a failed
+                copy is the one toast. */}
+            <CopyToClipboard
+                type="button"
+                textToCopy={text}
                 className="w-full"
-                icon="copy"
-                onClick={async () => {
-                    const copied = await copyTextToClipboard(text)
-                    if (copied) trackShared(rail.corridor, 'copy')
-                    if (copied) toast.success(t('share.copied'))
-                    else toast.error(t('share.copyFailed'))
-                }}
-            >
-                {t('share.copyCta')}
-            </Button>
+                label={t('share.copyCta')}
+                onCopy={() => trackShared(rail.corridor, 'copy')}
+            />
         </PageStack.Footer>
     )
 }

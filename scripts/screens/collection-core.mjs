@@ -1,7 +1,36 @@
+import { captureProfile } from './capture-profiles.mjs'
+
 const ID = /^[a-z0-9][a-z0-9-]{0,119}$/
 const ASSET = /^[a-f0-9]{64}\.(?:png|webp)$/
 const SHA = /^[a-f0-9]{40}$/
 export const COLLECTION_LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR']
+
+function capturePresentation(capture) {
+    if (capture.device === undefined) return null
+    if (
+        typeof capture.profile !== 'string' ||
+        !Number.isInteger(capture.width) ||
+        !Number.isInteger(capture.height) ||
+        !capture.device ||
+        typeof capture.device !== 'object'
+    )
+        throw new Error('Invalid collection capture presentation')
+    const size = `${capture.width}x${capture.height}`
+    let expected
+    try {
+        expected = captureProfile(size)
+    } catch {
+        throw new Error('Invalid collection capture presentation')
+    }
+    if (!capture.profile.endsWith(size) || JSON.stringify(capture.device) !== JSON.stringify(expected.device))
+        throw new Error('Invalid collection capture presentation')
+    return {
+        profile: size,
+        width: capture.width,
+        height: capture.height,
+        device: expected.device,
+    }
+}
 
 function requiredText(value, label, maxLength) {
     if (typeof value !== 'string' || !value.trim() || value.trim().length > maxLength)
@@ -76,6 +105,10 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
     const captures = Object.fromEntries(
         spec.locales.map((locale) => [locale, validatePublishedCapture(reports?.[locale], locale)])
     )
+    const presentations = spec.locales.map((locale) => capturePresentation(captures[locale]))
+    if (presentations.some((presentation) => JSON.stringify(presentation) !== JSON.stringify(presentations[0])))
+        throw new Error('Collection capture presentations differ')
+    const presentation = presentations[0]
     const indexes = Object.fromEntries(
         Object.entries(captures).map(([locale, capture]) => [locale, new Map(capture.screens.map((s) => [s.id, s]))])
     )
@@ -128,6 +161,7 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
         createdAt: timestamp.toISOString(),
         ...(createdBy ? { createdBy: requiredText(createdBy, 'collection creator', 320) } : {}),
         locales: spec.locales,
+        ...(presentation ?? {}),
         source: Object.fromEntries(
             spec.locales.map((locale) => [
                 locale,
@@ -187,11 +221,13 @@ export function validateCollection(input) {
             .filter((locale) => item.variants[locale].status !== 'captured')
             .map((locale) => ({ id: item.id, locale }))
     )
+    const presentation = capturePresentation(input)
     return {
         ...input,
         title: spec.title,
         ...(spec.description ? { description: spec.description } : {}),
         locales: spec.locales,
+        ...(presentation ?? {}),
         items,
         missing,
         complete: missing.length === 0,

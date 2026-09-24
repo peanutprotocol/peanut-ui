@@ -147,3 +147,12 @@ describe('guest-verification prompt reason', () => {
         expect(mockSetVerificationPromptReason).not.toHaveBeenCalledWith('sender-unverified')
     })
 })
+
+describe('requires-verification badge', () => {
+    // design.md badges: the user must act, so the badge is pending (attention yellow), not accent
+    test('reads as pending on the bank row of a guest claim', () => {
+        renderList()
+
+        expect(screen.getAllByText('Requires verification')[0]).toHaveClass('bg-background-badge-attention')
+    })
+})

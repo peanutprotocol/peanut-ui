@@ -50,9 +50,11 @@ async function cachedEntries(storage) {
     }
 }
 
+const entryObjectPath = (entry) => `entries/${entry.path.replaceAll('/', '_')}.json`
+
 /** Add compact display metadata without rewriting immutable publication markers. */
-export async function enrichEntries(entries, storage) {
-    const cached = await cachedEntries(storage)
+export async function enrichEntries(entries, storage, cached = undefined) {
+    cached ??= await cachedEntries(storage)
     const enriched = entries.map((entry) => {
         const prior = cached.get(entry.path) ?? {}
         const details = pathDetails(entry.path)
@@ -118,16 +120,28 @@ export function selectLatest(entries) {
 
 /** Rebuild shared pointers from immutable entry objects after a publication. */
 export async function updateIndexes(storage) {
-    const entries = []
+    const cached = await cachedEntries(storage)
+    const cachedObjects = new Map([...cached.values()].map((entry) => [entryObjectPath(entry), entry]))
+    const blobs = []
     let cursor
     do {
         const page = await storage.list({ prefix: 'entries/', cursor })
-        for (const blob of page.blobs) entries.push(JSON.parse((await storage.read(blob.pathname)).toString('utf8')))
+        blobs.push(...page.blobs)
         cursor = page.cursor
         if (!page.hasMore) break
     } while (cursor)
 
-    const sorted = sortEntries(await enrichEntries(entries, storage))
+    // Entry objects are immutable. Reuse the last index as a read-through
+    // cache and fetch only entries that were committed since that index was
+    // written. Listing remains necessary so an interrupted index update can
+    // recover every committed entry without dropping older publications.
+    const entries = await mapBounded(
+        blobs,
+        async (blob) =>
+            cachedObjects.get(blob.pathname) ?? JSON.parse((await storage.read(blob.pathname)).toString('utf8')),
+        16
+    )
+    const sorted = sortEntries(await enrichEntries(entries, storage, cached))
     const pointerOptions = {
         allowOverwrite: true,
         cacheControlMaxAge: 60,

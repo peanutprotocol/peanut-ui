@@ -22,7 +22,7 @@
                 },
                 "outbound": {
                     "title": "Hacé tu primer pago",
-                    "description": "Empezá a pagar códigos QR de Pix y Mercado Pago"
+                    "description": "Pagá claves Pix y códigos QR de Pix o Mercado Pago"
                 }
             },
             "addEmail": {
@@ -36,7 +36,7 @@
             },
             "spendWithPeanut": {
                 "title": "Pagá con Peanut",
-                "description": "Pagá con tu tarjeta o escaneá códigos QR de Pix y Mercado Pago"
+                "description": "Pagá con tu tarjeta, una clave Pix o códigos QR de Pix y Mercado Pago"
             },
             "spendChooser": {
                 "title": "¿Cómo querés gastar?",
@@ -98,7 +98,7 @@
             },
             "kyc": {
                 "title": "Desbloqueá <b>pagos con QR</b>",
-                "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
+                "description": "Confirmá tu identidad para pagar cualquier clave <b>Pix</b> y códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
             },
             "iosCopy": {
                 "invite": {
@@ -165,7 +165,7 @@
             "title": "Cuentas y pagos",
             "description": "Tus cuentas, medios de pago y estado de verificación.",
             "residence": {
-                "label": "Residencia: {country}",
+                "label": "Residencia",
                 "unknown": "Residencia sin definir",
                 "verified": "Verificada",
                 "unverified": "Sin confirmar",
@@ -190,7 +190,8 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR"
+                "qrPay": "Pagos QR",
+                "pixKey": "Pagos con clave Pix"
             },
             "chips": {
                 "active": "Disponible",
@@ -252,7 +253,8 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "pixKey": "Pagá cualquier clave Pix en Brasil."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
@@ -263,7 +265,8 @@
                 "usd": "Mové dólares entre tu banco y Peanut.",
                 "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guardá y mové euros sin un banco local.",
-                "qrPay": "Escaneá y pagá donde vivís."
+                "qrPay": "Escaneá y pagá donde vivís.",
+                "pixKey": "Pagá cualquier clave Pix, sin QR."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué podés hacer",
@@ -271,7 +274,8 @@
             },
             "waysTitle": "Agregar y retirar dinero",
             "waysSubtitle": "Mové dinero entre tu banco y Peanut en estas monedas.",
-            "qrPayNote": "Brasil y Argentina. Pagá en comercios escaneando un código QR."
+            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
+            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria."
         },
         "backup": {
             "nonCustodial": {
@@ -337,7 +341,7 @@
         },
         "update": {
             "title": "Actualización lista",
-            "description": "Reiniciá Peanut para terminar de instalar la versión {version}.",
+            "description": "Reiniciá Peanut para terminar de instalar la actualización.",
             "restartNow": "Reiniciar ahora",
             "notNow": "Ahora no",
             "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
@@ -504,7 +508,7 @@
                 "items": {
                     "p2p": "Pagos de Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias",
+                    "arQr": "Pagos QR y transferencias con tu cuenta",
                     "spei": "Transferencias bancarias en pesos mexicanos",
                     "usdAch": "Transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "Transferencias bancarias en euros",
@@ -629,7 +633,12 @@
             "enterRecipient": "Ingresá una dirección de destinatario",
             "rateUnavailable": "Ahora no hay un tipo de cambio para {currency}. Intentá de nuevo o solicitá en USD.",
             "invalidRequestedAmount": "Este monto no es válido en {currency}. Revisá los decimales e intentá de nuevo.",
-            "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicitá en USD."
+            "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicitá en USD.",
+            "signInRequired": "Iniciá sesión para solicitar dinero.",
+            "moneyContactsOnly": "Solo podés solicitar dinero a personas a las que les hayas pagado o de las que hayas recibido un pago.",
+            "requestLimit": "Demasiadas solicitudes de pago. Intentá más tarde.",
+            "walletOwnership": "Usá tu propia billetera Peanut para recibir este pago.",
+            "contactsUnavailable": "No pudimos consultar tus contactos. Intentá de nuevo."
         },
         "currency": {
             "select": "Elegí la moneda de la solicitud"
@@ -745,7 +754,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloqueá los pagos con QR",
-            "unlockDescription": "Confirmá tu identidad para pagar con un código QR. Toma alrededor de un minuto.",
+            "unlockDescription": "Confirmá tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
@@ -785,7 +794,7 @@
         },
         "claimSuccess": {
             "putItAnywhere": "¡Pegalo donde quieras!",
-            "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
+            "stickerDescription": "Pegalo donde la gente te encuentre. Quien lo escanee va a poder unirse a Peanut con tu invitación y sumar a tus puntos.",
             "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
         },
         "iosCopy": {
@@ -799,7 +808,7 @@
                 "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
             },
             "claimSuccess": {
-                "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+                "stickerDescription": "Pegalo donde la gente te encuentre. Quien lo escanee va a poder unirse a Peanut con tu invitación."
             }
         },
         "result": {
@@ -1051,6 +1060,7 @@
         }
     },
     "transaction": {
+        "returnedReasonThirdParty": "El banco devolvió esta transferencia a quien pagó porque salió de la cuenta de otra persona. Revisá en las reglas de esta cuenta quién puede pagarte.",
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {
             "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
@@ -1144,7 +1154,7 @@
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
         "terminalDescription": "Tu verificación no se puede reintentar. Contactá a soporte para recibir ayuda.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
-        "errorSdkUnavailable": "El SDK de KYC no está disponible. Actualizá la app.",
+        "errorSdkUnavailable": "La verificación no está disponible. Actualizá la app.",
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
         "errorInitiateFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Intentalo de nuevo.",
@@ -1386,7 +1396,7 @@
                 },
                 "taxId": {
                     "title": "Tu identificación fiscal",
-                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales.",
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para transferencias bancarias locales.",
                     "bodyAR": "CUIT o CUIL, de tu DNI. Se necesita para las transferencias bancarias locales.",
                     "bodyBR": "CPF. Se necesita para las transferencias bancarias locales."
                 },
@@ -1776,6 +1786,7 @@
         },
         "details": {
             "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si pod\u00e9s, deposit\u00e1 desde una cuenta a tu nombre.",
+            "businessOnly": "Solo vos o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
@@ -1844,7 +1855,7 @@
             },
             "PIX_BR": {
                 "residenceRequired": "Solo los residentes legales de Brasil pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
-                "qrPay": "De todas formas podés pagar códigos QR de Pix en Brasil con tu saldo.",
+                "qrPay": "De todas formas podés pagar cualquier clave Pix o código QR de Pix en Brasil con tu saldo.",
                 "residenceTitle": "Necesitás residencia"
             }
         },

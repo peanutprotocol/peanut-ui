@@ -9,6 +9,7 @@ const mockUpdater = {
     addListener: jest.fn().mockResolvedValue({ remove: jest.fn() }),
     getLatest: jest.fn(),
     download: jest.fn(),
+    set: jest.fn(),
     next: jest.fn().mockResolvedValue(undefined),
     setChannel: jest.fn(),
     unsetChannel: jest.fn().mockResolvedValue(undefined),
@@ -19,6 +20,7 @@ const mockUpdater = {
     getPluginVersion: jest.fn(),
     getFailedUpdate: jest.fn().mockResolvedValue(null),
     getNextBundle: jest.fn(),
+    list: jest.fn(),
     delete: jest.fn().mockResolvedValue(undefined),
 }
 const mockObsoleteBridge = jest.fn().mockReturnValue(false)
@@ -61,8 +63,10 @@ beforeEach(() => {
     mockUpdater.unsetChannel.mockReset().mockResolvedValue(undefined)
     mockUpdater.getChannel.mockReset()
     mockUpdater.download.mockReset().mockResolvedValue({ id: 'b-1', version: '1.5.4' })
+    mockUpdater.set.mockReset().mockResolvedValue(undefined)
     mockUpdater.current.mockReset().mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
     mockUpdater.getNextBundle.mockReset().mockResolvedValue(null)
+    mockUpdater.list.mockReset().mockResolvedValue({ bundles: [] })
     mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.next.mockReset().mockResolvedValue(undefined)
     mockUpdater.getPluginVersion.mockReset()
@@ -87,6 +91,89 @@ it('logs a transient failure at info, not error', async () => {
     await launch()
     expect(info).toHaveBeenCalledWith('[capgo] update check failed:', 'Failed to fetch')
     expect(error).not.toHaveBeenCalled()
+})
+
+it('downloads an OTA without arming a background install, then finds it on a later launch', async () => {
+    const bundle = { id: 'b-1', version: '1.5.4' }
+    mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: bundle.version })
+    await launch()
+    expect(mockUpdater.download).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.next).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe(bundle.id)
+
+    mockUpdater.list.mockResolvedValue({ bundles: [bundle] })
+    await expect(readStagedBundle()).resolves.toEqual(bundle)
+    // Even another launch check for the same release must not re-download or
+    // arm the plugin while a passkey or bank-app switch could background us.
+    await launch()
+    expect(mockUpdater.download).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.next).not.toHaveBeenCalled()
+})
+
+it('drops the saved bundle after it becomes the running version', async () => {
+    window.localStorage.setItem('capgoDownloadedBundleId', 'b-1')
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-1', version: '1.5.4' } })
+    await expect(readStagedBundle()).resolves.toBeNull()
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+})
+
+it('does not roll back to a disarm sentinel after a migrated OTA reloads', async () => {
+    const { applyStagedBundleOnLaunch } = await import('../capgo-updater')
+    const old = { id: 'ota-a', version: '1.5.2' }
+    const offered = { id: 'ota-b', version: '1.5.3' }
+    mockUpdater.current.mockResolvedValue({ bundle: old })
+    mockUpdater.getNextBundle.mockResolvedValue(offered)
+    mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.14' })
+    mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+        mockUpdater.getNextBundle.mockResolvedValue(id === old.id ? old : offered)
+    })
+    mockUpdater.set.mockImplementation(async ({ id }: { id: string }) => {
+        if (id === offered.id) mockUpdater.current.mockResolvedValue({ bundle: offered })
+        // Native set() does not clear getNextBundle(). Its old sentinel remains.
+    })
+
+    await expect(applyStagedBundleOnLaunch()).resolves.toEqual(offered)
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: offered.id })
+    expect(mockUpdater.getNextBundle).toHaveBeenCalledWith()
+
+    // Simulate the new page's startup after native set() reloads the WebView.
+    await expect(applyStagedBundleOnLaunch()).resolves.toBeNull()
+    expect(mockUpdater.set).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.next).toHaveBeenLastCalledWith({ id: offered.id })
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+})
+
+it('retains the saved marker when the post-reload queue cannot be disarmed', async () => {
+    window.localStorage.setItem('capgoDownloadedBundleId', 'ota-b')
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'ota-b', version: '1.5.3' } })
+    mockUpdater.getNextBundle.mockResolvedValue({ id: 'ota-a', version: '1.5.2' })
+    mockUpdater.next.mockRejectedValue(new Error('native queue unavailable'))
+
+    await expect(readStagedBundle()).resolves.toBeNull()
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('ota-b')
+    expect(error).toHaveBeenCalledWith('[capgo-apply] could not clear the previous bundle after a successful OTA apply')
+})
+
+it('drops a saved bundle that is incompatible with this native binary', async () => {
+    window.localStorage.setItem('capgoDownloadedBundleId', 'b-6')
+    mockUpdater.list.mockResolvedValue({ bundles: [{ id: 'b-6', version: '1.6.0' }] })
+    const onStoreUpdateRequired = jest.fn()
+
+    await expect(readStagedBundle({ onStoreUpdateRequired })).resolves.toBeNull()
+    expect(onStoreUpdateRequired).toHaveBeenCalledTimes(1)
+    expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+    expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+})
+
+it('clears an unconfirmed queue instead of leaving an automatic background install', async () => {
+    const { armStagedBundleForExit } = await import('../capgo-updater')
+    mockUpdater.getNextBundle
+        .mockResolvedValueOnce({ id: 'different-bundle', version: '1.5.4' })
+        .mockResolvedValueOnce({ id: 'builtin', version: '1.5.0' })
+
+    await expect(armStagedBundleForExit('b-1')).resolves.toBe(false)
+    expect(mockUpdater.next).toHaveBeenNthCalledWith(1, { id: 'b-1' })
+    expect(mockUpdater.next).toHaveBeenNthCalledWith(2, { id: 'builtin' })
 })
 
 it('logs a known-fatal failure at error on the first launch', async () => {
@@ -261,8 +348,7 @@ describe('beta channel opt-in', () => {
     })
 
     // The launch check can still be downloading when the tester joins. Two
-    // overlapping checks both call next(), and the bundle that boots is whichever
-    // write lands last — possibly the one resolved against the old channel.
+    // overlapping checks could save the wrong channel's bundle last.
     it('waits for an in-flight launch check instead of racing it', async () => {
         const { joinBetaOtaChannel } = await import('../capgo-updater')
         let releaseLaunchCheck: (value: { url?: string; version?: string }) => void = () => {}
@@ -281,7 +367,8 @@ describe('beta channel opt-in', () => {
         releaseLaunchCheck({})
         await expect(joined).resolves.toBe('staged')
         expect(mockUpdater.getLatest).toHaveBeenCalledTimes(2)
-        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('beta-bundle')
     })
 
     it('joins the staging channel and stages its bundle straight away', async () => {
@@ -290,7 +377,8 @@ describe('beta channel opt-in', () => {
         mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
         await expect(joinBetaOtaChannel()).resolves.toBe('staged')
         expect(mockUpdater.setChannel).toHaveBeenCalledWith({ channel: BETA_OTA_CHANNEL })
-        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('beta-bundle')
     })
 
     // The tester is on the channel, but nothing is pending — telling them to
@@ -364,9 +452,11 @@ describe('beta channel opt-in', () => {
 
     it('drops back to the store bundle when leaving', async () => {
         const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        window.localStorage.setItem('capgoDownloadedBundleId', 'beta-bundle')
         await leaveBetaOtaChannel()
         expect(mockUpdater.unsetChannel).toHaveBeenCalled()
         expect(mockUpdater.reset).toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
     })
 
     // Returning to cloud defaults must never pin the retired shared channel.
@@ -601,6 +691,18 @@ describe('store-update gate', () => {
         expect(onStoreUpdateRequired).not.toHaveBeenCalled()
     })
 
+    it('drops an old bridge downloaded before a native upgrade', async () => {
+        mockObsoleteBridge.mockReturnValue(true)
+        window.localStorage.setItem('capgoDownloadedBundleId', 'legacy')
+        mockUpdater.list.mockResolvedValue({ bundles: [{ id: 'legacy', version: '1.5.1001-ios' }] })
+        const onStoreUpdateRequired = jest.fn()
+
+        await expect(readStagedBundle({ onStoreUpdateRequired })).resolves.toBeNull()
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'legacy' })
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        expect(onStoreUpdateRequired).not.toHaveBeenCalled()
+    })
+
     it('never downloads a bundle built for a newer binary', async () => {
         mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
         const onStoreUpdateRequired = jest.fn()
@@ -635,7 +737,8 @@ describe('store-update gate', () => {
         await jest.advanceTimersByTimeAsync(5_000)
 
         expect(mockUpdater.download).toHaveBeenCalled()
-        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-4' })
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('b-4')
         expect(onUpdateAvailable).toHaveBeenCalledWith({ id: 'b-4', version: '1.5.4' })
     })
 
@@ -665,17 +768,13 @@ describe('store-update gate', () => {
             comment: 'abc1234 — subject [ota-floors: android=1.6.0 ios=1.5.0]',
         })
         mockUpdater.download.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
-        let floorsAtQueueTime: string | undefined
-        mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
-            floorsAtQueueTime = stagedFloors(id)
-        })
         await initCapgoUpdater()
         await jest.advanceTimersByTimeAsync(5_000)
-        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-9' })
-        expect(floorsAtQueueTime).toBe('[ota-floors: android=1.6.0 ios=1.5.0]')
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(stagedFloors('b-9')).toBe('[ota-floors: android=1.6.0 ios=1.5.0]')
 
-        // next launch: the queue names b-9 and nothing else
-        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
+        // next launch: the downloaded bundle is present, without a native queue
+        mockUpdater.list.mockResolvedValue({ bundles: [{ id: 'b-9', version: '1.6.3' }] })
         await expect(readStagedBundle()).resolves.toEqual({ id: 'b-9', version: '1.6.3' })
         expect(mockUpdater.delete).not.toHaveBeenCalled()
     })
@@ -695,8 +794,8 @@ describe('store-update gate', () => {
             const dispose = await initCapgoUpdater()
             await jest.advanceTimersByTimeAsync(5_000)
             dispose()
-            expect(mockUpdater.next).toHaveBeenCalledWith({ id: bundle.id })
-            mockUpdater.getNextBundle.mockResolvedValue(bundle)
+            expect(mockUpdater.next).not.toHaveBeenCalled()
+            mockUpdater.list.mockResolvedValue({ bundles: [bundle] })
             await expect(readStagedBundle()).resolves.toEqual(bundle)
             mockUpdater.current.mockResolvedValue({ bundle })
         }
@@ -704,11 +803,18 @@ describe('store-update gate', () => {
     })
 
     it('reports a queued bundle this binary can run', async () => {
-        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
+        const legacy = { id: 'b-4', version: '1.5.4' }
+        mockUpdater.getNextBundle.mockResolvedValue(legacy)
+        mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+            mockUpdater.getNextBundle.mockResolvedValue({ id, version: '1.5.0' })
+        })
 
-        await expect(readStagedBundle()).resolves.toEqual({ id: 'b-4', version: '1.5.4' })
-        expect(mockUpdater.next).not.toHaveBeenCalled()
+        await expect(readStagedBundle()).resolves.toEqual(legacy)
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe(legacy.id)
         expect(mockUpdater.delete).not.toHaveBeenCalled()
+        mockUpdater.list.mockResolvedValue({ bundles: [legacy] })
+        await expect(readStagedBundle()).resolves.toEqual(legacy)
     })
 
     // The sentinel the disarm leaves behind outlives it: installNext() clears

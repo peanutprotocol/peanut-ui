@@ -48,6 +48,25 @@ const screen = (id, image = a) => ({
     image,
     thumbnail: image,
 })
+const iphoneDevice = {
+    platform: 'ios',
+    label: 'iPhone',
+    cutout: 'dynamic-island',
+    safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+}
+test('capture device metadata is canonical and part of comparison identity', () => {
+    const withDevice = { ...capture([screen('home')]), device: iphoneDevice }
+    assert.deepEqual(validateCapture(withDevice).device, iphoneDevice)
+    assert.throws(
+        () =>
+            validateCapture({
+                ...withDevice,
+                device: { ...iphoneDevice, safeArea: { ...iphoneDevice.safeArea, top: 0 } },
+            }),
+        /Unsupported capture device/
+    )
+    assert.throws(() => compare(capture([screen('home')]), withDevice, dir), /environments differ/)
+})
 test('same pixels remain unchanged; changed pixels get a diff', () => {
     const r = compare(capture([screen('home')]), capture([screen('home', b)]), dir)
     assert.equal(r.screens[0].status, 'changed')

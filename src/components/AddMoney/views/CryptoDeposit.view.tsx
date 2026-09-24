@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -161,7 +162,7 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* deposit address + networks + tokens card — white bg */}
-                        <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                        <div className={`flex flex-col overflow-hidden ${CARD_SURFACE}`}>
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
