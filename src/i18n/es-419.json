@@ -126,6 +126,7 @@
     "landingPayLocalBody": "Paga con QR de Mercado Pago en Argentina. Envía PIX en Brasil. Solo con tu pasaporte.",
     "landingMercadoPagoAria": "Cómo funciona el QR de Mercado Pago",
     "landingPixAria": "Cómo funciona PIX sin CPF",
+    "landingPayLocalPhoneAlt": "La app de Peanut en un celular: escanea un código QR para pagar o muestra tu código QR para recibir pagos",
     "landingSecurityHeading": "SEGURIDAD. CONTROL. SOPORTE.",
     "landingSecurityTotalTitle": "SEGURIDAD TOTAL",
     "landingSecurityTotalDesc": "Peanut es 100% no custodial. Cada transacción se aprueba con passkeys mediante Face ID, Touch ID o código. Nadie más puede mover tus fondos. Ni nosotros.",

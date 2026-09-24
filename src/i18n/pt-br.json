@@ -126,6 +126,7 @@
     "landingPayLocalBody": "Pague com QR do Mercado Pago na Argentina. Envie Pix no Brasil. Só com seu passaporte.",
     "landingMercadoPagoAria": "Como funciona o QR do Mercado Pago",
     "landingPixAria": "Como funciona o Pix com seu passaporte",
+    "landingPayLocalPhoneAlt": "O app do Peanut no celular: escaneie um QR code para pagar ou mostre o seu QR code para receber pagamentos",
     "landingSecurityHeading": "SEGURANÇA. CONTROLE. SUPORTE.",
     "landingSecurityTotalTitle": "SEGURANÇA TOTAL",
     "landingSecurityTotalDesc": "O Peanut é 100% não custodial. Cada transação é aprovada com passkeys via Face ID, Touch ID ou senha. Ninguém mais pode movimentar seus fundos. Nem nós.",
