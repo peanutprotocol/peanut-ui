@@ -44,6 +44,11 @@ jest.mock('@/components/Card/cardState.utils', () => ({
     findActiveCard: (overview: unknown) => mockFindActiveCard(overview),
 }))
 
+let mockResidenceRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => mockResidenceRestrictions,
+}))
+
 jest.mock('@/config/underMaintenance.config', () => ({
     __esModule: true,
     default: { disableCardPromotion: false },
@@ -78,6 +83,7 @@ function setup(opts: {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    mockResidenceRestrictions = { banking: false, card: false }
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
 })
 
@@ -99,6 +105,12 @@ describe('card gate: card comes AFTER deposit, never before', () => {
 
     it('funded without eligible residence → outbound (first spend)', () => {
         const { result } = setup({ milestone: 'funded' })
+        expect(result.current.activationStep).toBe('outbound')
+    })
+
+    it('funded + BE-eligible + residence restriction on card → outbound (home agrees with the nav gate)', () => {
+        mockResidenceRestrictions = { banking: false, card: true }
+        const { result } = setup({ milestone: 'funded', isCardEligible: true })
         expect(result.current.activationStep).toBe('outbound')
     })
 

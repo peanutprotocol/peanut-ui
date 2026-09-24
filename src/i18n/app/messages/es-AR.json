@@ -628,6 +628,14 @@
         }
     },
     "request": {
+        "blocked": {
+            "title": "Todavía no hay pagos con {username}",
+            "sendCta": "Enviar dinero a {username}",
+            "viewProfile": "Ver perfil",
+            "guestTitle": "Solicitá dinero a {username}",
+            "guestDescription": "Necesitás una Peanut Wallet para enviarle una solicitud de pago a {username}.",
+            "guestDescriptionApp": "Necesitás la app de Peanut para enviarle una solicitud de pago a {username}."
+        },
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "enterRecipient": "Ingresá una dirección de destinatario",
