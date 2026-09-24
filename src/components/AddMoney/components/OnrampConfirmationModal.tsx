@@ -38,10 +38,9 @@ export const OnrampConfirmationModal = ({
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerTitle>{t('title')}</DrawerTitle>
                     </div>
-                    {/* Two topics, two grey mini-headers, plain text under each —
-                        neither was ever a warning. That leaves the mismatch block
-                        as the one Callout, and the only coloured thing on a
-                        screen that confirms an irreversible transfer. */}
+                    {/* The mismatch warning is the one Callout after the two
+                        plain-text topics; use the attention tone to match the
+                        yellow alert bubble above. */}
                     <div className="flex w-full flex-col gap-4 text-left">
                         <div className="flex flex-col gap-1">
                             <MiniHeader>{t('nextStep')}</MiniHeader>
@@ -62,7 +61,7 @@ export const OnrampConfirmationModal = ({
                             <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
                         </div>
 
-                        <Callout priority="error" title={t('mismatchTitle')}>
+                        <Callout priority="attention" title={t('mismatchTitle')}>
                             {t('mismatchDescription')}
                         </Callout>
                     </div>
