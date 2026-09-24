@@ -1057,6 +1057,14 @@
         }
     },
     "request": {
+        "blocked": {
+            "title": "Aún no hay pagos con {username}",
+            "sendCta": "Enviar dinero a {username}",
+            "viewProfile": "Ver perfil",
+            "guestTitle": "Solicita dinero a {username}",
+            "guestDescription": "Necesitas una Peanut Wallet para enviarle una solicitud de pago a {username}.",
+            "guestDescriptionApp": "Necesitas la app de Peanut para enviarle una solicitud de pago a {username}."
+        },
         "createRequest": "Crear solicitud",
         "shareOpenRequest": "Compartir solicitud abierta",
         "shareAmountRequest": "Compartir solicitud de ${amount}",
