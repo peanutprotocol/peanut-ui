@@ -189,7 +189,7 @@ export function BridgeBankOnrampView() {
                     {/* limits warning/error card */}
                     {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
-                    {!limitsValidation.isBlocking && <Callout priority="attention">{t('amountMustMatchBank')}</Callout>}
+                    {!limitsValidation.isBlocking && <Callout priority="info">{t('amountMustMatchBank')}</Callout>}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (

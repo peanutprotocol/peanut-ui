@@ -1118,6 +1118,21 @@
         }
     },
     "payment": {
+        "amountEntry": {
+            "amountValue": "Monto",
+            "keypad": "Teclado para ingresar el monto",
+            "decimal": "Punto decimal",
+            "delete": "Borrar el último dígito",
+            "pasteFromClipboard": "Pegar desde el portapapeles",
+            "noAmountOnClipboard": "No hay un monto en el portapapeles",
+            "clipboardUnavailable": "No se pudo acceder al portapapeles",
+            "addComment": "Agregar comentario",
+            "addMoney": "Agregar dinero",
+            "editComment": "Editar comentario",
+            "comment": "Comentario",
+            "saveComment": "Guardar comentario",
+            "insertEmoji": "Agregar {emoji} al comentario"
+        },
         "validation": {
             "talkToSupport": "Hablar con soporte",
             "learnHow": "Aprende cómo recibir dinero a través de Peanut",

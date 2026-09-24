@@ -1118,6 +1118,21 @@
         }
     },
     "payment": {
+        "amountEntry": {
+            "amountValue": "Amount",
+            "keypad": "Amount keypad",
+            "decimal": "Decimal point",
+            "delete": "Delete last digit",
+            "pasteFromClipboard": "Paste from clipboard",
+            "noAmountOnClipboard": "No amount found on the clipboard",
+            "clipboardUnavailable": "Could not access the clipboard",
+            "addComment": "Add comment",
+            "addMoney": "Add money",
+            "editComment": "Edit comment",
+            "comment": "Comment",
+            "saveComment": "Save comment",
+            "insertEmoji": "Add {emoji} to comment"
+        },
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",

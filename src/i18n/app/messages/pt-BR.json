@@ -1118,6 +1118,21 @@
         }
     },
     "payment": {
+        "amountEntry": {
+            "amountValue": "Valor",
+            "keypad": "Teclado para digitar o valor",
+            "decimal": "Ponto decimal",
+            "delete": "Apagar o último dígito",
+            "pasteFromClipboard": "Colar da área de transferência",
+            "noAmountOnClipboard": "Não há um valor na área de transferência",
+            "clipboardUnavailable": "Não foi possível acessar a área de transferência",
+            "addComment": "Adicionar comentário",
+            "addMoney": "Adicionar dinheiro",
+            "editComment": "Editar comentário",
+            "comment": "Comentário",
+            "saveComment": "Salvar comentário",
+            "insertEmoji": "Adicionar {emoji} ao comentário"
+        },
         "validation": {
             "talkToSupport": "Falar com o suporte",
             "learnHow": "Saiba como receber dinheiro pelo Peanut",
