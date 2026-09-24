@@ -182,7 +182,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     <div className="flex justify-center">
                         <Button
                             variant="ghost"
-                            className="w-auto text-foreground-primary underline hover:text-foreground-primary active:text-foreground-primary"
+                            className="w-auto underline hover:text-foreground-primary active:text-foreground-primary"
                             onClick={onClose}
                             disabled={phase === 'loading'}
                         >

@@ -205,7 +205,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     <div className="flex justify-center">
                         <Button
                             variant="ghost"
-                            className="w-auto text-foreground-primary underline hover:text-foreground-primary active:text-foreground-primary"
+                            className="w-auto underline hover:text-foreground-primary active:text-foreground-primary"
                             onClick={handleClose}
                             disabled={phase === 'canceling'}
                         >
