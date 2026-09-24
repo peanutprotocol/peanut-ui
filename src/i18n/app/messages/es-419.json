@@ -712,7 +712,7 @@
         },
         "row": {
             "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",
-            "amountYouReceive": "Monto que vas a recibir",
+            "recipientGets": "El destinatario recibe",
             "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
         }
     },

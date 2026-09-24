@@ -317,3 +317,22 @@ describe('demoRespond — card application', () => {
         expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
     })
 })
+
+describe('demoRespond — withdraw quote (TASK-23054)', () => {
+    it('answers the typed bank amount at a synthetic 1:1 rate, offline included', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=50',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ destinationCurrency: 'eur', rate: '1', sourceAmount: '50' })
+    })
+
+    it('answers only the rate before an amount is typed', async () => {
+        const res = await demoRespond('/bridge/offramp/quote?destinationCurrency=gbp', { method: 'GET' })
+        const body = await res.json()
+        expect(body.rate).toBe('1')
+        expect(body.sourceAmount).toBeUndefined()
+    })
+})

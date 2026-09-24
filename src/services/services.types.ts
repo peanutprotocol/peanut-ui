@@ -378,6 +378,16 @@ export interface TCreateOfframpRequest {
     }
 }
 
+/** GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current rate. */
+export interface OfframpQuote {
+    destinationCurrency: string
+    /** The provider's sell rate: destination units per 1 USDC, its fee included. */
+    rate: string
+    updatedAt: string
+    destinationAmount?: string
+    sourceAmount?: string
+}
+
 /** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
 export interface TCreateGuestOfframpRequest {
     /** Must equal the link amount, as a decimal of its token. */

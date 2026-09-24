@@ -17,11 +17,13 @@ import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
- * (`?step=review|success`); the amount arrives as `?amount=` from the shared
- * amount step; the account comes from the /withdraw-scoped flow context.
+ * (`?step=review|success`); the amount arrives as `?amount=` (or the typed
+ * bank amount as `?destinationAmount=`) from the shared amount step; the
+ * account comes from the /withdraw-scoped flow context.
  * Logic: useBridgeOfframpFlow. NOTE: scripts/native-build.js copies this file
  * to `(mobile-ui)/withdraw/_withdraw-bank.tsx` — keep every import `@/`-based.
  */
@@ -43,10 +45,23 @@ export default function WithdrawBankPage() {
         gate,
         sumsubFlow,
         pendingModal,
+        bankAmount,
     } = flow
 
     if (!bankAccount) {
         return null
+    }
+
+    // the USDC for a typed bank amount comes from its quote — nothing to review without it
+    if (step === 'review' && bankAmount && !bankAmount.quote) {
+        return (
+            <RateGateScreen
+                title={fromSendFlow ? tNav('send') : tNav('withdraw')}
+                onBack={flow.onBack}
+                isLoading={!bankAmount.quoteFailed}
+                onRetry={() => void bankAmount.refetchQuote()}
+            />
+        )
     }
 
     return (
@@ -68,6 +83,15 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
+                    bankAmount={
+                        bankAmount?.quote
+                            ? {
+                                  currency: bankAmount.currency,
+                                  destinationAmount: bankAmount.destinationAmount,
+                                  rate: bankAmount.quote.rate,
+                              }
+                            : undefined
+                    }
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
