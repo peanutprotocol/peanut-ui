@@ -301,7 +301,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                         label={l.selectCurrency}
                         // excludeCurrencies={[destinationCurrency]}
                         trigger={
-                            <button className="flex w-20 items-center gap-2 text-body-m-semibold text-foreground-primary">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={getFlagUrl(sourceCurrencyFlag)}
                                     alt={`${sourceCurrencyFlag} flag`}
@@ -364,7 +364,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                         setSelectedCurrency={setDestinationCurrency}
                         label={l.selectCurrency}
                         trigger={
-                            <button className="flex w-20 items-center gap-2 text-body-m-semibold text-foreground-primary">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={getFlagUrl(destinationCurrencyFlag)}
                                     alt={`${destinationCurrencyFlag} flag`}

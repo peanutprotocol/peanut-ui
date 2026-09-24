@@ -1009,7 +1009,7 @@
         },
         "methods": {
             "contactsTitle": "Usuario de Peanut",
-            "contactsDescription": "Envía a tus amigos de Peanut",
+            "contactsDescription": "Envía a cualquier usuario de Peanut",
             "bankTitle": "Transferencia bancaria",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
@@ -1069,8 +1069,7 @@
         "requestUpdatedToast": "¡Solicitud actualizada con éxito!",
         "created": {
             "title": "Solicitud creada",
-            "description": "Tu enlace está listo para compartir.",
-            "createAnother": "Crear otra solicitud"
+            "description": "Tu enlace está listo para compartir."
         },
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {

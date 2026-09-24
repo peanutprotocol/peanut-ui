@@ -63,8 +63,8 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({
-    CancelDepositActions: ({ primary }: { primary?: boolean }) => (
-        <div data-testid="cancel-deposit" data-primary={String(!!primary)} />
+    CancelDepositActions: ({ confirmOpen }: { confirmOpen: boolean }) => (
+        <div data-testid="cancel-confirm-host" data-confirm-open={String(confirmOpen)} />
     ),
 }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => <div data-testid="support-link" /> }))
@@ -234,21 +234,39 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         expect(screen.getByTestId('support-link')).toBeInTheDocument()
     })
 
-    test('pending bank deposit: cancel is the primary above more actions, share joins the drawer', () => {
-        const pendingDeposit = {
-            ...transaction('ONRAMP'),
-            direction: 'bank_deposit',
-            status: 'pending',
-            extraDataForDrawer: {
-                kind: 'ONRAMP',
-                provider: 'BRIDGE',
-                depositInstructions: { deposit_message: 'BRGTESTREF' },
-            },
-        } as unknown as TransactionDetails
+    const pendingDeposit = {
+        ...transaction('ONRAMP'),
+        direction: 'bank_deposit',
+        status: 'pending',
+        extraDataForDrawer: {
+            kind: 'ONRAMP',
+            provider: 'BRIDGE',
+            depositInstructions: { deposit_message: 'BRGTESTREF' },
+        },
+    } as unknown as TransactionDetails
+    const pendingBankRequest = {
+        ...transaction('P2P_REQUEST_FULFILL'),
+        status: 'pending',
+        extraDataForDrawer: {
+            kind: 'P2P_REQUEST_FULFILL',
+            originalUserRole: EHistoryUserRole.SENDER,
+            fulfillmentType: 'bridge',
+        },
+    } as unknown as TransactionDetails
+
+    test.each([
+        ['pending bank deposit', pendingDeposit, vm(), 'actions.cancelDeposit'],
+        [
+            'pending bank-paid request (sender)',
+            pendingBankRequest,
+            vm({ isPendingBankRequest: true }),
+            'actions.cancelDepositRequest',
+        ],
+    ])('%s: share is the primary, cancel is a More actions row that opens the confirm', (_, tx, viewModel, label) => {
         render(
             <ReceiptActions
-                transaction={pendingDeposit}
-                vm={vm()}
+                transaction={tx}
+                vm={viewModel}
                 isPublic={false}
                 amountDisplay="$10"
                 shouldShowQrShare={false}
@@ -257,13 +275,49 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
             />
         )
 
-        const cancel = screen.getByTestId('cancel-deposit')
-        expect(cancel).toHaveAttribute('data-primary', 'true')
-        expect(screen.queryByTestId('pdf-share')).not.toBeInTheDocument()
-        expect(screen.getByTestId('more-action-share')).toBeInTheDocument()
+        // two buttons at most: share + more actions, never a cancel button
+        expect(screen.getByTestId('pdf-share')).toBeInTheDocument()
+        expect(screen.getByTestId('more-actions-trigger')).toBeInTheDocument()
         expect(
-            cancel.compareDocumentPosition(screen.getByTestId('more-actions-trigger')) &
-                Node.DOCUMENT_POSITION_FOLLOWING
-        ).toBeTruthy()
+            screen.getAllByRole('button').filter((b) => b.closest('[data-testid="more-actions-drawer"]') === null)
+        ).toHaveLength(2)
+        expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
+
+        const confirmHost = screen.getByTestId('cancel-confirm-host')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'false')
+        expect(screen.getByTestId('more-action-cancel')).toHaveTextContent(label)
+
+        fireEvent.click(screen.getByTestId('more-actions-trigger'))
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        // the row closes the menu and opens the shared confirm
+        expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'false')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'true')
+    })
+
+    test('pending → completed → pending: the confirm stays closed and the parent lock is released', () => {
+        const setIsModalOpen = jest.fn()
+        const props = {
+            vm: vm(),
+            isPublic: false,
+            amountDisplay: '$10',
+            shouldShowQrShare: false,
+            setIsLoading: jest.fn(),
+            onClose: jest.fn(),
+            setIsModalOpen,
+        }
+        const { rerender } = render(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'true')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        const completed = { ...pendingDeposit, status: 'completed' } as unknown as TransactionDetails
+        rerender(<ReceiptActions transaction={completed} {...props} />)
+        expect(screen.queryByTestId('cancel-confirm-host')).not.toBeInTheDocument()
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
+
+        // a stale refetch shows the entry as pending again
+        rerender(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'false')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
     })
 })

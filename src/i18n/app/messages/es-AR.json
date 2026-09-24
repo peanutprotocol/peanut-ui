@@ -598,7 +598,7 @@
         },
         "methods": {
             "contactsTitle": "Usuario de Peanut",
-            "contactsDescription": "Enviá a tus amigos de Peanut"
+            "contactsDescription": "Enviá a cualquier usuario de Peanut"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
