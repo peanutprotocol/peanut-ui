@@ -27,8 +27,13 @@ interface WithdrawBankReviewViewProps {
     bankAccount: Account
     /** USDC that leaves the balance. */
     amount: string
-    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
-    bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    /**
+     * The quote behind `amount` (TASK-23054): its bank amount and rate.
+     * `isExact` when create pays out exactly this bank amount; otherwise it is an estimate.
+     */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    /** The app replaced the quote on submit; the user checks the new amounts. */
+    quoteNotice?: string | null
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -56,6 +61,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
     bankAmount,
+    quoteNotice,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -182,7 +188,11 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
                         />
-                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
+                        <RecipientGetsRow
+                            amount={bankAmount.destinationAmount}
+                            currency={bankAmount.currency}
+                            isExact={bankAmount.isExact}
+                        />
                     </>
                 ) : (
                     <ExchangeRate
@@ -282,8 +292,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Callout priority="info" title={t('bank.transferProcessing')}>
                     {confirmPendingCopy}
                 </Callout>
+            ) : error.showError ? (
+                <Callout priority="error">{error.errorMessage}</Callout>
             ) : (
-                error.showError && <Callout priority="error">{error.errorMessage}</Callout>
+                // neutral: the quote moved, the withdrawal did not fail
+                quoteNotice && (
+                    <Callout priority="info" data-testid="quote-updated-notice">
+                        {quoteNotice}
+                    </Callout>
+                )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>

@@ -376,14 +376,38 @@ export interface TCreateOfframpRequest {
         state?: string
         postalCode?: string
     }
+    /**
+     * From a `fixed_output` offramp quote. The server then takes both amounts
+     * from the quote; `amount` must equal its `sourceAmount`.
+     */
+    quoteId?: string
 }
 
 /**
- * GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current
- * rate (`rate` = bank units per 1 USDC, fee included). Derived from the
- * generated contract, so a field the API drops fails the build at every reader.
+ * How an offramp quote is priced. `fixed_output`: Peanut's FX margin is
+ * inside `rate`, and a quote with an amount carries the `quoteId` create must
+ * be given. `bridge_rate`: Bridge's rate, and the transfer converts at
+ * settlement (the legacy path, also while collection is off).
  */
-export type OfframpQuote = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
+export type OfframpPricing = 'bridge_rate' | 'fixed_output'
+
+/** The side of an offramp the user typed: the bank amount, or the USDC that leaves the balance. */
+export type OfframpQuoteAmount = { destinationAmount: string } | { sourceAmount: string }
+
+/**
+ * GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current
+ * rate (`rate` = bank units per 1 USDC, fee included), or the bank amount a
+ * typed USDC amount buys. Derived from the generated contract, so a field the
+ * API drops fails the build at every reader.
+ * TODO: the pricing fields are added by hand until the OpenAPI snapshot is
+ * refreshed from the fees-v2 API branch; drop the intersection then.
+ */
+export type OfframpQuote = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json'] & {
+    pricing: OfframpPricing
+    /** Signed, for `fixed_output` quotes with an amount. Pass it to create unchanged. */
+    quoteId?: string
+    expiresAt?: string
+}
 
 /** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
 export interface TCreateGuestOfframpRequest {

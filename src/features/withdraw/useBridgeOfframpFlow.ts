@@ -6,7 +6,7 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -40,6 +40,12 @@ import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
 import { bankAmountCurrency } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
+import {
+    isBridgeQuoteRefusal,
+    isFixedOutputQuote,
+    isFixedOutputQuoteRecent,
+    quotableSourceAmount,
+} from '@/utils/offramp-quote.utils'
 import { bankStepGuards } from './step-guards'
 import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
@@ -60,8 +66,9 @@ import {
  * capability gates and the KYC/advisory modal state. The amount arrives in the
  * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
  * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
- * TASK-23054), whose USDC comes from a quote. The selected account lives in
- * the /withdraw-scoped flow context.
+ * TASK-23054), whose USDC comes from a quote. Such an account is quoted for a
+ * USDC `?amount=` too (older links), so both sides are priced by the API.
+ * The selected account lives in the /withdraw-scoped flow context.
  */
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
@@ -131,17 +138,35 @@ export function useBridgeOfframpFlow() {
     })
     const step = stepper.step
 
-    // Bank amount typed in EUR, GBP, MXN or COP (TASK-23054): the USDC that
-    // leaves the balance is the quote's, at the provider's current rate, and
-    // refreshes with the rate until the user confirms. That USDC is what the
-    // offramp sends; the bank amount is an estimate.
-    const bankCurrency = destinationAmount ? bankAmountCurrency(bankAccount) : null
+    // Account paid in EUR, GBP, MXN or COP (TASK-23054): the amounts are the
+    // quote's, for the side the user typed — the bank amount, or the USDC on
+    // an older `?amount=` link — and refresh with the rate until the user
+    // confirms. The USDC is what the offramp sends. A `fixed_output` quote
+    // also fixes the bank amount; any other quote leaves it an estimate.
+    // USDC with more than 2 decimals cannot be quoted and keeps the USD path.
+    const quotedCurrency = bankAmountCurrency(bankAccount)
+    const quotedSourceAmount = quotableSourceAmount(urlAmount)
+    const quoteAmount = !quotedCurrency
+        ? undefined
+        : destinationAmount
+          ? { destinationAmount }
+          : quotedSourceAmount
+            ? { sourceAmount: quotedSourceAmount }
+            : undefined
+    const bankCurrency = quoteAmount ? quotedCurrency : null
     const bankQuote = useBridgeOfframpQuote({
         currency: bankCurrency,
-        destinationAmount,
+        amount: quoteAmount,
         enabled: step === 'review' && !isLoading && !submittedTxHash,
     })
     const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    // Shown after the app dropped a quote on submit and got a new one: the
+    // user confirms the new numbers before anything is sent.
+    const [quoteNotice, setQuoteNotice] = useState<string | null>(null)
+    // The last quote sent to create, and the destination it was sent for.
+    // Create replays that transfer for the same quote, so the quote must not
+    // go out again for another account or reference.
+    const sentQuoteRef = useRef<{ quoteId: string; destination: string } | null>(null)
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -160,7 +185,9 @@ export function useBridgeOfframpFlow() {
     // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
     const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
-    const { exchangeRate } = useGetExchangeRate({
+    // A quoted withdrawal converts the minimum at the quote's own rate, the
+    // one its amounts use.
+    const { exchangeRate: marketRate } = useGetExchangeRate({
         accountType:
             countryIso2 === 'GB'
                 ? AccountType.GB
@@ -169,8 +196,9 @@ export function useBridgeOfframpFlow() {
                   : countryIso2 === 'CO'
                     ? AccountType.CO_BANK_TRANSFER
                     : AccountType.IBAN,
-        enabled: minNeedsRate,
+        enabled: minNeedsRate && !bankCurrency,
     })
+    const exchangeRate = bankCurrency ? (bankQuote.quote?.rate ?? null) : marketRate
     const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
     const isMinReady = !minNeedsRate || parseFloat(exchangeRate || '0') > 0
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -262,8 +290,8 @@ export function useBridgeOfframpFlow() {
             if (!bankAccount) router.replace(`/withdraw${recoveryQuery}`)
             return
         }
-        // a bank amount is not the USDC yet — that arrives with its quote
-        const hasAmount = bankCurrency ? !!destinationAmount : !!urlAmount || !!destinationAmount
+        // either side is an amount; the other one arrives with its quote
+        const hasAmount = !!urlAmount || !!destinationAmount
         if (!hasAmount) {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
@@ -273,7 +301,7 @@ export function useBridgeOfframpFlow() {
             recovery.set('step', 'form')
             router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
-    }, [bankAccount, router, urlAmount, destinationAmount, bankCurrency, country, step, fromSendFlow])
+    }, [bankAccount, router, urlAmount, destinationAmount, country, step, fromSendFlow])
 
     const destinationDetails = (account: Account) => {
         // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
@@ -289,6 +317,14 @@ export function useBridgeOfframpFlow() {
             paymentRail,
             externalAccountId: account.bridgeAccountId,
         }
+    }
+
+    // Drop a quote the app will not confirm. The review waits for the next
+    // one and asks the user to check it.
+    const requoteForReview = (quoteId: string) => {
+        bankQuote.discard(quoteId)
+        setError({ showError: false, errorMessage: '' })
+        setQuoteNotice(t('reviewUpdatedQuote'))
     }
 
     const proceedWithOfframp = async () => {
@@ -322,6 +358,18 @@ export function useBridgeOfframpFlow() {
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
+
+        // The quote on screen is the one this confirmation is for. A quoted
+        // withdrawal with no quote on screen cannot be confirmed.
+        const quote = bankCurrency ? bankQuote.quote : null
+        if (bankCurrency && !quote) return
+        setQuoteNotice(null)
+        // An old quote (a tab left in the background) is replaced before
+        // create would refuse it.
+        if (quote?.quoteId && !isFixedOutputQuoteRecent(bankQuote.receivedAt)) {
+            requoteForReview(quote.quoteId)
+            return
+        }
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
@@ -392,8 +440,29 @@ export function useBridgeOfframpFlow() {
                     externalAccountId: destination.externalAccountId,
                     ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
+                // the server takes both amounts from the quote; `amount` is its sourceAmount
+                ...(quote?.quoteId ? { quoteId: quote.quoteId } : {}),
             }
-            const { data, error } = await createOfframp(createPayload)
+
+            if (quote?.quoteId) {
+                const sentDestination = JSON.stringify(createPayload.destination)
+                const sent = sentQuoteRef.current
+                if (sent?.quoteId === quote.quoteId && sent.destination !== sentDestination) {
+                    requoteForReview(quote.quoteId)
+                    return
+                }
+                sentQuoteRef.current = { quoteId: quote.quoteId, destination: sentDestination }
+            }
+
+            const { data, error, code } = await createOfframp(createPayload)
+
+            if (error && quote?.quoteId && isBridgeQuoteRefusal(code)) {
+                // Refused before any transfer was made for it, so nothing was
+                // sent. The new quote can have other amounts: the user
+                // confirms it, and the app never creates or sends on its own.
+                requoteForReview(quote.quoteId)
+                return
+            }
 
             if (error) {
                 setError({ showError: true, errorMessage: error })
@@ -536,14 +605,16 @@ export function useBridgeOfframpFlow() {
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
         amountToWithdraw,
-        // bank amount typed in its currency (TASK-23054): null on the USD path
+        // a withdrawal quoted in its bank currency (TASK-23054): null on the USD path
         bankAmount: bankCurrency
             ? {
                   currency: bankCurrency,
-                  destinationAmount,
                   quote: bankQuote.quote,
+                  // amounts create takes as they are; otherwise the bank amount is an estimate
+                  isExact: !!bankQuote.quote && isFixedOutputQuote(bankQuote.quote),
                   quoteFailed: bankQuote.isError,
                   refetchQuote: bankQuote.refetch,
+                  quoteNotice,
               }
             : null,
         bankAccount,

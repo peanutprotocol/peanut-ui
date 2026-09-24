@@ -1,5 +1,6 @@
 import {
     type OfframpQuote,
+    type OfframpQuoteAmount,
     type TCreateGuestOfframpRequest,
     type TCreateOfframpRequest,
 } from '../../services/services.types'
@@ -20,11 +21,12 @@ export type CreateOfframpSuccessResponse = {
  * and returns the provider's instructions for the user to deposit funds
  *
  * @param params - The data needed to create the off-ramp transfer.
- * @returns An object containing either the successful response data or an error.
+ * @returns An object containing either the successful response data or an
+ * error, with the API's error `code` (a refused quote is `BRIDGE_QUOTE_*`).
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; status?: number }> {
     try {
         const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
@@ -44,7 +46,11 @@ export async function createOfframp(
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer.' }
+            return {
+                error: data.error || 'Failed to create off-ramp transfer.',
+                code: data.code,
+                status: response.status,
+            }
         }
 
         return { data }
@@ -58,16 +64,20 @@ export async function createOfframp(
 }
 
 /**
- * Quote a withdrawal typed in the bank currency: the USDC that pays that
- * amount at the current rate. Without `destinationAmount`, only the rate.
+ * Quote a withdrawal: the USDC that pays a typed bank amount, or the bank
+ * amount a typed USDC amount buys. Without an amount, only the rate.
+ *
+ * Always asks for `fixed_output` pricing. The API answers `bridge_rate` while
+ * Peanut's FX margin is off, and then nothing changes for the caller.
  */
 export async function getOfframpQuote(
     destinationCurrency: string,
-    destinationAmount?: string
+    amount?: OfframpQuoteAmount
 ): Promise<{ data?: OfframpQuote; error?: string }> {
     try {
-        const query = new URLSearchParams({ destinationCurrency })
-        if (destinationAmount) query.set('destinationAmount', destinationAmount)
+        const query = new URLSearchParams({ destinationCurrency, pricing: 'fixed_output' })
+        if (amount && 'destinationAmount' in amount) query.set('destinationAmount', amount.destinationAmount)
+        if (amount && 'sourceAmount' in amount) query.set('sourceAmount', amount.sourceAmount)
         const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })
         const data = await response.json()
         if (!response.ok) {

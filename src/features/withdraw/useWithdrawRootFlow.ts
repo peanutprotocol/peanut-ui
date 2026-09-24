@@ -171,11 +171,13 @@ export function useWithdrawRootFlow() {
     const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
 
-    // fetch exchange rate for non-USD countries to convert local minimum to USD
-    const { exchangeRate } = useGetExchangeRate({
+    // fetch exchange rate for non-USD countries to convert local minimum to USD;
+    // a bank-currency amount converts it at the quote rate its amounts use
+    const { exchangeRate: marketRate } = useGetExchangeRate({
         accountType: rateAccountType,
-        enabled: !isCryptoWithdraw && rateAccountType !== AccountType.US && countryIso2 !== '',
+        enabled: !isCryptoWithdraw && !bankCurrency && rateAccountType !== AccountType.US && countryIso2 !== '',
     })
+    const exchangeRate = bankCurrency ? bankRate.quote?.rate : marketRate
 
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {

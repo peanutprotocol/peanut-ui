@@ -15,4 +15,11 @@ describe('RecipientGetsRow', () => {
         renderWithIntl(<RecipientGetsRow amount="1782.5" currency="gbp" />)
         expect(screen.getByText('≈ £1,782.50')).toBeInTheDocument()
     })
+
+    // a fixed_output offramp pays out exactly this amount
+    it('an exact amount has no "≈"', () => {
+        renderWithIntl(<RecipientGetsRow amount="2000.00" currency="eur" isExact />)
+        expect(screen.getByText('€2,000')).toBeInTheDocument()
+        expect(screen.queryAllByText(/≈/)).toHaveLength(0)
+    })
 })

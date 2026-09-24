@@ -52,7 +52,7 @@ export default function WithdrawBankPage() {
         return null
     }
 
-    // the USDC for a typed bank amount comes from its quote — nothing to review without it
+    // a quoted withdrawal's amounts come from its quote — nothing to review without it
     if (step === 'review' && bankAmount && !bankAmount.quote) {
         return (
             <RateGateScreen
@@ -84,14 +84,16 @@ export default function WithdrawBankPage() {
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
                     bankAmount={
-                        bankAmount?.quote
+                        bankAmount?.quote?.destinationAmount
                             ? {
                                   currency: bankAmount.currency,
-                                  destinationAmount: bankAmount.destinationAmount,
+                                  destinationAmount: bankAmount.quote.destinationAmount,
                                   rate: bankAmount.quote.rate,
+                                  isExact: bankAmount.isExact,
                               }
                             : undefined
                     }
+                    quoteNotice={bankAmount?.quoteNotice ?? null}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}

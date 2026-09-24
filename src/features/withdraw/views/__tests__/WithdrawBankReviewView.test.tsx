@@ -34,12 +34,14 @@ const Harness = ({
     account = ibanAccount,
     showError = false,
     bankAmount,
+    quoteNotice = null,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
-    bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    quoteNotice?: string | null
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -48,6 +50,7 @@ const Harness = ({
             bankAccount={account}
             amount="50"
             bankAmount={bankAmount}
+            quoteNotice={quoteNotice}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -308,9 +311,12 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 })
 
 describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
-    it('shows about what the recipient gets and the rate behind the USDC', () => {
+    it('Bridge-rate quote: shows about what the recipient gets and the rate behind the USDC', () => {
         renderWithIntl(
-            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+            />
         )
         expect(screen.getByText('Recipient gets')).toBeInTheDocument()
         expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
@@ -318,9 +324,34 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
     })
 
+    it('fixed_output quote: shows the exact bank amount, and claims no locked rate', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000.50', rate: '0.8928135', isExact: true }}
+            />
+        )
+        expect(screen.getByText('€2,000.50')).toBeInTheDocument()
+        expect(screen.queryAllByText(/≈/)).toHaveLength(0)
+        expect(screen.getByText('1 USD = 0.8928 EUR')).toBeInTheDocument()
+        expect(screen.queryAllByText(/locked|guaranteed/i)).toHaveLength(0)
+    })
+
     it('without one, keeps the exchange-rate rows of a USD amount', () => {
         renderWithIntl(<Harness rail="sepa" />)
         expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
         expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
+    })
+
+    it('after a replaced quote, asks the user to review it — as a notice, not an error', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8923', isExact: true }}
+                quoteNotice="Review the updated quote to continue."
+            />
+        )
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent('Review the updated quote to continue.')
+        expect(submitButton()).toBeEnabled()
     })
 })
