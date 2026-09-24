@@ -46,4 +46,11 @@ describe('SEOFooter labels', () => {
         expect(texts).not.toContain('Supported Networks')
         expect(texts).not.toContain('Send Money to Family')
     })
+
+    it('names the send-money countries in the page language', () => {
+        const texts = linkTexts(render(<SEOFooter locale="es-419" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Enviar a Brasil', 'Enviar desde Reino Unido']))
+        expect(texts).not.toContain('Enviar a Brazil')
+        expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from UK')
+    })
 })
