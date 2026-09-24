@@ -7,7 +7,6 @@
         "qrPay.peanutManAlt",
         "card.addToWallet.appleWallet",
         "card.addToWallet.googleWallet",
-        "card.face.peanutPioneer",
         "badges.catalog.FOUNDER_HOUSE.name",
         "badges.catalog.ETHFLORIPA_HUB.name",
         "badges.catalog.TOKEN_NATION_SP_2026.name",
@@ -15,11 +14,25 @@
         "badges.catalog.ARBIVERSE_DEVCONNECT_BA_2025.name",
         "badges.catalog.PRODUCT_HUNT.name",
         "addMoney.manteca.razonSocial",
-        "shhhhh.marquee.peanutCard"
+        "shhhhh.marquee.peanutCard",
+        "profile.unlockPayments.rows.brl",
+        "profile.unlockPayments.rows.mxn",
+        "withdraw.bankForm.documentTypeCc",
+        "withdraw.bankForm.documentTypeCe",
+        "depositAccounts.rows.rails.faster_payments",
+        "depositAccounts.corridors.FASTER_PAYMENTS_GB.railName",
+        "shhhhh.hero.title"
     ],
     "note": "keys whose English value is intentionally reused: brand names, proper nouns, currency codes. keys = marketing catalogs (src/i18n/*.json), appKeys = app catalogs (src/i18n/app/messages)",
     "reasons": {
         "addMoney.manteca.razonSocial": "en already holds the Argentine field name \"Razón Social\", which is correct Spanish for es-419 and es-AR; pt-BR has \"Razão Social\"",
-        "shhhhh.marquee.peanutCard": "brand name, kept in English on every locale"
+        "shhhhh.marquee.peanutCard": "brand name (PEANUT CARD), kept in English on every locale",
+        "profile.unlockPayments.rows.brl": "currency code and payment rail name (BRL · Pix), the same in every language",
+        "profile.unlockPayments.rows.mxn": "currency code and payment rail name (MXN · SPEI), the same in every language",
+        "withdraw.bankForm.documentTypeCc": "Colombian ID document name; en already holds the Spanish legal term \"Cédula de ciudadanía\"",
+        "withdraw.bankForm.documentTypeCe": "Colombian ID document name; en already holds the Spanish legal term \"Cédula de extranjería\"",
+        "depositAccounts.rows.rails.faster_payments": "UK payment rail name (Faster Payments), a proper noun",
+        "depositAccounts.corridors.FASTER_PAYMENTS_GB.railName": "UK payment rail name (Faster Payments), a proper noun",
+        "shhhhh.hero.title": "brand line, translation decision pending (24 Sep)"
     }
 }
