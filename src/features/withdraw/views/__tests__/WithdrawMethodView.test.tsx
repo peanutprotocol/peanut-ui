@@ -555,7 +555,8 @@ describe('WithdrawMethodView — arriving with a currency from the exchange-rate
 /**
  * A new destination picked from the list: the widget's USD amount follows the
  * Manteca rail (PIX for Brazil), next to the Send origin; the rail's own
- * method= is kept. Bridge countries are unchanged.
+ * method= is kept. A Bridge country's bank form gets it too, and hands it on
+ * to the amount step once the account is saved (Chip 5310927574).
  */
 describe('WithdrawMethodView — a new destination carries the widget amount', () => {
     it('Brazil: the PIX rail gets the USD amount', () => {
@@ -584,11 +585,19 @@ describe('WithdrawMethodView — a new destination carries the widget amount', (
         )
     })
 
-    it('a Bridge country is unchanged', () => {
+    it('a Bridge country: its bank form gets the amount', () => {
         renderView({ showAll: 'true', amount: '25' })
         fireEvent.click(screen.getByTestId('country-germany'))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form&amount=25')
+    })
+
+    it('the euro area: its bank form gets the amount, after the Send origin', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank', amount: '25' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form&method=bank&amount=25')
     })
 })
 

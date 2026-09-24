@@ -40,9 +40,15 @@ interface WithdrawAmountViewProps {
         /** Destination units per 1 USD, fees included. */
         rate: number
         initialAmount: string
+        /** 'USD' when a USD amount was carried in: the field opens on USD, toggleable. */
+        initialDenomination?: string
         onAmountChange: (value: string) => void
     }
 }
+
+// One object for every render: AmountInput re-reports its amounts when this
+// prop changes, and each report clears the amount error the flow just set.
+const USD_DENOMINATION = { symbol: 'USD', price: 1, decimals: 2 }
 
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
 export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
@@ -79,10 +85,11 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 {bankAmount ? (
                     <AmountInput
                         initialAmount={bankAmount.initialAmount}
+                        initialDenomination={bankAmount.initialDenomination}
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
-                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                        secondaryDenomination={USD_DENOMINATION}
                         walletBalance={walletBalance}
                         // the balance row is USD and the field is the bank currency:
                         // floor the USD to cents first so the fill never quotes above it

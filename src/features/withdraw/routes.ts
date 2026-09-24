@@ -27,9 +27,14 @@ export function withdrawAmountStepUrl({ method, amount }: { method?: string | nu
     return `/withdraw?${search.toString()}`
 }
 
-/** The bank-account form for a country, named in the URL rather than implied. */
-export function withdrawCountryFormUrl(countryPath: string, method?: string | null): string {
+/**
+ * The bank-account form for a country, named in the URL rather than implied.
+ * A USD amount picked upstream (Rates & fees) rides along; the form hands it
+ * to the amount step once the account is saved.
+ */
+export function withdrawCountryFormUrl(countryPath: string, method?: string | null, amount?: string | null): string {
     const search = new URLSearchParams({ step: 'form' })
     if (method) search.set('method', method)
+    if (amount) search.set('amount', amount)
     return withdrawCountryUrl(countryPath, `?${search.toString()}`)
 }
