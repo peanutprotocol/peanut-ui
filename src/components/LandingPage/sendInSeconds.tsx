@@ -4,7 +4,6 @@ import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
-import { Title } from '@/components/0_Bruddle/Title'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { landingStrings } from './landingStrings'
@@ -59,21 +58,25 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                 </AnimateOnView>
             ))}
 
-            {/* Exclamations */}
+            {/* Only from xl: below that the centred headline column reaches the
+                right edge and the marks sit on the headline and subline. */}
             <Image
                 src={exclamations}
                 alt="Exclamations"
                 width={200}
                 height={300}
-                className="absolute top-1/3 right-72 hidden -translate-y-1/2 transform md:block"
+                className="absolute top-1/3 right-8 hidden -translate-y-1/2 transform xl:block 2xl:right-24"
             />
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Was an SVG with the words baked in, so it stayed English on every locale.
-                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px. */}
-                <h2 className="mb-6 text-balance md:mb-10">
-                    <Title text={i18n.landingClosingHeadline} className="text-headingSmall md:text-headingMedium" />
+                    Solid black KNERD, not the white Title: white letters vanish into the clouds.
+                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.
+                    KNERD accents reach 1.03em above the baseline, so leading stays at 1.1 or more
+                    (48px at 42px, 88px at 80px); tighter, the Á of EMPEZÁ lands in the line above. */}
+                <h2 className="mb-6 font-knerd-filled text-headingSmall leading-12 text-balance text-foreground-primary md:mb-10 md:text-headingMedium md:leading-22">
+                    {i18n.landingClosingHeadline}
                 </h2>
 
                 <p className="mb-6 hidden font-roboto text-body-m text-balance md:mb-8 md:block md:text-heading-l">
