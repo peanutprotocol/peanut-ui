@@ -34,3 +34,15 @@ export function quotableSourceAmount(amount: string): string | null {
     const quotable = cents ? `${whole}.${cents}` : whole
     return QUOTE_AMOUNT_PATTERN.test(quotable) ? quotable : null
 }
+
+/**
+ * The typed bank amount as the quote API accepts it, or null. The field can
+ * report mid-typing forms, and the API answers 400 to them: "90." becomes
+ * "90" and ".5" becomes "0.5". Anything else the pattern refuses is null.
+ */
+export function normalizeBankAmount(value: string | null | undefined): string | null {
+    let amount = (value ?? '').replace(/,/g, '').trim()
+    if (amount.endsWith('.')) amount = amount.slice(0, -1)
+    if (amount.startsWith('.')) amount = `0${amount}`
+    return QUOTE_AMOUNT_PATTERN.test(amount) ? amount : null
+}

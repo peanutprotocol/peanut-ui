@@ -54,7 +54,8 @@ export function isFixedOutputQuoteRecent(receivedAt: number, now: number = Date.
 
 /**
  * Create refused the quote (BRIDGE_QUOTE_INVALID, _EXPIRED, _MISMATCH, _STALE
- * or _USED) before it made a transfer for this request, so nothing was sent.
+ * or _USED). The refusal comes before this attempt sends anything; with _USED
+ * the quote may still belong to a transfer created earlier.
  */
 export function isBridgeQuoteRefusal(code: string | undefined): boolean {
     return !!code?.startsWith('BRIDGE_QUOTE_')

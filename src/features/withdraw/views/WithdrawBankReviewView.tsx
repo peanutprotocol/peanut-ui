@@ -22,6 +22,7 @@ import {
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
 import RecipientGetsRow from '@/components/ExchangeRate/RecipientGetsRow'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
@@ -56,6 +57,8 @@ interface WithdrawBankReviewViewProps {
     onReferenceChange: (reference: string) => void
     onSubmit: () => void
     onDone: () => void
+    /** Set while the quote's last refresh failed: the amounts stay, submit waits for a fresh quote. */
+    onRetryQuote?: () => void
 }
 
 /** Review step of the Bridge bank withdraw — dumb view, logic in useBridgeOfframpFlow. */
@@ -80,6 +83,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onReferenceChange,
     onSubmit,
     onDone,
+    onRetryQuote,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -253,6 +257,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
+            {onRetryQuote && !submittedTxHash && !sendOutcomeUnknown && <RateUnavailable onRetry={onRetryQuote} />}
             {submittedTxHash || sendOutcomeUnknown ? (
                 // On-chain leg already fired, or may have. Even if confirmOfframp
                 // failed we must NOT offer Retry — it would re-run sendMoney() and
@@ -263,10 +268,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             ) : error.showError ? (
                 <Button
-                    // Same guard as the normal submit below: the flow hook
-                    // returns early on a reference problem, so without this
-                    // Retry looks live and does nothing.
-                    disabled={isLoading || !!referenceProblem}
+                    // Same guards as the normal submit below: the flow hook
+                    // returns early on a reference problem or a quote that is
+                    // not current, so without them Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem || !isSubmitReady}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"

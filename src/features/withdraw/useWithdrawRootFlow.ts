@@ -22,7 +22,7 @@ import { useTranslations } from 'next-intl'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
-import { bankAmountCurrency } from './bank-amount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { WITHDRAW_ROOT_STEPS } from './types'
 
@@ -165,9 +165,14 @@ export function useWithdrawRootFlow() {
     const bankUsdEntry = !!bankCurrency && !!urlAmount
 
     // The same gate the bank submit re-checks (useBridgeOfframpFlow): one
-    // Bridge rate, one minimum. Crypto has no amount-step minimum — Rhino's
-    // per-network floors are enforced at review, once the chain is known.
-    const bankMinimum = useBankWithdrawMinimum(countryIso2, { enabled: !isCryptoWithdraw })
+    // minimum source. A GBP, MXN or COP account converts it with the quote rate
+    // its amount converts with; a failed quote refresh blocks rather than keep
+    // an old rate. Crypto has no amount-step minimum — Rhino's per-network
+    // floors are enforced at review, once the chain is known.
+    const bankMinimum = useBankWithdrawMinimum(countryIso2, {
+        enabled: !isCryptoWithdraw,
+        quote: bankCurrency ? { rate: bankRate.quote?.rate, isError: bankRate.isError } : undefined,
+    })
     const minUsdAmount: number | null = isCryptoWithdraw ? 0 : bankMinimum.minUsd
     const minimumUnavailable = !isCryptoWithdraw && bankMinimum.status === 'unavailable'
 
@@ -275,21 +280,31 @@ export function useWithdrawRootFlow() {
             // shareable mid-flow) — nuqs throttles the actual history writes.
             // For a bank-currency amount the USD is only derived; the bank amount is
             // stored — unless the entry is in USD, whose typed value must survive a refresh.
-            if (!bankCurrency || bankUsdEntry) void setUrlAmount(newValue === '' ? null : newValue)
+            // An unchanged value is not rewritten: a URL write discards a navigation in
+            // flight (Continue's push), and a re-report of the seed must not clear it.
+            if ((!bankCurrency || bankUsdEntry) && newValue !== urlAmount) {
+                void setUrlAmount(newValue === '' ? null : newValue)
+            }
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, bankUsdEntry]
+        [setUrlAmount, urlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, bankUsdEntry]
     )
 
     const handleDestinationAmountChange = useCallback(
         (value: string) => {
-            void setDestinationAmount(value === '' || value === '0' ? null : value)
+            // "90." or ".5" mid-typing is stored the way the quote API accepts it
+            const next = normalizeBankAmount(value) ?? ''
+            // The field re-reports an unchanged amount when the quote rate refreshes.
+            // Writing it anyway replaces the URL, and in Next.js that discards a
+            // navigation in flight, such as Continue's push to the review.
+            if (next === destinationAmount) return
+            void setDestinationAmount(next || null)
         },
-        [setDestinationAmount]
+        [setDestinationAmount, destinationAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step

@@ -61,7 +61,8 @@ describe('useGetExchangeRate', () => {
 
     /**
      * A failed Bridge rate used to resolve as '1', which the MX minimum turned
-     * into a fabricated $50. It is now an error with no rate — never a 1:1.
+     * into a fabricated $50 (and "1 USD = 1.0000 EUR", a $4,000 COP minimum).
+     * It is now an error with no rate — never a 1:1.
      */
     it.each([
         ['an API error', { error: 'upstream 500' }],

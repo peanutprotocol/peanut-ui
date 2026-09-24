@@ -57,11 +57,13 @@ export function useBridgeOfframpQuote({
         [refetch]
     )
 
-    // a failed refresh must not leave the last amount confirmable: the screen
-    // falls back to its retry state until a fresh quote lands
+    // A failed refresh keeps the last quote on screen, so the screen and any open
+    // KYC or terms step stay mounted; `isError` says it is no longer current, and
+    // a caller must not confirm it until a fresh quote lands. A discarded quote
+    // is never shown again, whatever the refetch answers.
     const isDiscarded = !!data?.quoteId && data.quoteId === discardedQuoteId
     return {
-        quote: isError || isDiscarded ? null : (data ?? null),
+        quote: isDiscarded ? null : (data ?? null),
         /** When the shown quote arrived (ms). */
         receivedAt: dataUpdatedAt,
         isFetching,

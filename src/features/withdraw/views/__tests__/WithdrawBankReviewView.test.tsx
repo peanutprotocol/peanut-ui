@@ -36,6 +36,8 @@ const Harness = ({
     bankAmount,
     quoteNotice = null,
     sendOutcomeUnknown = false,
+    onRetryQuote,
+    isSubmitReady = true,
 }: {
     rail: string
     submittedTxHash?: string | null
@@ -44,6 +46,8 @@ const Harness = ({
     bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
     quoteNotice?: string | null
     sendOutcomeUnknown?: boolean
+    onRetryQuote?: () => void
+    isSubmitReady?: boolean
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -55,7 +59,7 @@ const Harness = ({
             quoteNotice={quoteNotice}
             fromSendFlow={false}
             isLoading={false}
-            isSubmitReady
+            isSubmitReady={isSubmitReady}
             submittedTxHash={submittedTxHash}
             sendOutcomeUnknown={sendOutcomeUnknown}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
@@ -69,6 +73,7 @@ const Harness = ({
             onReferenceChange={setReference}
             onSubmit={jest.fn()}
             onDone={jest.fn()}
+            onRetryQuote={onRetryQuote}
         />
     )
 }
@@ -369,5 +374,56 @@ describe('WithdrawBankReviewView — a send whose outcome is unknown', () => {
         expect(screen.getByTestId('withdraw-error')).toHaveTextContent('Something went wrong')
         // the transfer is bound to its reference: it cannot change now
         expect(referenceInput()).toBeDisabled()
+    })
+
+    it('never offers a quote Retry either: nothing may start a new quote or transfer', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                showError
+                sendOutcomeUnknown
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                onRetryQuote={jest.fn()}
+            />
+        )
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — a Bridge-rate quote whose refresh failed', () => {
+    // a failed 30-second refresh: the review, and any step open over it, stays
+    it('a failed quote refresh is an inline error with a retry, on the same review', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        expect(screen.getByText('Recipient gets')).toBeInTheDocument()
+        expect(
+            screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+        expect(onRetryQuote).toHaveBeenCalled()
+    })
+
+    // Chip: a failed submit, then a failed quote refresh — the submit Retry must
+    // not look live while the flow refuses the quote that is no longer current
+    it('after a failed submit, the submit Retry waits for a current quote; the quote Retry stays live', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                showError
+                isSubmitReady={false}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
+        expect(submitRetry).toBeDisabled()
+        expect(quoteRetry).toBeEnabled()
     })
 })
