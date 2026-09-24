@@ -25,6 +25,7 @@ concurrency:
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        environment: Staging-OTA
         steps:
             - name: Guard staging ref
               env:
