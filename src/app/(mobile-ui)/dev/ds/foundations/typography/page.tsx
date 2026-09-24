@@ -100,7 +100,7 @@ export default function TypographyPage() {
                         }
                         dontLabel="Hand-rolled layers, own tracking"
                         dontExample={
-                            <div className="relative inline-block bg-action-primary p-3 text-5xl">
+                            <div className="relative inline-block bg-action-primary p-3 text-5xl whitespace-nowrap">
                                 <p className="relative translate-x-[3px] font-knerd-filled text-white">WORK HERE.</p>
                                 <p className="absolute top-3 left-3 font-knerd-outline">WORK HERE.</p>
                             </div>
