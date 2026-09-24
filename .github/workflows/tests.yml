@@ -141,6 +141,8 @@ jobs:
     # copy each screen can show (scripts/screen-wordiness.md) and prints the
     # heaviest screens to the job summary on every run. Fails when a screen
     # grows past its baseline entry, or a new screen goes over the budget.
+    # Advisory: not in ci-success.needs, so a red run flags copy growth
+    # without blocking a merge (Hugo, 2026-09-24).
     # Same posture as ds-lint: the script parses with `typescript`, so it
     # installs without running scripts or a pnpmfile, and needs no build.
     screen-wordiness:
@@ -1181,7 +1183,6 @@ jobs:
                 format,
                 screen-tests,
                 ds-lint,
-                screen-wordiness,
                 eslint,
                 typecheck,
                 native-export,
@@ -1200,7 +1201,6 @@ jobs:
                       echo "  format:    ${{ needs.format.result }}"
                       echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
-                      echo "  screen-wordiness: ${{ needs['screen-wordiness'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
