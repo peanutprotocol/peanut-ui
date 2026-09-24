@@ -82,6 +82,7 @@ jest.mock('@/constants/actionlist.consts', () => ({
         // present in the catalog but must NOT surface in the send list —
         // withdraw-to-own-account rail (see the exclusion test below)
         { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
+        { id: 'pix', title: 'Pix', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
             title: 'Crypto',
@@ -254,6 +255,19 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByText('Send money with a link')).toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
+    })
+
+    // Send → Bank cannot pay an Argentine account (Argentina shows Soon), and
+    // Brazil's Pix row pays any key, not only a QR (2026-09-23).
+    test('Bank row names the currencies Send can pay, and the Pix row says it pays any key', () => {
+        mockUseGeoFilteredPaymentOptions.mockImplementation(({ methods }: { methods: unknown[] }) => ({
+            filteredMethods: methods,
+        }))
+        renderSend()
+
+        expect(screen.getByText('EUR, USD, MXN, BRL & more')).toBeInTheDocument()
+        expect(screen.getByText('Any Pix key')).toBeInTheDocument()
+        expect(screen.queryByText(/ARS/)).not.toBeInTheDocument()
     })
 
     test('Shows Peanut username option at top of methods list', () => {

@@ -76,7 +76,7 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
         path: 'brazil',
         name: 'Brazil',
         icon: getFlagUrl('br'),
-        description: 'Only PIX QR payments',
+        description: 'Only Pix QR and Pix key payments',
     },
 ]
 

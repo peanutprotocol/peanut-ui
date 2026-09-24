@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Só pagamentos com QR do Mercado Pago",
-                "brazil": "Só pagamentos com QR Pix"
+                "brazil": "Só pagamentos Pix por QR ou chave"
             }
         },
         "tryDifferentCountry": "Tente outro país.",
@@ -102,7 +102,7 @@
                 },
                 "outbound": {
                     "title": "Faça seu primeiro pagamento",
-                    "description": "Comece a pagar códigos QR do Pix e do MercadoPago",
+                    "description": "Pague chaves Pix e códigos QR do Pix ou do MercadoPago",
                     "cta": "Começar a gastar"
                 }
             },
@@ -123,7 +123,7 @@
             },
             "spendWithPeanut": {
                 "title": "Pague com a Peanut",
-                "description": "Pague com seu cartão ou escaneie QR codes de Pix e MercadoPago"
+                "description": "Pague com seu cartão, uma chave Pix ou QR codes de Pix e MercadoPago"
             },
             "spendChooser": {
                 "title": "Como você quer gastar?",
@@ -200,7 +200,7 @@
             },
             "kyc": {
                 "title": "Desbloqueie <b>pagamentos com QR</b>",
-                "description": "Confirme sua identidade para pagar códigos QR do <b>Mercado Pago</b> e do <b>PIX</b>"
+                "description": "Confirme sua identidade para pagar qualquer chave <b>Pix</b> e códigos QR do <b>Mercado Pago</b> e do <b>Pix</b>"
             },
             "closePrompt": "Fechar aviso",
             "closeTitled": "Fechar {title}",
@@ -365,7 +365,8 @@
                 "usd": "USD · Transferência bancária",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferência bancária",
-                "qrPay": "Pagamentos QR"
+                "qrPay": "Pagamentos QR",
+                "pixKey": "Pagamentos por chave Pix"
             },
             "chips": {
                 "active": "Disponível",
@@ -428,7 +429,8 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR."
+                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
+                "pixKey": "Pague qualquer chave Pix no Brasil."
             },
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
@@ -439,7 +441,8 @@
                 "usd": "Movimente dólares entre seu banco e o Peanut.",
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
-                "qrPay": "Escaneie e pague onde você mora."
+                "qrPay": "Escaneie e pague onde você mora.",
+                "pixKey": "Pague qualquer chave Pix, sem QR code."
             },
             "detailsDrawer": {
                 "aboutTitle": "O que você pode fazer",
@@ -447,7 +450,8 @@
             },
             "waysTitle": "Adicionar e sacar dinheiro",
             "waysSubtitle": "Movimente dinheiro entre seu banco e o Peanut nestas moedas.",
-            "qrPayNote": "Brasil e Argentina. Pague em lojas escaneando um código QR."
+            "qrPayNote": "Escaneie o QR code de uma loja no Brasil ou na Argentina.",
+            "pixKeyNote": "Brasil. CPF, CNPJ, telefone, e-mail ou chave aleatória."
         },
         "backup": {
             "title": "Backup",
@@ -807,7 +811,7 @@
                 "cardClause": "Você também pode solicitar um cartão Peanut após verificar sua identidade.",
                 "rails": {
                     "pix": "transferências PIX",
-                    "arQr": "pagamentos e transferências por QR",
+                    "arQr": "pagamentos QR e transferências com sua própria conta",
                     "spei": "transferências bancárias em pesos mexicanos",
                     "usdAch": "transferências bancárias em dólares americanos",
                     "eurSepa": "transferências bancárias em euros",
@@ -830,7 +834,7 @@
                 "items": {
                     "p2p": "Pagamentos de Peanut para Peanut",
                     "pix": "Pagamentos e transferências PIX",
-                    "arQr": "Pagamentos QR e transferências",
+                    "arQr": "Pagamentos QR e transferências com sua conta",
                     "spei": "Transferências bancárias em pesos mexicanos",
                     "usdAch": "Transferências bancárias em dólares americanos",
                     "eurSepa": "Transferências bancárias em euros",
@@ -1015,6 +1019,8 @@
             "bankTitle": "Transferência bancária",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
+            "sendBankDescription": "EUR, USD, MXN, BRL e mais",
+            "pixKeyDescription": "Qualquer chave Pix",
             "exchangeOrWalletTitle": "Cripto",
             "exchangeOrWalletDescription": "Binance, MetaMask e mais"
         },
@@ -1361,7 +1367,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloqueie pagamentos com QR",
-            "unlockDescription": "Confirme sua identidade para pagar com código QR. Leva cerca de um minuto.",
+            "unlockDescription": "Confirme sua identidade para pagar uma chave Pix ou código QR. Leva cerca de um minuto.",
             "unlockCta": "Desbloquear agora",
             "inProgressTitle": "Quase lá",
             "inProgressDescription": "Estamos confirmando sua identidade. Continue de onde parou e logo você estará pagando.",
@@ -3107,7 +3113,7 @@
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Seu documento fiscal",
-                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais.",
+                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para transferências bancárias locais.",
                     "bodyAR": "CUIT ou CUIL, do seu DNI. Necessário para transferências bancárias locais.",
                     "bodyBR": "CPF. Necessário para transferências bancárias locais."
                 },
@@ -4188,7 +4194,7 @@
                 "railName": "Pix",
                 "residenceTitle": "Residência necessária",
                 "residenceRequired": "Só residentes legais no Brasil podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
-                "qrPay": "Você ainda pode pagar códigos QR do Pix no Brasil com o seu saldo."
+                "qrPay": "Você ainda pode pagar qualquer chave Pix ou código QR do Pix no Brasil com o seu saldo."
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
