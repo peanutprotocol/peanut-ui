@@ -73,7 +73,7 @@ describe('DeleteAccountButton', () => {
         render(<DeleteAccountButton />)
         fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(screen.getByText('Aw, leaving?')).toBeInTheDocument()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_INITIATED)
     })
 
@@ -102,7 +102,7 @@ describe('DeleteAccountButton', () => {
         await waitFor(() => expect(mockToastError).toHaveBeenCalled())
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
         // still on the confirm step, not signed out
-        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(screen.getByText('Aw, leaving?')).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
     })
 
@@ -121,7 +121,7 @@ describe('DeleteAccountButton', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         fireEvent.click(screen.getByText('Yes, delete it'))
         await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(message))
-        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(screen.getByText('Aw, leaving?')).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
     })
 
@@ -152,7 +152,7 @@ describe('DeleteAccountButton', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         fireEvent.click(screen.getByText("Never mind, I'll stay"))
 
-        expect(screen.queryByText("Aw, you're leaving?")).not.toBeInTheDocument()
+        expect(screen.queryByText('Aw, leaving?')).not.toBeInTheDocument()
         expect(mockRequestDeletion).not.toHaveBeenCalled()
     })
 
@@ -166,7 +166,7 @@ describe('DeleteAccountButton', () => {
 
             expect(screen.getByText('Move money first')).toBeInTheDocument()
             expect(screen.getByText(/You still have \$500\.00/)).toBeInTheDocument()
-            expect(screen.queryByText("Aw, you're leaving?")).not.toBeInTheDocument()
+            expect(screen.queryByText('Aw, leaving?')).not.toBeInTheDocument()
             expect(mockRequestDeletion).not.toHaveBeenCalled()
             expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
         })
@@ -188,7 +188,7 @@ describe('DeleteAccountButton', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-            expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+            expect(screen.getByText('Aw, leaving?')).toBeInTheDocument()
         })
 
         it('falls back to the confirm step while the balance is still unknown', () => {
@@ -197,7 +197,7 @@ describe('DeleteAccountButton', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-            expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+            expect(screen.getByText('Aw, leaving?')).toBeInTheDocument()
         })
 
         it('shows the blocked step with the server figure when the server refuses', async () => {

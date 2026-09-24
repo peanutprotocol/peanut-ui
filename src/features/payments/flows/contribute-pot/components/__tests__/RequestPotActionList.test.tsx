@@ -187,7 +187,7 @@ describe('RequestPotActionList', () => {
             expect(rowOrder()).toEqual(['Bank transfer', 'Crypto', 'Pay by bank transfer'])
             expect(mockChooser).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    requestAmount: '100.00 EUR',
+                    requestAmount: '€100',
                     rails: [
                         expect.objectContaining({ railId: 'bridge.sepa_eu' }),
                         expect.objectContaining({ railId: 'bridge.ach_us' }),
@@ -279,7 +279,7 @@ describe('RequestPotActionList', () => {
             }
             renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 108 })
 
-            expect(screen.getByText(/asks for 100\.00 EUR, and 40\.00 EUR is left to pay\./)).toBeInTheDocument()
+            expect(screen.getByText(/asks for €100, and €40 is left to pay\./)).toBeInTheDocument()
         })
 
         it('states no remainder where the API missed a payment', () => {
@@ -291,7 +291,7 @@ describe('RequestPotActionList', () => {
             }
             renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 57 })
 
-            expect(screen.getByText(/This request asks for 100\.00 EUR\./)).toBeInTheDocument()
+            expect(screen.getByText(/This request asks for €100\./)).toBeInTheDocument()
             expect(screen.queryByText(/is left to pay/)).not.toBeInTheDocument()
         })
 
@@ -300,7 +300,7 @@ describe('RequestPotActionList', () => {
             mockPayAmounts = { requestCurrency: 'EUR', requestAmount: '100.00', rails: [usdRail] }
             renderList({ bankPayable: false, requestCurrency: 'EUR' })
 
-            expect(screen.getByText(/This request asks for 100\.00 EUR\./)).toBeInTheDocument()
+            expect(screen.getByText(/This request asks for €100\./)).toBeInTheDocument()
         })
 
         it('says nothing about the currency of a dollar request', () => {

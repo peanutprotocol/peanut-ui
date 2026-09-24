@@ -81,9 +81,9 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     })
 
     test('renders amount, status, and the core rows', () => {
-        // formatCurrency mirrors the page: decimal places follow the input string
+        // formatBankAmount, like the page: cents shown, no .00 on a round amount
         // signed like the screen: a bank withdraw is money leaving
-        expect(model.amountDisplay).toBe('-$125.5')
+        expect(model.amountDisplay).toBe('-$125.50')
         expect(model.rows[0]).toEqual({
             label: 'transaction.officialReceipt.pdf.date',
             value: expect.stringContaining('2026'),
@@ -257,7 +257,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(model.amountDisplay).toBe('$40.00')
+        expect(model.amountDisplay).toBe('$40')
     })
 
     test('claimed send link uses its claim timestamp as Date', () => {
@@ -312,8 +312,8 @@ describe('buildReceiptPdfModel — variants', () => {
         const sent = buildReceiptPdfModel(withOverrides({ direction: 'send', amount: 12.5 }), t, 'en')
         const received = buildReceiptPdfModel(withOverrides({ direction: 'receive', amount: 12.5 }), t, 'en')
 
-        expect(sent.amountDisplay).toBe('-$12.5')
-        expect(received.amountDisplay).toBe('+$12.5')
+        expect(sent.amountDisplay).toBe('-$12.50')
+        expect(received.amountDisplay).toBe('+$12.50')
     })
 
     // A pot reports what it collected, and a collected total has no direction.
@@ -327,7 +327,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(model.amountDisplay).toBe('$40.00')
+        expect(model.amountDisplay).toBe('$40')
     })
 })
 

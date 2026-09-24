@@ -41,7 +41,6 @@ export function BridgeBankOnrampView() {
         locale,
         t,
         tCommon,
-        tUnlock,
         gate,
         sumsubFlow,
         handleVerify,
@@ -125,7 +124,9 @@ export function BridgeBankOnrampView() {
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     visible
                     presentation="page"
-                    navTitle={tUnlock('title')}
+                    // Reached from Add money, so it keeps that title; the same
+                    // unlock opened from Accounts and payments is a drawer there.
+                    navTitle={t('title')}
                     onBack={onBack}
                     onClose={onBack}
                     onVerify={handleVerify}

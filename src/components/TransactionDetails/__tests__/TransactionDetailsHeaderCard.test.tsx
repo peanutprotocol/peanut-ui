@@ -220,7 +220,7 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
         expect(screen.queryByText(/Received from/)).not.toBeInTheDocument()
     })
 
-    it("words the user's own open request pot as 'You requested'", () => {
+    it("words the user's own open request pot as 'Requested'", () => {
         renderHeaderCard({
             direction: 'request_received',
             status: 'pending',
@@ -228,10 +228,10 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
             nameKey: 'name.request',
             isRequestPotTransaction: true,
         })
-        expect(screen.getByText('You requested')).toBeInTheDocument()
+        expect(screen.getByText('Requested')).toBeInTheDocument()
     })
 
-    it('keeps an unresolved incoming request as bare "Request", never "You requested"', () => {
+    it('keeps an unresolved incoming request as bare "Request", never "Requested"', () => {
         renderHeaderCard({
             direction: 'request_received',
             status: 'pending',
@@ -239,7 +239,7 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
             nameKey: 'name.request',
         })
         expect(screen.getByText('Request')).toBeInTheDocument()
-        expect(screen.queryByText('You requested')).not.toBeInTheDocument()
+        expect(screen.queryByText('Requested')).not.toBeInTheDocument()
         expect(screen.queryByText(/is requesting/)).not.toBeInTheDocument()
     })
 })

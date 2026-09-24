@@ -1216,7 +1216,7 @@ describe('GROUP 4: Success States', () => {
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
         expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
         expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
@@ -1230,7 +1230,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1455,7 +1455,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
@@ -1487,7 +1487,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1506,7 +1506,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
@@ -1564,7 +1564,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         // Savings message should appear for Argentina QR3 payments, via the localized catalog
@@ -1583,7 +1583,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.getByText(message)).toBeInTheDocument()
@@ -1595,7 +1595,7 @@ describe('GROUP 4: Success States', () => {
     const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
 
     test.each([
-        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a plain Manteca success (no perk)', {}, /Paid to/],
         ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
     ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
         'invite row renders on %s',
@@ -1636,7 +1636,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
@@ -2049,7 +2049,7 @@ describe('GROUP 5: Error States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
         await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
     })
 

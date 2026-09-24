@@ -513,7 +513,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        expect(await screen.findByText('peanut invited you to Peanut')).toBeInTheDocument()
+        expect(await screen.findByText('Invite from peanut')).toBeInTheDocument()
         expect(screen.queryByText('Claim the badge')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Claim a spot' }))
 

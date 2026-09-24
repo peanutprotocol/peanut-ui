@@ -15,7 +15,8 @@ import { corridorFromRailId } from '@/features/deposit-accounts/rails'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useRequestDepositInstructions } from '@/features/deposit-accounts/useRequestDepositInstructions'
 import type { RequestPayRail } from '@/services/services.types'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
+import { formatBankAmount } from '@/utils/currency'
 import { useState } from 'react'
 import { RequestPaymentContext, type RequestPaymentContextProps } from './RequestPaymentContext'
 import type { CardPosition } from '@/components/Global/Card/card.utils'
@@ -67,7 +68,6 @@ export function PayByBankTransferDrawer({
     position?: CardPosition
 }) {
     const t = useTranslations('payment')
-    const format = useFormatter()
     const { railName } = useDepositAccountCopy()
     const [isOpen, setIsOpen] = useState(false)
     const railCurrency = rail?.payerAmount.currency.toUpperCase()
@@ -119,11 +119,7 @@ export function PayByBankTransferDrawer({
                     <div className="text-body-xs">
                         {figure
                             ? t(figure.approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
-                                  amount: format.number(figure.value, {
-                                      minimumFractionDigits: figure.digits,
-                                      maximumFractionDigits: figure.digits,
-                                  }),
-                                  currency: figure.currency,
+                                  amount: formatBankAmount(figure.value, figure.currency),
                               })
                             : t('bankTransfer.description')}
                     </div>

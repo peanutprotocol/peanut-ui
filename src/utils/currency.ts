@@ -12,14 +12,17 @@ export const formatCurrencyAmount = (amount: string | number, currencyCode: stri
     const symbol = getDisplayCurrencySymbol(currencyCode)
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
 
-    if (isNaN(numAmount)) return `${symbol}0`
+    // A currency with no symbol of its own shows its code, which needs a space: "ARS 1,000", not "ARS1,000".
+    const prefix = /^[A-Z]+$/.test(symbol) ? `${symbol} ` : symbol
+
+    if (isNaN(numAmount)) return `${prefix}0`
 
     const formatted = numAmount.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     })
 
-    return `${symbol}${formatted}`
+    return `${prefix}${formatted}`
 }
 
 /**

@@ -252,7 +252,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
-        expect(screen.getByText('Send money with a link')).toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
@@ -316,7 +316,7 @@ describe('GROUP 2: Send by Link', () => {
         renderSend({ view: 'link' })
 
         expect(screen.getByTestId('link-send-flow-manager')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('createLink=true also shows LinkSendFlowManager', () => {
@@ -355,7 +355,7 @@ describe('GROUP 3: Contacts View', () => {
         renderSend({ view: 'contacts' })
 
         expect(screen.getByTestId('contacts-view')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('Back from a cold deep-link into contacts replaces to /send without minting history', () => {

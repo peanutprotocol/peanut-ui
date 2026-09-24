@@ -123,10 +123,10 @@
             },
             "spendWithPeanut": {
                 "title": "Paga con Peanut",
-                "description": "Paga con tu tarjeta, una clave Pix o códigos QR de Pix y MercadoPago"
+                "description": "Paga con tarjeta, una clave Pix o códigos QR de Pix y MercadoPago"
             },
             "spendChooser": {
-                "title": "¿Cómo quieres gastar?",
+                "title": "Elige cómo gastar",
                 "description": "Ambas cuentan como tu primer pago.",
                 "payWithCard": "Paga con tarjeta",
                 "scanQr": "Escanea un código QR"
@@ -442,7 +442,7 @@
                 "pixKey": "Paga cualquier clave Pix, sin QR."
             },
             "detailsDrawer": {
-                "aboutTitle": "Qué puedes hacer",
+                "aboutTitle": "Funciones",
                 "limitsTitle": "Límites"
             },
             "qrPayNote": "Escanea el código QR de un comercio en Brasil o Argentina.",
@@ -532,7 +532,7 @@
             "peanutMascotAlt": "Mascota de Peanut",
             "peanutLogoTextAlt": "Logo de Peanut",
             "joinPeanutAlt": "Únete a Peanut",
-            "allSetTitle": "Todo listo",
+            "allSetTitle": "Listo",
             "allSetDescription": "Ahora envía o solicita dinero para empezar.",
             "joinPeanut": "¡Únete a Peanut!",
             "inviteOnlyLine1": "Peanut es solo por invitación.",
@@ -727,11 +727,11 @@
                 "description": "¿Quién te invitó? Ingresa su nombre de usuario para continuar, o únete a la lista de espera y te avisaremos cuando puedas entrar."
             },
             "signup": {
-                "title": "¿Cómo te llamamos?",
+                "title": "Elige un usuario",
                 "description": "Elige tu nombre de usuario. Lo usarás para enviar y recibir dinero."
             },
             "residence": {
-                "title": "¿Dónde vives legalmente?",
+                "title": "País de residencia legal",
                 "description": "El país donde vives legalmente y tienes tu domicilio, no donde estás de viaje. Esto decide qué métodos de pago puedes desbloquear."
             },
             "passkey-permission": {
@@ -744,7 +744,7 @@
             }
         },
         "existingSession": {
-            "title": "Ya tienes una sesión iniciada",
+            "title": "Ya hay una sesión iniciada",
             "description": "Este dispositivo tiene una sesión iniciada como {username}. Continúa con esa cuenta o cierra sesión para crear una nueva.",
             "continueAs": "Continuar como {username}",
             "logoutAndStartFresh": "Cerrar sesión y empezar de cero"
@@ -807,7 +807,7 @@
                 "cardClause": "También puedes solicitar una tarjeta Peanut después de verificar tu identidad.",
                 "rails": {
                     "pix": "transferencias PIX",
-                    "arQr": "pagos QR y transferencias con tu propia cuenta",
+                    "arQr": "pagos QR y transferencias bancarias",
                     "spei": "transferencias bancarias en pesos mexicanos",
                     "usdAch": "transferencias bancarias en dólares estadounidenses",
                     "eurSepa": "transferencias bancarias en euros",
@@ -929,7 +929,7 @@
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",
             "worksNowBody": "Recibe dólares, envía a cualquier @usuario y guarda tu saldo: sin verificar tu identidad.",
-            "laterTitle": "Cuando quieras pagos bancarios o una tarjeta",
+            "laterTitle": "Para pagos bancarios o una tarjeta",
             "laterBody": "Vas a necesitar una verificación de identidad: unos minutos, o de 1 a 3 días hábiles si alguien la revisa a fondo.",
             "cta": "Ir a la cuenta"
         }
@@ -1005,7 +1005,7 @@
     },
     "send": {
         "linkCard": {
-            "title": "Envía dinero con un enlace",
+            "title": "Envía con un enlace",
             "description": "No se necesita cuenta para reclamar en billetera cripto. Banco, Pix y Mercado Pago requieren una cuenta Peanut.",
             "cta": "Enviar por enlace"
         },
@@ -1105,7 +1105,7 @@
             "exactNote": "Quien paga por banco en {currency} ve este monto exacto. Los demás ven un estimado."
         },
         "bankInstructions": {
-            "title": "Deja que te paguen por transferencia bancaria",
+            "title": "Aceptar transferencia bancaria",
             "disclosure": "Quien paga ve tu nombre completo y tus datos bancarios."
         },
         "paidByBank": {
@@ -1146,12 +1146,12 @@
             "send": "Enviar"
         },
         "success": {
-            "addedExternal": "Agregaste con éxito",
-            "withdrew": "Acabas de retirar",
-            "justSent": "Acabas de enviar",
-            "sent": "Enviaste ",
-            "requested": "Solicitaste ",
-            "added": "Agregaste ",
+            "addedExternal": "Agregado",
+            "withdrew": "Retirado",
+            "justSent": "Enviado",
+            "sent": "Enviado a ",
+            "requested": "Solicitud a ",
+            "added": "Agregado",
             "toPrefix": "a",
             "forPrefix": "por",
             "backToHome": "Volver al inicio",
@@ -1208,8 +1208,8 @@
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount} {currency}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} {currency} y faltan {remaining} {currency} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
+        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
+        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
@@ -1219,8 +1219,8 @@
             "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "unavailable": "La transferencia bancaria no está disponible para esta solicitud por ahora.",
             "amountLabel": "Monto a enviar",
-            "amountValue": "{amount} {currency}",
-            "amountValueApprox": "≈ {amount} {currency}",
+            "amountValue": "{amount}",
+            "amountValueApprox": "≈ {amount}",
             "exactBadge": "Monto exacto",
             "estimateBadge": "Estimado",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
@@ -1229,8 +1229,8 @@
             "otherWays": "Ver otras formas de pagar",
             "chooseCurrency": "Elige una moneda"
         },
-        "requestAsksFor": "Se piden {amount} {currency}",
-        "requestAsksForDollars": "${amount} en dólares, fijado al crear la solicitud",
+        "requestAsksFor": "Se piden {amount}",
+        "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },
     "claim": {
@@ -1315,8 +1315,8 @@
             "toAccount": "a {account}",
             "toYourBankAccount": "a tu cuenta bancaria",
             "fromSender": "de {sender}",
-            "youWillReceive": "Vas a recibir",
-            "youClaimed": "Reclamaste",
+            "youWillReceive": "Recibiendo",
+            "youClaimed": "Reclamado",
             "devconnectReturnHint": "Toca el botón X de arriba a la izquierda para volver a la app de Devconnect"
         },
         "bank": {
@@ -1337,7 +1337,7 @@
             }
         },
         "manteca": {
-            "youWillReceive": "Vas a recibir",
+            "youWillReceive": "Recibiendo",
             "receiveIn": "Recibir en {method}",
             "enterAccountDetails": "Ingresa los datos bancarios",
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
@@ -1351,7 +1351,7 @@
         }
     },
     "qrPay": {
-        "youArePaying": "Estás pagando",
+        "youArePaying": "Pagando",
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
@@ -1392,7 +1392,7 @@
             "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
         },
         "success": {
-            "youPaid": "Pagaste a {merchant}",
+            "youPaid": "Pagado a {merchant}",
             "earnedRewardTitle": "¡Ganaste una recompensa!",
             "earnedHoldToClaim": "¡Ganaste ${amount}! Mantén presionado para reclamar tu recompensa.",
             "holdToClaim": "¡Ganaste una recompensa! Mantén presionado para reclamarla.",
@@ -1537,7 +1537,7 @@
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escríbele a soporte para continuar.",
             "requiresSupportTitle": "Algo salió mal de nuestro lado",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escríbele a soporte y lo resolvemos.",
-            "rejectedTitle": "No pudimos emitirte una tarjeta",
+            "rejectedTitle": "No pudimos emitir una tarjeta",
             "rejectedBody": "Puedes seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedTitle": "Tarjetas aún no disponibles en esta región",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vives. Puedes seguir usando las otras funciones de Peanut disponibles para ti.",
@@ -1554,8 +1554,8 @@
             "slideToCancel": "Desliza y cancela",
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
-            "feedbackLabel": "Ayúdanos a mejorar nuestro producto para ti",
-            "feedbackPlaceholder": "¿Por qué cancelaste?",
+            "feedbackLabel": "Ayúdanos a mejorar",
+            "feedbackPlaceholder": "Motivo",
             "submit": "Enviar",
             "thanksTitle": "Gracias por los comentarios",
             "thanksBody": "Agradecemos tus comentarios, nos ayudan a mejorar la experiencia de nuestra app.",
@@ -1751,7 +1751,7 @@
         "addMoneyVia": "Agregar dinero con",
         "recentMethods": "Métodos recientes",
         "selectNewMethod": "Elegir otro método",
-        "howMuchToAdd": "¿Cuánto quieres agregar?",
+        "howMuchToAdd": "Monto a agregar",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que envías desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que envías desde tu banco!",
         "eurAccountsOnlyTitle": "Solo cuentas en EUR",
@@ -1817,7 +1817,7 @@
             "depositedCrypto": "Cripto depositada"
         },
         "manteca": {
-            "youreAdding": "Estás agregando",
+            "youreAdding": "Agregando",
             "sendOnlyOwnAccountTitle": "Envía solo desde cuenta propia",
             "sendOnlyOwnAccountDescription": "No se admiten depósitos desde cuentas de terceros y los fondos se pueden perder.",
             "accountDetails": "Datos bancarios",
@@ -1877,7 +1877,7 @@
             "iban": "IBAN",
             "routingNumber": "Número de ruta",
             "bic": "BIC",
-            "youllReceive": "Recibirás",
+            "youllReceive": "Recibiendo",
             "doubleCheckTitle": "Revisa bien antes de enviar:",
             "doubleCheckAmount": "Monto: {amount} (exacto)",
             "doubleCheckReference": "Referencia: {reference} (incluida)",
@@ -1911,8 +1911,6 @@
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "amountToWithdraw": "Monto a retirar",
         "amountToSend": "Monto a enviar",
-        "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
-        "howWouldYouLikeToSend": "¿Cómo quieres enviar?",
         "chooseWithdrawingMethod": "Elige el método de retiro",
         "addAccount": "Agregar cuenta",
         "selectNewMethod": "Elegir otro método",
@@ -1936,13 +1934,13 @@
             "networkFee": "Comisión de red",
             "networkFeeInfo": "Entregar en esta red es gratis — Peanut lo cubre. Algunas redes, como Ethereum, Tron y Solana, cobran una comisión que se descuenta del monto recibido.",
             "networkFeeChargedInfo": "Cada red cobra distinto por entregar. Esta cobra, y se descuenta del monto recibido. Otras, como Arbitrum, son gratis.",
-            "youPay": "Pagas",
+            "youPay": "Total",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
         "compatibilityModal": {
             "title": "¿Esta dirección es compatible?",
             "description": "Envía solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder.",
-            "sendingTo": "Estás enviando a"
+            "sendingTo": "Enviando a"
         },
         "pixKey": {
             "title": "Enviar con Pix",
@@ -1984,9 +1982,9 @@
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contacta a soporte."
         },
         "manteca": {
-            "youJustWithdrew": "Acabas de retirar",
+            "youJustWithdrew": "Retirado",
             "toDestination": "a {destination}",
-            "youreWithdrawing": "Estás retirando",
+            "youreWithdrawing": "Retirando",
             "selectAccountType": "Selecciona el tipo de cuenta",
             "selectBank": "Selecciona el banco",
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
@@ -1995,7 +1993,7 @@
             "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
-            "enterAccountDetails": "Ingresa los datos de tu banco o billetera",
+            "enterAccountDetails": "Ingresa los datos del banco o billetera",
             "accountDetailsHint": "Usa tu CBU, CVU o alias, incluido Mercado Pago."
         },
         "bankForm": {
@@ -2151,8 +2149,8 @@
             "reward": "Recompensa"
         },
         "title": {
-            "sentViaLink": "Enviaste por enlace",
-            "receivedViaLink": "Recibiste por enlace",
+            "sentViaLink": "Enviado por enlace",
+            "receivedViaLink": "Recibido por enlace",
             "requestedViaLink": "Solicitado por enlace",
             "requestViaLink": "Solicitud por enlace",
             "linkTransaction": "Transacción por enlace",
@@ -2162,7 +2160,7 @@
             "receivedFrom": "Recibido de {name}",
             "requestedFrom": "Solicitado a {name}",
             "requestingFrom": "Solicitando a {name}",
-            "youRequested": "Solicitaste",
+            "youRequested": "Solicitado",
             "withdrewTo": "Retirado a {name}",
             "withdrawingTo": "Retirando a {name}",
             "addedFrom": "Ingresado desde {name}",
@@ -2367,7 +2365,7 @@
         "transactions": "Transacciones",
         "errorTitle": "¡Error al cargar las transacciones!",
         "errorDescription": "Contacta a soporte.",
-        "empty": "No has hecho ninguna transacción",
+        "empty": "Aún no hay transacciones",
         "loadingMore": "Cargando más...",
         "today": "Hoy",
         "yesterday": "Ayer"
@@ -2385,8 +2383,8 @@
         "tierBadgeAlt": "Nivel {tier}",
         "invitedYou": "te invitó.",
         "earnWhenFriendsUse": "¡Ganas recompensas cada vez que tus amigos usan Peanut!",
-        "peopleYouInvited": "Personas que invitaste",
-        "noInvitesYet": "Aún no invitaste a nadie",
+        "peopleYouInvited": "Personas invitadas",
+        "noInvitesYet": "Aún no hay invitaciones",
         "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más recompensas",
         "shareInviteLink": "Compartir link de invitación",
         "loadPointsFailed": "¡Error al cargar los puntos!",
@@ -2427,7 +2425,7 @@
         "vanityTitle": "Reclama la insignia",
         "vanityDescription": "Ganaste una insignia de Peanut. Para reclamarla, regístrate o inicia sesión.",
         "vanityCta": "Regístrate",
-        "inviterTitle": "{username} te invitó a Peanut",
+        "inviterTitle": "Invitación de {username}",
         "inviterDescription": "Acceso solo para miembros. Usa esta invitación para abrir tu billetera y empezar a enviar y recibir dinero en todo el mundo.",
         "inviterCta": "Reclamar lugar",
         "alreadyHaveAccount": "¿Ya tienes una cuenta? ¡Inicia sesión!",
@@ -2441,8 +2439,8 @@
         "notificationsTitle": "¿Quieres novedades al instante?",
         "notificationsDescription": "Te avisaremos apenas tengas acceso.",
         "inviteOnlyTitle": "Peanut es solo con invitación",
-        "inLine": "Estás en la fila",
-        "inLineWithPosition": "Estás #{position} en la fila",
+        "inLine": "En la fila",
+        "inLineWithPosition": "#{position} en la fila",
         "skipTheLine": "Sáltate la fila: escribe el usuario del miembro que te invitó.",
         "pleaseWait": "Espera un momento...",
         "logInDifferentAccount": "Iniciar sesión con otra cuenta",
@@ -2454,7 +2452,7 @@
         "earned": "Ganado",
         "locked": "Bloqueado",
         "howToUnlock": "Cómo desbloquearla",
-        "whatYouGet": "Lo que ganas",
+        "whatYouGet": "Beneficios",
         "emptyTitle": "No se encontraron insignias",
         "emptyDescription": "Gana insignias a medida que usas Peanut. Haz pagos, invita amigos y participa en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorTitle": "No pudimos cargar las insignias",
@@ -2470,7 +2468,7 @@
         "shareAchievement": "Compartir logro",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
-        "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
+        "toastMultiple": "{count, plural, one {# insignia desbloqueada} other {# insignias desbloqueadas}}",
         "unlock": {
             "invites": "Invita a {target, plural, one {# amigo que se una a Peanut} other {# amigos que se unan a Peanut}}.",
             "rewards": "Gana ${targetUsd} en recompensas.",
@@ -2482,7 +2480,7 @@
             "specialRecognition": "Obtén esta insignia por un hito, una contribución o un reconocimiento especial en Peanut."
         },
         "benefit": {
-            "avatars": "{count, plural, one {# avatar para tu perfil} other {# avatares para tu perfil}}"
+            "avatars": "{count, plural, one {# avatar de perfil} other {# avatares de perfil}}"
         },
         "catalog": {
             "FIRST_INVITE": {
@@ -3264,7 +3262,7 @@
             "title": "Transferencias bancarias en {country}",
             "body": "Las transferencias bancarias aún no están disponibles aquí. Únete a la lista y te avisaremos cuando lo estén.",
             "join": "Avisarme",
-            "joinedTitle": "Ya estás en la lista",
+            "joinedTitle": "En la lista",
             "joinedBody": "Te avisaremos cuando las transferencias bancarias estén disponibles en {country}.",
             "error": "No se pudo actualizar la lista de espera. Inténtalo de nuevo."
         },
@@ -3528,7 +3526,7 @@
             "prefilledMessage": "Necesito ayuda con esta transacción: "
         },
         "offlineScreen": {
-            "title": "Estás sin conexión",
+            "title": "Sin conexión",
             "description": "No se detectó conexión a internet. Revisa la configuración de tu red e inténtalo de nuevo.",
             "checking": "Comprobando...",
             "checkConnection": "Comprobar conexión"
@@ -3559,15 +3557,15 @@
             "sendDescription": "Cualquiera con el enlace puede reclamarlo"
         },
         "peanutActionDetailsCard": {
-            "sendingTo": "Le estás enviando a {recipient}",
-            "youRequested": "Solicitaste",
-            "sentYou": "{sender} te envió",
-            "youJustClaimed": "Acabas de reclamar",
-            "youreAdding": "Estás agregando",
-            "youreWithdrawing": "Estás retirando",
-            "youreSending": "Estás enviando",
-            "youWillReceive": "Vas a recibir",
-            "youreAboutToReceive": "Estás por recibir"
+            "sendingTo": "Enviando a {recipient}",
+            "youRequested": "Solicitado",
+            "sentYou": "De {sender}",
+            "youJustClaimed": "Reclamado",
+            "youreAdding": "Agregando",
+            "youreWithdrawing": "Retirando",
+            "youreSending": "Enviando",
+            "youWillReceive": "Recibiendo",
+            "youreAboutToReceive": "Recibiendo"
         },
         "createAccountButton": {
             "label": "Crea una cuenta de <logo></logo>"
@@ -3666,12 +3664,12 @@
             "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"
         },
         "userCard": {
-            "sendingMoneyTo": "Le estás enviando dinero a",
+            "sendingMoneyTo": "Enviando dinero a",
             "requestingMoneyFrom": "Solicitando dinero a",
-            "youReceived": "Recibiste",
+            "youReceived": "Recibido",
             "isRequesting": "{name} está solicitando",
             "sendingTo": "Enviando a {name}",
-            "payWhatYouWant": "Paga lo que quieras",
+            "payWhatYouWant": "Cualquier monto",
             "sendExactAmount": "¡Envía el monto exacto!"
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
@@ -3791,7 +3789,7 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "redirecting": "Te llevamos a la tienda…",
+            "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
     },
@@ -4111,7 +4109,7 @@
             "provisioning": "Suele estar lista en menos de un minuto.",
             "sectionTitle": "Datos bancarios",
             "shareCta": "Compartir datos",
-            "unavailableTitle": "Todavía no tienes datos en {currency}",
+            "unavailableTitle": "Todavía no hay datos en {currency}",
             "unavailableBody": "Lo verificamos antes de mostrar los datos, así que ningún pago se puede perder.",
             "unavailableCta": "Elegir otra moneda",
             "timedOutTitle": "No pudimos abrir la cuenta en {currency}",
@@ -4122,7 +4120,7 @@
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
             "referenceRequired": "Cada transferencia necesita esta referencia.",
-            "whoCanPay": "Quién puede pagarte",
+            "whoCanPay": "Quién puede pagar",
             "termsToggle": "Límites y comisiones",
             "residenceCta": "Actualizar residencia",
             "qrPayCta": "Pagar un código QR"
@@ -4210,14 +4208,14 @@
             "tosCta": "Leer y aceptar",
             "waitTitle": "Lo estamos preparando",
             "waitBody": "No tienes que hacer nada. Esta pantalla se actualiza sola.",
-            "blockedTitle": "No podemos abrirte una cuenta",
+            "blockedTitle": "No podemos abrir una cuenta",
             "supportCta": "Contactar soporte",
             "emailTitle": "Necesitamos un correo electrónico",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agregar email",
-            "notYetTitle": "Todavía no está disponible para ti",
+            "notYetTitle": "Aún no disponible",
             "notYetBody": "Lo estamos abriendo de a poco.",
-            "limitTitle": "Ya tienes {count, plural, one {# cuenta} other {# cuentas}}",
+            "limitTitle": "{count, plural, one {# cuenta ya abierta} other {# cuentas ya abiertas}}",
             "limitBody": "Ese es tu límite actual. Si necesitas otra, soporte puede abrirla.",
             "reviewTitle": "Estamos creando la cuenta",
             "reviewBody": "Suele tardar unos minutos. Te avisamos cuando esté lista.",

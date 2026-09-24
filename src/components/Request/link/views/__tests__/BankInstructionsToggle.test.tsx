@@ -127,7 +127,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
             expect(screen.queryByText(/Only businesses/)).not.toBeInTheDocument()
             expect(screen.queryByText(/Transfers from other people are not confirmed/)).not.toBeInTheDocument()
         })
@@ -182,7 +182,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
             expect(screen.getByText('Payers see your full name and bank details.')).toBeInTheDocument()
         })
 
@@ -191,7 +191,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(false)
 
-            expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
             expect(screen.queryByText(/Payers see your full name/)).not.toBeInTheDocument()
         })
 
@@ -219,7 +219,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(checked)
 
-            expect(screen.getByRole('switch', { name: 'Let them pay by bank transfer' })).toBeInTheDocument()
+            expect(screen.getByRole('switch', { name: 'Accept bank transfer' })).toBeInTheDocument()
         })
     })
 })
