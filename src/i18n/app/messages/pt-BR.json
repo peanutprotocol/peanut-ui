@@ -1014,7 +1014,7 @@
         },
         "methods": {
             "contactsTitle": "Usuário do Peanut",
-            "contactsDescription": "Envie para seus amigos do Peanut",
+            "contactsDescription": "Envie para qualquer usuário do Peanut",
             "bankTitle": "Transferência bancária",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
