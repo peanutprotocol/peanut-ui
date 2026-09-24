@@ -6,10 +6,10 @@ import type { UnlockChip, UnlockRow } from '@/utils/unlock-payments.utils'
 
 /**
  * The one status-badge vocabulary for a KYC-unlock row (bank/QR rows and the
- * always-on Peanut rows) — shared by the merged "Your accounts" list and the
- * "Peanut" group so both read from the same chip→badge mapping. Held VA rows
- * use their own simpler Ready/nothing badge (see `AccountsList`), since a
- * held account has no "unlock" state to describe.
+ * always-on Peanut rows) — shared by the bank rows of `AccountsHubList` and the
+ * Spend and Peanut groups so all read from the same chip→badge mapping. Virtual
+ * accounts carry their own account badges, since an account has no "unlock"
+ * state to describe.
  */
 // next-intl's per-namespace translator type is narrower than `(key: string) => string`, and this
 // helper is shared across namespaced callers, so it accepts any translator rather than one namespace.

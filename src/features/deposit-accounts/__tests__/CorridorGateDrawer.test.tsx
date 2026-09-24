@@ -155,6 +155,14 @@ describe('the gate drawer', () => {
         expect(screen.getByTestId('hub')).toBeInTheDocument()
     })
 
+    // Chip on ui#3434: Accounts and payments links straight here, so a dismissal leaves the flow
+    it('goes back where the user came from when dismissed, a direct link included', () => {
+        const props = flowProps({ blockedBy: 'account-limit' })
+        renderFlow(props)
+        fireEvent.keyDown(drawer(), { key: 'Escape' })
+        expect(props.onExit).toHaveBeenCalled()
+    })
+
     it('opens support for the cap and closes itself, so the support sheet is not hidden behind it', async () => {
         const props = flowProps({ blockedBy: 'account-limit' })
         const { onUrlUpdate } = renderFlow(props)
