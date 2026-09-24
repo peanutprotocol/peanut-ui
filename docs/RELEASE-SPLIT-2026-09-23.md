@@ -1,8 +1,9 @@
 # OTA first, native build second
 
 The split starts from `dev` commit `18c935832`. The OTA branch also includes
-`dev` through `82d8a93ae` and `main` through `8fccc5607`, including the release
-bridge changes merged by #3367. The shipped native baseline is `v1.6.0`
+`dev` through `4b537e130` and `main` through `8fccc5607`, including the release
+bridge changes merged by #3367. The OTA branch also copies the eight UI and
+localization commits from #3393. The shipped native baseline is `v1.6.0`
 (`331002ff83e95593e92f12fdf870201f25f1f6d0`).
 
 1. Merge `innolope/release-ota-first-0923` into `main`. It retains the dev web
