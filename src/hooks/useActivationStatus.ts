@@ -5,6 +5,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useCardInfo } from '@/hooks/useCardInfo'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -59,6 +60,7 @@ export function useActivationStatus(): ActivationStatus {
     // a second query on the same key with different options makes refetch
     // timing harder to reason about (this was consolidated once already).
     const { cardInfo } = useCardInfo()
+    const residenceRestrictions = useResidenceRestrictions()
 
     // Read the dismissal flag after mount to avoid hydration mismatch.
     const [cardDismissed, setCardDismissed] = useState(false)
@@ -108,8 +110,10 @@ export function useActivationStatus(): ActivationStatus {
         }
 
         // Home promotes the card only after funding. Direct /card applications
-        // remain available before a deposit; verification owns residence checks.
-        const canApplyForCard = cardInfo?.isEligible === true
+        // remain available before a deposit. residence restrictions are the same
+        // gate the bottom nav uses (useCardSurfaceAccess), so home never promotes
+        // a card the nav hides.
+        const canApplyForCard = cardInfo?.isEligible === true && !residenceRestrictions.card
         const hasCard = !!findActiveCard(overview)
         // Funded = the BE milestone says so, OR the live chain balance is
         // positive — a user whose inbound is still mid-poller (milestone stuck
@@ -121,7 +125,7 @@ export function useActivationStatus(): ActivationStatus {
         }
 
         return { isActivated, activatedAt, activationStep }
-    }, [user?.user, isKycApproved, balance, cardInfo?.isEligible, overview, cardDismissed])
+    }, [user?.user, isKycApproved, balance, cardInfo?.isEligible, residenceRestrictions.card, overview, cardDismissed])
 
     return { ...derived, isLoading, dismissCardStep }
 }
