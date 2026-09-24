@@ -4,6 +4,8 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { DoDont } from '../../_components/DoDont'
+import Title, { knerdTitle } from '@/components/0_Bruddle/Title'
 import { FONT_TOKENS, TEXT_STYLES, type TextStyle } from '../tokens.generated'
 
 const SEMANTIC_STYLES = TEXT_STYLES.filter((t) => t.section === 'semantic')
@@ -49,6 +51,73 @@ export default function TypographyPage() {
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Font Display" code='className="font-display"' />
+                </DocSection.Code>
+            </DocSection>
+
+            {/* Knerd display title */}
+            <DocSection
+                title="Knerd Display Title"
+                description="The one Knerd treatment (ruled 2026-09-24, design.md → type → knerd display title). Marketing heroes and OG images only, never an app screen."
+            >
+                <DocSection.Content>
+                    <div className="rounded-sm bg-action-primary p-4 text-center">
+                        <Title text={'PRESS\nKIT'} className="text-7xl" />
+                    </div>
+                    <p className="text-body-s text-foreground-secondary">
+                        Knerd Filled in white under a Knerd Outline copy that sits{' '}
+                        {Math.abs(knerdTitle.outlineOffset.x)}px left and {Math.abs(knerdTitle.outlineOffset.y)}px up of
+                        it, letters and lines packed tight enough to overlap, centred, caps, with the per-line tilt of
+                        the landing hero artwork. Call sites pass size only. The values below are read from{' '}
+                        <code className="font-mono">knerdTitle</code> in Title.tsx, the single source both Title and the
+                        OG cards use.
+                    </p>
+                    <table className="w-full text-body-s">
+                        <tbody>
+                            {[
+                                ['letter-spacing', knerdTitle.letterSpacing],
+                                ['line-height', String(knerdTitle.lineHeight)],
+                                ['outline offset', `${knerdTitle.outlineOffset.x}px, ${knerdTitle.outlineOffset.y}px`],
+                                ['outline scale', String(knerdTitle.outlineScale)],
+                                [
+                                    'line tilt',
+                                    `${knerdTitle.lineTilt[0]}°, ${knerdTitle.lineTilt[1]}° + ${knerdTitle.secondLineShift}`,
+                                ],
+                                ['alignment, case', 'centred, uppercase'],
+                            ].map(([k, v]) => (
+                                <tr key={k} className="border-b border-border-subtle">
+                                    <td className="py-1 pr-4 text-foreground-secondary">{k}</td>
+                                    <td className="py-1 font-mono">{v}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <DoDont
+                        doLabel="Title, size only"
+                        doExample={
+                            <div className="bg-action-primary p-3 text-center">
+                                <Title text="WORK HERE." className="text-5xl" />
+                            </div>
+                        }
+                        dontLabel="Hand-rolled layers, own tracking"
+                        dontExample={
+                            <div className="relative inline-block bg-action-primary p-3 text-5xl">
+                                <p className="relative translate-x-[3px] font-knerd-filled text-white">WORK HERE.</p>
+                                <p className="absolute top-3 left-3 font-knerd-outline">WORK HERE.</p>
+                            </div>
+                        }
+                    />
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock label="Import" code={`import Title from '@/components/0_Bruddle/Title'`} />
+                    <CodeBlock
+                        label="Hero title (MarketingHero)"
+                        code={`<h1>\n  <Title text={title} className="text-5xl md:text-9xl" />\n</h1>`}
+                    />
+                    <CodeBlock label="Two hand-placed lines" code={`<Title text={'PRESS\\nKIT'} />`} />
+                    <CodeBlock
+                        label="OG cards (satori, inline styles)"
+                        code={`import { knerdTitle } from '@/components/0_Bruddle/Title'\n// fill:    letterSpacing: knerdTitle.letterSpacing\n// outline: top: knerdTitle.outlineOffset.y, left: knerdTitle.outlineOffset.x`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
