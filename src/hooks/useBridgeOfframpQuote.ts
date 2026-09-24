@@ -31,5 +31,7 @@ export function useBridgeOfframpQuote({
         refetchInterval: QUOTE_REFRESH_MS,
         retry: 2,
     })
-    return { quote: data ?? null, isFetching, isError, refetch }
+    // a failed refresh must not leave the last amount confirmable: the screen
+    // falls back to its retry state until a fresh quote lands
+    return { quote: isError ? null : (data ?? null), isFetching, isError, refetch }
 }
