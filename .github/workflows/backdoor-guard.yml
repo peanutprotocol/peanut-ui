@@ -46,7 +46,7 @@ jobs:
                   node scripts/backdoor-scan.mjs --base "$BASE_SHA" --head refs/guard/head --allow-ref "$BASE_SHA" --jev > "$RUNNER_TEMP/scan.txt" 2>&1
                   status=$?
                   cat "$RUNNER_TEMP/scan.txt"
-                  git -c core.quotePath=false diff --name-only -z "$BASE_SHA...refs/guard/head" | tr '\0' '\n' \
+                  git -c core.quotePath=false diff --no-renames --name-only -z "$BASE_SHA...refs/guard/head" | tr '\0' '\n' \
                       | grep -E '^(\.github/workflows/|\.github/backdoor-scan-allow\.txt$|scripts/backdoor-scan\.mjs$)' > "$RUNNER_TEMP/guarded.txt"
                   echo "status=$status" >> "$GITHUB_OUTPUT"
                   if [ -s "$RUNNER_TEMP/guarded.txt" ]; then echo "guarded=true" >> "$GITHUB_OUTPUT"; fi

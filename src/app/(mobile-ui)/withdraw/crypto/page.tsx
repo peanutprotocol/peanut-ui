@@ -60,7 +60,7 @@ export default function WithdrawCryptoPage() {
     const toFriendlyError = useFriendlyError()
     const { isFromSendFlow } = useSendFlowOrigin()
     const onBack = useSafeBack(isFromSendFlow ? '/send' : '/withdraw?showAll=true')
-    const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
+    const { address, sendTransactions, sendMoney, spendableBalance, formattedSpendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         isMaxWithdrawal,
@@ -926,11 +926,7 @@ export default function WithdrawCryptoPage() {
                     pageTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     heading={isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                     initialAmount={amountToWithdraw}
-                    walletBalance={
-                        spendableBalance === undefined
-                            ? ''
-                            : formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
-                    }
+                    walletBalance={spendableBalance === undefined ? '' : formattedSpendableBalance}
                     balanceFillAmount={Number(formatUnits(spendableBalance ?? 0n, PEANUT_WALLET_TOKEN_DECIMALS))}
                     onBalanceFilled={(value) => {
                         filledFromBalance.current = value

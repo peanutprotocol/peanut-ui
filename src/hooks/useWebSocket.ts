@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
     PeanutWebSocket,
     getWebSocketInstance,
-    type PendingPerk,
     type RailStatusUpdate,
     type RainCardBalanceChangedData,
 } from '@/services/websocket'
@@ -24,7 +23,6 @@ interface UseWebSocketOptions {
     onMantecaKycStatusUpdate?: (status: string) => void
     onSumsubKycStatusUpdate?: (status: string, rejectLabels?: string[]) => void
     onTosUpdate?: (data: { accepted: boolean }) => void
-    onPendingPerk?: (perk: PendingPerk) => void
     onRailStatusUpdate?: (data: RailStatusUpdate) => void
     onRainCardBalanceChanged?: (data: RainCardBalanceChangedData) => void
     onConnect?: () => void
@@ -41,7 +39,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -60,7 +57,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -76,7 +72,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             onMantecaKycStatusUpdate,
             onSumsubKycStatusUpdate,
             onTosUpdate,
-            onPendingPerk,
             onRailStatusUpdate,
             onRainCardBalanceChanged,
             onConnect,
@@ -89,7 +84,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -232,12 +226,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
-        const handlePendingPerk = (perk: PendingPerk) => {
-            if (callbacksRef.current.onPendingPerk) {
-                callbacksRef.current.onPendingPerk(perk)
-            }
-        }
-
         const handleRailStatusUpdate = (data: RailStatusUpdate) => {
             if (callbacksRef.current.onRailStatusUpdate) {
                 callbacksRef.current.onRailStatusUpdate(data)
@@ -259,7 +247,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
         ws.on('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
         ws.on('persona_tos_status_update', handleTosUpdate)
-        ws.on('pending_perk', handlePendingPerk)
         ws.on('user_rail_status_changed', handleRailStatusUpdate)
         ws.on('rain_card_balance_changed', handleRainCardBalanceChanged)
 
@@ -278,7 +265,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
             ws.off('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
             ws.off('persona_tos_status_update', handleTosUpdate)
-            ws.off('pending_perk', handlePendingPerk)
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
             ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }

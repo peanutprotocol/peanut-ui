@@ -168,8 +168,14 @@ jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
 }))
 
 jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
-    WithdrawAmountView: (props: { onContinue: () => void; onBack: () => void; error: { errorMessage: string } }) => (
+    WithdrawAmountView: (props: {
+        walletBalance: string
+        onContinue: () => void
+        onBack: () => void
+        error: { errorMessage: string }
+    }) => (
         <>
+            <span data-testid="balance-label">{props.walletBalance}</span>
             {props.error.errorMessage && <p role="alert">{props.error.errorMessage}</p>}
             <button data-testid="back-amount" onClick={props.onBack}>
                 Back
@@ -304,7 +310,10 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 // mutable so the frozen-spend tests can move the balance between setup and confirm
-const mockWalletState = { spendableBalance: (100n * 10n ** 6n) as bigint | undefined }
+const mockWalletState = {
+    spendableBalance: (100n * 10n ** 6n) as bigint | undefined,
+    formattedSpendableBalance: '100.00',
+}
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
@@ -312,6 +321,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
         spendableBalance: mockWalletState.spendableBalance,
+        formattedSpendableBalance: mockWalletState.formattedSpendableBalance,
     }),
 }))
 
@@ -394,6 +404,7 @@ beforeEach(() => {
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
     mockWalletState.spendableBalance = 100n * 10n ** 6n
+    mockWalletState.formattedSpendableBalance = '100.00'
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
 })
@@ -511,6 +522,18 @@ describe('crypto withdraw preparation', () => {
         } finally {
             mockStepper.step = 'review'
         }
+    })
+})
+
+describe('crypto withdraw amount step — balance label', () => {
+    it('shows the two-decimal display balance, never the raw USDC units', () => {
+        mockStepper.step = 'recipient'
+        mockWalletState.spendableBalance = 11_652_683n
+        mockWalletState.formattedSpendableBalance = '11.65'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('balance-label')).toHaveTextContent(/^11\.65$/)
     })
 })
 

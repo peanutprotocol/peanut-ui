@@ -147,9 +147,6 @@ jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
     useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
 }))
 
-const mockPerksApi = { claimPerk: jest.fn(), getPendingPerks: jest.fn() }
-jest.mock('@/services/perks', () => ({ perksApi: mockPerksApi }))
-
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
     InsufficientSpendableError: class extends Error {
         constructor() {
@@ -1312,7 +1309,7 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Perk claimed shows shake class + go home button', async () => {
-        // Make claimPerk fast for test
+        // Fake timers: skip the hold-to-claim gesture timing
         jest.useFakeTimers()
 
         await completeMantecaPayment({
@@ -1349,11 +1346,10 @@ describe('GROUP 4: Success States', () => {
 
     // Regression: the perk is already claimed server-side during QR-payment
     // processing, and the QR response carries the sponsored amount. The
-    // hold-to-claim gesture must report that reward directly — it must NOT make
-    // a second /perks/claim round-trip (that endpoint now requires a usageId the
-    // client never has, so the old call always 400'd and surfaced a false
-    // "reward is being processed" error even though the reward had landed).
-    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+    // hold-to-claim gesture must report that reward directly with no error.
+    // (A second /perks/claim round-trip is structurally impossible now —
+    // perksApi is deleted — so this only asserts the reward path.)
+    test('Perk claim reports the reward from the QR response, no error', async () => {
         jest.useFakeTimers()
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
@@ -1434,10 +1430,9 @@ describe('GROUP 4: Success States', () => {
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
 
         // The reveal talks to no one: the scan init and the completion are the
-        // only Manteca calls, and the legacy /perks/claim round-trip stays dead.
+        // only calls it makes.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
@@ -1475,7 +1470,6 @@ describe('GROUP 4: Success States', () => {
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
