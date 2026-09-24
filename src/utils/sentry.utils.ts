@@ -624,6 +624,21 @@ export const fetchWithSentry = async (
      */
     const callerSignal = options.signal ?? undefined
     if (callerSignal?.aborted) throw cancelError(callerSignal)
+    /*
+     * The OS HTTP client (CapacitorHttp) cannot cancel its request, so a native
+     * leg stops waiting on a cancel instead: the caller is released at once and
+     * the late response is neither returned nor reported. The request itself
+     * still reaches the server; SocketQueryRefresh keeps that to one per event.
+     */
+    const nativeLeg = (legMs: number): Promise<Response> => {
+        const request = nativeHttpRequest(url, options, legMs)
+        if (!callerSignal) return request
+        return new Promise<Response>((resolve, reject) => {
+            const onCancel = () => reject(cancelError(callerSignal))
+            callerSignal.addEventListener('abort', onCancel, { once: true })
+            request.then(resolve, reject).finally(() => callerSignal.removeEventListener('abort', onCancel))
+        })
+    }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
@@ -670,11 +685,12 @@ export const fetchWithSentry = async (
      */
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
-            const response = await nativeHttpRequest(url, options, legTimeoutMs())
+            const response = await nativeLeg(legTimeoutMs())
             await reportNonOkResponse(url, options, response, redactTelemetry)
             return response
         } catch {
-            // OS client failed — the WebView path below is the report of record
+            // OS client failed, or the caller cancelled — the WebView path below
+            // checks the cancel first and is otherwise the report of record
         }
     }
 
@@ -733,10 +749,11 @@ export const fetchWithSentry = async (
         // surface as an opaque TypeError.
         if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
-                const response = await nativeHttpRequest(url, options, legTimeoutMs())
+                const response = await nativeLeg(legTimeoutMs())
                 await reportNonOkResponse(url, options, response, redactTelemetry)
                 return response
             } catch {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 // fallback failed too — report the original WebView error below
             }
         }
