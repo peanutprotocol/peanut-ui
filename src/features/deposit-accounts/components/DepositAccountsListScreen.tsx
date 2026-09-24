@@ -1,6 +1,7 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { CountryList } from '@/components/Common/CountryList'
@@ -120,7 +121,7 @@ export function DepositAccountsListScreen({
                 body={tMethods('cryptoDescription')}
                 bodyWrap
                 chevron
-                leading={<IconBubble icon="coins" color="blue" size="s" />}
+                leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                 onClick={() => router.push(CRYPTO_HREF)}
                 data-testid="add-money-crypto"
             />
@@ -133,7 +134,7 @@ export function DepositAccountsListScreen({
             title={t('list.countriesTitle')}
             body={t('list.countriesPitch')}
             bodyWrap
-            leading={<IconBubble icon="globe" color="blue" size="s" />}
+            leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
             trailing={
                 <Icon
                     name="chevron-down"

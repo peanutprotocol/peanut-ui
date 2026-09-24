@@ -3,6 +3,8 @@
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Section } from '@/components/0_Bruddle/Section'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -592,19 +594,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 title={method.title}
                                 body={<div className="text-body-xs">{method.description}</div>}
                                 leading={
-                                    typeof method.icon === 'string' || method.icon === undefined ? (
+                                    method.icon === ('bank' as IconName) ? (
+                                        <IconBubble {...CONCEPT_ICONS.bank} size="s" />
+                                    ) : method.id === 'crypto-add' || method.id === 'crypto-withdraw' ? (
+                                        <IconBubble {...CONCEPT_ICONS.crypto} size="s" />
+                                    ) : typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
                                             name={method.title ?? method.id}
                                             size="s"
                                             inlineStyle={{
-                                                backgroundColor:
-                                                    method.icon === ('bank' as IconName)
-                                                        ? 'var(--color-background-icon-bubble-yellow)'
-                                                        : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
-                                                          ? 'var(--color-background-icon-bubble-yellow)'
-                                                          : getColorForUsername(method.title).lightShade,
-                                                color: method.icon === ('bank' as IconName) ? 'black' : 'black',
+                                                backgroundColor: getColorForUsername(method.title).lightShade,
+                                                color: 'black',
                                             }}
                                         />
                                     ) : (
