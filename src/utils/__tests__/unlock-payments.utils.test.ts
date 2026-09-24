@@ -1,6 +1,7 @@
 import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import {
     buildBankRows,
+    withPixSend,
     buildUnlockGroups,
     dedupeHeldBankRows,
     type BankRowsInput,
@@ -344,5 +345,43 @@ describe('gatingResidenceIso2s', () => {
         const residences = gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })
         expect(residenceAllows('PIX_BR', residences)).toBe(false)
         expect(rowsOf(bank({ residenceIso2: 'PT' }), 'brl')[0].chip).toBe('notAvailable')
+    })
+})
+
+/**
+ * Adding reais by Pix is for Brazilian residents; sending to any Pix key is not
+ * (hugo, 2026-09-24, QA-12). Accounts and payments lets the BRL row say so.
+ */
+describe('withPixSend', () => {
+    const pixKey = (chip: 'active' | 'unlock') =>
+        buildUnlockGroups(base({ canPayQr: chip === 'active', canPayPixKey: chip === 'active' }))
+            .find((g) => g.id === 'spend')!
+            .rows.find((row) => row.id === 'pix-key')!
+    const brl = (rows: ReturnType<typeof buildBankRows>) => rows.find((row) => row.labelKey === 'brl')!
+
+    it('a non-resident who can pay a Pix key reads Available, and the tap opens Pix key sending', () => {
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('active'))
+        expect(brl(rows)).toEqual(
+            expect.objectContaining({
+                chip: 'active',
+                note: 'pixSendNote',
+                href: '/withdraw/manteca?method=pix&country=brazil',
+            })
+        )
+        expect(brl(rows).unavailableBecause).toBeUndefined()
+    })
+
+    it('a non-resident who cannot pay yet gets the Pix key offer', () => {
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('unlock'))
+        expect(brl(rows)).toEqual(expect.objectContaining({ chip: 'unlock', note: 'pixSendNote', regionPath: 'latam' }))
+    })
+
+    it('leaves a resident, a banking restriction and every other row alone', () => {
+        const resident = bank({ residenceIso2: 'BR' })
+        expect(withPixSend(resident, pixKey('active'))).toEqual(resident)
+        const restricted = bank({ residenceIso2: 'PT', restrictions: { banking: true, card: false } })
+        expect(withPixSend(restricted, pixKey('active'))).toEqual(restricted)
+        const ars = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('active')).find((r) => r.labelKey === 'ars')
+        expect(ars?.chip).toBe('notAvailable')
     })
 })

@@ -158,10 +158,12 @@ describe('useCreateRequestLink', () => {
             expect(result.current.bankInstructionsShared).toBe(true)
         })
 
-        it('starts off when only a business may pay', () => {
+        // hugo, QA 2026-09-24: on wherever it is offered; the toggle and the
+        // payer's screen say who may pay instead
+        it('starts on when only a business may pay, too', () => {
             mockDepositAccounts = { FASTER_PAYMENTS_GB: activeAccount('business-only') }
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
-            expect(result.current.bankInstructionsShared).toBe(false)
+            expect(result.current.bankInstructionsShared).toBe(true)
         })
 
         it('starts off when only the holder may pay', () => {
@@ -184,12 +186,13 @@ describe('useCreateRequestLink', () => {
 
         it('reads the account the payer is given, in catalogue order', () => {
             mockDepositAccounts = {
-                ACH_US: activeAccount('business-only'),
-                SEPA_EU: activeAccount('anyone'),
+                ACH_US: activeAccount('anyone'),
+                SEPA_EU: activeAccount('own-name-only'),
             }
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
-            // SEPA_EU comes first in DEPOSIT_RAIL_ORDER, so its 'anyone' wins.
-            expect(result.current.bankInstructionsShared).toBe(true)
+            // SEPA_EU comes first in DEPOSIT_RAIL_ORDER, so the payer would be
+            // given it, and nobody but its holder can pay it.
+            expect(result.current.bankInstructionsShared).toBe(false)
         })
 
         it('lets the user turn the default off and does not re-enable it', () => {

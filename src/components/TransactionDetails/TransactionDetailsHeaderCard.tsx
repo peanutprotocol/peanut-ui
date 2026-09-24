@@ -61,6 +61,8 @@ interface TransactionDetailsHeaderCardProps {
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
+    /** one line under the status badge, e.g. why a deposit was returned */
+    statusNote?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -234,6 +236,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     showFullName,
     fullName,
     countryCode,
+    statusNote,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -383,6 +386,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     ) : (
                         <Badge status={status!} size="medium" />
                     ))}
+                {statusNote && <p className="text-body-s text-foreground-secondary">{statusNote}</p>}
             </div>
         </div>
     )

@@ -35,6 +35,8 @@ export interface UnlockRow {
     regionPath?: 'europe' | 'north-america' | 'latam'
     /** card and Pix-key rows: navigate instead of opening a region modal */
     href?: string
+    /** the explainer line under the title, as a key under profile.unlockPayments */
+    note?: 'qrPayNote' | 'pixKeyNote' | 'pixSendNote'
     /**
      * Which limits apply once the row is active: Manteca per-currency
      * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
@@ -264,6 +266,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         labelKey: 'qrPay',
         icon: 'qr-code',
         chip: qrChip,
+        note: 'qrPayNote',
         limitRefs: ['BRL', 'ARS'],
         ...(qrChip === 'active' || qrChip === 'notAvailable' ? {} : { regionPath: 'latam' as const }),
     }
@@ -281,6 +284,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         labelKey: 'pixKey',
         icon: 'arrow-up-right',
         chip: pixKeyChip,
+        note: 'pixKeyNote',
         ...(pixKeyChip === 'active'
             ? { href: mantecaWithdrawUrl({ method: 'pix', country: 'brazil' }) }
             : pixKeyChip === 'notAvailable'
@@ -311,6 +315,30 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             rows: [cardRow, qrRow, pixKeyRow],
         },
     ]
+}
+
+/**
+ * The bank rows as Accounts and payments lists them: a BRL row closed only by
+ * residence speaks for sending to a Pix key instead.
+ *
+ * Adding reais by Pix is for Brazilian residents, but every verified user can
+ * send to any Pix key (hugo, 2026-09-24, QA-12) — the one way BRL leaves
+ * Peanut. So outside Brazil the row carries the Pix key row's status and tap
+ * target, with a note that says it is for sending. Add money keeps the closed
+ * row: adding is the only thing that screen offers.
+ */
+export function withPixSend(rows: readonly UnlockRow[], pixKeyRow: UnlockRow | undefined): UnlockRow[] {
+    return rows.map((row) => {
+        if (!pixKeyRow || row.labelKey !== 'brl' || row.unavailableBecause !== 'residence') return row
+        const { unavailableBecause: _closed, regionPath: _region, ...open } = row
+        return {
+            ...open,
+            chip: pixKeyRow.chip,
+            note: 'pixSendNote',
+            ...(pixKeyRow.href ? { href: pixKeyRow.href } : {}),
+            ...(pixKeyRow.regionPath ? { regionPath: pixKeyRow.regionPath } : {}),
+        }
+    })
 }
 
 /**

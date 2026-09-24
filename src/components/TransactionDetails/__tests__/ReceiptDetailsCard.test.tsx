@@ -83,6 +83,15 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
         expect(screen.queryByText('Estimate conversion')).not.toBeInTheDocument()
     })
 
+    // QA 2026-09-24 (QA-08): one word for the returned state, on the badge and the date row
+    it('dates a returned deposit as Returned, never Refunded', () => {
+        renderWithIntl(
+            <Card transaction={vaDeposit({ status: 'refunded', actionLabelKey: 'type.returnedToSender' })} />
+        )
+        expect(screen.getByText('Returned')).toBeInTheDocument()
+        expect(screen.queryByText('Refunded')).not.toBeInTheDocument()
+    })
+
     it('keeps the estimate wording only while pending', () => {
         renderWithIntl(<Card transaction={vaDeposit({ status: 'pending', completedAt: undefined })} />)
         expect(screen.getByText('Estimate conversion')).toBeInTheDocument()

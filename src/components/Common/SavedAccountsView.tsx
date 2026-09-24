@@ -30,7 +30,9 @@ interface SavedAccountListProps {
     savedAddresses?: SavedAddress[]
     onSavedAddressClick?: (saved: SavedAddress) => void
     onSavedAddressEdit?: (saved: SavedAddress) => void
-    /** optional "Exchange or Wallet" row (withdraw board 17832:80463) */
+    /** withdraw board 17832:80463: one section per rail instead of the single saved list */
+    railSections?: boolean
+    /** the crypto section; omitted when the user already chose bank (Send → Bank) */
     onCryptoClick?: () => void
 }
 
@@ -54,6 +56,7 @@ export default function SavedAccountsView({
     savedAddresses = [],
     onSavedAddressClick,
     onSavedAddressEdit,
+    railSections = false,
     onCryptoClick,
 }: SavedAccountListProps) {
     const t = useTranslations('global')
@@ -64,9 +67,9 @@ export default function SavedAccountsView({
         <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
-                {onCryptoClick ? (
-                    // withdraw flow (board 17832:80463): both rails stay visible even when
-                    // one has no saved destinations, so bank and crypto withdrawal are
+                {railSections ? (
+                    // withdraw flow (board 17832:80463): each offered rail stays visible even
+                    // when it has no saved destinations, so bank and crypto withdrawal are
                     // always reachable. Saved rows sit under their rail's entry row (TASK-22589).
                     <>
                         <Section title={t('savedAccounts.bankSectionTitle')}>
@@ -80,33 +83,33 @@ export default function SavedAccountsView({
                             <ListItem
                                 position="solo"
                                 leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                                // a ReactNode title wraps; a bare string is cut to one
-                                // line, and the pt-BR label does not fit at 375
-                                title={<span>{tWithdraw('withdrawToBank')}</span>}
+                                title={tWithdraw('withdrawToBank')}
                                 body={tSend('methods.bankDescription')}
                                 trailing={plusTrailing}
                                 onClick={onSelectNewMethodClick}
                                 data-testid="withdraw-add-bank"
                             />
                         </Section>
-                        <Section title={t('savedAddresses.title')}>
-                            {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
-                                <SavedAddressesList
-                                    savedAddresses={savedAddresses}
-                                    onSelect={onSavedAddressClick}
-                                    onEdit={onSavedAddressEdit}
+                        {onCryptoClick && (
+                            <Section title={t('savedAddresses.title')}>
+                                {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
+                                    <SavedAddressesList
+                                        savedAddresses={savedAddresses}
+                                        onSelect={onSavedAddressClick}
+                                        onEdit={onSavedAddressEdit}
+                                    />
+                                )}
+                                <ListItem
+                                    position="solo"
+                                    leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
+                                    title={tWithdraw('withdrawToCrypto')}
+                                    body={tSend('methods.exchangeOrWalletDescription')}
+                                    trailing={plusTrailing}
+                                    onClick={onCryptoClick}
+                                    data-testid="withdraw-add-crypto"
                                 />
-                            )}
-                            <ListItem
-                                position="solo"
-                                leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
-                                title={tWithdraw('withdrawToCrypto')}
-                                body={tSend('methods.exchangeOrWalletDescription')}
-                                trailing={plusTrailing}
-                                onClick={onCryptoClick}
-                                data-testid="withdraw-add-crypto"
-                            />
-                        </Section>
+                            </Section>
+                        )}
                     </>
                 ) : (
                     // legacy callers (claim's BankFlowManager) keep the single saved-list +
@@ -156,6 +159,7 @@ export function SavedAccountsMapping({
                 <ListItem
                     key={account.id}
                     title={destinationLabel(destination)}
+                    truncate
                     body={destination.identifier}
                     position="solo"
                     onClick={() => onItemClick(account, path)}

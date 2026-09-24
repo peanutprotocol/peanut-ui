@@ -69,6 +69,12 @@ export function ClosedRowDrawer({
                     body: tAccounts('bankNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            case 'card-restricted':
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body: tAccounts('cardNotAvailableNote'),
+                    cta: { label: tCommon('gotIt') },
+                }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),

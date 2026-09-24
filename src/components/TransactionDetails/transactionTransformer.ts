@@ -100,7 +100,8 @@ export interface DrawerDepositInstructions {
     amount: string
     currency: string
     bank_name: string
-    bank_address: string
+    /** absent on some rails — Mexican SPEI has none */
+    bank_address?: string
     payment_rail: string
     deposit_message: string
     // US format

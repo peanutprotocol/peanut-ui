@@ -5,33 +5,24 @@ import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
 import { canShare } from '@/features/deposit-accounts/resolveScreen'
 import { SKELETON_PULSE } from '@/features/deposit-accounts/skeleton'
+import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 
 /**
- * The warning line for a corridor that changes who may pay. An account anybody
- * can pay into needs none.
- */
-const SENDER_LINE_KEYS = {
-    anyone: undefined,
-    'business-only': 'bankInstructions.businessPays',
-    unknown: 'bankInstructions.unknownPays',
-} as const
-
-/**
  * Let the payer settle this request straight into the requester's bank
  * account.
  *
- * Off by default, and only offered to a user who holds an account the money
- * could arrive in. Offering it otherwise would promise a payer bank details
+ * On by default (QA 2026-09-24), and only offered to a user who holds an
+ * account the money could arrive in. Offering it otherwise would promise a payer bank details
  * that do not exist, and the request would sit open waiting for a transfer
  * nobody could make.
  *
  * The corridor decides more than that. An account that only credits a transfer
  * from its own holder has nothing a third party can pay into, so the option is
- * not offered at all; a corridor that takes business money alone returns a
- * friend's transfer, so the requester reads that before they share the link.
+ * not offered at all; a corridor that limits who may pay says so in the same
+ * line the account details and the payer's screen show (`senderLimit`).
  * Both come from the sender policy of the SAME account the payer will be given
  * — the first active one, in catalogue order, as the deposit-instructions route
  * picks it.
@@ -51,6 +42,7 @@ export function BankInstructionsToggle({
 }) {
     const t = useTranslations('request')
     const { accounts, gates, isLoading } = useDepositAccounts()
+    const { senderLimit } = useDepositAccountCopy()
 
     // Hold the row's place while the accounts load, so the row does not
     // appear later and push Create down under the user's thumb.
@@ -65,28 +57,18 @@ export function BankInstructionsToggle({
     const gate = corridor ? gates[corridor] : undefined
     if (!account || !gate || !canShare(account, gate)) return null
 
-    const sender = account.matching.sender
-    // canShare already excludes own-name-only; this narrows the copy-line type.
-    if (sender === 'own-name-only') return null
-
     // One title for both positions (Konrad, 2026-09-23). While it is on, one
     // line says what a payer sees: the requester's full legal name leaves with
     // the details, and the profile asks before it shows that name at all. A
     // corridor that limits who may pay adds its warning to the same line.
-    const senderLine = SENDER_LINE_KEYS[sender]
+    const senderLine = senderLimit(account.matching)?.text
 
     return (
         <ListItem
             position="solo"
             className="w-full"
-            // ListItem truncates a string title, and the es/pt titles run past
-            // one line at 375px. A node title wraps.
-            title={<span className="break-words whitespace-normal">{t('bankInstructions.title')}</span>}
-            body={
-                checked
-                    ? [t('bankInstructions.disclosure'), senderLine && t(senderLine)].filter(Boolean).join(' ')
-                    : undefined
-            }
+            title={t('bankInstructions.title')}
+            body={checked ? [t('bankInstructions.disclosure'), senderLine].filter(Boolean).join(' ') : undefined}
             bodyWrap
             trailing={
                 <Toggle

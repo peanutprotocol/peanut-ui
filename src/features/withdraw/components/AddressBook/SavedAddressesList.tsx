@@ -56,6 +56,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             <ListItem
                                 position="solo"
                                 title={label}
+                                truncate
                                 body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
                                 bodyWrap
                                 // one leading element: the chain logo. the wallet

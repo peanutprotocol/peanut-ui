@@ -216,13 +216,13 @@ describe('RequestBankInstructions', () => {
         it('warns the payer on a business-only corridor', () => {
             renderInstructions('EUR', 'sepa_eu', undefined, 'business-only')
 
-            expect(screen.getByText(/Only a business account can pay this/)).toBeInTheDocument()
+            expect(screen.getByText(/Only the account holder or a business can pay in/)).toBeInTheDocument()
         })
 
         it('warns the payer where the corridor confirms no third-party policy', () => {
             renderInstructions('EUR', 'sepa_eu', undefined, 'unknown')
 
-            expect(screen.getByText(/has not confirmed it accepts payments from other people/)).toBeInTheDocument()
+            expect(screen.getByText(/has not confirmed transfers from other people/)).toBeInTheDocument()
         })
 
         it('shows no warning on a corridor anyone can pay', () => {
