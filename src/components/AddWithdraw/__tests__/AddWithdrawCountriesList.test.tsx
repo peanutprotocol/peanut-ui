@@ -108,12 +108,19 @@ const mockGateForOp = jest.fn()
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
-function setCapabilities(gateKind: string, rails: Array<{ status: string; channel?: string; country?: string }>) {
+type GateScopeArg = { channel?: string; country?: string } | undefined
+function setCapabilities(
+    gateKind: string,
+    rails: Array<{ status: string; channel?: string; country?: string }>,
+    // a per-scope answer, for the case where the screen's country-scoped gate
+    // and another read (the ToS guard's unscoped deposit read) disagree
+    gateByScope?: (op: string, scope: GateScopeArg) => string
+) {
     mockUseCapabilities.mockReturnValue({
         isKycApproved: rails.some((r) => r.status === 'enabled'),
-        gateFor: (op: string) => {
-            mockGateForOp(op)
-            return { kind: gateKind }
+        gateFor: (op: string, scope: GateScopeArg) => {
+            mockGateForOp(op, scope)
+            return { kind: gateByScope?.(op, scope) ?? gateKind }
         },
         // bankRails is intentionally NOT consumed by the component any more;
         // expose a faithful (scope-honoring) impl so a future re-introduction
@@ -127,9 +134,20 @@ function setCapabilities(gateKind: string, rails: Array<{ status: string; channe
 // fetchUser is configurable: the new-account submit path refetches the user
 // and picks the account that appeared (Chip round 10)
 const mockFetchUser = jest.fn().mockResolvedValue(undefined)
+// one stable reference, as React Query hands out: a submit tells "the context
+// has rendered a newer user" apart from "the same user" by identity
+let mockAuthUser: unknown = { accounts: [] }
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: [] }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockAuthUser, fetchUser: mockFetchUser }),
 }))
+// The submit resolves its gate from the profile the fetch returns, through the
+// real deriveGate — so a fetched profile says what its own bank rail allows.
+const enabledUsBankRail = { id: 'bridge.us', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }
+const fetchedProfile = (accounts: unknown[] = [], rails: unknown[] = [enabledUsBankRail]) => ({
+    accounts,
+    capabilities: { rails, nextActions: [], restrictions: [] },
+    identityVerification: { status: rails.length > 0 ? 'verified' : 'pending' },
+})
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -145,9 +163,7 @@ jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
-jest.mock('@/hooks/useTosGuard', () => ({
-    useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
-}))
+// useTosGuard is real: its own unscoped deposit read is what the ToS regressions below exercise
 let mockCooldown: { retryAt?: string } | null = null
 const mockDismissCooldown = jest.fn()
 beforeEach(() => {
@@ -227,6 +243,12 @@ jest.mock('@/components/Global/Badges/Badge', () => ({
     __esModule: true,
     default: (props: any) => <span data-testid="status-badge">{props.customText ?? props.status}</span>,
 }))
+// the row spinner a held tap shows, and the "please wait" modal a wait-only gate opens
+jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="row-loading" /> }))
+jest.mock('@/components/Kyc/KycReverificationPendingModal', () => ({
+    KycReverificationPendingModal: (props: { isOpen: boolean }) =>
+        props.isOpen ? <div data-testid="wait-modal" /> : null,
+}))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => <span /> }))
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({ __esModule: true, default: () => <div /> }))
 // capture the props the list hands the bank form — the existing-account
@@ -242,14 +264,21 @@ jest.mock('@/components/Global/TokenAndNetworkConfirmationDrawer', () => ({ __es
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
+jest.mock('@/components/Kyc/BridgeTosStep', () => ({
+    BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
+        props.visible ? <div data-testid="bridge-tos-step" data-reason={props.reasonCode} /> : null,
+}))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     __esModule: true,
     default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
 }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) =>
-        props.visible && !props.cooldownActive ? <div data-testid="initiate-kyc-modal" /> : null,
+        props.visible && !props.cooldownActive ? (
+            <div data-testid="initiate-kyc-modal" data-variant={props.variant} data-reason={props.reasonCode}>
+                {props.providerMessage}
+            </div>
+        ) : null,
 }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 
@@ -317,6 +346,8 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
     it('withdraw flow: a non-ready gate blocks form submission and surfaces KYC', async () => {
         setCapabilities('needs-identity', [])
+        // the submit gates on the profile it re-fetches: no rail, identity not verified
+        mockFetchUser.mockResolvedValueOnce(fetchedProfile([], []))
 
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
@@ -502,7 +533,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
         // the refetched user carries the freshly added account
-        mockFetchUser.mockResolvedValue({ accounts: [newAccount] })
+        mockFetchUser.mockResolvedValue(fetchedProfile([newAccount]))
     })
 
     afterEach(() => {
@@ -597,7 +628,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         mockNuqsParams = { step: 'form' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
-        mockFetchUser.mockResolvedValue({ accounts: [{ id: 'acct-new', bridgeAccountId: 'ext-new' }] })
+        mockFetchUser.mockResolvedValue(fetchedProfile([{ id: 'acct-new', bridgeAccountId: 'ext-new' }]))
     })
 
     afterEach(() => {
@@ -712,16 +743,20 @@ describe('AddWithdrawCountriesList — gates on the flow it is running', () => {
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
     })
 
+    // the country-scoped read is the screen's own; the ToS guard's unscoped
+    // deposit read (no country) is not the screen asking
+    const countryScoped = expect.objectContaining({ country: 'US' })
+
     it('the withdraw flow asks the gate for the withdraw capability, never deposit', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
-        expect(mockGateForOp).toHaveBeenCalledWith('withdraw')
-        expect(mockGateForOp).not.toHaveBeenCalledWith('deposit')
+        expect(mockGateForOp).toHaveBeenCalledWith('withdraw', countryScoped)
+        expect(mockGateForOp).not.toHaveBeenCalledWith('deposit', countryScoped)
     })
 
     it('the add flow asks the gate for the deposit capability', () => {
         render(<AddWithdrawCountriesList flow="add" />)
-        expect(mockGateForOp).toHaveBeenCalledWith('deposit')
-        expect(mockGateForOp).not.toHaveBeenCalledWith('withdraw')
+        expect(mockGateForOp).toHaveBeenCalledWith('deposit', countryScoped)
+        expect(mockGateForOp).not.toHaveBeenCalledWith('withdraw', expect.anything())
     })
 })
 
@@ -850,5 +885,480 @@ describe('AddWithdrawCountriesList — the form refuses a country with no bank c
 
         expect(mockBankFormProps).toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * A tap made before capabilities have answered (TASK-22153).
+ *
+ * The bank gate reads `loading` until the user query settles. The rail click
+ * and the form submit both used to return early on it with nothing on screen:
+ * the tap looked ignored, and a second one was needed once the answer was in.
+ * Now the tap is held where it was made — the row shows the wait, the submit
+ * button keeps its spinner — and runs once, when the gate has answered: on to
+ * the destination when ready, into the existing block otherwise.
+ */
+describe('AddWithdrawCountriesList — a tap made while capabilities are still loading', () => {
+    const enabledUs = [{ status: 'enabled', channel: 'bank', country: 'US' }]
+    // two live rails, so the withdraw flow shows its rail list instead of
+    // skipping straight to the form
+    const twoWithdrawRails = [
+        { id: 'us-default-bank-withdraw', title: 'To Bank' },
+        { id: 'crypto-withdraw', title: 'Crypto' },
+    ]
+    const cryptoRail = {
+        id: 'crypto-withdraw',
+        title: 'Crypto',
+        description: 'To a wallet or exchange',
+        icon: 'wallet-outline',
+        isSoon: false,
+        path: '/withdraw/crypto',
+    }
+    const { COUNTRY_SPECIFIC_METHODS } = jest.requireMock('@/components/AddMoney/consts')
+    let previousWithdraw: Array<Record<string, unknown>>
+
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockSetSelectedMethod.mockClear()
+        mockSetSelectedBankAccount.mockClear()
+        mockBankFormProps.mockClear()
+        mockUrlUpdate.mockClear()
+        previousWithdraw = COUNTRY_SPECIFIC_METHODS.US.withdraw
+        setCapabilities('loading', [])
+    })
+
+    afterEach(() => {
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = previousWithdraw
+        mockLiveRails = null
+        mockNuqsParams = {}
+        ;(addBankAccount as jest.Mock).mockReset()
+        mockFetchUser.mockReset()
+        mockFetchUser.mockResolvedValue(undefined)
+    })
+
+    const settle = (rerender: (ui: React.ReactElement) => void, flow: 'add' | 'withdraw', kind: string) => {
+        setCapabilities(kind, kind === 'ready' ? enabledUs : [])
+        rerender(withProviders(<AddWithdrawCountriesList flow={flow} />))
+    }
+
+    it('add flow, cold: the tapped row shows the wait, then continues on its own once the gate is ready', () => {
+        const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        // registered, not dropped: the row is waiting, nothing navigated, no modal
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+        expect(within(screen.getByTestId('method-bank')).getByTestId('row-loading')).toBeInTheDocument()
+        expect(screen.getByTestId('method-bank')).toBeDisabled()
+
+        settle(rerender, 'add', 'ready')
+
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/testland/bank')
+        expect(screen.queryByTestId('row-loading')).toBeNull()
+    })
+
+    it('add flow: a gate that settles blocked opens the existing block instead of dropping the tap', () => {
+        const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        settle(rerender, 'add', 'needs-identity')
+
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+        expect(screen.queryByTestId('row-loading')).toBeNull()
+    })
+
+    it('repeated taps on the waiting row produce one transition', () => {
+        const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+        fireEvent.click(screen.getByTestId('method-bank'))
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        settle(rerender, 'add', 'ready')
+
+        expect(mockPush).toHaveBeenCalledTimes(1)
+    })
+
+    it('a tap on another row replaces the held one, so the old selection never runs', () => {
+        const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+        fireEvent.click(screen.getByTestId('method-pix'))
+
+        expect(within(screen.getByTestId('method-pix')).getByTestId('row-loading')).toBeInTheDocument()
+        expect(within(screen.getByTestId('method-bank')).queryByTestId('row-loading')).toBeNull()
+
+        settle(rerender, 'add', 'ready')
+
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+
+    it('withdraw flow: the bank rail is held, then opens the bank form once the gate is ready', async () => {
+        mockLiveRails = twoWithdrawRails
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = [...previousWithdraw, cryptoRail]
+        const { rerender } = render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-to bank'))
+
+        expect(screen.queryByTestId('bank-form')).toBeNull()
+        expect(within(screen.getByTestId('method-to bank')).getByTestId('row-loading')).toBeInTheDocument()
+
+        settle(rerender, 'withdraw', 'ready')
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', title: 'To Bank' })
+        )
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
+    })
+
+    it('withdraw flow: a rail that needs no bank capability is not held back by the gate', () => {
+        mockLiveRails = twoWithdrawRails
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = [...previousWithdraw, cryptoRail]
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-crypto'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/crypto')
+        expect(screen.queryByTestId('row-loading')).toBeNull()
+    })
+
+    /**
+     * The selected country's withdraw rail needs terms while another deposit
+     * rail is ready. The ToS guard's unscoped deposit read says ready; the step
+     * opens on the country-scoped verdict this screen resolved.
+     */
+    it('withdraw flow: the selected country needs terms although a deposit rail is ready — the terms step opens', () => {
+        mockLiveRails = twoWithdrawRails
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = [...previousWithdraw, cryptoRail]
+        setCapabilities('ready', enabledUs, (op, scope) =>
+            op === 'withdraw' && scope?.country === 'US' ? 'accept-tos' : 'ready'
+        )
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-to bank'))
+
+        expect(screen.getByTestId('bridge-tos-step')).toBeInTheDocument()
+        expect(screen.queryByTestId('bank-form')).toBeNull()
+        expect(mockSetSelectedMethod).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('a wait-only gate says so instead of dropping the tap', () => {
+        setCapabilities('waiting-on-provider', [])
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+        expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    /**
+     * The submit answers from the profile it fetches, and belongs to the
+     * screen it was made on. A fetch that brings no profile waits for a render
+     * whose gate has settled. Leaving the screen — back, another country in
+     * the same mount (the native `?country=` path), unmount — stops the submit
+     * at its next await and settles it silently, so the form's spinner resets.
+     */
+    describe('the bank form submitted while the gate is loading', () => {
+        const payload = {
+            countryCode: 'US',
+            countryName: 'Testland',
+            accountOwnerName: { firstName: 'Ada', lastName: 'Lovelace' },
+        }
+        const cancelled = { error: 'cancelled', silent: true }
+        const newAccount = { id: 'acct-new', bridgeAccountId: 'ext-new' }
+
+        beforeEach(() => {
+            mockNuqsParams = { step: 'form' }
+            ;(addBankAccount as jest.Mock).mockResolvedValue({ data: newAccount })
+            mockFetchUser.mockResolvedValue(fetchedProfile([newAccount]))
+        })
+
+        afterEach(() => {
+            mockParams.country = 'testland'
+            mockAuthUser = { accounts: [] }
+        })
+
+        const submit = () => {
+            const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+                onSuccess: (payload: unknown, rawData: unknown) => Promise<{ error?: string; silent?: boolean }>
+            }
+            return props.onSuccess(payload, {})
+        }
+        // a fetch the test finishes by hand
+        const deferFetch = () => {
+            let finish: (profile: unknown) => void = () => {}
+            mockFetchUser.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+            return (profile: unknown) => finish(profile)
+        }
+
+        it('loading at render, the fetch answers ready: adds the account once, with no re-render needed', async () => {
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+            const result = submit()
+            await act(async () => {
+                await expect(result).resolves.toEqual({})
+            })
+
+            // the gating refresh is strict: a failed refresh must reject, not hand back the cache
+            expect(mockFetchUser).toHaveBeenNthCalledWith(1, { throwOnError: true })
+            expect(addBankAccount).toHaveBeenCalledTimes(1)
+            expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+        })
+
+        it('the refresh fails while the render says ready: a visible error, nothing sent from the cache', async () => {
+            setCapabilities('ready', enabledUs)
+            mockFetchUser.mockRejectedValueOnce(new Error('Failed to fetch'))
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+
+            const result = submit()
+            await act(async () => {
+                await expect(result).resolves.toEqual({
+                    error: 'Something went wrong. Please try again or contact support.',
+                })
+            })
+
+            expect(addBankAccount).not.toHaveBeenCalled()
+            expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+            expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+            expect(screen.queryByTestId('wait-modal')).toBeNull()
+        })
+
+        it('back while the refresh is failing: the submit settles cancelled, with no error on a screen that is gone', async () => {
+            mockLiveRails = twoWithdrawRails
+            let fail: (error: Error) => void = () => {}
+            mockFetchUser.mockImplementationOnce(() => new Promise((_, reject) => (fail = reject)))
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+            const result = submit()
+
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('nav-header'))
+            })
+            await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+
+            await act(async () => {
+                fail(new Error('Failed to fetch'))
+                await expect(result).resolves.toEqual(cancelled)
+            })
+            expect(addBankAccount).not.toHaveBeenCalled()
+        })
+
+        it('ready at render, the fetch answers blocked: the fetched answer wins over the stale render', async () => {
+            setCapabilities('ready', enabledUs)
+            mockFetchUser.mockResolvedValue(fetchedProfile([], []))
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+
+            const result = submit()
+            await act(async () => {
+                await expect(result).resolves.toEqual({ error: 'gate_blocked', silent: true })
+            })
+
+            expect(addBankAccount).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+            expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+        })
+
+        // The refresh answers null for an expired session or a failed request.
+        // There is no profile to gate on, so nothing is sent — and the form
+        // says so, rather than resting on whatever the render last said.
+        it.each([
+            ['ready', enabledUs],
+            ['loading', []],
+        ])(
+            'the refresh brings no profile while the render says %s: a visible error, nothing sent',
+            async (kind, rails) => {
+                setCapabilities(kind, rails)
+                mockFetchUser.mockResolvedValue(null)
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                const result = submit()
+                await act(async () => {
+                    await expect(result).resolves.toEqual({
+                        error: 'Something went wrong. Please try again or contact support.',
+                    })
+                })
+
+                expect(addBankAccount).not.toHaveBeenCalled()
+                expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()
+                expect(mockPush).not.toHaveBeenCalled()
+                expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+                expect(screen.queryByTestId('wait-modal')).toBeNull()
+            }
+        )
+
+        /**
+         * The fetched verdict is what blocked the submit, so it is what the
+         * blocker shows — even while the context still renders the older
+         * `ready` user. The override lasts until the context renders a newer
+         * user, then the context gate carries on.
+         */
+        describe('a blocker from the fetched verdict, before the context has caught up', () => {
+            const waitRail = {
+                ...enabledUsBankRail,
+                status: 'requires-info',
+                blockingActions: ['wait:review'],
+                reason: { code: 'under_review', userMessage: 'We are reviewing your details.' },
+            }
+            const pendingRail = { ...enabledUsBankRail, status: 'pending' }
+            const blockedRail = {
+                ...enabledUsBankRail,
+                status: 'blocked',
+                reason: { code: 'account_closed', userMessage: 'This account was closed by the provider.' },
+            }
+            const profileWith = (rail: unknown, nextActions: unknown[] = []) => ({
+                ...fetchedProfile([], [rail]),
+                capabilities: { rails: [rail], nextActions, restrictions: [] },
+            })
+
+            beforeEach(() => {
+                setCapabilities('ready', enabledUs)
+            })
+
+            it('ready → pending: the wait modal shows from the fetched verdict', async () => {
+                mockFetchUser.mockResolvedValue(profileWith(pendingRail))
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                await act(async () => {
+                    await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
+                })
+
+                expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+                expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+                expect(addBankAccount).not.toHaveBeenCalled()
+            })
+
+            it('ready → waiting-on-provider: the wait modal shows from the fetched verdict', async () => {
+                mockFetchUser.mockResolvedValue(profileWith(waitRail, [{ key: 'wait:review', kind: 'wait' }]))
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                await act(async () => {
+                    await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
+                })
+
+                expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+                expect(addBankAccount).not.toHaveBeenCalled()
+            })
+
+            /**
+             * The ToS guard's own read is the unscoped deposit gate, which still
+             * says ready here. The step opens on the verdict this screen resolved.
+             */
+            it('ready → accept-tos from the fetched profile: the terms step opens, account unsent', async () => {
+                const tosRail = {
+                    ...enabledUsBankRail,
+                    status: 'requires-info',
+                    blockingActions: ['tos:bridge'],
+                    reason: { code: 'tos_required', userMessage: 'Accept the terms to continue.' },
+                }
+                mockFetchUser.mockResolvedValue(
+                    profileWith(tosRail, [{ key: 'tos:bridge', kind: 'accept-tos', tosUrl: 'https://tos.example' }])
+                )
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                await act(async () => {
+                    await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
+                })
+
+                expect(screen.getByTestId('bridge-tos-step')).toHaveAttribute('data-reason', 'tos_required')
+                expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+                expect(addBankAccount).not.toHaveBeenCalled()
+                expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()
+                expect(mockPush).not.toHaveBeenCalled()
+            })
+
+            it('ready → blocked-rejection: the KYC modal presents the reason of the gate that blocked', async () => {
+                mockFetchUser.mockResolvedValue(profileWith(blockedRail))
+                render(<AddWithdrawCountriesList flow="withdraw" />)
+
+                await act(async () => {
+                    await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
+                })
+
+                const modal = screen.getByTestId('initiate-kyc-modal')
+                expect(modal).toHaveAttribute('data-variant', 'blocked')
+                expect(modal).toHaveAttribute('data-reason', 'account_closed')
+                expect(modal).toHaveTextContent('This account was closed by the provider.')
+            })
+
+            it('the override ends when the context renders a newer user, and the context gate carries on', async () => {
+                const pendingProfile = profileWith(pendingRail)
+                mockFetchUser.mockResolvedValue(pendingProfile)
+                const { rerender } = render(<AddWithdrawCountriesList flow="withdraw" />)
+                await act(async () => {
+                    await submit()
+                })
+                expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+
+                // the context catches up with the same verdict: still waiting
+                mockAuthUser = pendingProfile
+                settle(rerender, 'withdraw', 'pending')
+                expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+
+                // remediation lands: the context says ready, and nothing stale keeps the wait on screen
+                mockAuthUser = fetchedProfile()
+                settle(rerender, 'withdraw', 'ready')
+                expect(screen.queryByTestId('wait-modal')).toBeNull()
+            })
+        })
+
+        it('back during the fetch: the submit settles cancelled and the answer that arrives later sends nothing', async () => {
+            mockLiveRails = twoWithdrawRails
+            const finishFetch = deferFetch()
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+            const result = submit()
+
+            // back to the rail list while the fetch is still out
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('nav-header'))
+            })
+            await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+
+            await act(async () => {
+                finishFetch(fetchedProfile([newAccount]))
+                await expect(result).resolves.toEqual(cancelled)
+            })
+
+            expect(addBankAccount).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('another country in the same mount cancels the old submit, and a fresh one on the new country goes through', async () => {
+            const finishFetch = deferFetch()
+            const { rerender } = render(<AddWithdrawCountriesList flow="withdraw" />)
+            const stale = submit()
+
+            // the native path: the country arrives as a query change, the form stays mounted
+            mockParams.country = 'aland'
+            rerender(withProviders(<AddWithdrawCountriesList flow="withdraw" />))
+            expect(mockBankFormProps.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ country: 'ALA' }))
+
+            await act(async () => {
+                finishFetch(fetchedProfile([newAccount]))
+                await expect(stale).resolves.toEqual(cancelled)
+            })
+            expect(addBankAccount).not.toHaveBeenCalled()
+
+            // a new submit on the new country is not held back by the cancelled one
+            const fresh = submit()
+            await act(async () => {
+                await expect(fresh).resolves.toEqual({})
+            })
+            expect(addBankAccount).toHaveBeenCalledTimes(1)
+            expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+        })
+
+        it('unmount during the fetch: the submit settles cancelled and nothing runs afterwards', async () => {
+            const finishFetch = deferFetch()
+            const { unmount } = render(<AddWithdrawCountriesList flow="withdraw" />)
+            const result = submit()
+
+            unmount()
+            await act(async () => {
+                finishFetch(fetchedProfile([newAccount]))
+                await expect(result).resolves.toEqual(cancelled)
+            })
+            expect(addBankAccount).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+            expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()
+        })
     })
 })
