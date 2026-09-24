@@ -1,0 +1,87 @@
+name: Backdoor guard
+
+# A second copy of backdoor-scan that a PR cannot switch off. `tests.yml` runs
+# the scan too, but it runs the PR's own copy of that workflow, and a PR can
+# edit a workflow. This one runs as pull_request_target: the workflow file and
+# the scanner both come from the BASE branch.
+#
+# It never checks out, installs or runs the PR's code. It fetches the PR's
+# commits as git objects and reads the diff as text. It comments on the PR
+# when the scan blocks, or when the PR changes a workflow or the scanner
+# itself -- the two ways around the check in tests.yml.
+#
+# Never add a step here that runs anything from the PR head.
+
+on:
+    pull_request_target:
+        types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+    group: backdoor-guard-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    guard:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v4 # the BASE branch, as pull_request_target does
+              with:
+                  fetch-depth: 0
+            - name: Fetch the PR's commits as data
+              env:
+                  PR: ${{ github.event.pull_request.number }}
+              run: git fetch --no-tags origin "refs/pull/$PR/head:refs/guard/head"
+            - name: Scan the PR's added lines
+              id: scan
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+              run: |
+                  set +e
+                  node scripts/backdoor-scan.mjs --base "$BASE_SHA" --head refs/guard/head --allow-ref "$BASE_SHA" --jev > "$RUNNER_TEMP/scan.txt" 2>&1
+                  status=$?
+                  cat "$RUNNER_TEMP/scan.txt"
+                  git diff --name-only "$BASE_SHA...refs/guard/head" \
+                      | grep -E '^(\.github/workflows/|\.github/backdoor-scan-allow\.txt$|scripts/backdoor-scan\.mjs$)' > "$RUNNER_TEMP/guarded.txt"
+                  echo "status=$status" >> "$GITHUB_OUTPUT"
+                  if [ -s "$RUNNER_TEMP/guarded.txt" ]; then echo "guarded=true" >> "$GITHUB_OUTPUT"; fi
+            - name: Comment on the PR
+              if: steps.scan.outputs.status == '1' || steps.scan.outputs.guarded == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+                  STATUS: ${{ steps.scan.outputs.status }}
+              run: |
+                  {
+                      if [ "$STATUS" = "1" ]; then
+                          echo "## 🚨 backdoor-scan blocked \`${HEAD_SHA:0:8}\`"
+                          echo
+                          echo "**Do not check out, install or run this branch** until someone other than its author has read every flagged line."
+                          echo "In July 2025 a payload hidden like this took over the machines of two reviewers who ran \`pnpm dev\` on a branch."
+                          echo
+                          echo '```'
+                          grep -E '^::(error|warning)|^(BLOCK|warn)' "$RUNNER_TEMP/scan.txt" | head -40 || true
+                          echo '```'
+                      fi
+                      if [ -s "$RUNNER_TEMP/guarded.txt" ]; then
+                          echo
+                          echo "## ⚠️ This PR changes CI workflows or the backdoor scan itself"
+                          echo
+                          echo "The scan in \`tests.yml\` runs this PR's own workflow, so a change here could switch it off. This check stays red until the change is merged. Someone other than the author must read these files before anyone runs the branch:"
+                          echo
+                          sed 's/^/- `/; s/$/`/' "$RUNNER_TEMP/guarded.txt"
+                      fi
+                  } > "$RUNNER_TEMP/comment.md"
+                  gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
+            # A change to a workflow or the scanner fails too. tests.yml runs the PR's own
+            # copy, so such a PR can switch its scan off; a red check here is the signal
+            # that someone other than the author must read it before anyone runs it.
+            - name: Fail when the scan blocks or the gates change
+              if: steps.scan.outputs.status == '1' || steps.scan.outputs.guarded == 'true'
+              run: exit 1
