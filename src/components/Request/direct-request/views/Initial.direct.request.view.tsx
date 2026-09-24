@@ -1,8 +1,8 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import AmountInput from '@/components/Global/AmountInput'
@@ -49,7 +49,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             router.replace(authUser ? '/setup/finish' : '/setup')
         }
     }, [authUser, isFetchingUser, userFetchError, needsSetup, router])
-    const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
+    const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -79,12 +79,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             rawFile: undefined,
         })
     }
-
-    // Displayed total spendable, single-sourced + formatted by the hook; empty
-    // while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(() => {
-        return balance === undefined ? '' : formattedSpendableBalance
-    }, [balance, formattedSpendableBalance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
@@ -245,13 +239,13 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader onPrev={onBack} title={tNav('request')} />
                 <PageStack.Center className="gap-4">
-                    <Notification priority="error">
+                    <Callout priority="error">
                         {t(
                             authUnavailable || contact.isError
                                 ? 'errors.contactsUnavailable'
                                 : 'errors.moneyContactsOnly'
                         )}
-                    </Notification>
+                    </Callout>
                     {(authUnavailable || contact.isError) && (
                         <Button onClick={() => (authUnavailable ? fetchUser() : contact.refetch())} icon="retry">
                             {tCommon('retry')}
@@ -299,6 +293,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
+                    avatarKey={recipientUser?.avatarKey}
                     isVerified={recipientUser?.isVerified ?? false}
                     haveSentMoneyToUser={contact.data.relationshipTypes.includes('sent_money')}
                 />
@@ -309,19 +304,20 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         initialAmount={currentInputValue}
                         setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
-                        walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
 
-                    <FileUploadInput
+                    <BaseInput
                         placeholder={tCommon('comment')}
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
-                        className="h-11"
+                        value={attachmentOptions.message}
+                        maxLength={140}
+                        onChange={(event) =>
+                            setAttachmentOptions({ ...attachmentOptions, message: event.target.value })
+                        }
                     />
                     {errorState.showError ? (
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             onClick={() => {
                                 setErrorState({ showError: false, errorMessage: '' })
@@ -345,7 +341,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                    {errorState.errorMessage && <Callout priority="error">{errorState.errorMessage}</Callout>}
                 </div>
             </PageStack.Center>
         </div>

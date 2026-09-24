@@ -23,7 +23,7 @@ import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useRequestContact } from '@/hooks/useRequestContact'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -240,11 +240,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     !isSelfProfile &&
                     !requestContact.isLoading &&
                     (!requestContact.data || requestContact.isError) && (
-                        <Notification priority="helper">
+                        <Callout priority="helper">
                             {tRequest(
                                 requestContact.isError ? 'errors.contactsUnavailable' : 'errors.moneyContactsOnly'
                             )}
-                        </Notification>
+                        </Callout>
                     )}
 
                 {/* badges row */}

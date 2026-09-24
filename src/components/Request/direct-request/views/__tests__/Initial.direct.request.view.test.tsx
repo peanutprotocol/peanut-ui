@@ -72,11 +72,6 @@ jest.mock('@/components/User/UserCard', () => ({
     default: () => <div data-testid="user-card" />,
 }))
 
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: () => <div data-testid="file-upload" />,
-}))
-
 jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
     __esModule: true,
     default: () => <div data-testid="validation-error-view" />,

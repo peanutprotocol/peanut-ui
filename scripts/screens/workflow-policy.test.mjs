@@ -84,5 +84,4 @@ test('immutable uploads run outside the short serialized index refresh', () => {
     assert.match(baseline, /node scripts\/screens\/rebuild-index\.mjs/)
     assert.match(publishRun, /updateSharedIndexes: false/)
     assert.match(baselinePublisher, /updateSharedIndexes: false/)
-
 })
