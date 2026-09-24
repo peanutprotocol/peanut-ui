@@ -338,7 +338,6 @@
         },
         "unlockPayments": {
             "title": "Accounts and payments",
-            "description": "Your accounts, payment methods and verification status.",
             "residence": {
                 "label": "Residence",
                 "unknown": "Residence not set",
@@ -1014,8 +1013,8 @@
             "cta": "Send via link"
         },
         "methods": {
-            "contactsTitle": "Peanut username",
-            "contactsDescription": "Enter an exact @username or choose a contact",
+            "contactsTitle": "Peanut user",
+            "contactsDescription": "Send to any Peanut user",
             "bankTitle": "Bank transfer",
             "bankDescription": "EUR, USD, MXN, ARS and more",
             "instantTransfers": "Instant transfers",
@@ -1075,8 +1074,7 @@
         "requestUpdatedToast": "Request updated successfully!",
         "created": {
             "title": "Request created",
-            "description": "Your link is ready to share.",
-            "createAnother": "Create another request"
+            "description": "Your link is ready to share."
         },
         "recipientPlaceholder": "Username, address, or ENS",
         "errors": {
@@ -4080,7 +4078,6 @@
         "title": "Your bank details",
         "list": {
             "addTitle": "Add money",
-            "addHeading": "How would you like to add money?",
             "bankTopUpTitle": "Add money from your bank",
             "oneOffBody": {
                 "BANK_TRANSFER_AR": "One-off transfer via Mercado Pago",

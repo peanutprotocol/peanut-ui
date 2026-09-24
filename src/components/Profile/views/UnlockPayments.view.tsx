@@ -423,7 +423,6 @@ const UnlockPayments = () => {
     return (
         <PageStack gap="6" className="pb-10">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-            <p className="text-body-s">{t('description')}</p>
 
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">

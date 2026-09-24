@@ -338,7 +338,6 @@
         },
         "unlockPayments": {
             "title": "Contas e pagamentos",
-            "description": "Suas contas, formas de pagamento e status de verificação.",
             "residence": {
                 "label": "Residência",
                 "unknown": "Residência não definida",
@@ -1015,7 +1014,7 @@
         },
         "methods": {
             "contactsTitle": "Usuário do Peanut",
-            "contactsDescription": "Digite um @usuário exato ou escolha um contato",
+            "contactsDescription": "Envie para qualquer usuário do Peanut",
             "bankTitle": "Transferência bancária",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
@@ -1075,8 +1074,7 @@
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
         "created": {
             "title": "Cobrança criada",
-            "description": "Seu link está pronto para compartilhar.",
-            "createAnother": "Criar outra cobrança"
+            "description": "Seu link está pronto para compartilhar."
         },
         "recipientPlaceholder": "Usuário, endereço ou ENS",
         "errors": {
@@ -4080,7 +4078,6 @@
         "title": "Seus dados bancários",
         "list": {
             "addTitle": "Adicionar dinheiro",
-            "addHeading": "Como você quer adicionar dinheiro?",
             "bankTopUpTitle": "Adicione dinheiro do seu banco",
             "oneOffBody": {
                 "BANK_TRANSFER_AR": "Transferência única pelo Mercado Pago",

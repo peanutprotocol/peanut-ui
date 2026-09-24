@@ -5,7 +5,6 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CountryList } from '@/components/Common/CountryList'
 import Badge from '@/components/Global/Badges/Badge'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -407,8 +406,6 @@ export function DepositAccountsListScreen({
         <PageStack>
             <NavHeader title={t('list.addTitle')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <TitleBlock title={t('list.addHeading')} />
-
                 {/*
                  * A read that failed is not "you hold nothing". Without this the
                  * empty fallback map renders as six unclaimed corridors and the

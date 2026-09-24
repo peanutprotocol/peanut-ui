@@ -32,7 +32,8 @@ interface ListItemProps {
  * Anatomy: leading slot + title (16/20 semibold) + body (14/20 secondary),
  * trailing slot / chevron. Grouping via position (solo/top/middle/bottom),
  * pressed = disabled-background fill, disabled (board 17785:14606) =
- * background/disabled fill + border/subtle + secondary title, content at full
+ * background/disabled fill + secondary title, the default border stays (hugo,
+ * 2026-09-24: a grey border read as a broken row next to its group), content at full
  * opacity so badges and checkmarks keep their contrast. Rows compute to
  * >=48px (32px leading slot + p-4) — over the 44px touch-target floor.
  */
@@ -75,7 +76,7 @@ export const ListItem = ({
                 onClick &&
                     !disabled &&
                     'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
-                disabled && 'border-border-subtle bg-background-disabled',
+                disabled && 'bg-background-disabled',
                 className
             )}
         >

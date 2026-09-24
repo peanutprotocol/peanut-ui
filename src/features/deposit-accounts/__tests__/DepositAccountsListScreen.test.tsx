@@ -895,7 +895,7 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
         expect(
             screen.queryByText(messages.depositAccounts.corridors.BANK_TRANSFER_AR.residenceTitle)
         ).not.toBeInTheDocument()
-        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.addTitle)).toBeInTheDocument()
     })
 })
 
@@ -1118,15 +1118,7 @@ describe('the residence-gated rows', () => {
  * Spanish user as its own raw name.
  */
 describe('the hub copy exists in every catalog', () => {
-    const HUB_KEYS = [
-        'addTitle',
-        'addHeading',
-        'accountsPitch',
-        'countriesPitch',
-        'sectionTitle',
-        'countriesTitle',
-        'bankTopUpTitle',
-    ]
+    const HUB_KEYS = ['addTitle', 'accountsPitch', 'countriesPitch', 'sectionTitle', 'countriesTitle', 'bankTopUpTitle']
 
     it('es-419 and pt-BR carry every key the hub reads', () => {
         for (const catalog of [esMessages, ptMessages]) {

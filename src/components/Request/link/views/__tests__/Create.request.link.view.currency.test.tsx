@@ -52,7 +52,6 @@ const hookState = (overrides: Record<string, unknown> = {}) => ({
     handleAttachmentOptionsChange: jest.fn(),
     handleTokenAmountSubmit: jest.fn(),
     generateLink: jest.fn(),
-    resetRequest: jest.fn(),
     ...overrides,
 })
 
