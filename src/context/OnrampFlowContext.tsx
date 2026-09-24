@@ -5,6 +5,12 @@ import type { FlowErrorState } from '@/interfaces/interfaces'
 
 export interface IOnrampData {
     transferId?: string
+    /**
+     * True when the bank payment is matched on the deposit reference only, so
+     * any amount is accepted. False or absent: the payment must be exactly
+     * `depositInstructions.amount` or it is returned.
+     */
+    flexibleAmount?: boolean
     depositInstructions?: {
         amount?: string
         currency?: string

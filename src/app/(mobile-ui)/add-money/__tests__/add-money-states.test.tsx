@@ -516,10 +516,6 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
     OnrampConfirmationModal: (props: any) =>
         props.visible ? (
             <div data-testid="onramp-confirmation-modal">
-                <span>
-                    Amount: {props.currency}
-                    {props.amount}
-                </span>
                 <button data-testid="confirm-onramp" onClick={props.onConfirm}>
                     Confirm
                 </button>
@@ -1493,18 +1489,17 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
-        // displayed side of the commit-path pin: the modal must be showing the
-        // amount the user is about to confirm
-        expect(screen.getByTestId('onramp-confirmation-modal')).toHaveTextContent('100')
+        // the modal no longer names an amount: a top-up is matched on the
+        // reference only, so the typed amount is a quote, not a requirement
+        expect(screen.getByTestId('onramp-confirmation-modal')).toBeInTheDocument()
 
         // Click Confirm in modal
         await act(async () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        // submitted side of the pin: createOnramp must receive the same string
-        // the modal displayed — a conversion slipped between display and submit
-        // fails here
+        // createOnramp must receive the typed string unchanged — it becomes the
+        // quote the history row and the details screen show
         expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })

@@ -112,6 +112,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // For add-money flow, amount is now in URL state via nuqs
     const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+    // the backend decides the matching mode; only a flexible transfer may tell
+    // the user that any amount works
+    const isFlexibleAmount = onrampData?.flexibleAmount === true
 
     const currencySymbolBasedOnCountry = useMemo(() => {
         // symbol of the detected onramp currency (e.g., €, $)
@@ -281,7 +284,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <Card className="p-4">
-                    <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
+                    <p className="text-body-xs text-foreground-secondary">
+                        {isFlexibleAmount ? t('bankDetails.amountLabel') : t('bankDetails.amountToSend')}
+                    </p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-heading-s text-foreground-primary md:text-heading-l">
                             {formattedCurrencyAmount}
@@ -290,7 +295,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     </div>
 
                     <Callout priority="attention" className="mt-4">
-                        {t('bankDetails.sendExactAmount')}
+                        {isFlexibleAmount ? t('bankDetails.sendAnyAmount') : t('bankDetails.sendExactAmount')}
                     </Callout>
                 </Card>
 
@@ -443,7 +448,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 <Callout priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
                     <BulletList
                         items={[
-                            t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+                            ...(isFlexibleAmount
+                                ? []
+                                : [t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount })]),
                             t('bankDetails.doubleCheckReference', {
                                 reference:
                                     shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
