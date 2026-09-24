@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Só pagamentos com QR do Mercado Pago",
-                "brazil": "Só pagamentos com QR Pix"
+                "brazil": "Só pagamentos Pix por QR ou chave"
             }
         },
         "tryDifferentCountry": "Tente outro país.",
