@@ -57,7 +57,9 @@ export function ResidenceRequiredScreen({
                         </span>
                     }
                     cta={
-                        <div className="mt-4 flex w-full flex-col items-center gap-4">
+                        // a tertiary LinkButton under the primary keeps gap-6: its
+                        // hit area reaches 14px above the text (design.md)
+                        <div className="mt-4 flex w-full flex-col items-center gap-6">
                             {/* the residence row on Unlock payments, opened on arrival */}
                             <Button variant="primary" className="w-full" href={residenceChangeHref}>
                                 {t('details.residenceCta')}

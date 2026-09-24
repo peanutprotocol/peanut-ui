@@ -105,12 +105,15 @@ export function DepositAccountDetailsScreen({
                         title={t('details.timedOutTitle', { currency: rail.currency })}
                         description={t('details.timedOutBody')}
                     />
-                    <Button variant="primary" className="w-full" onClick={onRetry}>
-                        {t('details.timedOutRetry')}
-                    </Button>
-                    <Button variant="secondary" className="w-full" onClick={onBack}>
-                        {t('details.unavailableCta')}
-                    </Button>
+                    {/* one CTA stack, the same gap-2 pair as the revoked state */}
+                    <div className="flex w-full flex-col gap-2">
+                        <Button variant="primary" className="w-full" onClick={onRetry}>
+                            {t('details.timedOutRetry')}
+                        </Button>
+                        <Button variant="secondary" className="w-full" onClick={onBack}>
+                            {t('details.unavailableCta')}
+                        </Button>
+                    </div>
                 </PageStack.Center>
             </PageStack>
         )

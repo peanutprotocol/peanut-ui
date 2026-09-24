@@ -956,9 +956,9 @@
         "generatingDetails": "Generating details",
         "estimatingPoints": "Estimating points",
         "gettingDepositDetails": "Getting deposit details",
-        "gettingKycStatus": "Getting KYC status",
+        "gettingKycStatus": "Checking your verification",
         "awaitingTosConfirmation": "Awaiting TOS confirmation",
-        "awaitingKycConfirmation": "Awaiting KYC confirmation",
+        "awaitingKycConfirmation": "Waiting for your verification",
         "linkingIban": "Linking IBAN",
         "linkingAccount": "Linking account",
         "submittingOfframp": "Submitting Offramp",
@@ -1751,7 +1751,7 @@
         "mustMatchBankTransfer": "This must exactly match what you send from your bank",
         "amountMustMatchBank": "Amount must match what you send from your bank!",
         "eurAccountsOnlyTitle": "EUR accounts only",
-        "eurAccountsOnlyDescription": "Only EUR accounts with IBAN work for onramps. Your local currency account may not work.",
+        "eurAccountsOnlyDescription": "Only EUR accounts with IBAN can add money. Your local currency account may not work.",
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
             "crypto": "Crypto",
@@ -1895,7 +1895,7 @@
             "invalidNumber": "Please enter a valid number.",
             "minimumDeposit": "Minimum deposit is {amount}.",
             "selectCountryFirst": "Please select a country first.",
-            "onrampDetails": "Could not get onramp details. Please try again.",
+            "onrampDetails": "Could not get the bank details. Please try again.",
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
@@ -2688,7 +2688,7 @@
         "notNow": "Not now"
     },
     "kyc": {
-        "statusDrawerTitle": "KYC Status",
+        "statusDrawerTitle": "Verification status",
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
@@ -2725,7 +2725,7 @@
         "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "unexpectedError": "An unexpected error occurred",
         "processingStatusValue": "We're reviewing your documents. This usually takes 5-10 min.",
-        "errorSdkUnavailable": "KYC SDK not available. Please update the app.",
+        "errorSdkUnavailable": "Verification is not available. Please update the app.",
         "errorVerificationFailed": "Verification failed. Please try again.",
         "errorInitiateFailed": "Could not initiate verification. Please try again.",
         "errorRestartFailed": "Could not restart identity verification. Please try again.",
@@ -3646,7 +3646,8 @@
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
             "savePrompt": "Save to address book",
-            "nicknameRequired": "Add a nickname to save this address."
+            "rowAria": "{name}, {address} on {chain}",
+            "nicknameRequired": "Name this address to save it."
         },
         "savedDestinations": {
             "editTitle": "Edit name",
@@ -4077,7 +4078,6 @@
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
-            "badgeUnavailable": "Unavailable",
             "badgeVerify": "Requires verification",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
@@ -4086,7 +4086,8 @@
             "accountCounter": "{used} of {cap} used",
             "accountCounterOverCap": "{used} accounts",
             "accountLimitReached": "You’ve used all {cap} accounts. Need another? Contact support.",
-            "accountLimitWhy": "Why a limit? Keeping each bank account open costs us money, and we don’t charge you for it.",
+            "accountLimitWhy": "Keeping each bank account open costs us money, and we don’t charge you for it.",
+            "accountLimitWhyLabel": "Why a limit?",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
@@ -4132,8 +4133,6 @@
         },
         "share": {
             "copyCta": "Copy all details",
-            "copied": "Details copied",
-            "copyFailed": "Could not copy the details",
             "textIntroOwn": "Here are my bank details to get paid in {currency}:",
             "textIntroPooled": "Bank details to pay {user} in {currency}:",
             "textOutro": "Sent from Peanut · peanut.me",
@@ -4327,7 +4326,7 @@
             "maximum": {
                 "line": "Maximum payment: {max}.",
                 "payer": "Maximum payment: {max}.",
-                "why": "This is the maximum amount accepted in one payment on this rail."
+                "why": "This is the maximum amount accepted in one bank transfer."
             },
             "monthlyLimit": {
                 "line": "Monthly limit: {limit} equivalent.",
@@ -4337,7 +4336,7 @@
         },
         "errors": {
             "generic": "We could not open the account. Try again in a moment.",
-            "notAvailable": "Standing accounts are not open to your account yet.",
+            "notAvailable": "Bank details are not available for your account yet.",
             "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved.",
             "accountLimit": "You have reached your bank account limit. Support can open another one for you.",
             "refused": "We could not open this account right now. Try again in a few minutes. If it still fails, contact support.",

@@ -956,9 +956,9 @@
         "generatingDetails": "Generando los detalles",
         "estimatingPoints": "Estimando los puntos",
         "gettingDepositDetails": "Obteniendo los datos del depósito",
-        "gettingKycStatus": "Consultando el estado de KYC",
+        "gettingKycStatus": "Consultando tu verificación",
         "awaitingTosConfirmation": "Esperando la aceptación de los términos",
-        "awaitingKycConfirmation": "Esperando la confirmación de KYC",
+        "awaitingKycConfirmation": "Esperando tu verificación",
         "linkingIban": "Vinculando el IBAN",
         "linkingAccount": "Vinculando la cuenta",
         "submittingOfframp": "Enviando el retiro",
@@ -2688,7 +2688,7 @@
         "notNow": "Ahora no"
     },
     "kyc": {
-        "statusDrawerTitle": "Estado de KYC",
+        "statusDrawerTitle": "Estado de la verificación",
         "identityVerification": "Verificación de identidad",
         "doesntStoreDocuments": "Peanut no guarda ninguno de tus documentos",
         "doesntStoreDocumentsPeriod": "Peanut no guarda ninguno de tus documentos.",
@@ -2725,7 +2725,7 @@
         "railsUnavailableError": "Tu identidad está verificada, pero no podemos configurar los pagos para tu región en este momento. Contacta con soporte y lo resolvemos.",
         "unexpectedError": "Ocurrió un error inesperado",
         "processingStatusValue": "Estamos revisando tus documentos. Esto suele tomar de 5 a 10 min.",
-        "errorSdkUnavailable": "El SDK de KYC no está disponible. Actualiza la app.",
+        "errorSdkUnavailable": "La verificación no está disponible. Actualiza la app.",
         "errorVerificationFailed": "La verificación falló. Inténtalo de nuevo.",
         "errorInitiateFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Inténtalo de nuevo.",
@@ -3646,7 +3646,8 @@
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
             "savePrompt": "Guardar en la libreta",
-            "nicknameRequired": "Agregá un apodo para guardar esta dirección."
+            "rowAria": "{name}, {address} en {chain}",
+            "nicknameRequired": "Agregá un nombre para guardar esta dirección."
         },
         "savedDestinations": {
             "editTitle": "Editar nombre",
@@ -4077,7 +4078,6 @@
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeNotSetUp": "Sin configurar",
-            "badgeUnavailable": "No disponible",
             "badgeVerify": "Requiere verificación",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
@@ -4086,7 +4086,8 @@
             "accountCounter": "{used} de {cap} usadas",
             "accountCounterOverCap": "{used} cuentas",
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitas otra? Escríbele a soporte.",
-            "accountLimitWhy": "¿Por qué hay un límite? Mantener abierta cada cuenta bancaria nos cuesta dinero, y no te cobramos nada por eso.",
+            "accountLimitWhy": "Mantener abierta cada cuenta bancaria nos cuesta dinero, y no te cobramos nada por eso.",
+            "accountLimitWhyLabel": "¿Por qué hay un límite?",
             "errorTitle": "No pudimos cargar tus cuentas",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
@@ -4132,8 +4133,6 @@
         },
         "share": {
             "copyCta": "Copiar todos los datos",
-            "copied": "Datos copiados",
-            "copyFailed": "No se pudieron copiar los datos",
             "textIntroOwn": "Estos son mis datos bancarios para que me pagues en {currency}:",
             "textIntroPooled": "Datos bancarios para pagarle a {user} en {currency}:",
             "textOutro": "Enviado desde Peanut · peanut.me",
@@ -4327,7 +4326,7 @@
             "maximum": {
                 "line": "Monto máximo por pago: {max}.",
                 "payer": "Monto máximo por pago: {max}.",
-                "why": "Este es el monto máximo aceptado por pago con este medio."
+                "why": "Este es el monto máximo aceptado en una sola transferencia bancaria."
             },
             "monthlyLimit": {
                 "line": "Límite mensual: equivalente a {limit}.",
@@ -4337,7 +4336,7 @@
         },
         "errors": {
             "generic": "No pudimos abrir la cuenta. Inténtalo de nuevo en un momento.",
-            "notAvailable": "Las cuentas propias todavía no están disponibles para tu cuenta.",
+            "notAvailable": "Los datos bancarios todavía no están disponibles para tu cuenta.",
             "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste.",
             "accountLimit": "Llegaste a tu límite de cuentas bancarias. Soporte puede abrirte otra.",
             "refused": "No pudimos abrir esta cuenta por ahora. Inténtalo de nuevo en unos minutos. Si sigue fallando, contacta a soporte.",

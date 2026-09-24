@@ -4,8 +4,10 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
 import { canShare } from '@/features/deposit-accounts/resolveScreen'
+import { SKELETON_PULSE } from '@/features/deposit-accounts/skeleton'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useTranslations } from 'next-intl'
+import { twMerge } from '@/utils/tw'
 
 /**
  * The warning line for a corridor that changes who may pay. An account anybody
@@ -48,7 +50,11 @@ export function BankInstructionsToggle({
     disabled?: boolean
 }) {
     const t = useTranslations('request')
-    const { accounts, gates } = useDepositAccounts()
+    const { accounts, gates, isLoading } = useDepositAccounts()
+
+    // Hold the row's place while the accounts load, so the row does not
+    // appear later and push Create down under the user's thumb.
+    if (isLoading) return <BankInstructionsToggleSkeleton />
 
     // Offer the opt-in only when these details could actually be paid: the same
     // test the Share action runs — an active account with live instructions on a
@@ -77,12 +83,9 @@ export function BankInstructionsToggle({
             // one line at 375px. A node title wraps.
             title={<span className="break-words whitespace-normal">{t('bankInstructions.title')}</span>}
             body={
-                checked ? (
-                    <div className="text-body-xs">
-                        {t('bankInstructions.disclosure')}
-                        {senderLine && <> {t(senderLine)}</>}
-                    </div>
-                ) : undefined
+                checked
+                    ? [t('bankInstructions.disclosure'), senderLine && t(senderLine)].filter(Boolean).join(' ')
+                    : undefined
             }
             bodyWrap
             trailing={
@@ -94,6 +97,19 @@ export function BankInstructionsToggle({
                     data-testid="bank-instructions-toggle"
                 />
             }
+        />
+    )
+}
+
+/** The loaded row, slot for slot: a one-line title and a toggle. */
+function BankInstructionsToggleSkeleton() {
+    return (
+        <ListItem
+            position="solo"
+            className="w-full"
+            data-testid="bank-instructions-toggle-skeleton"
+            title={<div className={twMerge(SKELETON_PULSE, 'h-5 w-48')} />}
+            trailing={<div className={twMerge(SKELETON_PULSE, 'h-6 w-11 rounded-full')} />}
         />
     )
 }

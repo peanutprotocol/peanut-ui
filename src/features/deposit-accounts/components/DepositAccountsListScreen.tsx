@@ -26,6 +26,7 @@ import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, 
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, UnavailableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
+import { SKELETON_PULSE } from '../skeleton'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
@@ -52,7 +53,7 @@ const CRYPTO_HREF = '/add-money/crypto'
  *
  * The rows come from the user's own rails, so a corridor they have no rail for
  * is absent rather than present and unavailable — a German user reading an
- * "Unavailable" ARS row learns nothing and doubts the four rows above it.
+ * "Not available" ARS row learns nothing and doubts the four rows above it.
  *
  * Eligibility is settled here, before any details exist, and per corridor. The
  * failure worth designing against is a user who deposits first and learns
@@ -249,7 +250,8 @@ export function DepositAccountsListScreen({
      * end — takes `neutral`, never `custom`, whose accent colour belongs to
      * nothing on this screen (Konrad, 2026-09-23).
      *
-     * "Unavailable" is reserved for a corridor that is truly closed. A
+     * "Not available" is reserved for a corridor that is truly closed —
+     * one label, whether it is not offered here or not open yet. A
      * residence-gated row is not closed — it is one residence away — so it
      * reads "Not set up" and the screen behind it carries the reason.
      *
@@ -264,7 +266,7 @@ export function DepositAccountsListScreen({
         gate: GateState,
         view: DepositGateView
     ) => {
-        if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
+        if (isLoading) return <div className={twMerge(SKELETON_PULSE, 'h-5 w-16')} />
         if (isResidenceGated(rail.corridor) && !account)
             return <Badge status="neutral" customText={t('list.badgeNotSetUp')} />
         // A claimable corridor the user has no rail for, shown because identity
@@ -287,7 +289,7 @@ export function DepositAccountsListScreen({
             return <Badge status="pending" customText={t('list.badgeVerify')} />
         }
         if (!isClaimable(rail) || account?.status === 'unavailable')
-            return <Badge status="neutral" customText={t('list.badgeUnavailable')} />
+            return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         // A read that failed says nothing about what the user holds. "Not set
         // up" is a claim about their account, and the fallback map cannot make
         // it — the notice above owns this state.
@@ -424,29 +426,32 @@ export function DepositAccountsListScreen({
 
                 {showAccounts && (
                     <Section
-                        title={
-                            // The count sits beside the heading so the pitch keeps the
-                            // full width at 320px. MoreInfo is a real button: the
-                            // reason opens on tap and from the keyboard.
-                            <span className="flex items-center justify-between gap-2">
-                                {t('list.sectionTitle')}
-                                {showCounter && (
-                                    <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
-                                        <Badge
-                                            status="neutral"
-                                            customText={
-                                                overCap
-                                                    ? t('list.accountCounterOverCap', { used: slotsHeld })
-                                                    : t('list.accountCounter', {
-                                                          used: slotsHeld,
-                                                          cap: accountLimit,
-                                                      })
-                                            }
-                                        />
-                                        <MoreInfo text={t('list.accountLimitWhy')} />
-                                    </span>
-                                )}
-                            </span>
+                        title={t('list.sectionTitle')}
+                        // The count sits beside the heading so the pitch keeps the
+                        // full width at 320px. It is the Section's trailing slot, a
+                        // sibling of the heading, so the heading's name stays the
+                        // title alone. MoreInfo is a real, named button: the reason
+                        // opens on tap and from the keyboard.
+                        trailing={
+                            showCounter ? (
+                                <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
+                                    <Badge
+                                        status="neutral"
+                                        customText={
+                                            overCap
+                                                ? t('list.accountCounterOverCap', { used: slotsHeld })
+                                                : t('list.accountCounter', {
+                                                      used: slotsHeld,
+                                                      cap: accountLimit,
+                                                  })
+                                        }
+                                    />
+                                    <MoreInfo
+                                        text={t('list.accountLimitWhy')}
+                                        aria-label={t('list.accountLimitWhyLabel')}
+                                    />
+                                </span>
+                            ) : undefined
                         }
                         data-testid="your-accounts"
                     >
