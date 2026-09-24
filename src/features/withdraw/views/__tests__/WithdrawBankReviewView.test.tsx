@@ -365,3 +365,19 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         expect(quoteRetry).toBeEnabled()
     })
 })
+
+describe('Bank conversion fee disclosure', () => {
+    it.each([AccountType.IBAN, AccountType.GB, AccountType.CLABE, AccountType.CO_BANK_TRANSFER])(
+        '%s does not claim a zero fee for a conversion',
+        (type) => {
+            renderWithIntl(<Harness rail="sepa" account={{ ...ibanAccount, type }} />)
+            expect(screen.queryByText('Fee', { exact: true })).not.toBeInTheDocument()
+        }
+    )
+
+    it('keeps the zero-fee row for a USD bank withdrawal', () => {
+        renderWithIntl(<Harness rail="ach" account={{ ...ibanAccount, type: AccountType.US }} />)
+        expect(screen.getByText('Fee', { exact: true })).toBeInTheDocument()
+        expect(screen.getByText('$ 0.00', { exact: true })).toBeInTheDocument()
+    })
+})
