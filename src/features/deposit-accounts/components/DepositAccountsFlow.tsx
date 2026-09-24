@@ -146,6 +146,15 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (legacyStep) setParams({ step: legacyStep, screen: null })
     }, [legacyStep, setParams])
+    // Details opened by a link from outside (accounts and payments) never showed
+    // the list, so back leaves the flow through onExit and its returnTo. The
+    // URL cannot say this: nuqs replaces history, so the step has no past.
+    // Read from the requested step, not the resolved one, which is the list
+    // for a moment while the accounts load.
+    const visitedList = useRef(false)
+    useEffect(() => {
+        if (screen === 'list' && !legacyStep) visitedList.current = true
+    }, [screen, legacyStep])
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
@@ -429,7 +438,7 @@ export function DepositAccountsFlow({
                 account={account}
                 userName={userName}
                 canShare={canShare(account, gate)}
-                onBack={() => setParams({ step: 'list' })}
+                onBack={() => (visitedList.current ? setParams({ step: 'list' }) : onExit())}
                 onRetry={() => onClaim(corridor)}
                 onContactSupport={() => onContactSupport(corridor, 'revoked')}
             />
