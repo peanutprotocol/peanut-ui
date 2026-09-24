@@ -2496,7 +2496,8 @@
         "catalog": {
             "FIRST_INVITE": {
                 "name": "First Invite",
-                "description": "Brought a friend to the table. One down, a whole network to go."
+                "description": "Brought a friend to the table. One down, a whole network to go.",
+                "publicDescription": "Brought a friend to the table. One down, a whole network to go."
             },
             "SECOND_INVITE": {
                 "name": "Second Invite",
@@ -2504,11 +2505,13 @@
             },
             "THIRD_INVITE": {
                 "name": "Third Invite",
-                "description": "Three friends, no misses. Tip your hat."
+                "description": "Three friends, no misses. Tip your hat.",
+                "publicDescription": "Three friends, no misses. Hats off."
             },
             "MINI_INFLUENCER": {
                 "name": "Mini Influencer",
-                "description": "Built a little fan club, one invite at a time."
+                "description": "Built a little fan club, one invite at a time.",
+                "publicDescription": "Built a little fan club, one invite at a time."
             },
             "INFLUENCER_25": {
                 "name": "Influencer",
@@ -2521,20 +2524,23 @@
             },
             "DUNBAR": {
                 "name": "Dunbar",
-                "description": "150 — more people than you can remember. They hit Dunbar's number.",
+                "description": "150 — more people than you can remember. You hit Dunbar's number.",
                 "publicDescription": "150 — more people than they can remember. They hit Dunbar's number."
             },
             "MOST_INVITES": {
                 "name": "Most Invites",
-                "description": "Onboarded more users than Coinbase ads!"
+                "description": "Onboarded more users than Coinbase ads!",
+                "publicDescription": "Onboarded more users than Coinbase ads!"
             },
             "CERTIFIED_YAPPER": {
                 "name": "Certified Yapper",
-                "description": "Certified loud. They talked about Peanut so we didn't have to."
+                "description": "Certified loud. You talked about Peanut so we didn't have to.",
+                "publicDescription": "Certified loud. They talked about Peanut so we didn't have to."
             },
             "GIGA_YAPPER": {
                 "name": "Giga Yapper",
-                "description": "Giga loud. They don't mention Peanut, they broadcast it."
+                "description": "Giga loud. You don't mention Peanut, you broadcast it.",
+                "publicDescription": "Giga loud. They don't mention Peanut, they broadcast it."
             },
             "FIRST_CRUMB": {
                 "name": "First Dollar",
@@ -2542,7 +2548,8 @@
             },
             "DOUBLE_DIGITS": {
                 "name": "Double Digits",
-                "description": "Crossed into double digits. Real money now."
+                "description": "Crossed into double digits. Real money now.",
+                "publicDescription": "Crossed into double digits. Real money now."
             },
             "CARD_FIRST_SWIPE": {
                 "name": "First Swipe",
@@ -2557,12 +2564,12 @@
             "CARD_PIONEER": {
                 "name": "Card Pioneer",
                 "description": "You reserved your spot for the Peanut Card. Pioneer perks await!",
-                "publicDescription": "They built Peanut before it had a launch."
+                "publicDescription": "They reserved their spot for the Peanut Card. Pioneer perks await!"
             },
             "FOUNDING_PIONEER": {
                 "name": "Founding Pioneer",
                 "description": "You were building Peanut before it had a launch.",
-                "publicDescription": "They built Peanut before it had a launch."
+                "publicDescription": "They were building Peanut before it had a launch."
             },
             "ENS": {
                 "name": "Name Dropper",
@@ -2591,12 +2598,13 @@
             },
             "CARD_CLOSED_BETA": {
                 "name": "Closed Beta",
-                "description": "IYKYK. They were testing the card before you knew it existed.",
+                "description": "IYKYK. You were testing the card before anyone knew it existed.",
                 "publicDescription": "IYKYK. They were testing the card before anyone knew it existed."
             },
             "CARD_ALPHA": {
                 "name": "Closed Alpha Tester",
-                "description": "You tested the Card while it was still held together with tape and hope."
+                "description": "You tested the Card while it was still held together with tape and hope.",
+                "publicDescription": "They tested the Card while it was still held together with tape and hope."
             },
             "BUG_WHISPERER": {
                 "name": "Bug Whisperer",
@@ -2620,11 +2628,13 @@
             },
             "NOT_SO_SHHHH": {
                 "name": "Loud Mouth",
-                "description": "You couldn't keep it quiet — and you got paid for it."
+                "description": "You couldn't keep it quiet — and you got paid for it.",
+                "publicDescription": "They couldn't keep it quiet — and they got paid for it."
             },
             "ARBITRUM": {
                 "name": "Arbitrum Native",
-                "description": "Found on Arbitrum — mutual onboarding achieved."
+                "description": "Found on Arbitrum — mutual onboarding achieved.",
+                "publicDescription": "Found on Arbitrum — mutual onboarding achieved."
             },
             "TRON": {
                 "name": "Tron Native",
@@ -2645,11 +2655,13 @@
             },
             "EVENT_ALUMNI": {
                 "name": "Event Alumni",
-                "description": "Old school. You were in the room before most."
+                "description": "Old school. You were in the room before most.",
+                "publicDescription": "Old school. They were in the room before most."
             },
             "TOUCHED_GRASS": {
                 "name": "Touched Grass",
-                "description": "You logged off and touched real grass with Peanut."
+                "description": "You logged off and touched real grass with Peanut.",
+                "publicDescription": "They logged off and touched real grass with Peanut."
             },
             "PEANUT_SHAPER": {
                 "name": "Help Shape Peanut",
@@ -2658,7 +2670,8 @@
             },
             "OFFRAMP_USER": {
                 "name": "Offramp User",
-                "description": "You migrated to Peanut. We welcomed you."
+                "description": "You migrated to Peanut. We welcomed you.",
+                "publicDescription": "They migrated to Peanut. We welcomed them."
             },
             "SPLITTER": {
                 "name": "Splitter",
@@ -2666,7 +2679,8 @@
             },
             "PSYOPS_DIVISION": {
                 "name": "Psyops Division",
-                "description": "Enlisted in the Psyops Division. Welcome to the influence game."
+                "description": "Enlisted in the Psyops Division. Welcome to the influence game.",
+                "publicDescription": "Enlisted in the Psyops Division. Welcome to the influence game."
             },
             "TOKEN_NATION_SP_2026": {
                 "name": "Token Nation 2026",
@@ -2675,7 +2689,8 @@
             },
             "FESTA_JUNINA_2026": {
                 "name": "Arraiá Approved",
-                "description": "You danced the quadrilha with us. Arraiá unlocked."
+                "description": "You danced the quadrilha with us. Arraiá unlocked.",
+                "publicDescription": "They danced the quadrilha with us. Arraiá unlocked."
             },
             "MANICERO": {
                 "name": "Manicero",
@@ -2684,19 +2699,22 @@
             "NITA": {
                 "name": "Nita's Recommendation",
                 "description": "Nita sent you. You skipped the card line on her word.",
-                "publicDescription": "Nita sent you. You took her word for it."
+                "publicDescription": "Nita sent them. They skipped the card line on her word."
             },
             "NAIJA": {
                 "name": "9JA",
-                "description": "Naija no dey carry last. You were here first."
+                "description": "Naija no dey carry last. You were here first.",
+                "publicDescription": "Naija no dey carry last. They were here first."
             },
             "TERERE": {
                 "name": "Tereré",
-                "description": "Tereré unlocked. You were there for round one."
+                "description": "Tereré unlocked. You were there for round one.",
+                "publicDescription": "Tereré unlocked. They were there for round one."
             },
             "ACAI_POWERED": {
                 "name": "Açaí Powered",
-                "description": "You skipped the wait. Spoon in hand, straight through the door."
+                "description": "You skipped the wait. Spoon in hand, straight through the door.",
+                "publicDescription": "They skipped the wait. Spoon in hand, straight through the door."
             },
             "DEVCONNECT_BA_2025": {
                 "name": "Devconnect 2025",
@@ -2706,7 +2724,7 @@
             "SEEDLING_DEVCONNECT_BA_2025": {
                 "name": "Seedling",
                 "description": "You are working with us to spread the word about Peanut.",
-                "publicDescription": "You shill Peanut so we don't have to. Honorary squirrel."
+                "publicDescription": "They shill Peanut so we don't have to. Honorary squirrel."
             },
             "SURF_UP": {
                 "name": "Surf's Up",

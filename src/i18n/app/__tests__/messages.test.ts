@@ -38,6 +38,14 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
+    // English badge copy is person-neutral, while es/pt conjugate it for the
+    // earner (description) and the profile visitor (publicDescription).
+    'Brought a friend to the table. One down, a whole network to go.': 'badge earner vs. profile visitor',
+    'Built a little fan club, one invite at a time.': 'badge earner vs. profile visitor',
+    'Onboarded more users than Coinbase ads!': 'badge earner vs. profile visitor',
+    'Crossed into double digits. Real money now.': 'badge earner vs. profile visitor',
+    'Found on Arbitrum — mutual onboarding achieved.': 'badge earner vs. profile visitor',
+    'Enlisted in the Psyops Division. Welcome to the influence game.': 'badge earner vs. profile visitor',
 }
 
 describe('deepMerge fallback', () => {
