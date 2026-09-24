@@ -32,11 +32,18 @@ permissions:
     contents: read
 
 jobs:
+    # Runs first; every job below waits for it (backdoor-scan.yml).
+    backdoor-scan:
+        uses: ./.github/workflows/backdoor-scan.yml
+        secrets:
+            TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
     # lives in its own blocking job below.)
     format:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -77,6 +84,7 @@ jobs:
     # allowlist. Keep it isolated from the app test jobs because it needs no
     # submodules or secrets.
     screen-tests:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -116,6 +124,7 @@ jobs:
     # than the AST baseline, so leaning on it here would fail the ratchet on
     # every PR with a misleading message.
     ds-lint:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             # no submodules/token: the count script only reads src/**/*.ts(x)
@@ -146,6 +155,7 @@ jobs:
     # Same posture as ds-lint: the script parses with `typescript`, so it
     # installs without running scripts or a pnpmfile, and needs no build.
     screen-wordiness:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             # no submodules: the script reads src/**/*.tsx and the app catalog
@@ -170,6 +180,7 @@ jobs:
     # feat/design-system, so this gates the PR via ci-success.needs. Warnings
     # do not fail the job; add a warn floor only if the team decides one.
     eslint:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -194,6 +205,7 @@ jobs:
     # Typecheck job. Independent of unit tests so type errors surface in
     # parallel.
     typecheck:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -230,6 +242,7 @@ jobs:
     # ios-release, android-release) only reach it after merge, on a push to
     # dev, so without this the first red build is a release.
     native-export:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -291,6 +304,7 @@ jobs:
     # render-snapshot skip. Provision a contents:read token for peanut-api-ts
     # and the check goes live with no other change.
     be-baseline:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         permissions: {}
         steps:
@@ -400,6 +414,7 @@ jobs:
     # a docs-only, workflow-only or test-only PR skips the capture with no
     # checkout and no install.
     ds-shots-filter:
+        needs: backdoor-scan
         name: ds-shots-filter
         # A fork PR gets a read-only GITHUB_TOKEN and no SUBMODULE_TOKEN, so
         # neither the submodule checkout nor the comment can work. Skip it.
@@ -463,11 +478,12 @@ jobs:
     #     keep one comment up to date.
     ds-shots:
         name: ds-shots
-        needs: [ds-shots-filter]
+        needs: [backdoor-scan, ds-shots-filter]
         # `always()` because ds-shots-filter never runs on a push, and a skipped
-        # `needs` would otherwise skip this job too.
+        # `needs` would otherwise skip this job too. `always()` would also run
+        # it after a failed backdoor-scan, so that result is checked by hand.
         if: >-
-            always() &&
+            always() && needs.backdoor-scan.result == 'success' &&
             ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
             || needs.ds-shots-filter.outputs.render == 'true')
         runs-on: ubuntu-latest
@@ -780,6 +796,7 @@ jobs:
     # above), so nothing gated it. This job does, and it stays lean: build,
     # one spec, no screenshots and no diff machinery.
     press-contract:
+        needs: backdoor-scan
         name: press-contract
         runs-on: ubuntu-latest
         # Build ~4m + one spec. A hang past this is a bug, not a slow day.
@@ -870,8 +887,8 @@ jobs:
         # Wait for format + typecheck too — the report header says "all
         # green", which would lie if only unit results were considered
         # (per CR feedback on PR #1908).
-        needs: [format, typecheck, unit]
-        if: always()
+        needs: [backdoor-scan, format, typecheck, unit]
+        if: always() && needs.backdoor-scan.result == 'success'
         permissions:
             contents: read
             pull-requests: write
@@ -1048,6 +1065,7 @@ jobs:
     # the team roster, and GitHub org/repo access management keeps it current.
     # The per-user permission endpoint works with the default GITHUB_TOKEN.
     human-authors:
+        needs: backdoor-scan
         name: human-authors
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
@@ -1180,6 +1198,7 @@ jobs:
         if: always()
         needs:
             [
+                backdoor-scan,
                 format,
                 screen-tests,
                 ds-lint,
