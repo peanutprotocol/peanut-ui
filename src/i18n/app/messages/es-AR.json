@@ -927,7 +927,6 @@
         "selectYourCountry": "Seleccioná el país",
         "howMuchToAdd": "¿Cuánto querés agregar?",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
-        "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
         "methods": {
             "cryptoDescription": "Depositá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
@@ -967,6 +966,7 @@
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
+            "sendAnyAmount": "Enviá cualquier monto. Incluí la referencia.",
             "pasteInReferenceField": "Pegala en el campo de referencia del banco",
             "doubleCheckTitle": "Revisá bien antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",

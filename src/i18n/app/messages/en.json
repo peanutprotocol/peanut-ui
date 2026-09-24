@@ -1754,7 +1754,6 @@
         "selectNewMethod": "Select new method",
         "howMuchToAdd": "How much do you want to add?",
         "mustMatchBankTransfer": "This must exactly match what you send from your bank",
-        "amountMustMatchBank": "Amount must match what you send from your bank!",
         "eurAccountsOnlyTitle": "EUR accounts only",
         "eurAccountsOnlyDescription": "Only EUR accounts with IBAN can add money. Your local currency account may not work.",
         "chainTokenOnly": "{chain} · {tokens} only",
@@ -1858,12 +1857,13 @@
             "sendExactly": "Send exactly <b>{currency}{amount}</b> (the exact amount shown)",
             "copyReferenceCode": "Copy the one-time reference code exactly",
             "pasteReference": "Paste it in the description/reference field",
-            "mismatchTitle": "If the amount or reference don't match:",
+            "mismatchTitle": "If the reference is missing or wrong:",
             "mismatchDescription": "Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use."
         },
         "bankDetails": {
             "amountToSend": "Amount to send",
             "sendExactAmount": "Send exactly this amount!",
+            "sendAnyAmount": "Send any amount. Include the reference.",
             "depositReference": "Deposit reference",
             "pasteInReferenceField": "Paste in the bank's reference field",
             "title": "Bank details",

@@ -158,6 +158,11 @@ export function useWithdrawRootFlow() {
     // balance and limit checks below run on what will actually leave.
     const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
+    // A USD amount picked upstream (Rates & fees) stays in USD: the field
+    // opens on USD with it, and the quote rate derives the bank amount the
+    // review quotes. Typing in the bank currency never writes `amount`, so its
+    // presence here means the entry is in USD.
+    const bankUsdEntry = !!bankCurrency && !!urlAmount
 
     // The same gate the bank submit re-checks (useBridgeOfframpFlow): one
     // Bridge rate, one minimum. Crypto has no amount-step minimum — Rhino's
@@ -268,15 +273,16 @@ export function useWithdrawRootFlow() {
 
             // the URL is the durable copy of the typed amount (survives refresh,
             // shareable mid-flow) — nuqs throttles the actual history writes.
-            // For a bank-currency amount the USD is only derived; the bank amount is stored.
-            if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
+            // For a bank-currency amount the USD is only derived; the bank amount is
+            // stored — unless the entry is in USD, whose typed value must survive a refresh.
+            if (!bankCurrency || bankUsdEntry) void setUrlAmount(newValue === '' ? null : newValue)
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency]
+        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, bankUsdEntry]
     )
 
     const handleDestinationAmountChange = useCallback(
@@ -473,6 +479,9 @@ export function useWithdrawRootFlow() {
                   rateFailed: bankRate.isError,
                   refetchRate: bankRate.refetch,
                   destinationAmount,
+                  // the field's first value and unit: the USD seed in USD, else the bank amount
+                  initialAmount: bankUsdEntry ? urlAmount : destinationAmount,
+                  initialDenomination: bankUsdEntry ? 'USD' : undefined,
                   onDestinationAmountChange: handleDestinationAmountChange,
               }
             : null,

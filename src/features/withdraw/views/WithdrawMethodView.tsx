@@ -159,7 +159,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 title: 'To Bank',
             })
             startTransition(() => {
-                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null))
+                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null, urlAmount))
             })
             return
         }
@@ -195,7 +195,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             title: rail.title,
         })
         startTransition(() => {
-            router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
+            router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null, urlAmount))
         })
     }
 
