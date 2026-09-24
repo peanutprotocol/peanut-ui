@@ -233,7 +233,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
     it('a euro IBAN gets no conversion notice and no local-currency rate', () => {
         renderWithIntl(<Harness rail="sepa" account={accountFrom('DEU')} />)
 
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
     })
 
@@ -241,7 +241,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         renderWithIntl(<Harness rail="sepa" account={accountFrom('POL')} />)
 
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', 'PLN')
-        expect(screen.getByText('We send EUR to your bank')).toBeInTheDocument()
+        expect(screen.getByText('We send EUR to the bank')).toBeInTheDocument()
     })
 
     it("a Lithuanian IBAN is euro, so it never borrows another country's currency", () => {
@@ -249,7 +249,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         renderWithIntl(<Harness rail="sepa" account={accountFrom('LTU')} />)
 
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
     })
 })
 

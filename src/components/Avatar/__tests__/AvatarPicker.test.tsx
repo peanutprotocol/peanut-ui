@@ -190,8 +190,8 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         // the drawer still names itself for assistive tech; the sheet does not
-        expect(mockDrawer.accessibleTitle).toBe('Your avatar')
-        expect(screen.queryByText('Your avatar')).not.toBeInTheDocument()
+        expect(mockDrawer.accessibleTitle).toBe('Avatar')
+        expect(screen.queryByText('Avatar')).not.toBeInTheDocument()
         expect(screen.queryByText(/Pick one, or roll the dice/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('drawer-header')).not.toBeInTheDocument()
         expect(screen.queryByRole('heading')).not.toBeInTheDocument()
@@ -211,7 +211,7 @@ describe('AvatarPicker', () => {
 
         const initial = tiles()[0]
         expect(initial).toHaveTextContent('Just S')
-        expect(initial).toHaveTextContent('Your initial')
+        expect(initial).toHaveTextContent('Initial')
 
         fireEvent.click(initial)
 
@@ -293,7 +293,7 @@ describe('AvatarPicker', () => {
     it('puts the tiles in the radiogroup and the die outside it', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
+        const group = screen.getByRole('radiogroup', { name: 'Avatar' })
         expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(5).fill('radio'))
         expect(group.contains(die())).toBe(false)
     })

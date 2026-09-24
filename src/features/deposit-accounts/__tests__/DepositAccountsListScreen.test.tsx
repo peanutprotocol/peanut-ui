@@ -668,7 +668,7 @@ describe('DepositAccountsListScreen when the accounts cannot be read', () => {
     it('says so and offers to try again, instead of offering claims', () => {
         const { container } = list(false, { isError: true })
 
-        expect(screen.getByText(/could not load your accounts/i)).toBeInTheDocument()
+        expect(screen.getByText(/could not load the accounts/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
         expect(rowOf(container, 'SEPA_EU')).toHaveAttribute('aria-disabled', 'true')
     })
@@ -748,7 +748,7 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
         const gates = allGates({ kind: 'needs-identity' })
         const { container } = list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
 
-        expect(screen.queryByText('Verify your identity first')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity first')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /verify identity/i })).not.toBeInTheDocument()
         // and the rows it used to speak for are still there to tap
         expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
