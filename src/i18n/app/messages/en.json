@@ -1057,6 +1057,14 @@
         }
     },
     "request": {
+        "blocked": {
+            "title": "No payments with {username} yet",
+            "sendCta": "Send money to {username}",
+            "viewProfile": "View profile",
+            "guestTitle": "Request money from {username}",
+            "guestDescription": "You need a Peanut Wallet to send {username} a payment request.",
+            "guestDescriptionApp": "You need the Peanut app to send {username} a payment request."
+        },
         "createRequest": "Create request",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
