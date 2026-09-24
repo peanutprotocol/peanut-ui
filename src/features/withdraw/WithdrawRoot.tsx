@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { useWithdrawRootFlow } from './useWithdrawRootFlow'
 import { WithdrawAmountView } from './views/WithdrawAmountView'
 import { WithdrawMethodView } from './views/WithdrawMethodView'
@@ -17,6 +18,21 @@ export default function WithdrawRoot() {
     const flow = useWithdrawRootFlow()
 
     if (flow.stepper.step === 'amount') {
+        // A non-USD destination (EUR/GBP/MXN/COP — QA-49) needs its FX rate
+        // before the amount input can open in that currency. Same gate as the
+        // Manteca amount step's RateGateScreen (dev #2843/#1848: keep the
+        // header mounted so back always works while the rate loads).
+        const needsRate = flow.currencyCode !== 'USD' && !flow.isCryptoWithdraw
+        if (needsRate && (flow.isFetchingExchangeRate || !flow.exchangeRate)) {
+            return (
+                <RateGateScreen
+                    title={flow.isFromSendFlow ? tNav('send') : tNav('withdraw')}
+                    onBack={flow.handleAmountBack}
+                    isLoading={flow.isFetchingExchangeRate}
+                    onRetry={flow.refetchRate}
+                />
+            )
+        }
         return (
             <WithdrawAmountView
                 pageTitle={flow.isFromSendFlow ? tNav('send') : tNav('withdraw')}
@@ -32,6 +48,8 @@ export default function WithdrawRoot() {
                 error={flow.error}
                 isCryptoWithdraw={flow.isCryptoWithdraw}
                 limitsValidation={flow.limitsValidation}
+                destinationCurrency={flow.currencyCode}
+                destinationRate={flow.exchangeRate}
             />
         )
     }
