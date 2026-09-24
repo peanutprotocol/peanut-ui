@@ -1,4 +1,4 @@
-import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 
 // Helper function to get currency symbol based on code
 export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
