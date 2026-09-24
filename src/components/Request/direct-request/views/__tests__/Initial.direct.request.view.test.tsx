@@ -5,8 +5,11 @@ import { ApiError } from '@/services/api-error'
 
 // ---------- module mocks ----------
 
-jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+jest.mock('@/components/Request/useRequestBack', () => ({
+    useRequestBack: () => jest.fn(),
+}))
+jest.mock('@/hooks/useGuestStoreHandoff', () => ({
+    useGuestStoreHandoff: () => ({ interceptGuestCta: jest.fn(), storeHandoffModal: null, handoffActive: false }),
 }))
 
 const mockReplace = jest.fn()
