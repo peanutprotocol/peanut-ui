@@ -2269,6 +2269,100 @@
                 ]
             }
         },
+        "/bridge/offramp/quote": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "destinationCurrency",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "eur"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "gbp"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "mxn"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "cop"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "destinationAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "destinationAmount": {
+                                            "type": "string"
+                                        },
+                                        "destinationCurrency": {
+                                            "type": "string"
+                                        },
+                                        "rate": {
+                                            "type": "string"
+                                        },
+                                        "sourceAmount": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "destinationCurrency",
+                                        "rate",
+                                        "updatedAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Quote the USDC for a withdrawal typed in the destination currency",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
         "/bridge/onramp/create": {
             "post": {
                 "description": "This endpoint initiates a new on-ramp transfer (fiat to crypto). It creates a transfer from fiat to USDC on Arbitrum to the user's peanut wallet and returns bank deposit instructions.",

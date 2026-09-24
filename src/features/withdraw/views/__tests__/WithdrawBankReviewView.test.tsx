@@ -33,11 +33,13 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
+    bankAmount,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -45,6 +47,7 @@ const Harness = ({
         <WithdrawBankReviewView
             bankAccount={account}
             amount="50"
+            bankAmount={bankAmount}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -301,5 +304,23 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 
         expect(screen.queryByText('Account owner')).not.toBeInTheDocument()
         expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
+    it('shows about what the recipient gets and the rate behind the USDC', () => {
+        renderWithIntl(
+            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
+        )
+        expect(screen.getByText('Recipient gets')).toBeInTheDocument()
+        expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
+    })
+
+    it('without one, keeps the exchange-rate rows of a USD amount', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
+        expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
     })
 })

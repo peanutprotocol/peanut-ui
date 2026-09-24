@@ -23,7 +23,9 @@ import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
-import { useWithdrawAmount } from './useWithdrawAmount'
+import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
+import { bankAmountCurrency } from './bank-amount'
+import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { WITHDRAW_ROOT_STEPS } from './types'
 
 /**
@@ -60,6 +62,7 @@ export function useWithdrawRootFlow() {
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(urlAmount)
+    const [destinationAmount, setDestinationAmount] = useWithdrawDestinationAmount()
 
     const stepper = useFlowStepper({
         steps: WITHDRAW_ROOT_STEPS,
@@ -160,6 +163,13 @@ export function useWithdrawRootFlow() {
     // apply. selectedMethod is the routing source of truth; the URL param only
     // covers the first render before the mount effect commits the crypto method.
     const isCryptoWithdraw = selectedMethod ? selectedMethod.type === 'crypto' : isCryptoFromSend
+
+    // A bank account paid in EUR, GBP, MXN or COP takes the amount in that
+    // currency (TASK-23054): the user types the bank amount, and the USD
+    // under it converts at the quote rate, fees included — so the min,
+    // balance and limit checks below run on what will actually leave.
+    const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
+    const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
 
     // fetch exchange rate for non-USD countries to convert local minimum to USD
     const { exchangeRate } = useGetExchangeRate({
@@ -269,15 +279,23 @@ export function useWithdrawRootFlow() {
             }
 
             // the URL is the durable copy of the typed amount (survives refresh,
-            // shareable mid-flow) — nuqs throttles the actual history writes
-            void setUrlAmount(newValue === '' ? null : newValue)
+            // shareable mid-flow) — nuqs throttles the actual history writes.
+            // For a bank-currency amount the USD is only derived; the bank amount is stored.
+            if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal]
+        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency]
+    )
+
+    const handleDestinationAmountChange = useCallback(
+        (value: string) => {
+            void setDestinationAmount(value === '' || value === '0' ? null : value)
+        },
+        [setDestinationAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -300,11 +318,16 @@ export function useWithdrawRootFlow() {
             const params = new URLSearchParams()
             for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value)
             if (isFromSendFlow && methodParam && !params.has('method')) params.set('method', methodParam)
-            if (rawTokenAmount) params.set('amount', rawTokenAmount)
+            // a bank-currency amount is handed on as typed; the review quotes its USDC
+            if (bankCurrency) {
+                if (destinationAmount) params.set('destinationAmount', destinationAmount)
+            } else if (rawTokenAmount) {
+                params.set('amount', rawTokenAmount)
+            }
             const qs = params.toString()
             return qs ? `?${qs}` : ''
         },
-        [isFromSendFlow, methodParam, rawTokenAmount]
+        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount]
     )
 
     const handleAmountContinue = useCallback(() => {
@@ -387,6 +410,7 @@ export function useWithdrawRootFlow() {
         // to a different method
         setRawTokenAmount('')
         void setUrlAmount(null)
+        void setDestinationAmount(null)
         filledFromBalanceRef.current = null
         setIsMaxWithdrawal(false)
         if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
@@ -404,6 +428,7 @@ export function useWithdrawRootFlow() {
         setSelectedMethod,
         setSelectedBankAccount,
         setUrlAmount,
+        setDestinationAmount,
         setIsMaxWithdrawal,
         stepper,
     ])
@@ -411,6 +436,7 @@ export function useWithdrawRootFlow() {
     // check if continue button should be disabled
     const continueDisabled = useMemo(() => {
         if (!rawTokenAmount) return true
+        if (bankCurrency && !destinationAmount) return true
 
         const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
@@ -425,6 +451,8 @@ export function useWithdrawRootFlow() {
         return !isCryptoWithdraw && (limitsValidation.isLoading || limitsValidation.isBlocking)
     }, [
         rawTokenAmount,
+        bankCurrency,
+        destinationAmount,
         balance,
         maxDecimalAmount,
         error.showError,
@@ -448,6 +476,17 @@ export function useWithdrawRootFlow() {
         isCryptoFromSend,
         isBankFromSend,
         selectedMethod,
+        // bank amount typed in its currency (TASK-23054): null outside EUR, GBP, MXN and COP accounts
+        bankAmount: bankCurrency
+            ? {
+                  currency: bankCurrency,
+                  rate: bankRate.quote?.rate ?? null,
+                  rateFailed: bankRate.isError,
+                  refetchRate: bankRate.refetch,
+                  destinationAmount,
+                  onDestinationAmountChange: handleDestinationAmountChange,
+              }
+            : null,
         handleAmountChange,
         handleAmountContinue,
         handleAmountBack,
