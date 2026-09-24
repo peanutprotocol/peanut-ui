@@ -24,10 +24,12 @@ export const CONCEPT_ICONS = {
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'blue' },
     addMoney: { icon: 'arrow-down', color: 'blue' },
-    withdraw: { icon: 'user', color: 'blue' },
+    // mirrors addMoney: money in is arrow-down, money out is arrow-up
+    withdraw: { icon: 'arrow-up', color: 'blue' },
     exchange: { icon: 'exchange', color: 'blue' },
     support: { icon: 'peanut-support', color: 'blue' },
-    verification: { icon: 'user-id', color: 'blue' },
+    // the KYC start drawer's hero glyph (InitiateKycModal)
+    verification: { icon: 'badge', color: 'blue' },
     otherCountries: { icon: 'globe', color: 'blue' },
     // 5/8 of the bubble: 20px in the s bubble, as the mascot was drawn there
     peanutUser: {

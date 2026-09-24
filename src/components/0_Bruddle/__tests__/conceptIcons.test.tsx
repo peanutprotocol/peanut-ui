@@ -34,6 +34,11 @@ describe('CONCEPT_ICONS', () => {
         expect(new Set(glyphs).size).toBe(3)
     })
 
+    test('withdraw mirrors add money: arrow up against arrow down', () => {
+        expect(CONCEPT_ICONS.addMoney.icon).toBe('arrow-down')
+        expect(CONCEPT_ICONS.withdraw.icon).toBe('arrow-up')
+    })
+
     test('only the two link concepts share a glyph', () => {
         const byGlyph = new Map<unknown, Concept[]>()
         for (const concept of CONCEPTS) {

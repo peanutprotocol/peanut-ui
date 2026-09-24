@@ -40,9 +40,8 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'send-friends',
             titleKey: ['drawers', 'sendToFriends'],
             bodyKey: ['drawers', 'sendToFriendsDescription'],
-            // person iconography, not arrows: the home CTAs that open this
-            // drawer are already arrows, so repeating them here said nothing.
-            // friends = several people, own accounts = one person (you).
+            // friends = several people; the withdraw row below takes the
+            // withdraw concept (arrow up, the mirror of add money's arrow down).
             icon: CONCEPT_ICONS.friends.icon,
             iconColor: CONCEPT_ICONS.friends.color,
             href: '/send',
