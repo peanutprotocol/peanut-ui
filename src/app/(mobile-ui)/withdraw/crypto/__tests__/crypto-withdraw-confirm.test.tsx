@@ -41,8 +41,13 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+// the no-history Back fallback each render asks for
+const mockSafeBackFallbacks: string[] = []
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+    useSafeBack: (fallbackUrl: string) => {
+        mockSafeBackFallbacks.push(fallbackUrl)
+        return jest.fn()
+    },
 }))
 
 jest.mock('@/context/tokenSelector.context', () => {
@@ -522,6 +527,17 @@ describe('crypto withdraw preparation', () => {
         } finally {
             mockStepper.step = 'review'
         }
+    })
+})
+
+// Back with no in-app history landed on /withdraw?showAll=true, the full method
+// list, and skipped the saved destinations. /withdraw shows them when there are any.
+describe('crypto withdraw — Back without history', () => {
+    it('falls back to the withdraw entry, not the full method list', () => {
+        mockStepper.step = 'recipient'
+        render(<WithdrawCryptoPage />)
+
+        expect(mockSafeBackFallbacks.at(-1)).toBe('/withdraw')
     })
 })
 

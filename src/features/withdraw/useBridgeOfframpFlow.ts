@@ -38,10 +38,10 @@ import { parseAsString, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
-import { bankAmountCurrency } from './bank-amount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount } from './amount-validation'
+import { validateBankOfframpAmount, bankWithdrawMinNeedsRate } from './amount-validation'
 import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
@@ -77,7 +77,10 @@ export function useBridgeOfframpFlow() {
 
     const { selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
     const [urlAmount] = useWithdrawAmount()
-    const [destinationAmount] = useWithdrawDestinationAmount()
+    const [destinationAmountParam] = useWithdrawDestinationAmount()
+    // the URL is editable: "90." or ".5" is read the way the quote API accepts
+    // it, and anything else counts as no amount
+    const destinationAmount = normalizeBankAmount(destinationAmountParam) ?? ''
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
@@ -135,13 +138,8 @@ export function useBridgeOfframpFlow() {
     // leaves the balance is the quote's, at the provider's current rate, and
     // refreshes with the rate until the user confirms. That USDC is what the
     // offramp sends; the bank amount is an estimate.
-    const bankCurrency = destinationAmount ? bankAmountCurrency(bankAccount) : null
-    const bankQuote = useBridgeOfframpQuote({
-        currency: bankCurrency,
-        destinationAmount,
-        enabled: step === 'review' && !isLoading && !submittedTxHash,
-    })
-    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    const accountCurrency = bankAmountCurrency(bankAccount)
+    const bankCurrency = destinationAmount ? accountCurrency : null
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -159,7 +157,23 @@ export function useBridgeOfframpFlow() {
     // iso2, not id: the UK record is { id: 'GBR', iso2: 'GB' } and an id-keyed
     // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
     const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
-    const bankMinimum = useBankWithdrawMinimum(countryIso2)
+    const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
+    // One rate for the amount and the minimum: the quote. Without a typed bank
+    // amount it is fetched for the rate alone, when the minimum needs one.
+    const quoteCurrency = bankCurrency ?? (minNeedsRate ? accountCurrency : null)
+    const bankQuote = useBridgeOfframpQuote({
+        currency: quoteCurrency,
+        destinationAmount: bankCurrency ? destinationAmount : undefined,
+        enabled: step === 'review' && !isLoading && !submittedTxHash,
+    })
+    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    // a quote whose refresh failed stays on screen but is not confirmed
+    const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
+    // The shared minimum source (widget, amount step, here), converted with
+    // this quote's rate whenever the account has one.
+    const bankMinimum = useBankWithdrawMinimum(countryIso2, {
+        quote: quoteCurrency ? { rate: bankQuote.quote?.rate, isError: bankQuote.isError } : undefined,
+    })
     const minUsd = bankMinimum.minUsd
     const isMinReady = bankMinimum.status === 'ready'
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -308,6 +322,9 @@ export function useBridgeOfframpFlow() {
         // disabled until it is usable; reaching here without it is a race or a
         // failed rate, never a user error: no-op rather than guess a minimum.
         if (!isMinReady || minUsd === null) return
+        // The ToS step calls this directly, past the disabled button: a quote
+        // whose refresh failed is never confirmed.
+        if (bankCurrency && !isQuoteCurrent) return
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
@@ -520,7 +537,7 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || !!bankQuote.quote),
+        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent),
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
@@ -545,8 +562,10 @@ export function useBridgeOfframpFlow() {
         submittedTxHash,
         // The view renders this as the blocking notice under the disabled
         // submit; a failed Bridge rate blocks the same way and must say why.
+        // A bank-currency amount's failed quote already shows its inline retry.
         balanceErrorMessage:
-            balanceErrorMessage ?? (bankMinimum.status === 'unavailable' ? tRate('widget.rateUnavailable') : null),
+            balanceErrorMessage ??
+            (bankMinimum.status === 'unavailable' && !bankCurrency ? tRate('widget.rateUnavailable') : null),
         confirmPendingCopy,
         reference,
         setReference,

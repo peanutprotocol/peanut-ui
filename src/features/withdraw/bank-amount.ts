@@ -23,3 +23,18 @@ export function bankAmountCurrency(account: Account | null | undefined): string 
     }
     return QUOTED_BANK_CURRENCIES.includes(currency) ? currency : null
 }
+
+/** The quote API's destinationAmount pattern (GET /bridge/offramp/quote). */
+const BANK_AMOUNT_PATTERN = /^(?=.*[1-9])\d{1,12}(\.\d{1,2})?$/
+
+/**
+ * The typed bank amount as the quote API accepts it, or null. The field can
+ * report mid-typing forms, and the API answers 400 to them: "90." becomes
+ * "90" and ".5" becomes "0.5". Anything else the pattern refuses is null.
+ */
+export function normalizeBankAmount(value: string | null | undefined): string | null {
+    let amount = (value ?? '').replace(/,/g, '').trim()
+    if (amount.endsWith('.')) amount = amount.slice(0, -1)
+    if (amount.startsWith('.')) amount = `0${amount}`
+    return BANK_AMOUNT_PATTERN.test(amount) ? amount : null
+}

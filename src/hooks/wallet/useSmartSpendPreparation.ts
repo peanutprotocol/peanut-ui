@@ -15,8 +15,8 @@ export interface SmartSpendPreparationInput {
     recipient: Address | null
     /** Final, locked payment code. Open-amount QRs have none until Pay. */
     lockCode: string | null
-    /** ISO expiry of that lock. Unknown expiry means no candidate. */
-    lockExpiresAt: string | null
+    /** That lock's deadline on this device's clock, in ms (receiveLock). Unknown expiry means no candidate. */
+    lockExpiresAt: number | null
 }
 
 interface Candidate {
@@ -48,7 +48,7 @@ export function useSmartSpendPreparation(input: SmartSpendPreparationInput) {
     const candidateRef = useRef<Candidate | null>(null)
     const generationRef = useRef(0)
 
-    const lockExpiresAtMs = lockExpiresAt ? Date.parse(lockExpiresAt) : Number.NaN
+    const lockExpiresAtMs = lockExpiresAt ?? Number.NaN
     const key =
         enabled &&
         accountAddress &&

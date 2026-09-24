@@ -46,10 +46,6 @@ interface WithdrawAmountViewProps {
     }
 }
 
-// One object for every render: AmountInput re-reports its amounts when this
-// prop changes, and each report clears the amount error the flow just set.
-const USD_DENOMINATION = { symbol: 'USD', price: 1, decimals: 2 }
-
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
 export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     pageTitle,
@@ -89,7 +85,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
-                        secondaryDenomination={USD_DENOMINATION}
+                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                         walletBalance={walletBalance}
                         // the balance row is USD and the field is the bank currency:
                         // floor the USD to cents first so the fill never quotes above it

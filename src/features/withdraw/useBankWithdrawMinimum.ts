@@ -22,17 +22,27 @@ function bridgeRateAccountType(countryIso2: string): AccountType {
  * - `pending`: the rate has not arrived; nothing may proceed.
  * - `unavailable`: the rate request failed or was unusable; nothing may proceed.
  * `minUsd` is null unless `ready`. A null minimum never means "no minimum".
+ *
+ * `quote`: a flow that holds the account's Bridge offramp quote (the amount
+ * step and review of a GBP, MXN or COP account) passes it, and the minimum
+ * converts with the rate the amount itself converts with. A quote whose
+ * refresh failed is `unavailable` — never a retained rate.
  */
-export function useBankWithdrawMinimum(countryIso2: string, { enabled = true }: { enabled?: boolean } = {}) {
+export function useBankWithdrawMinimum(
+    countryIso2: string,
+    { enabled = true, quote }: { enabled?: boolean; quote?: { rate: string | null | undefined; isError: boolean } } = {}
+) {
     const needsRate = bankWithdrawMinNeedsRate(countryIso2)
-    const { exchangeRate, isError } = useGetExchangeRate({
+    const { exchangeRate, isError: isRateError } = useGetExchangeRate({
         accountType: bridgeRateAccountType(countryIso2),
-        enabled: enabled && needsRate,
+        enabled: enabled && needsRate && !quote,
     })
+    const rate = quote ? quote.rate : exchangeRate
+    const isError = quote ? quote.isError : isRateError
 
     if (!needsRate) return { minUsd: bankWithdrawMinUsd(countryIso2, null), status: 'ready' as const }
-    if (!isError && parsePlainPositiveRate(exchangeRate) !== null) {
-        return { minUsd: bankWithdrawMinUsd(countryIso2, exchangeRate), status: 'ready' as const }
+    if (!isError && parsePlainPositiveRate(rate) !== null) {
+        return { minUsd: bankWithdrawMinUsd(countryIso2, rate), status: 'ready' as const }
     }
     return { minUsd: null, status: isError ? ('unavailable' as const) : ('pending' as const) }
 }

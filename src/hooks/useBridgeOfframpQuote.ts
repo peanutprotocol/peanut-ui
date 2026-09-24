@@ -31,7 +31,8 @@ export function useBridgeOfframpQuote({
         refetchInterval: QUOTE_REFRESH_MS,
         retry: 2,
     })
-    // a failed refresh must not leave the last amount confirmable: the screen
-    // falls back to its retry state until a fresh quote lands
-    return { quote: isError ? null : (data ?? null), isFetching, isError, refetch }
+    // A failed refresh keeps the last quote on screen, so the screen and any open
+    // KYC or terms step stay mounted; `isError` says it is no longer current, and
+    // a caller must not confirm it until a fresh quote lands.
+    return { quote: data ?? null, isFetching, isError, refetch }
 }
