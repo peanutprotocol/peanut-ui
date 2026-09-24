@@ -119,9 +119,9 @@ export interface Translations {
     landingSecurityHelpDesc: string
     landingTalkToSupport: string
 
-    // Landing page — send-in-seconds section
-    landingSendTagline1: string
-    landingSendTagline2: string
+    // Landing page — send-in-seconds section (closing CTA)
+    landingClosingHeadline: string
+    landingClosingSubline: string
 
     // Landing page — hero
     landingHeroTapScan: string
