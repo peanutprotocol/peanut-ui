@@ -7,7 +7,7 @@
         "node": "^20.9.0 || ^22.0.0"
     },
     "scripts": {
-        "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
+        "dev": "node scripts/backdoor-scan.mjs --local --guard && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:clean": "rm -rf .next && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:fallback": "next dev --webpack",
         "postinstall": "node scripts/copy-flags.mjs",
