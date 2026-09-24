@@ -520,7 +520,6 @@ async function readStagedBundleImpl(
         return next
     }
 
-
     if (!stagedId) return null
     // Native app upgrades and rollback cleanup can remove downloaded files.
     const bundles = await CapacitorUpdater.list().catch(() => null)
