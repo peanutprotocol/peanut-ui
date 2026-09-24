@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import messages from '@/i18n/app/messages/en.json'
 import { NextIntlClientProvider } from 'next-intl'
@@ -8,6 +8,8 @@ import { DEPOSIT_RAILS } from '../rails'
 import type { DepositAccountView, DepositRail } from '../types'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+const mockCopy = jest.fn(async (_text: string) => true)
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
 
 const provisioning: DepositAccountView = {
     id: 'acct-usd',
@@ -56,6 +58,15 @@ describe('the details screen when the provisioning wait runs out', () => {
     it('keeps the skeleton while the account is still within its budget', () => {
         details(provisioning)
         expect(screen.getByTestId('deposit-details-skeleton')).toBeInTheDocument()
+    })
+
+    // The pulse is decorative: it stops when the user asks for reduced motion
+    // (sep-23 review, A34).
+    it('stops every skeleton pulse under reduced motion', () => {
+        details(provisioning)
+        const pulses = screen.getByTestId('deposit-details-skeleton').querySelectorAll('.animate-pulse')
+        expect(pulses.length).toBeGreaterThan(0)
+        pulses.forEach((el) => expect(el).toHaveClass('motion-reduce:animate-none'))
     })
 
     it('offers a retry once the wait has timed out', () => {
@@ -255,6 +266,20 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.queryByText(messages.depositAccounts.details.businessOnly)).not.toBeInTheDocument()
     })
 
+    // The shared copy control confirms on itself; a copy that worked is not a
+    // toast (sep-23 review, A35).
+    it('confirms "Copy all" on the button itself, with no toast', async () => {
+        renderEur()
+
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta }))
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: messages.global.copyField.copied })).toBeInTheDocument()
+        )
+        expect(mockCopy).toHaveBeenCalledWith(expect.stringContaining('DE89 3704 0044 0532 0130 00'))
+        expect(screen.queryByText('Details copied')).not.toBeInTheDocument()
+    })
+
     it('says a business-only account limits who may pay without opening anything, and keeps the rows inside', () => {
         details(
             {
@@ -288,6 +313,8 @@ describe('the details screen, collapsed and open', () => {
 
         for (const line of secondary) expect(screen.getByText(line)).toBeInTheDocument()
         expect(screen.getByTestId('deposit-fee-rates')).toBeInTheDocument()
+        // an inline link: no expanded hit area reaching into the lines around it (A27)
+        expect(screen.getByTestId('deposit-fee-rates').className).not.toMatch(/after:/)
     })
 
     it('keeps an own-name-only rule beside the card, where it decides who can use the account', () => {

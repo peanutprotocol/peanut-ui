@@ -5,9 +5,11 @@ import { Icon } from '../Icons/Icon'
 
 interface MoreInfoProps {
     text: string | React.ReactNode
+    /** the button's accessible name — the icon alone says nothing to a screen reader */
+    'aria-label'?: string
 }
 
-const MoreInfo = ({ text }: MoreInfoProps) => {
+const MoreInfo = ({ text, 'aria-label': ariaLabel }: MoreInfoProps) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
     const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({})
     const [mounted, setMounted] = useState(false)
@@ -92,7 +94,11 @@ const MoreInfo = ({ text }: MoreInfoProps) => {
         <Menu as="div" className="inline-flex items-center">
             {({ open }) => (
                 <>
-                    <Menu.Button ref={buttonRef} className="inline-flex items-center justify-center p-0.5">
+                    <Menu.Button
+                        ref={buttonRef}
+                        aria-label={ariaLabel}
+                        className="inline-flex items-center justify-center p-0.5"
+                    >
                         <Icon name="info" className="h-4 w-4 transition-transform dark:fill-white" />
                     </Menu.Button>
                     {renderTooltip(open)}

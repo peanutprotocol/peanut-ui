@@ -1149,7 +1149,7 @@
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
         "terminalDescription": "Tu verificación no se puede reintentar. Contactá a soporte para recibir ayuda.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
-        "errorSdkUnavailable": "El SDK de KYC no está disponible. Actualizá la app.",
+        "errorSdkUnavailable": "La verificación no está disponible. Actualizá la app.",
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
         "errorInitiateFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Intentalo de nuevo.",

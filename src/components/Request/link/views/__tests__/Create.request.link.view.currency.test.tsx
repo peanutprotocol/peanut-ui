@@ -132,3 +132,14 @@ describe('CreateRequestLinkView — request currency', () => {
         expect(screen.getByRole('button', { name: 'Share $25 request' })).toBeInTheDocument()
     })
 })
+
+describe('CreateRequestLinkView — a failed create', () => {
+    // Not tied to one field, so it is the shared error banner (A37).
+    it('shows the failure in the shared error banner', () => {
+        renderView({ errorState: { showError: true, errorMessage: 'Could not create the request' } })
+
+        const banner = screen.getByTestId('request-create-error')
+        expect(banner).toHaveTextContent('Could not create the request')
+        expect(banner).toHaveAttribute('role', 'alert')
+    })
+})
