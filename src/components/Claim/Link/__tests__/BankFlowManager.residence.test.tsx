@@ -120,6 +120,6 @@ describe('BankFlowManager — bank-restricted residence', () => {
             fireEvent.click(screen.getByTestId('submit-bank-form'))
         })
         expect(handleInitiateKyc).not.toHaveBeenCalled()
-        expect(screen.getByText('Not available in your country')).toBeInTheDocument()
+        expect(screen.getByText('Not available in this country')).toBeInTheDocument()
     })
 })

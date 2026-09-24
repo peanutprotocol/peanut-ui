@@ -59,7 +59,7 @@ describe('StaleCardApprovalReEnableModal', () => {
 
         fireStaleEvent()
         expect(screen.getByTestId('modal')).toBeInTheDocument()
-        expect(screen.getByText('Re-enable your card')).toBeInTheDocument()
+        expect(screen.getByText('Re-enable the card')).toBeInTheDocument()
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 

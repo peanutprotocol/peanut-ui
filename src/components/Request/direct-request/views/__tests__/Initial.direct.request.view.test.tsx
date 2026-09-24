@@ -130,7 +130,7 @@ describe('addressed requests', () => {
         expect(screen.getByRole('link', { name: 'View profile' })).toHaveAttribute('href', '/alice')
         expect(screen.queryByTestId('nav-header')).not.toBeInTheDocument()
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Create your Peanut Wallet' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Create a Peanut Wallet' }))
         expect(localStorage.getItem('redirect')).toContain('/request/alice')
         expect(mockPush).toHaveBeenCalledWith('/setup')
         expect(mockRequestByUsername).not.toHaveBeenCalled()

@@ -19,7 +19,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('next-intl', () => ({
     useTranslations: (namespace: string) => (key: string) => {
         const copy: Record<string, string> = {
-            'limits.warningCard.checkLimits': 'Check my limits.',
+            'limits.warningCard.checkLimits': 'Check limits',
             'common.genericError': 'Something went wrong. Please try again or contact support.',
             'common.tryAgain': 'Try again',
         }
@@ -77,10 +77,10 @@ const renderBlockingCard = (currency: 'ARS' | 'BRL') =>
     render(
         <LimitsWarningCard
             type="error"
-            title="This amount exceeds your limit."
+            title="This amount exceeds the limit"
             items={[
                 {
-                    text: 'Check my limits.',
+                    text: 'Check limits',
                     isLink: true,
                     href: '/limits',
                     kind: 'check-limits',
@@ -114,9 +114,9 @@ describe('LimitsWarningCard native navigation', () => {
             })
             renderBlockingCard(currency)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Check my limits.' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Check limits' }))
             expect(mockPush).toHaveBeenCalledWith('/limits')
-            expect(screen.getByRole('button', { name: 'Check my limits.' })).toHaveClass('pointer-events-auto')
+            expect(screen.getByRole('button', { name: 'Check limits' })).toHaveClass('pointer-events-auto')
             expect(mockCapture).toHaveBeenNthCalledWith(
                 1,
                 'limits_check_link_navigation',
@@ -148,7 +148,7 @@ describe('LimitsWarningCard native navigation', () => {
         mockPush.mockImplementation(() => window.history.pushState({}, '', '/limits/'))
         renderBlockingCard('ARS')
 
-        fireEvent.click(screen.getByRole('button', { name: 'Check my limits.' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Check limits' }))
         act(() => jest.advanceTimersByTime(1500))
 
         expect(mockCapture).toHaveBeenLastCalledWith(

@@ -80,7 +80,7 @@ describe('UnsupportedBrowserModal', () => {
         expect(screen.getByRole('dialog')).not.toHaveTextContent('different browser')
         expect(screen.queryByRole('button', { name: 'Copy Link' })).not.toBeInTheDocument()
         expect(screen.queryByText('Then paste it in your preferred browser.')).not.toBeInTheDocument()
-        expect(screen.queryByText('Open this link in your browser')).not.toBeInTheDocument()
+        expect(screen.queryByText('Open this link in a browser')).not.toBeInTheDocument()
     })
 
     it('lets users dismiss a passkey warning so roaming-authenticator login remains reachable', async () => {
@@ -100,7 +100,7 @@ describe('UnsupportedBrowserModal', () => {
 
         render(<UnsupportedBrowserModal allowClose={false} />)
 
-        expect(await screen.findByRole('dialog')).toHaveTextContent('Open this link in your browser')
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Open this link in a browser')
         expect(screen.getByRole('button', { name: 'Copy Link' })).toBeInTheDocument()
         expect(screen.getByText('Then paste it in your preferred browser.')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
@@ -111,6 +111,6 @@ describe('UnsupportedBrowserModal', () => {
 
         render(<UnsupportedBrowserModal visible allowClose={false} />)
 
-        expect(screen.getByRole('dialog')).toHaveTextContent('Open this link in your browser')
+        expect(screen.getByRole('dialog')).toHaveTextContent('Open this link in a browser')
     })
 })

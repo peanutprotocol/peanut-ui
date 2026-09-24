@@ -41,9 +41,9 @@ export type BridgeRegion = 'us' | 'mexico' | 'europe' | 'argentina' | 'brazil'
 
 // ux copy constants
 export const LIMITS_COPY = {
-    BLOCKING_TITLE: 'This amount exceeds your limit.',
-    WARNING_TITLE: "You're close to your limit.",
-    CHECK_LIMITS: 'Check my limits.',
+    BLOCKING_TITLE: 'This amount exceeds the limit',
+    WARNING_TITLE: 'Close to the limit',
+    CHECK_LIMITS: 'Check limits',
     SUPPORT_MESSAGE: 'Hi, I would like to increase my payment limits.',
 } as const
 

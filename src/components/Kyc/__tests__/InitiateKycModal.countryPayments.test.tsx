@@ -33,7 +33,7 @@ describe('InitiateKycModal — country_payments', () => {
     it('names the country instead of the account', () => {
         renderModal({ variant: 'country_payments', regionName: 'Argentina' })
         expect(screen.getByText('Unlock Argentina')).toBeInTheDocument()
-        expect(screen.queryByText('Unlock your account')).not.toBeInTheDocument()
+        expect(screen.queryByText('Unlock account')).not.toBeInTheDocument()
     })
 
     it('says what the ID check turns on', () => {
@@ -50,12 +50,12 @@ describe('InitiateKycModal — country_payments', () => {
 
     it('falls back to the generic copy with no country name', () => {
         renderModal({ variant: 'country_payments' })
-        expect(screen.getByText('Unlock your account')).toBeInTheDocument()
+        expect(screen.getByText('Unlock account')).toBeInTheDocument()
     })
 
     it('leaves every other caller on the default copy', () => {
         renderModal({ regionName: 'Argentina' })
-        expect(screen.getByText('Unlock your account')).toBeInTheDocument()
+        expect(screen.getByText('Unlock account')).toBeInTheDocument()
     })
 
     it('shows the Argentina tax ID in the prep checklist, not a Brazilian CPF', () => {
