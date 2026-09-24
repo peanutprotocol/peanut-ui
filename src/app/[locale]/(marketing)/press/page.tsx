@@ -141,7 +141,7 @@ export default async function PressPage({ params }: PageProps) {
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
-                            <div>
+                            <Card className="p-6" shadowSize="4">
                                 {/* labels stay english — untranslated before this change too */}
                                 {(
                                     [
@@ -160,7 +160,7 @@ export default async function PressPage({ params }: PageProps) {
                                             <p className="text-body-s text-foreground-primary">{text}</p>
                                         </div>
                                     ))}
-                            </div>
+                            </Card>
                         </section>
                     )}
 
