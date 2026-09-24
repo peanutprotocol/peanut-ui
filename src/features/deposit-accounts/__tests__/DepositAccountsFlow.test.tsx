@@ -22,7 +22,12 @@ jest.mock('../useDepositAccountCopy', () => ({
     useDepositAccountCopy: () => ({ t: (key: string) => key, railName: () => 'SEPA' }),
 }))
 jest.mock('../components/ClaimAccountScreen', () => ({
-    ClaimAccountScreen: ({ onClaim }: { onClaim: () => void }) => <button onClick={onClaim}>Open account</button>,
+    ClaimAccountScreen: ({ onClaim, onBack }: { onClaim: () => void; onBack: () => void }) => (
+        <div>
+            <button onClick={onClaim}>Open account</button>
+            <button onClick={onBack}>Back from claim</button>
+        </div>
+    ),
 }))
 jest.mock('../components/DepositAccountDetailsScreen', () => ({
     DepositAccountDetailsScreen: ({ onBack }: { onBack: () => void }) => (
@@ -159,6 +164,31 @@ describe('back from the details step', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Open SEPA' }))
         fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        expect(screen.getByText('Account list')).toBeInTheDocument()
+        expect(fromList.onExit).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Accounts and payments also links straight to the claim step of an account
+ * the user does not hold yet (Chip on ui#3434). Back from there leaves too.
+ */
+describe('back from the claim step', () => {
+    it('leaves the flow when the claim was opened directly', () => {
+        const direct = props()
+        render(<DepositAccountsFlow {...direct} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Back from claim' }))
+        expect(direct.onExit).toHaveBeenCalled()
+    })
+
+    it('returns to the list when the user came from it', () => {
+        mockInitialStep = 'list'
+        const fromList = props()
+        render(<DepositAccountsFlow {...fromList} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open SEPA' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Back from claim' }))
         expect(screen.getByText('Account list')).toBeInTheDocument()
         expect(fromList.onExit).not.toHaveBeenCalled()
     })

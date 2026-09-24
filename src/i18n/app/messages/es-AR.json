@@ -201,7 +201,6 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
-            "residenceNote": "Las transferencias bancarias en BRL y ARS son para residentes de Brasil y Argentina. Actualizá tu residencia si te mudaste.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueá este método de pago",
@@ -241,8 +240,6 @@
                 "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
                 "dismiss": "Lo intentaré más tarde"
             },
-            "accountsTitle": "Tus números de cuenta",
-            "accountsSubtitle": "Datos bancarios a tu nombre. Dáselos a otra persona y el dinero llega a Peanut.",
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
                 "card": "Pagá con la tarjeta Peanut.",
@@ -271,8 +268,6 @@
                 "aboutTitle": "Qué podés hacer",
                 "limitsTitle": "Límites"
             },
-            "waysTitle": "Agregar y retirar dinero",
-            "waysSubtitle": "Mové dinero entre tu banco y Peanut en estas monedas.",
             "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
             "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria."
         },
@@ -1768,43 +1763,34 @@
     },
     "depositAccounts": {
         "opened": {
-            "heading": "¡Tu cuenta en {currency} está lista!",
+            "heading": "Cuenta virtual en {currency} lista",
             "body": "Tus propios datos bancarios, listos para tu próximo pago.",
             "cta": "Ver datos bancarios"
         },
         "list": {
-            "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
             "accountCounter": "{used} de {cap} usadas",
-            "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
-            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
-            "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
+            "errorBody": "Tus cuentas están bien. Revisá la conexión y probá de nuevo.",
             "countriesPitch": "Elegí el país de tu banco.",
             "accountCounterOverCap": "{used} cuentas",
-            "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra.",
-            "badgeAvailable": "Disponible",
-            "sectionTitle": "Tus números de cuenta",
-            "bankTopUpTitle": "Agregá dinero desde tu banco",
-            "countriesTitle": "Formas de enviarte dinero"
+            "countriesTitle": "Todos los países"
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
         },
         "details": {
-            "eurOwnName": "Las transferencias en euros desde una cuenta a otro nombre pueden devolverse. Si pod\u00e9s, deposit\u00e1 desde una cuenta a tu nombre.",
-            "businessOnly": "Solo vos o una empresa pueden pagar a esta cuenta. Otras transferencias se devuelven.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
             "topUpCta": "Ingresar {currency} de otra forma",
-            "residenceCta": "Actualizá tu residencia",
+            "residenceCta": "Actualizar residencia",
             "qrPayCta": "Pagá un código QR"
         },
         "share": {
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
             "payerBusinessOnly": "Pagá desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
-            "referenceRequired": "Inclu\u00ed la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
-            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si pod\u00e9s, pag\u00e1 desde una cuenta a tu nombre.",
+            "referenceRequired": "Incluí la referencia en cada transferencia. Sin ella el dinero no se puede asignar.",
+            "eurOwnName": "Una transferencia en euros desde una cuenta a otro nombre puede devolverse. Si podés, pagá desde una cuenta a tu nombre.",
             "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consultame antes de enviar."
         },
         "gate": {
@@ -1823,6 +1809,12 @@
             "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
         },
         "rules": {
+            "anyoneAny": {
+                "why": "Se aceptan pagos de cualquier persona en esta moneda, por cualquier monto. Contactá a soporte antes de enviar más de US$100.000."
+            },
+            "ownOrBusinessAny": {
+                "why": "Las transferencias desde tu propia cuenta bancaria y los pagos de una empresa no tienen límite de monto, así que el sueldo y las facturas pasan sin cambios. Contactá a soporte antes de enviar más de US$100.000."
+            },
             "ownAccount": {
                 "why": "Podés transferir desde tu propia cuenta bancaria. Contactá a soporte antes de enviar más de US$100.000."
             },
@@ -1836,7 +1828,6 @@
                 "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
             },
             "individualVolume": {
-                "line": "Desde otra persona: hasta {limit} en total. Preguntá a soporte por el periodo.",
                 "payer": "Desde otra persona: hasta {limit} en total. Pedile al titular que consulte el periodo con soporte.",
                 "why": "El total que otras personas pueden pagar a esta cuenta tiene un límite de {limit}. El periodo que cubre ese total no se publica, así que escribí a soporte antes de un pago grande. Una empresa puede pagar cualquier monto."
             },
@@ -1844,10 +1835,10 @@
                 "why": "Los pagos de otras personas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
             },
             "stateRestricted": {
-                "line": "Solo vos podés ingresar plata, desde una cuenta bancaria a tu nombre."
+                "line": "Solo vos podés ingresar plata, desde una cuenta bancaria a tu nombre"
             },
             "ownName": {
-                "line": "Ingresá plata desde una cuenta bancaria a tu nombre."
+                "line": "Ingresá plata desde una cuenta bancaria a tu nombre"
             },
             "monthlyLimit": {
                 "why": "Este límite se aplica al total de pagos recibidos en tu cuenta. Contactá a soporte si necesitás un límite mayor."
