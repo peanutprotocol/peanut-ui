@@ -376,7 +376,6 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
-            "residenceNote": "Bank transfers in BRL and ARS are for residents of Brazil and Argentina. Update your residence if you moved.",
             "unlockModal": {
                 "title": "Unlock {method}",
                 "titleGeneric": "Unlock this payment method",
@@ -417,8 +416,6 @@
                 "short": "Verification attempts are temporarily limited. Please try again in a little while.",
                 "dismiss": "I'll try later"
             },
-            "accountsTitle": "Your account numbers",
-            "accountsSubtitle": "Bank details in your name. Give them to someone else and the money arrives in Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
                 "card": "Pay with your Peanut card.",
@@ -447,8 +444,6 @@
                 "aboutTitle": "What you can do",
                 "limitsTitle": "Limits"
             },
-            "waysTitle": "Add and withdraw money",
-            "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
             "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
             "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key."
         },
@@ -4078,33 +4073,28 @@
         "title": "Your bank details",
         "list": {
             "addTitle": "Add money",
-            "bankTopUpTitle": "Add money from your bank",
-            "oneOffBody": {
-                "BANK_TRANSFER_AR": "One-off transfer via Mercado Pago",
-                "PIX_BR": "One-off Pix transfer"
-            },
-            "countriesTitle": "Ways to send yourself money",
+            "heldTitle": "Virtual accounts",
+            "openTitle": "Open a virtual account",
+            "otherWaysTitle": "Other ways to move money into Peanut",
+            "otherWaysBody": "These also add and withdraw money. They are not virtual accounts in your name.",
+            "badgeLimitReached": "Limit reached",
+            "notOfferedBody": "{currency} virtual accounts are not open for this account. Support can check why.",
+            "countriesTitle": "All countries",
             "countriesPitch": "Pick the country your bank is in.",
-            "sectionTitle": "Your account numbers",
-            "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
             "badgeVerify": "Requires verification",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
-            "accountLimitNote": "You can open up to {cap} bank accounts. Need more? Contact support.",
-            "accountLimitOverCap": "You have {used} bank accounts, more than the current limit. Contact support to open another.",
             "accountCounter": "{used} of {cap} used",
             "accountCounterOverCap": "{used} accounts",
-            "accountLimitReached": "You’ve used all {cap} accounts. Need another? Contact support.",
             "accountLimitWhy": "Keeping each bank account open costs us money, and we don’t charge you for it.",
             "accountLimitWhyLabel": "Why a limit?",
             "errorTitle": "We could not load your accounts",
-            "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
+            "errorBody": "Your accounts are fine. Check the connection and try again.",
             "errorRetry": "Try again",
-            "badgeActionNeeded": "Action needed",
-            "badgeAvailable": "Available"
+            "badgeActionNeeded": "Action needed"
         },
         "claim": {
             "heading": "Bank details in {currency}",
@@ -4117,7 +4107,6 @@
             "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
-            "faqMinimum": "Minimum deposit is {min}.",
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country."
         },
         "details": {
@@ -4136,11 +4125,9 @@
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "referenceRequired": "Every transfer needs this reference.",
-            "eurOwnName": "Euro transfers from an account in another name can be returned. Where you can, pay in from an account in your own name.",
             "whoCanPay": "Who can pay you",
             "termsToggle": "Limits and fees",
-            "businessOnly": "Only you or a business can pay in. Other transfers are returned.",
-            "residenceCta": "Update your residence",
+            "residenceCta": "Update residence",
             "qrPayCta": "Pay a QR code"
         },
         "share": {
@@ -4251,97 +4238,107 @@
         },
         "rules": {
             "providerHeld": {
-                "line": "The account is held for you, not in your own name.",
+                "line": "The account is held for you, not in your own name",
                 "payer": "The account is held for {user}, not in their own name.",
                 "why": "Money paid in still lands in your Peanut balance. The name on the account is not your own, so a payroll form that checks the name needs the account holder shown above."
             },
+            "anyoneAny": {
+                "line": "Anyone: any amount",
+                "payer": "From anyone: any amount.",
+                "why": "Payments from anyone are accepted in this currency, whatever the amount. Contact support before sending more than US$100,000."
+            },
+            "ownOrBusinessAny": {
+                "line": "Own account or business: any amount",
+                "payer": "From the account holder's own account or a business: any amount.",
+                "why": "Transfers from your own bank account and payments from a business have no amount limit, so salary and invoices go through unchanged. Contact support before sending more than US$100,000."
+            },
             "ownAccount": {
-                "line": "From your own account: yes.",
+                "line": "Own account: yes",
                 "payer": "From the account holder's own account: yes.",
                 "why": "Transfers from your own bank account are supported. Contact support before sending more than US$100,000."
             },
             "ownAccountMax": {
-                "line": "From your own account: up to {max}.",
+                "line": "Own account: up to {max}",
                 "payer": "From the account holder's own account: up to {max}.",
                 "why": "Money you send yourself is a top-up, not a payment from someone else. Transfers from your own account are accepted up to {max} in this currency. If a larger transfer of your own comes back, contact support."
             },
             "ownAccountNo": {
-                "line": "From your own account: not yet.",
+                "line": "Own account: not yet",
                 "payer": "From the account holder's own account: not yet.",
                 "why": "Transfers from your own bank account are not accepted in this currency yet. We will say so here the day that changes."
             },
             "businessAny": {
-                "line": "From a business: any amount.",
+                "line": "Business: any amount",
                 "payer": "From a business: any amount.",
                 "why": "A payment from a business has no limit. Salary and invoices go through unchanged."
             },
             "businessNotYet": {
-                "line": "From a business: not yet.",
+                "line": "Business: not yet",
                 "payer": "From a business: not yet.",
                 "why": "Payments from a business are not available in this currency yet. We will say so here the day that changes."
             },
             "businessUnconfirmed": {
-                "line": "From a business: not confirmed.",
+                "line": "Business: not confirmed",
                 "payer": "From a business: not confirmed. The transfer may be returned.",
                 "why": "Payments from a business are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "individualAny": {
-                "line": "From another person: any amount.",
+                "line": "Anyone else: any amount",
                 "payer": "From another person: any amount.",
                 "why": "Payments from other people are accepted in this currency, so you can hand these details to whoever is paying you."
             },
             "individualCap": {
-                "line": "From another person: less than {cap} each time.",
+                "line": "Anyone else: under {cap} per transfer",
                 "payer": "From another person: less than {cap} each time.",
                 "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
             },
             "individualCapFamily": {
-                "line": "Family who share your surname: any amount.",
+                "line": "Family with the same surname: any amount",
                 "payer": "Family who share the account holder surname: any amount.",
                 "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
             },
             "individualVolume": {
-                "line": "From another person: up to {limit} in total. Ask support about the period.",
+                "line": "Anyone else: up to {limit} in total",
                 "payer": "From another person: up to {limit} in total. Ask the account holder to check the period with support.",
                 "why": "The total other people may pay into this account is capped at {limit}. The period this total covers is not published, so contact support before a large payment. A business can pay any amount."
             },
             "individualNotYet": {
-                "line": "From another person: not yet.",
+                "line": "Anyone else: not yet",
                 "payer": "From another person: not yet.",
                 "why": "Payments from other people are not available on this account yet."
             },
             "individualUnconfirmed": {
-                "line": "From another person: not confirmed.",
+                "line": "Anyone else: not confirmed",
                 "payer": "From another person: not confirmed. The transfer may be returned.",
                 "why": "Payments from other people are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {
-                "line": "Minimum deposit: {min}.",
+                "line": "Minimum deposit: {min}",
                 "payer": "Minimum deposit: {min}.",
                 "why": "Deposits must be at least {min}, including test payments."
             },
             "stateRestricted": {
-                "line": "Only you can pay in, from a bank account in your own name.",
+                "line": "Only you can pay in, from a bank account in your own name",
                 "payer": "Only the account holder can pay into this account.",
                 "why": "The state on your address does not allow anyone but you to pay into an account like this one. Your own transfers work as normal, and the details stay valid."
             },
             "ownName": {
-                "line": "Add money from a bank account in your own name.",
+                "line": "Add money from a bank account in your own name",
                 "payer": "Only the account holder can pay into this account.",
                 "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
             },
             "businessAllowed": {
-                "line": "From a business: supported.",
+                "line": "Business: supported",
                 "payer": "From a business: supported.",
                 "why": "Registered businesses can pay you. The limits shown here still apply."
             },
             "maximum": {
-                "line": "Maximum payment: {max}.",
+                "line": "Maximum payment: {max}",
                 "payer": "Maximum payment: {max}.",
                 "why": "This is the maximum amount accepted in one bank transfer."
             },
             "monthlyLimit": {
-                "line": "Monthly limit: {limit} equivalent.",
+                "line": "Monthly limit: {limit} equivalent",
                 "payer": "Monthly limit: {limit} equivalent.",
                 "why": "This limit applies across payments to your account. Contact support if you need a higher limit."
             }

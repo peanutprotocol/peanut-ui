@@ -95,6 +95,7 @@ export function CorridorGateDrawer({
     isActing = false,
     actFailed = false,
     onClose,
+    onDismiss = onClose,
     onAct,
     onTopUp,
 }: {
@@ -107,7 +108,10 @@ export function CorridorGateDrawer({
     isActing?: boolean
     /** the button's action failed for a reason a retry may clear */
     actFailed?: boolean
+    /** the wait button: back to the list underneath */
     onClose: () => void
+    /** the user swiped or tapped the drawer away: back where they came from */
+    onDismiss?: () => void
     onAct: () => void
     /**
      * The other way in: a transfer the user sends themselves on this same
@@ -160,7 +164,7 @@ export function CorridorGateDrawer({
         <Drawer
             open={open}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) onDismiss()
             }}
         >
             <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
