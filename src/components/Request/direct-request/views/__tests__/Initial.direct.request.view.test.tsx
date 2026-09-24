@@ -1,32 +1,27 @@
-/**
- * DirectRequestInitialView — validation vs flow error routing (TASK-22121 #26)
- *
- * Recipient validation errors are field-level: they render under the recipient
- * input and must NOT flip the primary Request CTA to the Reset/retry state
- * (which wipes the typed recipient). Only flow errors (create-request API
- * failures) keep the Callout + Reset CTA.
- */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import type { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { ApiError } from '@/services/api-error'
 
 // ---------- module mocks ----------
 
-jest.mock('@/components/Request/useRequestBack', () => ({
-    useRequestBack: () => jest.fn(),
+jest.mock('@/hooks/useSafeBack', () => ({
+    useSafeBack: () => jest.fn(),
 }))
 
-// unauthenticated visitor — the recipient input renders in this state
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null }),
-}))
+const mockReplace = jest.fn()
+const mockFetchUser = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
+let mockAuth: any
+let mockContact: any
+jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
+jest.mock('@/hooks/useRequestContact', () => ({ useRequestContact: () => mockContact }))
 
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         spendableBalance: BigInt(100_000_000),
         formattedSpendableBalance: '100.00',
-        address: undefined,
+        address: '0x000000000000000000000000000000000000dEaD',
     }),
 }))
 
@@ -77,6 +72,11 @@ jest.mock('@/components/User/UserCard', () => ({
     default: () => <div data-testid="user-card" />,
 }))
 
+jest.mock('@/components/Global/FileUploadInput', () => ({
+    __esModule: true,
+    default: () => <div data-testid="file-upload" />,
+}))
+
 jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
     __esModule: true,
     default: () => <div data-testid="validation-error-view" />,
@@ -94,39 +94,6 @@ jest.mock('@/components/Global/AmountInput', () => ({
     ),
 }))
 
-// the recipient input drives validation through onUpdate — expose it as buttons
-jest.mock('@/components/Global/GeneralRecipientInput', () => ({
-    __esModule: true,
-    default: ({ onUpdate }: { onUpdate: (update: GeneralRecipientUpdate) => void }) => (
-        <div data-testid="recipient-input">
-            <button
-                data-testid="fire-invalid-recipient"
-                onClick={() =>
-                    onUpdate({
-                        recipient: { name: undefined, address: '' },
-                        type: 'address',
-                        isValid: false,
-                        isChanging: false,
-                        errorMessage: 'Invalid recipient address',
-                    })
-                }
-            />
-            <button
-                data-testid="fire-valid-recipient"
-                onClick={() =>
-                    onUpdate({
-                        recipient: { name: 'bob', address: '0x000000000000000000000000000000000000dEaD' },
-                        type: 'address',
-                        isValid: true,
-                        isChanging: false,
-                        errorMessage: '',
-                    })
-                }
-            />
-        </div>
-    ),
-}))
-
 import DirectRequestInitialView from '../Initial.direct.request.view'
 
 const renderView = () =>
@@ -138,32 +105,114 @@ const renderView = () =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    localStorage.clear()
+    mockAuth = {
+        user: { user: { userId: 'sender' }, accounts: [{ type: 'peanut-wallet' }] },
+        isFetchingUser: false,
+        fetchUser: mockFetchUser,
+    }
+    mockContact = {
+        data: { relationshipTypes: ['received_money'] },
+        isLoading: false,
+        isError: false,
+        refetch: jest.fn(),
+    }
+    mockRequestByUsername.mockResolvedValue({})
 })
 
-describe('DirectRequestInitialView error routing', () => {
-    test('recipient validation error renders as a field error and keeps the Request CTA', () => {
+describe('addressed requests', () => {
+    test('redirects guests to setup and preserves the destination without an external address form', async () => {
+        mockAuth.user = null
+        window.history.replaceState({}, '', '/request/alice')
         renderView()
-
-        fireEvent.click(screen.getByTestId('fire-invalid-recipient'))
-
-        // field-level message, no flow Callout, no Reset flip
-        expect(screen.getByText('Invalid recipient address')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Request' })).toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup'))
+        expect(localStorage.getItem('redirect')).toContain('/request/alice')
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+        expect(mockRequestByUsername).not.toHaveBeenCalled()
     })
 
-    test('create-request API failure keeps the Callout and flips to Reset', async () => {
-        mockRequestByUsername.mockRejectedValue(new Error('Request failed'))
+    test('redirects an incomplete account to finish setup', async () => {
+        mockAuth.user.accounts = []
+        renderView()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup/finish'))
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test.each(['loading', 'blocked', 'error'])('does not offer a request form while eligibility is %s', (state) => {
+        mockContact = { ...mockContact, data: null, isLoading: state === 'loading', isError: state === 'error' }
+        renderView()
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+        expect(mockRequestByUsername).not.toHaveBeenCalled()
+        if (state === 'blocked') expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
+        if (state === 'error') {
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+            expect(mockContact.refetch).toHaveBeenCalled()
+        }
+    })
+
+    test('allows a received-money contact and sends the signed-in wallet address', async () => {
+        renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(mockRequestByUsername).toHaveBeenCalledWith(
+            expect.objectContaining({
+                username: 'alice',
+                amount: '5',
+                toAddress: '0x000000000000000000000000000000000000dEaD',
+            })
+        )
+    })
+
+    test('keeps an eligible cached session usable when the auth refresh fails', async () => {
+        const { rerender } = renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
+        mockAuth = { ...mockAuth, userFetchError: new Error('Auth refresh unavailable') }
+        rerender(
+            <IntlWrapper>
+                <DirectRequestInitialView username="alice" />
+            </IntlWrapper>
+        )
+
+        expect(screen.getByTestId('amount-input')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
+        expect(screen.queryByText('We could not check your contacts. Please try again.')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '5' }))
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    test.each([null, undefined])('offers auth retry when no cached user exists (%s)', (user) => {
+        mockAuth = { ...mockAuth, user, userFetchError: new Error('Auth unavailable') }
+        mockContact = { ...mockContact, data: undefined }
         renderView()
 
-        // make the form submittable: valid recipient + amount
-        fireEvent.click(screen.getByTestId('fire-valid-recipient'))
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+        expect(screen.getByText('We could not check your contacts. Please try again.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(mockRequestByUsername).not.toHaveBeenCalled()
+    })
+
+    test.each([
+        [401, 'Unauthorized', 'Sign in to request money.'],
+        [
+            403,
+            'You can only request money from people you have paid or been paid by',
+            'You can only request money from people you have paid or been paid by.',
+        ],
+        [403, 'Request sender does not own recipient address', 'Use your own Peanut wallet to receive this request.'],
+        [429, 'Too many payment requests to this user', 'Too many payment requests. Please try again later.'],
+        [500, 'Raw internal server error', 'Failed to create request.'],
+    ])('translates HTTP %s policy failures', async (status, message, translation) => {
+        mockRequestByUsername.mockRejectedValue(new ApiError(message as string, { status: status as number }))
+        renderView()
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
-
         fireEvent.click(screen.getByRole('button', { name: 'Request' }))
-
-        await waitFor(() => expect(screen.getByText('Request failed')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText(translation)).toBeInTheDocument())
         expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'Request' })).not.toBeInTheDocument()
     })
 })

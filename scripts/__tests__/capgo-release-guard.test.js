@@ -51,7 +51,7 @@ function invoke(mode, responses, overrides = {}) {
       const requests = [];
       try {
         const result = await run(input.mode, { env: input.env, fetchImpl: async (url, init) => {
-          requests.push({ url: String(url), method: init.method, body: init.body && JSON.parse(init.body) });
+          requests.push({ url: String(url), method: init.method, headers: init.headers, body: init.body && JSON.parse(init.body) });
           let response = input.responses.shift();
           if (response?.routes) response = response.routes[new URL(url).pathname];
           if (!response) throw new Error('unexpected request');
@@ -71,6 +71,13 @@ function invoke(mode, responses, overrides = {}) {
 function verify(rows, overrides) {
     return invoke('verify-bundle', [{ body: candidate }, { body: rows }], overrides)
 }
+
+it('sends Capgo API keys in the Authorization header accepted by the app endpoint', () => {
+    const result = verify([goodBundle])
+    expect(result.status).toBe(0)
+    expect(result.requests[0].headers).toMatchObject({ Authorization: env.CAPGO_API_KEY })
+    expect(result.requests[0].headers).not.toHaveProperty('x-api-key')
+})
 
 it('verifies the exact structured bundle record', () => {
     expect(verify([goodBundle]).status).toBe(0)

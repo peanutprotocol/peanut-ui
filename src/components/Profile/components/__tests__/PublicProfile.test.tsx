@@ -1,3 +1,5 @@
+let mockRequestContact: any = { data: null, isLoading: false, isError: false }
+jest.mock('@/hooks/useRequestContact', () => ({ useRequestContact: () => mockRequestContact }))
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
@@ -74,7 +76,11 @@ jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default:
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, onClick }: ComponentProps<'button'>) => <button onClick={onClick}>{children}</button>,
+    Button: ({ children, onClick, disabled }: ComponentProps<'button'>) => (
+        <button onClick={onClick} disabled={disabled}>
+            {children}
+        </button>
+    ),
 }))
 
 const JOIN_CTA = en.profile.publicProfile.joinCta
@@ -366,5 +372,35 @@ describe('PublicProfile back navigation', () => {
         fireEvent.click(await screen.findByTestId('nav-back'))
         expect(mockBack).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+describe('PublicProfile request eligibility', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('disables Request for a non-money contact without disabling Send', async () => {
+        mockRequestContact = { data: null, isLoading: false, isError: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
+        expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
+        expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
+    })
+
+    it('preserves the invite gate for signed-in users without app access', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        mockRequestContact = { data: null, isLoading: false, isError: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+        expect(screen.getByTestId('invite-drawer')).toBeInTheDocument()
+    })
+
+    it('allows Request for a received-money contact even without a sent-money badge', async () => {
+        mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
+        mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+        expect(mockPush).toHaveBeenCalledWith('/request/satoshi')
     })
 })

@@ -376,7 +376,7 @@ the build is reproducible, the AAB lands on a Play track.
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
 
-**Required repo secrets:**
+**Required GitHub Actions secrets:**
 
 | Secret | What |
 |--------|------|
@@ -385,8 +385,13 @@ the build is reproducible, the AAB lands on a Play track.
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
 | `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — **optional**; OneSignal push does not read it (see §Android push) |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
-| `CAPGO_API_KEY` | OTA (used by the `App Release OTA` workflow) |
+| `CAPGO_API_KEY` | Capgo API key. Store an app-authorized release key in the `Production` environment and a separate staging key in `Staging-OTA`. |
+| `CAPGO_PRIVATE_KEY` | Existing v2 bundle signing key. Store the same native-compatible value in `Production` and `Staging-OTA`; generating a new key would require a native app release. |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
+
+The release, native, and legacy bridge jobs that read these Capgo secrets use
+`Production`; `App Staging OTA` uses `Staging-OTA`. Remove the old repository-wide
+Capgo secrets after both environments contain working values.
 
 > Housekeeping: the secret is named `NEXT_PUBLIC_SENTRY_DSN` but a Sentry DSN is public
 > by design (it ships in every web bundle) — the `secrets.*` storage is convention, not

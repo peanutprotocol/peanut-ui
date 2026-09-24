@@ -43,6 +43,7 @@ concurrency:
 jobs:
     resolve:
         runs-on: ubuntu-latest
+        environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
