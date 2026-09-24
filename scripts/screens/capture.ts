@@ -10,6 +10,7 @@ import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
+import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
 import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
@@ -97,12 +98,15 @@ async function main() {
         }
     }
     if (!browser) throw launchError
+    const browserProfile = devices[profile.browserProfile]
+    if (!browserProfile) throw new Error(`Unsupported browser profile: ${profile.browserProfile}`)
     const contextOptions = {
         viewport: { width: profile.width, height: profile.height },
+        screen: { width: profile.width, height: profile.height },
         deviceScaleFactor: 1,
         isMobile: true,
         hasTouch: true,
-        userAgent: devices['Pixel 7'].userAgent,
+        userAgent: browserProfile.userAgent,
         locale: captureLocale,
         timezoneId: 'UTC',
         colorScheme: 'light' as const,
@@ -119,7 +123,7 @@ async function main() {
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
-    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};browser=${captureLocale};UTC;light;reduced-motion`
+    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity([
         ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
         ...walk('src/dev/screens'),
@@ -149,6 +153,7 @@ async function main() {
             profile: `${captureLocale}-${profile.name}`,
             width: profile.width,
             height: profile.height,
+            device: profile.device,
             screens: materializeCatalogue(SCREENS, results),
             inventory: inventory(source, SCREENS),
             adapterFiles: [
@@ -218,6 +223,7 @@ async function main() {
             const transportFailures = new Set<string>()
             try {
                 await page.addInitScript('window.__name = (target) => target')
+                await page.addInitScript(installCaptureSafeArea, profile.device)
                 await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
                 await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true

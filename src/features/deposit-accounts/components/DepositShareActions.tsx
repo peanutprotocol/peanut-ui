@@ -1,10 +1,7 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle/Button'
-import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { trackShared } from '../analytics'
 import { buildShareText } from '../shareText'
 import type { DepositAccountView, DepositRail } from '../types'
@@ -19,8 +16,7 @@ export function DepositShareActions({
     account: DepositAccountView
     userName: string
 }) {
-    const toast = useToast()
-    const { t, rowLabels, railLabels } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, senderLimit } = useDepositAccountCopy()
 
     if (!account.instructions) return null
 
@@ -31,7 +27,7 @@ export function DepositShareActions({
             introOwn: t('share.textIntroOwn', { currency: rail.currency }),
             introPooled: t('share.textIntroPooled', { user: userName, currency: rail.currency }),
             outro: t('share.textOutro'),
-            payerLine: { 'business-only': t('share.payerBusinessOnly'), unknown: t('share.payerUnconfirmed') },
+            payerLine: senderLimit(account.matching)?.payer,
             referenceLine: t('share.referenceRequired'),
             eurOwnNameLine: t('share.eurOwnName'),
         },
@@ -39,8 +35,10 @@ export function DepositShareActions({
         railLabels
     )
 
+    // not PageStack.Footer: its mt-auto pushed the CTAs to the screen bottom,
+    // leaving a gap under the short details card. they follow the content.
     return (
-        <PageStack.Footer>
+        <div className="flex flex-col gap-3">
             <ShareButton
                 generateText={async () => {
                     trackShared(rail.corridor, 'share-sheet')
@@ -51,19 +49,15 @@ export function DepositShareActions({
             >
                 {t('details.shareCta')}
             </ShareButton>
-            <Button
-                variant="secondary"
+            {/* The shared copy control: it confirms on itself, and a failed
+                copy is the one toast. */}
+            <CopyToClipboard
+                type="button"
+                textToCopy={text}
                 className="w-full"
-                icon="copy"
-                onClick={async () => {
-                    const copied = await copyTextToClipboard(text)
-                    if (copied) trackShared(rail.corridor, 'copy')
-                    if (copied) toast.success(t('share.copied'))
-                    else toast.error(t('share.copyFailed'))
-                }}
-            >
-                {t('share.copyCta')}
-            </Button>
-        </PageStack.Footer>
+                label={t('share.copyCta')}
+                onCopy={() => trackShared(rail.corridor, 'copy')}
+            />
+        </div>
     )
 }

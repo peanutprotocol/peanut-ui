@@ -45,7 +45,7 @@ describe('ShowNameToggle', () => {
         render(<ShowNameToggle checked={false} onChange={onChange} />)
 
         fireEvent.click(screen.getByRole('switch'))
-        expect(screen.getByText('Show your full name?')).toBeInTheDocument()
+        expect(screen.getByText('Show full name?')).toBeInTheDocument()
         expect(mockUpdateUserById).not.toHaveBeenCalled()
         expect(onChange).not.toHaveBeenCalled()
 

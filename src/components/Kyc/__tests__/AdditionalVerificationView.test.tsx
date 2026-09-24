@@ -114,7 +114,7 @@ describe('AdditionalVerificationView', () => {
         expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent(/start again from the first step/i)
         const checklist = screen.getByTestId('kyc-prep-checklist')
         expect(checklist).toHaveTextContent(/government id/i)
-        expect(checklist).toHaveTextContent(/proof of your address/i)
+        expect(checklist).toHaveTextContent(/proof of address/i)
         expect(mockStartHosted).not.toHaveBeenCalled()
         expect(mockWindowOpen).not.toHaveBeenCalled()
     })
@@ -293,7 +293,7 @@ describe('AdditionalVerificationView', () => {
         render(<AdditionalVerificationView />)
         expect(screen.getByTestId('hosted-task-native-instead')).toHaveTextContent(/upload the document in the app/i)
         expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /go to my profile/i }))
+        fireEvent.click(screen.getByRole('button', { name: /go to profile/i }))
         expect(mockRouterReplace).toHaveBeenCalledWith('/profile/accounts-and-payments')
     })
 

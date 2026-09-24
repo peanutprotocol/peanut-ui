@@ -1,11 +1,12 @@
 'use client'
 
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import Badge from '@/components/Global/Badges/Badge'
 import {
@@ -124,7 +125,7 @@ const LimitsPageView = () => {
                 <Section title={t('cardLimits.title')}>
                     <ListItem
                         position="solo"
-                        leading={<Icon name="credit-card" size={24} />}
+                        leading={<IconBubble {...CONCEPT_ICONS.card} size="s" />}
                         title={t('cardLimits.manage')}
                         body={<div>{t('cardLimits.description')}</div>}
                         chevron

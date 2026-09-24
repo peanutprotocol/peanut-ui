@@ -199,7 +199,7 @@ describe('the screen a blocked corridor lands on', () => {
             const buttons = screen.getAllByRole('button')
             const topUp = screen.getByTestId('corridor-gate-top-up')
             const support = screen.getByTestId('corridor-gate-account-limit')
-            expect(topUp).toHaveTextContent('Send from your own bank')
+            expect(topUp).toHaveTextContent('Add money from a bank')
             // the leading button is first in the DOM, so screen order and tab
             // order say the same thing
             expect(buttons.indexOf(topUp)).toBeLessThan(buttons.indexOf(support))

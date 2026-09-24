@@ -61,6 +61,8 @@ interface TransactionDetailsHeaderCardProps {
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
+    /** one line under the status badge, e.g. why a deposit was returned */
+    statusNote?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -234,6 +236,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     showFullName,
     fullName,
     countryCode,
+    statusNote,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -281,7 +284,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}
             status={status}
-            context="header"
             size="m"
             countryCode={countryCode}
         />
@@ -376,7 +378,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <Badge status={status!} size="medium" />}
+                {showBadge &&
+                    (actionLabelKey === 'type.returnedToSender' ? (
+                        // A bank deposit sent back to the payer is a fact with no
+                        // success tone, so `neutral`, in the heading's word.
+                        <Badge status="neutral" size="medium" customText={t('returnedStatus')} />
+                    ) : (
+                        <Badge status={status!} size="medium" />
+                    ))}
+                {statusNote && <p className="text-body-s text-foreground-secondary">{statusNote}</p>}
             </div>
         </div>
     )

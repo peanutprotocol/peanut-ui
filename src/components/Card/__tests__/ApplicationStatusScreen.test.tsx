@@ -71,7 +71,7 @@ describe('ApplicationStatusScreen — rejected', () => {
 describe('ApplicationStatusScreen — geo-blocked', () => {
     it('renders regional availability without promising access to every other feature', () => {
         render(<ApplicationStatusScreen variant="geo-blocked" />)
-        expect(screen.getByText("Cards aren't available in your region yet")).toBeInTheDocument()
+        expect(screen.getByText("Cards aren't available in this region yet")).toBeInTheDocument()
         expect(
             screen.getByText(/Card availability depends on where you live.*other features available to you/)
         ).toBeInTheDocument()
@@ -102,7 +102,7 @@ describe('ApplicationStatusScreen — pending residence block', () => {
     it('explains the recoverable state and links directly to the residence drawer', () => {
         render(<ApplicationStatusScreen variant="pending-residence-blocked" />)
 
-        expect(screen.getByText('Review your residence change')).toBeInTheDocument()
+        expect(screen.getByText('Residence change pending')).toBeInTheDocument()
         expect(screen.getByText(/approved residence is still active/i)).toBeInTheDocument()
         const link = screen.getByRole('link', { name: 'Review residence change' })
         expect(link).toHaveAttribute('href', '/profile/accounts-and-payments?open=residence')

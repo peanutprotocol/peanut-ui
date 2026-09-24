@@ -39,6 +39,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
     const i18n = getTranslations(locale)
     return {
         ...mdxComponents,
+        Hero: (props) => <Hero {...props} locale={locale} />,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
         // CompareSavings is a client component, so its copy is picked here key
         // by key: passing the whole catalog would serialize ~14 KB of unused

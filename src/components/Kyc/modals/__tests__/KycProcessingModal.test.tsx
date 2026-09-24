@@ -28,7 +28,7 @@ describe('KycProcessingModal', () => {
                 onContactSupport={onContactSupport}
             />
         )
-        expect(screen.getByText('Setting up your account…')).toBeInTheDocument()
+        expect(screen.getByText('Setting up account…')).toBeInTheDocument()
         expect(screen.getByText(/less than a minute/)).toBeInTheDocument()
         expect(screen.queryByText('Continue verification')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
@@ -51,7 +51,7 @@ describe('KycProcessingModal', () => {
                 onContactSupport={onContactSupport}
             />
         )
-        expect(screen.getByText('Still setting up your account')).toBeInTheDocument()
+        expect(screen.getByText('Still setting up the account')).toBeInTheDocument()
         expect(screen.queryByText(/less than a minute/)).not.toBeInTheDocument()
         expect(screen.getByText(/left the verification unfinished/)).toBeInTheDocument()
         fireEvent.click(screen.getByText('Continue verification'))
@@ -71,7 +71,7 @@ describe('KycProcessingModal', () => {
                 onContactSupport={onContactSupport}
             />
         )
-        expect(screen.getByText('Still setting up your account')).toBeInTheDocument()
+        expect(screen.getByText('Still setting up the account')).toBeInTheDocument()
         expect(screen.getByText(/still reviewing your details/)).toBeInTheDocument()
         expect(screen.queryByText('Continue verification')).not.toBeInTheDocument()
         expect(screen.getByText('Got it')).toBeInTheDocument()

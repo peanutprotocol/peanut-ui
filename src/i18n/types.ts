@@ -258,7 +258,7 @@ export interface Translations {
     faqTitle: string
 
     // Marketing hero marquee
-    heroMarqueeNoFees: string
+    heroMarqueeRateUpfront: string
     heroMarqueeInstant: string
     heroMarqueeDollars: string
 

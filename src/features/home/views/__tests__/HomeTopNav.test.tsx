@@ -9,7 +9,7 @@ describe('HomeTopNav', () => {
     it('opens the profile through ONE labelled control', () => {
         const { container } = renderWithIntl(<HomeTopNav showRewards={false} />)
 
-        const menu = screen.getByRole('link', { name: 'Open your profile' })
+        const menu = screen.getByRole('link', { name: 'Open profile' })
         expect(menu).toHaveAttribute('href', '/profile')
         expect(menu).toHaveClass('size-10', 'w-10')
         expect(menu).not.toHaveClass('w-full')

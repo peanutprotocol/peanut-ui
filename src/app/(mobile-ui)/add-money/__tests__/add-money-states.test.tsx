@@ -1175,7 +1175,7 @@ describe('GROUP 3: Crypto deposit', () => {
 
         // the shared treatment (TASK-22452): mascot loader + titled copy
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.getByText('Processing your deposit')).toBeInTheDocument()
+        expect(screen.getByText('Processing deposit')).toBeInTheDocument()
         expect(screen.getByText(/confirming your deposit/)).toBeInTheDocument()
     })
 
@@ -1351,7 +1351,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         fireEvent.click(screen.getByText('Continue'))
 
-        await waitFor(() => expect(screen.getByText("We're reviewing your details")).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText("We're reviewing the details")).toBeInTheDocument())
         expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
@@ -1555,7 +1555,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         // no doomed transfer attempt; the user sees the bridge-review pending modal
         expect(mockCreateOnramp).not.toHaveBeenCalled()
-        expect(await screen.findByText(/reviewing your details/i)).toBeInTheDocument()
+        expect(await screen.findByText(/reviewing the details/i)).toBeInTheDocument()
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {

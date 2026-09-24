@@ -93,6 +93,18 @@ export const TransactionDetailsReceipt = ({
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = headline.sign
 
+    // Why a deposit went back: the one reason line under the Returned badge
+    // (design.md status words). A reason code the API recognised gets our own
+    // sentence. The provider's text is never shown: the API stores Bridge's
+    // `refund.reason` joined with its undocumented `risk_rejection_reason`,
+    // and marks the result "for support, not for display" (QA-08, 2026-09-24).
+    const returnReasonLine =
+        transaction.actionLabelKey !== 'type.returnedToSender'
+            ? undefined
+            : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
+              ? t('returnedReasonThirdParty')
+              : t('returnedReason')
+
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
     // kind-keyed predicates so adding a new flow only needs a predicate update.
@@ -170,15 +182,8 @@ export const TransactionDetailsReceipt = ({
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+                statusNote={returnReasonLine}
             />
-
-            {/* Why a deposit went back. The status alone says the money left
-                the balance; only this says what to ask the sender to fix. */}
-            {transaction.actionLabelKey === 'type.returnedToSender' && (
-                <Card position="solo" className="p-4">
-                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
-                </Card>
-            )}
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (

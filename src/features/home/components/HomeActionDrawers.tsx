@@ -1,7 +1,8 @@
 'use client'
 
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
@@ -65,7 +66,7 @@ export function HomeActionDrawers() {
                                 <ListItem
                                     key={option.key}
                                     position={getCardPosition(index, all.length)}
-                                    leading={<Icon name={option.icon} size={24} className="text-foreground-primary" />}
+                                    leading={<IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />}
                                     title={
                                         option.titleKey[0] === 'methods'
                                             ? tMethods(option.titleKey[1] as AddMethodKey)

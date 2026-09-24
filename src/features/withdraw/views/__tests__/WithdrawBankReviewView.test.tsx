@@ -33,11 +33,13 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
+    bankAmount,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -45,6 +47,7 @@ const Harness = ({
         <WithdrawBankReviewView
             bankAccount={account}
             amount="50"
+            bankAmount={bankAmount}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -233,7 +236,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
     it('a euro IBAN gets no conversion notice and no local-currency rate', () => {
         renderWithIntl(<Harness rail="sepa" account={accountFrom('DEU')} />)
 
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
     })
 
@@ -241,7 +244,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         renderWithIntl(<Harness rail="sepa" account={accountFrom('POL')} />)
 
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', 'PLN')
-        expect(screen.getByText('We send EUR to your bank')).toBeInTheDocument()
+        expect(screen.getByText('We send EUR to the bank')).toBeInTheDocument()
     })
 
     it("a Lithuanian IBAN is euro, so it never borrows another country's currency", () => {
@@ -249,7 +252,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         renderWithIntl(<Harness rail="sepa" account={accountFrom('LTU')} />)
 
         expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
     })
 })
 
@@ -271,5 +274,53 @@ describe('WithdrawBankReviewView — the BIC row', () => {
 
         expect(screen.queryByText('BIC')).not.toBeInTheDocument()
         expect(screen.queryByText('N/A')).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * TASK-18624: withdrawing to someone else's account (a parent's) showed the
+ * user as the account owner, because a missing stored name fell back to the
+ * viewer's own name.
+ */
+describe('WithdrawBankReviewView — the account owner row', () => {
+    it("shows the holder name stored on the account, not the user's", () => {
+        const mothersAccount = {
+            ...ibanAccount,
+            details: { ...ibanAccount.details, accountOwnerName: 'Maria Montenegro' },
+        } as unknown as Account
+        renderWithIntl(<Harness rail="sepa" account={mothersAccount} />)
+
+        expect(screen.getByText('Account owner')).toBeInTheDocument()
+        expect(screen.getByText('Maria Montenegro')).toBeInTheDocument()
+        expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+
+    it("leaves the row out when no holder name was stored, rather than showing the user's name", () => {
+        const noOwner = {
+            ...ibanAccount,
+            details: { ...ibanAccount.details, accountOwnerName: '' },
+        } as unknown as Account
+        renderWithIntl(<Harness rail="sepa" account={noOwner} />)
+
+        expect(screen.queryByText('Account owner')).not.toBeInTheDocument()
+        expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
+    it('shows about what the recipient gets and the rate behind the USDC', () => {
+        renderWithIntl(
+            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
+        )
+        expect(screen.getByText('Recipient gets')).toBeInTheDocument()
+        expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
+    })
+
+    it('without one, keeps the exchange-rate rows of a USD amount', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
+        expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
     })
 })

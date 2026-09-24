@@ -1,5 +1,6 @@
 'use client'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
@@ -41,7 +42,6 @@ export const CreateRequestLinkView = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
-        resetRequest,
     } = useCreateRequestLink()
     // The amount field reports its sides through three setters in one pass,
     // `setSecondaryAmount` last. They are collected here and handed on once,
@@ -57,7 +57,6 @@ export const CreateRequestLinkView = () => {
                 currency={currency}
                 bankPayable={bankInstructionsShared}
                 onDone={onDone}
-                onCreateAnother={resetRequest}
             />
         )
     }
@@ -139,12 +138,11 @@ export const CreateRequestLinkView = () => {
                     onGenerate={generateLink}
                 />
 
+                {/* a flow-level failure: not tied to one field, so a Callout */}
                 {errorState.showError && (
-                    <div className="text-start">
-                        <label className="text-body-s font-normal text-foreground-error">
-                            {errorState.errorMessage}
-                        </label>
-                    </div>
+                    <Callout priority="error" data-testid="request-create-error">
+                        {errorState.errorMessage}
+                    </Callout>
                 )}
             </PageStack.Center>
         </PageStack>

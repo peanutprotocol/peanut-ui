@@ -598,6 +598,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                     )
                 }
                 title={triggerSymbol || t('tokenSelector.selectAToken')}
+                truncate={!!triggerSymbol}
                 body={triggerChainName}
             />
             {showNoFeesHint && (

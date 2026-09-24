@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
@@ -150,9 +151,9 @@ export function BridgeBankOnrampView() {
         })
 
         return (
-            <div className="space-y-8 flex flex-col justify-start">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                <PageStack.Center className="gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
                     {/* the field error yields to the limits card only when that card renders */}
                     <Field
@@ -222,7 +223,7 @@ export function BridgeBankOnrampView() {
                         limitsBlocking: limitsValidation.isBlocking,
                     }) && <Callout priority="error">{error.errorMessage}</Callout>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
-                </div>
+                </PageStack.Center>
 
                 <OnrampConfirmationModal
                     visible={showWarningModal}
@@ -280,7 +281,7 @@ export function BridgeBankOnrampView() {
                     onSkip={hideTos}
                     reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                 />
-            </div>
+            </PageStack>
         )
     }
 

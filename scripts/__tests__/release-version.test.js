@@ -113,6 +113,12 @@ describe('release version resolver', () => {
             expect(result.stdout.trim()).toBe('1.6.4')
         })
 
+        it('advances one public release after the compatibility bridge was tagged', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.8'] }), ['ota', '--current', '1.6.7'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.9')
+        })
+
         it('increments the OTA component within the current build', () => {
             const result = run(repo('1.0.53', { tags: ['v1.5.0'] }), ['ota', '--current', '1.5.3'])
 
@@ -299,7 +305,7 @@ describe('release version resolver', () => {
         const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/release-native.yml'), 'utf8')
         const guard = workflow
             .split('- name: Guard release provenance')[1]
-            .split('- name: Resolve next build version')[0]
+            .split('- name: Require compatible legacy OTA lanes before either store upload')[0]
             .split('run: |')[1]
             .split('\n')
             .map((line) => line.replace(/^ {18}/, ''))
@@ -307,11 +313,16 @@ describe('release version resolver', () => {
         const execute = (dir) =>
             spawnSync('bash', ['-euo', 'pipefail', '-c', guard], {
                 cwd: dir,
-                env: { ...process.env, GITHUB_REF_NAME: 'dev', GITHUB_SHA: 'a'.repeat(40) },
+                env: { ...process.env, GITHUB_REF_NAME: 'main', GITHUB_SHA: 'a'.repeat(40) },
                 encoding: 'utf8',
             })
         it('accepts a verified empty release registry for the first native release', () => {
             expect(execute(repo('1.0.53')).status).toBe(0)
+        })
+        it('accepts a main commit that contains the newest native release', () => {
+            const result = execute(repo('1.0.53', { tags: ['v1.6.0'] }))
+            expect(result.status).toBe(0)
+            expect(result.stdout).toContain('contains v1.6.0')
         })
         it('does not turn a broken resolver into permission to publish', () => {
             const dir = repo('1.0.53', { tags: ['v1.6.0'] })

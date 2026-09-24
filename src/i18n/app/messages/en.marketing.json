@@ -39,7 +39,7 @@
             "mexico": "Mexico",
             "descriptions": {
                 "argentina": "Only Mercado Pago QR payments",
-                "brazil": "Only PIX QR payments"
+                "brazil": "Only Pix QR and Pix key payments"
             }
         },
         "tryDifferentCountry": "Please try a different country.",
@@ -56,6 +56,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
+        "rateIncludesConversionCost": "Includes the conversion cost.",
         "slideToProceed": "Slide to Proceed",
         "userAvatarAlt": "Avatar for {username}"
     },
@@ -171,7 +172,7 @@
         "hero": {
             "wordmark": "Peanut Card",
             "tagline": "Your money. Ready to spend.",
-            "cta": "Get your card",
+            "cta": "Get card",
             "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms.",
             "title": "Go Pink.",
             "pitch": "One balance. 150 million places to spend it.",

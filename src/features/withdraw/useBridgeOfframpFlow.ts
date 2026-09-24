@@ -37,7 +37,9 @@ import { type Account } from '@/interfaces/interfaces'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
-import { useWithdrawAmount } from './useWithdrawAmount'
+import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
+import { bankAmountCurrency } from './bank-amount'
+import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
 import { validateBankOfframpAmount } from './amount-validation'
 import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
@@ -55,8 +57,10 @@ import {
  * (/withdraw/[country]/bank): the review → success stepper (named screen ids
  * in the URL), the offramp submission (create → send on-chain → confirm), the
  * capability gates and the KYC/advisory modal state. The amount arrives in the
- * URL (`?amount=`, TASK-21664/21665); the selected account lives in the
- * /withdraw-scoped flow context.
+ * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
+ * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
+ * TASK-23054), whose USDC comes from a quote. The selected account lives in
+ * the /withdraw-scoped flow context.
  */
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
@@ -72,7 +76,8 @@ export function useBridgeOfframpFlow() {
     const confirmPendingCopy = t('bank.confirmPending')
 
     const { selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
-    const [amountToWithdraw] = useWithdrawAmount()
+    const [urlAmount] = useWithdrawAmount()
+    const [destinationAmount] = useWithdrawDestinationAmount()
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
@@ -125,6 +130,18 @@ export function useBridgeOfframpFlow() {
         guards: bankStepGuards({ executed: !!completedTxHash }),
     })
     const step = stepper.step
+
+    // Bank amount typed in EUR, GBP, MXN or COP (TASK-23054): the USDC that
+    // leaves the balance is the quote's, at the provider's current rate, and
+    // refreshes with the rate until the user confirms. That USDC is what the
+    // offramp sends; the bank amount is an estimate.
+    const bankCurrency = destinationAmount ? bankAmountCurrency(bankAccount) : null
+    const bankQuote = useBridgeOfframpQuote({
+        currency: bankCurrency,
+        destinationAmount,
+        enabled: step === 'review' && !isLoading && !submittedTxHash,
+    })
+    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -226,23 +243,26 @@ export function useBridgeOfframpFlow() {
         // round 10).
         const recovery = new URLSearchParams()
         if (fromSendFlow) recovery.set('method', 'bank')
-        if (amountToWithdraw) recovery.set('amount', amountToWithdraw)
+        if (urlAmount) recovery.set('amount', urlAmount)
+        if (destinationAmount) recovery.set('destinationAmount', destinationAmount)
         const recoveryQs = recovery.toString()
         const recoveryQuery = recoveryQs ? `?${recoveryQs}` : ''
         if (step === 'success') {
             if (!bankAccount) router.replace(`/withdraw${recoveryQuery}`)
             return
         }
-        if (!amountToWithdraw) {
+        // a bank amount is not the USDC yet — that arrives with its quote
+        const hasAmount = bankCurrency ? !!destinationAmount : !!urlAmount || !!destinationAmount
+        if (!hasAmount) {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
-        } else if (!bankAccount && amountToWithdraw) {
+        } else if (!bankAccount) {
             // An amount with no destination — send the user to the country's
             // bank form, named in the URL, with the amount still on it
             recovery.set('step', 'form')
             router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
-    }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
+    }, [bankAccount, router, urlAmount, destinationAmount, bankCurrency, country, step, fromSendFlow])
 
     const destinationDetails = (account: Account) => {
         // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
@@ -500,11 +520,21 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady,
+        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || !!bankQuote.quote),
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
         amountToWithdraw,
+        // bank amount typed in its currency (TASK-23054): null on the USD path
+        bankAmount: bankCurrency
+            ? {
+                  currency: bankCurrency,
+                  destinationAmount,
+                  quote: bankQuote.quote,
+                  quoteFailed: bankQuote.isError,
+                  refetchQuote: bankQuote.refetch,
+              }
+            : null,
         bankAccount,
         country,
         countryFromPath,

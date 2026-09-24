@@ -147,9 +147,6 @@ jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
     useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
 }))
 
-const mockPerksApi = { claimPerk: jest.fn(), getPendingPerks: jest.fn() }
-jest.mock('@/services/perks', () => ({ perksApi: mockPerksApi }))
-
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
     InsufficientSpendableError: class extends Error {
         constructor() {
@@ -470,7 +467,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: (props: any) => (
-        <div data-testid="payment-info-row">
+        <div data-testid="payment-info-row" data-more-info={props.moreInfoText}>
             {props.label}: {props.value}
         </div>
     ),
@@ -1198,6 +1195,20 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
     })
 
+    // Manteca's conversion cost is inside its rate, so the form has no separate
+    // fee row to call free or sponsored; the rate row says what it includes.
+    test('Manteca QR form shows the rate with its included cost and no Peanut fee row', async () => {
+        setupMantecaPayment()
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+
+        const rows = screen.getAllByTestId('payment-info-row')
+        const rateRow = rows.find((row) => row.textContent?.startsWith('Exchange Rate'))
+        expect(rateRow).toHaveTextContent('1 USD = 5 BRL')
+        expect(rateRow).toHaveAttribute('data-more-info', expect.stringContaining('Includes the conversion cost.'))
+        expect(rows.map((row) => row.textContent).join('\n')).not.toMatch(/Peanut fee|Sponsored/i)
+    })
+
     test('Insufficient balance shows pay button disabled + error', async () => {
         // Payment needs ~$18.4 but the displayed spendable is only $5, so the gate
         // (hasSufficientSpendableBalance) returns false. Revived from skip once the
@@ -1550,7 +1561,7 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Perk claimed shows shake class + go home button', async () => {
-        // Make claimPerk fast for test
+        // Fake timers: skip the hold-to-claim gesture timing
         jest.useFakeTimers()
 
         await completeMantecaPayment({
@@ -1587,11 +1598,10 @@ describe('GROUP 4: Success States', () => {
 
     // Regression: the perk is already claimed server-side during QR-payment
     // processing, and the QR response carries the sponsored amount. The
-    // hold-to-claim gesture must report that reward directly — it must NOT make
-    // a second /perks/claim round-trip (that endpoint now requires a usageId the
-    // client never has, so the old call always 400'd and surfaced a false
-    // "reward is being processed" error even though the reward had landed).
-    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+    // hold-to-claim gesture must report that reward directly with no error.
+    // (A second /perks/claim round-trip is structurally impossible now —
+    // perksApi is deleted — so this only asserts the reward path.)
+    test('Perk claim reports the reward from the QR response, no error', async () => {
         jest.useFakeTimers()
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
@@ -1672,10 +1682,9 @@ describe('GROUP 4: Success States', () => {
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
 
         // The reveal talks to no one: the scan init and the completion are the
-        // only Manteca calls, and the legacy /perks/claim round-trip stays dead.
+        // only calls it makes.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
@@ -1713,7 +1722,6 @@ describe('GROUP 4: Success States', () => {
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })

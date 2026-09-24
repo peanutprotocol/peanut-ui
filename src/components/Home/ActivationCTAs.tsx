@@ -1,5 +1,6 @@
 'use client'
 
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
@@ -206,7 +207,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 href: '/profile/accounts-and-payments',
             },
             deposit: {
-                icon: 'arrow-down',
+                icon: CONCEPT_ICONS.addMoney.icon,
                 iconColor: 'brand',
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
@@ -217,7 +218,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 href: '/home?drawer=add',
             },
             card: {
-                icon: 'credit-card',
+                icon: CONCEPT_ICONS.card.icon,
                 iconColor: 'yellow',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
@@ -226,7 +227,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 dismissable: true,
             },
             outbound: {
-                icon: 'qr-code',
+                icon: CONCEPT_ICONS.qrPay.icon,
                 iconColor: 'brand',
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
@@ -376,7 +377,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (activationStep === 'outbound' && canApplyForCard) {
             return {
                 ...steps.outbound,
-                icon: 'credit-card',
+                icon: CONCEPT_ICONS.card.icon,
                 title: t('spendWithPeanut.title'),
                 description: t('spendWithPeanut.description'),
             }
@@ -513,7 +514,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         {/* the head owns the M/12 beneath it; everything after it
                             keeps the drawer's L/16 rhythm */}
                         <div className="mb-3 flex w-full flex-col items-center gap-4">
-                            <IconBubble icon="credit-card" color="brand" />
+                            <IconBubble icon={CONCEPT_ICONS.card.icon} color="brand" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
                                 <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>

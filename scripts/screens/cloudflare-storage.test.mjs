@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { configuration, createStorage, deleteHostedImage, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
+import { configuration, createStorage, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
 
 const config = {
     CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
@@ -118,22 +118,4 @@ test('R2 reads remain callable when passed as detached publisher callbacks', asy
         body: Buffer.from('{"ok":true}'),
         etag: 'etag',
     })
-})
-
-test('legacy Cloudflare Images deletion is strict and idempotent', async () => {
-    const id = `ps-${'a'.repeat(29)}`
-    let request
-    await deleteHostedImage(config, id, async (url, options) => {
-        request = { url, options }
-        return Response.json({ success: true })
-    })
-    assert.equal(request.options.method, 'DELETE')
-    assert.equal(request.options.headers.Authorization, `Bearer ${config.CLOUDFLARE_API_TOKEN}`)
-    assert.equal(
-        request.url,
-        `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/images/v1/${id}`
-    )
-    await deleteHostedImage(config, id, async () => new Response(null, { status: 404 }))
-    await assert.rejects(deleteHostedImage(config, 'unsafe/id', async () => Response.json({ success: true })))
-    await assert.rejects(deleteHostedImage(config, id, async () => Response.json({ success: false })))
 })

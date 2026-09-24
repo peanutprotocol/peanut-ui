@@ -10,7 +10,10 @@ import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
-import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
+import {
+    type DepositReturnReasonCode,
+    type TransactionDirection,
+} from '@/components/TransactionDetails/transaction-types'
 import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
@@ -145,6 +148,9 @@ export interface HistoryEntryExtraData {
      * still in progress.
      */
     refundInFlight?: boolean | null
+    /** Why a standing-account deposit went back to the payer, once the API
+     *  knows. Owner-only. `text` is the provider's wording, for support. */
+    returnReason?: { code: DepositReturnReasonCode; text: string | null } | null
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null

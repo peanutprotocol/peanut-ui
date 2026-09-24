@@ -155,12 +155,11 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
-    // audit #61 (hugo, 2026-09-23): the safe way out keeps its words and its stroke button weight
-    it('offers "Keep my card" as the one button, and it closes without canceling', () => {
+    it('offers "Keep card" as a ghost button, and it closes without canceling', () => {
         setup(OVERVIEW)
         const onClose = jest.fn()
         render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
-        fireEvent.click(screen.getByRole('button', { name: 'Keep my card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Keep card' }))
         expect(onClose).toHaveBeenCalledTimes(1)
         expect(mockCancelCard).not.toHaveBeenCalled()
     })

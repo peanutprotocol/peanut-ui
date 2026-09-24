@@ -134,7 +134,10 @@ export const BottomNav = () => {
     }, [])
 
     // The route selection survives support, which temporarily owns the pill.
-    const isMiddleRoute = (pathname?.startsWith('/card') ?? false) || isSameRoute(pathname, middleTab.href)
+    // the /card prefix lights the pill only when the card tab exists: /card is
+    // reachable for everyone, but it is a tab route only for users who see the card slot.
+    const isMiddleRoute =
+        (showCardSurface && (pathname?.startsWith('/card') ?? false)) || isSameRoute(pathname, middleTab.href)
     const routeTab: TabId | null = isMiddleRoute ? 'middle' : isSameRoute(pathname, '/home') ? 'home' : null
 
     // Optimistic: taps retarget the pill in the same tick (the Link onClick

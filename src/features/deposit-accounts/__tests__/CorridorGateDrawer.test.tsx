@@ -113,6 +113,15 @@ describe.each([
 })
 
 describe('the gate drawer', () => {
+    // The title and the button say it: one document to agree to. The identity
+    // sentence belonged to a different step (sep-23 review, A5).
+    it('asks for the terms with a heading and a button, and no identity sentence', () => {
+        renderFlow(flowProps({ gate: { kind: 'accept-tos', tosUrl: 'https://x', userMessage: null } as GateState }))
+        expect(drawer()).toHaveTextContent(GATE.tosTitle)
+        expect(drawer()).toHaveTextContent(GATE.tosCta)
+        expect(drawer()).not.toHaveTextContent(GATE.verifyBody)
+    })
+
     it('keeps updating while open: a wait picks up the provider message from the next poll', () => {
         const { rerenderFlow } = renderFlow(flowProps({ gate: { kind: 'pending' }, withTerms: false }))
         expect(drawer()).toHaveTextContent(GATE.waitBody)
@@ -144,6 +153,14 @@ describe('the gate drawer', () => {
         await expectBackOnList(onUrlUpdate)
         expect(props.onExit).not.toHaveBeenCalled()
         expect(screen.getByTestId('hub')).toBeInTheDocument()
+    })
+
+    // Chip on ui#3434: Accounts and payments links straight here, so a dismissal leaves the flow
+    it('goes back where the user came from when dismissed, a direct link included', () => {
+        const props = flowProps({ blockedBy: 'account-limit' })
+        renderFlow(props)
+        fireEvent.keyDown(drawer(), { key: 'Escape' })
+        expect(props.onExit).toHaveBeenCalled()
     })
 
     it('opens support for the cap and closes itself, so the support sheet is not hidden behind it', async () => {

@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Só pagamentos com QR do Mercado Pago",
-                "brazil": "Só pagamentos com QR Pix"
+                "brazil": "Só pagamentos Pix por QR ou chave"
             }
         },
         "tryDifferentCountry": "Tente outro país.",
@@ -56,7 +56,8 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar",
+        "rateIncludesConversionCost": "Inclui o custo de conversão.",
+        "slideToProceed": "Deslize e continue",
         "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
@@ -171,7 +172,7 @@
         "hero": {
             "wordmark": "Cartão Peanut",
             "tagline": "Seu dinheiro. Pronto para pagar.",
-            "cta": "Peça seu cartão",
+            "cta": "Pedir cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
             "title": "Go Pink.",
             "pitch": "Um saldo. 150 milhões de lugares para gastar.",

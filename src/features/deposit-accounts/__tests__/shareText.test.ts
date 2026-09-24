@@ -1,5 +1,6 @@
 import messages from '@/i18n/app/messages/en.json'
 import { instructionRows, type RailLabels } from '../instructionRows'
+import { senderLimitKey } from '../ruleLines'
 import { buildShareText } from '../shareText'
 import type { DepositAccount, DepositRowLabels, DepositRules, SenderPolicy } from '../types'
 
@@ -23,13 +24,18 @@ const copy = {
     introOwn: 'Here are my bank details to get paid in GBP:',
     introPooled: 'Bank details to pay Ana in GBP:',
     outro: 'Sent from Peanut · peanut.me',
-    payerLine: { 'business-only': 'Pay from a business account.', unknown: 'A transfer may be returned.' },
     referenceLine: 'Add the reference to every transfer.',
     eurOwnNameLine: 'A euro transfer from another name can be returned.',
 }
 
-const text = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}) =>
-    buildShareText(account(sender, rules, over), copy, ROW_LABELS, RAIL_LABELS)
+/** the payer's voice of `senderLimit`, as DepositShareActions passes it */
+const PAYER_LINES = { businessOnly: 'Pay from a business account.', othersUnconfirmed: 'A transfer may be returned.' }
+
+const text = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}) => {
+    const shared = account(sender, rules, over)
+    const limit = senderLimitKey(shared.matching)
+    return buildShareText(shared, { ...copy, payerLine: limit && PAYER_LINES[limit] }, ROW_LABELS, RAIL_LABELS)
+}
 
 /**
  * The copied text is the account fields, the footer, and at most one line on

@@ -121,7 +121,9 @@ const MantecaAddMoney: FC = () => {
     // Dismissing the gate must not re-open it on the next render — same
     // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
     const [kycGateDismissed, setKycGateDismissed] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry
+        ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
+        : false
 
     // The gate comes before the amount: a user who cannot deposit should learn it
     // on arrival, not after typing a number. The amount screen stays mounted

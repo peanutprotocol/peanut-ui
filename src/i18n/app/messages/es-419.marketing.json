@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Solo pagos con QR de Mercado Pago",
-                "brazil": "Solo pagos con QR Pix"
+                "brazil": "Solo pagos Pix con QR o clave"
             }
         },
         "tryDifferentCountry": "Prueba con otro país.",
@@ -56,7 +56,8 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar",
+        "rateIncludesConversionCost": "Incluye el costo de conversión.",
+        "slideToProceed": "Desliza y continúa",
         "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
@@ -171,7 +172,7 @@
         "hero": {
             "wordmark": "Tarjeta Peanut",
             "tagline": "Tu dinero. Listo para pagar.",
-            "cta": "Consigue tu tarjeta",
+            "cta": "Pedir tarjeta",
             "disclaimer": "Se requiere verificación y aprobación. Sin cuotas mensuales ni anuales. Se aplican las tarifas y los límites de los términos del titular.",
             "title": "Go Pink.",
             "pitch": "Un saldo. 150 millones de lugares donde pagar.",

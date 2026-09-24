@@ -82,6 +82,7 @@ jest.mock('@/constants/actionlist.consts', () => ({
         // present in the catalog but must NOT surface in the send list —
         // withdraw-to-own-account rail (see the exclusion test below)
         { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
+        { id: 'pix', title: 'Pix', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
             title: 'Crypto',
@@ -256,10 +257,23 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
 
-    test('Shows Peanut username option at top of methods list', () => {
+    // Send → Bank cannot pay an Argentine account (Argentina shows Soon), and
+    // Brazil's Pix row pays any key, not only a QR (2026-09-23).
+    test('Bank row names the currencies Send can pay, and the Pix row says it pays any key', () => {
+        mockUseGeoFilteredPaymentOptions.mockImplementation(({ methods }: { methods: unknown[] }) => ({
+            filteredMethods: methods,
+        }))
         renderSend()
 
-        const contactsCard = screen.getByTestId('action-card-Peanut username')
+        expect(screen.getByText('EUR, USD, MXN, BRL & more')).toBeInTheDocument()
+        expect(screen.getByText('Any Pix key')).toBeInTheDocument()
+        expect(screen.queryByText(/ARS/)).not.toBeInTheDocument()
+    })
+
+    test('Shows Peanut user option at top of methods list', () => {
+        renderSend()
+
+        const contactsCard = screen.getByTestId('action-card-Peanut user')
         expect(contactsCard).toBeInTheDocument()
     })
 
@@ -290,7 +304,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         // Should still render without errors
-        expect(screen.getByTestId('action-card-Peanut username')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Peanut user')).toBeInTheDocument()
     })
 })
 
@@ -408,10 +422,10 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Clicking Peanut username navigates to /send?view=contacts', () => {
+    test('Clicking Peanut user navigates to /send?view=contacts', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Peanut username'))
+        fireEvent.click(screen.getByTestId('action-card-Peanut user'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
     })
 

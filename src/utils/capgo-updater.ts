@@ -8,7 +8,7 @@ import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloor
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
-    /** a bundle finished downloading and is staged for the next launch */
+    /** a bundle finished downloading and is saved for a later safe launch */
     onUpdateAvailable?: (bundle: BundleInfo) => void
     onDownloadProgress?: (percent: number) => void
     onUpdateFailed?: (error: string) => void
@@ -75,8 +75,8 @@ export type OtaCheckOutcome = 'staged' | 'up-to-date' | 'store-update-required' 
 
 // One OTA operation at a time, whoever asks. The launch check can still be
 // downloading when a tester flips the beta switch, and an unserialized check
-// calls next() with a bundle chosen for the channel the device is leaving —
-// which is how a device ends up booting beta code with the channel already
+// saves a bundle chosen for the channel the device is leaving — which is how
+// a device ends up booting beta code with the channel already
 // unset, the one state no production OTA can repair.
 //
 // Queueing rather than sharing the in-flight promise matters: the join needs a
@@ -118,12 +118,12 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             }
             throw new Error(message)
         }
-        // getLatest resolves with a url only when a genuinely newer bundle exists.
+        // getLatest can offer a different version even when its number is lower
+        // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
             // Refused before the download, not after: a bundle built for a newer
-            // binary must never reach the device's disk, because everything that
-            // stages one (next(), the plugin's background apply) works off what is
-            // downloaded. Capgo's own floor is the server-side half of this rule and
+            // binary must never reach the device's disk or launch cache. Capgo's
+            // own floor is the server-side half of this rule and
             // only applies under one channel strategy, in a dashboard nothing here
             // can read — so the client decides too.
             if (await needsStoreUpdate(latest.version, latest.comment)) {
@@ -132,6 +132,12 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
                 callbacks.onStoreUpdateRequired?.()
                 return 'store-update-required'
             }
+            const existing = await readStagedBundleImpl()
+            if (existing?.version === latest.version) {
+                callbacks.onUpdateAvailable?.(existing)
+                removeStoredValue(FAILURE_STREAK_KEY)
+                return 'staged'
+            }
             const bundle = await CapacitorUpdater.download({
                 url: latest.url,
                 version: latest.version,
@@ -139,14 +145,15 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
                 sessionKey: latest.sessionKey,
                 manifest: latest.manifest,
             })
-            // apply on next launch (no mid-session reload — avoids yanking the
-            // UI out from under the user). set() reloads IMMEDIATELY; next()
-            // is the deferred variant.
-            // Persist before arming next(): the native bridge can reload the
-            // WebView as soon as it queues the bundle. A later JS write may never
-            // run, leaving the next launch without the floors that admitted it.
+            // next() also installs on background, which includes Android
+            // passkey prompts. Keep the download on disk without arming that
+            // native path; a later launch applies it under the splash.
             rememberStagedFloors(bundle.id, latest.comment)
-            await CapacitorUpdater.next({ id: bundle.id })
+            writeStoredValue(STAGED_BUNDLE_KEY, bundle.id)
+            if (readStoredValue(STAGED_BUNDLE_KEY) !== bundle.id) {
+                forgetStagedFloors()
+                throw new Error('could not persist downloaded OTA bundle for the next launch')
+            }
             callbacks.onUpdateAvailable?.(bundle)
             removeStoredValue(FAILURE_STREAK_KEY)
             return 'staged'
@@ -236,6 +243,10 @@ export function markPendingApply(bundleId: string): void {
     writeStoredValue(PENDING_APPLY_KEY, bundleId)
 }
 
+export function clearPendingApply(): void {
+    removeStoredValue(PENDING_APPLY_KEY)
+}
+
 /*
  * Capacitor Android runs every plugin call on one shared handler thread
  * (Bridge.callPluginMethod -> taskHandler.post). Before plugin 8.46.0, set()
@@ -262,8 +273,8 @@ function meetsMinimum(version: string, minimum: number[]): boolean {
 
 /**
  * Whether this binary can apply a staged bundle by reloading in place. False
- * only on the Android binaries whose plugin deadlocks; those have to quit and
- * relaunch instead, which applies the bundle next() already staged.
+ * only on the Android binaries whose plugin deadlocks; those need an explicit
+ * exit, with next() armed immediately before the exit.
  */
 export async function canRestartInPlace(): Promise<boolean> {
     if (!isAndroidNativeBridge()) return true
@@ -313,6 +324,10 @@ export async function applyStagedBundle(
         // download makes the next launch report a failed apply, at error level,
         // for a bundle nothing ever tried to activate.
         removeStoredValue(PENDING_APPLY_KEY)
+        if (readStoredValue(STAGED_BUNDLE_KEY) === bundleId) {
+            removeStoredValue(STAGED_BUNDLE_KEY)
+            forgetStagedFloors()
+        }
         // Only a freshly staged bundle earns a reload. Offline, up-to-date and
         // store-update-required all leave the device on the bundle it is
         // already running, so reloading would restart the app for nothing.
@@ -331,14 +346,14 @@ export async function applyStagedBundle(
             return abandon('re-stage threw, apply abandoned', checkErr)
         }
         if (outcome !== 'staged') return abandon(`re-stage returned ${outcome}, apply abandoned`, null)
-        // reload() applies the re-staged bundle, not the id set() rejected. The
-        // marker has to follow, or the recovered launch reports the dead id as a
-        // failed apply at error level even though the recovery worked.
+        // Normal downloads no longer arm next(), so reload() would only reload
+        // the old bundle. Apply the fresh download directly instead.
         if (restaged) writeStoredValue(PENDING_APPLY_KEY, restaged.id)
         try {
-            await CapacitorUpdater.reload()
+            if (!restaged) return abandon('re-stage returned no bundle, apply abandoned', null)
+            await CapacitorUpdater.set({ id: restaged.id })
         } catch (reloadErr) {
-            return abandon('reload() rejected, apply abandoned', reloadErr)
+            return abandon('re-staged set() rejected, apply abandoned', reloadErr)
         }
         return 'reloading'
     }
@@ -389,15 +404,49 @@ async function reportFailedUpdate(updater: Pick<CapacitorUpdaterPlugin, 'getFail
 // exempt it from setNextBundle's "does this bundle exist" check, so it is the
 // one queue entry that can always be armed.
 const BUILTIN_BUNDLE_ID = 'builtin'
+const STAGED_BUNDLE_KEY = 'capgoDownloadedBundleId'
+
+/** Arm a bundle only immediately before an explicit exit on old Android plugins. */
+export async function armStagedBundleForExit(bundleId: string): Promise<boolean> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    try {
+        await CapacitorUpdater.next({ id: bundleId })
+        if ((await CapacitorUpdater.getNextBundle())?.id === bundleId) return true
+    } catch (err) {
+        console.error('[capgo-apply] could not arm bundle for explicit restart:', err)
+    }
+    // next() can resolve without changing the queue, or the verification can
+    // fail after it succeeds. Never leave an unconfirmed background install.
+    if (!(await disarmBackgroundApply())) {
+        console.error('[capgo-apply] could not clear an unconfirmed restart queue')
+    }
+    return false
+}
+
+/** Leave a downloaded bundle intact while removing a legacy background queue. */
+export async function disarmBackgroundApply(): Promise<boolean> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const current = await CapacitorUpdater.current().catch(() => null)
+    const id = current?.bundle?.id ?? BUILTIN_BUNDLE_ID
+    try {
+        await CapacitorUpdater.next({ id })
+        const queued = await CapacitorUpdater.getNextBundle()
+        if (!queued || queued.id === id) return true
+        console.error(`[capgo-apply] background OTA queue still points at ${queued.id}`)
+        return false
+    } catch (err) {
+        console.error('[capgo-apply] could not disarm background OTA apply:', err)
+        return false
+    }
+}
 
 /**
- * The bundle the plugin has queued for the next restart, or null when there is
- * none this binary may run.
+ * The downloaded bundle waiting for a safe launch, or null when none is
+ * compatible with this binary.
  *
- * The queue outlives the JS that filled it: a bundle staged before the
- * store-update gate existed is still sitting there, and the plugin installs it
- * from appMovedToBackground() with no JS involved — so an incompatible entry
- * has to be disarmed (see disarmStagedBundle), not merely withheld.
+ * A queue left by older JS outlives it and can still install from native
+ * appMovedToBackground(). Migrate compatible entries into the local download
+ * marker and disarm the queue; discard incompatible entries.
  *
  * A queue entry naming the RUNNING bundle is not an update, and reporting one
  * would be self-inflicted: installNext() clears NEXT_VERSION only when it
@@ -409,22 +458,69 @@ const BUILTIN_BUNDLE_ID = 'builtin'
 export async function readStagedBundle(
     callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
 ): Promise<BundleInfo | null> {
+    return queueOtaWork(() => readStagedBundleImpl(callbacks))
+}
+
+async function readStagedBundleImpl(
+    callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
+): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const [next, current] = await Promise.all([
-        CapacitorUpdater.getNextBundle().catch(() => null),
+    const [nextResult, current] = await Promise.all([
+        CapacitorUpdater.getNextBundle().then(
+            (bundle) => ({ bundle, readable: true }),
+            () => ({ bundle: null, readable: false })
+        ),
         CapacitorUpdater.current().catch(() => null),
     ])
-    if (!next?.version || next.id === current?.bundle?.id) return null
-    // Asked with the floors this bundle was admitted under, not with nothing:
-    // re-deciding on the version alone would disarm a bundle the check approved.
-    if (!(await needsStoreUpdate(next.version, stagedFloors(next.id)))) return next
+    const next = nextResult.bundle
+    const stagedId = readStoredValue(STAGED_BUNDLE_KEY)
+    if (stagedId && stagedId === current?.bundle?.id) {
+        // After set() starts the saved bundle, Capgo can retain the old
+        // running bundle as the native disarm sentinel. Rewrite that sentinel
+        // to the NEW running bundle before treating any queue entry as an OTA.
+        if (!nextResult.readable) return null
+        if (next?.id && next.id !== stagedId && !(await disarmBackgroundApply())) {
+            console.error('[capgo-apply] could not clear the previous bundle after a successful OTA apply')
+            return null
+        }
+        removeStoredValue(STAGED_BUNDLE_KEY)
+        forgetStagedFloors()
+        return null
+    }
+    if (next?.version && next.id !== current?.bundle?.id) {
+        // A prior JS release may have armed next(). Migrate it before any
+        // passkey or external app switch can trigger native installation.
+        if (await needsStoreUpdate(next.version, stagedFloors(next.id))) {
+            callbacks.onStoreUpdateRequired?.()
+            return disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id)
+        }
+        writeStoredValue(STAGED_BUNDLE_KEY, next.id)
+        const saved = readStoredValue(STAGED_BUNDLE_KEY) === next.id
+        if (!(await disarmBackgroundApply())) return null
+        if (!saved) {
+            console.error('[capgo-apply] could not save the legacy OTA after disarming it')
+            return null
+        }
+        return next
+    }
 
-    // Say so, rather than letting the update row vanish: the launch check would
-    // reach the same verdict, but only once it has reached the network.
+    if (!stagedId) return null
+    // Native app upgrades and rollback cleanup can remove downloaded files.
+    const bundles = await CapacitorUpdater.list().catch(() => null)
+    const staged = bundles?.bundles.find((bundle) => bundle.id === stagedId)
+    if (!staged) {
+        if (bundles) {
+            removeStoredValue(STAGED_BUNDLE_KEY)
+            forgetStagedFloors()
+        }
+        return null
+    }
+    if (!(await needsStoreUpdate(staged.version, stagedFloors(staged.id)))) return staged
     callbacks.onStoreUpdateRequired?.()
-    // Queued with the checks so the rewrite cannot land between a check's
-    // download and the next() that stages it.
-    return queueOtaWork(() => disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id))
+    removeStoredValue(STAGED_BUNDLE_KEY)
+    forgetStagedFloors()
+    await CapacitorUpdater.delete({ id: staged.id }).catch(() => undefined)
+    return null
 }
 
 /**
@@ -492,17 +588,10 @@ async function disarmStagedBundle(
 const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
 
 /**
- * Apply a bundle staged by an earlier launch now, in the foreground, instead of
- * leaving it to the plugin's background apply.
+ * Apply a bundle downloaded by an earlier launch while the splash is visible.
  *
- * next() is only ever consumed by installNext(), which runs from
- * appMovedToBackground(): the reload therefore lands in a process the OS is
- * about to freeze, and the boot has to finish inside a 30 s budget that keeps
- * burning while nothing is scheduled. Doing it here instead reloads an app that
- * is on screen and running at full speed. The caller restricts this to the
- * window where the splash still covers the reload, so adopting an update stays
- * invisible; outside that window the background apply remains the fallback,
- * which native-app-ready.ts has made survivable.
+ * A bundle downloaded during this launch stays unarmed until a later launch;
+ * a background transition never applies it.
  *
  * Returns the staged bundle (whether or not it was applied) so the caller can
  * still offer a manual restart, or null when nothing is staged.
@@ -513,8 +602,8 @@ export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     // newer binary and answers null for one that is already running.
     const next = await readStagedBundle()
     if (!next) return null
-    // Deadlocking binaries can only quit to apply (see canRestartInPlace), and
-    // quitting an app the user just opened is worse than the background apply.
+    // Old Android binaries cannot set() safely. Keep the bundle downloaded
+    // until the user explicitly asks to restart.
     if (readStoredValue(LAUNCH_APPLY_KEY) === next.id || !(await canRestartInPlace())) return next
 
     writeStoredValue(LAUNCH_APPLY_KEY, next.id)
@@ -523,8 +612,8 @@ export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
         // Never resolves when it works: the page is torn down mid-call.
         await CapacitorUpdater.set({ id: next.id })
     } catch (err) {
-        // The bundle is still staged, so the background apply will retry it.
-        // Drop the marker or the next launch reports a failure for an apply
+        // The download remains saved for a later safe launch. Drop the marker
+        // or the next launch reports a failure for an apply
         // that never reached the plugin.
         removeStoredValue(PENDING_APPLY_KEY)
         console.warn('[capgo] launch apply rejected:', err instanceof Error ? err.message : String(err))
@@ -650,7 +739,7 @@ export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
 }
 
 // Join the beta channel and pull its bundle straight away. The bundle applies on
-// the next launch, like every other OTA — next() rather than set(). The returned
+// a later safe launch, like every other OTA. The returned
 // outcome is what the switch reports: a device whose binary already outranks the
 // beta bundle joins the channel and downloads nothing.
 export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
@@ -734,6 +823,15 @@ export async function leaveBetaOtaChannel(): Promise<void> {
 
         if (!effective.channel && effective.status !== 'default') {
             throw new OtaChannelUnknownError('the platform default could not be confirmed')
+        }
+
+        // A downloaded beta bundle is no longer eligible once the channel has
+        // changed. It must not be applied on the next launch after reset().
+        removeStoredValue(STAGED_BUNDLE_KEY)
+        forgetStagedFloors()
+        const queued = await CapacitorUpdater.getNextBundle().catch(() => null)
+        if (queued && queued.id !== running?.bundle?.id && !(await disarmBackgroundApply())) {
+            throw new OtaResetFailedError('could not disarm the queued beta bundle')
         }
 
         try {

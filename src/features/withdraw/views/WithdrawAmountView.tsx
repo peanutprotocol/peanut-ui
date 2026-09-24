@@ -29,6 +29,19 @@ interface WithdrawAmountViewProps {
     error: FlowErrorState
     isCryptoWithdraw: boolean
     limitsValidation?: ReturnType<typeof useLimitsValidation>
+    /**
+     * Set for a bank account paid in EUR, GBP, MXN or COP (TASK-23054): the field
+     * takes the bank amount in that currency, and `onAmountChange` gets
+     * the USD it converts to — the Manteca amount pattern.
+     */
+    bankAmount?: {
+        /** ISO code shown in the field, e.g. 'EUR'. */
+        currency: string
+        /** Destination units per 1 USD, fees included. */
+        rate: number
+        initialAmount: string
+        onAmountChange: (value: string) => void
+    }
 }
 
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
@@ -47,6 +60,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     error,
     isCryptoWithdraw,
     limitsValidation,
+    bankAmount,
 }) => {
     const tCommon = useTranslations('common')
 
@@ -62,19 +76,34 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
             <NavHeader title={pageTitle} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <div className="text-heading-xs text-foreground-primary">{heading}</div>
-                <AmountInput
-                    initialAmount={initialAmount}
-                    setPrimaryAmount={onAmountChange}
-                    primaryDenomination={{
-                        symbol: '$',
-                        price: 1,
-                        decimals: 6, // we want USDC decimals to be able to pay exactly
-                    }}
-                    walletBalance={walletBalance}
-                    balanceFillAmount={balanceFillAmount}
-                    onBalanceFilled={onBalanceFilled}
-                    hideCurrencyToggle
-                />
+                {bankAmount ? (
+                    <AmountInput
+                        initialAmount={bankAmount.initialAmount}
+                        setPrimaryAmount={bankAmount.onAmountChange}
+                        setSecondaryAmount={onAmountChange}
+                        primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
+                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                        walletBalance={walletBalance}
+                        // the balance row is USD and the field is the bank currency:
+                        // floor the USD to cents first so the fill never quotes above it
+                        balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * bankAmount.rate}
+                        onBalanceFilled={onBalanceFilled}
+                    />
+                ) : (
+                    <AmountInput
+                        initialAmount={initialAmount}
+                        setPrimaryAmount={onAmountChange}
+                        primaryDenomination={{
+                            symbol: '$',
+                            price: 1,
+                            decimals: 6, // we want USDC decimals to be able to pay exactly
+                        }}
+                        walletBalance={walletBalance}
+                        balanceFillAmount={balanceFillAmount}
+                        onBalanceFilled={onBalanceFilled}
+                        hideCurrencyToggle
+                    />
+                )}
 
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 

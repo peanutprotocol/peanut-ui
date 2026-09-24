@@ -52,7 +52,6 @@ const hookState = (overrides: Record<string, unknown> = {}) => ({
     handleAttachmentOptionsChange: jest.fn(),
     handleTokenAmountSubmit: jest.fn(),
     generateLink: jest.fn(),
-    resetRequest: jest.fn(),
     ...overrides,
 })
 
@@ -130,5 +129,16 @@ describe('CreateRequestLinkView — request currency', () => {
         renderView({ requestAmount: '25', requestId: 'req-1', generatedLink: 'https://peanut.me/request/pay?id=req-1' })
 
         expect(screen.getByRole('button', { name: 'Share $25 request' })).toBeInTheDocument()
+    })
+})
+
+describe('CreateRequestLinkView — a failed create', () => {
+    // Not tied to one field, so it is the shared error banner (A37).
+    it('shows the failure in the shared error banner', () => {
+        renderView({ errorState: { showError: true, errorMessage: 'Could not create the request' } })
+
+        const banner = screen.getByTestId('request-create-error')
+        expect(banner).toHaveTextContent('Could not create the request')
+        expect(banner).toHaveAttribute('role', 'alert')
     })
 })

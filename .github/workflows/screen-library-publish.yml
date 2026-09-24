@@ -12,15 +12,12 @@ permissions:
     contents: read
     actions: read
     pull-requests: write
-# Serialize the public index update. Never run downloaded scripts or HTML.
-concurrency:
-    group: screen-library-publisher
-    queue: max
-    cancel-in-progress: false
 jobs:
     publish:
         if: github.repository == 'peanutprotocol/peanut-ui' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         runs-on: ubuntu-24.04
+        outputs:
+            published: ${{ steps.publication.outputs.published }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -70,6 +67,7 @@ jobs:
                   merge-multiple: false
                   path: incoming/baseline
             - name: Verify provenance and publish
+              id: publication
               env:
                   GH_TOKEN: ${{ github.token }}
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
@@ -84,8 +82,40 @@ jobs:
                   SCREEN_LIBRARY_BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
                   SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs
-    deploy:
+
+    # Reports, entries and content-addressed assets are immutable and may upload
+    # concurrently. Serialize only the short shared index/latest refresh so one
+    # run cannot overwrite another run's catalogue update.
+    index:
         needs: publish
+        # Entry markers may already be committed even if the later PR comment
+        # update fails, so always reconcile the index after a completed batch.
+        if: always() && needs.publish.outputs.published == 'true'
+        runs-on: ubuntu-24.04
+        concurrency:
+            group: screen-library-index
+            queue: max
+            cancel-in-progress: false
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - name: Refresh shared library indexes
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/rebuild-index.mjs
+    deploy:
+        needs: index
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         environment: screen-library-deploy
         runs-on: ubuntu-24.04

@@ -9,8 +9,9 @@ let accounts: Record<string, TestAccount | undefined> = {}
 // so the hook must expose per-corridor gates. Default every corridor to a ready
 // gate; a test overrides one to prove a blocked corridor hides the opt-in.
 let gates: Record<string, { kind: string }> = {}
+let isLoading = false
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => ({ accounts, gates }),
+    useDepositAccounts: () => ({ accounts, gates, isLoading }),
 }))
 
 // canShare needs live instructions present, so the fixture carries them by default.
@@ -30,6 +31,7 @@ const renderToggle = (checked = false, onChange = jest.fn()) => {
 }
 
 beforeEach(() => {
+    isLoading = false
     accounts = {}
     gates = new Proxy({}, { get: () => ({ kind: 'ready' }) }) as Record<string, { kind: string }>
 })
@@ -81,6 +83,32 @@ describe('BankInstructionsToggle', () => {
         expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
     })
 
+    // A row that appears after the accounts load pushes Create down under the
+    // user's thumb. The placeholder holds its place (sep-23 review, A39).
+    it('holds the row in place while the accounts load, with a still pulse under reduced motion', () => {
+        isLoading = true
+
+        renderToggle()
+
+        const skeleton = screen.getByTestId('bank-instructions-toggle-skeleton')
+        expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
+        const pulses = skeleton.querySelectorAll('.animate-pulse')
+        expect(pulses.length).toBeGreaterThan(0)
+        pulses.forEach((el) => expect(el).toHaveClass('motion-reduce:animate-none'))
+    })
+
+    // The row owns its body type and wrapping; the toggle hands it a plain
+    // string (A40).
+    it('lets the row own the disclosure line, at the row body size', () => {
+        accounts = { SEPA_EU: account('active') }
+
+        renderToggle(true)
+
+        const line = screen.getByText('Payers see your full name and bank details.')
+        expect(line).toHaveClass('text-body-s', 'whitespace-normal')
+        expect(line).not.toHaveClass('text-body-xs')
+    })
+
     it('reports the opt-in when the user turns it on', () => {
         accounts = { SEPA_EU: account('active') }
 
@@ -101,7 +129,7 @@ describe('BankInstructionsToggle', () => {
 
             expect(screen.getByText('Let them pay by bank transfer')).toBeInTheDocument()
             expect(screen.queryByText(/Only businesses/)).not.toBeInTheDocument()
-            expect(screen.queryByText(/is not confirmed on this account/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Transfers from other people are not confirmed/)).not.toBeInTheDocument()
         })
 
         // A friend's transfer into a business-only corridor comes back to them.
@@ -111,7 +139,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
         })
 
         // Nothing a third party can pay into, so there is nothing to offer.
@@ -130,7 +158,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/is not confirmed on this account/)).toBeInTheDocument()
+            expect(screen.getByText(/Transfers from other people are not confirmed/)).toBeInTheDocument()
         })
     })
 
@@ -142,7 +170,7 @@ describe('BankInstructionsToggle', () => {
 
         renderToggle(true)
 
-        expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
+        expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
     })
 
     describe('one title, and one line about what a payer sees', () => {
@@ -173,7 +201,7 @@ describe('BankInstructionsToggle', () => {
             renderToggle(true)
 
             expect(
-                screen.getByText(/^Payers see your full name and bank details\. Only businesses can pay this/)
+                screen.getByText(/^Payers see your full name and bank details\. Only you or a business can pay in/)
             ).toBeInTheDocument()
         })
 
@@ -182,7 +210,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(false)
 
-            expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Only you or a business can pay in\./)).not.toBeInTheDocument()
         })
 
         // A name that flips with the state reads "Don't share…, switch, off".

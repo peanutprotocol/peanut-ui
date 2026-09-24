@@ -6,6 +6,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { Button } from '@/components/0_Bruddle/Button'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { rainApi } from '@/services/rain'
@@ -174,15 +175,21 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                               disabled: phase === 'loading',
                           },
                       ]
-                    : [
-                          {
-                              text: tCommon('cancel'),
-                              variant: 'secondary',
-                              className: 'w-full',
-                              onClick: onClose,
-                              disabled: phase === 'loading',
-                          },
-                      ]
+                    : undefined
+            }
+            footer={
+                mode === 'lock' ? (
+                    <div className="flex justify-center">
+                        <Button
+                            variant="ghost"
+                            className="w-auto underline hover:text-foreground-primary active:text-foreground-primary"
+                            onClick={onClose}
+                            disabled={phase === 'loading'}
+                        >
+                            {tCommon('cancel')}
+                        </Button>
+                    </div>
+                ) : undefined
             }
         />
     )

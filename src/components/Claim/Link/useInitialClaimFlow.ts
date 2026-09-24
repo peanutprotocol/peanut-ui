@@ -586,7 +586,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                 chainName = getBridgeChainName(optimismChainId)
             }
 
-            setLoadingState('Getting KYC status')
+            setLoadingState('Checking verification')
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)

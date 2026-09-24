@@ -1,5 +1,6 @@
 import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
+    type DepositReturnReasonCode,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
@@ -99,7 +100,8 @@ export interface DrawerDepositInstructions {
     amount: string
     currency: string
     bank_name: string
-    bank_address: string
+    /** absent on some rails — Mexican SPEI has none */
+    bank_address?: string
     payment_rail: string
     deposit_message: string
     // US format
@@ -443,6 +445,8 @@ export interface TransactionDetails {
         /** The provider reported the transfer as returned or refunded after
          *  it settled. */
         wasReturned?: boolean
+        /** Why the bank sent the deposit back; picks the receipt's reason line. */
+        returnReasonCode?: DepositReturnReasonCode
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
@@ -757,6 +761,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
             payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /

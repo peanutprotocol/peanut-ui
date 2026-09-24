@@ -24,7 +24,10 @@ const TITLES = {
 const BODIES = {
     none: 'gate.waitBody',
     'provide-email': 'gate.emailBody',
-    'accept-tos': 'gate.verifyBody',
+    // The title and the button already say it: one document to read and
+    // agree to. The identity sentence that used to sit here was about a
+    // different step (konrad review, 2026-09-23).
+    'accept-tos': null,
     // Support is offered to users who are already verified: a terminal
     // rejection, or a block the backend could not explain. The identity
     // sentence is false for both.
@@ -92,6 +95,7 @@ export function CorridorGateDrawer({
     isActing = false,
     actFailed = false,
     onClose,
+    onDismiss = onClose,
     onAct,
     onTopUp,
 }: {
@@ -104,7 +108,10 @@ export function CorridorGateDrawer({
     isActing?: boolean
     /** the button's action failed for a reason a retry may clear */
     actFailed?: boolean
+    /** the wait button: back to the list underneath */
     onClose: () => void
+    /** the user swiped or tapped the drawer away: back where they came from */
+    onDismiss?: () => void
     onAct: () => void
     /**
      * The other way in: a transfer the user sends themselves on this same
@@ -123,6 +130,10 @@ export function CorridorGateDrawer({
      * keeps its own button first — those DO clear the block.
      */
     const topUpLeads = !!onTopUp && notice.action === 'account-limit'
+    const bodyKey = BODIES[notice.action]
+    const body =
+        notice.message ??
+        (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined)
 
     const actButton = (
         <Button
@@ -153,7 +164,7 @@ export function CorridorGateDrawer({
         <Drawer
             open={open}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) onDismiss()
             }}
         >
             <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
@@ -166,12 +177,7 @@ export function CorridorGateDrawer({
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t(TITLES[notice.action], { count: slotsHeld })}</DrawerTitle>
-                        <DrawerDescription>
-                            {notice.message ??
-                                (topUpLeads
-                                    ? t('gate.limitBodyTopUp')
-                                    : t(BODIES[notice.action], { currency: rail.currency }))}
-                        </DrawerDescription>
+                        {body && <DrawerDescription>{body}</DrawerDescription>}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
                         and the button below is the retry */}

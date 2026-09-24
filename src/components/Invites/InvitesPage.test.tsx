@@ -440,7 +440,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Claim a spot' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['Creator/Summer', 'second'])
@@ -463,7 +463,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Claim a spot' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('offramp', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
@@ -487,7 +487,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        expect(await screen.findByText('Claim your badge')).toBeInTheDocument()
+        expect(await screen.findByText('Claim the badge')).toBeInTheDocument()
         expect(screen.queryByText(/legacy-placeholder invited you/i)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
@@ -514,8 +514,8 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         expect(await screen.findByText('peanut invited you to Peanut')).toBeInTheDocument()
-        expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
+        expect(screen.queryByText('Claim the badge')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Claim a spot' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('squirrelinvitesyou', 'PAYMENT_LINK')
         // utm values stopped being badge identities (TASK-21226); nothing queues
@@ -614,7 +614,7 @@ describe('invite and badge campaign routing boundaries', () => {
         mockInterceptGuestCta.mockReturnValue(true)
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Claim a spot' }))
 
         // invite bookkeeping still runs so post-install signup recovers context
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')

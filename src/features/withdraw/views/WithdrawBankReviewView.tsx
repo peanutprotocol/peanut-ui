@@ -20,12 +20,15 @@ import {
     type PayoutDefaultReferenceNoteKey,
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
-import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
+import RecipientGetsRow from '@/components/ExchangeRate/RecipientGetsRow'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
+    /** USDC that leaves the balance. */
     amount: string
+    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -52,6 +55,7 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
+    bankAmount,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -73,7 +77,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
 
     // ONE country drives this screen: the account's own, read off the IBAN.
     // The country picked upstream is not the same thing — a Portugal resident
@@ -132,10 +135,12 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
             )}
 
             <Card className="rounded-sm">
-                <PaymentInfoRow
-                    label={t('bank.accountOwner')}
-                    value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
-                />
+                {/* The holder is whoever the account was saved under — often not
+                    the user (a parent, a partner). When no name was stored, leave
+                    the row out: the user's own name here would be a wrong claim. */}
+                {bankAccount?.details?.accountOwnerName && (
+                    <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                )}
                 {bankAccount?.type === AccountType.IBAN ? (
                     <>
                         <PaymentInfoRow
@@ -171,11 +176,21 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                     </>
                 )}
-                <ExchangeRate
-                    accountType={bankAccount.type}
-                    nonEuroCurrency={nonEuroCurrency}
-                    amountToConvert={amount}
-                />
+                {bankAmount ? (
+                    <>
+                        <PaymentInfoRow
+                            label={tCommon('exchangeRate')}
+                            value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
+                        />
+                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
+                    </>
+                ) : (
+                    <ExchangeRate
+                        accountType={bankAccount.type}
+                        nonEuroCurrency={nonEuroCurrency}
+                        amountToConvert={amount}
+                    />
+                )}
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 

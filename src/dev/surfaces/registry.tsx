@@ -765,7 +765,6 @@ export const SURFACES: Record<string, Surface> = {
                     currency="EUR"
                     bankPayable={false}
                     onDone={noop}
-                    onCreateAnother={noop}
                 />
             </AppPageSurface>
         ),
