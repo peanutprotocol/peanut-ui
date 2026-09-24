@@ -665,11 +665,7 @@ const UnlockPayments = () => {
                                 <ListGroup>
                                     <ListItem
                                         leading={<IconBubble icon="check" size="s" color="green" />}
-                                        title={
-                                            <span className="break-words whitespace-normal">
-                                                {t(`details.${detailsRow.labelKey}`)}
-                                            </span>
-                                        }
+                                        title={t(`details.${detailsRow.labelKey}`)}
                                     />
                                 </ListGroup>
                             </Section>
