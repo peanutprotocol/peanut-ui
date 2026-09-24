@@ -62,7 +62,11 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
-jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
+jest.mock('../provider-actions/CancelDepositActions', () => ({
+    CancelDepositActions: ({ primary }: { primary?: boolean }) => (
+        <div data-testid="cancel-deposit" data-primary={String(!!primary)} />
+    ),
+}))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => <div data-testid="support-link" /> }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => <div data-testid="public-download" /> }))
 // the drawer mock surfaces its rows as buttons so the menu is testable
@@ -228,5 +232,38 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
         // support stays reachable outside the drawer
         expect(screen.getByTestId('support-link')).toBeInTheDocument()
+    })
+
+    test('pending bank deposit: cancel is the primary above more actions, share joins the drawer', () => {
+        const pendingDeposit = {
+            ...transaction('ONRAMP'),
+            direction: 'bank_deposit',
+            status: 'pending',
+            extraDataForDrawer: {
+                kind: 'ONRAMP',
+                provider: 'BRIDGE',
+                depositInstructions: { deposit_message: 'BRGTESTREF' },
+            },
+        } as unknown as TransactionDetails
+        render(
+            <ReceiptActions
+                transaction={pendingDeposit}
+                vm={vm()}
+                isPublic={false}
+                amountDisplay="$10"
+                shouldShowQrShare={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+            />
+        )
+
+        const cancel = screen.getByTestId('cancel-deposit')
+        expect(cancel).toHaveAttribute('data-primary', 'true')
+        expect(screen.queryByTestId('pdf-share')).not.toBeInTheDocument()
+        expect(screen.getByTestId('more-action-share')).toBeInTheDocument()
+        expect(
+            cancel.compareDocumentPosition(screen.getByTestId('more-actions-trigger')) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
     })
 })

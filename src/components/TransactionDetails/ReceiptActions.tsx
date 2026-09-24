@@ -12,6 +12,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { PasskeyDocsLink } from '@/components/Setup/Views/SignTestTransaction'
 import { useModalsContext } from '@/context/ModalsContext'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
+import { getCancelDepositKind } from './provider-actions/cancel-deposit.utils'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
@@ -96,8 +97,12 @@ export function ReceiptActions({
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const showSplitCta = !isPublic && isSplittable(transaction)
-    // one primary per state: split first, else share (never both visible)
-    const sharePrimary = !showSplitCta && canSharePdf
+    // a pending deposit's next step is cancelling it, not sharing a receipt.
+    // CancelDepositActions renders nothing without the loading/close handlers.
+    const cancelOwnsPrimary =
+        !isPublic && !!setIsLoading && !!onClose && getCancelDepositKind(transaction, isPendingBankRequest) !== null
+    // one primary per state: split, else cancel, else share (never two visible)
+    const sharePrimary = !showSplitCta && !cancelOwnsPrimary && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
 
     // hooks are unconditional; finals fetch eagerly with the stored bearer so
@@ -166,11 +171,11 @@ export function ReceiptActions({
         onClose()
     }
 
-    // the overflow rows, in menu order: share (when split owns the primary),
+    // the overflow rows, in menu order: share (when split or cancel owns the primary),
     // download, support. the referral row joins here (TASK-22452 item 5).
     const moreActions: ReceiptMoreAction[] = []
     if (!isPublic) {
-        if (showSplitCta && canSharePdf) {
+        if ((showSplitCta || cancelOwnsPrimary) && canSharePdf) {
             moreActions.push({
                 icon: 'share',
                 title: t('actions.shareReceipt'),
@@ -301,8 +306,23 @@ export function ReceiptActions({
 
             {/* the final-state cta group (S/8 inside one action area): the one
                 primary, then the overflow trigger */}
-            {(showSplitCta || sharePrimary || showMoreActionsButton) && (
+            {(showSplitCta || cancelOwnsPrimary || sharePrimary || showMoreActionsButton) && (
                 <div className="flex flex-col gap-2 print:hidden">
+                    {/* pending deposit: cancel is the primary. it unmounts once the
+                        deposit stops being cancellable, which releases the parent
+                        drawer lock through its effect cleanup. */}
+                    {cancelOwnsPrimary && (
+                        <CancelDepositActions
+                            transaction={transaction}
+                            isPendingBankRequest={isPendingBankRequest}
+                            isLoading={isLoading}
+                            setIsLoading={setIsLoading}
+                            onClose={onClose}
+                            setIsModalOpen={setIsModalOpen}
+                            primary
+                        />
+                    )}
+
                     {showSplitCta && (
                         <Button
                             onClick={() =>
@@ -352,15 +372,6 @@ export function ReceiptActions({
                     {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>
             )}
-
-            <CancelDepositActions
-                transaction={transaction}
-                isPendingBankRequest={isPendingBankRequest}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-                onClose={onClose}
-                setIsModalOpen={setIsModalOpen}
-            />
 
             {/* support link section or passkey docs for test transactions —
                 unless the public action group above already carries it */}

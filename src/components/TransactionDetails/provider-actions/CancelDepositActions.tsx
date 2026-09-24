@@ -7,8 +7,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isMantecaOnrampEntry, isRequestEntry } from '@/components/TransactionDetails/transaction-predicates'
-import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { getCancelDepositKind } from './cancel-deposit.utils'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { chargesApi } from '@/services/charges'
@@ -35,6 +34,7 @@ export function CancelDepositActions({
     setIsLoading,
     onClose,
     setIsModalOpen,
+    primary = false,
 }: {
     transaction: TransactionDetails
     isPendingBankRequest: boolean
@@ -43,6 +43,8 @@ export function CancelDepositActions({
     onClose: (() => void) | undefined
     /** Present when rendered inside the transaction details drawer — the parent keeps itself open while the confirm drawer is up, and the confirm drawer nests. */
     setIsModalOpen?: (isModalOpen: boolean) => void
+    /** The receipt passes true when the cancel is the screen's one primary action. */
+    primary?: boolean
 }) {
     const t = useTranslations('transaction')
     const queryClient = useQueryClient()
@@ -64,13 +66,8 @@ export function CancelDepositActions({
     // transaction non-cancellable while the confirm is open — otherwise the
     // cancel branch stops rendering with confirmOpen stuck true and the
     // details drawer refuses every close.
-    const isCancellable =
-        (transaction.direction === 'bank_deposit' &&
-            !isRequestEntry(transaction) &&
-            transaction.status === 'pending' &&
-            !!transaction.extraDataForDrawer?.depositInstructions) ||
-        (isMantecaOnrampEntry(transaction) && transaction.status === 'pending') ||
-        (isPendingBankRequest && transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)
+    const cancelKind = getCancelDepositKind(transaction, isPendingBankRequest)
+    const isCancellable = cancelKind !== null
     useEffect(() => {
         if (!isCancellable) setConfirmOpen(false)
     }, [isCancellable])
@@ -158,18 +155,11 @@ export function CancelDepositActions({
         </div>
     )
 
-    // 1. Bridge onramp pending — generic bank deposit cancel. Excludes REQUEST
-    // rows (those take the dedicated request-cancel branch below).
-    // (conditions mirrored in isCancellable above — keep them in sync)
-    const showBridgeOnrampCancel =
-        transaction.direction === 'bank_deposit' &&
-        !isRequestEntry(transaction) &&
-        transaction.status === 'pending' &&
-        !!transaction.extraDataForDrawer?.depositInstructions
-
-    if (showBridgeOnrampCancel) {
+    // 1. Bridge onramp pending — generic bank deposit cancel.
+    if (cancelKind === 'bridge-onramp') {
         return withError(
             <CancelButton
+                primary={primary}
                 disabled={!!isLoading}
                 onClick={() =>
                     armCancel('deposit', async () => {
@@ -182,11 +172,10 @@ export function CancelDepositActions({
     }
 
     // 2. Manteca onramp pending.
-    const showMantecaCancel = isMantecaOnrampEntry(transaction) && transaction.status === 'pending'
-
-    if (showMantecaCancel) {
+    if (cancelKind === 'manteca-onramp') {
         return withError(
             <CancelButton
+                primary={primary}
                 disabled={!!isLoading}
                 onClick={() =>
                     armCancel('deposit', async () => {
@@ -201,12 +190,10 @@ export function CancelDepositActions({
     // 3. REQUEST pending + bridge fulfillment + sender role — cancels the
     // bridge-side onramp first, then the charge so the recipient stops seeing
     // the request as outstanding.
-    const showPendingBankRequestCancel =
-        isPendingBankRequest && transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-
-    if (showPendingBankRequestCancel) {
+    if (cancelKind === 'bank-request') {
         return withError(
             <CancelButton
+                primary={primary}
                 label={t('actions.cancelDepositRequest')}
                 disabled={!!isLoading}
                 onClick={() =>
@@ -230,13 +217,23 @@ export function CancelDepositActions({
     return null
 }
 
-function CancelButton({ label, disabled, onClick }: { label?: string; disabled: boolean; onClick: () => void }) {
+function CancelButton({
+    label,
+    primary,
+    disabled,
+    onClick,
+}: {
+    label?: string
+    primary: boolean
+    disabled: boolean
+    onClick: () => void
+}) {
     const t = useTranslations('transaction')
     return (
         <Button
             disabled={disabled}
             onClick={onClick}
-            variant={'secondary'}
+            variant={primary ? 'primary' : 'secondary'}
             className="flex w-full items-center gap-1"
             shadowSize="4"
         >
