@@ -219,13 +219,44 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
-// Fees v2 bank review: the Spanish IBAN as a Bridge account of a Bridge
-// customer, which is what the submit needs before it asks create. Every
-// amount comes from simulatedWithdrawalPricing; nothing reaches a provider.
+// Fees v2 bank review: a verified Bridge customer whose Spanish IBAN is a
+// Bridge account, which is what the submit needs before it asks create:
+// identity verified, the EU SEPA rail enabled (the review's withdraw gate reads
+// channel 'bank', country 'EU' — the demo user has no EU rail, so without this
+// the submit opens the "Unlock Spain" KYC drawer), a Bridge customer id, and the
+// account's Bridge id. Synthetic state for browser QA only: nothing here reaches
+// a provider or advances anyone's real KYC. Every amount comes from
+// simulatedWithdrawalPricing. Arrays replace on merge, so the rails listed are
+// the whole list: the demo's US rail, and SEPA.
 const FIXED_OUTPUT_WITHDRAW_USER = {
     'GET /users/me': {
         user: { bridgeCustomerId: 'fixture-bridge-customer' },
         accounts: [WALLET_ACCOUNT, { ...BANK_ACCOUNTS[0], bridgeAccountId: 'fixture-bridge-iban' }],
+        identityVerification: { status: 'verified' },
+        capabilities: {
+            rails: [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    channel: 'bank',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'enabled',
+                },
+                {
+                    id: 'bridge.sepa_eu',
+                    provider: 'bridge',
+                    method: 'SEPA_EU',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'enabled',
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+        },
     },
 }
 

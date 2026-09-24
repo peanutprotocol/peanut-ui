@@ -12,6 +12,8 @@ import { fetchOfframpRate, FxApiError } from '@/utils/fx.utils'
 import { isFixedOutputQuote, quoteAnswersRequest } from '@/utils/offramp-quote.utils'
 import { fixtureRespond } from '@/dev/fixtures/respond'
 import { FIXTURES, simulatedWithdrawalPricing } from '@/dev/fixtures/registry'
+import { deriveGate } from '@/utils/capability-gate'
+import { getBankRailCountryFromAccount } from '@/utils/bridge.utils'
 
 // demo-api → general.utils → app/actions/clients starts viem RPC timers that
 // keep the worker alive; nothing here needs them.
@@ -36,6 +38,84 @@ const quote = async (query: string) => {
     const response = await fixtureRespond(`/bridge/offramp/quote?${query}`)
     return { status: response.status, body: await response.json() }
 }
+
+type FixtureUser = {
+    user: { bridgeCustomerId: string | null }
+    identityVerification: { status: string }
+    capabilities: Parameters<typeof deriveGate>[0] & { restrictions: unknown[] }
+    accounts: Array<{ type: string; identifier: string; bridgeAccountId?: string; details?: { countryCode?: string } }>
+}
+
+/** GET /users/me as the fixture serves it: the demo user with the fixture's overrides merged in. */
+const fixtureUser = async (): Promise<FixtureUser> => (await fixtureRespond('/users/me')).json()
+
+/** The review's withdraw gate for the Spanish IBAN, through the real gate logic. */
+const reviewGate = (me: FixtureUser) => {
+    const iban = me.accounts.find((account) => account.type === 'iban')!
+    return deriveGate(
+        {
+            rails: me.capabilities.rails,
+            nextActions: me.capabilities.nextActions,
+            identityVerified: me.identityVerification.status === 'verified',
+            isLoading: false,
+        },
+        'withdraw',
+        { channel: 'bank', country: getBankRailCountryFromAccount(iban) }
+    )
+}
+
+/**
+ * Synthetic browser QA: the bank-review fixtures must reach POST create, so
+ * their user carries everything the submit checks before it — never real KYC.
+ */
+describe.each(['withdraw-bank-fixed-output', 'withdraw-bank-quote-expired'])('%s — verified Bridge user', (name) => {
+    beforeEach(() => {
+        activeFixture = name
+    })
+
+    it('passes the review withdraw gate for the Spanish IBAN (EU SEPA rail enabled, identity verified)', async () => {
+        const me = await fixtureUser()
+        const iban = me.accounts.find((account) => account.type === 'iban')!
+
+        expect(getBankRailCountryFromAccount(iban)).toBe('EU')
+        expect(me.identityVerification.status).toBe('verified')
+        expect(me.capabilities.rails).toContainEqual(
+            expect.objectContaining({ id: 'bridge.sepa_eu', country: 'EU', channel: 'bank', status: 'enabled' })
+        )
+        expect(me.capabilities.nextActions).toEqual([])
+        expect(me.capabilities.restrictions).toEqual([])
+        // not needs-enrollment (the "Unlock Spain" drawer), not accept-tos, no advisory pre-empt
+        expect(reviewGate(me)).toEqual({ kind: 'ready' })
+    })
+
+    it('has the rest of what the submit checks before create: Bridge customer, Bridge account, wallet', async () => {
+        const me = await fixtureUser()
+
+        expect(me.user.bridgeCustomerId).toBe('fixture-bridge-customer')
+        expect(me.accounts.find((account) => account.type === 'iban')?.bridgeAccountId).toBe('fixture-bridge-iban')
+        // fixture mode publishes this kernel address; the balance reads only when it matches
+        expect(me.accounts.find((account) => account.type === 'peanut-wallet')?.identifier).toBe(
+            '0xdec0debad1dec0debad1dec0debad1dec0debad1'
+        )
+    })
+
+    it('the demo user alone would not pass: no EU rail, so the gate asks for enrollment', async () => {
+        activeFixture = 'withdraw'
+        expect(reviewGate(await fixtureUser()).kind).toBe('needs-enrollment')
+    })
+})
+
+describe('withdraw-bank-quote-expired — the Withdraw button reaches create', () => {
+    it('create answers 409 BRIDGE_QUOTE_EXPIRED, whatever it is sent', async () => {
+        activeFixture = 'withdraw-bank-quote-expired'
+        const create = await fixtureRespond('/bridge/offramp/create', {
+            method: 'POST',
+            body: JSON.stringify({ quoteId: 'fixture-quote-eur-1', amount: '22.29' }),
+        })
+        expect(create.status).toBe(409)
+        expect((await create.json()).code).toBe('BRIDGE_QUOTE_EXPIRED')
+    })
+})
 
 describe('withdraw-bank-fixed-output', () => {
     beforeEach(() => {
