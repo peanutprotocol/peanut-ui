@@ -6,7 +6,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { rainApi } from '@/services/rain'
@@ -180,9 +180,14 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             footer={
                 mode === 'lock' ? (
                     <div className="flex justify-center">
-                        <LinkButton onClick={onClose} disabled={phase === 'loading'}>
+                        <Button
+                            variant="ghost"
+                            className="w-auto text-foreground-primary underline hover:text-foreground-primary active:text-foreground-primary"
+                            onClick={onClose}
+                            disabled={phase === 'loading'}
+                        >
                             {tCommon('cancel')}
-                        </LinkButton>
+                        </Button>
                     </div>
                 ) : undefined
             }
