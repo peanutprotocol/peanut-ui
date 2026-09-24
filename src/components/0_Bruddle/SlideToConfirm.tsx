@@ -38,6 +38,8 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
     const x = useMotionValue(0)
     const [completed, setCompleted] = useState(false)
     const wasDisabled = useRef(disabled)
+    // Short copy uses the geometric center; longer copy needs a lane clear of the handle.
+    const hasLongLabel = Array.from(label).length > 20
 
     const maxTravel = Math.max(0, trackWidth - HANDLE_SIZE - HANDLE_INSET * 2)
     // board active state keeps the label visible; the gradient trail conveys progress
@@ -92,7 +94,10 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
         >
             <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 right-2 left-14 flex items-center justify-center text-button-l text-foreground-primary"
+                className={twMerge(
+                    'pointer-events-none absolute inset-y-0 flex items-center justify-center text-button-l text-foreground-primary',
+                    hasLongLabel ? 'right-2 left-14' : 'inset-x-0'
+                )}
             >
                 <span className="min-w-0 truncate">{label}</span>
             </span>
