@@ -91,11 +91,7 @@ const ExchangeRate = ({
                 value={displayValue}
             />
             {localCurrencyAmount && (
-                <RecipientGetsRow
-                    loading={isLoadingRate}
-                    amount={localCurrencyAmount}
-                    currency={currency}
-                />
+                <RecipientGetsRow loading={isLoadingRate} amount={localCurrencyAmount} currency={currency} />
             )}
         </>
     )
