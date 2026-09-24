@@ -144,7 +144,7 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (legacyStep) setParams({ step: legacyStep, screen: null })
     }, [legacyStep, setParams])
-    // Details opened by a link from outside (accounts and payments) never showed
+    // A step opened by a link from outside (accounts and payments) never showed
     // the list, so back leaves the flow through onExit and its returnTo. The
     // URL cannot say this: nuqs replaces history, so the step has no past.
     // Read from the requested step, not the resolved one, which is the list
@@ -153,6 +153,7 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (screen === 'list' && !legacyStep) visitedList.current = true
     }, [screen, legacyStep])
+    const back = () => (visitedList.current ? setParams({ step: 'list' }) : onExit())
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
@@ -323,6 +324,9 @@ export function DepositAccountsFlow({
                 actFailed={review?.failedCorridor === corridor}
                 onTopUp={hasTopUp && onTopUp ? () => onTopUp(corridor) : undefined}
                 onClose={closeGate}
+                // dismissed, it goes back where the user came from: Accounts
+                // and payments for a direct link, else the list underneath
+                onDismiss={back}
                 onAct={() => {
                     // The provider's page opens in another tab, and the drawer
                     // shows its progress and its failure — it stays open.
@@ -377,7 +381,7 @@ export function DepositAccountsFlow({
     // details left to render, so the screen says so and offers the way in that
     // still works.
     if (view === 'details' && account?.status === 'unavailable') {
-        return <CorridorUnavailableScreen rail={rail} onBack={() => setParams({ step: 'list' })} />
+        return <CorridorUnavailableScreen rail={rail} onBack={back} />
     }
 
     if (view === 'claim') {
@@ -406,7 +410,7 @@ export function DepositAccountsFlow({
                 }}
                 onBack={() => {
                     setOpeningCorridor(undefined)
-                    setParams({ step: 'list' })
+                    back()
                 }}
             />
         )
@@ -436,7 +440,7 @@ export function DepositAccountsFlow({
                 account={account}
                 userName={userName}
                 canShare={canShare(account, gate)}
-                onBack={() => (visitedList.current ? setParams({ step: 'list' }) : onExit())}
+                onBack={back}
                 onRetry={() => onClaim(corridor)}
                 onContactSupport={() => onContactSupport(corridor, 'revoked')}
             />
