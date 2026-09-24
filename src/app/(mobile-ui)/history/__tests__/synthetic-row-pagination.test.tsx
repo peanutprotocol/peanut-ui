@@ -12,6 +12,8 @@ let mockHasNextPage = false
 let mockIsFetchingNextPage = false
 let mockUser: unknown = null
 const mockLoaderRef = { current: null as HTMLDivElement | null }
+// stable data per pages array, like the query cache, so memo deps are exercised
+const mockDataByPages = new WeakMap<Page[], { pages: Page[]; pageParams: unknown[] }>()
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({
@@ -35,7 +37,9 @@ jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
 }))
 jest.mock('@/hooks/useTransactionHistory', () => ({
     useTransactionHistory: () => ({
-        data: { pages: mockPages, pageParams: [] },
+        data:
+            mockDataByPages.get(mockPages) ??
+            mockDataByPages.set(mockPages, { pages: mockPages, pageParams: [] }).get(mockPages),
         hasNextPage: mockHasNextPage,
         fetchNextPage: jest.fn(),
         isFetchingNextPage: mockIsFetchingNextPage,
@@ -207,25 +211,30 @@ describe('HistoryPage badge and kyc rows during pagination', () => {
         expect(screen.queryByTestId('empty')).toBeNull()
     })
 
-    it('keeps old rows hidden when pagination stalls while the api still reports more', () => {
-        // the hook stops on an unchanged cursor, so hasNextPage is false here
+    it('shows old rows in date order when pagination stalls while the api still reports more', () => {
+        // the hook stops on an unchanged cursor, so no further page can arrive
         mockPages = [page1, { entries: [], cursor: page1.cursor, hasMore: true }]
         mockHasNextPage = false
         render(<HistoryPage />)
-        expect(rows()).toEqual(['badge:RECENT', 'tx-1', 'tx-2'])
+        expect(rows()).toEqual(['badge:RECENT', 'tx-1', 'tx-2', 'badge:OG', 'kyc'])
     })
 
     it('falls back to the last usable cursor when the latest one is invalid', () => {
         mockPages = [page1, { ...page2, cursor: 'not-a-date::tx-4' }]
-        mockHasNextPage = false
+        mockHasNextPage = true
         render(<HistoryPage />)
         expect(rows()).toEqual(['badge:RECENT', 'tx-1', 'tx-2', 'tx-3', 'tx-4'])
     })
 
-    it('hides badge and kyc rows when no page has a usable cursor and more history remains', () => {
-        mockPages = [{ ...page1, cursor: undefined }]
-        mockHasNextPage = false
-        render(<HistoryPage />)
+    it('hides badge and kyc rows without a usable cursor until no further page can load', () => {
+        mockPages = [{ ...page1, cursor: 'not-a-date::tx-2' }]
+        mockHasNextPage = true
+        const { rerender } = render(<HistoryPage />)
         expect(rows()).toEqual(['tx-1', 'tx-2'])
+
+        // same cached pages, but the hook has stopped paginating
+        mockHasNextPage = false
+        rerender(<HistoryPage />)
+        expect(rows()).toEqual(['badge:RECENT', 'tx-1', 'tx-2', 'badge:OG', 'kyc'])
     })
 })

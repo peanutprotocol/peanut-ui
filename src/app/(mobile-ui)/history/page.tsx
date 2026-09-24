@@ -34,17 +34,15 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { displayableBadges } from '@/constants/badges.consts'
 
 /**
- * the oldest timestamp history is known to be loaded through, for placing
- * badge and kyc rows. null means everything is loaded, Infinity means nothing
- * older can be placed yet.
+ * the oldest timestamp history is known to be loaded through while more pages
+ * can still load, for placing badge and kyc rows. Infinity means nothing older
+ * can be placed yet.
  *
  * uses the api cursor, not the oldest visible row: sources are interleaved and
  * some rows are filtered out, so a visible row can sit below unread ones.
  */
-function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number | null {
+function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number {
     if (!pages?.length) return Infinity
-    // only an explicit hasMore:false means every older row is loaded
-    if (pages[pages.length - 1].hasMore === false) return null
     // an earlier page's cursor is still a safe (newer) boundary if the latest is unusable
     for (let i = pages.length - 1; i >= 0; i--) {
         const ms = Date.parse(pages[i].cursor?.split('::')[0] ?? '')
@@ -195,8 +193,9 @@ const HistoryPage = () => {
 
         // badge and kyc rows wait until history is loaded past them, so they
         // don't sit at the bottom and jump when older pages arrive. rows at the
-        // cursor timestamp itself wait too, since equal timestamps can span pages
-        const loadedThroughMs = getLoadedThroughMs(historyData?.pages)
+        // cursor timestamp itself wait too, since equal timestamps can span pages.
+        // once no further page can load, all of them show
+        const loadedThroughMs = hasNextPage ? getLoadedThroughMs(historyData?.pages) : null
         const isLoadedThrough = (timestamp: string | Date) =>
             loadedThroughMs === null || new Date(timestamp).getTime() > loadedThroughMs
 
@@ -228,7 +227,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, historyData, user, isLoading])
+    }, [allEntries, historyData, hasNextPage, user, isLoading])
 
     // Memoize per-row drawer projection so the .map() below doesn't recompute
     // mapTransactionDataForDrawer per row on every parent rerender (websocket
