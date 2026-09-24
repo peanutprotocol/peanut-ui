@@ -241,11 +241,13 @@ export async function jevFindings(lines, { key, fetchImpl = fetch, budget = 6000
 					})
 					if (!response.ok) throw new Error(`HTTP ${response.status}`)
 					const answers = (await response.json()).answers || {}
-					const malicious = Number(answers.malicious?.noul)
+					// A reply without a real score is no verdict. Number() would turn
+					// null or '' into 0 (a silent "clean") and undefined into NaN (which
+					// masks a real 0.95 on a later chunk), so only a number in [0, 1] counts.
+					const raw = answers.malicious?.noul
+					if (typeof raw !== 'number' || !(raw >= 0 && raw <= 1)) throw new Error('reply had no malicious score')
+					const malicious = raw
 					const hidden = Number(answers.hidden_or_obfuscated?.noul)
-					// A reply without a score is no verdict. Stored as NaN it would
-					// win every later comparison and mask a real 0.95 on another chunk.
-					if (!Number.isFinite(malicious)) throw new Error('reply had no malicious score')
 					const worst = verdicts.get(path)
 					if (!worst || malicious > worst.malicious) verdicts.set(path, { malicious, hidden })
 				} catch (error) {
