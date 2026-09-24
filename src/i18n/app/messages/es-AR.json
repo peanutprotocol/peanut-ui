@@ -1643,7 +1643,10 @@
             "clear": "Borrar búsqueda",
             "removeCountry": "Quitar {country}"
         },
-        "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá."
+        "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá.",
+        "reConsent": {
+            "whatChanged": "Reescribimos los documentos de abajo en lenguaje sencillo para que reflejen lo que Peanut es hoy, incluidas la Peanut Card y las Recompensas. No hay apuro: leelos cuando quieras y seguí usando Peanut como siempre."
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",

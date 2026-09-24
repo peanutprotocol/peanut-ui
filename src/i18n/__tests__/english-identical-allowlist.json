@@ -13,7 +13,13 @@
         "badges.catalog.TOKEN_NATION_SP_2026.name",
         "badges.catalog.DEVCONNECT_BA_2025.name",
         "badges.catalog.ARBIVERSE_DEVCONNECT_BA_2025.name",
-        "badges.catalog.PRODUCT_HUNT.name"
+        "badges.catalog.PRODUCT_HUNT.name",
+        "addMoney.manteca.razonSocial",
+        "shhhhh.marquee.peanutCard"
     ],
-    "note": "keys whose English value is intentionally reused: brand names, proper nouns, currency codes. keys = marketing catalogs (src/i18n/*.json), appKeys = app catalogs (src/i18n/app/messages)"
+    "note": "keys whose English value is intentionally reused: brand names, proper nouns, currency codes. keys = marketing catalogs (src/i18n/*.json), appKeys = app catalogs (src/i18n/app/messages)",
+    "reasons": {
+        "addMoney.manteca.razonSocial": "en already holds the Argentine field name \"Razón Social\", which is correct Spanish for es-419 and es-AR; pt-BR has \"Razão Social\"",
+        "shhhhh.marquee.peanutCard": "brand name, kept in English on every locale"
+    }
 }
