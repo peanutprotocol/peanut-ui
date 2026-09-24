@@ -3,6 +3,8 @@ import manifest from '@/content/generated/footer-manifest.json'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
+import { COUNTRIES_SEO } from '@/data/seo/corridors'
+import { localizedCountryName } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest
 // (peanut-content/generated/footer-manifest.json). The manifest is bundled at
@@ -131,6 +133,12 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const learnMoreResources = resources.filter((entry) => !RESOURCES_MOVED_ELSEWHERE.has(entry.slug))
 
     const link = (entry: ManifestEntry) => (entry.external ? entry.href : resolveContentHref(entry.href, locale))
+    // Manifest country names are English short forms ("UK", "US"). en keeps them;
+    // other locales name the country from the ISO-2 code on its country page.
+    const countryName = (entry: ManifestEntry) =>
+        locale === DEFAULT_LOCALE
+            ? entry.name
+            : localizedCountryName(locale, COUNTRIES_SEO[entry.slug]?.iso2?.toUpperCase(), entry.name)
     const learnMoreLabel = (entry: ManifestEntry) => {
         const key = LEARN_MORE_LABELS[entry.slug]
         return key ? i18n[key] : entry.name
@@ -143,12 +151,12 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                     <FooterSection title={i18n.sendMoney}>
                         {sendTo.map((entry) => (
                             <FooterLink key={`to-${entry.slug}`} href={link(entry)}>
-                                {t(i18n.footerSendTo, { name: entry.name })}
+                                {t(i18n.footerSendTo, { name: countryName(entry) })}
                             </FooterLink>
                         ))}
                         {sendFrom.map((entry) => (
                             <FooterLink key={`from-${entry.slug}`} href={link(entry)}>
-                                {t(i18n.footerSendFrom, { name: entry.name })}
+                                {t(i18n.footerSendFrom, { name: countryName(entry) })}
                             </FooterLink>
                         ))}
                     </FooterSection>
