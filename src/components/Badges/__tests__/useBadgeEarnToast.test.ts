@@ -6,7 +6,7 @@ import { celebrationStorageKey } from '@/components/Badges/badgeCelebration.util
 jest.mock('@/context/authContext', () => ({ useAuth: jest.fn() }))
 const mockUseAuth = useAuth as jest.Mock
 
-type TestBadge = { code: string; name: string; description: string | null; earnedAt: string; isVisible?: boolean }
+type TestBadge = { code: string; earnedAt: string; isVisible?: boolean }
 const freshIso = () => new Date().toISOString()
 
 function setUser(userId: string | undefined, badges: TestBadge[]): void {
@@ -32,7 +32,7 @@ describe('useBadgeEarnToast', () => {
         expect(result.current.pending).toEqual([])
         // user loads async: on the first render with a userId, seen must already
         // reflect localStorage — not lag a render behind (which re-fired the toast).
-        setUser('user-a', [{ code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() }])
+        setUser('user-a', [{ code: 'SHHHHH', earnedAt: freshIso() }])
         rerender()
         expect(result.current.pending).toEqual([])
     })
@@ -41,11 +41,9 @@ describe('useBadgeEarnToast', () => {
         setUser('user-a', [
             {
                 code: 'EVENT_ALUMNI',
-                name: 'Alumni',
-                description: null,
                 earnedAt: new Date(Date.now() - 1000).toISOString(),
             },
-            { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
+            { code: 'SHHHHH', earnedAt: freshIso() },
         ])
         const { result } = renderHook(() => useBadgeEarnToast())
         expect(result.current.pending.map((b) => b.code)).toEqual(['SHHHHH', 'EVENT_ALUMNI'])
@@ -53,9 +51,9 @@ describe('useBadgeEarnToast', () => {
 
     it('excludes universal/bespoke badges (BETA_TESTER, WAITLIST_SKIP)', () => {
         setUser('user-a', [
-            { code: 'BETA_TESTER', name: 'Beta', description: null, earnedAt: freshIso() },
-            { code: 'WAITLIST_SKIP', name: 'Skip', description: null, earnedAt: freshIso() },
-            { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
+            { code: 'BETA_TESTER', earnedAt: freshIso() },
+            { code: 'WAITLIST_SKIP', earnedAt: freshIso() },
+            { code: 'SHHHHH', earnedAt: freshIso() },
         ])
         const { result } = renderHook(() => useBadgeEarnToast())
         expect(result.current.pending.map((b) => b.code)).toEqual(['SHHHHH'])
@@ -63,8 +61,8 @@ describe('useBadgeEarnToast', () => {
 
     it('markSeen persists the codes and clears them from pending', () => {
         setUser('user-a', [
-            { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
-            { code: 'EVENT_ALUMNI', name: 'Alumni', description: null, earnedAt: freshIso() },
+            { code: 'SHHHHH', earnedAt: freshIso() },
+            { code: 'EVENT_ALUMNI', earnedAt: freshIso() },
         ])
         const { result } = renderHook(() => useBadgeEarnToast())
         act(() => result.current.markSeen(['SHHHHH', 'EVENT_ALUMNI']))
@@ -74,7 +72,7 @@ describe('useBadgeEarnToast', () => {
 
     it('does not resurface badges already in the seen-set', () => {
         window.localStorage.setItem(celebrationStorageKey('user-a'), JSON.stringify(['SHHHHH']))
-        setUser('user-a', [{ code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() }])
+        setUser('user-a', [{ code: 'SHHHHH', earnedAt: freshIso() }])
         const { result } = renderHook(() => useBadgeEarnToast())
         expect(result.current.pending).toEqual([])
     })

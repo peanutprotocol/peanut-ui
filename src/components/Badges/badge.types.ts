@@ -7,8 +7,6 @@ export type BadgeHistoryEntry = {
     uuid: string
     timestamp: string
     code: string
-    name: string
-    description?: string | null
     iconUrl?: string | null
 }
 
@@ -17,14 +15,18 @@ export const isBadgeHistoryItem = (entry: unknown): entry is BadgeHistoryEntry =
 
 export type OwnedBadge = NonNullable<User['badges']>[number]
 
-export type BadgeView = {
+export type BadgeCollectionEntry = {
     code: string
-    name: string
-    description: string
     iconUrl: string | null
     earned: boolean
     earnedAt?: string | Date
     unlock?: BadgeUnlockRequirement
+}
+
+/** A collection entry with its localized copy and resolved artwork. */
+export type BadgeView = BadgeCollectionEntry & {
+    name: string
+    description: string
     logo?: string | StaticImageData
 }
 
@@ -32,8 +34,8 @@ export type BadgeView = {
  * in canonical API order. Held retired badges remain visible. */
 export function buildBadgeCollection(
     ownedBadges: readonly OwnedBadge[],
-    catalog: readonly BadgeCatalogEntry[]
-): BadgeView[] {
+    catalog: readonly Pick<BadgeCatalogEntry, 'code' | 'iconUrl' | 'unlock'>[]
+): BadgeCollectionEntry[] {
     const owned = [...ownedBadges].sort((a, b) => {
         const aTime = new Date(a.earnedAt).getTime()
         const bTime = new Date(b.earnedAt).getTime()
@@ -47,8 +49,6 @@ export function buildBadgeCollection(
             const definition = catalogByCode.get(badge.code)
             return {
                 code: badge.code,
-                name: badge.name || definition?.name || badge.code,
-                description: badge.description || definition?.description || '',
                 iconUrl: badge.iconUrl || definition?.iconUrl || null,
                 earned: true,
                 earnedAt: badge.earnedAt,
@@ -59,8 +59,6 @@ export function buildBadgeCollection(
             .filter((badge) => !held.has(badge.code))
             .map((badge) => ({
                 code: badge.code,
-                name: badge.name,
-                description: badge.description,
                 iconUrl: badge.iconUrl,
                 earned: false,
                 unlock: badge.unlock,

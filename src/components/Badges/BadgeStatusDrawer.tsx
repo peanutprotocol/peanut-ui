@@ -17,8 +17,6 @@ export type BadgeStatusDrawerProps = {
     onClose: () => void
     badge: {
         code: string
-        name: string
-        description?: string | null
         iconUrl?: string | null
         earnedAt?: string | Date
     }
@@ -45,7 +43,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                   hour12: false,
               })
             : undefined
-    const { name: displayName, description: displayDescription } = badgeCopy(badge.code, badge.name, badge.description)
+    const { name: displayName, description: displayDescription } = badgeCopy(badge.code)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
     // the sharer's own invite link, so a guest signup credits them

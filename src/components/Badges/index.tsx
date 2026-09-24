@@ -41,7 +41,7 @@ export const Badges = () => {
     const badges = useMemo(
         () =>
             buildBadgeCollection(displayableBadges(authUser?.user?.badges || []), catalog.data || []).map((badge) => {
-                const copy = badgeCopy(badge.code, badge.name, badge.description)
+                const copy = badgeCopy(badge.code)
                 return {
                     ...badge,
                     name: copy.name,

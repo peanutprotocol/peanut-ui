@@ -358,9 +358,7 @@ export const SURFACES: Record<string, Surface> = {
                 isOpen
                 onClose={noop}
                 badge={{
-                    code: 'first-invite',
-                    name: 'First Invite',
-                    description: 'You invited your first friend to Peanut.',
+                    code: 'FIRST_INVITE',
                     iconUrl: '/badges/first-invite.webp',
                     earnedAt: '2026-08-01T10:00:00.000Z',
                 }}

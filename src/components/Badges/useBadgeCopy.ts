@@ -2,25 +2,26 @@
 
 import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { getBadgeDescription, getBadgeDisplayName } from './badge.utils'
 
 /**
- * Localized badge name + reason, keyed by badge code.
- *
- * The backend catalog owns badge identity and ships display-ready English, so it
- * stays the fallback: a code with no `badges.catalog` entry — a badge added
- * after this build — renders the backend prose rather than a raw key path.
+ * Localized badge copy, keyed by badge code. `badges.catalog` is the only owner of
+ * badge prose; API payloads carry identity, never copy. `publicDescription` is what
+ * visitors see and falls back to `description` when a badge has no separate wording.
  */
 export function useBadgeCopy() {
     const t = useTranslations('badges.catalog')
 
     return useCallback(
-        (code?: string, name?: string | null, description?: string | null) => {
-            const nameKey = `${code}.name` as Parameters<typeof t>[0]
-            const descriptionKey = `${code}.description` as Parameters<typeof t>[0]
+        (code?: string) => {
+            const catalogCopy = (field: 'name' | 'description' | 'publicDescription') => {
+                const key = `${code}.${field}` as Parameters<typeof t>[0]
+                return code && t.has(key) ? t(key) : null
+            }
+            const description = catalogCopy('description')
             return {
-                name: code && t.has(nameKey) ? t(nameKey) : getBadgeDisplayName(code, name),
-                description: code && t.has(descriptionKey) ? t(descriptionKey) : getBadgeDescription(description),
+                name: catalogCopy('name') ?? (code || 'Badge'),
+                description,
+                publicDescription: catalogCopy('publicDescription') ?? description,
             }
         },
         [t]

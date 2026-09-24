@@ -13,13 +13,11 @@ export const BadgeStatusItem = ({ position = 'top', entry }: { position?: CardPo
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const displayName = badgeCopy(entry.code, entry.name).name
+    const displayName = badgeCopy(entry.code).name
 
     const badge = useMemo(
         () => ({
             code: entry.code,
-            name: entry.name,
-            description: entry.description,
             iconUrl: entry.iconUrl || undefined,
             earnedAt: entry.timestamp,
         }),

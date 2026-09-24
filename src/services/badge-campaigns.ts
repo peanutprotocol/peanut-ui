@@ -17,11 +17,8 @@ export type BadgeCampaignClaimOutcome =
     | 'retryable_error'
     | 'legacy_response_unconfirmed'
 
-type CompatibleBadgePresentation = Omit<GeneratedBadgePresentation, 'description' | 'publicDescription' | 'iconUrl'> & {
-    description: string | null
-    publicDescription?: string | null
-    iconUrl: string | null
-}
+// Badge copy comes from the i18n catalog, so the claim keeps only identity and art.
+type CompatibleBadgePresentation = Pick<GeneratedBadgePresentation, 'code'> & { iconUrl: string | null }
 
 export type BadgeCampaignClaim = Omit<GeneratedBadgeCampaignClaim, 'badge' | 'outcome'> & {
     badge?: CompatibleBadgePresentation
@@ -97,32 +94,12 @@ type BadgePresentation = NonNullable<BadgeCampaignClaim['badge']>
 
 function parseBadgePresentation(value: unknown): BadgePresentation | undefined {
     if (!value || typeof value !== 'object') return undefined
-    const badge = value as {
-        code?: unknown
-        name?: unknown
-        description?: unknown
-        publicDescription?: unknown
-        iconUrl?: unknown
-    }
-    if (
-        typeof badge.code !== 'string' ||
-        typeof badge.name !== 'string' ||
-        (typeof badge.description !== 'string' && badge.description !== null) ||
-        (badge.publicDescription !== undefined &&
-            typeof badge.publicDescription !== 'string' &&
-            badge.publicDescription !== null) ||
-        (typeof badge.iconUrl !== 'string' && badge.iconUrl !== null)
-    ) {
+    const badge = value as { code?: unknown; iconUrl?: unknown }
+    if (typeof badge.code !== 'string' || (typeof badge.iconUrl !== 'string' && badge.iconUrl !== null)) {
         return undefined
     }
 
-    return {
-        code: badge.code,
-        name: badge.name,
-        description: badge.description,
-        ...(badge.publicDescription !== undefined ? { publicDescription: badge.publicDescription } : {}),
-        iconUrl: badge.iconUrl,
-    }
+    return { code: badge.code, iconUrl: badge.iconUrl }
 }
 
 /**

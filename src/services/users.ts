@@ -39,9 +39,6 @@ export type ApiUser = {
     isVerified: boolean
     badges?: Array<{
         code: string
-        name: string
-        description: string | null
-        publicDescription?: string | null
         iconUrl: string | null
         color?: string | null
         earnedAt?: string

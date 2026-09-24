@@ -12,7 +12,7 @@ const NOW = 1_700_000_000_000 // fixed reference time
 const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString()
 
 function badge(over: Partial<CelebrationBadge> & { code: string; earnedAt: string | Date }): CelebrationBadge {
-    return { name: over.code, description: null, ...over }
+    return over
 }
 
 describe('badgeCelebration.utils', () => {

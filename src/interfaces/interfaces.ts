@@ -192,9 +192,6 @@ export interface User {
     badges?: Array<{
         id?: string
         code: string
-        name: string
-        description: string | null
-        publicDescription?: string | null
         iconUrl: string | null
         color: string | null
         earnedAt: string | Date

@@ -183,29 +183,23 @@ export const DEMO_USER: IUserProfile = {
         showFullName: false,
         createdAt: DEMO_CREATED_AT,
         accounts: [],
-        // Codes must match the FE badge catalog (components/Badges/badge.utils.ts)
-        // so icons/descriptions resolve; otherwise the badges screen is empty.
+        // Codes must exist in the `badges.catalog` messages so names and
+        // descriptions resolve; an unknown code renders as the raw code.
         badges: [
             {
                 code: 'BETA_TESTER',
-                name: 'Beta Tester',
-                description: null,
                 iconUrl: null,
                 color: null,
                 earnedAt: DEMO_CREATED_AT,
             },
             {
                 code: 'OG_2025_10_12',
-                name: 'OG',
-                description: null,
                 iconUrl: null,
                 color: null,
                 earnedAt: DEMO_CREATED_AT,
             },
             {
                 code: 'PRODUCT_HUNT',
-                name: 'Product Hunt',
-                description: null,
                 iconUrl: null,
                 color: null,
                 earnedAt: DEMO_CREATED_AT,

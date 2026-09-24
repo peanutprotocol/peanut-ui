@@ -182,8 +182,6 @@ const HistoryPage = () => {
                 uuid: b.id ?? b.code,
                 timestamp: new Date(b.earnedAt).toISOString(),
                 code: b.code,
-                name: b.name,
-                description: b.description ?? undefined,
                 iconUrl: b.iconUrl ?? undefined,
             })
         })

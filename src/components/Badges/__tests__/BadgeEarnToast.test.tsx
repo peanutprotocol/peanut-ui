@@ -93,12 +93,13 @@ describe('BadgeEarnToast', () => {
         expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
     })
 
-    it('falls back to the backend name for a code with no catalog entry', () => {
+    it('falls back to the code, not the backend name, for a code with no catalog entry', () => {
         mockPending = [badge('FUTURE_BADGE', 'Backend Name')]
         render(<BadgeEarnToast />)
 
         render(mockToast.mock.calls[0][0].content)
-        expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
+        expect(screen.getByText(/FUTURE_BADGE/)).toBeInTheDocument()
+        expect(screen.queryByText(/Backend Name/)).not.toBeInTheDocument()
     })
 
     it('announces unlocked avatars in a non-interactive second toast 500ms later (TASK-22142)', () => {

@@ -10,8 +10,8 @@ import badgeAssets from '@/types/badge-assets.json'
  * hand-edit. Regenerate with `pnpm badge:check --write-manifest` in
  * peanut-api-ts and copy docs/badge-assets.json here.
  *
- * Badge identity, names, descriptions, visibility, award policy and
- * capabilities all belong to the backend catalog. These paths only keep old
+ * Badge identity, visibility, award policy and capabilities belong to the
+ * backend catalog; copy lives in `badges.catalog`. These paths only keep old
  * catalog responses presentable while `iconUrl` rolls out; they must never be
  * used to infer campaign or access policy.
  */
@@ -32,15 +32,10 @@ export function getBadgeIcon(code?: string, iconUrl?: string | null): string {
     return catalogIcon || (code && BADGE_ASSET_FALLBACKS[code]) || PEANUTMAN.src
 }
 
-/** Backend names are authoritative; unknown/legacy responses remain readable. */
-export function getBadgeDisplayName(code?: string, name?: string | null): string {
-    return name?.trim() || code || 'Badge'
-}
-
 /**
  * Bespoke first-person share copy, English only. This is frontend presentation
- * for the share card — deliberately NOT in the backend badge catalog, which
- * owns identity and third-person descriptions. Badges without an entry use the
+ * for the share card — deliberately separate from `badges.catalog`, which
+ * owns the badge's own copy. Badges without an entry use the
  * generic line; other locales keep their translated generic copy until bespoke
  * translations ship as a content change.
  */
@@ -110,11 +105,6 @@ export function getBadgeShareText(
 
     const brag = (code && BADGE_SHARE_LINES[code]) || `I just unlocked the "${displayName}" badge on Peanut 🥜`
     return `${brag}\n\nJoin me on Peanut 👉 ${profileUrl}`
-}
-
-/** No local copy fallback: descriptions are owned by the backend catalog. */
-export function getBadgeDescription(description?: string | null): string | null {
-    return description?.trim() || null
 }
 
 // The sharer's own invite link, so a guest signup credits them.

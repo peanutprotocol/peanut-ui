@@ -58,7 +58,7 @@ export default function BadgeEarnToast() {
         const codes = badges.map((b) => b.code)
         const count = badges.length
         const newest = badges[0]
-        const newestCopy = badgeCopy(newest.code, newest.name, newest.description)
+        const newestCopy = badgeCopy(newest.code)
         const newestName = newestCopy.name
         const newestIcon = getBadgeIcon(newest.code, newest.iconUrl)
         // Per-batch id (not a fixed id): a fixed id de-dupes in the Toast layer,

@@ -61,9 +61,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [profileBadges, setProfileBadges] = useState<
         Array<{
             code: string
-            name: string
-            description: string | null
-            publicDescription?: string | null
             iconUrl: string | null
             earnedAt?: string | Date
         }>

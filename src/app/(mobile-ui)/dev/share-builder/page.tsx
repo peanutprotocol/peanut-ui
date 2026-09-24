@@ -26,7 +26,7 @@ import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
 import { captureShareAsset, downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
-import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
+import { BADGE_CODES } from '@/components/Badges/badge.utils'
 import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
 import { Slider } from '@/components/Global/Slider'
 import DevPageShell from '../_components/DevPageShell'
@@ -264,7 +264,7 @@ export default function ShareBuilderPage() {
                                 {ALL_CODES.map((code) => (
                                     <Checkbox
                                         key={code}
-                                        label={getBadgeDisplayName(code, code)}
+                                        label={code}
                                         value={selectedBadges.has(code)}
                                         onChange={() => toggleBadge(code)}
                                     />

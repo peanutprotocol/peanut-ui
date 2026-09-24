@@ -124,9 +124,6 @@ describe('badge badge campaign claims contract', () => {
                         badgeCode: 'NEW_BADGE',
                         badge: {
                             code: 'NEW_BADGE',
-                            name: 'New Badge',
-                            description: null,
-                            publicDescription: null,
                             iconUrl: null,
                         },
                         outcome: 'awarded',
@@ -208,7 +205,7 @@ describe('badge badge campaign claims contract', () => {
                 {
                     badgeCampaign: 'one',
                     outcome: 'awarded',
-                    badge: { code: 'ONE', name: 'One', description: null, iconUrl: 123 },
+                    badge: { code: 'ONE', iconUrl: 123 },
                 },
             ],
         },

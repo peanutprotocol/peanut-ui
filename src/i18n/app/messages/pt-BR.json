@@ -2516,11 +2516,13 @@
             },
             "MEGA_INFLUENCER": {
                 "name": "Mega influenciador",
-                "description": "Cem amigos dentro. Agora você é gente grande."
+                "description": "Cem amigos dentro. Agora você é gente grande.",
+                "publicDescription": "A hundred friends in. They're kind of a big deal now."
             },
             "DUNBAR": {
                 "name": "Dunbar",
-                "description": "150 — mais gente do que dá para lembrar. Chegou ao número de Dunbar."
+                "description": "150 — mais gente do que dá para lembrar. Chegou ao número de Dunbar.",
+                "publicDescription": "150 — more people than they can remember. They hit Dunbar's number."
             },
             "MOST_INVITES": {
                 "name": "Mais convites",
@@ -2544,39 +2546,53 @@
             },
             "CARD_FIRST_SWIPE": {
                 "name": "Primeira compra",
-                "description": "Você colocou seu cartão para trabalhar."
+                "description": "Você colocou seu cartão para trabalhar.",
+                "publicDescription": "First swipe. They put their card to work."
             },
             "CARD_SPENT_1K": {
                 "name": "Clube dos $1K",
-                "description": "$1K no cartão — você apostou onde estava o seu dinheiro."
+                "description": "$1K no cartão — você apostou onde estava o seu dinheiro.",
+                "publicDescription": "$1K swiped. They put their money where their card is."
             },
             "CARD_PIONEER": {
                 "name": "Pioneiro do cartão",
-                "description": "Você garantiu seu lugar no cartão Peanut. As vantagens de pioneiro vêm aí!"
+                "description": "Você garantiu seu lugar no cartão Peanut. As vantagens de pioneiro vêm aí!",
+                "publicDescription": "They built Peanut before it had a launch."
             },
             "FOUNDING_PIONEER": {
                 "name": "Pioneiro fundador",
-                "description": "Você já construía Peanut antes de existir lançamento."
+                "description": "Você já construía Peanut antes de existir lançamento.",
+                "publicDescription": "They built Peanut before it had a launch."
             },
             "ENS": {
                 "name": "Nome próprio",
-                "description": "Você pagou para um nome. Ou recebeu no seu."
+                "description": "Você pagou para um nome. Ou recebeu no seu.",
+                "publicDescription": "They paid at a name. Or got paid at theirs."
             },
             "VERIFIED": {
                 "name": "Verificado",
-                "description": "Documento conferido, identidade confirmada. Verificação oficial concluída."
+                "description": "Documento conferido, identidade confirmada. Verificação oficial concluída.",
+                "publicDescription": "ID checked, identity confirmed. Officially verified."
             },
             "BETA_TESTER": {
                 "name": "Beta tester",
-                "description": "Você quebrou as coisas para os outros não precisarem. Boas-vindas ao clube do caos."
+                "description": "Você quebrou as coisas para os outros não precisarem. Boas-vindas ao clube do caos.",
+                "publicDescription": "They're in the lab with us. Early enough to be part of the experiment."
+            },
+            "PEANUT_TEAM": {
+                "name": "Peanut Team",
+                "description": "You found the switch. Beta builds are yours now.",
+                "publicDescription": "They know where the switch is."
             },
             "OG_2025_10_12": {
                 "name": "OG",
-                "description": "Você é OG de verdade. Estava com Peanut antes de virar moda."
+                "description": "Você é OG de verdade. Estava com Peanut antes de virar moda.",
+                "publicDescription": "A real OG. They were with Peanut before it was cool."
             },
             "CARD_CLOSED_BETA": {
                 "name": "Beta fechado",
-                "description": "IYKYK. Testou o cartão antes de você saber que ele existia."
+                "description": "IYKYK. Testou o cartão antes de você saber que ele existia.",
+                "publicDescription": "IYKYK. They were testing the card before anyone knew it existed."
             },
             "CARD_ALPHA": {
                 "name": "Testador do alfa fechado",
@@ -2584,15 +2600,23 @@
             },
             "BUG_WHISPERER": {
                 "name": "Caçador de bugs",
-                "description": "Você achou um bug de verdade, avisou e ficou. A cerveja é por nossa conta."
+                "description": "Você achou um bug de verdade, avisou e ficou. A cerveja é por nossa conta.",
+                "publicDescription": "They found a real bug, reported it, and stayed. We owe them a beer."
+            },
+            "WHITE_HAT": {
+                "name": "White Hat",
+                "description": "You broke in, told us how, and walked out the front door. Respect.",
+                "publicDescription": "They broke in, told us how, and walked out the front door."
             },
             "SUPPORT_SURVIVOR": {
                 "name": "Sobrevivente do suporte",
-                "description": "Você achou um bug de verdade, avisou e ficou. A cerveja é por nossa conta."
+                "description": "Você achou um bug de verdade, avisou e ficou. A cerveja é por nossa conta.",
+                "publicDescription": "They found a real bug, reported it, and stayed. We owe them a beer."
             },
             "SHHHHH": {
                 "name": "Shhhhh",
-                "description": "Quem sabe, sabe."
+                "description": "Quem sabe, sabe.",
+                "publicDescription": "They know the secret."
             },
             "NOT_SO_SHHHH": {
                 "name": "Boca grande",
@@ -2602,9 +2626,14 @@
                 "name": "Nativo da Arbitrum",
                 "description": "Encontrado na Arbitrum — onboarding mútuo concluído."
             },
+            "TRON": {
+                "name": "Tron Native",
+                "description": "Found on Tron. Where the dollars actually move."
+            },
             "FOUNDER_HOUSE": {
                 "name": "Founder Haus",
-                "description": "Você esteve no Founder Haus. Energia on-chain, aperto de mão off-chain."
+                "description": "Você esteve no Founder Haus. Energia on-chain, aperto de mão off-chain.",
+                "publicDescription": "Built IRL at Founder Haus. On-chain energy, off-chain handshakes."
             },
             "ETHFLORIPA_HUB": {
                 "name": "EthFloripa Hub",
@@ -2622,9 +2651,18 @@
                 "name": "Pisou na grama",
                 "description": "Você saiu do online e pisou na grama de verdade com Peanut."
             },
+            "PEANUT_SHAPER": {
+                "name": "Help Shape Peanut",
+                "description": "You talked. We took notes. Peanut got better.",
+                "publicDescription": "They talked. We took notes. Peanut got better."
+            },
             "OFFRAMP_USER": {
                 "name": "Usuário de saque",
                 "description": "Você migrou para Peanut. A gente recebeu você bem."
+            },
+            "SPLITTER": {
+                "name": "Splitter",
+                "description": "Friends settled, bills split. Memories made."
             },
             "PSYOPS_DIVISION": {
                 "name": "Divisão Psyops",
@@ -2632,7 +2670,8 @@
             },
             "TOKEN_NATION_SP_2026": {
                 "name": "Token Nation 2026",
-                "description": "São Paulo, baby. Você veio, resgatou e marcou o mural."
+                "description": "São Paulo, baby. Você veio, resgatou e marcou o mural.",
+                "publicDescription": "São Paulo, baby. They came, they claimed, they tagged the wall."
             },
             "FESTA_JUNINA_2026": {
                 "name": "Arraiá aprovado",
@@ -2644,7 +2683,8 @@
             },
             "NITA": {
                 "name": "Indicação da Nita",
-                "description": "A Nita indicou você. Você pulou a fila do cartão na palavra dela."
+                "description": "A Nita indicou você. Você pulou a fila do cartão na palavra dela.",
+                "publicDescription": "Nita sent you. You took her word for it."
             },
             "NAIJA": {
                 "name": "9JA",
@@ -2654,41 +2694,59 @@
                 "name": "Tereré",
                 "description": "Tereré desbloqueado. Você estava lá na primeira rodada."
             },
+            "ACAI_POWERED": {
+                "name": "Açaí Powered",
+                "description": "You skipped the wait. Spoon in hand, straight through the door."
+            },
             "DEVCONNECT_BA_2025": {
                 "name": "Devconnect 2025",
-                "description": "Nada de anon. Pisou na grama, apertou mãos e respirou o mesmo ar que o Vitalik."
+                "description": "Nada de anon. Pisou na grama, apertou mãos e respirou o mesmo ar que o Vitalik.",
+                "publicDescription": "Buenos Aires, baby. They came, they claimed, they ate the steak."
             },
             "SEEDLING_DEVCONNECT_BA_2025": {
                 "name": "Semente",
-                "description": "Você trabalha com a gente para espalhar Peanut."
+                "description": "Você trabalha com a gente para espalhar Peanut.",
+                "publicDescription": "You shill Peanut so we don't have to. Honorary squirrel."
+            },
+            "SURF_UP": {
+                "name": "Surf's Up",
+                "description": "You caught the wave early.",
+                "publicDescription": "They caught the wave early."
             },
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "name": "Peanut 🤝 Arbiverse",
-                "description": "Você esteve com a gente no estande do Arbiverse na Devconnect 2025."
+                "description": "Você esteve com a gente no estande do Arbiverse na Devconnect 2025.",
+                "publicDescription": "They found the Arbiverse booth. We found them. Mutual onboarding achieved."
             },
             "PRODUCT_HUNT": {
                 "name": "Product Hunt",
-                "description": "Vendedor de esperança. Seu upvote pareceu um term sheet de VC!"
+                "description": "Vendedor de esperança. Seu upvote pareceu um term sheet de VC!",
+                "publicDescription": "Hope Dealer. Their upvote felt like a VC term sheet!"
             },
             "MOST_RESTAURANTS_DEVCON": {
                 "name": "Mais restaurantes na Devcon",
-                "description": "Você é gourmet de verdade!"
+                "description": "Você é gourmet de verdade!",
+                "publicDescription": "Hit more restaurants than the Michelin guide. Touched every menu in BA."
             },
             "BIG_SPENDER_5K": {
                 "name": "Big Spender 5K",
-                "description": "Você está entre quem mais gasta."
+                "description": "Você está entre quem mais gasta.",
+                "publicDescription": "They didn't come to Devconnect to network. They came to spend."
             },
             "MOST_PAYMENTS_DEVCON": {
                 "name": "Mais pagamentos na Devcon",
-                "description": "Máquina de dinheiro — você move dinheiro como quem não faz esforço. Mais pagamentos feitos!"
+                "description": "Máquina de dinheiro — você move dinheiro como quem não faz esforço. Mais pagamentos feitos!",
+                "publicDescription": "Money Machine — they move money like it's light work. Most payments made!"
             },
             "BIGGEST_REQUEST_POT": {
                 "name": "Maior vaquinha",
-                "description": "Alto rolê ou mestre do pedido? Você criou a vaquinha com mais participantes."
+                "description": "Alto rolê ou mestre do pedido? Você criou a vaquinha com mais participantes.",
+                "publicDescription": "High Roller or Master Beggar? They created the pot with the highest number of contributors."
             },
             "WAITLIST_SKIP": {
                 "name": "Passe livre",
-                "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
+                "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto.",
+                "publicDescription": "They skipped the waitlist. A friend handed them the key and they walked right in."
             }
         },
         "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}"

@@ -1046,8 +1046,6 @@ export const FIXTURES: Record<string, Fixture> = {
                         {
                             id: 'demo-badge-bug-whisperer',
                             code: 'BUG_WHISPERER',
-                            name: 'Bug Whisperer',
-                            description: 'You found a real bug, reported it, and stayed. We owe you a beer.',
                             iconUrl: '/badges/bug_whisperer.svg',
                             color: null,
                             earnedAt: '2026-08-30T12:00:00.000Z',

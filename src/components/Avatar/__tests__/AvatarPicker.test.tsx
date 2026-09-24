@@ -58,7 +58,7 @@ const mockFetchUser = jest.fn()
 // a cold load of the deep link renders the picker before authContext resolves
 let mockHasUser = true
 let mockUser: {
-    user: { userId: string; username: string; avatarKey: string | null; badges: { code: string; name: string }[] }
+    user: { userId: string; username: string; avatarKey: string | null; badges: { code: string }[] }
 }
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockHasUser ? mockUser : undefined, fetchUser: mockFetchUser }),
@@ -126,7 +126,7 @@ beforeEach(() => {
             userId: 'u1',
             username: 'satoshi',
             avatarKey: null,
-            badges: [{ code: 'BUG_WHISPERER', name: 'Bug Whisperer' }],
+            badges: [{ code: 'BUG_WHISPERER' }],
         },
     }
 })
@@ -252,10 +252,7 @@ describe('AvatarPicker', () => {
     it('gives simultaneously visible wink artworks distinct Spanish names', () => {
         mockBadgeParam = 'BETA_TESTER'
         mockUser.user.avatarKey = 'badge.CARD_FIRST_SWIPE.wink'
-        mockUser.user.badges = [
-            { code: 'BETA_TESTER', name: 'Beta Tester' },
-            { code: 'CARD_FIRST_SWIPE', name: 'First Swipe' },
-        ]
+        mockUser.user.badges = [{ code: 'BETA_TESTER' }, { code: 'CARD_FIRST_SWIPE' }]
         ;(Math.random as jest.Mock).mockReturnValue(0.99)
 
         renderWithIntl(
@@ -310,10 +307,7 @@ describe('AvatarPicker', () => {
 
     it('deals the badge the deep link names', () => {
         mockBadgeParam = 'OG_2025_10_12'
-        mockUser.user.badges = [
-            { code: 'BUG_WHISPERER', name: 'Bug Whisperer' },
-            { code: 'OG_2025_10_12', name: 'OG' },
-        ]
+        mockUser.user.badges = [{ code: 'BUG_WHISPERER' }, { code: 'OG_2025_10_12' }]
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tile(/Coin/)).toHaveTextContent('OG')
@@ -322,10 +316,7 @@ describe('AvatarPicker', () => {
     it('deals again when a cold-load deep link resolves its user', () => {
         mockHasUser = false
         mockBadgeParam = 'OG_2025_10_12'
-        mockUser.user.badges = [
-            { code: 'BUG_WHISPERER', name: 'Bug Whisperer' },
-            { code: 'OG_2025_10_12', name: 'OG' },
-        ]
+        mockUser.user.badges = [{ code: 'BUG_WHISPERER' }, { code: 'OG_2025_10_12' }]
         const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         // nothing to deal from yet: five tiles, but no badge and no initial

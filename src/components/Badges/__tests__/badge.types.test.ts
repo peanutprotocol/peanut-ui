@@ -4,26 +4,18 @@ import { buildBadgeCollection, type OwnedBadge } from '../badge.types'
 const catalog = [
     {
         code: 'FIRST_INVITE',
-        name: 'First Invite',
-        description: 'Invite one friend.',
-        publicDescription: 'Invited one friend.',
         iconUrl: '/badges/first_invite.svg',
         unlock: { kind: 'invites', target: 1 },
     },
     {
         code: 'CARD_FIRST_SWIPE',
-        name: 'First Swipe',
-        description: 'Use your card.',
-        publicDescription: 'Used their card.',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
     },
-] satisfies BadgeCatalogEntry[]
+] satisfies Pick<BadgeCatalogEntry, 'code' | 'iconUrl' | 'unlock'>[]
 
 const owned = (code: string, earnedAt: string, overrides: Partial<OwnedBadge> = {}): OwnedBadge => ({
     code,
-    name: code,
-    description: null,
     iconUrl: null,
     color: null,
     earnedAt,
@@ -42,7 +34,7 @@ describe('buildBadgeCollection', () => {
             ['FIRST_INVITE', true],
             ['CARD_FIRST_SWIPE', false],
         ])
-        expect(badges[1]).toMatchObject({ name: 'FIRST_INVITE', description: 'Invite one friend.' })
+        expect(badges[1]).toMatchObject({ iconUrl: '/badges/first_invite.svg', unlock: { kind: 'invites', target: 1 } })
     })
 
     it('does not duplicate an earned badge from the catalog', () => {

@@ -26,8 +26,6 @@ jest.mock('@/components/Tooltip', () => ({
 
 const badge = (code: string, earnedAt: string) => ({
     code,
-    name: code,
-    description: null,
     iconUrl: null,
     earnedAt,
 })
@@ -50,48 +48,43 @@ describe('BadgesRow', () => {
         expect(badges.map((b) => b.code)).toEqual(['OLDEST', 'MIDDLE', 'NEWEST'])
     })
 
-    it('uses backend self and public descriptions according to profile audience', () => {
-        const apiBadge = {
-            ...badge('NEW', '2026-08-04T00:00:00.000Z'),
-            description: 'You earned this badge.',
-            publicDescription: 'They earned this badge.',
-        }
+    it('uses catalog self and public descriptions according to profile audience', () => {
+        const catalogBadge = badge('CARD_FIRST_SWIPE', '2026-08-04T00:00:00.000Z')
 
-        const { rerender } = render(<BadgesRow badges={[apiBadge]} isSelfProfile />)
-        expect(screen.getByText('You earned this badge.')).toBeInTheDocument()
-        expect(screen.queryByText('They earned this badge.')).not.toBeInTheDocument()
+        const { rerender } = render(<BadgesRow badges={[catalogBadge]} isSelfProfile />)
+        expect(screen.getByText('You put your card to work.')).toBeInTheDocument()
+        expect(screen.queryByText('First swipe. They put their card to work.')).not.toBeInTheDocument()
 
-        rerender(<BadgesRow badges={[apiBadge]} isSelfProfile={false} />)
-        expect(screen.getByText('They earned this badge.')).toBeInTheDocument()
-        expect(screen.queryByText('You earned this badge.')).not.toBeInTheDocument()
+        rerender(<BadgesRow badges={[catalogBadge]} isSelfProfile={false} />)
+        expect(screen.getByText('First swipe. They put their card to work.')).toBeInTheDocument()
+        expect(screen.queryByText('You put your card to work.')).not.toBeInTheDocument()
     })
 
-    // The test above uses a code with no `badges.catalog` entry, so it passes even
-    // if the localized copy swallows the audience choice. This one uses a real code.
-    it('keeps the backend public description for a badge that IS in the catalog', () => {
+    it('ignores backend prose left in the payload', () => {
         const apiBadge = {
             ...badge('VERIFIED', '2026-08-04T00:00:00.000Z'),
+            name: 'Backend Name',
             description: 'You earned this badge.',
             publicDescription: 'They earned this badge.',
         }
 
         const { rerender } = render(<BadgesRow badges={[apiBadge]} isSelfProfile />)
-        expect(screen.getByText(/officially verified/)).toBeInTheDocument()
+        expect(screen.getByText(/You're officially verified/)).toBeInTheDocument()
+        expect(screen.queryByText('Backend Name')).not.toBeInTheDocument()
 
         rerender(<BadgesRow badges={[apiBadge]} isSelfProfile={false} />)
-        expect(screen.getByText('They earned this badge.')).toBeInTheDocument()
-        expect(screen.queryByText(/officially verified/)).not.toBeInTheDocument()
+        expect(screen.getByText('ID checked, identity confirmed. Officially verified.')).toBeInTheDocument()
+        expect(screen.queryByText('They earned this badge.')).not.toBeInTheDocument()
     })
 
     it('keeps an earned badge visible with generic art when the backend icon fails', () => {
         const apiBadge = {
             ...badge('NEW', '2026-08-04T00:00:00.000Z'),
-            name: 'Backend Badge',
             iconUrl: '/badges/missing.svg',
         }
 
         render(<BadgesRow badges={[apiBadge]} />)
-        const image = screen.getByRole('img', { name: 'Backend Badge' })
+        const image = screen.getByRole('img', { name: 'NEW' })
         expect(image).toHaveAttribute('src', apiBadge.iconUrl)
 
         fireEvent.error(image)
@@ -105,7 +98,6 @@ describe('BadgesRow', () => {
                 badges={[
                     {
                         ...badge('OFFRAMP_USER', '2026-08-04T00:00:00.000Z'),
-                        name: 'Offramp User',
                         iconUrl: '/badges/offramp_user.png',
                     },
                 ]}

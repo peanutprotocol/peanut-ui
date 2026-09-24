@@ -43,7 +43,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badgeCopy(badge.code, badge.name).name]))
+    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badgeCopy(badge.code).name]))
     const unlocked = badgeAvatarKeys(held)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.

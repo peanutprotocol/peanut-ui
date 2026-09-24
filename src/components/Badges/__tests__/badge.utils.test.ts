@@ -1,12 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import {
-    BADGE_ASSET_FALLBACKS,
-    getBadgeDescription,
-    getBadgeDisplayName,
-    getBadgeIcon,
-    getBadgeShareText,
-} from '../badge.utils'
+import { BADGE_ASSET_FALLBACKS, getBadgeIcon, getBadgeShareText } from '../badge.utils'
 
 describe('backend-owned badge presentation', () => {
     // UI half of the cross-repo asset contract. BADGE_ASSET_FALLBACKS is now
@@ -58,17 +52,6 @@ describe('backend-owned badge presentation', () => {
         expect(typeof getBadgeIcon('NOT_A_REAL_BADGE')).toBe('string')
         expect(getBadgeIcon('NOT_A_REAL_BADGE')).toBeTruthy()
         expect(getBadgeIcon(undefined)).toBe(getBadgeIcon('NOT_A_REAL_BADGE'))
-    })
-
-    it('never overrides API name or description with local catalog copy', () => {
-        expect(getBadgeDisplayName('CARD_PIONEER', 'Backend Pioneer')).toBe('Backend Pioneer')
-        expect(getBadgeDescription('Backend-owned description')).toBe('Backend-owned description')
-    })
-
-    it('keeps incomplete or unknown legacy responses readable without inventing copy', () => {
-        expect(getBadgeDisplayName('FUTURE_BADGE', null)).toBe('FUTURE_BADGE')
-        expect(getBadgeDisplayName(undefined, null)).toBe('Badge')
-        expect(getBadgeDescription(null)).toBeNull()
     })
 })
 

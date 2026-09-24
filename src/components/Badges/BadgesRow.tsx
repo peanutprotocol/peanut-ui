@@ -14,9 +14,6 @@ import { BadgeImage } from './BadgeImage'
 
 type UIBadge = {
     code: string
-    name: string
-    description: string | null
-    publicDescription?: string | null
     iconUrl: string | null
     earnedAt?: string | Date
 }
@@ -110,17 +107,8 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        // Same precedence as before, with the localized string standing
-                        // in for `badge.description`: the backend's third-person
-                        // `publicDescription` still wins when you are not the owner.
-                        const { name: displayName, description: selfDescription } = badgeCopy(
-                            badge.code,
-                            badge.name,
-                            badge.description
-                        )
-                        const displayDescription = isSelfProfile
-                            ? selfDescription
-                            : (badge.publicDescription ?? selfDescription)
+                        const { name: displayName, description, publicDescription } = badgeCopy(badge.code)
+                        const displayDescription = isSelfProfile ? description : publicDescription
 
                         return (
                             <Tooltip
