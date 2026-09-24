@@ -99,11 +99,24 @@ jest.mock('@/utils/general.utils', () => ({
 const mockGetCountryFromAccount = jest.fn(
     () => ({ iso2: 'US', path: 'us' }) as { iso2: string; path: string } | undefined
 )
+const mockGetOfframpConfigFromAccount = jest.fn(() => ({ currency: 'usd', paymentRail: 'ach' }))
 jest.mock('@/utils/bridge.utils', () => ({
     getCountryFromAccount: mockGetCountryFromAccount,
+    getOfframpConfigFromAccount: () => mockGetOfframpConfigFromAccount(),
     getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
     railJurisdictionForBank: jest.fn(() => 'US'),
+}))
+
+// exact bank amount (TASK-23054): the quote rate the amount step converts with
+let mockExactRate: string | null = '0.9'
+jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
+    useBridgeOfframpQuote: ({ currency }: { currency: string | null }) => ({
+        quote: currency && mockExactRate ? { rate: mockExactRate } : null,
+        isFetching: false,
+        isError: false,
+        refetch: jest.fn(),
+    }),
 }))
 
 const mockUseGetExchangeRate = jest.fn()
@@ -159,9 +172,12 @@ jest.mock('@/components/Global/AmountInput', () => ({
         <div data-testid="amount-input">
             <input
                 data-testid="amount-field"
+                data-symbol={props.primaryDenomination?.symbol}
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
                     props.setPrimaryAmount?.(e.target.value)
+                    // the real component reports the converted value too
+                    props.setSecondaryAmount?.(String(Number(e.target.value) / props.primaryDenomination.price))
                 }}
                 disabled={props.disabled}
             />
@@ -327,6 +343,8 @@ beforeEach(() => {
     // the default country resolution here — tests that override it (GROUP 6)
     // then don't leak into later tests regardless of order or early failure.
     mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
+    mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+    mockExactRate = '0.9'
 })
 
 // ============================================================
@@ -459,6 +477,57 @@ describe('GROUP 2: Amount Input', () => {
         renderWithdraw({ step: 'amount', amount: '42' })
 
         expect(screen.getByTestId('amount-field')).toHaveValue('42')
+    })
+})
+
+// ============================================================
+// GROUP 2b: exact bank amount for EUR, GBP, MXN and COP accounts (TASK-23054)
+// ============================================================
+describe('GROUP 2b: exact bank amount', () => {
+    beforeEach(() => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: 'germany' } }
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'eur', paymentRail: 'sepa' })
+        mockGetCountryFromAccount.mockReturnValue({ iso2: 'DE', path: 'germany' })
+    })
+
+    test('the field takes the bank amount in EUR', () => {
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
+    })
+
+    test('Continue hands the bank amount to the review, never as ?amount=', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('destinationAmount=90')
+        expect(pushed).not.toMatch(/[?&]amount=/)
+    })
+
+    test('the checks run on the USD it converts to: 90 EUR at 0.9 is 100 USD, the whole balance', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '91' } })
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('waits for the rate before opening the field', () => {
+        mockExactRate = null
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test('a US account keeps the USD amount', () => {
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', '$')
     })
 })
 

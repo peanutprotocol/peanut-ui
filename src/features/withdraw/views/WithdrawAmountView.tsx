@@ -18,7 +18,7 @@ interface WithdrawAmountViewProps {
     heading: string
     initialAmount: string
     walletBalance: string
-    /** Full-precision spendable balance, in USD — tapping the balance row fills the field with it (floored to cents). */
+    /** Full-precision spendable balance — tapping the balance row fills the field with it (floored to cents). */
     balanceFillAmount: number
     onBalanceFilled: (value: string) => void
     onAmountChange: (value: string | undefined) => void
@@ -30,16 +30,18 @@ interface WithdrawAmountViewProps {
     isCryptoWithdraw: boolean
     limitsValidation?: ReturnType<typeof useLimitsValidation>
     /**
-     * Destination currency (e.g. 'EUR', 'GBP', 'MXN'). When set and not
-     * 'USD', the amount is typed in this currency first — USD (the amount
-     * actually sent) shows as the converted secondary line, same pattern as
-     * the Manteca amount step (QA-49: asking in USD for a EUR/GBP/MXN
-     * destination). Omit (or 'USD') to keep the plain USD-only input used
-     * for crypto and US bank withdrawals.
+     * Set for a bank account paid in EUR, GBP, MXN or COP (TASK-23054): the field
+     * takes the exact bank amount in that currency, and `onAmountChange` gets
+     * the USD it converts to — the Manteca amount pattern.
      */
-    destinationCurrency?: string
-    /** Local-currency units per 1 USD (Bridge's `sell_rate`). Required to show the currency-first input; null while it loads. */
-    destinationRate?: string | null
+    exactAmount?: {
+        /** ISO code shown in the field, e.g. 'EUR'. */
+        currency: string
+        /** Destination units per 1 USD, fees included. */
+        rate: number
+        initialAmount: string
+        onAmountChange: (value: string) => void
+    }
 }
 
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
@@ -58,8 +60,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     error,
     isCryptoWithdraw,
     limitsValidation,
-    destinationCurrency,
-    destinationRate,
+    exactAmount,
 }) => {
     const tCommon = useTranslations('common')
 
@@ -70,41 +71,22 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
             ? getLimitsWarningCardProps({ validation: limitsValidation, flowType: 'offramp', currency: 'USD' })
             : null
 
-    // local-currency-first for a Bridge destination with real FX (EUR/GBP/MXN/COP —
-    // QA-49). `rate` is local-currency units per 1 USD, same convention the
-    // Manteca amount step uses for `currencyPrice.sell`.
-    const rate = destinationRate ? parseFloat(destinationRate) : null
-    const showDestinationCurrencyFirst = !!destinationCurrency && destinationCurrency !== 'USD' && !!rate
-
     return (
         <PageStack>
             <NavHeader title={pageTitle} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <div className="text-heading-xs text-foreground-primary">{heading}</div>
-                {showDestinationCurrencyFirst ? (
+                {exactAmount ? (
                     <AmountInput
-                        initialAmount={initialAmount}
-                        // initialAmount (rawTokenAmount) is always USD — tag a
-                        // pre-filled amount (back-nav, deep link) as such so it
-                        // isn't misread as an EUR/GBP/MXN figure. A blank field
-                        // opens in the destination currency (primary), which is
-                        // the point of this branch — omit the override then.
-                        initialDenomination={initialAmount ? 'USD' : undefined}
-                        // the field the user types is the destination currency; the
-                        // USD amount actually sent is the derived (secondary) value
-                        setPrimaryAmount={() => {}}
+                        initialAmount={exactAmount.initialAmount}
+                        setPrimaryAmount={exactAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
-                        primaryDenomination={{ symbol: destinationCurrency!, price: rate!, decimals: 2 }}
+                        primaryDenomination={{ symbol: exactAmount.currency, price: exactAmount.rate, decimals: 2 }}
                         secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                         walletBalance={walletBalance}
-                        // balanceFillAmount is denominated in the primary unit —
-                        // convert the USD spendable balance to the destination currency
-                        balanceFillAmount={balanceFillAmount * rate!}
-                        // note: fillValue arrives in the destination currency here,
-                        // while every other onAmountChange tick is USD — the
-                        // "was this a balance tap" ref in useWithdrawRootFlow won't
-                        // latch for this path. No consumer reads isMaxWithdrawal for
-                        // bridge/bank withdrawals today (only /withdraw/crypto does).
+                        // the balance row is USD and the field is the bank currency:
+                        // floor the USD to cents first so the fill never quotes above it
+                        balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * exactAmount.rate}
                         onBalanceFilled={onBalanceFilled}
                     />
                 ) : (

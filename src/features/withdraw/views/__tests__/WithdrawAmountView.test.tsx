@@ -2,11 +2,12 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { WithdrawAmountView } from '../WithdrawAmountView'
 
-// QA-49: withdrawing to a EUR/GBP/MXN bank account must ask for the amount in
-// that currency, not USD — the destination currency is primary, USD (the
-// exact amount actually sent) is the derived secondary value.
-function setup(overrides: { destinationCurrency?: string; destinationRate?: string | null } = {}) {
+// TASK-23054: a bank account paid in EUR, GBP, MXN or COP takes the exact bank
+// amount in that currency; the USD it converts to (quote rate, fees
+// included) is what the amount checks run on.
+function setup(exactRate?: number) {
     const onAmountChange = jest.fn()
+    const onDestinationAmountChange = jest.fn()
     const onBalanceFilled = jest.fn()
     renderWithIntl(
         <WithdrawAmountView
@@ -14,7 +15,7 @@ function setup(overrides: { destinationCurrency?: string; destinationRate?: stri
             heading="Amount to withdraw"
             initialAmount=""
             walletBalance="500.00"
-            balanceFillAmount={100}
+            balanceFillAmount={100.009}
             onBalanceFilled={onBalanceFilled}
             onAmountChange={onAmountChange}
             onBack={() => {}}
@@ -22,40 +23,47 @@ function setup(overrides: { destinationCurrency?: string; destinationRate?: stri
             continueDisabled={false}
             error={{ showError: false, errorMessage: '' }}
             isCryptoWithdraw={false}
-            destinationCurrency={overrides.destinationCurrency}
-            destinationRate={overrides.destinationRate}
+            exactAmount={
+                exactRate
+                    ? {
+                          currency: 'EUR',
+                          rate: exactRate,
+                          initialAmount: '',
+                          onAmountChange: onDestinationAmountChange,
+                      }
+                    : undefined
+            }
         />
     )
     const field = screen.getByRole('textbox') as HTMLInputElement
-    return { field, onAmountChange, onBalanceFilled }
+    return { field, onAmountChange, onDestinationAmountChange, onBalanceFilled }
 }
 
-describe('WithdrawAmountView — EUR/GBP/MXN destination (QA-49)', () => {
-    it('opens with the destination currency, not USD', () => {
-        setup({ destinationCurrency: 'EUR', destinationRate: '0.9' })
+describe('WithdrawAmountView — exact bank amount (TASK-23054)', () => {
+    it('opens in the bank currency, not USD', () => {
+        setup(0.9)
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })
 
-    it('reports the amount actually sent as USD, converted from the typed destination amount', () => {
-        // Bridge sell_rate convention: local-currency units per 1 USD.
-        const { field, onAmountChange } = setup({ destinationCurrency: 'EUR', destinationRate: '0.9' })
+    it('stores the typed bank amount and reports the USD it converts to', () => {
+        const { field, onAmountChange, onDestinationAmountChange } = setup(0.9)
         fireEvent.change(field, { target: { value: '900' } })
-        // 900 EUR / 0.9 (EUR per USD) = 1000 USD
+        expect(onDestinationAmountChange).toHaveBeenLastCalledWith('900')
+        // 900 EUR at 0.9 EUR per USD = 1000 USD
         expect(Number(onAmountChange.mock.lastCall?.[0])).toBeCloseTo(1000, 2)
     })
 
-    it('converts the USD spendable balance into the destination currency for the balance-fill row', () => {
-        // balanceFillAmount=100 USD, rate=0.9 EUR/USD -> fills 90 EUR (the
-        // primary/typed unit), not 100 (which would be the raw USD figure)
-        const { field, onBalanceFilled } = setup({ destinationCurrency: 'EUR', destinationRate: '0.9' })
+    it('fills the balance in the bank currency from the USD balance floored to cents', () => {
+        // 100.009 USD floors to 100.00, at 0.9 EUR per USD → 90 EUR, never above the balance
+        const { field, onBalanceFilled } = setup(0.9)
         fireEvent.click(screen.getByRole('button', { name: /use full balance/i }))
         expect(field.value).toBe('90')
         expect(onBalanceFilled).toHaveBeenCalledWith('90')
     })
 })
 
-describe('WithdrawAmountView — USD destination (unchanged behavior)', () => {
-    it('has no destination-currency label and reports the typed amount directly as USD', () => {
+describe('WithdrawAmountView — USD amount (unchanged)', () => {
+    it('has no bank currency and reports the typed amount as USD', () => {
         const { field, onAmountChange } = setup()
         expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         fireEvent.change(field, { target: { value: '42' } })

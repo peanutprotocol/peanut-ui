@@ -88,6 +88,17 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     },
 }))
 
+// exact bank amount (TASK-23054): the quote the review shows and funds
+let mockQuote: { rate: string; sourceAmount: string } | null = null
+const mockQuoteRefetch = jest.fn()
+const mockQuoteCalls: Array<{ currency: string | null; destinationAmount?: string; enabled?: boolean }> = []
+jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
+    useBridgeOfframpQuote: (args: { currency: string | null; destinationAmount?: string; enabled?: boolean }) => {
+        mockQuoteCalls.push(args)
+        return { quote: args.currency ? mockQuote : null, isFetching: false, isError: false, refetch: mockQuoteRefetch }
+    },
+}))
+
 jest.mock('@/utils/regions.utils', () => ({
     isBridgeSupportedCountry: () => true,
 }))
@@ -228,6 +239,8 @@ beforeEach(() => {
     mockPointsCalls.length = 0
     mockBankAccount = bankAccount
     mockIsBankFromSend = false
+    mockQuote = null
+    mockQuoteCalls.length = 0
 })
 
 // ---------- tests ----------
@@ -537,5 +550,89 @@ describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
 
         expect(view.result.current.referenceProblem).toBe('tooShort')
         expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+})
+
+describe('useBridgeOfframpFlow — exact bank amount (TASK-23054)', () => {
+    beforeEach(() => {
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        mockBalance = 3000n * 10n ** 6n
+        mockQuote = { rate: '0.89104478', sourceAmount: '2244.56' }
+    })
+
+    it('funds exactly the quoted USDC and sends the bank amount alongside', async () => {
+        armHappyOfframp()
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        expect(view.result.current.amountToWithdraw).toBe('2244.56')
+        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', destinationAmount: '2000' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(
+            expect.objectContaining({ amount: '2244.56', destinationAmount: '2000' })
+        )
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2244.56', { kind: 'FIAT_OFFRAMP' })
+        // the success screen shows what the bank receives, pinned at execution
+        expect(view.result.current.exactAmount?.executedDestinationAmount).toBe('2000')
+    })
+
+    it('is not ready to submit until the quote arrives', async () => {
+        mockQuote = null
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(false)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+
+    it('rate moved: shows the new amount, asks again, and moves no money', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            error: 'The exchange rate changed. Check the new amount.',
+            code: 'OFFRAMP_QUOTE_CHANGED',
+        })
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockQuoteRefetch).toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenLastCalledWith({ showError: true, errorMessage: 'withdraw.bank.rateChanged' })
+    })
+
+    it('a quote above the balance never reaches createOfframp', async () => {
+        mockBalance = 2000n * 10n ** 6n
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'errors.notEnoughBalanceAddFunds',
+        })
+    })
+
+    it('a US account ignores a bank amount: USD pays 1:1 and needs ?amount=', () => {
+        mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
+        const view = renderFlow({ amount: '50', destinationAmount: '2000', step: 'review' })
+
+        expect(view.result.current.exactAmount).toBeNull()
+        expect(view.result.current.amountToWithdraw).toBe('50')
+    })
+
+    it('context loss keeps the bank amount in the recovery URL', () => {
+        mockBankAccount = null
+        renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        expect(mockRouterReplace).toHaveBeenCalledWith(expect.stringContaining('destinationAmount=2000'))
     })
 })

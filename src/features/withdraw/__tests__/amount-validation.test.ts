@@ -1,13 +1,7 @@
 import { parseUnits } from 'viem'
 import { type Account, AccountType } from '@/interfaces/interfaces'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
-import {
-    validateBankOfframpAmount,
-    bankWithdrawMinUsd,
-    bankWithdrawMinNeedsRate,
-    resolveWithdrawRateContext,
-} from '../amount-validation'
-import type { WithdrawMethod } from '../types'
+import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from '../amount-validation'
 
 const savedAccountWithoutCountry = (type: AccountType): Account =>
     ({
@@ -109,87 +103,6 @@ describe('bankWithdrawMinUsd', () => {
     it('falls back to the $1 Bridge floor while the rate loads — callers gate on bankWithdrawMinNeedsRate', () => {
         expect(bankWithdrawMinUsd('GB', undefined)).toBe(1)
         expect(bankWithdrawMinUsd('MX', '0')).toBe(1)
-    })
-})
-
-// QA-49: the amount step needs to know the destination currency (to ask in
-// EUR/GBP/MXN, not USD) and the Bridge account type (to fetch its FX rate).
-describe('resolveWithdrawRateContext', () => {
-    it('no method/account chosen yet: USD, no rate needed', () => {
-        expect(resolveWithdrawRateContext(null, null)).toEqual({
-            countryIso2: '',
-            rateAccountType: AccountType.US,
-            currencyCode: 'USD',
-        })
-    })
-
-    it('crypto (no countryPath): USD, no rate needed', () => {
-        const method: WithdrawMethod = { type: 'crypto', title: 'Crypto', countryPath: undefined }
-        expect(resolveWithdrawRateContext(null, method)).toEqual({
-            countryIso2: '',
-            rateAccountType: AccountType.US,
-            currencyCode: 'USD',
-        })
-    })
-
-    it('US bank: USD, no rate needed', () => {
-        const method: WithdrawMethod = { type: 'bridge', countryPath: 'usa', currency: 'USD', title: 'To Bank' }
-        expect(resolveWithdrawRateContext(null, method)).toEqual({
-            countryIso2: 'US',
-            rateAccountType: AccountType.US,
-            currencyCode: 'USD',
-        })
-    })
-
-    it('GB bank: GBP via the GB account type', () => {
-        const method: WithdrawMethod = {
-            type: 'bridge',
-            countryPath: 'united-kingdom',
-            currency: 'GBP',
-            title: 'To Bank',
-        }
-        expect(resolveWithdrawRateContext(null, method)).toEqual({
-            countryIso2: 'GB',
-            rateAccountType: AccountType.GB,
-            currencyCode: 'GBP',
-        })
-    })
-
-    it('MX bank: MXN via the CLABE account type', () => {
-        const method: WithdrawMethod = { type: 'bridge', countryPath: 'mexico', currency: 'MXN', title: 'To Bank' }
-        expect(resolveWithdrawRateContext(null, method)).toEqual({
-            countryIso2: 'MX',
-            rateAccountType: AccountType.CLABE,
-            currencyCode: 'MXN',
-        })
-    })
-
-    it('SEPA (euro area): EUR from selectedMethod.currency — not in the country catalogue', () => {
-        const method: WithdrawMethod = { type: 'bridge', countryPath: 'euro-area', currency: 'EUR', title: 'To Bank' }
-        expect(resolveWithdrawRateContext(null, method)).toEqual({
-            countryIso2: '',
-            rateAccountType: AccountType.IBAN,
-            currencyCode: 'EUR',
-        })
-    })
-
-    it('a saved bank account wins over the selected method, and derives currency from the account', () => {
-        const savedGb = { type: AccountType.GB, details: { countryCode: '', countryName: '' } } as Account
-        const method: WithdrawMethod = { type: 'bridge', countryPath: 'mexico', currency: 'MXN', title: 'To Bank' }
-        expect(resolveWithdrawRateContext(savedGb, method)).toEqual({
-            countryIso2: 'GB',
-            rateAccountType: AccountType.GB,
-            currencyCode: 'GBP',
-        })
-    })
-
-    it('a saved CLABE account resolves to MXN', () => {
-        const savedClabe = { type: AccountType.CLABE, details: { countryCode: '', countryName: '' } } as Account
-        expect(resolveWithdrawRateContext(savedClabe, null)).toEqual({
-            countryIso2: 'MX',
-            rateAccountType: AccountType.CLABE,
-            currencyCode: 'MXN',
-        })
     })
 })
 

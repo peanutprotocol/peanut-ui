@@ -21,10 +21,14 @@ import {
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
+import RecipientGetsRow from '@/components/ExchangeRate/RecipientGetsRow'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
+    /** USDC that leaves the balance. */
     amount: string
+    /** Exact bank amount (TASK-23054): what the recipient gets, and the quote rate behind `amount`. */
+    exactAmount?: { currency: string; destinationAmount: string; rate: string }
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -51,6 +55,7 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
+    exactAmount,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -171,11 +176,26 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                     </>
                 )}
-                <ExchangeRate
-                    accountType={bankAccount.type}
-                    nonEuroCurrency={nonEuroCurrency}
-                    amountToConvert={amount}
-                />
+                {exactAmount ? (
+                    <>
+                        <PaymentInfoRow
+                            label={tCommon('exchangeRate')}
+                            moreInfoText={t('bank.exactRateInfo')}
+                            value={`1 USD = ${Number(exactAmount.rate).toFixed(4)} ${exactAmount.currency.toUpperCase()}`}
+                        />
+                        <RecipientGetsRow
+                            amount={exactAmount.destinationAmount}
+                            currency={exactAmount.currency}
+                            exact
+                        />
+                    </>
+                ) : (
+                    <ExchangeRate
+                        accountType={bankAccount.type}
+                        nonEuroCurrency={nonEuroCurrency}
+                        amountToConvert={amount}
+                    />
+                )}
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 

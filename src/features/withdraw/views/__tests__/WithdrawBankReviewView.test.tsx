@@ -33,11 +33,13 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
+    exactAmount,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
+    exactAmount?: { currency: string; destinationAmount: string; rate: string }
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -45,6 +47,7 @@ const Harness = ({
         <WithdrawBankReviewView
             bankAccount={account}
             amount="50"
+            exactAmount={exactAmount}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -301,5 +304,24 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 
         expect(screen.queryByText('Account owner')).not.toBeInTheDocument()
         expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — exact bank amount (TASK-23054)', () => {
+    it('shows what the recipient gets, exactly, and the quote rate instead of an estimate', () => {
+        renderWithIntl(
+            <Harness rail="sepa" exactAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.89104478' }} />
+        )
+        expect(screen.getByText('Recipient gets')).toBeInTheDocument()
+        expect(screen.getByText('€2,000')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8910 EUR')).toBeInTheDocument()
+        expect(screen.queryByText(/≈/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
+    })
+
+    it('without one, keeps the estimate from the exchange rate', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByTestId('exchange-rate')).toBeInTheDocument()
+        expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
     })
 })

@@ -1461,6 +1461,10 @@
                                     "amount": {
                                         "type": "string"
                                     },
+                                    "destinationAmount": {
+                                        "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                                        "type": "string"
+                                    },
                                     "destination": {
                                         "properties": {
                                             "achReference": {
@@ -1787,6 +1791,54 @@
                                     },
                                     "required": [
                                         "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "quote": {
+                                            "properties": {
+                                                "destinationAmount": {
+                                                    "type": "string"
+                                                },
+                                                "destinationCurrency": {
+                                                    "type": "string"
+                                                },
+                                                "rate": {
+                                                    "type": "string"
+                                                },
+                                                "sourceAmount": {
+                                                    "type": "string"
+                                                },
+                                                "updatedAt": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "destinationCurrency",
+                                                "rate",
+                                                "updatedAt"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code",
+                                        "quote"
                                     ],
                                     "type": "object"
                                 }
@@ -2264,6 +2316,94 @@
                     }
                 },
                 "summary": "Claim a send link to a bank account as a guest",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
+        "/bridge/offramp/quote": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "destinationCurrency",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "eur"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "gbp"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "mxn"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "destinationAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "destinationAmount": {
+                                            "type": "string"
+                                        },
+                                        "destinationCurrency": {
+                                            "type": "string"
+                                        },
+                                        "rate": {
+                                            "type": "string"
+                                        },
+                                        "sourceAmount": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "destinationCurrency",
+                                        "rate",
+                                        "updatedAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Quote an offramp that pays an exact bank amount",
                 "tags": [
                     "offramp"
                 ]

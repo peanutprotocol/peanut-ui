@@ -28,11 +28,7 @@ const BRIDGE_FX_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set([
 ])
 
 export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
-    const {
-        data: exchangeRate,
-        isFetching: isFetchingRate,
-        refetch: refetchRate,
-    } = useQuery({
+    const { data: exchangeRate, isFetching: isFetchingRate } = useQuery({
         queryKey: ['exchangeRate', accountType],
         queryFn: async () => {
             // Anything not on the Bridge FX set returns the passthrough rate.
@@ -65,5 +61,5 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     })
 
-    return { exchangeRate: exchangeRate ?? null, isFetchingRate, refetchRate }
+    return { exchangeRate: exchangeRate ?? null, isFetchingRate }
 }

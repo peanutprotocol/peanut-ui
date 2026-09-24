@@ -17,11 +17,14 @@ import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { formatBankAmount } from '@/utils/currency'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
- * (`?step=review|success`); the amount arrives as `?amount=` from the shared
- * amount step; the account comes from the /withdraw-scoped flow context.
+ * (`?step=review|success`); the amount arrives as `?amount=` (or the exact
+ * bank amount as `?destinationAmount=`) from the shared amount step; the
+ * account comes from the /withdraw-scoped flow context.
  * Logic: useBridgeOfframpFlow. NOTE: scripts/native-build.js copies this file
  * to `(mobile-ui)/withdraw/_withdraw-bank.tsx` — keep every import `@/`-based.
  */
@@ -43,10 +46,23 @@ export default function WithdrawBankPage() {
         gate,
         sumsubFlow,
         pendingModal,
+        exactAmount,
     } = flow
 
     if (!bankAccount) {
         return null
+    }
+
+    // the USDC for an exact bank amount comes from its quote — nothing to review without it
+    if (step === 'review' && exactAmount && !exactAmount.quote) {
+        return (
+            <RateGateScreen
+                title={fromSendFlow ? tNav('send') : tNav('withdraw')}
+                onBack={flow.onBack}
+                isLoading={!exactAmount.quoteFailed}
+                onRetry={() => void exactAmount.refetchQuote()}
+            />
+        )
     }
 
     return (
@@ -68,6 +84,15 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
+                    exactAmount={
+                        exactAmount?.quote
+                            ? {
+                                  currency: exactAmount.currency,
+                                  destinationAmount: exactAmount.destinationAmount,
+                                  rate: exactAmount.quote.rate,
+                              }
+                            : undefined
+                    }
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
@@ -90,7 +115,12 @@ export default function WithdrawBankPage() {
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={`$${flow.executedAmountUsd ?? amountToWithdraw}`}
+                    currencyAmount={
+                        // an exact withdrawal shows what the bank receives
+                        exactAmount?.executedDestinationAmount
+                            ? formatBankAmount(exactAmount.executedDestinationAmount, exactAmount.currency)
+                            : `$${flow.executedAmountUsd ?? amountToWithdraw}`
+                    }
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                 />

@@ -716,7 +716,7 @@
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",
-            "amountYouReceive": "Valor que você vai receber",
+            "recipientGets": "O destinatário recebe",
             "appliesWhenConverting": "A taxa de câmbio se aplica na conversão para {currency}"
         }
     },
@@ -1961,6 +1961,8 @@
             "invalid": "Chave Pix inválida"
         },
         "bank": {
+            "exactRateInfo": "A taxa inclui uma pequena margem que mantém o valor exato se o câmbio mudar antes de a transferência chegar.",
+            "rateChanged": "A taxa de câmbio mudou. Confira o novo valor e tente de novo.",
             "eurTitle": "Enviamos EUR para o seu banco",
             "eurDescription": "Os saques são enviados em EUR. Seu banco pode cobrar taxas de conversão ou recusar a transação se não aceitar depósitos em EUR.",
             "accountOwner": "Titular da conta",

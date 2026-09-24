@@ -1,4 +1,8 @@
-import { type TCreateGuestOfframpRequest, type TCreateOfframpRequest } from '../../services/services.types'
+import {
+    type OfframpQuote,
+    type TCreateGuestOfframpRequest,
+    type TCreateOfframpRequest,
+} from '../../services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 
 export type CreateOfframpSuccessResponse = {
@@ -20,7 +24,7 @@ export type CreateOfframpSuccessResponse = {
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; quote?: OfframpQuote }> {
     try {
         const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
@@ -40,7 +44,8 @@ export async function createOfframp(
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer.' }
+            // OFFRAMP_QUOTE_CHANGED carries the new quote to show before a retry
+            return { error: data.error || 'Failed to create off-ramp transfer.', code: data.code, quote: data.quote }
         }
 
         return { data }
@@ -50,6 +55,29 @@ export async function createOfframp(
             return { error: error.message }
         }
         return { error: 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * Quote a withdrawal that pays an exact bank amount: the USDC it costs at the
+ * current rate. Without `destinationAmount`, only the rate.
+ */
+export async function getOfframpQuote(
+    destinationCurrency: string,
+    destinationAmount?: string
+): Promise<{ data?: OfframpQuote; error?: string }> {
+    try {
+        const query = new URLSearchParams({ destinationCurrency })
+        if (destinationAmount) query.set('destinationAmount', destinationAmount)
+        const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })
+        const data = await response.json()
+        if (!response.ok) {
+            return { error: data.error || 'Failed to get the offramp quote.' }
+        }
+        return { data }
+    } catch (error) {
+        console.error('Error calling offramp quote API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
     }
 }
 

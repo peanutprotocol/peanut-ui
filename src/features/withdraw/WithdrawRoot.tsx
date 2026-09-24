@@ -10,7 +10,8 @@ import { WithdrawMethodView } from './views/WithdrawMethodView'
  * Root /withdraw flow: method → amount, both as named screen ids in the URL
  * (`?step=amount`). State machine lives in useWithdrawRootFlow; the views are
  * dumb. Downstream routes (/withdraw/crypto, /withdraw/manteca,
- * /withdraw/[country]/bank) receive the amount via `?amount=`.
+ * /withdraw/[country]/bank) receive the amount via `?amount=`, or the exact
+ * bank amount via `?destinationAmount=` (EUR, GBP, MXN, COP accounts).
  */
 export default function WithdrawRoot() {
     const t = useTranslations('withdraw')
@@ -18,24 +19,23 @@ export default function WithdrawRoot() {
     const flow = useWithdrawRootFlow()
 
     if (flow.stepper.step === 'amount') {
-        // A non-USD destination (EUR/GBP/MXN/COP — QA-49) needs its FX rate
-        // before the amount input can open in that currency. Same gate as the
-        // Manteca amount step's RateGateScreen (dev #2843/#1848: keep the
-        // header mounted so back always works while the rate loads).
-        const needsRate = flow.currencyCode !== 'USD' && !flow.isCryptoWithdraw
-        if (needsRate && (flow.isFetchingExchangeRate || !flow.exchangeRate)) {
+        const pageTitle = flow.isFromSendFlow ? tNav('send') : tNav('withdraw')
+        const { exactAmount } = flow
+        // the exact-amount input converts with the quote rate: wait for it, and
+        // keep the header so back always works (same gate as Manteca)
+        if (exactAmount && !exactAmount.rate) {
             return (
                 <RateGateScreen
-                    title={flow.isFromSendFlow ? tNav('send') : tNav('withdraw')}
+                    title={pageTitle}
                     onBack={flow.handleAmountBack}
-                    isLoading={flow.isFetchingExchangeRate}
-                    onRetry={flow.refetchRate}
+                    isLoading={!exactAmount.rateFailed}
+                    onRetry={() => void exactAmount.refetchRate()}
                 />
             )
         }
         return (
             <WithdrawAmountView
-                pageTitle={flow.isFromSendFlow ? tNav('send') : tNav('withdraw')}
+                pageTitle={pageTitle}
                 heading={flow.isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                 initialAmount={flow.rawTokenAmount}
                 walletBalance={flow.walletBalance}
@@ -48,8 +48,16 @@ export default function WithdrawRoot() {
                 error={flow.error}
                 isCryptoWithdraw={flow.isCryptoWithdraw}
                 limitsValidation={flow.limitsValidation}
-                destinationCurrency={flow.currencyCode}
-                destinationRate={flow.exchangeRate}
+                exactAmount={
+                    exactAmount?.rate
+                        ? {
+                              currency: exactAmount.currency.toUpperCase(),
+                              rate: Number(exactAmount.rate),
+                              initialAmount: exactAmount.destinationAmount,
+                              onAmountChange: exactAmount.onDestinationAmountChange,
+                          }
+                        : undefined
+                }
             />
         )
     }

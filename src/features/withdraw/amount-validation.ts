@@ -1,8 +1,6 @@
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
-import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
-import { AccountType, type Account } from '@/interfaces/interfaces'
-import type { WithdrawMethod } from './types'
+import { getMinimumAmount } from '@/utils/bridge.utils'
 
 /**
  * Bridge bank offramps have a $1 wire minimum
@@ -77,51 +75,6 @@ export function bankWithdrawMinUsd(countryIso2: string, exchangeRate: string | n
 /** True when the country's minimum is local-currency and needs the FX rate. */
 export function bankWithdrawMinNeedsRate(countryIso2: string): boolean {
     return !!countryIso2 && countryIso2 !== 'US' && getMinimumAmount(countryIso2) !== 1
-}
-
-export interface WithdrawRateContext {
-    countryIso2: string
-    rateAccountType: AccountType
-    /** ISO 4217 code of the money that actually lands in the destination (QA-49). */
-    currencyCode: string
-}
-
-/**
- * Resolve the destination country, the Bridge account type used to fetch its
- * FX rate, and its currency — from whichever the flow has (a saved account
- * takes priority, matching the amount step's own country/minimum lookup).
- * Pure so the currency-first amount step (QA-49) is unit-testable without a
- * live wallet/exchange-rate hook.
- */
-export function resolveWithdrawRateContext(
-    selectedBankAccount: Account | null,
-    selectedMethod: WithdrawMethod | null
-): WithdrawRateContext {
-    if (selectedBankAccount) {
-        const country = getCountryFromAccount(selectedBankAccount)
-        return {
-            countryIso2: country?.iso2 || '',
-            rateAccountType: selectedBankAccount.type as AccountType,
-            currencyCode: country?.currency || 'USD',
-        }
-    }
-    if (selectedMethod?.countryPath) {
-        const country = getCountryFromPath(selectedMethod.countryPath)
-        const iso2 = country?.iso2 || ''
-        let accountType: AccountType = AccountType.IBAN
-        if (iso2 === 'US') accountType = AccountType.US
-        else if (iso2 === 'GB') accountType = AccountType.GB
-        else if (iso2 === 'MX') accountType = AccountType.CLABE
-        else if (iso2 === 'CO') accountType = AccountType.CO_BANK_TRANSFER
-        // Euro area (SEPA_PATH) has no row in the country catalogue —
-        // selectedMethod.currency carries 'EUR' for it directly.
-        return {
-            countryIso2: iso2,
-            rateAccountType: accountType,
-            currencyCode: selectedMethod.currency || country?.currency || 'USD',
-        }
-    }
-    return { countryIso2: '', rateAccountType: AccountType.US, currencyCode: 'USD' }
 }
 
 /**

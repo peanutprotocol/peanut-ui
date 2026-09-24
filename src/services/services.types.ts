@@ -349,7 +349,10 @@ export interface TCreateOfframpRequest {
     developer_fee?: string
     onBehalfOf?: string
     userId?: string
+    /** USDC that leaves the balance. With `destinationAmount`, the amount a quote asked for. */
     amount?: string
+    /** Exact bank amount in the destination currency (EUR, GBP, MXN, COP). */
+    destinationAmount?: string
     source: {
         currency: string
         paymentRail: string
@@ -376,6 +379,16 @@ export interface TCreateOfframpRequest {
         state?: string
         postalCode?: string
     }
+}
+
+/** GET /bridge/offramp/quote: the USDC an exact bank amount costs now. */
+export interface OfframpQuote {
+    destinationCurrency: string
+    /** Destination units per 1 USDC, fees included. */
+    rate: string
+    updatedAt: string
+    destinationAmount?: string
+    sourceAmount?: string
 }
 
 /** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
