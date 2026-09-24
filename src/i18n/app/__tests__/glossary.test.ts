@@ -73,6 +73,11 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         { name: '"dinheiro", never "grana" (too slangy)', pattern: word('grana') },
         { name: '"enviar dinheiro", never "transferir fundos"', pattern: word('transferir\\s+fundos') },
         { name: 'tu-conjugations are not pt-BR (use você)', pattern: word('tu\\s+(?:podes|tens|envias|pagas)') },
+        // found live in the pt-BR App Store text on 22 Sep 2026 (glossary.pt-br.md register)
+        {
+            name: 'European Portuguese forms are not pt-BR ("simplificamos", "para você", "a sua")',
+            pattern: word('\\p{L}+ámos|para\\s+ti|a\\s+tua'),
+        },
         {
             name: 'the card is "cartão virtual", never debit/prepaid',
             pattern: word('cart[aã]o\\s+(?:de\\s+d[eé]bito|pr[eé][-\\s]pago)'),
