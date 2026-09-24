@@ -8,7 +8,7 @@ const COPY_PATHS = new Map([
     ['What if I lose my phone?', 'profile.backup.faq.losePhone'],
     ['What if I change phone?', 'profile.backup.faq.changePhone'],
     ["Why can't I export my private key?", 'profile.backup.faq.exportKeys'],
-    ['Add your email to continue', 'kyc.provideEmail.title'],
+    ['Add email to continue', 'kyc.provideEmail.title'],
     ['Camera access needed', 'global.qrScanner.cameraPermission.title'],
     ['Earn from invites', 'global.earlyUserModal.title'],
     ["Chat couldn't load", 'global.supportDrawer.chatLoadFailed'],
