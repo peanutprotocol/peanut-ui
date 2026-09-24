@@ -12,8 +12,8 @@ import { isMantecaCountry } from '@/constants/manteca.consts'
 import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
-import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
-import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { mantecaWithdrawUrl, withdrawCountryFormUrl, withdrawCountryRailsUrl } from '@/features/withdraw/routes'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
@@ -174,7 +174,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         const rail = soleLiveRailForCountry(country.id, 'withdraw')
         if (!rail) {
             startTransition(() => {
-                router.push(withdrawCountryUrl(country.path))
+                // the rail list: the amount and send origin ride on to the rail picked there
+                router.push(withdrawCountryRailsUrl(country.path, isBankFromSend ? methodParam : null, urlAmount))
             })
             return
         }
