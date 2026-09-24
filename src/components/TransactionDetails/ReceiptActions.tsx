@@ -80,7 +80,7 @@ export function ReceiptActions({
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [showMoreActions, setShowMoreActions] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
-    const [showCancelRequestConfirm, setShowCancelRequestConfirm] = useState(false)
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
     // Every completed kind shares the same thing: the authenticated PDF file.
     // An action/payment URL is not necessarily a public receipt URL, so only
@@ -92,28 +92,26 @@ export function ReceiptActions({
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const showSplitCta = !isPublic && isSplittable(transaction)
-    // CancelDepositActions renders nothing without the loading/close handlers.
+    // cancelling a pending deposit or bank-paid request is a More actions row,
+    // never a receipt button, so the receipt shows two buttons at most. the
+    // cancel needs the loading/close handlers, which public pages never pass.
     const cancelKind =
         !isPublic && setIsLoading && onClose ? getCancelDepositKind(transaction, isPendingBankRequest) : null
-    // a pending deposit's next step is cancelling it, not sharing a receipt.
-    // cancelling a bank-paid request is a menu row instead, so the receipt
-    // never stacks three buttons.
-    const cancelOwnsPrimary = cancelKind === 'bridge-onramp' || cancelKind === 'manteca-onramp'
-    const cancelInDrawer = cancelKind === 'bank-request'
-    // gated on cancelInDrawer: once the request stops being cancellable the
+    const cancelInDrawer = cancelKind !== null
+    // gated on cancelInDrawer: once the entry stops being cancellable the
     // confirm unmounts, and a stale open flag must not re-lock the parent.
-    const cancelRequestConfirmOpen = cancelInDrawer && showCancelRequestConfirm
+    const cancelConfirmOpen = cancelInDrawer && showCancelConfirm
 
     // Sync child-drawer state to the parent details drawer — it keeps itself
     // open while any of our drawers are up (vaul NestedRoot contract). The
-    // cancel-request confirm is included because it opens in the same render
-    // that closes the more-actions drawer; this effect runs after the child's
-    // and would otherwise release the lock the child just took.
+    // cancel confirm is included because it opens in the same render that
+    // closes the more-actions drawer; this effect runs after the child's and
+    // would otherwise release the lock the child just took.
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelRequestConfirmOpen)
-    }, [showCancelLinkDrawer, showMoreActions, cancelRequestConfirmOpen, setIsModalOpen])
-    // one primary per state: split, else cancel, else share (never two visible)
-    const sharePrimary = !showSplitCta && !cancelOwnsPrimary && canSharePdf
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen)
+    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, setIsModalOpen])
+    // one primary per state: split first, else share (never both visible)
+    const sharePrimary = !showSplitCta && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
 
     // hooks are unconditional; finals fetch eagerly with the stored bearer so
@@ -182,11 +180,11 @@ export function ReceiptActions({
         onClose()
     }
 
-    // the overflow rows, in menu order: share (when split or cancel owns the primary),
+    // the overflow rows, in menu order: share (when split owns the primary),
     // download, support. the referral row joins here (TASK-22452 item 5).
     const moreActions: ReceiptMoreAction[] = []
     if (!isPublic) {
-        if ((showSplitCta || cancelOwnsPrimary) && canSharePdf) {
+        if (showSplitCta && canSharePdf) {
             moreActions.push({
                 icon: 'share',
                 title: t('actions.shareReceipt'),
@@ -230,10 +228,10 @@ export function ReceiptActions({
             // same hand-off as the support row: close the menu, open the next surface
             moreActions.push({
                 icon: 'ban',
-                title: t('actions.cancelDepositRequest'),
+                title: cancelKind === 'bank-request' ? t('actions.cancelDepositRequest') : t('actions.cancelDeposit'),
                 onSelect: () => {
                     setShowMoreActions(false)
-                    setShowCancelRequestConfirm(true)
+                    setShowCancelConfirm(true)
                 },
                 disabled: isLoading,
                 'data-testid': 'more-action-cancel',
@@ -330,23 +328,8 @@ export function ReceiptActions({
 
             {/* the final-state cta group (S/8 inside one action area): the one
                 primary, then the overflow trigger */}
-            {(showSplitCta || cancelOwnsPrimary || sharePrimary || showMoreActionsButton) && (
+            {(showSplitCta || sharePrimary || showMoreActionsButton) && (
                 <div className="flex flex-col gap-2 print:hidden">
-                    {/* pending deposit: cancel is the primary. it unmounts once the
-                        deposit stops being cancellable, which releases the parent
-                        drawer lock through its effect cleanup. */}
-                    {cancelOwnsPrimary && (
-                        <CancelDepositActions
-                            transaction={transaction}
-                            isPendingBankRequest={isPendingBankRequest}
-                            isLoading={isLoading}
-                            setIsLoading={setIsLoading}
-                            onClose={onClose}
-                            setIsModalOpen={setIsModalOpen}
-                            primary
-                        />
-                    )}
-
                     {showSplitCta && (
                         <Button
                             onClick={() =>
@@ -385,18 +368,19 @@ export function ReceiptActions({
                         </Button>
                     )}
 
-                    {/* bank-paid request: the trigger is the more-actions row, so
-                        only the confirm drawer and any error render here */}
+                    {/* the cancel's trigger is the more-actions row, so only the
+                        confirm drawer and any error render here. it unmounts once
+                        the entry stops being cancellable, which releases the
+                        parent drawer lock through its effect cleanup. */}
                     {cancelInDrawer && (
                         <CancelDepositActions
                             transaction={transaction}
                             isPendingBankRequest={isPendingBankRequest}
-                            isLoading={isLoading}
                             setIsLoading={setIsLoading}
                             onClose={onClose}
                             setIsModalOpen={setIsModalOpen}
-                            confirmOpen={showCancelRequestConfirm}
-                            onConfirmOpenChange={setShowCancelRequestConfirm}
+                            confirmOpen={showCancelConfirm}
+                            onConfirmOpenChange={setShowCancelConfirm}
                         />
                     )}
                 </div>

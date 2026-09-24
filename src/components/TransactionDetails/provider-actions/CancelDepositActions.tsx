@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getCancelDepositKind } from './cancel-deposit.utils'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -17,52 +16,40 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
 /**
- * Cancel-deposit buttons for pending bank-deposit-shaped flows.
- *
- * Replaces three near-identical inline buttons in the receipt:
+ * Cancel confirm for pending bank-deposit-shaped flows. The trigger is the
+ * receipt's More actions row; this renders the confirm drawer and any error.
  *   - Bridge onramp pending → cancelOnramp(transaction.id)
  *   - Manteca onramp pending → mantecaApi.cancelDeposit(transaction.id)
  *   - REQUEST pending + bridge fulfillment + sender role → cancelOnramp(bridgeTransferId) + chargesApi.cancel(transaction.id)
  *
- * Renders at most one button — conditions are mutually exclusive by
- * construction (different originalType / direction / role combos). In
- * controlled mode it renders only the confirm drawer and error message.
+ * The kinds are mutually exclusive by construction (different
+ * originalType / direction / role combos).
  */
 export function CancelDepositActions({
     transaction,
     isPendingBankRequest,
-    isLoading,
     setIsLoading,
     onClose,
     setIsModalOpen,
-    primary = false,
-    confirmOpen: controlledConfirmOpen,
-    onConfirmOpenChange,
+    confirmOpen,
+    onConfirmOpenChange: setConfirmOpen,
 }: {
     transaction: TransactionDetails
     isPendingBankRequest: boolean
-    isLoading: boolean | undefined
     setIsLoading: ((loading: boolean) => void) | undefined
     onClose: (() => void) | undefined
     /** Present when rendered inside the transaction details drawer — the parent keeps itself open while the confirm drawer is up, and the confirm drawer nests. */
     setIsModalOpen?: (isModalOpen: boolean) => void
-    /** The receipt passes true when the cancel is the screen's one primary action. */
-    primary?: boolean
-    /** Controlled confirm drawer: pass both to open it from elsewhere (the
-     *  receipt's more-actions row). No cancel button renders in this mode. */
-    confirmOpen?: boolean
-    onConfirmOpenChange?: (open: boolean) => void
+    /** The confirm drawer is controlled: the receipt's More actions row opens it. */
+    confirmOpen: boolean
+    onConfirmOpenChange: (open: boolean) => void
 }) {
     const t = useTranslations('transaction')
     const queryClient = useQueryClient()
     const [error, setError] = useState<string | null>(null)
-    // Cancels are irreversible and the button sits next to the support link —
-    // a real user cancelled a funded deposit while trying to report a problem
-    // (no way to match the wire once cancelled). Every cancel confirms first.
-    const [internalConfirmOpen, setInternalConfirmOpen] = useState(false)
-    const isControlled = onConfirmOpenChange !== undefined
-    const confirmOpen = isControlled ? !!controlledConfirmOpen : internalConfirmOpen
-    const setConfirmOpen = isControlled ? onConfirmOpenChange : setInternalConfirmOpen
+    // Cancels are irreversible — a real user cancelled a funded deposit while
+    // trying to report a problem (no way to match the wire once cancelled).
+    // Every cancel confirms first.
     // Ref, not state: a double-tap on the confirm CTA during the modal's
     // fade-out lands both clicks before a re-render, so a state guard would
     // let the cancel fire twice. Refs are synchronous.
@@ -148,14 +135,16 @@ export function CancelDepositActions({
         }
     }
 
-    // Render the active cancel button (if any) alongside the shared
-    // confirmation drawer and any failure message. The confirm is a nested
+    // The confirm drawer and any failure message. The confirm is a nested
     // drawer when the receipt sits inside the transaction details drawer —
     // an ActionModal there opened behind the drawer overlay (z-20 vs z-50)
     // and needed z-index overrides; a nested vaul drawer stacks natively.
-    const withError = (button: ReactNode) => (
-        <div className="flex w-full flex-col gap-2">
-            {button}
+    if (!cancelKind) return null
+
+    // empty:hidden: with no error the drawer portals out and the host is
+    // empty, so it must not take a gap slot in the receipt's cta group.
+    return (
+        <div className="flex w-full flex-col gap-2 empty:hidden">
             {error && <Callout priority="error">{error}</Callout>}
             <Drawer
                 nested={!!setIsModalOpen}
@@ -182,45 +171,5 @@ export function CancelDepositActions({
                 </DrawerContent>
             </Drawer>
         </div>
-    )
-
-    if (!cancelKind) return null
-    if (isControlled) return withError(null)
-
-    return withError(
-        <CancelButton
-            primary={primary}
-            label={cancelKind === 'bank-request' ? t('actions.cancelDepositRequest') : undefined}
-            disabled={!!isLoading}
-            onClick={() => setConfirmOpen(true)}
-        />
-    )
-}
-
-function CancelButton({
-    label,
-    primary,
-    disabled,
-    onClick,
-}: {
-    label?: string
-    primary: boolean
-    disabled: boolean
-    onClick: () => void
-}) {
-    const t = useTranslations('transaction')
-    return (
-        <Button
-            disabled={disabled}
-            onClick={onClick}
-            variant={primary ? 'primary' : 'secondary'}
-            className="flex w-full items-center gap-1"
-            shadowSize="4"
-        >
-            <div className="flex items-center">
-                <Icon name="ban" size={20} />
-            </div>
-            <span>{label ?? t('actions.cancelDeposit')}</span>
-        </Button>
     )
 }
