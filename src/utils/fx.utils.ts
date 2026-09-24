@@ -1,5 +1,6 @@
 import { apiFetch } from '@/utils/api-fetch'
 import type { paths } from '@/types/api.generated'
+import { OFFRAMP_QUOTE_CURRENCIES } from '@/utils/offramp-quote.utils'
 
 // This module is imported by the /api/exchange-rate route (a React Server
 // module) — it must stay free of client-only imports (react hooks). That is
@@ -41,6 +42,13 @@ export class FxApiError extends Error {
         super(`FX API returned ${status} for ${from}→${to}`)
         this.name = 'FxApiError'
     }
+}
+
+/** A provider rate string as a usable number: plain positive decimal only — no prefix parsing, no 0, no fallback. */
+export function parsePlainPositiveRate(value: unknown): number | null {
+    if (typeof value !== 'string' || !PLAIN_DECIMAL.test(value)) return null
+    const rate = Number(value)
+    return Number.isFinite(rate) && rate > 0 ? rate : null
 }
 
 function timestamp(value: unknown): number | null {
@@ -147,6 +155,88 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
     const rate = parseFxRateResponse(data, from, to)
     if (rate === null) {
         throw new Error(`FX API returned an invalid rate contract for ${from}→${to}`)
+    }
+    return rate
+}
+
+/**
+ * GET /bridge/offramp/rate (public). TODO: hand-typed until the OpenAPI
+ * snapshot is refreshed from the fees-v2 API branch; then derive it from
+ * `paths['/bridge/offramp/rate']` like FxRateResponse above.
+ */
+type OfframpRateResponse = {
+    destinationCurrency: string
+    /** Destination units per 1 USDC, all costs included (Peanut's margin with `fixed_output`). */
+    rate: string
+    updatedAt: string
+    pricing: 'bridge_rate' | 'fixed_output'
+}
+
+/** Whether a widget pair is a withdrawal the offramp quote prices: USD out to a EUR, GBP, MXN or COP bank. */
+export function isOfframpRatePair(fromCurrency: string, toCurrency: string): boolean {
+    return fromCurrency.toUpperCase() === 'USD' && OFFRAMP_QUOTE_CURRENCIES.includes(toCurrency.toLowerCase())
+}
+
+// The API refuses a Bridge rate older than 5 minutes before it answers
+// (OFFRAMP_QUOTE_MAX_RATE_AGE_MINUTES). The response has no generatedAt, so
+// that observation bound is checked here with the same cache-chain and
+// device-clock allowances as /fx/rate: a cached answer is never shown as current.
+const MAX_OFFRAMP_RATE_EFFECTIVE_AGE_MS = 5 * 60 * 1000
+
+function parseOfframpRateResponse(value: unknown, destinationCurrency: string): number | null {
+    if (!value || typeof value !== 'object') return null
+    const data = value as Partial<OfframpRateResponse>
+    if (data.destinationCurrency?.toLowerCase() !== destinationCurrency) return null
+    if (data.pricing !== 'bridge_rate' && data.pricing !== 'fixed_output') return null
+    const updatedAt = timestamp(data.updatedAt)
+    if (updatedAt === null) return null
+    const age = Date.now() - updatedAt
+    if (
+        age > MAX_OFFRAMP_RATE_EFFECTIVE_AGE_MS + MAX_GENERATED_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS ||
+        age < -MAX_CLIENT_CLOCK_SKEW_MS
+    ) {
+        return null
+    }
+    const rate = parsePlainPositiveRate(data.rate)
+    return rate !== null && rate >= MIN_DISPLAY_RATE && rate <= MAX_DISPLAY_RATE ? rate : null
+}
+
+/**
+ * The rate a withdrawal to a EUR, GBP, MXN or COP bank is quoted at now, from
+ * the public GET /bridge/offramp/rate. The API builds it with the same
+ * function as the signed amount quotes, so Peanut's 0.30% FX margin is inside
+ * it while collection is on. Still indicative: the amount quote at review is
+ * what the user confirms. Deposits and other pairs keep fetchDisplayRate.
+ */
+export async function fetchOfframpRate(destinationCurrency: string): Promise<number> {
+    const currency = destinationCurrency.toLowerCase()
+    const query = new URLSearchParams({ destinationCurrency: currency })
+    const response = await apiFetch(`/bridge/offramp/rate?${query.toString()}`, {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+        redirect: 'error',
+        timeoutMs: 10_000,
+    })
+    if (!response.ok) {
+        throw new FxApiError(
+            response.status,
+            'USD',
+            currency.toUpperCase(),
+            response.headers?.get?.('Retry-After') ?? null
+        )
+    }
+
+    let data: unknown
+    try {
+        data = await response.json()
+    } catch {
+        throw new Error(`Offramp rate API returned invalid JSON for USD→${currency.toUpperCase()}`)
+    }
+
+    const rate = parseOfframpRateResponse(data, currency)
+    if (rate === null) {
+        throw new Error(`Offramp rate API returned an invalid rate contract for USD→${currency.toUpperCase()}`)
     }
     return rate
 }

@@ -6,6 +6,7 @@ import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { heroMarqueeMessages } from './heroMarquee'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -66,13 +67,7 @@ export function MarketingHero({
                 </div>
             </section>
             <MarqueeComp
-                message={[
-                    i18n.heroMarqueeNoFees,
-                    i18n.heroMarqueeInstant,
-                    '24/7',
-                    i18n.heroMarqueeDollars,
-                    'USDT/USDC',
-                ]}
+                message={heroMarqueeMessages(i18n)}
                 imageSrc={HandThumbsUp.src}
                 backgroundColor="bg-action-secondary"
             />

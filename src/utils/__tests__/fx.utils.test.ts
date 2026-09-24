@@ -1,4 +1,4 @@
-import { fetchCardMarkup, fetchDisplayRate } from '../fx.utils'
+import { fetchCardMarkup, fetchDisplayRate, fetchOfframpRate, isOfframpRatePair } from '../fx.utils'
 import { apiFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
@@ -355,5 +355,90 @@ describe('fetchCardMarkup — card comparison contract', () => {
         mockApiFetch.mockResolvedValue({ ok: false, status: 404, headers: { get: () => null } })
 
         await expect(fetchCardMarkup('JPY')).rejects.toThrow('FX API returned 404')
+    })
+})
+
+describe('fetchOfframpRate — public withdrawal rate (fees v2)', () => {
+    const offrampRate = {
+        destinationCurrency: 'eur',
+        rate: '0.8928135',
+        updatedAt: '2026-09-24T15:54:16.373Z',
+        pricing: 'fixed_output',
+    }
+
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+        // one minute after the rate's updatedAt
+        jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-24T15:55:16.373Z'))
+    })
+
+    afterEach(() => jest.restoreAllMocks())
+
+    it('reads the public route without the session', async () => {
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => offrampRate })
+
+        await expect(fetchOfframpRate('EUR')).resolves.toBe(0.8928135)
+        expect(mockApiFetch).toHaveBeenCalledWith(
+            '/bridge/offramp/rate?destinationCurrency=eur',
+            expect.objectContaining({ method: 'GET', includeAuth: false, credentials: 'omit' })
+        )
+    })
+
+    it('collection off: takes the Bridge rate the same way', async () => {
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...offrampRate, rate: '0.8955', pricing: 'bridge_rate' }),
+        })
+
+        await expect(fetchOfframpRate('eur')).resolves.toBe(0.8955)
+    })
+
+    it.each([
+        ['another currency', { destinationCurrency: 'gbp' }],
+        ['an unknown pricing', { pricing: 'market' }],
+        ['a zero rate', { rate: '0' }],
+        ['a non-decimal rate', { rate: '8.9e-1' }],
+        ['no updatedAt', { updatedAt: undefined }],
+        ['an updatedAt that is not an exact ISO instant', { updatedAt: '2026-09-24 15:54:16' }],
+        // past the API's 5-minute rate bound + the 15-minute cache chain + the 6-hour device-clock allowance
+        ['a stale updatedAt', { updatedAt: '2026-09-24T09:34:00.000Z' }],
+        ['an updatedAt beyond the device-clock allowance ahead', { updatedAt: '2026-09-24T22:00:00.000Z' }],
+    ])('refuses %s', async (_label, override) => {
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ...offrampRate, ...override }) })
+
+        await expect(fetchOfframpRate('EUR')).rejects.toThrow('invalid rate contract')
+    })
+
+    it.each([
+        ['three hours slow', '2026-09-24T12:55:00.000Z'],
+        ['three hours fast', '2026-09-24T18:55:00.000Z'],
+    ])('accepts a fresh rate when the device clock is %s, like /fx/rate', async (_label, deviceNow) => {
+        jest.spyOn(Date, 'now').mockReturnValue(Date.parse(deviceNow))
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => offrampRate })
+
+        await expect(fetchOfframpRate('EUR')).resolves.toBe(0.8928135)
+    })
+
+    it('throws the API status, so a rate limit is not retried', async () => {
+        mockApiFetch.mockResolvedValue({ ok: false, status: 429, headers: { get: () => '30' } })
+
+        await expect(fetchOfframpRate('MXN')).rejects.toMatchObject({ status: 429, retryAfter: '30' })
+    })
+})
+
+describe('isOfframpRatePair', () => {
+    it.each(['EUR', 'GBP', 'MXN', 'COP', 'eur'])('USD → %s is a Bridge withdrawal', (currency) => {
+        expect(isOfframpRatePair('USD', currency)).toBe(true)
+    })
+
+    it.each([
+        ['EUR', 'USD'], // a deposit
+        ['USD', 'USD'], // 1:1, exempt
+        ['USD', 'BRL'], // Manteca
+        ['USD', 'ARS'],
+        ['GBP', 'EUR'],
+    ])('%s → %s is not', (from, to) => {
+        expect(isOfframpRatePair(from, to)).toBe(false)
     })
 })

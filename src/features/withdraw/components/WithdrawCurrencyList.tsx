@@ -5,9 +5,12 @@ import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { twMerge } from '@/utils/tw'
-import { type CountryData } from '@/components/AddMoney/consts'
+import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
+import { matchesCountryQuery } from '@/components/Common/country-search'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
@@ -76,7 +79,8 @@ export function WithdrawCurrencyList({
     // it survives no refresh and belongs in no shared link, so it stays out of
     // the URL (same rule as the add-money hub's accordion).
     const [expandedCurrency, setExpandedCurrency] = useState<string | null>(null)
-    const [otherCountriesOpen, setOtherCountriesOpen] = useState(false)
+    // `null` means nobody has decided yet, so a search still can (below).
+    const [otherCountriesOpen, setOtherCountriesOpen] = useState<boolean | null>(null)
 
     const currencies = useMemo(
         () => liveWithdrawCurrencies({ sendToBankOnly: !!enforceSupportedCountries }),
@@ -86,6 +90,22 @@ export function WithdrawCurrencyList({
         () => currencies.filter((currency) => currencyMatchesQuery(currency, query, locale)),
         [currencies, query, locale]
     )
+    // A search no currency row answers opens the country list when a country
+    // answers (same predicate it filters with) and says so when none does
+    // (TASK-20721).
+    const term = query.trim().toLowerCase()
+    const anyCountryMatches = useMemo(
+        () =>
+            !!term &&
+            countryData.some(
+                (country) =>
+                    country.type === 'country' &&
+                    matchesCountryQuery(country, term, localizedCountryTitle(locale, country))
+            ),
+        [term, locale]
+    )
+    const nothingMatches = !!term && filteredCurrencies.length === 0 && !anyCountryMatches
+    const showOtherCountries = otherCountriesOpen ?? (!!term && filteredCurrencies.length === 0 && anyCountryMatches)
 
     /**
      * The destination a tap on this row opens, or null when the row only
@@ -135,6 +155,15 @@ export function WithdrawCurrencyList({
                     leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                     onClick={onCryptoClick}
                     data-testid="withdraw-crypto"
+                />
+            )}
+
+            {/* the open country list says "no results" itself; never twice */}
+            {nothingMatches && !showOtherCountries && (
+                <EmptyState
+                    title={tGlobal('countryList.noResultsTitle')}
+                    description={tGlobal('countryList.noResultsDescription')}
+                    icon="search"
                 />
             )}
 
@@ -221,16 +250,16 @@ export function WithdrawCurrencyList({
                             size={20}
                             className={twMerge(
                                 'transition-transform duration-moderate',
-                                otherCountriesOpen && 'rotate-180'
+                                showOtherCountries && 'rotate-180'
                             )}
                         />
                     }
-                    position={otherCountriesOpen ? 'top' : 'solo'}
-                    aria-expanded={otherCountriesOpen}
-                    onClick={() => setOtherCountriesOpen((open) => !open)}
+                    position={showOtherCountries ? 'top' : 'solo'}
+                    aria-expanded={showOtherCountries}
+                    onClick={() => setOtherCountriesOpen(!showOtherCountries)}
                     data-testid="withdraw-other-countries-toggle"
                 />
-                {otherCountriesOpen && (
+                {showOtherCountries && (
                     <CountryList
                         viewMode="add-withdraw"
                         flow="withdraw"

@@ -13,6 +13,11 @@ const QUOTE_REFRESH_MS = 30_000
  * USDC buys. Without `amount` it returns only the rate, for the amount step.
  * No fallback rate: a failed quote is an error the screen must show, never a
  * guessed amount.
+ *
+ * A signed (`fixed_output`) quote does not refresh on its own: the numbers
+ * the user confirms are the ones on screen. It is replaced only through
+ * `discard`, and the screen then asks the user to review the new numbers.
+ * The rate and Bridge-rate estimates keep following Bridge's rate.
  */
 export function useBridgeOfframpQuote({
     currency,
@@ -37,7 +42,9 @@ export function useBridgeOfframpQuote({
             return data
         },
         enabled: enabled && !!currency,
-        refetchInterval: QUOTE_REFRESH_MS,
+        refetchInterval: (query) => (query.state.data?.quoteId ? false : QUOTE_REFRESH_MS),
+        refetchOnWindowFocus: (query) => !query.state.data?.quoteId,
+        refetchOnReconnect: (query) => !query.state.data?.quoteId,
         retry: 2,
     })
 

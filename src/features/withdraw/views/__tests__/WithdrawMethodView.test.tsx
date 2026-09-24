@@ -71,7 +71,7 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
                 <button
                     key={account.identifier}
                     data-testid={`account-${account.identifier}`}
-                    onClick={() => props.onAccountClick(account)}
+                    onClick={() => props.onAccountClick(account, mockSavedAccountPaths[account.identifier])}
                 >
                     {account.identifier}
                 </button>
@@ -230,6 +230,14 @@ const IBAN_ACCOUNT = {
 const BANK_ACCOUNTS = [
     { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
+    // a saved Brazil account: its identifier is the PIX key
+    { type: 'manteca', identifier: 'ada@example.com', details: { countryName: 'brazil' } },
+    // saved with a country code and no countryName (ISO2 and ISO3)
+    { type: 'manteca', identifier: '12345678909', details: { countryCode: 'BR' } },
+    { type: 'manteca', identifier: '+5511999999999', details: { countryCode: 'BRA' } },
+    { type: 'manteca', identifier: 'cbu-code-only', details: { countryCode: 'ARG' } },
+    // a legacy entry no country resolves from
+    { type: 'manteca', identifier: 'legacy-unknown', details: {} },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 jest.mock('@/context/authContext', () => ({
@@ -254,6 +262,14 @@ import { WithdrawMethodView } from '../WithdrawMethodView'
 // ---------- helpers ----------
 
 let mockIsBankFromSend = false
+// The `path` the real SavedAccountsView hands back: /withdraw/<slug>/bank when
+// it resolves the country (countryName or an ISO2 code), else /withdraw.
+const mockSavedAccountPaths: Record<string, string> = {
+    '12345678909': '/withdraw/brazil/bank',
+    '+5511999999999': '/withdraw',
+    'cbu-code-only': '/withdraw',
+    'legacy-unknown': '/withdraw',
+}
 const mockOnExit = jest.fn()
 const mockOnMethodChosen = jest.fn()
 
@@ -425,9 +441,154 @@ describe('WithdrawMethodView — what it tells the currency list', () => {
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-send-gate', 'false')
     })
 
-    it('/withdraw?currencyCode=EUR opens the list filtered to that currency', () => {
-        renderView({ currencyCode: 'EUR' })
+    it('/withdraw?currencyCode=EUR pre-filters the all-methods list to that currency', () => {
+        renderView({ currencyCode: 'EUR', showAll: 'true' })
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-initial-query', 'EUR')
+    })
+})
+
+/**
+ * The exchange-rate widget's "Withdraw now" lands here with `?currencyCode=`.
+ * It used to force the all-methods list, skipping the saved accounts the
+ * normal /withdraw entry and Send → Bank offer first — so a user with a saved
+ * CBU typed it again (TASK-22294). The currency pre-filters the list, it does
+ * not skip the accounts; and an amount that arrived with the URL follows the
+ * saved Manteca account into its flow.
+ */
+describe('WithdrawMethodView — arriving with a currency from the exchange-rate widget', () => {
+    it('shows the saved accounts first, like the Send entry', () => {
+        renderView({ currencyCode: 'ARS', amount: '25' })
+
+        expect(screen.getByTestId('account-cbu-12345678901234567890')).toBeInTheDocument()
+        expect(screen.queryByTestId('currency-list')).not.toBeInTheDocument()
+    })
+
+    it('carries the amount into the saved Manteca account flow', () => {
+        renderView({ currencyCode: 'ARS', amount: '25' })
+        fireEvent.click(screen.getByTestId('account-cbu-12345678901234567890'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.pathname).toBe('/withdraw/manteca')
+        expect(pushed.searchParams.get('destination')).toBe('cbu-12345678901234567890')
+        expect(pushed.searchParams.get('isSavedAccount')).toBe('true')
+        expect(pushed.searchParams.get('amount')).toBe('25')
+    })
+
+    it('sends no amount when none arrived', () => {
+        renderView({ currencyCode: 'ARS' })
+        fireEvent.click(screen.getByTestId('account-cbu-12345678901234567890'))
+
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
+    })
+
+    /*
+     * Chip review 5293855702: a saved Brazil account opened the Manteca bank
+     * offramp (a $1 floor) instead of the PIX-key route the widget's 1 BRL
+     * floor describes, so 0.2 USD → 1 BRL was refused one screen later. It now
+     * takes the PIX-key route with its key and the USD amount.
+     */
+    it('a saved Brazil account opens the PIX-key route with its key and the USD amount', () => {
+        renderView({ currencyCode: 'BRL', amount: '0.2' })
+        fireEvent.click(screen.getByTestId('account-ada@example.com'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.pathname).toBe('/withdraw/manteca')
+        expect(pushed.searchParams.get('method')).toBe('pix')
+        expect(pushed.searchParams.get('country')).toBe('brazil')
+        expect(pushed.searchParams.get('destination')).toBe('ada@example.com')
+        expect(pushed.searchParams.get('amount')).toBe('0.2')
+        // not the bank offramp's saved-account entry
+        expect(pushed.searchParams.get('isSavedAccount')).toBeNull()
+        expect(mockOnMethodChosen).not.toHaveBeenCalled()
+    })
+
+    it('a saved Brazil account from Send → Bank keeps the send origin', () => {
+        mockIsBankFromSend = true
+        renderView({ method: 'bank', showAll: 'false' })
+        fireEvent.click(screen.getByTestId('account-ada@example.com'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.searchParams.get('method')).toBe('pix')
+        expect(pushed.searchParams.get('sendMethod')).toBe('bank')
+    })
+
+    // Saved with a country code only: the callback's path is a full URL, so
+    // Brazil is read off the account, not off that path.
+    it.each([
+        ['ISO2 BR', '12345678909'],
+        ['ISO3 BRA', '+5511999999999'],
+    ])('a saved Brazil account with only a country code (%s) opens the PIX-key route', (_case, key) => {
+        renderView({ currencyCode: 'BRL', amount: '0.2' })
+        fireEvent.click(screen.getByTestId(`account-${key}`))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.pathname).toBe('/withdraw/manteca')
+        expect(pushed.searchParams.get('method')).toBe('pix')
+        expect(pushed.searchParams.get('country')).toBe('brazil')
+        expect(pushed.searchParams.get('destination')).toBe(key)
+        expect(pushed.searchParams.get('amount')).toBe('0.2')
+        expect(pushed.searchParams.get('isSavedAccount')).toBeNull()
+    })
+
+    it('a code-only saved Argentina account stays on the bank route, with its country slug', () => {
+        renderView({ currencyCode: 'ARS', amount: '25' })
+        fireEvent.click(screen.getByTestId('account-cbu-code-only'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.searchParams.get('method')).toBeNull()
+        expect(pushed.searchParams.get('country')).toBe('argentina')
+        expect(pushed.searchParams.get('isSavedAccount')).toBe('true')
+        expect(pushed.searchParams.get('amount')).toBe('25')
+    })
+
+    it('a saved entry no country resolves from keeps the old fallback', () => {
+        renderView({ amount: '25' })
+        fireEvent.click(screen.getByTestId('account-legacy-unknown'))
+
+        const pushed = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+        expect(pushed.searchParams.get('method')).toBeNull()
+        expect(pushed.searchParams.get('country')).toBe('/withdraw')
+        expect(pushed.searchParams.get('isSavedAccount')).toBe('true')
+    })
+})
+
+/**
+ * A new destination picked from the list: the widget's USD amount follows the
+ * Manteca rail (PIX for Brazil), next to the Send origin; the rail's own
+ * method= is kept. Bridge countries are unchanged.
+ */
+describe('WithdrawMethodView — a new destination carries the widget amount', () => {
+    it('Brazil: the PIX rail gets the USD amount', () => {
+        renderView({ showAll: 'true', currencyCode: 'BRL', amount: '0.2' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&amount=0.2')
+    })
+
+    it('Brazil from Send → Bank: the send origin and the amount', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank', amount: '0.2' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith(
+            '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank&amount=0.2'
+        )
+    })
+
+    it('Argentina (not PIX): its bank-transfer rail gets the same amount', () => {
+        renderView({ showAll: 'true', amount: '25' })
+        fireEvent.click(screen.getByTestId('country-argentina'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith(
+            '/withdraw/manteca?method=bank-transfer&country=argentina&amount=25'
+        )
+    })
+
+    it('a Bridge country is unchanged', () => {
+        renderView({ showAll: 'true', amount: '25' })
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
     })
 })
 

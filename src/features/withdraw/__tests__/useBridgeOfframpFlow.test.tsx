@@ -52,8 +52,10 @@ jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : String(err)),
 }))
 
+// mutable: a mined revert is the one on-chain outcome that proves nothing was paid
+let mockTxReverted = false
 jest.mock('@/utils/general.utils', () => ({
-    isTxReverted: () => false,
+    isTxReverted: () => mockTxReverted,
 }))
 
 jest.mock('@/utils/bridge-accounts.utils', () => ({
@@ -77,14 +79,18 @@ jest.mock('@/utils/bridge.utils', () => ({
     getMinimumAmount: (id: string) => (id === 'MX' ? 50 : id === 'GB' || id === 'GBR' ? 3 : 1),
 }))
 
-// sell rate: local currency per 1 USD (0.79 GBP ≈ 1 USD → £3 ≈ $4)
-let mockExchangeRate: string | undefined = '0.79'
-const mockExchangeRateCalls: Array<{ accountType: unknown; enabled?: boolean }> = []
-jest.mock('@/hooks/useGetExchangeRate', () => ({
-    __esModule: true,
-    default: (args: { accountType: unknown; enabled?: boolean }) => {
-        mockExchangeRateCalls.push(args)
-        return { exchangeRate: mockExchangeRate, isFetchingRate: false }
+// The public withdrawal rate behind the shared minimum: local currency per
+// 1 USD (0.79 GBP ≈ 1 USD → £3 ≈ $4). Net of Peanut's margin while collected.
+let mockExchangeRate: string | null | undefined = '0.79'
+let mockExchangeRateError = false
+const mockExchangeRateCalls: Array<{ currency: string; enabled?: boolean }> = []
+jest.mock('@/hooks/useOfframpRate', () => ({
+    useOfframpRate: (currency: string, { enabled }: { enabled?: boolean } = {}) => {
+        mockExchangeRateCalls.push({ currency, enabled })
+        return {
+            rate: mockExchangeRateError || !mockExchangeRate ? null : Number(mockExchangeRate),
+            isError: mockExchangeRateError,
+        }
     },
 }))
 
@@ -262,7 +268,6 @@ import posthog from 'posthog-js'
 import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
 import { useWithdrawAmount } from '../useWithdrawAmount'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
-import { AccountType } from '@/interfaces/interfaces'
 
 // ---------- helpers ----------
 
@@ -288,11 +293,13 @@ beforeEach(() => {
     mockCountryId = 'US'
     mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
     mockExchangeRate = '0.79'
+    mockExchangeRateError = false
     mockExchangeRateCalls.length = 0
     mockPointsCalls.length = 0
     mockBankAccount = bankAccount
     mockIsBankFromSend = false
     mockQuote = null
+    mockTxReverted = false
     mockQuoteReceivedAt = Date.now()
     mockDiscardedQuoteId = null
     mockQuoteCalls.length = 0
@@ -411,7 +418,7 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
         // the £3 minimum must convert through the GBP rate, not fall through
         // to IBAN/EUR on the 'GBR' id (Chip round 6)
-        expect(mockExchangeRateCalls.some((c) => c.accountType === AccountType.GB && c.enabled)).toBe(true)
+        expect(mockExchangeRateCalls.some((c) => c.currency === 'GBP' && c.enabled)).toBe(true)
     })
 
     it('GB: an amount above the converted minimum proceeds', async () => {
@@ -424,6 +431,52 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
 
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '5' }))
+    })
+
+    it.each([
+        ['3.99', false],
+        ['4', true],
+    ])('GB at Bridge 0.79 (minimum $4): $%s proceeds = %s', async (amount, proceeds) => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        const view = renderFlow({ amount, step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        if (proceeds) expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount }))
+        else expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+
+    /*
+     * The Bridge rate failed. It used to resolve as '1' and the flow demanded a
+     * fabricated minimum; now there is no rate and nothing is submitted — and
+     * the blocking notice says why.
+     */
+    it('GB: a failed Bridge rate blocks the submit, says the rate is unavailable, and never creates an offramp', async () => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(false)
+        expect(view.result.current.balanceErrorMessage).toBe('exchangeRate.widget.rateUnavailable')
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('US: a fixed-floor destination needs no rate and is never blocked by one', () => {
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(true)
+        expect(view.result.current.balanceErrorMessage).toBeNull()
     })
 
     it('GB: while the FX rate behind the minimum loads, submit is not ready and the click no-ops', async () => {
@@ -482,7 +535,7 @@ describe('useBridgeOfframpFlow — card re-approval cancelled before the money l
         expect(posthog.capture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
     })
 
-    it('a real send failure still surfaces and is reported', async () => {
+    it('a real send failure still surfaces and is reported — as an unknown outcome, never a Retry', async () => {
         mockCreateOfframp.mockResolvedValue({
             data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
         })
@@ -495,6 +548,12 @@ describe('useBridgeOfframpFlow — card re-approval cancelled before the money l
 
         expect(mockSetError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
         expect(posthog.capture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
+        // a USD withdrawal holds the same way: the deposit may have gone out
+        expect(view.result.current.sendOutcomeUnknown).toBe(true)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -744,16 +803,37 @@ describe('useBridgeOfframpFlow — fixed_output quote (fees v2)', () => {
         expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
     })
 
-    it('USDC with more than 2 decimals cannot be quoted: the USD path, no quoteId', async () => {
+    it('USDC with fractional cents is quoted at whole cents, never sent unquoted', async () => {
         armHappyOfframp()
+        mockQuote = fixedOutputQuote({ sourceAmount: '50.12', destinationAmount: '44.74' })
         const view = renderFlow({ amount: '50.123456', step: 'review' })
 
-        expect(view.result.current.bankAmount).toBeNull()
+        // the quote asks for the cut amount, and the review shows the quote's
+        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '50.12' } })
+        expect(view.result.current.amountToWithdraw).toBe('50.12')
         await submit(view)
 
-        expect(mockCreateOfframp.mock.calls[0][0]).not.toHaveProperty('quoteId')
-        expect(mockCreateOfframp.mock.calls[0][0].amount).toBe('50.123456')
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50.12', quoteId: 'quote-1' }))
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50.12', { kind: 'FIAT_OFFRAMP' })
     })
+
+    it.each(['abc', '1.1234567', '0.009'])(
+        'a EUR account with an amount the quote cannot take (%s) is refused, never sent unquoted',
+        async (amount) => {
+            armHappyOfframp()
+            const view = renderFlow({ amount, step: 'review' })
+
+            expect(mockQuoteCalls.every((call) => call.currency === null)).toBe(true)
+            await submit(view)
+
+            expect(mockCreateOfframp).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'withdraw.errors.invalidAmount',
+            })
+        }
+    )
 
     it('USD account: no quote is asked for, and create gets no quoteId (USD↔USDC is exempt)', async () => {
         armHappyOfframp()
@@ -844,6 +924,116 @@ describe('useBridgeOfframpFlow — fixed_output quote (fees v2)', () => {
         expect(mockCreateOfframp.mock.calls[1][0]).toMatchObject({ quoteId: 'quote-1', destination: EUR_DESTINATION })
     })
 
+    /** Held: no Retry, no new quote, no second create or send — only Activity to check. */
+    const expectHeld = async (view: ReturnType<typeof renderFlow>) => {
+        expect(view.result.current.sendOutcomeUnknown).toBe(true)
+        expect(mockSetError).toHaveBeenLastCalledWith({
+            showError: true,
+            errorMessage: 'qrPay.errors.paymentStatusUnknown',
+        })
+        // the quote stops refreshing: no new numbers invite a second payment
+        expect(mockQuoteCalls.at(-1)?.enabled).toBe(false)
+
+        await submit(view)
+        await submit(view)
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockQuoteDiscard).not.toHaveBeenCalled()
+    }
+
+    it('sendMoney throws after a possible broadcast: held, never a second quote, transfer or send', async () => {
+        armHappyOfframp()
+        mockSendMoney.mockRejectedValueOnce(new Error('bundler 502'))
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        await submit(view)
+
+        expect(mockConfirmOfframp).not.toHaveBeenCalled()
+        await expectHeld(view)
+    })
+
+    it('sendMoney returns no transaction id: held, confirm is never called', async () => {
+        armHappyOfframp()
+        mockSendMoney.mockResolvedValueOnce({ receipt: null, userOpHash: '0xop', txHash: undefined })
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        await submit(view)
+
+        expect(mockConfirmOfframp).not.toHaveBeenCalled()
+        await expectHeld(view)
+    })
+
+    it('the confirm call times out after the send: processing, and a second press never sends again', async () => {
+        armHappyOfframp()
+        mockConfirmOfframp.mockResolvedValueOnce({ error: 'The operation was aborted due to timeout' })
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        await submit(view)
+
+        expect(view.result.current.submittedTxHash).toBe('0xtx')
+        expect(mockSetError).toHaveBeenLastCalledWith({ showError: true, errorMessage: 'withdraw.bank.confirmPending' })
+        await submit(view)
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockConfirmOfframp).toHaveBeenCalledTimes(1)
+    })
+
+    it('a mined revert proves nothing was paid: Retry is offered, with a new quote the user confirms', async () => {
+        armHappyOfframp()
+        mockTxReverted = true
+        mockSendMoney.mockResolvedValueOnce({ receipt: { status: 'reverted' }, userOpHash: '0xop', txHash: '0xtx' })
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+        await submit(view)
+        expect(view.result.current.sendOutcomeUnknown).toBe(false)
+        expect(mockSetError).toHaveBeenLastCalledWith({
+            showError: true,
+            errorMessage: 'Transaction reverted by the network.',
+        })
+
+        // Retry: the reverted quote is not sent again
+        mockTxReverted = false
+        await submit(view)
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+        expect(mockQuoteDiscard).toHaveBeenCalledWith('quote-1')
+        expect(view.result.current.bankAmount?.quoteNotice).toBe('withdraw.reviewUpdatedQuote')
+
+        // only the user's press on the new quote creates and sends again
+        mockQuote = fixedOutputQuote({ quoteId: 'quote-2', sourceAmount: '2240.35' })
+        view.rerender()
+        await submit(view)
+        expect(mockCreateOfframp).toHaveBeenLastCalledWith(
+            expect.objectContaining({ quoteId: 'quote-2', amount: '2240.35' })
+        )
+        expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+
+    it('a dismissed passkey prompt signed nothing: Retry is offered, with a new quote', async () => {
+        armHappyOfframp()
+        const dismissed = new Error('The operation either timed out or was not allowed.')
+        dismissed.name = 'NotAllowedError'
+        mockSendMoney.mockRejectedValueOnce(dismissed)
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+        await submit(view)
+
+        expect(view.result.current.sendOutcomeUnknown).toBe(false)
+        await submit(view)
+        expect(mockQuoteDiscard).toHaveBeenCalledWith('quote-1')
+    })
+
+    it('card re-approval dismissed before signing: the retry reuses the same quote (nothing was sent)', async () => {
+        armHappyOfframp()
+        mockSendMoney.mockRejectedValueOnce(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+        await submit(view)
+
+        await submit(view)
+
+        expect(mockQuoteDiscard).not.toHaveBeenCalled()
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(2)
+        expect(mockCreateOfframp.mock.calls[1][0]).toMatchObject({ quoteId: 'quote-1' })
+        expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+
     it('a quote already sent to create is not sent again for another reference', async () => {
         armHappyOfframp()
         mockCreateOfframp.mockResolvedValueOnce({ error: 'Bridge is unavailable.', status: 502 })
@@ -887,15 +1077,118 @@ describe('useBridgeOfframpFlow — fixed_output quote (fees v2)', () => {
         expect(mockQuoteDiscard).not.toHaveBeenCalled()
         expect(mockSetError).toHaveBeenCalledWith({ showError: true, errorMessage: 'Get a new quote.' })
     })
+})
 
-    it('GB: the rail minimum converts at the quote rate, not the market rate', () => {
+/**
+ * The £3 rail floor under Peanut's margin. Bridge's gross GBP rate 0.75 makes
+ * the USD minimum ceil(3 / 0.75) = $4; the net rate a signed quote pays,
+ * 0.75 × 0.997 = 0.74775, makes it ceil(4.012) = $5. $4 at the net rate pays
+ * £2.99 — under the floor the provider enforces.
+ */
+describe('useBridgeOfframpFlow — rail minimum under a signed quote (fees v2)', () => {
+    const GBP_DESTINATION = { currency: 'gbp', paymentRail: 'faster_payments', externalAccountId: 'ext-1' }
+    const signedGbpQuote = (overrides: Partial<MockQuote>) =>
+        fixedOutputQuote({ destinationCurrency: 'gbp', rate: '0.74775', ...overrides })
+
+    beforeEach(() => {
+        armHappyOfframp()
         mockCountryId = 'GB'
         mockOfframpConfig = { currency: 'gbp', paymentRail: 'faster_payments' }
-        mockExchangeRate = undefined // the market rate never loads
-        mockQuote = fixedOutputQuote({ destinationCurrency: 'gbp', rate: '0.79', destinationAmount: '10.00' })
-        const view = renderFlow({ destinationAmount: '10', step: 'review' })
+        mockExchangeRate = '0.75' // the gross rate: must not decide a signed quote's minimum
+    })
 
-        expect(view.result.current.isSubmitReady).toBe(true)
-        expect(mockExchangeRateCalls.every((call) => !call.enabled)).toBe(true)
+    const submitWith = async (quote: MockQuote, destinationAmount: string) => {
+        mockQuote = quote
+        const view = renderFlow({ destinationAmount, step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        return view
+    }
+
+    it('$4.00 paying £2.99 — what a gross-rate $4 minimum accepted — is refused', async () => {
+        await submitWith(signedGbpQuote({ sourceAmount: '4.00', destinationAmount: '2.99' }), '2.99')
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.minimumWithdrawal',
+        })
+    })
+
+    it('$4.99 is under the net-rate $5 minimum (the gross rate said $4)', async () => {
+        await submitWith(signedGbpQuote({ sourceAmount: '4.99', destinationAmount: '3.73' }), '3.73')
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+
+    it('exactly $5.00 at the net rate proceeds with its quote', async () => {
+        await submitWith(signedGbpQuote({ sourceAmount: '5.00', destinationAmount: '3.73' }), '3.73')
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(
+            expect.objectContaining({ amount: '5', quoteId: 'quote-1', destination: GBP_DESTINATION })
+        )
+    })
+
+    it('the signed payout is checked too: £2.99 is refused even when its USD clears the minimum', async () => {
+        // rate 0.8 → $4 minimum; a payout under £3 must not pass on the USD figure alone
+        await submitWith(signedGbpQuote({ rate: '0.8', sourceAmount: '5.00', destinationAmount: '2.99' }), '2.99')
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.minimumWithdrawal',
+        })
+    })
+
+    it('a payout of exactly £3.00 meets the floor', async () => {
+        await submitWith(signedGbpQuote({ rate: '0.8', sourceAmount: '5.00', destinationAmount: '3.00' }), '3')
+
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+    })
+
+    it('chosen: a fresh signed quote carries its own rate, so a failed public-rate lookup does not block it', async () => {
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = await submitWith(signedGbpQuote({ sourceAmount: '5.00', destinationAmount: '3.73' }), '3.73')
+
+        expect(view.result.current.balanceErrorMessage).toBeNull()
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+    })
+
+    it('collection off (Bridge-rate quote): the shared minimum applies and fails closed without its rate', async () => {
+        mockExchangeRate = null
+        mockExchangeRateError = true
+        const view = await submitWith(
+            bridgeRateQuote({
+                destinationCurrency: 'gbp',
+                rate: '0.75',
+                sourceAmount: '5.00',
+                destinationAmount: '3.75',
+            }),
+            '3.75'
+        )
+
+        expect(view.result.current.isSubmitReady).toBe(false)
+        expect(view.result.current.balanceErrorMessage).toBe('exchangeRate.widget.rateUnavailable')
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+    })
+
+    it('collection off: the shared minimum reads the public rate (Bridge’s own rate while off)', async () => {
+        await submitWith(
+            bridgeRateQuote({
+                destinationCurrency: 'gbp',
+                rate: '0.75',
+                sourceAmount: '4.00',
+                destinationAmount: '3.00',
+            }),
+            '3'
+        )
+
+        // Bridge 0.75 → $4, as before fees v2
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '4' }))
+        expect(mockCreateOfframp.mock.calls[0][0]).not.toHaveProperty('quoteId')
+        expect(mockExchangeRateCalls.some((call) => call.currency === 'GBP' && call.enabled)).toBe(true)
     })
 })

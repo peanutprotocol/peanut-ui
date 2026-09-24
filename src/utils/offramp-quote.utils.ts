@@ -1,21 +1,25 @@
-import { type OfframpQuote, type OfframpQuoteAmount } from '@/services/services.types'
+import type { OfframpQuote, OfframpQuoteAmount } from '@/services/services.types'
+
+/**
+ * The bank currencies a withdrawal is quoted in (TASK-23054, fees v2): the
+ * Bridge payouts that convert from USDC. Mirrors QUOTE_CURRENCIES in
+ * peanut-api-ts src/bridge/offramp-quote.ts; the quote and the public rate
+ * refuse any other. USD is exempt: it pays 1:1 and carries no margin.
+ */
+export const OFFRAMP_QUOTE_CURRENCIES: readonly string[] = ['eur', 'gbp', 'mxn', 'cop']
 
 /** The amount syntax the quote accepts: 2 decimals, not zero. Mirrors the API's DESTINATION_AMOUNT_PATTERN. */
-const QUOTE_AMOUNT_PATTERN = /^(?=.*[1-9])\d{1,12}(\.\d{1,2})?$/
+export const QUOTE_AMOUNT_PATTERN = /^(?=.*[1-9])\d{1,12}(\.\d{1,2})?$/
 
 /**
  * How long the app confirms a `fixed_output` quote after it arrived. Well
- * inside the API's 2-minute quote lifetime; the quote refreshes every 30s
- * while the review is open. Measured from when the app received the quote,
- * not from `expiresAt`: a phone clock that runs fast would otherwise expire
- * every quote on arrival.
+ * inside the API's 2-minute quote lifetime. A quote with a quoteId does not
+ * refresh while it is on screen, so an older one is replaced on submit and
+ * the user confirms the new numbers. Measured from when the app received the
+ * quote, not from `expiresAt`: a phone clock that runs fast would otherwise
+ * expire every quote on arrival.
  */
 const FIXED_OUTPUT_QUOTE_MAX_AGE_MS = 60_000
-
-/** The typed USDC amount the quote can price, or null when it has more than 2 decimals. */
-export function quotableSourceAmount(amount: string): string | null {
-    return QUOTE_AMOUNT_PATTERN.test(amount) ? amount : null
-}
 
 const sameCents = (a: string | undefined, b: string): boolean =>
     a !== undefined && Math.round(Number(a) * 100) === Math.round(Number(b) * 100)

@@ -3,7 +3,6 @@ import {
     isBridgeQuoteRefusal,
     isFixedOutputQuote,
     isFixedOutputQuoteRecent,
-    quotableSourceAmount,
     quoteAnswersRequest,
 } from '../offramp-quote.utils'
 
@@ -17,16 +16,6 @@ const quote = (overrides: Partial<OfframpQuote> = {}): OfframpQuote => ({
     quoteId: 'quote-1',
     expiresAt: '2026-09-24T15:56:16.373Z',
     ...overrides,
-})
-
-describe('quotableSourceAmount', () => {
-    it.each(['50', '50.1', '50.12', '0.5'])('takes %s', (amount) => {
-        expect(quotableSourceAmount(amount)).toBe(amount)
-    })
-
-    it.each(['50.123', '0', '0.00', '', 'abc', '5e1', '-5'])('refuses %s', (amount) => {
-        expect(quotableSourceAmount(amount)).toBeNull()
-    })
 })
 
 describe('quoteAnswersRequest', () => {

@@ -7,6 +7,10 @@ export interface QrPayScanParams {
     timestamp: string | null
     qrType: string | null
     pixKey?: string | null
+    /** USD chosen upstream; seeds a verified PIX-key open-amount BRL field once. */
+    amountUsd?: string | null
+    /** Called once the seed has been read (applied or ignored). */
+    onAmountUsdConsumed?: () => void
 }
 
 export interface QrPayCurrency {

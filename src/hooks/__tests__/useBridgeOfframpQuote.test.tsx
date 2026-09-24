@@ -1,6 +1,6 @@
 import React from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const mockGetOfframpQuote = jest.fn()
 jest.mock('@/app/actions/offramp', () => ({
@@ -93,6 +93,40 @@ describe('useBridgeOfframpQuote', () => {
 
         await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 3000 })
         expect(result.current.quote).toBeNull()
+    })
+
+    describe('refreshing on return to the tab', () => {
+        afterEach(() => focusManager.setFocused(undefined))
+
+        const returnToTab = () =>
+            act(async () => {
+                focusManager.setFocused(false)
+                focusManager.setFocused(true)
+            })
+
+        it('a signed quote does not change on its own: the numbers on screen are the ones confirmed', async () => {
+            mockGetOfframpQuote.mockResolvedValue({ data: quote({ pricing: 'fixed_output', quoteId: 'quote-1' }) })
+            const { result } = renderHook(() => useBridgeOfframpQuote({ currency: 'eur', amount: BANK_AMOUNT }), {
+                wrapper,
+            })
+            await waitFor(() => expect(result.current.quote?.quoteId).toBe('quote-1'))
+
+            await returnToTab()
+
+            expect(mockGetOfframpQuote).toHaveBeenCalledTimes(1)
+        })
+
+        it('a Bridge-rate estimate follows the rate', async () => {
+            mockGetOfframpQuote.mockResolvedValue({ data: quote() })
+            const { result } = renderHook(() => useBridgeOfframpQuote({ currency: 'eur', amount: BANK_AMOUNT }), {
+                wrapper,
+            })
+            await waitFor(() => expect(result.current.quote).not.toBeNull())
+
+            await returnToTab()
+
+            await waitFor(() => expect(mockGetOfframpQuote).toHaveBeenCalledTimes(2))
+        })
     })
 
     it('a discarded quote stays hidden until a new quote replaces it', async () => {

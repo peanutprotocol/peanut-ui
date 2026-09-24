@@ -35,6 +35,7 @@ const Harness = ({
     showError = false,
     bankAmount,
     quoteNotice = null,
+    sendOutcomeUnknown = false,
 }: {
     rail: string
     submittedTxHash?: string | null
@@ -42,6 +43,7 @@ const Harness = ({
     showError?: boolean
     bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
     quoteNotice?: string | null
+    sendOutcomeUnknown?: boolean
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -55,6 +57,7 @@ const Harness = ({
             isLoading={false}
             isSubmitReady
             submittedTxHash={submittedTxHash}
+            sendOutcomeUnknown={sendOutcomeUnknown}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
             confirmPendingCopy="processing"
@@ -353,5 +356,18 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         )
         expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent('Review the updated quote to continue.')
         expect(submitButton()).toBeEnabled()
+    })
+})
+
+describe('WithdrawBankReviewView — a send whose outcome is unknown', () => {
+    it('offers Done and the status message, never Retry or a new withdrawal', () => {
+        renderWithIntl(<Harness rail="sepa" showError sendOutcomeUnknown />)
+
+        expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /withdraw/i })).not.toBeInTheDocument()
+        expect(screen.getByTestId('withdraw-error')).toHaveTextContent('Something went wrong')
+        // the transfer is bound to its reference: it cannot change now
+        expect(referenceInput()).toBeDisabled()
     })
 })

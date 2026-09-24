@@ -1,5 +1,6 @@
 import { createStaticPix, hasError } from 'pix-utils'
 import { validatePixKey, isPixEmvcoQr } from './withdraw.utils'
+import { parseUsdAmount } from '@/features/withdraw/amount-validation'
 
 /**
  * Converts a raw PIX key into an EMVCo BR Code string.
@@ -46,14 +47,20 @@ export const pixKeyToBRCode = (pixKey: string): string | null => {
  *
  * Single source of truth for the scanner's PIX_KEY branch and the
  * withdraw/send PIX-key entry, so both reach the exact same `/qr-pay` flow.
+ *
+ * `amountUsd` (optional) is a USD amount the user already chose upstream; it
+ * rides as `amountUsd` only when it is a plain positive USD amount the wallet
+ * can carry. qr-pay turns it into an editable BRL estimate at its own live rate.
  */
-export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
+export const pixKeyToQrPayUrl = (pixKey: string, amountUsd?: string | null): string | null => {
     const brCode = pixKeyToBRCode(pixKey)
     if (!brCode) return null
     const timestamp = Date.now()
     // type=PIX mirrors EQrType.PIX; qr-pay routes it to the Manteca PIX rail.
     const keyParam = isPixEmvcoQr(pixKey.trim()) ? '' : `&pixKey=${encodeURIComponent(pixKey.trim())}`
-    return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX${keyParam}`
+    const seed = amountUsd ? parseUsdAmount(amountUsd) : null
+    const seedParam = seed ? `&amountUsd=${seed}` : ''
+    return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX${keyParam}${seedParam}`
 }
 
 export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): string | null {

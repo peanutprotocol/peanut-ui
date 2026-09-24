@@ -74,6 +74,10 @@ export function LandingPageClient({
     const marqueeProps = useMemo(() => {
         const hrefs: Record<string, string> = {
             'No transfer fees': contentHrefs.pricing,
+            'Fees explained': contentHrefs.pricing,
+            'Conoce las comisiones': contentHrefs.pricing,
+            'Conocé las comisiones': contentHrefs.pricing,
+            'Entenda as taxas': contentHrefs.pricing,
             USD: contentHrefs.whatAreDigitalDollars,
             EUR: contentHrefs.sendEurosArgentina,
             'USDT/USDC': contentHrefs.stablecoinBalanceVisaMerchants,

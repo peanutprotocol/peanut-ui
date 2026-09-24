@@ -21,7 +21,14 @@ import { useTranslations } from 'next-intl'
  * (`canDo('pay', { provider: 'manteca' })`) is enforced — the same path the QR
  * scanner uses for a pasted PIX key.
  */
-export default function PixKeySendView({ destinationParam }: { destinationParam?: string | null }) {
+export default function PixKeySendView({
+    destinationParam,
+    amountUsdParam,
+}: {
+    destinationParam?: string | null
+    /** The USD `?amount=` the withdraw flow carries; qr-pay seeds its BRL field from it once. */
+    amountUsdParam?: string | null
+}) {
     const router = useRouter()
     const onBack = useSafeBack('/send')
     const t = useTranslations('withdraw')
@@ -41,7 +48,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     }
 
     const handleContinue = () => {
-        const url = pixKeyToQrPayUrl(pixKey)
+        const url = pixKeyToQrPayUrl(pixKey, amountUsdParam)
         if (!url) {
             setErrorMessage(t('pixKey.invalid'))
             return

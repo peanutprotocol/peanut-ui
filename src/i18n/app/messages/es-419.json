@@ -56,6 +56,7 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
+        "rateIncludesConversionCost": "Incluye el costo de conversión.",
         "slideToProceed": "Desliza y continúa",
         "userAvatarAlt": "Avatar de {username}"
     },
@@ -696,7 +697,7 @@
     },
     "exchangeRate": {
         "title": "Tipo de cambio y comisiones",
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, puedes retirar en esa moneda.",
+        "balanceNote": "Tu saldo está en USD. Las transferencias bancarias usan estas monedas; algunos países, como Suecia, reciben euros en su lugar.",
         "tryIt": "Retirar ahora",
         "addMoneyCta": "Agregar dinero",
         "widget": {
@@ -704,11 +705,11 @@
             "recipientGets": "Recibes",
             "swapCurrencies": "Intercambiar monedas",
             "rateUnavailable": "Tipo de cambio no disponible por ahora",
-            "bankFee": "Comisión bancaria",
-            "free": "¡Gratis!",
+            "rateNote": "Tipo de cambio estimado; puede incluir costos de conversión. Revisa las comisiones antes de confirmar.",
             "arrivesHours": "Suele llegar en horas.",
             "arrivesMinutes": "Suele llegar en minutos.",
-            "selectCurrency": "Seleccionar moneda"
+            "selectCurrency": "Seleccionar moneda",
+            "belowMinimum": "Retiro mínimo: {amount} {currency}."
         },
         "row": {
             "approximate": "Es un estimado. El tipo de cambio se fija al convertir la transferencia, así que el monto recibido puede variar un poco.",
@@ -1386,7 +1387,7 @@
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
+            "exchangeRateTooltip": "Incluye el costo de conversión. El tipo de cambio puede variar un poco hasta que se confirme el pago.",
             "saveVsCard": "Ahorro vs. tarjeta",
             "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa PIX al tipo de cambio actual del mercado.",
             "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
@@ -1992,7 +1993,7 @@
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "redirecting": "Redirigiendo...",
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
+            "exchangeRateInfo": "Incluye el costo de conversión. El tipo de cambio puede variar un poco hasta que se confirme el retiro.",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
             "enterAccountDetails": "Ingresa los datos de tu banco o billetera",
@@ -3283,7 +3284,8 @@
             "selectANetwork": "Elige una red",
             "moreNetworksButton": "más",
             "searchTokenPlaceholder": "Token o dirección",
-            "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas",
+            "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas.",
+            "quotedFeeHint": "Para otros tokens y redes, cualquier comisión se muestra antes de confirmar.",
             "availableToken": "Token disponible",
             "searchResults": "Resultados de búsqueda",
             "popularTokensOnChain": "Tokens populares en {chainName}",

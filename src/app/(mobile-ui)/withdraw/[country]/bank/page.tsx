@@ -98,6 +98,7 @@ export default function WithdrawBankPage() {
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
                     submittedTxHash={flow.submittedTxHash}
+                    sendOutcomeUnknown={flow.sendOutcomeUnknown}
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}

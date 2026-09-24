@@ -40,6 +40,8 @@ interface WithdrawBankReviewViewProps {
     isSubmitReady: boolean
     /** On-chain leg already fired — never offer Retry (double-pay). */
     submittedTxHash: string | null
+    /** The send may have gone out (outcome unknown) — never offer Retry; `error` says to check Activity. */
+    sendOutcomeUnknown?: boolean
     error: { showError: boolean; errorMessage: string }
     balanceErrorMessage: string | null
     confirmPendingCopy: string
@@ -66,6 +68,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     isLoading,
     isSubmitReady,
     submittedTxHash,
+    sendOutcomeUnknown = false,
     error,
     balanceErrorMessage,
     confirmPendingCopy,
@@ -242,7 +245,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         value={reference}
                         maxLength={referenceSpec.maxLength}
                         // the transfer is created with the reference; it cannot change after
-                        disabled={isLoading || !!submittedTxHash}
+                        disabled={isLoading || !!submittedTxHash || sendOutcomeUnknown}
                         onChange={(e) => onReferenceChange(e.target.value)}
                         onBlur={() => setReferenceTouched(true)}
                         className="text-body-s"
@@ -250,9 +253,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
-            {submittedTxHash ? (
-                // On-chain leg already fired. Even if confirmOfframp failed
-                // we must NOT offer Retry — it would re-run sendMoney() and
+            {submittedTxHash || sendOutcomeUnknown ? (
+                // On-chain leg already fired, or may have. Even if confirmOfframp
+                // failed we must NOT offer Retry — it would re-run sendMoney() and
                 // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
                 // state and a Done button that takes the user home.
                 <Button shadowSize="4" className="w-full" onClick={onDone}>
@@ -293,7 +296,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     {confirmPendingCopy}
                 </Callout>
             ) : error.showError ? (
-                <Callout priority="error">{error.errorMessage}</Callout>
+                <Callout priority="error" data-testid="withdraw-error">
+                    {error.errorMessage}
+                </Callout>
             ) : (
                 // neutral: the quote moved, the withdrawal did not fail
                 quoteNotice && (

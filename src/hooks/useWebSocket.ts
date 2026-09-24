@@ -15,6 +15,16 @@ type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 // session with many live updates can't grow the array (and re-processing) unbounded.
 const MAX_WS_HISTORY_ENTRIES = 50
 
+// Kindless pings already answered with a refetch. Every useWebSocket instance
+// registers its own listener on the shared socket, and one ping reaches all of
+// them with the same object. Dozens of instances are mounted at once
+// (useRainCardOverview, reached through useWallet, has one each), and every
+// invalidation aborts and restarts the in-flight history fetch — but the fetch
+// ignores the abort, so each restart is another request. One ping sent ~100
+// identical GET /users/history in half a second on staging (2026-09-24 13:36Z),
+// which starved the 256MB database until it was OOM-killed.
+const refetchedPings = new WeakSet<object>()
+
 interface UseWebSocketOptions {
     autoConnect?: boolean
     username?: string
@@ -176,6 +186,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // answer it produces wins; anything REST still returns comes
                 // straight back with it.
                 setHistoryEntries([])
+                if (refetchedPings.has(entry)) return
+                refetchedPings.add(entry)
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 queryClient.invalidateQueries({ queryKey: ['balance'] })
                 return
