@@ -1074,8 +1074,7 @@
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
         "created": {
             "title": "Cobrança criada",
-            "description": "Seu link está pronto para compartilhar.",
-            "createAnother": "Criar outra cobrança"
+            "description": "Seu link está pronto para compartilhar."
         },
         "recipientPlaceholder": "Usuário, endereço ou ENS",
         "errors": {

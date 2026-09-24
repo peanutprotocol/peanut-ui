@@ -1074,8 +1074,7 @@
         "requestUpdatedToast": "Request updated successfully!",
         "created": {
             "title": "Request created",
-            "description": "Your link is ready to share.",
-            "createAnother": "Create another request"
+            "description": "Your link is ready to share."
         },
         "recipientPlaceholder": "Username, address, or ENS",
         "errors": {
