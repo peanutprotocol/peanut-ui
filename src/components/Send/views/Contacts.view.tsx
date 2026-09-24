@@ -176,6 +176,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         <ListItem
                             position="solo"
                             title={t('contacts.usernameFound', { username: exactUsername })}
+                            truncate
                             body={t('contacts.continueToSend')}
                             leading={<IconBubble icon="user" size="s" color="green" />}
                             chevron

@@ -210,6 +210,8 @@ export function AccountsHubList({
                 leading={row.flag ? <CorridorFlag iso2={row.flag} /> : undefined}
                 title={row.currency ?? label}
                 trailing={rowStatusBadge(row, tRows)}
+                body={row.note && tRows(row.note)}
+                bodyWrap
                 chevron
                 onClick={() => {
                     const reason = closedBankRow(row, isKycDegraded, label)

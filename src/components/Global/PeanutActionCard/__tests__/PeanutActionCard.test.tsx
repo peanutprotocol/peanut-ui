@@ -12,9 +12,12 @@ describe('PeanutActionCard', () => {
         expect(screen.queryByAltText('Socials')).not.toBeInTheDocument()
     })
 
-    it('keeps the socials line on the send card', () => {
+    // QA 2026-09-24: the send card is two lines too, pronoun-free
+    it('reads two lines on the send card', () => {
         render(<PeanutActionCard type="send" />, { wrapper: IntlWrapper })
 
-        expect(screen.getByText('Perfect to DM friends!')).toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
+        expect(screen.getByText('Anyone with the link can claim it')).toBeInTheDocument()
+        expect(screen.queryByAltText('Socials')).not.toBeInTheDocument()
     })
 })

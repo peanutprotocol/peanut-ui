@@ -10,19 +10,8 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { instructionRows } from '../instructionRows'
 import { bankPayAmountFigure, readServerPayerAmount, resolveBankPayAmount } from '../payerAmount'
 import { corridorFromRailId } from '../rails'
-import type { SenderPolicy } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
-
-/**
- * The payer-facing warning for a corridor that does not take everyone's money.
- * `anyone` needs none; `own-name-only` never reaches a payer (it is not
- * shareable). Same rule the requester reads before sharing the link.
- */
-const SENDER_NOTE_KEY: Partial<Record<SenderPolicy, string>> = {
-    'business-only': 'bankTransfer.senderBusinessOnly',
-    unknown: 'bankTransfer.senderUnknown',
-}
 
 /**
  * The requester's bank details, shown to the payer of one request.
@@ -53,7 +42,7 @@ export function RequestBankInstructions({
 }) {
     const t = useTranslations('payment')
     const format = useFormatter()
-    const { t: tDeposit, rowLabels, railLabels, arrivalDetail } = useDepositAccountCopy()
+    const { t: tDeposit, rowLabels, railLabels, arrivalDetail, senderLimit } = useDepositAccountCopy()
     const account = instructions.depositAccount
     const accountCurrency = account.currency.toUpperCase()
 
@@ -104,11 +93,14 @@ export function RequestBankInstructions({
         }
     }
 
-    const senderNoteKey = SENDER_NOTE_KEY[account.matching.sender]
+    // Who may pay this account, first: a friend paying a business-only account
+    // has their transfer returned. The same rule the requester reads before
+    // sharing the link.
+    const senderNote = senderLimit(account.matching)?.payer
 
     return (
         <div className="flex flex-col gap-4">
-            {senderNoteKey && <Callout priority="attention">{t(senderNoteKey as Parameters<typeof t>[0])}</Callout>}
+            {senderNote && <Callout priority="attention">{senderNote}</Callout>}
 
             <Section title={tDeposit('details.sectionTitle')}>
                 <DepositDetailsCard rows={rows} />

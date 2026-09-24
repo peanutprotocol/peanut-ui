@@ -8,6 +8,11 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface ListItemProps {
     title: React.ReactNode
+    /**
+     * one line with an ellipsis, for a string title that is data (a name, an
+     * address, a bank name, a token symbol). Copy leaves it off and wraps.
+     */
+    truncate?: boolean
     body?: React.ReactNode
     /** allow a string body to wrap instead of using the default one-line ellipsis */
     bodyWrap?: boolean
@@ -39,6 +44,7 @@ interface ListItemProps {
  */
 export const ListItem = ({
     title,
+    truncate = false,
     body,
     bodyWrap = false,
     leading,
@@ -82,12 +88,22 @@ export const ListItem = ({
         >
             <div className="flex min-w-0 items-center gap-3">
                 {leading}
-                {/* plain strings get the board one-line truncation; custom nodes render
-                    in a block wrapper untruncated (a div inside a span is invalid html
-                    and truncate only ellipsizes text anyway) */}
+                {/* copy wraps, never ellipsizes: a cut title hid the row's meaning at
+                    375px ("Withdraw to your own accou…", QA 2026-09-24). Data titles
+                    opt into one line with `truncate`, so a long address cannot
+                    stack three lines. Custom nodes get a div, since a div inside a
+                    span is invalid html */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
+                        <span
+                            className={twMerge(
+                                'text-body-m-semibold',
+                                truncate ? 'truncate' : 'break-words',
+                                titleColor
+                            )}
+                        >
+                            {title}
+                        </span>
                     ) : (
                         <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}
