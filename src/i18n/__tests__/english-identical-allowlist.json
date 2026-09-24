@@ -1,4 +1,19 @@
 {
     "keys": ["statusServiceMantecaAr"],
-    "note": "keys whose English value is intentionally reused: brand names, proper nouns, currency codes"
+    "appKeys": [
+        "profile.backup.changePhoneModal.iphoneToIphoneTitle",
+        "profile.backup.changePhoneModal.androidToAndroidTitle",
+        "profile.backup.changePhoneModal.crossPlatformTitle",
+        "qrPay.peanutManAlt",
+        "card.addToWallet.appleWallet",
+        "card.addToWallet.googleWallet",
+        "card.face.peanutPioneer",
+        "badges.catalog.FOUNDER_HOUSE.name",
+        "badges.catalog.ETHFLORIPA_HUB.name",
+        "badges.catalog.TOKEN_NATION_SP_2026.name",
+        "badges.catalog.DEVCONNECT_BA_2025.name",
+        "badges.catalog.ARBIVERSE_DEVCONNECT_BA_2025.name",
+        "badges.catalog.PRODUCT_HUNT.name"
+    ],
+    "note": "keys whose English value is intentionally reused: brand names, proper nouns, currency codes. keys = marketing catalogs (src/i18n/*.json), appKeys = app catalogs (src/i18n/app/messages)"
 }
