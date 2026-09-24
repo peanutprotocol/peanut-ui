@@ -2231,6 +2231,8 @@
             "converted": "Converted"
         },
         "returnedReason": "The bank sent this payment back. This usually happens when the details did not match the sender's name, or the sender's bank refused it.",
+        "returnedReasonThirdParty": "The bank returned this transfer to the sender because it came from someone else's account. Check who can pay into this account in its rules.",
+        "returnedStatus": "Returned",
         "perkBanner": {
             "title": "You earned a reward!",
             "capped": "${amount} reward — campaign limit reached!",

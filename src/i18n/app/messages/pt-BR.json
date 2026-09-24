@@ -2231,6 +2231,8 @@
             "converted": "Convertido"
         },
         "returnedReason": "O banco devolveu este pagamento. Isso costuma acontecer quando os dados não batem com o nome de quem envia, ou quando o banco dessa pessoa recusa.",
+        "returnedReasonThirdParty": "O banco devolveu esta transferência para quem pagou porque veio da conta de outra pessoa. Confira nas regras desta conta quem pode pagar nela.",
+        "returnedStatus": "Devolvido",
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
             "capped": "Recompensa de ${amount} — limite da campanha atingido!",
