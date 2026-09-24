@@ -1,11 +1,10 @@
 import Image from 'next/image'
 import exclamations from '@/assets/illustrations/exclamations.svg'
-import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
-import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
+import { Title } from '@/components/0_Bruddle/Title'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { landingStrings } from './landingStrings'
@@ -68,32 +67,17 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
-                <div className="mb-6 md:mb-10">
-                    {/* Mobile version */}
-                    <Image
-                        src={mobileSendInSeconds}
-                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
-                        width={800}
-                        height={200}
-                        className="mx-auto block h-auto w-[90%] md:hidden"
-                    />
-                    {/* Desktop version */}
-                    <Image
-                        src={payZeroFees}
-                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
-                        width={800}
-                        height={200}
-                        className="mx-auto hidden h-auto w-full max-w-lg md:block md:max-w-4xl"
-                    />
-                </div>
+                {/* Was an SVG with the words baked in, so it stayed English on every locale.
+                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px. */}
+                <h2 className="mb-6 text-balance md:mb-10">
+                    <Title text={i18n.landingClosingHeadline} className="text-headingSmall md:text-headingMedium" />
+                </h2>
 
                 <p
-                    className="mb-6 hidden font-roboto text-base leading-tight font-medium md:mb-8 md:block md:text-4xl"
+                    className="mb-6 hidden font-roboto text-base leading-tight font-medium text-balance md:mb-8 md:block md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    {i18n.landingSendTagline1}
-                    <br />
-                    {i18n.landingSendTagline2}
+                    {i18n.landingClosingSubline}
                 </p>
 
                 <SendInSecondsCTA strings={landingStrings(i18n)} />
