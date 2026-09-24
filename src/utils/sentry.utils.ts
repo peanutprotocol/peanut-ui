@@ -601,6 +601,10 @@ export type FetchWithSentryOptions = RequestInit & {
     silentTimeout?: boolean
 }
 
+/** What a fetch cancelled by its caller rejects with: the reason the caller gave, or a standard AbortError. */
+const cancelError = (signal: AbortSignal): unknown =>
+    signal.reason ?? Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
 export const fetchWithSentry = async (
     url: string,
     optionsWithTransport: FetchWithSentryOptions = {},
@@ -610,6 +614,16 @@ export const fetchWithSentry = async (
     const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
+    /*
+     * The caller's cancel (React Query aborts a fetch it superseded or no longer
+     * needs). Each leg's own timeout controller also follows it, so a cancel
+     * ends the request instead of leaving it running. It used to be replaced by
+     * the timeout signal: on 2026-09-24 ~100 superseded history requests kept
+     * running and starved the staging database. A cancel is not a failure, so
+     * it is never retried, never falls back to the OS client, and never reported.
+     */
+    const callerSignal = options.signal ?? undefined
+    if (callerSignal?.aborted) throw cancelError(callerSignal)
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
@@ -674,18 +688,22 @@ export const fetchWithSentry = async (
              * turning a genuine second chance into pure added latency. Throwing
              * the timeout the pool already earned is the honest outcome.
              */
+            if (callerSignal?.aborted) throw cancelError(callerSignal)
             const legMs = legTimeoutMs()
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
             }
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
+            const cancelLeg = () => controller.abort()
+            callerSignal?.addEventListener('abort', cancelLeg)
             try {
                 return await fetch(url, {
                     ...options,
                     signal: controller.signal,
                 })
             } catch (error) {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
                     // console.info: a retry that succeeds is not a failure, and
                     // the retry outcome is reported explicitly below.
@@ -696,6 +714,7 @@ export const fetchWithSentry = async (
                 throw error
             } finally {
                 clearTimeout(timeoutId)
+                callerSignal?.removeEventListener('abort', cancelLeg)
             }
         }
     }
@@ -707,6 +726,7 @@ export const fetchWithSentry = async (
 
         return response
     } catch (error: unknown) {
+        if (callerSignal?.aborted) throw error
         // WebView fetch rejected. On native, retry once over the OS HTTP client
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
