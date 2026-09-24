@@ -276,7 +276,7 @@
             }
         },
         "pendingTasks": {
-            "completeBefore": "Complete before {deadline}",
+            "completeBefore": "Conclua até {deadline}",
             "dismiss": "Dispensar {task}"
         },
         "iosCopy": {
@@ -1264,7 +1264,7 @@
             "selectCountry": "Selecione o país da sua conta bancária",
             "fullName": "Nome completo",
             "accountNumber": "Número da conta",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de roteamento (Routing Number)",
             "countryNotSelected": "País não selecionado",
             "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo."
         },
@@ -1843,10 +1843,10 @@
             "beneficiaryName": "Nome do beneficiário",
             "beneficiaryAddress": "Endereço do beneficiário",
             "clabe": "CLABE",
-            "sortCode": "Sort Code",
+            "sortCode": "Código bancário (Sort Code)",
             "accountNumber": "Número da conta",
             "iban": "IBAN",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de roteamento (Routing Number)",
             "bic": "BIC",
             "youllReceive": "Você vai receber",
             "doubleCheckTitle": "Confira bem no seu banco antes de enviar:",
@@ -1939,8 +1939,8 @@
             "bic": "BIC",
             "clabe": "CLABE",
             "accountNumber": "Número da conta",
-            "sortCode": "Sort Code",
-            "routingNumber": "Routing Number",
+            "sortCode": "Código bancário (Sort Code)",
+            "routingNumber": "Número de roteamento (Routing Number)",
             "fee": "Taxa",
             "bankAccount": "Conta bancária",
             "transferProcessing": "Transferência em processamento",
@@ -1983,10 +1983,10 @@
             "bic": "BIC",
             "bicRequired": "O BIC é obrigatório",
             "bicInvalid": "Código BIC inválido",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de roteamento (Routing Number)",
             "routingNumberRequired": "O routing number é obrigatório",
             "routingNumberInvalid": "Routing number inválido",
-            "sortCode": "Sort Code",
+            "sortCode": "Código bancário (Sort Code)",
             "sortCodeRequired": "O sort code é obrigatório",
             "sortCodeInvalid": "O sort code precisa ter 6 dígitos",
             "street": "Seu endereço",
@@ -2248,10 +2248,10 @@
             "accountHolderName": "Nome do titular",
             "bankName": "Nome do banco",
             "bankAddress": "Endereço do banco",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de roteamento (Routing Number)",
             "beneficiaryName": "Nome do beneficiário",
             "beneficiaryAddress": "Endereço do beneficiário",
-            "sortCode": "Sort Code"
+            "sortCode": "Código bancário (Sort Code)"
         },
         "manteca": {
             "depositAddress": "Endereço de depósito"
@@ -2564,7 +2564,7 @@
                 "description": "Você é gourmet de verdade!"
             },
             "BIG_SPENDER_5K": {
-                "name": "Big Spender 5K",
+                "name": "Grande gastador 5K",
                 "description": "Você está entre quem mais gasta."
             },
             "MOST_PAYMENTS_DEVCON": {
@@ -3548,8 +3548,8 @@
         "rainCooldownPill": "Resfriamento do cartão",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
-            "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "reassurance": "Nada muda nas suas taxas, nos seus fundos ou na forma como tratamos seus dados.",
+            "whatChanged": "Reescrevemos os documentos abaixo em linguagem simples para que reflitam o que o Peanut é hoje, incluindo o Peanut Card e as Recompensas. Não tem pressa: leia quando quiser e continue usando o Peanut normalmente.",
             "title": "Uma pequena atualização dos nossos termos"
         },
         "maintenanceBanner": "Modo manutenção — algumas funções estão temporariamente indisponíveis. Seu dinheiro está seguro.",

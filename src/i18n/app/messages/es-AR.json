@@ -1557,6 +1557,9 @@
             "noResults": "Ningún país coincide",
             "clear": "Borrar búsqueda",
             "removeCountry": "Quitar {country}"
+        },
+        "reConsent": {
+            "whatChanged": "Reescribimos los documentos de abajo en lenguaje sencillo para que reflejen lo que Peanut es hoy, incluidas la Peanut Card y las Recompensas. No hay apuro: leelos cuando quieras y seguí usando Peanut como siempre."
         }
     },
     "errors": {
