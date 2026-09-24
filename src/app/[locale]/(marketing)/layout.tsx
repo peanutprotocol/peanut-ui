@@ -51,7 +51,10 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
                 </div>
             </div>
             <LocaleSuggestion locale={locale} />
-            <div className="flex-1">{children}</div>
+            {/* overflow-x-clip: full-bleed bands (mdx Steps) are 100vw wide, which
+                is the viewport plus the scrollbar. clip keeps that last few px off
+                the document width without making a scroll container. */}
+            <div className="flex-1 overflow-x-clip">{children}</div>
             <Footer locale={locale} />
             {/* Crisp chat widget on all marketing/SEO pages. A component, not an
                 inline script, because the launcher has to disappear again when a
