@@ -1,4 +1,5 @@
 import { type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type HomeDrawer } from './useHomeDrawer'
 
@@ -17,7 +18,7 @@ export interface DrawerOption {
     titleKey: ['drawers', HomeDrawerKey] | ['methods', AddMethodKey]
     bodyKey?: ['drawers', HomeDrawerBodyKey] | ['methods', AddMethodBodyKey]
     icon: IconName
-    /** bubble colour, matched to the same method on the Send page (SendRouter) */
+    /** bubble colour, from the concept map like the Send page (SendRouter) */
     iconColor: IconBubbleColor
     href: string
 }
@@ -28,8 +29,8 @@ export interface DrawerOption {
 const BANK_ONE_OFF: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
-    icon: 'bank',
-    iconColor: 'gray',
+    icon: CONCEPT_ICONS.bank.icon,
+    iconColor: CONCEPT_ICONS.bank.color,
     href: '/add-money?method=bank',
 }
 
@@ -39,19 +40,18 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'send-friends',
             titleKey: ['drawers', 'sendToFriends'],
             bodyKey: ['drawers', 'sendToFriendsDescription'],
-            // person iconography, not arrows: the home CTAs that open this
-            // drawer are already arrows, so repeating them here said nothing.
-            // friends = several people, own accounts = one person (you).
-            icon: 'users',
-            iconColor: 'yellow',
+            // friends = several people; the withdraw row below takes the
+            // withdraw concept (arrow up, the mirror of add money's arrow down).
+            icon: CONCEPT_ICONS.friends.icon,
+            iconColor: CONCEPT_ICONS.friends.color,
             href: '/send',
         },
         {
             key: 'withdraw',
             titleKey: ['drawers', 'withdrawToOwnAccounts'],
             bodyKey: ['drawers', 'withdrawToOwnAccountsDescription'],
-            icon: 'user',
-            iconColor: 'gray',
+            icon: CONCEPT_ICONS.withdraw.icon,
+            iconColor: CONCEPT_ICONS.withdraw.color,
             href: '/withdraw',
         },
     ],
@@ -64,8 +64,8 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'crypto',
             titleKey: ['methods', 'crypto'],
             bodyKey: ['methods', 'cryptoDescription'],
-            icon: 'coins',
-            iconColor: 'blue',
+            icon: CONCEPT_ICONS.crypto.icon,
+            iconColor: CONCEPT_ICONS.crypto.color,
             href: '/add-money/crypto',
         },
     ],
@@ -78,8 +78,8 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'share-link',
             titleKey: ['drawers', 'shareRequestLink'],
             bodyKey: ['drawers', 'shareRequestLinkDescription'],
-            icon: 'link',
-            iconColor: 'blue',
+            icon: CONCEPT_ICONS.requestLink.icon,
+            iconColor: CONCEPT_ICONS.requestLink.color,
             href: '/request',
         },
     ],
@@ -92,8 +92,8 @@ const SHARE_BANK_DETAILS: DrawerOption = {
     key: 'share-bank',
     titleKey: ['drawers', 'shareBankDetails'],
     bodyKey: ['drawers', 'shareBankDetailsDescription'],
-    icon: 'bank',
-    iconColor: 'gray',
+    icon: CONCEPT_ICONS.bank.icon,
+    iconColor: CONCEPT_ICONS.bank.color,
     href: '/add-money?method=bank',
 }
 
@@ -123,8 +123,8 @@ const BANK_STANDING: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
     bodyKey: ['methods', 'bankTransferDescription'],
-    icon: 'bank',
-    iconColor: 'gray',
+    icon: CONCEPT_ICONS.bank.icon,
+    iconColor: CONCEPT_ICONS.bank.color,
     href: '/add-money?method=bank',
 }
 

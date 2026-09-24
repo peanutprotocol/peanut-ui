@@ -10,6 +10,7 @@ import { CountryList } from '@/components/Common/CountryList'
 import { SearchInput } from '@/components/SearchInput'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -131,7 +132,7 @@ export function WithdrawCurrencyList({
                     body={tGlobal('countryList.cryptoWithdrawDescription')}
                     bodyWrap
                     chevron
-                    leading={<IconBubble icon="coins" color="blue" size="s" />}
+                    leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                     onClick={onCryptoClick}
                     data-testid="withdraw-crypto"
                 />
@@ -213,7 +214,7 @@ export function WithdrawCurrencyList({
                     title={t('currencyList.otherCountriesTitle')}
                     body={t('currencyList.otherCountriesPitch')}
                     bodyWrap
-                    leading={<IconBubble icon="globe" color="blue" size="s" />}
+                    leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
                     trailing={
                         <Icon
                             name="chevron-down"

@@ -11,6 +11,7 @@ import {
     ARBITRARY_FONT_SIZE_RE,
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
+    BARE_LIST_LEADING_RE,
 } from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
@@ -1008,5 +1009,26 @@ describe('handRolledCloseGlyphFiles', () => {
 
     it('accepts DS Button closes', () => {
         expect(hasHandRolledCloseGlyph('<Button shape="square"><Icon name="cancel" size={20} /></Button>')).toBe(false)
+    })
+})
+
+describe('bareListLeading', () => {
+    it('flags a bare Icon, Image or img in a leading slot', () => {
+        expect(countMatches('<ListItem leading={<Icon name="bank" size={24} />} />', BARE_LIST_LEADING_RE)).toBe(1)
+        expect(
+            countMatches(
+                '<ListItem\n    leading={\n        <Image src={logo} alt="" />\n    }\n/>',
+                BARE_LIST_LEADING_RE
+            )
+        ).toBe(1)
+        expect(countMatches('<ListItem leading={(<img src={x} />)} />', BARE_LIST_LEADING_RE)).toBe(1)
+    })
+
+    it('accepts a bubble, a flag or a logo helper', () => {
+        expect(
+            countMatches('<ListItem leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />} />', BARE_LIST_LEADING_RE)
+        ).toBe(0)
+        expect(countMatches('<ListItem leading={<CorridorFlag iso2="gb" />} />', BARE_LIST_LEADING_RE)).toBe(0)
+        expect(countMatches('<ListItem leading={<DisplayIcon iconUrl={url} />} />', BARE_LIST_LEADING_RE)).toBe(0)
     })
 })

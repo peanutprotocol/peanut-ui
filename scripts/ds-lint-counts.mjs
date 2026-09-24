@@ -24,6 +24,7 @@ import {
     ARBITRARY_FONT_SIZE_RE,
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
+    BARE_LIST_LEADING_RE,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -323,6 +324,12 @@ counts.handRolledCloseGlyphFiles = files.filter(
     (f) => !allowed(f.path) && !f.path.includes('0_Bruddle/') && hasHandRolledCloseGlyph(f.text)
 ).length
 
+// TASK-23054: concept icons ride CONCEPT_ICONS through IconBubble, so a bare
+// icon or image in a row's leading slot is drift.
+counts.bareListLeading = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, BARE_LIST_LEADING_RE), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -348,6 +355,7 @@ const DEBT_KEYS = [
     'arbitraryFontSize',
     'rawErrorText',
     'handRolledCloseGlyphFiles',
+    'bareListLeading',
 ]
 
 const mode = process.argv[2] ?? ''
