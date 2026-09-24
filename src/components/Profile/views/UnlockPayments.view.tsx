@@ -6,7 +6,10 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import AccountsList from './AccountsList'
+import VirtualAccountsHub from './VirtualAccountsHub'
+import { AccountsHubList } from '@/features/deposit-accounts/components/AccountsHubList'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -26,7 +29,7 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
-import { deriveRegionAccess, isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIMITS } from '@/constants/query.consts'
@@ -36,7 +39,6 @@ import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -50,32 +52,21 @@ import { useAuth } from '@/context/authContext'
 import {
     BANK_ROW_COUNTRIES,
     buildUnlockGroups,
-    type BankRegionChip,
     type BankRowKey,
     type UnlockGroup,
     type UnlockRow,
     type UnlockRowLabelKey,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
-
-/** Gate states that mean "a rail is here, it just cannot move money yet". */
-const MID_FLIGHT_GATES: ReadonlySet<string> = new Set([
-    'pending',
-    'waiting-on-provider',
-    'accept-tos',
-    'fixable-rejection',
-    'provide-email',
-])
 
 /** Same derivation the retired UnlockedRegions view used — modal machinery carried over. */
 function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: boolean): ModalVariant {
@@ -104,8 +95,7 @@ const UnlockPayments = () => {
     const [openView, setOpenView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, nextActionsForRail, canDo, gateFor } = useCapabilities()
-    const restrictions = useResidenceRestrictions()
+    const { rails, isKycApproved, nextActionsForRail, canDo } = useCapabilities()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
@@ -116,83 +106,23 @@ const UnlockPayments = () => {
 
     const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const isSumsubApproved = isKycApproved
+    const depositAccountsEnabled = useDepositAccountsEnabled()
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    /**
-     * The chip for one currency's bank corridor, read from the rails of that
-     * corridor's own COUNTRY.
-     *
-     * Two separate truths are folded in here. Holding a rail is not being
-     * allowed to use it: every Sumsub-approved user is enrolled on the QR-tier
-     * Manteca rails whatever their residence, so the rail is `enabled` because
-     * `pay` is while `deposit` and `withdraw` stay `requires-info`. A bank row
-     * says Available only when the user can move money on one of those two
-     * operations. And a provider is not a currency: scoping by provider gave
-     * the US and Mexico — both Bridge — one shared verdict, so a user with a
-     * working US rail read "Available" on a row that also named MXN. The gate
-     * is the hook's own country-scoped primitive; nothing here walks rails.
-     */
-    const bankChipFor = useCallback(
-        (key: BankRowKey): BankRegionChip => {
-            const scope = { channel: 'bank' as const, country: BANK_ROW_COUNTRIES[key] }
-            const kinds = [gateFor('deposit', scope).kind, gateFor('withdraw', scope).kind]
-            if (kinds.includes('ready')) return 'active'
-            // Only support can lift a blocked rail, so that one row says so.
-            if (kinds.includes('blocked-rejection') || kinds.includes('restart-identity')) return 'attention'
-            // A rail that exists but cannot move money yet is mid-flight,
-            // whatever it is waiting on — provisioning, a document, a ToS.
-            // Unlock is reserved for a corridor with no rail behind it at all,
-            // because that is the only case where the tap starts something.
-            if (kinds.some((kind) => MID_FLIGHT_GATES.has(kind))) return 'processing'
-            return 'unlock'
-        },
-        [gateFor]
-    )
-
-    // Server copy first; the localStorage mirror of the signup answer covers
-    // reloads before /users/me returns it (or an API without the fields yet).
-    const residence = user?.residence ?? null
-    const userId = user?.user?.userId
-    // localStorage is synchronous I/O: read once per account, not per render.
-    const { localDeclared, secondResidenceIso2 } = useMemo(
-        () => ({
-            localDeclared: readDeclaredResidence(userId),
-            // Second declared residence: device mirror, used only where the
-            // API value is absent (pre-production BE, or a stale cached user).
-            secondResidenceIso2: readSecondResidence(userId),
-        }),
-        [userId]
-    )
-    // `declaredSecond` is authoritative when the server sends it AT ALL: `null`
-    // means "no second residence", which `??` would wrongly treat like the
-    // pre-deploy absent field and revive a stale device mirror. Only `undefined`
-    // — an API that predates the field — falls back.
-    const serverSecond = residence?.declaredSecond
-    const declaredSecondIso2 = serverSecond === undefined ? secondResidenceIso2 : serverSecond
-    // Re-sync the mirror to the server's answer, including clearing it: it is
-    // read elsewhere (useResidenceRestrictions), so leaving a disowned country
-    // there would keep shaping availability.
-    useEffect(() => {
-        if (userId && serverSecond !== undefined) storeSecondResidence(userId, serverSecond)
-    }, [userId, serverSecond])
-
-    const declaredIso2 = residence?.declared ?? localDeclared
-    const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
-    const isEuropeIso2 = (iso2: string | null): boolean =>
-        !!iso2 && iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2)
+    const {
+        rows: bankRows,
+        input: { bankChips, restrictions },
+        residence,
+        residenceIso2,
+        secondResidenceIso2,
+    } = useBankRows()
     const hasActiveCard = !!findActiveCard(overview)
 
     const groups = useMemo(
         () =>
             buildUnlockGroups({
-                bankChips: {
-                    brl: bankChipFor('brl'),
-                    ars: bankChipFor('ars'),
-                    usd: bankChipFor('usd'),
-                    mxn: bankChipFor('mxn'),
-                    sepa: bankChipFor('sepa'),
-                },
+                bankChips,
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw. `unlockedRegions` still covers the
@@ -207,28 +137,13 @@ const UnlockPayments = () => {
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
-                residenceIso2,
-                secondResidenceIso2: declaredSecondIso2,
-                isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(declaredSecondIso2),
             }),
-        [
-            bankChipFor,
-            canDo,
-            unlockedRegions,
-            restrictions,
-            hasActiveCard,
-            cardInfo?.geoProhibited,
-            residenceIso2,
-            declaredSecondIso2,
-        ]
+        [bankChips, canDo, unlockedRegions, restrictions, hasActiveCard, cardInfo?.geoProhibited]
     )
 
-    // The three lists this screen shows, named by group id rather than by
-    // position: the bank rows feed the "Add and withdraw money" list, the
-    // other two get their own sections below it.
+    // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
-    const bankGroups = groups.filter((group) => group.id !== 'everywhere' && group.id !== 'spend')
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
@@ -367,6 +282,14 @@ const UnlockPayments = () => {
         [router, t, isKycDegraded]
     )
 
+    // What both forms of the shared list take from this screen.
+    const hubProps = {
+        bankRows,
+        onBankRowClick: handleRowClick,
+        onChangeResidence: () => setIsChangeModalOpen(true),
+        isKycDegraded,
+    }
+
     // A residence re-verification never sets a region intent, so without the
     // flag its failure would read as "Not available yet" instead of retriable.
     const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
@@ -396,14 +319,9 @@ const UnlockPayments = () => {
 
     // No card-only note: a card-restricted user already reads "Not available"
     // on the card row itself (unlock-payments.utils), so the footer line only
-    // repeated it. The banking note stays — it covers rails whose rows are
-    // absent from the list entirely.
+    // repeated it. The banking note stays — it covers card issuing too. A bank
+    // row withheld for residence alone explains itself in the list's drawer.
     const showBankRestrictionNote = restrictions.banking
-    // A bank row withheld for residence alone (the Manteca corridors outside
-    // their country) gets its reason in one line under the list, the same way
-    // the restriction note explains rows the restriction hides.
-    const showResidenceNote =
-        !restrictions.banking && bankGroups.some((group) => group.rows.some((row) => row.chip === 'notAvailable'))
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <Badge status="completed" customText={t('residence.verified')} />
@@ -423,7 +341,6 @@ const UnlockPayments = () => {
     return (
         <PageStack gap="6" className="pb-10">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-            <p className="text-body-s">{t('description')}</p>
 
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">
@@ -495,16 +412,14 @@ const UnlockPayments = () => {
                 />
             )}
 
-            {/* Currency-first merge (2026-09-18): every receiving corridor —
-                held VA accounts and the KYC-unlock bank/QR rows alike — in one
-                "Your accounts" list, flag-led, region headers dropped. The
-                first group is always "everywhere" (buildUnlockGroups), and its
-                own-region-first sort survives into the flattened row order. */}
-            <AccountsList
-                bankRows={bankGroups.flatMap((group) => group.rows)}
-                onRowClick={handleRowClick}
-                isKycDegraded={isKycDegraded}
-            />
+            {/* The list Add money shows too: virtual accounts held and to open,
+                then the other ways in. The accounts are read only while their
+                rollout flag is on (`VirtualAccountsHub` owns that fetch). */}
+            {depositAccountsEnabled ? (
+                <VirtualAccountsHub {...hubProps} />
+            ) : (
+                <AccountsHubList claimsEnabled={false} {...hubProps} />
+            )}
 
             {/* Spending methods, apart from the ways money moves between a bank
                 and Peanut. */}
@@ -517,7 +432,6 @@ const UnlockPayments = () => {
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
             )}
-            {showResidenceNote && <p className="text-body-xs text-foreground-secondary">{t('residenceNote')}</p>}
 
             {/* Region-restricted users get the one honest region screen instead
                 of an unlock offer that can only end in the same rejection: the
@@ -541,7 +455,7 @@ const UnlockPayments = () => {
                 onClose={closeResidenceChange}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
-                declaredSecond={declaredSecondIso2}
+                declaredSecond={secondResidenceIso2}
                 verified={residence?.verified ?? null}
                 pending={residence?.pending ?? null}
                 onSaved={async () => {
@@ -758,11 +672,6 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
-/**
- * The two icon-led sections under the bank list: "Spend" (card + QR payments)
- * and "Peanut" (the always-on P2P and crypto rows). The bank/QR corridor rows
- * live in `AccountsList`, alongside the held account rows.
- */
 /**
  * Peanut-native rows keep their own brand mark instead of the generic
  * status-color bubble every other row uses — same assets as elsewhere in the

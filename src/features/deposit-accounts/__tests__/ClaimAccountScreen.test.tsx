@@ -94,15 +94,22 @@ describe('the CTA ends the page, so the shell reservation clears it', () => {
  * details screen states once the account exists.
  */
 describe('the claim screen when the backend previewed the terms', () => {
+    // QA 2026-09-24: each rule once per screen — the floor is a rule line, not a second "good to know" item
+    it('states the minimum deposit once', () => {
+        claim({ terms: CLAIMABLE_EUR })
+
+        expect(screen.getAllByText(/Minimum deposit/)).toHaveLength(1)
+        expect(screen.getByText('Minimum deposit: €1')).toBeInTheDocument()
+    })
+
     const ruleText = (key: keyof typeof messages.depositAccounts.rules) => messages.depositAccounts.rules[key].line
 
     it('states who may pay in: the holder, a business, another person', () => {
         claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
 
         expect(screen.getByText(messages.depositAccounts.details.whoCanPay)).toBeInTheDocument()
-        expect(screen.getByText(ruleText('ownAccount'))).toBeInTheDocument()
-        expect(screen.getByText(ruleText('businessAny'))).toBeInTheDocument()
-        expect(screen.getByText(/From another person: less than .* each time/)).toBeInTheDocument()
+        expect(screen.getByText(ruleText('ownOrBusinessAny'))).toBeInTheDocument()
+        expect(screen.getByText('Anyone else: under $4,000 per transfer')).toBeInTheDocument()
     })
 
     it('drops the promise that the terms come later, now that they are on screen', () => {
@@ -121,7 +128,7 @@ describe('the claim screen when the backend previewed the terms', () => {
     it('says nothing about a state rule on a corridor whose terms are resolved', () => {
         claim({ terms: CLAIMABLE_EUR })
 
-        expect(screen.getByText(ruleText('businessAny'))).toBeInTheDocument()
+        expect(screen.getByText(ruleText('ownOrBusinessAny'))).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.statePending)).not.toBeInTheDocument()
     })
 

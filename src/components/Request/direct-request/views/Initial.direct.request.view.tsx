@@ -349,7 +349,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
                         type="REQUEST"
-                        redirectTo="/request"
                     />
                 </PageStack.Center>
             </div>

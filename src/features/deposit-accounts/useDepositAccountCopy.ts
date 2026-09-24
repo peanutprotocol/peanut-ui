@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
 import { railLabel, type RailLabels } from './instructionRows'
-import { depositRuleLines, type DepositRuleKey } from './ruleLines'
+import { depositRuleLines, type DepositRuleKey, type FormatMoney } from './ruleLines'
 import type {
     DepositCorridor,
     DepositInstructions,
@@ -56,6 +56,9 @@ const RAIL_LABEL_KEYS = [
     'bre_b',
     'transfer_ar',
 ] as const
+
+/** "$4,000", never "$4,000.00": a rule states a round amount without cents */
+const formatRuleAmount: FormatMoney = (amount, currency) => formatCurrencyAmount(amount, currency).replace(/\.00$/, '')
 
 /** one rule, in the three voices the screens and the shared text need */
 export interface ResolvedRuleLine {
@@ -112,7 +115,7 @@ export function useDepositAccountCopy() {
      */
     const ruleLines = useCallback(
         (matching: DepositSenderTerms, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
-            depositRuleLines(matching, rules, formatCurrencyAmount).map(({ key, values }) => {
+            depositRuleLines(matching, rules, formatRuleAmount).map(({ key, values }) => {
                 // `user` is only read by the provider-held line; passing it to
                 // every string is cheaper than a per-key values table.
                 const all = { user, ...values }
@@ -147,14 +150,6 @@ export function useDepositAccountCopy() {
         return { text: t('fees.converted'), ratesFor: rail.currency }
     }
 
-    /**
-     * The smallest deposit a corridor accepts, already formatted, or undefined
-     * where the rail publishes no floor. The claim screen surfaces it in its
-     * "good to know" aside so the amount is not buried in the payer rules.
-     */
-    const minimumDeposit = (rules: DepositRules | undefined): string | undefined =>
-        rules?.min ? formatCurrencyAmount(rules.min.amount, rules.min.currency) : undefined
-
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
 
@@ -181,6 +176,5 @@ export function useDepositAccountCopy() {
         arrivalDetail,
         claimErrorBody,
         feeLine,
-        minimumDeposit,
     }
 }

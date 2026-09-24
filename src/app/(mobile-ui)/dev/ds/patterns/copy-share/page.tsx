@@ -327,7 +327,7 @@ copyRef.current?.copy()`}
 
                 <ProductUsage.Example
                     title="Deposit accounts — why the account count is capped"
-                    path="src/features/deposit-accounts/components/DepositAccountsListScreen.tsx"
+                    path="src/features/deposit-accounts/components/AccountsHubList.tsx"
                     description="MoreInfo beside a counter badge in a section heading. The reason is one tap away instead of taking a line of its own."
                     code={`<span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
   <Badge status="neutral" customText={t('list.accountCounter', { used, cap })} />
@@ -335,7 +335,7 @@ copyRef.current?.copy()`}
 </span>`}
                 >
                     <div className="flex items-center justify-between gap-2">
-                        <span className="text-heading-card text-foreground-primary">Your accounts</span>
+                        <span className="text-heading-card text-foreground-primary">Virtual accounts</span>
                         <span className="flex shrink-0 items-center gap-1">
                             <Badge status="neutral" customText="2 of 3" />
                             <MoreInfo text="Each account is opened with a partner bank, so the number you can hold at once is limited. Contact support if you need more." />
