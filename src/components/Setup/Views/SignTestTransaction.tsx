@@ -1,4 +1,4 @@
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
@@ -365,9 +365,9 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
             // them as colors and deletes the size (see LinkButton.tsx:40)
             className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
         >
-            <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+            <SetupDocLink kind="passkeys" href="/en/help/passkeys" className="underline underline-offset-2">
                 {t('passkey.learnMore')}
-            </DocsLink>{' '}
+            </SetupDocLink>{' '}
         </p>
     )
 }
