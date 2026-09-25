@@ -990,6 +990,9 @@
     "withdraw": {
         "reviewUpdatedQuote": "Revisá la cotización actualizada para continuar.",
         "chooseWithdrawingMethod": "Elegí el método de retiro",
+        "currencyList": {
+            "otherCountriesPitch": "Elegí un país"
+        },
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección"
