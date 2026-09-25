@@ -1,6 +1,7 @@
 'use client'
 
 import { type IconName } from '@/components/Global/Icons/Icon'
+import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -18,7 +19,6 @@ import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -29,18 +29,16 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-
-// Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
-// "sticky" but below 14 so we still nudge users about valuable actions they haven't
-// adopted. Per-CTA cooldowns can come later via the user-signaling unification project.
-const DISMISS_COOLDOWN_DAYS = 7
-const DISMISS_COOLDOWN_MS = DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+import { hasQrPayRail } from '@/utils/activation-step.utils'
+import { hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
 
 export type CarouselCTA = {
     id: string
     title: string | React.ReactNode
     description: string | React.ReactNode
-    icon: IconName
+    icon?: IconName
+    /** a product concept's CTA: its CONCEPT_ICONS bubble replaces icon + iconContainerClassName */
+    concept?: Concept
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
@@ -52,32 +50,9 @@ export type CarouselCTA = {
     iconSize?: number
 }
 
-/** Read dismissals from preferences, dropping any whose cooldown has expired.
- *  Returns id → dismissedAt so callers can keep the timestamp around if needed.
- *  Accepts the legacy `string[]` shape (no timestamps) — those entries are
- *  treated as "dismissed now" so existing users get a fresh 7-day window from
- *  the moment they pick up this code, rather than CTAs suddenly reappearing. */
-const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
-    const dismissed = getUserPreferences(userId)?.dismissedCarouselCTAs
-    const now = new Date()
-    const cutoff = now.getTime() - DISMISS_COOLDOWN_MS
-
-    if (!dismissed) return new Map()
-
-    if (Array.isArray(dismissed)) {
-        // Legacy permanent-dismissal shape — coerce to "dismissed now".
-        return new Map(dismissed.map((id) => [id, now]))
-    }
-
-    const map = new Map<string, Date>()
-    for (const [id, iso] of Object.entries(dismissed)) {
-        const dismissedAt = new Date(iso)
-        if (!Number.isNaN(dismissedAt.getTime()) && dismissedAt.getTime() > cutoff) {
-            map.set(id, dismissedAt)
-        }
-    }
-    return map
-}
+/** The closed carousel ids that stay hidden (utils/home-carousel.utils.ts). */
+const getDismissedCTAs = (userId: string | undefined): Map<string, Date> =>
+    hiddenCarouselCTAs(getUserPreferences(userId)?.dismissedCarouselCTAs, new Date())
 
 export const useHomeCarouselCTAs = () => {
     const t = useAppTranslations('home.carousel')
@@ -142,8 +117,8 @@ export const useHomeCarouselCTAs = () => {
         // User-interview invite (temporary campaign): hand-picked heavy users
         // get asked for a 15-min call with the team. The cohort lives in the PostHog
         // flag's `username` release condition — never in code. Leads the
-        // carousel on purpose; it targets a handful of users. X-dismissal uses
-        // the standard 7-day cooldown (id filter below). Delete this block, the
+        // carousel on purpose; it targets a handful of users. Closing it hides
+        // it for good (id filter below). Delete this block, the
         // flag, the i18n keys, and the dev/home-ctas preview entry when the
         // campaign ends.
         if (interviewInviteOn) {
@@ -151,7 +126,6 @@ export const useHomeCarouselCTAs = () => {
                 id: 'user-interview',
                 title: t('userInterview.title'),
                 description: t('userInterview.description'),
-                icon: 'peanut-support', // required by the type; hidden — the mascot takes precedence
                 mascotPose: 'waving-hello',
                 // The mascot fills its container, and the shared one is size-8;
                 // widen it so the mascot reads at 44px like the other CTA logos.
@@ -196,9 +170,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'invite-friends',
                 title: t('invite.title'),
                 description: t('invite.description'),
-                icon: 'invite-heart',
-                logo: STAR_STRAIGHT_ICON,
-                logoSize: 30,
+                concept: 'rewards',
                 onClick: () => {
                     router.push('/rewards')
                 },
@@ -227,15 +199,12 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
-        // (still loading) keeps the CTA hidden so it doesn't flash in then out.
-        if (hasKycApproval && hasMadeQrPayment === false) {
+        if (showQrPayCTA({ hasQrRail: hasQrPayRail(rails, channelOf), hasMadeQrPayment })) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'qr-code',
+                concept: 'qrPay',
                 onClick: () => {
                     setIsQRScannerOpen(true)
                 },
@@ -251,8 +220,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'gift',
+                concept: 'rewards',
                 onClick: () => {
                     router.push('/rewards')
                 },
@@ -298,8 +266,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'card-offer',
                 title: <span>{t.rich('card.title', { b })}</span>,
                 description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-primary',
-                icon: 'credit-card',
+                concept: 'card',
                 iconSize: 16,
                 onClick: () => {
                     router.push('/card')
@@ -313,11 +280,10 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'qr-code',
+                concept: 'qrPay',
                 iconSize: 16,
                 onClick: () => {
-                    router.push('/profile/accounts-and-payments')
+                    router.push('/profile/accounts')
                 },
             })
         }

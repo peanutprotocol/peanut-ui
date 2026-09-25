@@ -2,6 +2,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -26,6 +27,7 @@ import { apiErrorStatus } from '@/services/api-error'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { profileUrl, sendUrl } from '@/utils/native-routes'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -38,6 +40,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tLoading = useTranslations('loadingStates')
     const onBack = useRequestBack()
     const tMigration = useTranslations('migration')
+    const tHome = useTranslations('home.drawers')
     // a guest on a broken request link is asked to join — during the migration
     // that means the app, not web signup
     const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
@@ -46,14 +49,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const router = useRouter()
     const contact = useRequestContact(username)
     const needsSetup = !!authUser && !authUser.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
+    // a settled signed-out visitor gets a card, not a redirect; undefined means auth is still loading
+    const isGuest = authUser === null && !userFetchError
 
     useEffect(() => {
-        if (isFetchingUser || authUser === undefined || userFetchError) return
-        if (!authUser || needsSetup) {
-            saveRedirectUrl()
-            router.replace(authUser ? '/setup/finish' : '/setup')
-        }
-    }, [authUser, isFetchingUser, userFetchError, needsSetup, router])
+        if (isFetchingUser || userFetchError || !needsSetup) return
+        saveRedirectUrl()
+        router.replace('/setup/finish')
+    }, [isFetchingUser, userFetchError, needsSetup, router])
     const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -168,7 +171,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             isRecipientUserLoading ||
             isFetchingUser ||
             (authUser === undefined && !userFetchError) ||
-            (!userFetchError && (!authUser || needsSetup)) ||
+            (!userFetchError && needsSetup) ||
             contact.isLoading
         ) {
             return
@@ -224,7 +227,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         isRecipientUserLoading ||
         isFetchingUser ||
         (authUser === undefined && !userFetchError) ||
-        (!userFetchError && (!authUser || needsSetup)) ||
+        (!userFetchError && needsSetup) ||
         contact.isLoading
     ) {
         return (
@@ -249,22 +252,82 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         )
     }
 
+    // guests have no header on the public layout, so no NavHeader here
+    if (isGuest) {
+        const onJoin = () => {
+            if (interceptGuestCta()) return
+            saveRedirectUrl()
+            router.push('/setup')
+        }
+        return (
+            <PageStack.Center>
+                <EmptyState
+                    icon="user"
+                    title={t('blocked.guestTitle', { username })}
+                    description={t(handoffActive ? 'blocked.guestDescriptionApp' : 'blocked.guestDescription', {
+                        username,
+                    })}
+                    cta={
+                        <div className="mt-4 flex w-full flex-col gap-3">
+                            <Button variant="primary" className="w-full" onClick={onJoin}>
+                                {handoffActive ? tMigration('downloadPeanut') : t('validation.createWallet')}
+                            </Button>
+                            <Button variant="secondary" className="w-full" href={profileUrl(username)}>
+                                {t('blocked.viewProfile')}
+                            </Button>
+                        </div>
+                    }
+                />
+                {storeHandoffModal}
+            </PageStack.Center>
+        )
+    }
+
     if (authUnavailable || contact.isError || !contact.data) {
+        const lookupFailed = authUnavailable || contact.isError
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader onPrev={onBack} title={tNav('request')} />
-                <PageStack.Center className="gap-4">
-                    <Callout priority="error">
-                        {t(
-                            authUnavailable || contact.isError
-                                ? 'errors.contactsUnavailable'
-                                : 'errors.moneyContactsOnly'
-                        )}
-                    </Callout>
-                    {(authUnavailable || contact.isError) && (
-                        <Button onClick={() => (authUnavailable ? fetchUser() : contact.refetch())} icon="retry">
-                            {tCommon('retry')}
-                        </Button>
+                <PageStack.Center>
+                    {lookupFailed ? (
+                        <EmptyState
+                            icon="error"
+                            iconColor="red"
+                            title={tCommon('somethingWentWrong')}
+                            description={t('errors.contactsUnavailable')}
+                            cta={
+                                <div className="mt-4 flex w-full flex-col gap-3">
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => (authUnavailable ? fetchUser() : contact.refetch())}
+                                        icon="retry"
+                                    >
+                                        {tCommon('retry')}
+                                    </Button>
+                                </div>
+                            }
+                        />
+                    ) : (
+                        <EmptyState
+                            icon="txn-off"
+                            title={t('blocked.title', { username })}
+                            description={t('errors.moneyContactsOnly')}
+                            cta={
+                                <div className="mt-4 flex w-full flex-col gap-3">
+                                    <Button
+                                        variant="primary"
+                                        className="w-full"
+                                        icon="arrow-up-right"
+                                        href={sendUrl(username)}
+                                    >
+                                        {t('blocked.sendCta', { username })}
+                                    </Button>
+                                    <Button variant="secondary" className="w-full" icon="link" href="/request">
+                                        {tHome('shareRequestLink')}
+                                    </Button>
+                                </div>
+                            }
+                        />
                     )}
                 </PageStack.Center>
             </div>
@@ -287,7 +350,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
                         type="REQUEST"
-                        redirectTo="/request"
                     />
                 </PageStack.Center>
             </div>

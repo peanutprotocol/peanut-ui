@@ -151,7 +151,7 @@ export type RainCooldownVerdict = 'ready' | 'exceeds-lock' | 'cancelled'
 /** Wait only when the cooldown and signing margin fit the current quote. */
 export async function awaitRainCooldownWithinLock(args: {
     retryAfterSec: number | null | undefined
-    /** Provider quote expiry in epoch milliseconds. */
+    /** The lock's deadline on this device's clock, in ms (`receiveLock`). */
     lockExpiresAt?: number
     cancelled: () => boolean
 }): Promise<RainCooldownVerdict> {

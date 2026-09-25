@@ -1,11 +1,8 @@
 'use client'
 
-import { useCallback } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { rainApi, type RainCardOverview } from '@/services/rain'
 import { useAuth } from '@/context/authContext'
-import { useWebSocket } from '@/hooks/useWebSocket'
-import type { RailStatusUpdate, RainCardBalanceChangedData } from '@/services/websocket'
 
 export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
 
@@ -13,15 +10,15 @@ export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
  * Fetches the composite Rain card state (application status, collateral
  * balance, issued cards) for the authenticated user.
  *
- * Polls every 30s and refetches on window focus. Subscribes to two
- * WebSocket events for real-time invalidation:
- *   - `user_rail_status_changed` — rail transitions (PENDING → ENABLED).
- *   - `rain_card_balance_changed` — card txns, auto-balancer deposits,
- *     collateral contract deployment.
+ * Polls every 30s and refetches on window focus. `SocketQueryRefresh`, mounted
+ * once for the app, invalidates it on `user_rail_status_changed` (rail
+ * transitions) and `rain_card_balance_changed` (card txns, auto-balancer
+ * deposits, collateral deployment). This hook opens no socket listener of its
+ * own: it has dozens of consumers, and one listener each multiplied every
+ * event into as many refetches.
  */
 export const useRainCardOverview = () => {
     const { user } = useAuth()
-    const queryClient = useQueryClient()
     const userId = user?.user?.userId
 
     const query = useQuery<RainCardOverview>({
@@ -35,36 +32,10 @@ export const useRainCardOverview = () => {
         // client-side 10s timeouts (PEANUT-UI-QD5) — for a payload that reads
         // `hasApplication: false` every time. Card users keep the 30s cadence;
         // everyone else refetches on focus, and the `user_rail_status_changed`
-        // WebSocket invalidation below resumes polling the moment they apply.
+        // invalidation from SocketQueryRefresh resumes polling the moment they apply.
         refetchInterval: (query) => (query.state.data?.status?.hasApplication === false ? false : 30_000),
         refetchOnWindowFocus: true,
         retry: 1,
-    })
-
-    const invalidate = useCallback(() => {
-        queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY, userId] })
-    }, [queryClient, userId])
-
-    const handleRailStatusUpdate = useCallback((_data: RailStatusUpdate) => invalidate(), [invalidate])
-    const handleRainCardBalanceChanged = useCallback(
-        (data: RainCardBalanceChangedData) => {
-            invalidate()
-            // auto_balance_deposit moves USDC out of the smart account into Rain
-            // collateral — if we only refresh the rain side, the spendable sum
-            // temporarily inflates until useBalance's next 30s poll. Invalidate
-            // the wallet balance query too so both buckets stay in sync.
-            if (data.reason === 'auto_balance_deposit') {
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
-            }
-        },
-        [invalidate, queryClient]
-    )
-
-    useWebSocket({
-        username: user?.user?.username ?? undefined,
-        autoConnect: !!userId,
-        onRailStatusUpdate: handleRailStatusUpdate,
-        onRainCardBalanceChanged: handleRainCardBalanceChanged,
     })
 
     return {

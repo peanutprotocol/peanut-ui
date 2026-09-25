@@ -46,6 +46,11 @@ export interface QrPaymentStageDetail {
     strategy?: QrPaymentStageStrategy
     /** `signing_preparation_ready` only: whether the pre-Pay candidate was signed. */
     preparation?: 'reused' | 'fresh'
+    /**
+     * `lock_ready` failures only: the deterministic refusal code, so a refused
+     * sender id (a support case) is distinguishable from a cap hit.
+     */
+    failureCode?: string
 }
 
 export interface QrPaymentAttemptTelemetry {
@@ -110,6 +115,7 @@ export function createQrPaymentAttemptTelemetry(context: {
                 ...(strategy ? { strategy } : {}),
                 ...(detail?.outcome ? { outcome: detail.outcome } : {}),
                 ...(detail?.preparation ? { preparation: detail.preparation } : {}),
+                ...(detail?.failureCode ? { failure_code: detail.failureCode } : {}),
             })
         } catch {
             // Analytics must never delay or fail a payment.

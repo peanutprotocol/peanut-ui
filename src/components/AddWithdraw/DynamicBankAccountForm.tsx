@@ -37,6 +37,8 @@ import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 
 export type IBankAccountDetails = {
+    /** The saved account's type once one exists ('iban', 'gb', …): it picks the payout currency. */
+    type?: string
     name?: string
     firstName: string
     lastName: string

@@ -6,6 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
@@ -45,7 +46,7 @@ import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.uti
  * same button in silence — that silence is what sent users through the check
  * again and again (TASK-22818).
  */
-const IDENTITY_ROUTE = '/profile/accounts-and-payments'
+const IDENTITY_ROUTE = '/profile/accounts'
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')
@@ -83,7 +84,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         <IconBubble
                             icon={nativeStepPending ? 'user-id' : 'check-circle'}
                             size="l"
-                            color={nativeStepPending ? 'blue' : 'green'}
+                            color={nativeStepPending ? 'yellow' : 'green'}
                         />
                         <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
                         <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>
@@ -110,7 +111,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                     left-aligned, and a centered paragraph above it reads as a
                     second column. */}
                 <Card className="gap-3 p-4">
-                    <IconBubble icon="user-id" size="l" color="blue" className="self-center" />
+                    <IconBubble {...CONCEPT_ICONS.verification} size="l" className="self-center" />
                     <p className="text-body-s text-foreground-secondary">
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>

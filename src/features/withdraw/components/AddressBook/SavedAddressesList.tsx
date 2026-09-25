@@ -56,21 +56,20 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             <ListItem
                                 position="solo"
                                 title={label}
+                                truncate
                                 body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
                                 bodyWrap
+                                // one leading element: the chain logo. the wallet
+                                // mini-bubble it used to carry was a composite
+                                // (design.md, ListItem leading)
                                 leading={
-                                    <div className="relative h-8 w-8">
-                                        <DisplayIcon
-                                            iconUrl={chain?.chainIconURI}
-                                            altText={chainName}
-                                            fallbackName={chainName}
-                                            sizeClass="h-8 w-8"
-                                            className="rounded-full"
-                                        />
-                                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-yellow p-1">
-                                            <Icon size={16} name="wallet" className="text-foreground-primary" />
-                                        </div>
-                                    </div>
+                                    <DisplayIcon
+                                        iconUrl={chain?.chainIconURI}
+                                        altText={chainName}
+                                        fallbackName={chainName}
+                                        sizeClass="h-8 w-8"
+                                        className="rounded-full"
+                                    />
                                 }
                                 trailing={
                                     // holds the edit button's place; the button itself is

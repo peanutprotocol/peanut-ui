@@ -30,6 +30,7 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 
 import { useAddMoneyFlow } from '../useAddMoneyFlow'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 const renderFlow = (search = '') =>
     renderHook(() => useAddMoneyFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search }) })
@@ -37,6 +38,7 @@ const renderFlow = (search = '') =>
 describe('useAddMoneyFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        safeBackTesting.reset()
         mockGetStoredRedirect.mockReturnValue(null)
         mockGetFromLocalStorage.mockReturnValue(null)
     })
@@ -74,15 +76,31 @@ describe('useAddMoneyFlow', () => {
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
-    it('back honours a same-origin returnTo, resets to /home otherwise', () => {
+    it('back rewinds history to a same-origin returnTo, so the hub leaves with it', () => {
+        window.history.pushState(null, '', '/profile/accounts-and-payments')
+        window.history.pushState(null, '', '/add-money?method=bank&step=details')
+        const go = jest.spyOn(window.history, 'go').mockImplementation(() => undefined)
+
+        const { result } = renderFlow(`?method=bank&returnTo=${encodeURIComponent('/profile/accounts-and-payments')}`)
+        act(() => result.current.handleBack())
+
+        // never pushed: a pushed origin kept the hub under it, and back from
+        // the origin reopened the hub (the Accounts and payments loop)
+        expect(go).toHaveBeenCalledWith(-1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        go.mockRestore()
+    })
+
+    it('with no in-app history, back replaces the hub with the returnTo, or /home', () => {
         const { result } = renderFlow(`?method=bank&returnTo=${encodeURIComponent('/profile/exchange-rate')}`)
         act(() => result.current.handleBack())
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/exchange-rate')
 
-        mockRouterPush.mockClear()
+        mockRouterReplace.mockClear()
         const { result: r2 } = renderFlow('?method=bank')
         act(() => r2.current.handleBack())
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('clears the redirect snapshot it routed from', () => {

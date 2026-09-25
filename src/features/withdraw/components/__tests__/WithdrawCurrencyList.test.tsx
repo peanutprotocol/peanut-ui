@@ -57,6 +57,21 @@ jest.mock('@/components/Common/CountryList', () => ({
     ),
 }))
 
+// No live currency takes the expand path today (EUR routes by IBAN, every
+// other currency has one country), so a test can append a shared currency
+// that does. Empty by default: the rows then come from the real catalog.
+let mockExtraCurrencies: unknown[] = []
+jest.mock('../withdraw-currencies', () => {
+    const actual = jest.requireActual('../withdraw-currencies')
+    return {
+        ...actual,
+        liveWithdrawCurrencies: (...args: unknown[]) => [
+            ...actual.liveWithdrawCurrencies(...args),
+            ...mockExtraCurrencies,
+        ],
+    }
+})
+
 import { WithdrawCurrencyList } from '../WithdrawCurrencyList'
 
 const onCountryClick = jest.fn()
@@ -69,15 +84,7 @@ const renderList = (
         onCryptoClick?: () => void
         pendingPath?: string | null
     } = {}
-) =>
-    render(
-        <WithdrawCurrencyList
-            heading="Cash out"
-            onCountryClick={onCountryClick}
-            onCryptoClick={onCryptoClick}
-            {...props}
-        />
-    )
+) => render(<WithdrawCurrencyList onCountryClick={onCountryClick} onCryptoClick={onCryptoClick} {...props} />)
 
 const search = (term: string) =>
     fireEvent.change(screen.getByLabelText('withdraw.currencyList.searchPlaceholder'), { target: { value: term } })
@@ -90,6 +97,7 @@ const currencyRows = () =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockLocale = 'en'
+    mockExtraCurrencies = []
 })
 
 describe('WithdrawCurrencyList — currency-first with country as fallback', () => {
@@ -106,7 +114,37 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
         const toggle = screen.getByTestId('withdraw-other-countries-toggle')
         expect(toggle).toBeInTheDocument()
         fireEvent.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
         expect(screen.getByTestId('country-list-all')).toBeInTheDocument()
+        fireEvent.click(toggle)
+        expect(screen.queryByTestId('country-list-all')).not.toBeInTheDocument()
+    })
+
+    it('a shared currency no IBAN decides opens its countries in place, and a pick routes', () => {
+        mockExtraCurrencies = [
+            {
+                code: 'XYZ',
+                name: 'Shared dollar',
+                railNameKey: 'fallback',
+                flagCode: 'us',
+                countries: [
+                    { id: 'USA', path: 'usa', title: 'United States', type: 'country' },
+                    { id: 'MEX', path: 'mexico', title: 'Mexico', type: 'country' },
+                ],
+            },
+        ]
+        renderList()
+        const row = screen.getByTestId('withdraw-currency-XYZ')
+        expect(row).toHaveAttribute('aria-expanded', 'false')
+
+        fireEvent.click(row)
+        expect(row).toHaveAttribute('aria-expanded', 'true')
+        expect(onCountryClick).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('scoped-mexico'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'mexico' }))
+
+        fireEvent.click(row)
+        expect(row).toHaveAttribute('aria-expanded', 'false')
     })
 
     it('a single-country currency routes straight through (no disambiguation)', () => {

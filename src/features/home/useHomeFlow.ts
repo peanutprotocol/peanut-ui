@@ -16,7 +16,7 @@ import { useBalanceVisibility } from './useBalanceVisibility'
 export function useHomeFlow() {
     const { spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
     const { user, isFetchingUser, fetchUser } = useAuth()
-    const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
+    const { isActivated, onboarding, isOnboardingComplete } = useActivationStatus()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
@@ -52,8 +52,8 @@ export function useHomeFlow() {
         isPageLoading: isFetchingUser && !username,
         username,
         isActivated,
-        activationStep,
-        dismissCardStep,
+        onboarding,
+        isOnboardingComplete,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,

@@ -60,7 +60,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
     },
-    '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
     '23-b-kycreverificationpendingmodal': {
         name: 'KycReverificationPendingModal',
@@ -216,10 +215,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotClickTestId: 'bank-transfer-chooser',
     },
     '70-d-activationctas-outbound': {
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
         shotFixture: 'card-access',
-        shotClick: 'Start Spending',
+        shotClickTestId: 'checklist-first-payment',
     },
     '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
     '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },

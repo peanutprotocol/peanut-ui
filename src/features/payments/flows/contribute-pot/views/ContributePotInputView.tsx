@@ -24,14 +24,13 @@ import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { formatBankAmount } from '@/utils/currency'
 
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
     const t = useTranslations('payment')
-    const format = useFormatter()
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -83,13 +82,7 @@ export function ContributePotInputView() {
     const askedValue = Number(request?.requestedAmount)
     const askedAmount =
         askedCurrency && askedCurrency !== 'USD' && askedValue > 0
-            ? {
-                  currency: askedCurrency,
-                  amount: format.number(askedValue, {
-                      minimumFractionDigits: minorUnitDigits(askedCurrency),
-                      maximumFractionDigits: minorUnitDigits(askedCurrency),
-                  }),
-              }
+            ? formatBankAmount(askedValue, askedCurrency)
             : undefined
 
     // determine button state
@@ -125,8 +118,8 @@ export function ContributePotInputView() {
                     <TitleBlock
                         size="s"
                         align="center"
-                        title={t('requestAsksFor', askedAmount)}
-                        description={t('requestAsksForDollars', { amount: totalAmount.toFixed(2) })}
+                        title={t('requestAsksFor', { amount: askedAmount })}
+                        description={t('requestAsksForDollars', { amount: formatBankAmount(totalAmount, 'USD') })}
                         data-testid="request-asked-amount"
                     />
                 )}

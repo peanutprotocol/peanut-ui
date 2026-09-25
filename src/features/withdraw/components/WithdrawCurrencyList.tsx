@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
-import { twMerge } from '@/utils/tw'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
 import { SearchInput } from '@/components/SearchInput'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Loading from '@/components/Global/Loading'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
@@ -24,8 +24,6 @@ import {
 } from './withdraw-currencies'
 
 interface WithdrawCurrencyListProps {
-    /** Heading above the search field ("How would you like to cash out?"). */
-    heading: string
     /** A country was resolved — route it (reuses the method view's handler). */
     onCountryClick: (country: CountryData) => void
     /**
@@ -59,7 +57,6 @@ interface WithdrawCurrencyListProps {
  */
 // TODO(va): extract shared currency-first selector shell (with DepositAccountsListScreen)
 export function WithdrawCurrencyList({
-    heading,
     onCountryClick,
     onCryptoClick,
     enforceSupportedCountries,
@@ -71,11 +68,6 @@ export function WithdrawCurrencyList({
     const tRails = useTranslations('depositAccounts.rows.rails')
     const locale = useLocale()
     const [query, setQuery] = useState(initialQuery)
-    // Which shared-currency row is expanded to its country list. Transient UI —
-    // it survives no refresh and belongs in no shared link, so it stays out of
-    // the URL (same rule as the add-money hub's accordion).
-    const [expandedCurrency, setExpandedCurrency] = useState<string | null>(null)
-    const [otherCountriesOpen, setOtherCountriesOpen] = useState(false)
 
     const currencies = useMemo(
         () => liveWithdrawCurrencies({ sendToBankOnly: !!enforceSupportedCountries }),
@@ -100,28 +92,16 @@ export function WithdrawCurrencyList({
         return null
     }
 
-    const handleCurrencyClick = (currency: WithdrawCurrency) => {
-        const destination = routedDestination(currency)
-        if (destination) {
-            onCountryClick(destination)
-            return
-        }
-        // Any other shared currency: reveal its countries as the secondary step.
-        setExpandedCurrency((current) => (current === currency.code ? null : currency.code))
-    }
-
     return (
         <div className="flex min-h-inherit flex-col gap-4">
-            <div className="space-y-2">
-                <div className="text-body-m-semibold">{heading}</div>
-                <SearchInput
-                    value={query}
-                    onChange={setQuery}
-                    onClear={() => setQuery('')}
-                    placeholder={t('currencyList.searchPlaceholder')}
-                    aria-label={t('currencyList.searchPlaceholder')}
-                />
-            </div>
+            {/* no heading: the nav title already says Withdraw or Send */}
+            <SearchInput
+                value={query}
+                onChange={setQuery}
+                onClear={() => setQuery('')}
+                placeholder={t('currencyList.searchPlaceholder')}
+                aria-label={t('currencyList.searchPlaceholder')}
+            />
 
             {/* crypto sits beside the currencies, never inside them */}
             {!query && onCryptoClick && (
@@ -131,115 +111,103 @@ export function WithdrawCurrencyList({
                     body={tGlobal('countryList.cryptoWithdrawDescription')}
                     bodyWrap
                     chevron
-                    leading={<IconBubble icon="coins" color="blue" size="s" />}
+                    leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                     onClick={onCryptoClick}
                     data-testid="withdraw-crypto"
                 />
             )}
 
             {filteredCurrencies.length > 0 && (
-                <div data-testid="withdraw-currencies">
+                // Which shared-currency row is open is transient UI: it survives
+                // no refresh and belongs in no shared link, so the accordion owns it
+                <Accordion type="single" collapsible className="gap-0" data-testid="withdraw-currencies">
                     {filteredCurrencies.map((currency, index) => {
-                        const expanded = expandedCurrency === currency.code
-                        // a currency the IBAN decides routes straight through, so
-                        // it gets the plain chevron, not the expand affordance
-                        const isMulti = currency.countries.length > 1 && !currencyRoutesByIban(currency)
-                        // the row the user tapped carries the wait, and takes no
-                        // second tap while it does
-                        const isNavigating = !!pendingPath && routedDestination(currency)?.path === pendingPath
-                        return (
-                            <div key={currency.code}>
-                                <ListItem
-                                    title={`${currency.code} · ${tRails(currency.railNameKey)}`}
-                                    body={localizedCurrencyName(locale, currency.code, currency.name)}
-                                    chevron={!isMulti && !isNavigating}
-                                    trailing={
-                                        isNavigating ? (
-                                            <Loading />
-                                        ) : isMulti ? (
-                                            <Icon
-                                                name="chevron-down"
-                                                size={20}
-                                                className={twMerge(
-                                                    'transition-transform duration-moderate',
-                                                    expanded && 'rotate-180'
-                                                )}
-                                            />
-                                        ) : undefined
-                                    }
-                                    position={getCardPosition(index, filteredCurrencies.length)}
-                                    aria-expanded={isMulti ? expanded : undefined}
-                                    disabled={isNavigating}
-                                    onClick={() => handleCurrencyClick(currency)}
-                                    data-testid={`withdraw-currency-${currency.code}`}
-                                    leading={
-                                        <div className="relative h-8 w-8">
-                                            <Image
-                                                src={getFlagUrl(currency.flagCode)}
-                                                alt={t('currencyList.flagAlt', { currency: currency.code })}
-                                                width={80}
-                                                height={80}
-                                                className="h-8 w-8 rounded-full object-cover"
-                                                priority={index < 10}
-                                                loading={index < 10 ? 'eager' : 'lazy'}
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none'
-                                                }}
-                                            />
-                                        </div>
-                                    }
+                        const position = getCardPosition(index, filteredCurrencies.length)
+                        const title = `${currency.code} · ${tRails(currency.railNameKey)}`
+                        const body = localizedCurrencyName(locale, currency.code, currency.name)
+                        const testId = `withdraw-currency-${currency.code}`
+                        const flag = (
+                            <div className="relative h-8 w-8">
+                                <Image
+                                    src={getFlagUrl(currency.flagCode)}
+                                    alt={t('currencyList.flagAlt', { currency: currency.code })}
+                                    width={80}
+                                    height={80}
+                                    className="h-8 w-8 rounded-full object-cover"
+                                    priority={index < 10}
+                                    loading={index < 10 ? 'eager' : 'lazy'}
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                    }}
                                 />
-                                {isMulti && expanded && (
-                                    <CountryList
-                                        viewMode="add-withdraw"
-                                        flow="withdraw"
-                                        countries={countriesForQuery(currency, query, locale)}
-                                        // the field above owns the search
-                                        searchTerm=""
-                                        onCountryClick={onCountryClick}
-                                        enforceSupportedCountries={enforceSupportedCountries}
-                                        continuesGroup
-                                    />
-                                )}
                             </div>
                         )
+                        const destination = routedDestination(currency)
+
+                        // A shared currency the IBAN does not decide opens its
+                        // countries as the secondary step
+                        if (!destination) {
+                            return (
+                                <Accordion.Item key={currency.code} value={currency.code} position={position}>
+                                    <Accordion.Trigger leading={flag} title={title} body={body} data-testid={testId} />
+                                    <Accordion.Content flush forceMount>
+                                        <CountryList
+                                            viewMode="add-withdraw"
+                                            flow="withdraw"
+                                            countries={countriesForQuery(currency, query, locale)}
+                                            // the field above owns the search
+                                            searchTerm=""
+                                            onCountryClick={onCountryClick}
+                                            enforceSupportedCountries={enforceSupportedCountries}
+                                            continuesGroup
+                                        />
+                                    </Accordion.Content>
+                                </Accordion.Item>
+                            )
+                        }
+
+                        // the row the user tapped carries the wait, and takes no
+                        // second tap while it does
+                        const isNavigating = !!pendingPath && destination.path === pendingPath
+                        return (
+                            <ListItem
+                                key={currency.code}
+                                title={title}
+                                body={body}
+                                chevron={!isNavigating}
+                                trailing={isNavigating ? <Loading /> : undefined}
+                                position={position}
+                                disabled={isNavigating}
+                                onClick={() => onCountryClick(destination)}
+                                data-testid={testId}
+                                leading={flag}
+                            />
+                        )
                     })}
-                </div>
+                </Accordion>
             )}
 
-            {/* every other country, one tap away — the country-first list, demoted */}
-            <div data-testid="withdraw-other-countries">
-                <ListItem
-                    title={t('currencyList.otherCountriesTitle')}
-                    body={t('currencyList.otherCountriesPitch')}
-                    bodyWrap
-                    leading={<IconBubble icon="globe" color="blue" size="s" />}
-                    trailing={
-                        <Icon
-                            name="chevron-down"
-                            size={20}
-                            className={twMerge(
-                                'transition-transform duration-moderate',
-                                otherCountriesOpen && 'rotate-180'
-                            )}
-                        />
-                    }
-                    position={otherCountriesOpen ? 'top' : 'solo'}
-                    aria-expanded={otherCountriesOpen}
-                    onClick={() => setOtherCountriesOpen((open) => !open)}
-                    data-testid="withdraw-other-countries-toggle"
-                />
-                {otherCountriesOpen && (
-                    <CountryList
-                        viewMode="add-withdraw"
-                        flow="withdraw"
-                        searchTerm={query}
-                        onCountryClick={onCountryClick}
-                        enforceSupportedCountries={enforceSupportedCountries}
-                        continuesGroup
+            {/* every other country, one tap away — the country-first list,
+                demoted. The row and the list are two cards (kush, 2026-09-25) */}
+            <Accordion type="single" collapsible variant="detached" data-testid="withdraw-other-countries">
+                <Accordion.Item value="other-countries">
+                    <Accordion.Trigger
+                        leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
+                        title={t('currencyList.otherCountriesTitle')}
+                        body={t('currencyList.otherCountriesPitch')}
+                        data-testid="withdraw-other-countries-toggle"
                     />
-                )}
-            </div>
+                    <Accordion.Content flush>
+                        <CountryList
+                            viewMode="add-withdraw"
+                            flow="withdraw"
+                            searchTerm={query}
+                            onCountryClick={onCountryClick}
+                            enforceSupportedCountries={enforceSupportedCountries}
+                        />
+                    </Accordion.Content>
+                </Accordion.Item>
+            </Accordion>
         </div>
     )
 }

@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl'
 
 /**
  * Per-corridor limit facts for the Accounts & payments screen. Rendered in ONE
- * place: the row's own details drawer (`UnlockPayments.view`). The standing
+ * place: the row's own details drawer (`MoneySettings.view`). The standing
  * cards that used to sit under each list were removed on 2026-09-21 — a limit
  * belongs to a corridor, so it is stated where that corridor is explained.
  * Legacy bank-transfer limits do not apply to reusable deposit accounts, so
@@ -92,6 +92,7 @@ export function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summari
                         <ListItem
                             key={summary.asset}
                             title={summary.asset}
+                            truncate
                             body={
                                 <div className="flex flex-col gap-2">
                                     <span>

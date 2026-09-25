@@ -4,6 +4,7 @@ import { DEPOSIT_ACCOUNT_SCREENS, DEPOSIT_CORRIDORS } from '@/features/deposit-a
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { clearRedirectUrl, getFromLocalStorage, getStoredRedirect } from '@/utils/general.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useRouter } from 'next/navigation'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useEffect } from 'react'
@@ -54,25 +55,22 @@ export function useAddMoneyFlow() {
         if (!countryFromQuery) resetOnrampFlow()
     }, [countryFromQuery, resetOnrampFlow])
 
+    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins over
+    // /home, which is only right for tab-bar entries
+    const returnTo = readReturnTo(returnToParams, '/add-money')
+    const leaveFlow = useReturnTo(returnTo ?? '/home')
+
     // Only the ?method=bank hub renders with this handler — every ?country=…
     // render path returns a different component (native sub-views,
     // AddWithdrawCountriesList) that owns its own back behavior — so this
     // handler never runs with a country in the URL.
     const handleBack = () => {
-        // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins over
-        // the /home reset below — that reset is only right for tab-bar entries
-        const returnTo = readReturnTo(returnToParams, '/add-money')
-        if (returnTo) {
-            router.push(returnTo)
-            return
-        }
-
         // check if we have a saved redirect url (from request fulfillment or similar flows)
         const redirect = getStoredRedirect()
         const redirectUrl = redirect?.destination
         const fromRequestFulfillment = getFromLocalStorage('fromRequestFulfillment')
 
-        if (redirectUrl && fromRequestFulfillment) {
+        if (!returnTo && redirectUrl && fromRequestFulfillment) {
             clearRedirectUrl(redirect)
             if (typeof localStorage !== 'undefined') {
                 localStorage.removeItem('fromRequestFulfillment')
@@ -81,9 +79,9 @@ export function useAddMoneyFlow() {
             return
         }
 
-        // always navigate to /home from root add-money page — router.back() causes
-        // loops because sub-pages (crypto, country) are in the history stack
-        router.push('/home')
+        // rewinds to the origin rather than pushing it: a pushed origin kept
+        // this flow under it, so back from the origin reopened the flow
+        leaveFlow()
     }
 
     // Bare /add-money (no method, no country) is not a screen of its own any

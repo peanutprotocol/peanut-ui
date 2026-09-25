@@ -1,13 +1,12 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { getCountryFromPath } from '@/utils/bridge.utils'
@@ -17,18 +16,23 @@ import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { payoutAmounts } from '@/features/withdraw/bank-amount'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
- * (`?step=review|success`); the amount arrives as `?amount=` from the shared
- * amount step; the account comes from the /withdraw-scoped flow context.
+ * (`?step=review|success`); the amount arrives as `?amount=` (or the typed
+ * bank amount as `?destinationAmount=`) from the shared amount step; the
+ * account comes from the /withdraw-scoped flow context.
  * Logic: useBridgeOfframpFlow. NOTE: scripts/native-build.js copies this file
  * to `(mobile-ui)/withdraw/_withdraw-bank.tsx` — keep every import `@/`-based.
  */
 export default function WithdrawBankPage() {
     const locale = useLocale()
     const tNav = useTranslations('navigation')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const flow = useBridgeOfframpFlow()
     const bankRegionIntent = useBankRegionIntent()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -43,10 +47,30 @@ export default function WithdrawBankPage() {
         gate,
         sumsubFlow,
         pendingModal,
+        bankAmount,
     } = flow
 
-    if (!bankAccount) {
+    if (!bankAccount || !flow.payout) {
         return null
+    }
+
+    // the success screen shows what executed, never the still-editable URL (Chip round 8)
+    const successAmounts = flow.executedAmountUsd
+        ? payoutAmounts(flow.executedAmountUsd, flow.executedPayout ?? flow.payout)
+        : null
+
+    // the USDC for a typed bank amount comes from its quote — nothing to review
+    // before the first one. A later refresh that fails keeps this page, and any
+    // open KYC, terms or confirm step, mounted: the review shows the error inline.
+    if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading && !flow.submittedTxHash) {
+        return (
+            <RateGateScreen
+                title={fromSendFlow ? tNav('send') : tNav('withdraw')}
+                onBack={flow.onBack}
+                isLoading={!bankAmount.quoteFailed}
+                onRetry={() => void bankAmount.refetchQuote()}
+            />
+        )
     }
 
     return (
@@ -57,7 +81,7 @@ export default function WithdrawBankPage() {
                 onPrev={() => {
                     if (step === 'success') {
                         // the flow provider is /withdraw-scoped — navigation IS the reset
-                        router.push('/home')
+                        leaveToHome()
                     } else {
                         flow.onBack()
                     }
@@ -68,7 +92,10 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
+                    payout={flow.payout}
+                    isRateLoading={flow.isRateLoading}
                     fromSendFlow={fromSendFlow}
+                    verificationDeadline={flow.advisoryDeadline}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
                     submittedTxHash={flow.submittedTxHash}
@@ -82,15 +109,18 @@ export default function WithdrawBankPage() {
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
-                    onDone={() => router.push('/home')}
+                    onDone={leaveToHome}
+                    onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
+                    onAddBankAccountAgain={flow.onAddBankAccountAgain}
                 />
             )}
 
-            {step === 'success' && (
+            {step === 'success' && successAmounts && (
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={`$${flow.executedAmountUsd ?? amountToWithdraw}`}
+                    currencyAmount={successAmounts.headline}
+                    secondaryAmount={successAmounts.secondary}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                 />
@@ -143,8 +173,6 @@ export default function WithdrawBankPage() {
                 reasonCode={getGateReasonCode(gate)}
                 regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
-            <AdvisoryPreemptModal {...flow.advisoryModalProps} />
-
             <KycReverificationPendingModal
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}

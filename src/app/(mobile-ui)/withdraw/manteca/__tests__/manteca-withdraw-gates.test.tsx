@@ -275,8 +275,14 @@ jest.mock('@/utils/sentry-critical-flow', () => ({
 jest.mock('@/utils/native-routes', () => ({
     withdrawCountryUrl: (country: string) => `/withdraw/${country}`,
 }))
+// the no-history Back fallback each render asks for
+const mockSafeBackFallbacks: string[] = []
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+    useSafeBack: (fallbackUrl: string) => {
+        mockSafeBackFallbacks.push(fallbackUrl)
+        return jest.fn()
+    },
+    useReturnTo: () => jest.fn(),
 }))
 jest.mock('@/constants/countryCurrencyMapping', () => ({
     getFlagUrl: () => '/flag.png',
@@ -368,6 +374,17 @@ beforeEach(() => {
 })
 
 // ---------- tests ----------
+
+// Back with no in-app history landed on /withdraw?showAll=true, the full method
+// list, and skipped the saved destinations. /withdraw shows them when there are any.
+describe('manteca withdraw — Back without history', () => {
+    it('falls back to the withdraw entry, not the full method list', () => {
+        mockStepper.step = 'bank-details'
+        render(<MantecaWithdrawFlow />)
+
+        expect(mockSafeBackFallbacks.at(-1)).toBe('/withdraw')
+    })
+})
 
 describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
     it('all gates clear: the withdraw fires once with the locked price and amount', async () => {
@@ -562,7 +579,8 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
     }, 20_000)
 
     it('an expired quote never signs: it re-locks and waits for a new confirmation', async () => {
-        await reachReview({ ...PRICE_LOCK, expiresAt: new Date(Date.now() - 60_000).toISOString() })
+        // the API measured no time left on the lock
+        await reachReview({ ...PRICE_LOCK, expiresInMs: 0 })
         mockInitiateWithdraw.mockClear()
 
         clickConfirm()
@@ -570,6 +588,22 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+    }, 20_000)
+
+    // A phone clock a few minutes fast read Manteca's expiresAt as already past
+    // and re-quoted on every attempt. The lock's remaining time decides.
+    it('a fast device clock does not expire a live quote: it signs', async () => {
+        await reachReview({
+            ...PRICE_LOCK,
+            expiresAt: new Date(Date.now() - 60_000).toISOString(),
+            expiresInMs: 120_000,
+        })
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
     }, 20_000)
 
     it('does not lock a price while limits are loading', async () => {

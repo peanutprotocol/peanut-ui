@@ -64,21 +64,12 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockHasUser ? mockUser : undefined, fetchUser: mockFetchUser }),
 }))
 
-// The picker reads the viewport through matchMedia: true deals the 2x3 hand
-// (four stickers), false the 2x2 hand (two). The suite runs wide by default.
-const matchMediaStub = (matches: boolean) => (query: string) =>
-    ({
-        matches,
-        media: query,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-    }) as unknown as MediaQueryList
 const tiles = () => screen.getAllByRole('radio')
 const tile = (name: RegExp) => screen.getByRole('radio', { name })
 const die = () => screen.getByRole('button', { name: 'Roll the die' })
 
-// Math.random is pinned to 0 for the suite, which deals a fixed 2x3 hand: the
-// initial, one earned beetle, then apple, avocado and cactus. The cast copy is
+// Math.random is pinned to 0 for the suite, which deals a fixed 3x3 hand: the
+// initial, one earned beetle, then the first basics in catalog order. The cast copy is
 // what a tile prints, so the tiles are named by it.
 const A = /Jackpot Cherry/
 const B = /Watermelon Slice/
@@ -116,7 +107,6 @@ beforeEach(() => {
     window.localStorage.clear()
     resetLetterAvatarCache()
     jest.spyOn(Math, 'random').mockReturnValue(0)
-    jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(true))
     mockBadgeParam = null
     mockHasUser = true
     mockUpdateUserById.mockResolvedValue({ data: {} })
@@ -134,33 +124,33 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 describe('AvatarPicker', () => {
-    it('deals a hand of five tiles and the die', () => {
+    // one 3x3 screen on every phone (TASK-23054): the initial, seven dealt
+    // stickers and the die, three tiles to a row, every row the same height
+    it('deals eight tiles and the die, three to a row', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tiles()).toHaveLength(5)
+        expect(tiles()).toHaveLength(8)
         expect(die()).toBeInTheDocument()
+        const grid = die().parentElement
+        // even rows; a ratio on the tiles would size them from the row height and spill past the column
+        expect(grid).toHaveClass('grid-cols-3', 'auto-rows-fr')
+        for (const el of [...tiles(), die()]) expect(el).not.toHaveClass('aspect-square')
+        // a 91px tile wraps a translated name to three lines; a clamp would cut it
+        expect(tiles()[0].innerHTML).not.toMatch(/line-clamp/)
+        // every name reserves two lines, so a roll of one-line names keeps the grid height (TASK-23054)
+        for (const el of tiles()) expect(el.lastElementChild).toHaveClass('min-h-8')
     })
 
-    // 2x2 under 390px: the initial, two stickers, the die
-    it('deals three tiles and the die on a phone under 390px', () => {
-        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-
-        expect(tiles()).toHaveLength(3)
-        expect(die()).toBeInTheDocument()
-    })
-
-    // a narrow roll drops the pick on purpose; a user refetch (the pending-rail
-    // poller, a post-save fetchUser) must not deal it back and undo the roll
-    it('keeps a narrow roll when the user object refreshes', () => {
-        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
+    // a user refetch (the pending-rail poller, a post-save fetchUser) must not
+    // reshuffle a hand the die just dealt
+    it('keeps a roll when the user object refreshes', () => {
         mockUser.user.avatarKey = 'basic.cactus'
         const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
 
+        jest.spyOn(Math, 'random').mockReturnValue(0.99)
         fireEvent.click(die())
-        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
         const rolled = tiles().map((el) => el.textContent)
+        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
 
         mockUser.user.badges = [...mockUser.user.badges]
         rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
@@ -168,40 +158,23 @@ describe('AvatarPicker', () => {
         expect(tiles().map((el) => el.textContent)).toEqual(rolled)
     })
 
-    // a tap after a narrow roll clears the release, so a failed save still puts
-    // the saved pick back in the hand, checked
-    it('restores the saved pick when a save fails after a narrow roll', async () => {
-        jest.spyOn(window, 'matchMedia').mockImplementation(matchMediaStub(false))
-        mockUser.user.avatarKey = 'basic.cactus'
-        const server = fakeServer()
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-
-        fireEvent.click(die())
-        expect(screen.queryByRole('radio', { name: /Bold Chili/ })).not.toBeInTheDocument()
-        fireEvent.click(tile(A))
-
-        await server.settle(0, { error: 'Could not save' })
-
-        await waitFor(() => expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true'))
-        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
-    })
-
     it('is the hand and nothing else: no title, no description, no header', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         // the drawer still names itself for assistive tech; the sheet does not
-        expect(mockDrawer.accessibleTitle).toBe('Your avatar')
-        expect(screen.queryByText('Your avatar')).not.toBeInTheDocument()
+        expect(mockDrawer.accessibleTitle).toBe('Avatar')
+        expect(screen.queryByText('Avatar')).not.toBeInTheDocument()
         expect(screen.queryByText(/Pick one, or roll the dice/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('drawer-header')).not.toBeInTheDocument()
         expect(screen.queryByRole('heading')).not.toBeInTheDocument()
     })
 
-    it('names and lines every tile', () => {
+    // the subtitle varied in length per roll and changed the screen height (TASK-23054)
+    it('names every tile, with no subtitle under the name', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tile(A)).toHaveTextContent('Two short of rich')
-        expect(tile(/Bold Chili/)).toHaveTextContent('Picked the spicy one')
+        expect(tile(A)).toHaveTextContent(/^Jackpot Cherry$/)
+        expect(tile(/Bold Chili/)).toHaveTextContent(/^Bold Chili$/)
         for (const el of tiles()) expect(el.textContent?.trim()).not.toBe('')
     })
 
@@ -210,8 +183,7 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const initial = tiles()[0]
-        expect(initial).toHaveTextContent('Just S')
-        expect(initial).toHaveTextContent('Your initial')
+        expect(initial).toHaveTextContent(/^Just S$/)
 
         fireEvent.click(initial)
 
@@ -226,6 +198,17 @@ describe('AvatarPicker', () => {
         expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
     })
 
+    // QA-42: a 2px border on the chosen tile pushed its content 1px; the second
+    // signal is an inset ring now, which takes no layout
+    it('marks the chosen tile with an inset ring, keeping the 1px border every tile has', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        const [chosen, other] = tiles()
+        expect(chosen).toHaveClass('border', 'bg-action-primary', 'inset-ring', 'inset-ring-border-default')
+        expect(chosen).not.toHaveClass('border-2')
+        expect(other).not.toHaveClass('inset-ring')
+    })
+
     // slot 1 is the user's OWN letter; someone wearing another one is not
     // claiming an initial, so no tile claims to be it either
     it('leaves nothing checked when the pick is a letter that is not the initial', () => {
@@ -236,18 +219,21 @@ describe('AvatarPicker', () => {
     })
 
     it.each([
-        { locale: 'es-419', messages: es419, artName: 'Escarabajo de bugs', expectedName: 'Cazador de bugs' },
-        { locale: 'pt-BR', messages: ptBR, artName: 'Besouro dos bugs', expectedName: 'Caçador de bugs' },
-    ] as const)('localizes the earned badge name and art in $locale', ({ locale, messages, artName, expectedName }) => {
-        renderWithIntl(
-            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
-                <AvatarPicker open onOpenChange={jest.fn()} />
-            </NextIntlClientProvider>
-        )
+        { locale: 'es-419', messages: es419, artName: 'Escarabajo de bugs', badgeName: 'Cazador de bugs' },
+        { locale: 'pt-BR', messages: ptBR, artName: 'Besouro dos bugs', badgeName: 'Caçador de bugs' },
+    ] as const)(
+        'localizes the earned art name in $locale, without the badge name',
+        ({ locale, messages, artName, badgeName }) => {
+            renderWithIntl(
+                <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                    <AvatarPicker open onOpenChange={jest.fn()} />
+                </NextIntlClientProvider>
+            )
 
-        expect(tile(new RegExp(artName))).toHaveTextContent(expectedName)
-        expect(tile(new RegExp(artName))).not.toHaveTextContent('Bug Whisperer')
-    })
+            expect(tile(new RegExp(artName))).not.toHaveTextContent(badgeName)
+            expect(tile(new RegExp(artName))).not.toHaveTextContent('Bug Whisperer')
+        }
+    )
 
     it('gives simultaneously visible wink artworks distinct Spanish names', () => {
         mockBadgeParam = 'BETA_TESTER'
@@ -275,9 +261,9 @@ describe('AvatarPicker', () => {
 
         const earned = tiles().filter((el) => el.textContent?.includes('Earned'))
         expect(earned.length).toBeGreaterThan(0)
-        // named after its art, lined with the badge that unlocked it
+        // named after its art; the badge that unlocked it is not shown (TASK-23054)
         expect(earned[0]).toHaveTextContent('Beetle')
-        expect(earned[0]).toHaveTextContent('Bug Whisperer')
+        expect(earned[0]).not.toHaveTextContent('Bug Whisperer')
         // design.md badges: "Earned" is done, so it reads success green
         expect(within(earned[0]).getByText('Earned')).toHaveClass('bg-background-badge-success')
 
@@ -293,8 +279,8 @@ describe('AvatarPicker', () => {
     it('puts the tiles in the radiogroup and the die outside it', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
-        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(5).fill('radio'))
+        const group = screen.getByRole('radiogroup', { name: 'Avatar' })
+        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(8).fill('radio'))
         expect(group.contains(die())).toBe(false)
     })
 
@@ -328,8 +314,8 @@ describe('AvatarPicker', () => {
         ]
         const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        // nothing to deal from yet: five tiles, but no badge and no initial
-        expect(tiles()).toHaveLength(5)
+        // nothing to deal from yet: eight tiles, but no badge and no initial
+        expect(tiles()).toHaveLength(8)
         expect(screen.queryByText('Earned')).not.toBeInTheDocument()
         expect(screen.queryByText('Just S')).not.toBeInTheDocument()
 
@@ -571,7 +557,7 @@ describe('AvatarPicker', () => {
         await server.settle(0, { error: 'Could not save' })
 
         await waitFor(() => expect(tile(/Shell/)).toHaveAttribute('aria-checked', 'true'))
-        expect(tiles()).toHaveLength(5)
+        expect(tiles()).toHaveLength(8)
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
     })
 

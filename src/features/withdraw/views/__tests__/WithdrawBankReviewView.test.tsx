@@ -9,12 +9,15 @@ import {
     payoutNoteForRail,
 } from '../../bank-reference'
 import { AccountType, type Account } from '@/interfaces/interfaces'
+import { getBankPayout } from '@/utils/bridge.utils'
 
-jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/ExchangeRate', () => ({
+jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
     __esModule: true,
-    default: ({ nonEuroCurrency }: { nonEuroCurrency?: string }) => (
-        <div data-testid="exchange-rate" data-currency={nonEuroCurrency ?? ''} />
+    default: ({ amountDisplay, secondaryAmount }: { amountDisplay?: string; secondaryAmount?: string }) => (
+        <div>
+            <p data-testid="headline">{amountDisplay}</p>
+            <p data-testid="secondary">{secondaryAmount ?? ''}</p>
+        </div>
     ),
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { fullName: 'Anna Rossi' } } }) }))
@@ -33,21 +36,33 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
+    bankAmount,
+    onRetryQuote,
+    isSubmitReady = true,
+    onAddBankAccountAgain,
 }: {
     rail: string
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
+    bankAmount?: { amount?: string; rate?: string; enteredInBankCurrency: boolean }
+    onRetryQuote?: () => void
+    isSubmitReady?: boolean
+    onAddBankAccountAgain?: () => void
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
+    // the currency comes from the account, the way the flow hook builds it
+    const { currency, bankConvertsTo } = getBankPayout(account)
     return (
         <WithdrawBankReviewView
             bankAccount={account}
             amount="50"
+            payout={{ currency, bankConvertsTo, enteredInBankCurrency: false, ...bankAmount }}
+            isRateLoading={false}
             fromSendFlow={false}
             isLoading={false}
-            isSubmitReady
+            isSubmitReady={isSubmitReady}
             submittedTxHash={submittedTxHash}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
@@ -60,6 +75,8 @@ const Harness = ({
             onReferenceChange={setReference}
             onSubmit={jest.fn()}
             onDone={jest.fn()}
+            onRetryQuote={onRetryQuote}
+            onAddBankAccountAgain={onAddBankAccountAgain}
         />
     )
 }
@@ -179,6 +196,14 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
     })
 
+    it('a saved account the provider refused offers to add a bank account instead of Retry (TASK-23054)', () => {
+        const onAddBankAccountAgain = jest.fn()
+        renderWithIntl(<Harness rail="sepa" showError onAddBankAccountAgain={onAddBankAccountAgain} />)
+        expect(screen.queryByRole('button', { name: /retry/i })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Add new bank account' }))
+        expect(onAddBankAccountAgain).toHaveBeenCalled()
+    })
+
     it('Retry is disabled while the reference breaks the rail limits', () => {
         // The flow hook returns early on a reference problem, so an enabled
         // Retry here is a button that looks live and does nothing.
@@ -218,38 +243,85 @@ describe('WithdrawBankReviewView — the optional reference', () => {
 })
 
 /**
- * One country drives the review screen (QA round 3, W1).
+ * The account decides the payout, the way the transfer does (TASK-23054).
  *
- * The flag came off the IBAN while the conversion notice and the exchange rate
- * came off the country picked two screens earlier, so a Portugal resident with
- * a Lithuanian IBAN who picked Poland saw a Lithuanian flag beside a zloty
- * quote. Since the euro area became one destination (Q2) there is often no
- * picked country at all, which would have silently dropped the notice.
+ * The flag comes off the IBAN, never off the country picked upstream (QA round
+ * 3, W1). The currency comes off the account TYPE: Bridge pays GBP only to a
+ * sort-code account, and every IBAN is paid EUR over SEPA, even in the UK.
  */
 describe('WithdrawBankReviewView — the account is the only country on the screen', () => {
-    const accountFrom = (countryCode: string) =>
-        ({ ...ibanAccount, details: { ...ibanAccount.details, countryCode } }) as unknown as Account
+    const accountFrom = (countryCode: string, type = AccountType.IBAN) =>
+        ({ ...ibanAccount, type, details: { ...ibanAccount.details, countryCode } }) as unknown as Account
 
-    it('a euro IBAN gets no conversion notice and no local-currency rate', () => {
-        renderWithIntl(<Harness rail="sepa" account={accountFrom('DEU')} />)
+    it('a euro IBAN gets a EUR rate and no conversion notice', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                account={accountFrom('DEU')}
+                bankAmount={{ rate: '0.8955', enteredInBankCurrency: false }}
+            />
+        )
 
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
-        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
     })
 
-    it('a Polish IBAN gets the zloty rate and the conversion notice, with no country picked', () => {
-        renderWithIntl(<Harness rail="sepa" account={accountFrom('POL')} />)
+    it.each([
+        ['GBR', 'the UK'],
+        ['POL', 'Poland'],
+        ['SWE', 'Sweden'],
+        ['CHE', 'Switzerland'],
+    ])('an IBAN from %s (%s) is paid EUR: EUR rate and amount, and the conversion notice', (countryCode) => {
+        // Konrad, 2026-09-25: a UK IBAN quoted "1 USD = 0.7508 GBP" and "≈ £…"
+        // while the transfer paid EUR over SEPA
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                account={accountFrom(countryCode)}
+                bankAmount={{ rate: '0.8955', amount: '44.78', enteredInBankCurrency: false }}
+            />
+        )
 
-        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', 'PLN')
-        expect(screen.getByText('We send EUR to your bank')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByTestId('secondary')).toHaveTextContent('≈ €44.78')
+        expect(screen.queryByText(/GBP|PLN|SEK|CHF|£/)).not.toBeInTheDocument()
+        expect(screen.getByText('We send EUR to the bank')).toBeInTheDocument()
+    })
+
+    it('a UK sort-code account is paid GBP: GBP rate, no EUR notice', () => {
+        renderWithIntl(
+            <Harness
+                rail="faster_payments"
+                account={accountFrom('GBR', AccountType.GB)}
+                bankAmount={{ rate: '0.7508', amount: '37.54', enteredInBankCurrency: false }}
+            />
+        )
+
+        expect(screen.getByText('1 USD = 0.7508 GBP')).toBeInTheDocument()
+        expect(screen.getByTestId('secondary')).toHaveTextContent('≈ £37.54')
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
     })
 
     it("a Lithuanian IBAN is euro, so it never borrows another country's currency", () => {
         // the W1 case: the flag said Lithuania while the rate said zloty
-        renderWithIntl(<Harness rail="sepa" account={accountFrom('LTU')} />)
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                account={accountFrom('LTU')}
+                bankAmount={{ rate: '0.8955', enteredInBankCurrency: false }}
+            />
+        )
 
-        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
-        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
+    })
+
+    it('a US account converts nothing: no rate row, one amount', () => {
+        renderWithIntl(<Harness rail="ach" account={accountFrom('USA', AccountType.US)} />)
+
+        expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
+        expect(screen.getByTestId('headline')).toHaveTextContent('$50')
+        expect(screen.getByTestId('secondary')).toBeEmptyDOMElement()
     })
 })
 
@@ -301,5 +373,66 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 
         expect(screen.queryByText('Account owner')).not.toBeInTheDocument()
         expect(screen.queryByText('Anna Rossi')).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — the amount leads in the currency the user typed (TASK-23054)', () => {
+    it('typed in EUR: the bank amount leads, the USD from the balance follows', () => {
+        renderWithIntl(
+            <Harness rail="sepa" bankAmount={{ amount: '2000', rate: '0.8955', enteredInBankCurrency: true }} />
+        )
+        expect(screen.getByTestId('headline')).toHaveTextContent('≈ €2,000')
+        expect(screen.getByTestId('secondary')).toHaveTextContent('$50')
+        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+    })
+
+    it('typed in USD: the USD leads, the bank amount follows as an estimate', () => {
+        renderWithIntl(
+            <Harness rail="sepa" bankAmount={{ amount: '44.78', rate: '0.8955', enteredInBankCurrency: false }} />
+        )
+        expect(screen.getByTestId('headline')).toHaveTextContent('$50')
+        expect(screen.getByTestId('secondary')).toHaveTextContent('≈ €44.78')
+    })
+
+    it('before the first rate loads, shows the USD alone', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByTestId('headline')).toHaveTextContent('$50')
+        expect(screen.getByTestId('secondary')).toBeEmptyDOMElement()
+    })
+
+    // a failed 30-second refresh: the review, and any step open over it, stays
+    it('a failed quote refresh is an inline error with a retry, on the same review', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ amount: '2000', rate: '0.8955', enteredInBankCurrency: true }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        expect(screen.getByTestId('headline')).toHaveTextContent('≈ €2,000')
+        expect(
+            screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+        expect(onRetryQuote).toHaveBeenCalled()
+    })
+
+    // Chip: a failed submit, then a failed quote refresh — the submit Retry must
+    // not look live while the flow refuses the quote that is no longer current
+    it('after a failed submit, the submit Retry waits for a current quote; the quote Retry stays live', () => {
+        const onRetryQuote = jest.fn()
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                showError
+                isSubmitReady={false}
+                bankAmount={{ amount: '2000', rate: '0.8955', enteredInBankCurrency: true }}
+                onRetryQuote={onRetryQuote}
+            />
+        )
+        const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
+        expect(submitRetry).toBeDisabled()
+        expect(quoteRetry).toBeEnabled()
     })
 })

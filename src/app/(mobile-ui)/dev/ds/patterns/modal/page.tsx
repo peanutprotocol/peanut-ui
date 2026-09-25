@@ -13,7 +13,7 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
 
-const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info']
+const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info', 'peanut']
 
 export default function ModalPage() {
     const [showActionModal, setShowActionModal] = useState(false)
@@ -35,7 +35,7 @@ export default function ModalPage() {
                 use={[
                     'A decision the user answers: confirm, cancel, or a destructive action.',
                     'One short message plus its CTAs, when the content must fully catch attention.',
-                    'Destructive confirms: red icon bubble, primary confirm, secondary cancel.',
+                    'Destructive confirms: red icon bubble, primary confirm, tertiary cancel link.',
                     'Every modal in the app — route it through ActionModal, never Global/Modal directly.',
                 ]}
                 dontUse={[
@@ -64,6 +64,7 @@ export default function ModalPage() {
                             }}
                             title="Confirm Action"
                             description="Are you sure you want to proceed? This action cannot be undone."
+                            tone="attention"
                             icon="alert"
                             checkbox={{
                                 text: 'I understand the consequences',
@@ -71,14 +72,6 @@ export default function ModalPage() {
                                 onChange: setActionCheckbox,
                             }}
                             ctas={[
-                                {
-                                    text: 'Cancel',
-                                    variant: 'secondary',
-                                    onClick: () => {
-                                        setShowActionModal(false)
-                                        setActionCheckbox(false)
-                                    },
-                                },
                                 {
                                     text: 'Confirm',
                                     variant: 'primary',
@@ -89,14 +82,23 @@ export default function ModalPage() {
                                     },
                                 },
                             ]}
+                            tertiaryCta={{
+                                text: 'Cancel',
+                                onClick: () => {
+                                    setShowActionModal(false)
+                                    setActionCheckbox(false)
+                                },
+                            }}
                         />
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <p className="text-body-s text-foreground-secondary">
                             <code>tone</code> picks the bubble color and a default icon: error (red, ban), attention
-                            (yellow, alert), success (green, check), info (blue, info). An explicit <code>icon</code> or{' '}
-                            <code>iconContainerClassName</code> still wins.
+                            (yellow, alert), success (green, check), info (blue, info), peanut (yellow, no default: name
+                            the Peanut thing). A product concept passes <code>concept</code> and takes its CONCEPT_ICONS
+                            pair (QR pay pink, card yellow, bank blue). An explicit <code>icon</code> still wins over a
+                            tone. An icon without a tone or a concept does not compile.
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {TONES.map((tone) => (
@@ -109,9 +111,10 @@ export default function ModalPage() {
                             visible={toneModal !== null}
                             onClose={() => setToneModal(null)}
                             tone={toneModal ?? 'info'}
+                            icon={toneModal === 'peanut' ? 'bell' : undefined}
                             title={`tone="${toneModal ?? 'info'}"`}
                             description="Icon and bubble color come from the tone, not from a class name."
-                            ctas={[{ text: 'Close', variant: 'secondary', onClick: () => setToneModal(null) }]}
+                            ctas={[{ text: 'Close', variant: 'primary', onClick: () => setToneModal(null) }]}
                         />
                     </div>
 
@@ -122,9 +125,9 @@ export default function ModalPage() {
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
                             {
                                 name: 'tone',
-                                type: "'error' | 'attention' | 'success' | 'info'",
+                                type: "'error' | 'attention' | 'success' | 'info' | 'peanut'",
                                 default: '(none)',
-                                description: 'Semantic bubble color + default icon',
+                                description: 'Semantic bubble color + default icon. Required whenever an icon renders',
                             },
                             {
                                 name: 'description',
@@ -155,6 +158,13 @@ export default function ModalPage() {
                                 type: 'ActionModalButtonProps[]',
                                 default: '[]',
                                 description: 'Array of {text, variant, onClick, ...ButtonProps}',
+                            },
+                            {
+                                name: 'tertiaryCta',
+                                type: 'ActionModalTertiaryCta',
+                                default: '(none)',
+                                description:
+                                    '{text, onClick?, href?, disabled?}: the underlined LinkButton under the ctas. Every cancel, not now, skip or keep goes here',
                             },
                             {
                                 name: 'checkbox',
@@ -200,10 +210,8 @@ export default function ModalPage() {
     checked: checked,
     onChange: setChecked,
   }}
-  ctas={[
-    { text: 'Cancel', variant: 'secondary', onClick: handleCancel },
-    { text: 'Confirm', variant: 'primary', onClick: handleConfirm },
-  ]}
+  ctas={[{ text: 'Confirm', variant: 'primary', onClick: handleConfirm }]}
+  tertiaryCta={{ text: 'Cancel', onClick: handleCancel }}
 />`}
                     />
                 </DocSection.Code>
@@ -218,8 +226,15 @@ export default function ModalPage() {
                     undocumented modal shell.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Prefer <code>tone</code> over iconContainerClassName: yellow is for attention only, red for errors,
-                    green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
+                    Cancel, not now, do this later, skip, keep and close are never a Button next to the primary. They go
+                    in <code>tertiaryCta</code>, the underlined link 24px under the ctas. A secondary Button is only for
+                    a second path of equal weight.
+                </DesignNote>
+                <DesignNote type="warning">
+                    Every icon takes a <code>tone</code> or a <code>concept</code>: red for errors, green for success,
+                    blue for plain information, yellow for attention and for Peanut&apos;s own. A concept keeps its
+                    CONCEPT_ICONS color, so QR pay is pink here too. There is no implicit color; never recolor the
+                    bubble with iconContainerClassName.
                 </DesignNote>
             </DocSection>
 
@@ -227,10 +242,11 @@ export default function ModalPage() {
                 <ProductUsage.Example
                     title="KYC — Bridge terms of service"
                     path="src/components/Kyc/BridgeTosStep.tsx"
-                    description="Two stacked full-width CTAs, and the same modal carries the error state: icon, title and description all swap when the accept call fails."
+                    description="One full-width primary with the defer action as the tertiary link, and the same modal carries the error state: icon, title and description all swap when the accept call fails."
                     code={`<ActionModal
   visible={visible && !showIframe && !isConfirming}
   onClose={onSkip}
+  tone={error ? 'error' : 'info'}
   icon={error ? 'alert' : 'badge'}
   title={error ? t('bridgeTos.errorTitle') : copy.title}
   description={error || copy.description}
@@ -242,8 +258,8 @@ export default function ModalPage() {
       className: 'w-full',
       shadowSize: '4',
     },
-    { text: t('bridgeTos.notNow'), onClick: onSkip, variant: 'secondary', className: 'w-full' },
   ]}
+  tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
 />`}
                 >
                     <Button variant="secondary" size="small" onClick={() => setBridgeTosModal(true)}>
@@ -252,6 +268,7 @@ export default function ModalPage() {
                     <ActionModal
                         visible={bridgeTosModal}
                         onClose={() => setBridgeTosModal(false)}
+                        tone="info"
                         icon="badge"
                         title="Accept Bridge terms"
                         description="Bridge is our banking partner. Accept their terms to finish verification."
@@ -263,13 +280,8 @@ export default function ModalPage() {
                                 className: 'w-full',
                                 shadowSize: '4',
                             },
-                            {
-                                text: 'Not now',
-                                onClick: () => setBridgeTosModal(false),
-                                variant: 'secondary',
-                                className: 'w-full',
-                            },
                         ]}
+                        tertiaryCta={{ text: 'Not now', onClick: () => setBridgeTosModal(false) }}
                     />
                 </ProductUsage.Example>
 
@@ -287,10 +299,7 @@ export default function ModalPage() {
   title={t(copyKeys.title)}
   description={t(copyKeys.body)}
   content={hasBody ? bodyContent : undefined}
-  ctas={[
-    { text: t('lockModal.lockCta'), variant: 'primary', onClick: run, loading: phase === 'loading' },
-    { text: tCommon('cancel'), variant: 'secondary', className: 'w-full', onClick: onClose },
-  ]}
+  tertiaryCta={{ text: tCommon('cancel'), onClick: onClose, disabled: phase === 'loading' }}
 />`}
                 >
                     <Button variant="secondary" size="small" onClick={() => setLockCardModal(true)}>
@@ -303,15 +312,8 @@ export default function ModalPage() {
                         icon="lock"
                         title="Lock your card?"
                         description="Payments stop straight away. You can unlock the card at any time."
-                        ctas={[
-                            { text: 'Lock card', variant: 'primary', onClick: () => setLockCardModal(false) },
-                            {
-                                text: 'Cancel',
-                                variant: 'secondary',
-                                className: 'w-full',
-                                onClick: () => setLockCardModal(false),
-                            },
-                        ]}
+                        ctas={[{ text: 'Lock card', variant: 'primary', onClick: () => setLockCardModal(false) }]}
+                        tertiaryCta={{ text: 'Cancel', onClick: () => setLockCardModal(false) }}
                     />
                 </ProductUsage.Example>
             </ProductUsage>

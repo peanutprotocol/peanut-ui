@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
+import { isUsableSavedAccount } from '@/utils/bridge-accounts.utils'
 
 /**
  * Used to get the user's saved bank accounts (IBAN, US/ACH, CLABE, GB sort-code,
@@ -21,12 +22,13 @@ export default function useSavedAccounts() {
         return (
             user?.accounts.filter(
                 (acc) =>
-                    acc.type === AccountType.IBAN ||
-                    acc.type === AccountType.US ||
-                    acc.type === AccountType.CLABE ||
-                    acc.type === AccountType.GB ||
-                    acc.type === AccountType.CO_BANK_TRANSFER ||
-                    acc.type === AccountType.MANTECA
+                    (acc.type === AccountType.IBAN ||
+                        acc.type === AccountType.US ||
+                        acc.type === AccountType.CLABE ||
+                        acc.type === AccountType.GB ||
+                        acc.type === AccountType.CO_BANK_TRANSFER ||
+                        acc.type === AccountType.MANTECA) &&
+                    isUsableSavedAccount(acc)
             ) ?? []
         )
     }, [user])

@@ -116,9 +116,9 @@ export interface SignSpendBundleInput {
      *  handled by the recovery (wait or quote review), so the global cooldown
      *  explainer must not fire for an attempt the user never made. */
     suppressCooldownEvent?: boolean
-    /** Epoch ms this payment's provider quote dies at. Lets an internal
-     *  recovery wait out a Rain cooldown when it still fits, instead of
-     *  handing back to quote review. */
+    /** This payment's lock deadline on this device's clock, in ms
+     *  (`receiveLock`). Lets an internal recovery wait out a Rain cooldown
+     *  when it still fits, instead of handing back to quote review. */
     lockExpiresAt?: number
 }
 

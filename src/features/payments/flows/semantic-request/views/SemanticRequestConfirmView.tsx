@@ -214,7 +214,7 @@ export function SemanticRequestConfirmView() {
                         estimationFailed={isFeeEstimationError}
                     />
 
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {/* buttons and error */}

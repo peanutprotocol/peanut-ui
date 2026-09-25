@@ -6,9 +6,10 @@ import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -71,6 +72,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     // routing and country context
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const params = useParams()
     // Native routes keep the country in query state instead of a path segment.
     const currentCountryName = (params.country as string) || countryFromQuery || ''
@@ -112,6 +116,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // For add-money flow, amount is now in URL state via nuqs
     const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+    // the backend decides the matching mode; only a flexible transfer may tell
+    // the user that any amount works
+    const isFlexibleAmount = onrampData?.flexibleAmount === true
 
     const currencySymbolBasedOnCountry = useMemo(() => {
         // symbol of the detected onramp currency (e.g., €, $)
@@ -179,7 +186,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const formattedCurrencyAmount = useMemo(() => {
         if (!amount) return ''
 
-        return formatCurrencyAmount(amount, onrampCurrency)
+        return formatBankAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
 
     const isUk = currentCountryDetails?.id === 'GB' || currentCountryDetails?.iso3 === 'GBR'
@@ -281,7 +288,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <Card className="p-4">
-                    <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
+                    <p className="text-body-xs text-foreground-secondary">
+                        {isFlexibleAmount ? t('bankDetails.amountLabel') : t('bankDetails.amountToSend')}
+                    </p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-heading-s text-foreground-primary md:text-heading-l">
                             {formattedCurrencyAmount}
@@ -290,7 +299,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     </div>
 
                     <Callout priority="attention" className="mt-4">
-                        {t('bankDetails.sendExactAmount')}
+                        {isFlexibleAmount ? t('bankDetails.sendAnyAmount') : t('bankDetails.sendExactAmount')}
                     </Callout>
                 </Card>
 
@@ -443,7 +452,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 <Callout priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
                     <BulletList
                         items={[
-                            t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+                            ...(isFlexibleAmount
+                                ? []
+                                : [t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount })]),
                             t('bankDetails.doubleCheckReference', {
                                 reference:
                                     shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
@@ -472,7 +483,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             : t('bankDetails.etaSepa')}
                 </p>
 
-                <Button onClick={() => router.push('/home')} variant="primary" className="w-full" shadowSize="4">
+                <Button onClick={leaveToHome} variant="primary" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>
 

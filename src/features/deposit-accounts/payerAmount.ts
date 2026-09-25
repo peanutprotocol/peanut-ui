@@ -9,6 +9,7 @@
  */
 
 import { STABLE_COINS } from '@/constants/general.consts'
+import { roundUpToDecimals } from '@/utils/currency'
 
 /**
  * Whether a request's asked amount is a US-dollar figure the payer conversion
@@ -36,11 +37,7 @@ export function minorUnitDigits(currency: string): number {
 
 /** `value` rounded UP to the smallest unit `currency` has. Never down: a short payment leaves the request open. */
 export function ceilToMinorUnit(value: number, currency: string): number {
-    const factor = 10 ** minorUnitDigits(currency)
-    // Binary floating point puts an exact 8.29 just above 829 minor units, and
-    // a bare ceil would then charge the payer a cent they do not owe. Nine
-    // decimals is far below any real rate's precision and far above the error.
-    return Math.ceil(Number((value * factor).toFixed(9))) / factor
+    return roundUpToDecimals(value, minorUnitDigits(currency))
 }
 
 /** The per-rail amount the API states, after parsing. */

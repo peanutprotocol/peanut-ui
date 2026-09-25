@@ -21,7 +21,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({ useSignSpendBundle: () => ({ signSpend: jest.fn() }) }))
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({ useStaleSessionGuard: () => jest.fn() }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => jest.fn() }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: null }) }))
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: () => ({ code: 'ARS', price: { sell: 1200, buy: 1200 }, isLoading: false }),

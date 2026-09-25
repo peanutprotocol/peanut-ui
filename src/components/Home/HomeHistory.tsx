@@ -332,6 +332,7 @@ const HomeHistory = ({
             <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 <EmptyState
                     icon="alert"
+                    iconColor="red"
                     title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
                     description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />

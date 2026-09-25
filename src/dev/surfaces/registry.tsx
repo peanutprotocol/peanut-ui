@@ -28,7 +28,6 @@ import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
@@ -65,6 +64,7 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
+import type { OnboardingState } from '@/utils/activation-step.utils'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
@@ -116,6 +116,14 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
     )
 }
 
+/** verified, funded, card and QR open: the first-payment row opens the chooser */
+const FUNDED_CARD_ONBOARDING: OnboardingState = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'first_payment',
+}
 const noop = () => {}
 const asyncNoop = async () => {}
 
@@ -259,18 +267,6 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['20-a-setupnotificationsmodal'],
         render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
     },
-    '21-b-advisorypreemptmodal': {
-        ...SURFACE_META['21-b-advisorypreemptmodal'],
-        render: () => (
-            <AdvisoryPreemptModal
-                visible
-                effectiveDate="2026-10-01"
-                onCompleteNow={noop}
-                onDoLater={noop}
-                onClose={noop}
-            />
-        ),
-    },
     '22-b-initiatekycmodal': {
         ...SURFACE_META['22-b-initiatekycmodal'],
         render: () => <InitiateKycModal visible onClose={noop} onVerify={noop} />,
@@ -374,7 +370,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '39-c-onrampconfirmationmodal': {
         ...SURFACE_META['39-c-onrampconfirmationmodal'],
-        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
+        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} />,
     },
     '40-c-supportednetworksmodal': {
         name: 'SupportedNetworksDrawer',
@@ -765,7 +761,6 @@ export const SURFACES: Record<string, Surface> = {
                     currency="EUR"
                     bankPayable={false}
                     onDone={noop}
-                    onCreateAnother={noop}
                 />
             </AppPageSurface>
         ),
@@ -801,11 +796,11 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '70-d-activationctas-outbound': {
-        // the spend chooser opens on the card's CTA tap — the shot spec (or a
-        // human) clicks "Start Spending"; needs a fixture granting card access
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
-        render: () => <ActivationCTAs activationStep="outbound" />,
+        // the first-payment chooser opens on the row tap — the shot spec (or a
+        // human) clicks the row; needs a fixture granting card access
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
+        render: () => <ActivationCTAs onboarding={FUNDED_CARD_ONBOARDING} />,
     },
     '66-d-backupfaqlosephone': {
         name: 'Backup FAQ — lose phone',

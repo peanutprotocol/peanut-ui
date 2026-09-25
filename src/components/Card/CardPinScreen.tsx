@@ -114,8 +114,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
             <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
                 <EmptyState
-                    icon="credit-card"
-                    iconColor="brand"
+                    concept="card"
                     title={t('noPinTitle')}
                     description={t('noPinBody')}
                     cta={
