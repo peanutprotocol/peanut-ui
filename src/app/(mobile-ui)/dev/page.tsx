@@ -29,12 +29,6 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 icon: 'docs',
             },
             {
-                name: 'Accordion consolidation',
-                description: 'Proposal: every product collapsible on one Accordion, before and after per surface',
-                path: '/dev/accordion',
-                icon: 'switch',
-            },
-            {
                 name: 'Nav header centering',
                 description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
                 path: '/dev/nav-header-centering',
