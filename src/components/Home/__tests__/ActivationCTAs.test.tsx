@@ -23,7 +23,7 @@ let mockRails: Array<{
     channel: string
     status: string
     operations?: Record<string, string>
-    reason?: { userMessage: string }
+    reason?: { userMessage: string; code?: string }
     resolved?: {
         status: 'fixable' | 'blocked'
         blocking: {
@@ -433,5 +433,43 @@ describe('ActivationCTAs — a restart-eligible block starts a fresh ID check, n
 
         expect(mockOpenSupport).toHaveBeenCalled()
         expect(mockRestartIdentity).not.toHaveBeenCalled()
+    })
+})
+
+describe('ActivationCTAs — a blocked card can be hidden', () => {
+    const posthog = () => jest.requireMock('posthog-js').default as { capture: jest.Mock }
+
+    it('the region card hides with its kind and reason in the key and the event', () => {
+        mockRegionRestricted = true
+        const onHide = jest.fn()
+        render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={onHide} />)
+        fireEvent.click(screen.getByText('Hide'))
+        expect(onHide).toHaveBeenCalledWith('blocked-card:region-restricted:identity_region_restricted')
+        expect(posthog().capture).toHaveBeenCalledWith('home_blocked_card_hidden', {
+            card_kind: 'region-restricted',
+            reason_code: 'identity_region_restricted',
+        })
+    })
+
+    it('the verification-issue card hides under its rail reason code', () => {
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                channel: 'bank',
+                status: 'blocked',
+                reason: { userMessage: 'declined', code: 'provider_rejected' },
+            },
+        ]
+        const onHide = jest.fn()
+        render(<ActivationCTAs onboarding={VERIFIED} onHideBlockedCard={onHide} />)
+        expect(screen.getByText('Verification issue')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Hide'))
+        expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:provider_rejected')
+    })
+
+    it('the checklist itself shows no blocked-card Hide', () => {
+        render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={jest.fn()} />)
+        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
     })
 })

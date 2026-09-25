@@ -60,6 +60,22 @@ export function showQrPayCTA(input: { canPayQrNow: boolean; hasMadeQrPayment: bo
 /** The getting-started checklist, hidden with "Hide" once only the payment row is left. */
 export const HOME_CHECKLIST_CTA_ID = 'home-checklist'
 
+/** The cards that replace the checklist when a door is shut (region refused, provider rejection). */
+export type BlockedCardKind =
+    | 'region-restricted'
+    | 'add-email'
+    | 'complete-setup'
+    | 'restart-identity'
+    | 'verification-issue'
+
+/**
+ * A blocked card's dismissal key: its kind plus the reason code. A new reason
+ * (another verdict or code) is a new key, so the card shows again once.
+ */
+export function blockedCardCtaId(kind: BlockedCardKind, reasonCode: string | null | undefined): string {
+    return `blocked-card:${kind}:${reasonCode ?? 'none'}`
+}
+
 /**
  * The Home CTAs a user closed that stay hidden now: carousel cards and the
  * getting-started checklist share this one store (user preferences,

@@ -4,8 +4,8 @@
  *
  * Contract: four rows — Create account ✓ · Verify identity · Add money · Make
  * the first payment. Every open row stays tappable in any order; the first
- * open, actionable row is outlined in pink; an ID check in review shows a pill
- * and is skipped by the outline. The first-payment row follows the one route
+ * row has the same border (no highlight on the next step); an ID check in
+ * review says so. The first-payment row follows the one route
  * selector: card_qr → chooser, card → /card, qr → scanner, none → no row.
  */
 import React from 'react'
@@ -65,8 +65,6 @@ jest.mock('@/components/Home/FirstPaymentChooser', () => ({
     default: ({ open }: { open: boolean }) => (open ? <div>first-payment-chooser</div> : null),
 }))
 
-const outlined = (testId: string) => screen.getByTestId(testId).className.includes('outline-action-primary')
-
 describe('GettingStartedChecklist', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -86,18 +84,19 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getAllByRole('button')).toHaveLength(3)
     })
 
-    it('outlines the first open row: verify for a new user', () => {
-        render()
-        expect(outlined('checklist-verify-identity')).toBe(true)
-        expect(outlined('checklist-add-money')).toBe(false)
+    it('every row has the same border: no highlight on the next step', () => {
+        render({ verify: 'in_review', addMoneyDone: false, step: 'add_money' })
+        for (const row of screen.getAllByTestId(/^checklist-/)) {
+            // focus-visible outlines are the focus state, not a highlight
+            expect(row.className).not.toMatch(/(^|\s)(outline-2|outline-action-primary|border-action-primary)/)
+            expect(row).toHaveClass('border-border-default')
+        }
     })
 
-    it('an ID check in review says so and passes the outline to Add money', () => {
+    it('an ID check in review says so on its subtitle line', () => {
         render({ verify: 'in_review', step: 'add_money' })
         expect(screen.getByText('In review')).toBeInTheDocument()
         expect(screen.queryByText('One-time ID check')).not.toBeInTheDocument()
-        expect(outlined('checklist-verify-identity')).toBe(false)
-        expect(outlined('checklist-add-money')).toBe(true)
     })
 
     it('verify opens the ID check screen', () => {
@@ -112,16 +111,14 @@ describe('GettingStartedChecklist', () => {
         expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
     })
 
-    it('money in before the ID check: Add money done, verify still outlined, 50%', () => {
+    it('money in before the ID check: Add money done, verify still open, 50%', () => {
         render({ addMoneyDone: true })
         expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
-        expect(outlined('checklist-verify-identity')).toBe(true)
         expect(screen.getByText('50%')).toBeInTheDocument()
     })
 
-    it('verified and funded: the first payment is outlined, 75%', () => {
+    it('verified and funded: the first payment is the one open row, 75%', () => {
         render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
-        expect(outlined('checklist-first-payment')).toBe(true)
         expect(screen.getByText('75%')).toBeInTheDocument()
     })
 
@@ -190,7 +187,6 @@ describe('GettingStartedChecklist', () => {
         const row = screen.getByTestId('checklist-first-payment')
         expect(row).not.toHaveAttribute('role')
         expect(row.querySelector('.animate-pulse')).not.toBeNull()
-        expect(outlined('checklist-first-payment')).toBe(false)
         expect(screen.getByText('75%')).toBeInTheDocument()
     })
 

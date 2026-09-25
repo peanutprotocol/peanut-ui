@@ -30,16 +30,21 @@ export function useHomeFlow() {
     const userId = user?.user.userId
     const { isBalanceHidden, toggleBalanceVisibility } = useBalanceVisibility(userId)
 
-    // The checklist's "Hide" choice lives in the same store as carousel
-    // dismissals. Read after mount: it is per-device localStorage.
-    const [isChecklistHidden, setIsChecklistHidden] = useState(false)
+    // Home's "Hide" choices (the checklist, a blocked card) live in the same
+    // store as carousel dismissals. Read after mount: per-device localStorage.
+    const [hiddenHomeCtas, setHiddenHomeCtas] = useState<ReadonlySet<string>>(new Set())
     useEffect(() => {
-        setIsChecklistHidden(readHiddenHomeCtas(userId).has(HOME_CHECKLIST_CTA_ID))
+        setHiddenHomeCtas(new Set(readHiddenHomeCtas(userId).keys()))
     }, [userId])
-    const hideChecklist = useCallback(() => {
-        hideHomeCta(userId, HOME_CHECKLIST_CTA_ID)
-        setIsChecklistHidden(true)
-    }, [userId])
+    const hideCta = useCallback(
+        (id: string) => {
+            hideHomeCta(userId, id)
+            setHiddenHomeCtas((prev) => new Set(prev).add(id))
+        },
+        [userId]
+    )
+    const hideChecklist = useCallback(() => hideCta(HOME_CHECKLIST_CTA_ID), [hideCta])
+    const isChecklistHidden = hiddenHomeCtas.has(HOME_CHECKLIST_CTA_ID)
 
     // re-fetch user on mount to pick up activation status changes (e.g. after qr payment)
     useEffect(() => {
@@ -68,6 +73,8 @@ export function useHomeFlow() {
         isOnboardingComplete,
         isChecklistHidden,
         hideChecklist,
+        hiddenHomeCtas,
+        hideCta,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,

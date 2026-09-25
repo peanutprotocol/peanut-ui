@@ -76,8 +76,8 @@ const SubtitleSkeleton = () => (
  * appears only for a user who can make an activating spend (card or QR).
  *
  * Every open row stays tappable, in any order: money can arrive before the ID
- * check. The first open row that has something to do is outlined in pink —
- * a row in review is skipped, because there is nothing to do on it.
+ * check. Every row has the same ListItem border (Hugo, 2026-09-25): the next
+ * step shows only by its order and its chevron.
  */
 const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: OnboardingState; onHide?: () => void }) => {
     const t = useTranslations('home.gettingStarted')
@@ -174,7 +174,6 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
     ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
-    const nextId = items.find((item) => !item.done && !item.inReview && !item.pending)?.id
 
     const viewedRef = useRef(false)
     useEffect(() => {
@@ -217,9 +216,6 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
                             }
                             chevron={tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={
-                                item.id === nextId ? 'outline-2 -outline-offset-2 outline-action-primary' : undefined
-                            }
                         />
                     )
                 })}
