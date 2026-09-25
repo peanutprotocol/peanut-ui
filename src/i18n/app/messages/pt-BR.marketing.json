@@ -106,6 +106,7 @@
         "xchainPaymentDisabled": "Transferências para outras redes estão limitadas na sua conta. Fale com o suporte para receber ajuda.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
+        "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
@@ -141,7 +142,7 @@
         },
         "downloadNow": "Baixar agora",
         "smartLink": {
-            "redirecting": "Levando você para a loja…",
+            "redirecting": "Abrindo a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }
     },
@@ -171,7 +172,7 @@
         "hero": {
             "wordmark": "Cartão Peanut",
             "tagline": "Seu dinheiro. Pronto para pagar.",
-            "cta": "Peça seu cartão",
+            "cta": "Pedir cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
             "title": "Go Pink.",
             "pitch": "Um saldo. 150 milhões de lugares para gastar.",

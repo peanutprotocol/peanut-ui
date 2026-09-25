@@ -85,7 +85,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -114,8 +114,18 @@ describe('ResidenceStep', () => {
         // persisted after signup — collapsing must clear the stored pick.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        const toggle = screen.getByRole('button', { name: /Have documents from more than one country/ })
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        fireEvent.click(toggle)
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
+    })
+
+    it('opening the selector clears nothing', () => {
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: /Have documents from more than one country/ }))
+        expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
     it('shows the per-country availability comparison with the truth-first guidance', () => {
@@ -439,14 +449,14 @@ describe('ResidenceStep', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
 
         it('starts on the selector when entering forward with a stored pick', () => {
             mockDirection = 1
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
     })
 

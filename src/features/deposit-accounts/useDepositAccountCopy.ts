@@ -2,10 +2,10 @@
 
 import { useFormatter, useTranslations } from 'next-intl'
 import { useCallback, useMemo } from 'react'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
 import { railLabel, type RailLabels } from './instructionRows'
-import { depositRuleLines, type DepositRuleKey } from './ruleLines'
+import { depositRuleLines, senderLimitKey, type DepositRuleKey } from './ruleLines'
 import type {
     DepositCorridor,
     DepositInstructions,
@@ -57,11 +57,10 @@ const RAIL_LABEL_KEYS = [
     'transfer_ar',
 ] as const
 
-/** one rule, in the three voices the screens and the shared text need */
+/** one rule: the line the holder reads, and the explanation behind its (i) */
 export interface ResolvedRuleLine {
     key: DepositRuleKey
     text: string
-    payer: string
     why: string
 }
 
@@ -103,28 +102,34 @@ export function useDepositAccountCopy() {
     }, [t])
 
     /**
-     * The rules for one account, resolved into the three voices a rule needs:
-     * `text` for the holder reading their own screen, `payer` for the text
-     * that leaves the app, and `why` for the (i) behind the line.
-     *
-     * One resolver, so a rule can never be stated on screen and missing from
-     * the message a payer actually reads.
+     * The rules for one account: `text` for the holder reading their own
+     * screen, `why` for the (i) behind the line. The shared text carries only
+     * `senderLimit`, not the full rules (`buildShareText`).
      */
     const ruleLines = useCallback(
         (matching: DepositSenderTerms, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
-            depositRuleLines(matching, rules, formatCurrencyAmount).map(({ key, values }) => {
+            depositRuleLines(matching, rules, formatBankAmount).map(({ key, values }) => {
                 // `user` is only read by the provider-held line; passing it to
                 // every string is cheaper than a per-key values table.
                 const all = { user, ...values }
                 return {
                     key,
                     text: t(`rules.${key}.line`, all),
-                    payer: t(`rules.${key}.payer`, all),
                     why: t(`rules.${key}.why`, all),
                 }
             }),
         [t]
     )
+
+    /**
+     * Who may pay into this account, where the corridor limits it: `text` for
+     * the holder, `payer` for whoever pays them. Undefined when anyone may.
+     */
+    const senderLimit = (matching: DepositSenderTerms): { text: string; payer: string } | undefined => {
+        const key = senderLimitKey(matching)
+        if (!key) return undefined
+        return { text: t(`senderLimit.${key}.line`), payer: t(`senderLimit.${key}.payer`) }
+    }
 
     /**
      * Why a claim failed, in the user's language. The backend answers in
@@ -147,14 +152,6 @@ export function useDepositAccountCopy() {
         return { text: t('fees.converted'), ratesFor: rail.currency }
     }
 
-    /**
-     * The smallest deposit a corridor accepts, already formatted, or undefined
-     * where the rail publishes no floor. The claim screen surfaces it in its
-     * "good to know" aside so the amount is not buried in the payer rules.
-     */
-    const minimumDeposit = (rules: DepositRules | undefined): string | undefined =>
-        rules?.min ? formatCurrencyAmount(rules.min.amount, rules.min.currency) : undefined
-
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
 
@@ -176,11 +173,11 @@ export function useDepositAccountCopy() {
         rowLabels,
         railLabels,
         ruleLines,
+        senderLimit,
         railName,
         accountRailName,
         arrivalDetail,
         claimErrorBody,
         feeLine,
-        minimumDeposit,
     }
 }

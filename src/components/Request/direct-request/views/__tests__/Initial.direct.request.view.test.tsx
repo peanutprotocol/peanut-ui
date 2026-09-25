@@ -13,8 +13,11 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
 }))
 
 const mockReplace = jest.fn()
+const mockPush = jest.fn()
 const mockFetchUser = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace, push: mockPush }) }))
+let mockHandoff: { interceptGuestCta: jest.Mock; storeHandoffModal: null; handoffActive: boolean }
+jest.mock('@/hooks/useGuestStoreHandoff', () => ({ useGuestStoreHandoff: () => mockHandoff }))
 let mockAuth: any
 let mockContact: any
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
@@ -116,17 +119,51 @@ beforeEach(() => {
         refetch: jest.fn(),
     }
     mockRequestByUsername.mockResolvedValue({})
+    mockHandoff = { interceptGuestCta: jest.fn(() => false), storeHandoffModal: null, handoffActive: false }
 })
 
 describe('addressed requests', () => {
-    test('redirects guests to setup and preserves the destination without an external address form', async () => {
+    test('shows guests a join card that saves the destination before setup', () => {
         mockAuth.user = null
         window.history.replaceState({}, '', '/request/alice')
         renderView()
-        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup'))
-        expect(localStorage.getItem('redirect')).toContain('/request/alice')
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('Request money from alice')).toBeInTheDocument()
+        expect(screen.getByText('You need a Peanut Wallet to send alice a payment request.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'View profile' })).toHaveAttribute('href', '/alice')
+        expect(screen.queryByTestId('nav-header')).not.toBeInTheDocument()
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Create a Peanut Wallet' }))
+        expect(localStorage.getItem('redirect')).toContain('/request/alice')
+        expect(mockPush).toHaveBeenCalledWith('/setup')
         expect(mockRequestByUsername).not.toHaveBeenCalled()
+    })
+
+    test('hands guests to the app store during the migration', () => {
+        mockAuth.user = null
+        mockHandoff = { ...mockHandoff, interceptGuestCta: jest.fn(() => true), handoffActive: true }
+        renderView()
+        expect(screen.getByText('You need the Peanut app to send alice a payment request.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Download Peanut' }))
+        expect(mockHandoff.interceptGuestCta).toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    test('waits for auth to settle before showing the guest card', () => {
+        mockAuth.user = undefined
+        renderView()
+        expect(screen.getByTestId('loading')).toBeInTheDocument()
+        expect(screen.queryByText('Request money from alice')).not.toBeInTheDocument()
+    })
+
+    test('offers send and a request link to a non-contact', () => {
+        mockContact = { ...mockContact, data: null }
+        renderView()
+        expect(screen.getByText('No payments with alice yet')).toBeInTheDocument()
+        expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Send money to alice' })).toHaveAttribute('href', '/send/alice')
+        expect(screen.getByRole('link', { name: 'Share a request link' })).toHaveAttribute('href', '/request')
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
     })
 
     test('redirects an incomplete account to finish setup', async () => {

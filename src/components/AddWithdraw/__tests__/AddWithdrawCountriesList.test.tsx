@@ -165,7 +165,13 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         showWrapper: false,
     }),
 }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+// back leaves for the list the country was picked from; the history rewind
+// itself is covered in src/hooks/__tests__/useSafeBack.test.ts
+const mockReturnTo = jest.fn()
+jest.mock('@/hooks/useSafeBack', () => ({
+    useSafeBack: () => jest.fn(),
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
+}))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'IOS', ANDROID: 'ANDROID', WEB: 'WEB' },
     useDeviceType: () => ({ deviceType: 'WEB' }),
@@ -575,7 +581,7 @@ describe('bank country back navigation', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
         // the plain withdraw path names the rail it came back from, so the
         // chooser does not offer crypto again (QA round 2, Q1)
-        expect(mockPush).toHaveBeenCalledWith(
+        expect(mockReturnTo).toHaveBeenCalledWith(
             query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
         )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
@@ -641,7 +647,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+        expect(mockReturnTo).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
     })
 
     it.each(['', 'bank'])(
@@ -656,7 +662,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
                 fireEvent.click(screen.getByTestId('nav-header'))
             })
 
-            expect(mockPush).toHaveBeenCalledWith(
+            expect(mockReturnTo).toHaveBeenCalledWith(
                 origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
             )
             expect(mockUrlUpdate).not.toHaveBeenCalled()
@@ -794,7 +800,7 @@ describe('AddWithdrawCountriesList — the euro area', () => {
 
         fireEvent.click(screen.getByTestId('nav-header'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+        expect(mockReturnTo).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
     })
 })
 

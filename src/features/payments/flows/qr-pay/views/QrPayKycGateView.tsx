@@ -41,11 +41,13 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.unlockTitle')}
                 description={t('kyc.unlockDescription')}
-                icon={
-                    methodIcon ? (
-                        <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
-                    ) : undefined
-                }
+                // the payment method's brand mark when known, else the QR pay concept (pink)
+                {...(methodIcon
+                    ? {
+                          tone: 'info' as const,
+                          icon: <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />,
+                      }
+                    : { concept: 'qrPay' as const })}
                 ctas={[
                     {
                         text: t('kyc.unlockCta'),
@@ -72,6 +74,7 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.inProgressTitle')}
                 description={t('kyc.inProgressDescription')}
+                tone="attention"
                 icon="shield"
                 ctas={[
                     {
@@ -87,13 +90,8 @@ export function QrPayKycGateView() {
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
-                    {
-                        text: t('kyc.notNow'),
-                        onClick: onBack,
-                        variant: 'secondary',
-                        className: 'w-full',
-                    },
                 ]}
+                tertiaryCta={{ text: t('kyc.notNow'), onClick: onBack }}
             />
             <SumsubKycModals
                 flow={sumsubFlow}

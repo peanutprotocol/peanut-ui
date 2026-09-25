@@ -98,34 +98,32 @@ export const useCreateRequestLink = () => {
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
     const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
-    // The opt-in defaults to the payable account's sender policy: it starts on
-    // where a person can actually pay ('anyone' — USD, MXN, EUR) and off where
-    // only a business can ('business-only' — GBP, COP, BRL). own-name-only has
-    // no payable account, so the toggle is hidden and the default stays off.
-    // The user can still change it; create is the only place it is read, so it
-    // stays local state rather than url state — a shared link must not carry
-    // the requester's choice.
+    // The opt-in starts on wherever the toggle is offered, whoever may pay the
+    // account (hugo, QA 2026-09-24): a corridor that limits payers says so on
+    // the toggle and on the payer's screen instead. With no payable account the
+    // toggle is hidden and the default stays off. The user can still change
+    // it; create is the only place it is read, so it stays local state rather
+    // than url state — a shared link must not carry the requester's choice.
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const { accounts: depositAccounts, gates: depositGates } = useDepositAccounts({ enabled: depositAccountsEnabled })
-    // Read the sender policy only of an account the payer could actually be given
-    // — the same canShare test the toggle uses. Without the gate the default
-    // turned bank-payment ON for a blocked or detail-less account whose toggle is
+    // Only an account the payer could actually be given counts — the same
+    // canShare test the toggle uses. Without the gate the default turned
+    // bank-payment ON for a blocked or detail-less account whose toggle is
     // hidden, so the request shipped bankInstructionsShared with no way to unset it.
-    const payableSender = useMemo(() => {
-        if (!depositAccountsEnabled) return undefined
+    const hasPayableAccount = useMemo(() => {
+        if (!depositAccountsEnabled) return false
         const corridor = firstPayableCorridor(depositAccounts)
         const account = corridor ? depositAccounts[corridor] : undefined
         const gate = corridor ? depositGates[corridor] : undefined
-        if (!account || !gate || !canShare(account, gate)) return undefined
-        return account.matching.sender
+        return !!account && !!gate && canShare(account, gate)
     }, [depositAccountsEnabled, depositAccounts, depositGates])
     const [bankInstructionsShared, setBankInstructionsShared] = useState(false)
     // Once the user sets the toggle, the derived default stops overriding it.
     const bankInstructionsTouchedRef = useRef(false)
     useEffect(() => {
         if (bankInstructionsTouchedRef.current || requestId) return
-        setBankInstructionsShared(payableSender === 'anyone')
-    }, [payableSender, requestId])
+        setBankInstructionsShared(hasPayableAccount)
+    }, [hasPayableAccount, requestId])
     const handleBankInstructionsSharedChange = useCallback((value: boolean) => {
         bankInstructionsTouchedRef.current = true
         setBankInstructionsShared(value)
@@ -490,20 +488,6 @@ export const useCreateRequestLink = () => {
         return link
     }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 
-    const resetRequest = useCallback(() => {
-        createLinkAbortRef.current?.abort()
-        createLinkAbortRef.current = null
-        setRequestId(null)
-        setGeneratedLink(null)
-        setRequestAmount('')
-        setAttachmentOptions({ message: '', fileUrl: '', rawFile: undefined })
-        lastSavedAttachmentRef.current = { message: '', fileUrl: '', rawFile: undefined }
-        bankInstructionsTouchedRef.current = false
-        setBankInstructionsShared(payableSender === 'anyone')
-        setErrorState({ showError: false, errorMessage: '' })
-        void setQuery({ amount: null, merchant: null, currency: null })
-    }, [payableSender, setQuery])
-
     // Set wallet defaults when connected
     useMemo(() => {
         if (isConnected && address) {
@@ -533,6 +517,5 @@ export const useCreateRequestLink = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
-        resetRequest,
     }
 }

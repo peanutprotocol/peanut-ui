@@ -43,7 +43,7 @@ jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }))
 
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 
 jest.mock('@/components/AddMoney/consts', () => ({
     countryData: [

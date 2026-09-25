@@ -82,7 +82,7 @@ const renderLanding = (sendInSecondsSlot: ReactNode = <section id="send-in-secon
     render(
         <LandingPageClient
             heroConfig={{ primaryCta: { label: 'Sign up', href: '/setup' } }}
-            marqueeMessages={['GLOBAL']}
+            marqueeMessages={[{ id: 'GLOBAL', label: 'GLOBAL' }]}
             strings={{} as LandingStrings}
             contentHrefs={EN_LANDING_CONTENT_HREFS}
             problemSlot={<div />}

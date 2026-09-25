@@ -17,20 +17,13 @@ import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 const MINI = 'text-label-m uppercase tracking-wide text-foreground-secondary'
-const AMOUNT = '250.00'
-const CURRENCY = '€'
 
 function useOnrampCopy() {
     const t = useTranslations('addMoney.confirmationModal')
-    const bold = { b: (chunks: React.ReactNode) => <b>{chunks}</b> }
     return {
         t,
         willSee: [t('bankDetailsItem'), t('referenceCodeItem')],
-        mustDo: [
-            t.rich('sendExactly', { currency: CURRENCY, amount: AMOUNT, ...bold }),
-            t('copyReferenceCode'),
-            t('pasteReference'),
-        ],
+        mustDo: [t('copyReferenceCode'), t('pasteReference')],
     }
 }
 

@@ -9,12 +9,15 @@ describe('PeanutActionCard', () => {
 
         expect(screen.getByText('Request money')).toBeInTheDocument()
         expect(screen.getByText('No account needed, just send a DM.')).toBeInTheDocument()
-        expect(screen.queryByAltText('Socials')).not.toBeInTheDocument()
+        expect(screen.queryByText('Perfect for WhatsApp and Messenger')).not.toBeInTheDocument()
     })
 
-    it('keeps the socials line on the send card', () => {
+    // Hugo, 2026-09-25: the send card names the chat apps a link goes to
+    it('shows the chat-apps line on the send card', () => {
         render(<PeanutActionCard type="send" />, { wrapper: IntlWrapper })
 
-        expect(screen.getByText('Perfect to DM friends!')).toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
+        expect(screen.getByText('Perfect for WhatsApp and Messenger')).toBeInTheDocument()
+        expect(screen.getByText('Anyone with the link can claim it')).toBeInTheDocument()
     })
 })

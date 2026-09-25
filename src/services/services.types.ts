@@ -378,6 +378,13 @@ export interface TCreateOfframpRequest {
     }
 }
 
+/**
+ * GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current
+ * rate (`rate` = bank units per 1 USDC, fee included). Derived from the
+ * generated contract, so a field the API drops fails the build at every reader.
+ */
+export type OfframpQuote = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
+
 /** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
 export interface TCreateGuestOfframpRequest {
     /** Must equal the link amount, as a decimal of its token. */

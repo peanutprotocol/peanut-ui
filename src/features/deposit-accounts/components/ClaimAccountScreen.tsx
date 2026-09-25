@@ -5,10 +5,10 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
@@ -60,17 +60,14 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, arrivalDetail, ruleLines, minimumDeposit } = useDepositAccountCopy()
+    const { t, arrivalDetail, ruleLines } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
 
+    // The floor is one of these lines, and the screen states each rule once.
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
-    // The floor renders in the payer rules too; the "good to know" aside repeats
-    // it because that is where a user looks for "what should I know before I
-    // open this", and the smallest deposit is one of those facts.
-    const minimum = minimumDeposit(terms?.rules)
     // The terms were resolved without one input, and only the dollar rail
     // reads it: the state on the user's residence can forbid a third-party
     // payment outright. The lines below are the rail's published terms without
@@ -88,23 +85,18 @@ export function ClaimAccountScreen({
                     description={t('claim.subheading')}
                 />
 
-                {/*
-                 * `title` is a plain string here on purpose, wrapped in a span:
-                 * ListItem truncates a bare string title to one line, and these
-                 * are full sentences, not row labels.
-                 */}
                 <ListGroup>
                     <ListItem
-                        leading={<Icon name="wallet" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{t('claim.benefitBalance')}</span>}
+                        leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitBalance')}
                     />
                     <ListItem
-                        leading={<Icon name="clock" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{arrivalDetail(rail.corridor)}</span>}
+                        leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
+                        title={arrivalDetail(rail.corridor)}
                     />
                     <ListItem
-                        leading={<Icon name="link" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{t('claim.benefitStable')}</span>}
+                        leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitStable')}
                     />
                 </ListGroup>
 
@@ -157,8 +149,6 @@ export function ClaimAccountScreen({
                         items={[
                             // what it costs, before the account is opened
                             <DepositFeeLine key="fee" rail={rail} />,
-                            // the smallest deposit the corridor accepts, where it publishes one
-                            ...(minimum ? [t('claim.faqMinimum', { min: minimum })] : []),
                             // A euro account is a shared SEPA one, so the IBAN can
                             // be issued in another EU country — said plainly here so
                             // a user who reached it by picking, say, France is not

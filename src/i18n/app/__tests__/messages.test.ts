@@ -38,6 +38,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
+    'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
 }
 
 describe('deepMerge fallback', () => {
@@ -219,10 +220,10 @@ describe('badge invite requirement agreement', () => {
 
 describe('badge avatar benefit agreement', () => {
     const EXPECTED = {
-        en: ['1 avatar for your profile', '3 avatars for your profile'],
-        'es-419': ['1 avatar para tu perfil', '3 avatares para tu perfil'],
-        'es-AR': ['1 avatar para tu perfil', '3 avatares para tu perfil'],
-        'pt-BR': ['1 avatar para o seu perfil', '3 avatares para o seu perfil'],
+        en: ['1 profile avatar', '3 profile avatars'],
+        'es-419': ['1 avatar de perfil', '3 avatares de perfil'],
+        'es-AR': ['1 avatar de perfil', '3 avatares de perfil'],
+        'pt-BR': ['1 avatar de perfil', '3 avatares de perfil'],
     } satisfies Record<AppLocale, [string, string]>
 
     it.each(APP_LOCALES)('%s agrees the avatar count with its noun', async (locale) => {

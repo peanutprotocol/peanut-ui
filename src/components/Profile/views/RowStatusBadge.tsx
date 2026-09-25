@@ -1,15 +1,14 @@
 'use client'
 
 import Badge from '@/components/Global/Badges/Badge'
-import type { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import type { UnlockChip, UnlockRow } from '@/utils/unlock-payments.utils'
+import type { UnlockRow } from '@/utils/unlock-payments.utils'
 
 /**
  * The one status-badge vocabulary for a KYC-unlock row (bank/QR rows and the
- * always-on Peanut rows) — shared by the merged "Your accounts" list and the
- * "Peanut" group so both read from the same chip→badge mapping. Held VA rows
- * use their own simpler Ready/nothing badge (see `AccountsList`), since a
- * held account has no "unlock" state to describe.
+ * always-on Peanut rows) — shared by the bank rows of `AccountsHubList` and the
+ * Spend and Peanut groups so all read from the same chip→badge mapping. Virtual
+ * accounts carry their own account badges, since an account has no "unlock"
+ * state to describe.
  */
 // next-intl's per-namespace translator type is narrower than `(key: string) => string`, and this
 // helper is shared across namespaced callers, so it accepts any translator rather than one namespace.
@@ -36,16 +35,4 @@ export function rowStatusBadge(row: UnlockRow, t: (key: any) => string) {
 /** During a verification outage the unlock path is closed, so those rows render inert. */
 export function isRowTappable(row: UnlockRow, isKycDegraded: boolean): boolean {
     return !!row.href || row.chip === 'active' || row.chip === 'alwaysOn' || (!!row.regionPath && !isKycDegraded)
-}
-
-type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
-
-/** IconBubble color per chip — used only by rows that still lead with an icon (the Peanut group). */
-export const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
-    attention: 'yellow',
-    notAvailable: 'gray',
 }

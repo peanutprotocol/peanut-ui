@@ -3,6 +3,8 @@
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Section } from '@/components/0_Bruddle/Section'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -11,7 +13,7 @@ import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -66,6 +68,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // ?method=bank — so the marker alone doesn't mean "send". Same guard as
     // AddWithdrawRouterView.
     const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
+    // Back from a country returns to the list it was picked from. Rewinding,
+    // not pushing: a pushed list kept the country page under it, so browser
+    // back from the list reopened the country.
+    const leaveForParent = useReturnTo(
+        flow === 'add'
+            ? '/add-money?method=bank'
+            : isBankFromSend
+              ? `/withdraw?showAll=true&method=${methodParam}`
+              : '/withdraw?showAll=true&rail=bank'
+    )
 
     // hooks
     const { deviceType } = useDeviceType()
@@ -534,11 +546,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // the user on the same form with a dead back button.
                         if (railListSkipped || isSepaDestination) {
                             withdrawFlow?.setSelectedBankAccount(null)
-                            router.push(
-                                isBankFromSend
-                                    ? `/withdraw?showAll=true&method=${methodParam}`
-                                    : '/withdraw?showAll=true&rail=bank'
-                            )
+                            leaveForParent()
                             return
                         }
                         // Only update query state when staying on this route. A queued
@@ -592,19 +600,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 title={method.title}
                                 body={<div className="text-body-xs">{method.description}</div>}
                                 leading={
-                                    typeof method.icon === 'string' || method.icon === undefined ? (
+                                    method.icon === ('bank' as IconName) ? (
+                                        <IconBubble {...CONCEPT_ICONS.bank} size="s" />
+                                    ) : method.id === 'crypto-add' || method.id === 'crypto-withdraw' ? (
+                                        <IconBubble {...CONCEPT_ICONS.crypto} size="s" />
+                                    ) : typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
                                             name={method.title ?? method.id}
                                             size="s"
                                             inlineStyle={{
-                                                backgroundColor:
-                                                    method.icon === ('bank' as IconName)
-                                                        ? 'var(--color-background-icon-bubble-yellow)'
-                                                        : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
-                                                          ? 'var(--color-background-icon-bubble-yellow)'
-                                                          : getColorForUsername(method.title).lightShade,
-                                                color: method.icon === ('bank' as IconName) ? 'black' : 'black',
+                                                backgroundColor: getColorForUsername(method.title).lightShade,
+                                                color: 'black',
                                             }}
                                         />
                                     ) : (
@@ -650,21 +657,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {
-                    if (flow === 'add') {
-                        router.push('/add-money?method=bank')
-                    } else {
+                    if (flow === 'withdraw') {
                         withdrawFlow?.setSelectedMethod(null)
                         withdrawFlow?.setSelectedBankAccount(null)
                         void setUrlAmount(null)
-                        // the country list is only ever reached on the bank rail —
-                        // name it so the chooser does not re-offer crypto on the
-                        // way back
-                        router.push(
-                            isBankFromSend
-                                ? `/withdraw?showAll=true&method=${methodParam}`
-                                : '/withdraw?showAll=true&rail=bank'
-                        )
                     }
+                    // the withdraw country list is only ever reached on the bank
+                    // rail — without history, the fallback names it so the chooser
+                    // does not re-offer crypto
+                    leaveForParent()
                 }}
             />
             <div className="flex-1 overflow-y-auto">

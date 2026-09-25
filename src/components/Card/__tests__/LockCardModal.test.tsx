@@ -155,11 +155,11 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
-    it('offers "Keep my card" as a ghost button, and it closes without canceling', () => {
+    it('offers "Keep card" as the tertiary link, and it closes without canceling', () => {
         setup(OVERVIEW)
         const onClose = jest.fn()
         render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
-        fireEvent.click(screen.getByRole('button', { name: 'Keep my card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Keep card' }))
         expect(onClose).toHaveBeenCalledTimes(1)
         expect(mockCancelCard).not.toHaveBeenCalled()
     })

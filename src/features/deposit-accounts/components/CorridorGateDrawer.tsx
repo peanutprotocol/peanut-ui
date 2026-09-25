@@ -3,7 +3,9 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Badge from '@/components/Global/Badges/Badge'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
@@ -95,6 +97,7 @@ export function CorridorGateDrawer({
     isActing = false,
     actFailed = false,
     onClose,
+    onDismiss = onClose,
     onAct,
     onTopUp,
 }: {
@@ -107,7 +110,10 @@ export function CorridorGateDrawer({
     isActing?: boolean
     /** the button's action failed for a reason a retry may clear */
     actFailed?: boolean
+    /** the wait button: back to the list underneath */
     onClose: () => void
+    /** the user swiped or tapped the drawer away: back where they came from */
+    onDismiss?: () => void
     onAct: () => void
     /**
      * The other way in: a transfer the user sends themselves on this same
@@ -116,7 +122,7 @@ export function CorridorGateDrawer({
      */
     onTopUp?: () => void
 }) {
-    const { t, railName } = useDepositAccountCopy()
+    const { t } = useDepositAccountCopy()
     const waiting = WAITS.has(notice.action)
     /*
      * At the account cap there is nothing to unblock: the user holds every
@@ -133,8 +139,7 @@ export function CorridorGateDrawer({
 
     const actButton = (
         <Button
-            key="act"
-            variant={topUpLeads ? 'secondary' : 'primary'}
+            variant="primary"
             className="w-full"
             loading={isActing}
             disabled={isActing}
@@ -146,7 +151,6 @@ export function CorridorGateDrawer({
     )
     const topUpButton = onTopUp ? (
         <Button
-            key="top-up"
             variant={topUpLeads ? 'primary' : 'secondary'}
             className="w-full"
             onClick={onTopUp}
@@ -156,23 +160,29 @@ export function CorridorGateDrawer({
         </Button>
     ) : null
 
+    const gateIcon = ICONS[notice.action as keyof typeof ICONS] as IconName | undefined
+
     return (
         <Drawer
             open={open}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) onDismiss()
             }}
         >
             <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
                 <div className="flex flex-col items-center text-center">
                     {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
                     <IconBubble
-                        icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
-                        color="gray"
+                        icon={gateIcon ?? 'globe-lock'}
+                        // a wait is yellow; every other reason has a button that clears it,
+                        // so it is a way forward, blue (TASK-22761)
+                        color={waiting ? 'yellow' : 'blue'}
                         className="mb-4"
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>{t(TITLES[notice.action], { count: slotsHeld })}</DrawerTitle>
+                        <DrawerTitle>
+                            {t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })}
+                        </DrawerTitle>
                         {body && <DrawerDescription>{body}</DrawerDescription>}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
@@ -182,15 +192,25 @@ export function CorridorGateDrawer({
                             {t('gate.actFailed')}
                         </Callout>
                     )}
-                    {/* the leading button first in the DOM, so the order on
-                        screen and the tab order both say which one to press */}
-                    <div className="mt-6 flex w-full flex-col gap-2">
-                        {topUpLeads ? [topUpButton, actButton] : [actButton, topUpButton]}
-                    </div>
-                    {/* which corridor the user tapped, so the drawer is not about "an account" */}
-                    <p className="mt-4 text-body-xs text-foreground-secondary">
-                        {`${rail.currency} · ${railName(rail.corridor)}`}
-                    </p>
+                    {topUpLeads ? (
+                        // support is the escape here, not a second way to add
+                        // money, so it is the tertiary LinkButton under the primary
+                        <div className="mt-6 flex w-full flex-col items-center gap-6">
+                            {topUpButton}
+                            <LinkButton
+                                onClick={onAct}
+                                disabled={isActing}
+                                data-testid={`corridor-gate-${notice.action}`}
+                            >
+                                {t(LABELS[notice.action])}
+                            </LinkButton>
+                        </div>
+                    ) : (
+                        <div className="mt-6 flex w-full flex-col gap-2">
+                            {actButton}
+                            {topUpButton}
+                        </div>
+                    )}
                 </div>
             </DrawerContent>
         </Drawer>

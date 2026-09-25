@@ -9,6 +9,8 @@ import { useCallback } from 'react'
 import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon, type IconName } from '../Icons/Icon'
 import { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -35,6 +37,10 @@ export interface PeanutActionDetailsCardProps {
     recipientName: string
     message?: string
     amount: string
+    /** The headline amount, already formatted ("≈ £3.75"); replaces the symbol + `amount` rendering. */
+    amountDisplay?: string
+    /** A second amount under the headline, already formatted: the other currency of a conversion. */
+    secondaryAmount?: string
     tokenSymbol: string
     viewType?: 'NORMAL' | 'SUCCESS'
     className?: HTMLDivElement['className']
@@ -65,6 +71,8 @@ export default function PeanutActionDetailsCard({
     recipientName,
     message,
     amount,
+    amountDisplay,
+    secondaryAmount,
     tokenSymbol,
     viewType = 'NORMAL',
     className,
@@ -139,8 +147,9 @@ export default function PeanutActionDetailsCard({
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
             return 'bank'
+        // an external address or wallet is the crypto concept
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
-            return 'wallet-outline'
+            return CONCEPT_ICONS.crypto.icon
         return undefined
     }, [viewType, transactionType, recipientType])
 
@@ -154,7 +163,8 @@ export default function PeanutActionDetailsCard({
             transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
-            return 'var(--color-background-icon-bubble-yellow)'
+            // bank and crypto are both method concepts: the blue method fill
+            return `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`
         return getColorForUsername(recipientName).lightShade
     }
 
@@ -200,16 +210,8 @@ export default function PeanutActionDetailsCard({
         if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
             return undefined
         const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
-        return (
-            <AvatarWithBadge
-                size="m"
-                logo={imgSrc}
-                icon="bank"
-                inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}
-                iconFillColor={AVATAR_TEXT_DARK}
-                fallback={{ icon: 'bank', bgColor: 'var(--color-background-icon-bubble-blue)' }}
-            />
-        )
+        const bankBubble = <IconBubble {...CONCEPT_ICONS.bank} size="m" />
+        return imgSrc ? <AvatarWithBadge size="m" logo={imgSrc} fallback={bankBubble} /> : bankBubble
     }
 
     return (
@@ -242,6 +244,8 @@ export default function PeanutActionDetailsCard({
                     {getTitle()}
                     {isLoading ? (
                         <Loading />
+                    ) : amountDisplay ? (
+                        <h2 className="text-heading-s">{amountDisplay}</h2>
                     ) : (
                         <h2 className="text-heading-s">
                             {(transactionType === 'ADD_MONEY' || isAddBankAccount || isClaimLinkBankAccount) &&
@@ -259,6 +263,9 @@ export default function PeanutActionDetailsCard({
                                 !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
                                 ` ${tokenSymbol}`}
                         </h2>
+                    )}
+                    {!isLoading && secondaryAmount && (
+                        <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>
                     )}
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />

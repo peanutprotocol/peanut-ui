@@ -97,12 +97,12 @@ export default function SectionPage() {
 
             <ProductUsage>
                 <ProductUsage.Example
-                    title="Accounts & payments — ways to add money"
-                    path="src/components/Profile/views/AccountsList.tsx"
+                    title="Add money and Accounts and payments — other ways in"
+                    path="src/features/deposit-accounts/components/AccountsHubList.tsx"
                     description="The plain shape: heading, a secondary line, then the list. Section owns the h2 token so the page never respells it."
-                    code={`<Section title={t('waysTitle')}>
-    <p className="text-body-s text-foreground-secondary">{t('waysSubtitle')}</p>
-    <ListGroup>{bankListItems(bankRows, onRowClick, isKycDegraded, t)}</ListGroup>
+                    code={`<Section title={t('list.otherWaysTitle')}>
+    <p className="text-body-s text-foreground-secondary">{t('list.otherWaysBody')}</p>
+    {otherWays.length > 0 && <ListGroup>{otherWays}</ListGroup>}
 </Section>`}
                 >
                     <Section title="Ways to add money">

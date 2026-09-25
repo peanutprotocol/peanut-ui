@@ -43,7 +43,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({ useStaleSessionGuard: () => () => false }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/usePointsCalculation', () => ({
     usePointsCalculation: () => ({ pointsData: null, pointsDivRef: { current: null } }),
 }))
@@ -229,6 +229,7 @@ function lockFixture(overrides: Record<string, unknown> = {}) {
         paymentAgainstAmount: '10',
         paymentAgainst: 'USD',
         expireAt: new Date(Date.now() + 120_000).toISOString(),
+        expiresInMs: 120_000,
         creationTime: new Date().toISOString(),
         depositAddress: SERVED_DEPOSIT,
         ...overrides,

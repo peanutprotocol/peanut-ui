@@ -541,12 +541,8 @@ export default function DebugPage() {
                         disabled: !promptValue.trim(),
                         onClick: submitPrompt,
                     },
-                    {
-                        text: 'Cancel',
-                        variant: 'secondary',
-                        onClick: () => setPromptRequest(null),
-                    },
                 ]}
+                tertiaryCta={{ text: 'Cancel', onClick: () => setPromptRequest(null) }}
             />
 
             <ActionModal
@@ -565,12 +561,8 @@ export default function DebugPage() {
                             await refreshWhoami()
                         },
                     },
-                    {
-                        text: 'Cancel',
-                        variant: 'secondary',
-                        onClick: () => setIsResetOpen(false),
-                    },
                 ]}
+                tertiaryCta={{ text: 'Cancel', onClick: () => setIsResetOpen(false) }}
             />
         </DevPageShell>
     )

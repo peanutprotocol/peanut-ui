@@ -4062,7 +4062,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         cat: 'alerts',
         catLabel: 'Alerts / toasts / banners',
         layer: 'components',
-        role: 'The animated (framer-motion) floating toast stack; renders each toast as a dismissible <Notification>.',
+        role: 'The animated (framer-motion) floating toast stack; renders each toast as a floating <Callout> with no close button.',
         usages: 1,
         status: 'canonical',
         source: 'src/components/0_Bruddle/ToastStack.tsx',

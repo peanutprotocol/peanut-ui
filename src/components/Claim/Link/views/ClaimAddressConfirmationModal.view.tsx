@@ -1,7 +1,7 @@
 'use client'
 
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import ActionModal from '@/components/Global/ActionModal'
 import { useTranslations } from 'next-intl'
 
@@ -38,7 +38,7 @@ export const ClaimAddressConfirmationModal = ({
             }
             tone="attention"
             footer={
-                <div className="space-y-3 w-full">
+                <div className="flex w-full flex-col gap-6">
                     <SlideToConfirm
                         label={tCommon('slideToProceed')}
                         onConfirm={() => {
@@ -52,16 +52,17 @@ export const ClaimAddressConfirmationModal = ({
                             }
                         }}
                     />
-                    <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => {
-                            setShowConfirmationModal(false)
-                            setClaimToExternalWallet(false)
-                        }}
-                    >
-                        {t('addressCompatible.claimToPeanut')}
-                    </Button>
+                    {/* the SlideToConfirm companion is the tertiary link, never a Button */}
+                    <div className="flex justify-center">
+                        <LinkButton
+                            onClick={() => {
+                                setShowConfirmationModal(false)
+                                setClaimToExternalWallet(false)
+                            }}
+                        >
+                            {t('addressCompatible.claimToPeanut')}
+                        </LinkButton>
+                    </div>
                 </div>
             }
             preventClose={false}
