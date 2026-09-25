@@ -32,9 +32,9 @@ jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     useCardSurfaceAccess: () => ({ canSpendPathViaCard: mockCanSpendViaCard }),
 }))
 
-let mockCardInfoLoading = false
+let mockCardInfo: unknown = { isEligible: false }
 jest.mock('@/hooks/useCardInfo', () => ({
-    useCardInfo: () => ({ isLoading: mockCardInfoLoading }),
+    useCardInfo: () => ({ cardInfo: mockCardInfo }),
 }))
 
 let mockIdentityStatus = 'not_started'
@@ -66,7 +66,7 @@ beforeEach(() => {
     mockRails = []
     mockOverview = undefined
     mockCanSpendViaCard = false
-    mockCardInfoLoading = false
+    mockCardInfo = { isEligible: false }
     mockIdentityStatus = 'not_started'
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
 })
@@ -129,10 +129,21 @@ describe('useActivationStatus', () => {
         expect(result.current.isActivated).toBe(false)
     })
 
-    it('does not hand over while card eligibility is still loading', () => {
+    it('card eligibility loading or failed: the route is pending and the list does not hand over', () => {
         mockIdentityStatus = 'verified'
-        mockCardInfoLoading = true
-        expect(setup({ activationMilestone: 'funded' }).result.current.isOnboardingComplete).toBe(false)
+        mockCardInfo = undefined
+        const { result } = setup({ activationMilestone: 'funded' })
+        expect(result.current.onboarding.firstPaymentRoute).toBe('pending')
+        expect(result.current.isOnboardingComplete).toBe(false)
+    })
+
+    it('a card-eligible user in Brazil sees card and QR before verifying', () => {
+        mockCanSpendViaCard = true
+        mockUseAuth.mockReturnValue({
+            user: { user: { userId: 'u1', isActivated: false }, residence: { declared: 'BR', verified: null } },
+        })
+        const { result } = renderHook(() => useActivationStatus())
+        expect(result.current.onboarding.firstPaymentRoute).toBe('card_qr')
     })
 
     it('before the user loads, nothing is complete', () => {

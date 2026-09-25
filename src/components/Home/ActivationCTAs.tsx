@@ -86,15 +86,13 @@ export default function ActivationCTAs({ onboarding }: ActivationCTAsProps) {
     useEffect(() => {
         const step = onboarding.step
         if (step === 'completed' || !userId) return
-        // `first_payment` with no payment row is the card-eligibility wait, not a step
-        if (step === 'first_payment' && onboarding.firstPaymentRoute === 'none') return
         const key = `peanut_activation_step_viewed:${userId}:${step}`
         try {
             if (sessionStorage.getItem(key)) return
             sessionStorage.setItem(key, '1')
         } catch {}
         posthog.capture(ANALYTICS_EVENTS.ACTIVATION_STEP_VIEWED, { step })
-    }, [onboarding.step, onboarding.firstPaymentRoute, userId])
+    }, [onboarding.step, userId])
 
     const step: StepConfig | null = useMemo(() => {
         // Highest precedence, ahead of the checklist AND every provider

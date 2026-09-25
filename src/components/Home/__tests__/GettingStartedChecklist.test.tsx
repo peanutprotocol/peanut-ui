@@ -87,10 +87,10 @@ describe('GettingStartedChecklist', () => {
         expect(outlined('checklist-add-money')).toBe(false)
     })
 
-    it('an ID check in review shows a pill, no subtitle, and passes the outline to Add money', () => {
+    it('an ID check in review says so and passes the outline to Add money', () => {
         render({ verify: 'in_review', step: 'add_money' })
         expect(screen.getByText('In review')).toBeInTheDocument()
-        expect(screen.queryByText(/A one-time ID check/)).not.toBeInTheDocument()
+        expect(screen.queryByText('One-time ID check')).not.toBeInTheDocument()
         expect(outlined('checklist-verify-identity')).toBe(false)
         expect(outlined('checklist-add-money')).toBe(true)
     })
@@ -123,7 +123,7 @@ describe('GettingStartedChecklist', () => {
     describe('first-payment row follows the route', () => {
         it('card and QR: both named, the tap opens the chooser', () => {
             render({ firstPaymentRoute: 'card_qr' })
-            expect(screen.getByText('Get the Peanut Card or pay a QR')).toBeInTheDocument()
+            expect(screen.getByText('Pay a QR or get the card')).toBeInTheDocument()
             fireEvent.click(screen.getByText('Make the first payment'))
             expect(screen.getByText('first-payment-chooser')).toBeInTheDocument()
         })
@@ -150,36 +150,64 @@ describe('GettingStartedChecklist', () => {
         })
     })
 
-    describe('add-money subtitle', () => {
-        it('carries the KYC cost only while unverified', () => {
-            render()
-            expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
+    it('pending card eligibility: the payment row holds its place with a placeholder and no tap', () => {
+        render({ verify: 'done', addMoneyDone: true, firstPaymentRoute: 'pending', step: 'first_payment' })
+        const row = screen.getByTestId('checklist-first-payment')
+        expect(row).not.toHaveAttribute('role')
+        expect(row.querySelector('.animate-pulse')).not.toBeNull()
+        expect(outlined('checklist-first-payment')).toBe(false)
+        expect(screen.getByText('75%')).toBeInTheDocument()
+    })
+
+    describe('every row is one height: title plus one subtitle line, in every state', () => {
+        const states: Array<[string, Partial<OnboardingState>]> = [
+            ['new user', {}],
+            ['in review', { verify: 'in_review', step: 'add_money' }],
+            ['verified and funded', { verify: 'done', addMoneyDone: true, step: 'first_payment' }],
+            ['pending card', { verify: 'done', addMoneyDone: true, firstPaymentRoute: 'pending' }],
+        ]
+        it.each(states)('%s', (_label, onboarding) => {
+            render(onboarding)
+            for (const row of screen.getAllByTestId(/^checklist-/)) {
+                const lines = row.querySelectorAll('span.text-body-m-semibold, span.text-body-s, .animate-pulse')
+                // one title line, one subtitle line (text or placeholder)
+                expect(lines).toHaveLength(2)
+                for (const line of row.querySelectorAll('span.text-body-m-semibold, span.text-body-s')) {
+                    expect(line).toHaveClass('truncate')
+                }
+            }
         })
 
-        it('names both routes without the cost once verified', () => {
-            render({ verify: 'done', step: 'add_money' })
+        it('done rows keep a subtitle', () => {
+            render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
+            expect(screen.getByText('Username ready')).toBeInTheDocument()
+            expect(screen.getByText('ID verified')).toBeInTheDocument()
+            expect(screen.getByText('Money received')).toBeInTheDocument()
+        })
+
+        it('the in-review row says so on its subtitle line', () => {
+            render({ verify: 'in_review', step: 'add_money' })
+            expect(screen.getByText('In review')).toBeInTheDocument()
+        })
+    })
+
+    describe('add-money subtitle', () => {
+        it('names both routes', () => {
+            render()
             expect(screen.getByText('Bank transfer or crypto')).toBeInTheDocument()
         })
 
-        it('promises the standing account once deposit accounts are live', () => {
+        it('names the standing account once deposit accounts are live', () => {
             mockDepositAccounts = true
             render()
-            expect(
-                screen.getByText('Claim your own bank details. Get paid in euros, dollars and more.')
-            ).toBeInTheDocument()
+            expect(screen.getByText('Bank details or crypto')).toBeInTheDocument()
         })
 
         it('drops the bank half for a residence no bank provider onboards', () => {
             mockRestrictions = { banking: true, card: false }
             render()
-            expect(screen.getByText('Crypto from any wallet or exchange')).toBeInTheDocument()
-            expect(screen.queryByText(/Bank transfer/)).not.toBeInTheDocument()
-        })
-
-        it('wraps subtitles instead of truncating them', () => {
-            render()
-            const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
-            expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
+            expect(screen.getByText('Crypto from any wallet')).toBeInTheDocument()
+            expect(screen.queryByText(/Bank/)).not.toBeInTheDocument()
         })
     })
 })

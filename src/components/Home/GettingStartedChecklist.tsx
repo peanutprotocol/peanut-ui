@@ -27,10 +27,13 @@ interface ChecklistItem {
     /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow) */
     bubble: { icon: IconName | React.ReactElement; color: IconBubbleColor }
     label: string
-    sub?: string
+    /** always one line (copy sized for 320px), in every state, so every row is the same height */
+    sub: string | null
     done: boolean
-    /** open but nothing to do yet (ID check in review): a pill instead of a subtitle */
+    /** open but nothing to do yet (ID check in review): "In review" on the subtitle line */
     inReview?: boolean
+    /** the row holds its place while its content is unknown (card eligibility loading) */
+    pending?: boolean
     onTap?: () => void
 }
 
@@ -38,9 +41,10 @@ interface ChecklistItem {
 const VERIFY_HREF = '/profile/accounts-and-payments'
 
 const FIRST_PAYMENT_BUBBLE = {
-    card_qr: CONCEPT_ICONS.card,
+    card_qr: CONCEPT_ICONS.qrPay,
     card: CONCEPT_ICONS.card,
     qr: CONCEPT_ICONS.qrPay,
+    pending: CONCEPT_ICONS.qrPay,
 } as const
 
 const FIRST_PAYMENT_NOTE_KEY = {
@@ -48,6 +52,14 @@ const FIRST_PAYMENT_NOTE_KEY = {
     card: 'firstPaymentCardOnlyNote',
     qr: 'firstPaymentQrNote',
 } as const
+
+/** the pulse placeholder for a one-line subtitle (design.md skeleton recipe) */
+const SubtitleSkeleton = () => (
+    // the line box stays 20px, the text line's height, so the row does not jump
+    <span aria-hidden className="flex h-5 items-center">
+        <span className="h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />
+    </span>
+)
 
 /**
  * The Home onboarding checklist (TASK-23054): Create account ✓ · Verify
@@ -69,7 +81,6 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
     const [isChooserOpen, setIsChooserOpen] = useState(false)
 
     const { verify, addMoneyDone, firstPaymentDone, firstPaymentRoute } = onboarding
-    const isVerified = verify === 'done'
 
     const items: ChecklistItem[] = useMemo(() => {
         const tap = (id: ChecklistItemId, action: () => void) => () => {
@@ -88,7 +99,12 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                 id: 'verify-identity',
                 bubble: CONCEPT_ICONS.verification,
                 label: t('verifyIdentity'),
-                sub: t('verifyIdentityNote'),
+                sub:
+                    verify === 'done'
+                        ? t('verifyIdentityDone')
+                        : verify === 'in_review'
+                          ? t('inReview')
+                          : t('verifyIdentityNote'),
                 done: verify === 'done',
                 inReview: verify === 'in_review',
                 onTap: tap('verify-identity', () => router.push(VERIFY_HREF)),
@@ -98,19 +114,28 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                 bubble: CONCEPT_ICONS.addMoney,
                 label: t('addMoney'),
                 // A residence no bank provider onboards drops the bank half
-                // rather than selling an ID check that cannot deliver it.
-                sub: restrictions.banking
-                    ? t('addMoneyRoutesNoBank')
-                    : depositAccountsEnabled
-                      ? t('addMoneyStandingAccounts')
-                      : isVerified
-                        ? t('addMoneyRoutes')
-                        : t('addMoneyRoutesKyc'),
+                // rather than offering a route that cannot deliver.
+                sub: addMoneyDone
+                    ? t('addMoneyDone')
+                    : restrictions.banking
+                      ? t('addMoneyRoutesNoBank')
+                      : depositAccountsEnabled
+                        ? t('addMoneyStandingAccounts')
+                        : t('addMoneyRoutes'),
                 done: addMoneyDone,
                 onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
         ]
-        if (firstPaymentRoute !== 'none') {
+        if (firstPaymentRoute === 'pending') {
+            rows.push({
+                id: 'first-payment',
+                bubble: FIRST_PAYMENT_BUBBLE.pending,
+                label: t('firstPayment'),
+                sub: null,
+                done: false,
+                pending: true,
+            })
+        } else if (firstPaymentRoute !== 'none') {
             const route = firstPaymentRoute
             rows.push({
                 id: 'first-payment',
@@ -131,7 +156,6 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
         depositAccountsEnabled,
         firstPaymentDone,
         firstPaymentRoute,
-        isVerified,
         restrictions.banking,
         router,
         setHomeDrawer,
@@ -141,7 +165,7 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
     ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
-    const nextId = items.find((item) => !item.done && !item.inReview)?.id
+    const nextId = items.find((item) => !item.done && !item.inReview && !item.pending)?.id
 
     const viewedRef = useRef(false)
     useEffect(() => {
@@ -163,28 +187,30 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
             <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
-                    const isNext = item.id === nextId
-                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !item.inReview)
                     return (
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
                             leading={<IconBubble {...item.bubble} size="xs" />}
                             title={item.label}
-                            body={showSub ? item.sub : undefined}
+                            truncate
+                            // one line in every state: done, open, in review and pending
+                            // rows share one height (Hugo, 2026-09-25)
+                            body={item.pending ? <SubtitleSkeleton /> : item.sub}
+                            // icon chips, not text pills: the status word is on the
+                            // subtitle line, and a pill would push it past one line at 320px
                             trailing={
                                 item.done ? (
-                                    <Badge status="completed" />
+                                    <Badge status="completed" type="icon" />
                                 ) : item.inReview ? (
-                                    <Badge status="processing" customText={t('inReview')} />
+                                    <Badge status="processing" type="icon" />
                                 ) : undefined
                             }
-                            bodyWrap
                             chevron={tappable}
-                            // a done row is finished, not unavailable: it renders as a plain,
-                            // untappable row instead of a disabled one
                             onClick={tappable ? item.onTap : undefined}
-                            className={isNext ? 'outline-2 -outline-offset-2 outline-action-primary' : undefined}
+                            className={
+                                item.id === nextId ? 'outline-2 -outline-offset-2 outline-action-primary' : undefined
+                            }
                         />
                     )
                 })}

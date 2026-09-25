@@ -1314,13 +1314,14 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-new-user': {
         route: '/home',
         balance: '0',
-        about: 'Home for a new user: ID check not started, nothing received yet.',
+        about: 'New user in Brazil, card offered: ID check not started, nothing received, the first payment offers QR or card.',
         responses: {
             ...NO_TIMELINE_EXTRAS,
             'GET /users/me': {
                 user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
+                residence: { declared: 'BR', verified: null },
             },
         },
     },

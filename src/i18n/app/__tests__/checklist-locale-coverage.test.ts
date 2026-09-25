@@ -16,10 +16,12 @@ const CHECKLIST_KEYS = [
     'createAccountDone',
     'addMoney',
     'addMoneyRoutes',
-    'addMoneyRoutesKyc',
+    'addMoneyRoutesNoBank',
+    'addMoneyDone',
     'addMoneyStandingAccounts',
     'verifyIdentity',
     'verifyIdentityNote',
+    'verifyIdentityDone',
     'inReview',
     'firstPayment',
     'firstPaymentCardNote',
@@ -47,6 +49,6 @@ describe('getting-started checklist copy resolves in every locale', () => {
         expect(esAR.home.gettingStarted.addMoneyRoutes).toBe(es419.home.gettingStarted.addMoneyRoutes)
         expect(esAR.home.gettingStarted.verifyIdentityNote).toBe(es419.home.gettingStarted.verifyIdentityNote)
         // and its own delta still wins where it does restate one
-        expect(esAR.home.gettingStarted.addMoneyRoutesKyc).not.toBe(es419.home.gettingStarted.addMoneyRoutesKyc)
+        expect(esAR.home.gettingStarted.firstPaymentCardNote).not.toBe(es419.home.gettingStarted.firstPaymentCardNote)
     })
 })

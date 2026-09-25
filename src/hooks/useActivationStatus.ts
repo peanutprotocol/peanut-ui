@@ -10,7 +10,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import {
     type OnboardingState,
-    hasQrPayRail,
+    canReachQrPay,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
@@ -45,18 +45,23 @@ export function useActivationStatus(): ActivationStatus {
     const { rails, channelOf } = useCapabilities()
     const { overview } = useRainCardOverview()
     const { canSpendPathViaCard } = useCardSurfaceAccess()
-    const { isLoading: isCardInfoLoading } = useCardInfo()
+    const { cardInfo } = useCardInfo()
     const { status: identityStatus } = useIdentityVerification()
 
     const isLoading = !user || isFetchingBalance
 
     const derived = useMemo(() => {
         const isActivated = user?.user?.isActivated ?? false
-        const hasQrRail = hasQrPayRail(rails, channelOf)
+        // Card eligibility is known once card info answered, or when a held card
+        // settles it. Loading or a failed request is unknown, never "no card".
+        // The Home card-prompt kill switch mutes every card arm; the QR path stands.
+        const canSpendViaCard = underMaintenanceConfig.disableCardPromotion
+            ? false
+            : canSpendPathViaCard || (cardInfo !== undefined ? false : undefined)
+        const residence = user?.residence
         const firstPaymentRoute = selectFirstPaymentRoute({
-            // The Home card-prompt kill switch mutes every card arm; the QR path stands.
-            canSpendViaCard: canSpendPathViaCard && !underMaintenanceConfig.disableCardPromotion,
-            hasQrRail,
+            canSpendViaCard,
+            canPayQr: canReachQrPay(rails, channelOf, residence?.verified ?? residence?.declared),
         })
         const onboarding = resolveOnboarding({
             identityStatus: user?.user ? identityStatus : undefined,
@@ -64,8 +69,6 @@ export function useActivationStatus(): ActivationStatus {
             isActivated,
             holdsMoney: holdsMoney(balance, overview?.balance),
             firstPaymentRoute,
-            // a failed card-info request settles too (as no card), so nobody waits forever
-            isRouteSettled: firstPaymentRoute !== 'none' || !isCardInfoLoading,
         })
         return {
             isActivated,
@@ -75,11 +78,12 @@ export function useActivationStatus(): ActivationStatus {
         }
     }, [
         user?.user,
+        user?.residence,
         identityStatus,
         balance,
         overview?.balance,
         canSpendPathViaCard,
-        isCardInfoLoading,
+        cardInfo,
         rails,
         channelOf,
     ])

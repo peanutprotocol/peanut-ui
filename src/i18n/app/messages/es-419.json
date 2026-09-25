@@ -109,19 +109,20 @@
         "gettingStarted": {
             "title": "Empezar",
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Listo. Tu dinero ya tiene un usuario",
+            "createAccountDone": "Usuario listo",
             "addMoney": "Agregar dinero",
             "firstPayment": "Haz el primer pago",
-            "addMoneyRoutes": "Transferencia bancaria o cripto",
-            "addMoneyStandingAccounts": "Consigue datos bancarios a tu nombre. Recibe pagos en euros, dólares y más.",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco requiere una verificación de identidad por única vez",
-            "addMoneyRoutesNoBank": "Cripto desde cualquier wallet o exchange",
+            "addMoneyRoutes": "Transferencia o cripto",
+            "addMoneyStandingAccounts": "Datos bancarios o cripto",
+            "addMoneyRoutesNoBank": "Cripto desde una wallet",
             "verifyIdentity": "Verificar identidad",
-            "verifyIdentityNote": "Una verificación única. Habilita transferencias bancarias y pagos con QR",
+            "verifyIdentityNote": "Verificación única",
             "inReview": "En revisión",
-            "firstPaymentCardNote": "Consigue la tarjeta Peanut o paga un QR",
+            "firstPaymentCardNote": "Paga un QR o pide la tarjeta",
             "firstPaymentQrNote": "Pagar un código QR",
-            "firstPaymentCardOnlyNote": "Consigue la tarjeta Peanut"
+            "firstPaymentCardOnlyNote": "Pide la tarjeta Peanut",
+            "verifyIdentityDone": "Identidad verificada",
+            "addMoneyDone": "Dinero recibido"
         },
         "autoBalance": {
             "title": "Termina de configurar la tarjeta",

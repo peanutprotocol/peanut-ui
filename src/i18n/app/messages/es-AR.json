@@ -25,14 +25,11 @@
         "gettingStarted": {
             "title": "Empezar",
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Listo. Tu plata ya tiene un usuario",
             "addMoney": "Agregar dinero",
             "firstPayment": "Hacé el primer pago",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez",
-            "addMoneyStandingAccounts": "Conseguí datos bancarios a tu nombre. Cobrá en euros, dólares y más.",
-            "firstPaymentCardNote": "Conseguí la tarjeta Peanut o pagá un QR",
+            "firstPaymentCardNote": "Pagá un QR o pedí la tarjeta",
             "firstPaymentQrNote": "Pagá un código QR",
-            "firstPaymentCardOnlyNote": "Conseguí la tarjeta Peanut"
+            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",

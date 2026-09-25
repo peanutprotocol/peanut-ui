@@ -109,19 +109,20 @@
         "gettingStarted": {
             "title": "Get started",
             "createAccount": "Create account",
-            "createAccountDone": "Done. Your money has a username now",
+            "createAccountDone": "Username ready",
             "addMoney": "Add money",
             "firstPayment": "Make the first payment",
             "addMoneyRoutes": "Bank transfer or crypto",
-            "addMoneyStandingAccounts": "Claim your own bank details. Get paid in euros, dollars and more.",
-            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
-            "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
+            "addMoneyStandingAccounts": "Bank details or crypto",
+            "addMoneyRoutesNoBank": "Crypto from any wallet",
             "verifyIdentity": "Verify identity",
-            "verifyIdentityNote": "A one-time ID check. Unlocks bank transfers and QR payments",
+            "verifyIdentityNote": "One-time ID check",
             "inReview": "In review",
-            "firstPaymentCardNote": "Get the Peanut Card or pay a QR",
+            "firstPaymentCardNote": "Pay a QR or get the card",
             "firstPaymentQrNote": "Pay a QR code",
-            "firstPaymentCardOnlyNote": "Get the Peanut Card"
+            "firstPaymentCardOnlyNote": "Get the Peanut Card",
+            "verifyIdentityDone": "ID verified",
+            "addMoneyDone": "Money received"
         },
         "autoBalance": {
             "title": "Finish setting up the card",

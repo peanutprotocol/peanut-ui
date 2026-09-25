@@ -19,11 +19,13 @@ export type VerifyRowStatus = 'todo' | 'in_review' | 'done'
 
 /**
  * Which activating spend is open to the user: the card (it can be issued or is
- * held), a QR pay rail (Pix / Mercado Pago), both, or neither. The
- * first-payment row's presence, copy and tap all follow this one answer. A
- * send is never one: it does not activate.
+ * held), a QR pay (Pix / Mercado Pago, now or once verified), both, or
+ * neither. `pending` while card eligibility is unknown (loading or failed):
+ * the row holds its place and the list cannot complete. The first-payment
+ * row's presence, copy and tap all follow this one answer. A send is never
+ * one: it does not activate.
  */
-export type FirstPaymentRoute = 'card_qr' | 'card' | 'qr' | 'none'
+export type FirstPaymentRoute = 'card_qr' | 'card' | 'qr' | 'none' | 'pending'
 
 export interface OnboardingState {
     verify: VerifyRowStatus
@@ -77,10 +79,40 @@ export function hasQrPayRail(
     })
 }
 
-/** The one eligibility selector behind the first-payment row. */
-export function selectFirstPaymentRoute(input: { canSpendViaCard: boolean; hasQrRail: boolean }): FirstPaymentRoute {
-    if (input.canSpendViaCard) return input.hasQrRail ? 'card_qr' : 'card'
-    return input.hasQrRail ? 'qr' : 'none'
+/** Residences with a QR pay rail (Manteca: Mercado Pago in AR, Pix in BR). */
+const QR_PAY_COUNTRIES = new Set(['AR', 'BR'])
+
+/**
+ * The user can pay a QR now, or will once verified. A Manteca rail that
+ * carries a `pay` op answers it: any status but `blocked`. With no such rail
+ * yet (a new user is enrolled at verification), the residence answers it.
+ */
+export function canReachQrPay(
+    rails: RailCapability[],
+    channelOf: (rail: RailCapability) => string | undefined,
+    residenceCountry: string | null | undefined
+): boolean {
+    const payRails = rails.filter(
+        (rail) =>
+            rail.provider === 'manteca' && (rail.operations ? 'pay' in rail.operations : channelOf(rail) === 'qr-only')
+    )
+    if (payRails.length > 0) {
+        return payRails.some((rail) => (rail.operations?.pay ?? rail.status) !== 'blocked')
+    }
+    return !!residenceCountry && QR_PAY_COUNTRIES.has(residenceCountry.toUpperCase())
+}
+
+/**
+ * The one eligibility selector behind the first-payment row.
+ * `canSpendViaCard` undefined = card eligibility not known yet.
+ */
+export function selectFirstPaymentRoute(input: {
+    canSpendViaCard: boolean | undefined
+    canPayQr: boolean
+}): FirstPaymentRoute {
+    if (input.canSpendViaCard === undefined) return 'pending'
+    if (input.canSpendViaCard) return input.canPayQr ? 'card_qr' : 'card'
+    return input.canPayQr ? 'qr' : 'none'
 }
 
 export function verifyRowStatus(identityStatus: IdentityVerificationStatus | undefined): VerifyRowStatus {
@@ -96,11 +128,6 @@ export interface OnboardingInput {
     isActivated: boolean
     holdsMoney: boolean
     firstPaymentRoute: FirstPaymentRoute
-    /**
-     * False while card eligibility is still loading and no QR rail decides the
-     * route: `none` may yet become `card`, so the list must not complete on it.
-     */
-    isRouteSettled: boolean
 }
 
 export function resolveOnboarding(input: OnboardingInput): OnboardingState {
@@ -118,7 +145,7 @@ export function resolveOnboarding(input: OnboardingInput): OnboardingState {
     if (firstPaymentDone) step = 'completed'
     else if (verify === 'todo') step = 'verify'
     else if (!addMoneyDone) step = 'add_money'
-    else if (hasPaymentRow || !input.isRouteSettled) step = 'first_payment'
+    else if (hasPaymentRow) step = 'first_payment'
     // no payment row: the list ends at Add money, done once identity is too
     // (an ID check in review is the one open row left)
     else step = verify === 'done' ? 'completed' : 'verify'

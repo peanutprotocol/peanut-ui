@@ -10,6 +10,7 @@
 import type { RailCapability } from '@/types/capabilities'
 import {
     type OnboardingInput,
+    canReachQrPay,
     hasQrPayRail,
     holdsMoney,
     resolveOnboarding,
@@ -24,7 +25,6 @@ const base: OnboardingInput = {
     isActivated: false,
     holdsMoney: false,
     firstPaymentRoute: 'card_qr',
-    isRouteSettled: true,
 }
 const resolve = (overrides: Partial<OnboardingInput>) => resolveOnboarding({ ...base, ...overrides })
 
@@ -122,8 +122,11 @@ describe('resolveOnboarding — what completes the checklist', () => {
         })
     })
 
-    it('none while card eligibility is still loading: not complete, it may yet become card', () => {
-        expect(resolve({ ...funded, firstPaymentRoute: 'none', isRouteSettled: false }).step).toBe('first_payment')
+    it('pending (card eligibility loading or failed): the row holds its place, never complete', () => {
+        expect(resolve({ ...funded, firstPaymentRoute: 'pending' })).toMatchObject({
+            firstPaymentDone: false,
+            step: 'first_payment',
+        })
     })
 
     it('none: not complete while the ID check is open or in review, or before money arrives', () => {
@@ -136,21 +139,57 @@ describe('resolveOnboarding — what completes the checklist', () => {
     })
 })
 
-describe('selectFirstPaymentRoute — the one eligibility selector, all four cases', () => {
+describe('selectFirstPaymentRoute — the one eligibility selector', () => {
     it('card and QR → card_qr', () => {
-        expect(selectFirstPaymentRoute({ canSpendViaCard: true, hasQrRail: true })).toBe('card_qr')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: true })).toBe('card_qr')
     })
 
     it('card only → card', () => {
-        expect(selectFirstPaymentRoute({ canSpendViaCard: true, hasQrRail: false })).toBe('card')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: false })).toBe('card')
     })
 
     it('QR only → qr', () => {
-        expect(selectFirstPaymentRoute({ canSpendViaCard: false, hasQrRail: true })).toBe('qr')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: true })).toBe('qr')
     })
 
     it('neither → none', () => {
-        expect(selectFirstPaymentRoute({ canSpendViaCard: false, hasQrRail: false })).toBe('none')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: false })).toBe('none')
+    })
+
+    it('card eligibility unknown (loading or failed) → pending, whatever the QR answer', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: true })).toBe('pending')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: false })).toBe('pending')
+    })
+})
+
+describe('canReachQrPay — QR now, or once verified', () => {
+    const channelOf = (rail: RailCapability) => rail.channel
+    const pix = (pay: string) =>
+        ({
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            channel: 'bank',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+            operations: { pay, deposit: 'requires-info' },
+        }) as RailCapability
+
+    it('a new user in Brazil or Argentina with no rail yet can reach it', () => {
+        expect(canReachQrPay([], channelOf, 'BR')).toBe(true)
+        expect(canReachQrPay([], channelOf, 'ar')).toBe(true)
+    })
+
+    it('a residence with no QR rail cannot', () => {
+        expect(canReachQrPay([], channelOf, 'US')).toBe(false)
+        expect(canReachQrPay([], channelOf, null)).toBe(false)
+    })
+
+    it('a pay op waiting on verification counts; a blocked one does not, whatever the residence', () => {
+        expect(canReachQrPay([pix('requires-info')], channelOf, 'BR')).toBe(true)
+        expect(canReachQrPay([pix('enabled')], channelOf, null)).toBe(true)
+        expect(canReachQrPay([pix('blocked')], channelOf, 'BR')).toBe(false)
     })
 })
 
