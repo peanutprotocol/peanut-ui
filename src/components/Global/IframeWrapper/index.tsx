@@ -103,8 +103,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         {t('iframeWrapper.troubleDescriptionLine2')}
                     </p>
                 ),
+                tone: 'info' as const,
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -135,8 +135,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         return {
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
+            tone: 'attention' as const,
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -248,8 +248,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 onClose={() => setIsHelpModalOpen(false)}
                 title={modalDetails.title}
                 description={modalDetails.description}
+                tone={modalDetails.tone}
                 icon={modalDetails.icon}
-                iconContainerClassName={modalDetails.iconContainerClassName}
                 modalPanelClassName="pointer-events-auto mx-0 max-w-full"
                 ctaClassName="grid grid-cols-1 gap-3"
                 contentContainerClassName="px-6 py-6"

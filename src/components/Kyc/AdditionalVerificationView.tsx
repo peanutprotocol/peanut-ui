@@ -84,7 +84,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         <IconBubble
                             icon={nativeStepPending ? 'user-id' : 'check-circle'}
                             size="l"
-                            color={nativeStepPending ? 'blue' : 'green'}
+                            color={nativeStepPending ? 'yellow' : 'green'}
                         />
                         <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
                         <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>

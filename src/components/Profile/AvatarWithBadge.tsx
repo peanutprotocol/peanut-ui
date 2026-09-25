@@ -27,11 +27,11 @@ interface AvatarWithBadgeProps {
     firstLetterOnly?: boolean
     /**
      * Rendered when `logo` fails to load (next/image onError). Lets a parent
-     * provide a semantic fallback (e.g. bank tx → bank icon on dark bg)
-     * instead of a generic broken-image placeholder when an obscure flag /
-     * merchant logo is missing.
+     * provide a semantic fallback (e.g. a bank row's bank IconBubble) instead
+     * of a generic broken-image placeholder when an obscure flag / merchant
+     * logo is missing.
      */
-    fallback?: { icon: IconName; bgColor?: string; iconFillColor?: string }
+    fallback?: React.ReactNode
 }
 
 /**
@@ -87,15 +87,10 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
         )
     }
 
-    // When the logo fails AND the caller supplied a `fallback`, prefer that
-    // semantic visual (icon + colors) over whatever icon/colors were originally
-    // passed for the no-logo case.
+    // the logo failed and the caller supplied a semantic fallback: render it
+    if (logoFailed && fallback) return <>{fallback}</>
+
     const nameColors = name ? getColorForUsername(name) : undefined
-    const useFallback = logoFailed && fallback
-    const effectiveIcon = useFallback ? fallback.icon : icon
-    const effectiveIconFill = useFallback && fallback.iconFillColor ? fallback.iconFillColor : iconFillColor
-    const effectiveTextColor = useFallback && fallback.iconFillColor ? fallback.iconFillColor : textColor
-    const effectiveInlineStyle = useFallback && fallback.bgColor ? { backgroundColor: fallback.bgColor } : inlineStyle
 
     return (
         <div className={'relative'}>
@@ -113,19 +108,14 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 
                 style={{
                     background: nameColors?.lightShade,
-                    border: nameColors && !effectiveIcon ? `1px solid ${nameColors.borderShade}` : undefined,
-                    color: nameColors ? nameColors.darkShade : !effectiveIcon ? effectiveTextColor : undefined,
-                    ...effectiveInlineStyle,
+                    border: nameColors && !icon ? `1px solid ${nameColors.borderShade}` : undefined,
+                    color: nameColors ? nameColors.darkShade : !icon ? textColor : undefined,
+                    ...inlineStyle,
                 }}
             >
                 {/* display icon if provided, otherwise display initials */}
-                {effectiveIcon ? (
-                    <Icon
-                        name={effectiveIcon}
-                        size={iconSizeMap[size]}
-                        fill={effectiveIconFill}
-                        style={{ color: effectiveTextColor }}
-                    />
+                {icon ? (
+                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
                 ) : (
                     initials
                 )}

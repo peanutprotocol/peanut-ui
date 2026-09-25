@@ -140,6 +140,7 @@ export default function MigrationDownloadModal({
         <ActionModal
             visible={renderVisible}
             onClose={snooze}
+            tone="peanut"
             icon="mobile-install"
             title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}
             description={

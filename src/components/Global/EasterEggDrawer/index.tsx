@@ -62,10 +62,10 @@ const EasterEggDrawer = ({ visible, onClose, countryCode }: EasterEggDrawerProps
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* upside-down smile in the standard pink bubble: the joke is the tone, not a status */}
+                        {/* upside-down smile: a Peanut moment, so Peanut's own yellow (TASK-22761) */}
                         <IconBubble
                             icon={<Icon name="smile" size={24} className="rotate-180 text-black" />}
-                            className="bg-action-primary"
+                            color="yellow"
                         />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{countryCopy.caption}</DrawerTitle>

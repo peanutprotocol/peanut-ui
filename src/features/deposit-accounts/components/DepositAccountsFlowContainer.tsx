@@ -16,10 +16,10 @@ import { useEndorsementReview } from '../useEndorsementReview'
 
 /** What support reads first. English on purpose: it is for the agent, not the user. */
 const SUPPORT_SUBJECT: Record<DepositSupportReason, string> = {
-    'account-limit': 'Another virtual account',
-    blocked: "Couldn't open virtual account",
-    revoked: 'Revoked virtual account details',
-    review: 'Extra check needed for virtual account',
+    'account-limit': 'Another account',
+    blocked: "Couldn't open account",
+    revoked: 'Revoked bank details',
+    review: 'Extra check needed for account',
 }
 
 interface DepositAccountsFlowContainerProps {

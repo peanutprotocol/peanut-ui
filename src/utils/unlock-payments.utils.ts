@@ -13,6 +13,7 @@ import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
@@ -30,7 +31,8 @@ export interface UnlockRow {
     id: string
     /** i18n key under profile.unlockPayments.rows */
     labelKey: UnlockRowLabelKey
-    icon: 'qr-code' | 'arrow-up-right' | 'bank' | 'credit-card' | 'wallet' | 'coins'
+    /** the product concept the row leads with; CONCEPT_ICONS holds its icon and color */
+    concept: Extract<Concept, 'qrPay' | 'pixKey' | 'bank' | 'card' | 'peanutUser' | 'crypto'>
     chip: UnlockChip
     /** region path the tap routes into (existing region modal machinery); absent = not tappable */
     regionPath?: 'europe' | 'north-america' | 'latam'
@@ -45,7 +47,7 @@ export interface UnlockRow {
     limitRefs?: readonly ('BRL' | 'ARS' | 'bridge')[]
     /**
      * Currency-first accounts list (2026-09-18): the flag that replaces the
-     * generic qr-code/bank icon as this row's leading glyph. One per row, and
+     * concept bubble as this row's leading glyph. One per row, and
      * since 2026-09-21 one country per row, so it is simply that country's.
      * Absent on `p2p`/`card`, which keep their icons in the "Peanut" group.
      */
@@ -95,7 +97,7 @@ export interface BuildUnlockGroupsInput extends Pick<BankRowsInput, 'bankChips' 
     card: 'active' | 'get' | 'notAvailable'
 }
 
-const CARD_ROW_BASE = { id: 'card', labelKey: 'card', icon: 'credit-card' } as const
+const CARD_ROW_BASE = { id: 'card', labelKey: 'card', concept: 'card' } as const
 
 /**
  * The bank corridors, in catalog order within their group.
@@ -208,7 +210,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,
-            icon: 'bank',
+            concept: 'bank',
             chip,
             limitRefs: spec.limitRefs,
             flag: DEPOSIT_RAILS[spec.corridor].flagIso2,
@@ -254,7 +256,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     const qrRow: UnlockRow = {
         id: 'qr-pay',
         labelKey: 'qrPay',
-        icon: 'qr-code',
+        concept: 'qrPay',
         chip: qrChip,
         note: 'qrPayNote',
         limitRefs: ['BRL', 'ARS'],
@@ -272,7 +274,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     const pixKeyRow: UnlockRow = {
         id: 'pix-key',
         labelKey: 'pixKey',
-        icon: 'arrow-up-right',
+        concept: 'pixKey',
         chip: pixKeyChip,
         note: 'pixKeyNote',
         ...(pixKeyChip === 'active'
@@ -289,11 +291,11 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             id: 'everywhere',
             labelKey: 'everywhere',
             rows: [
-                { id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' },
+                { id: 'p2p', labelKey: 'p2p', concept: 'peanutUser', chip: 'alwaysOn' },
                 // On-chain, no KYC and no Peanut unlock gates it — same
                 // always-on layer as P2P (regression fix, ui#3271 QA pass 2:
                 // the currency-first merge dropped this row entirely).
-                { id: 'crypto', labelKey: 'crypto', icon: 'coins', chip: 'alwaysOn' },
+                { id: 'crypto', labelKey: 'crypto', concept: 'crypto', chip: 'alwaysOn' },
             ],
         },
         // Spending, named apart from adding and withdrawing money (2026-09-21):

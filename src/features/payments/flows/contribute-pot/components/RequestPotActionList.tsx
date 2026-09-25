@@ -399,6 +399,7 @@ export function RequestPotActionList({
                 }}
                 title={t('usePeanutBalance.title')}
                 description={t('usePeanutBalance.description')}
+                tone="info"
                 icon="user-plus"
                 ctas={[
                     {

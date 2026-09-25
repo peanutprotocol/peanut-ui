@@ -1,3 +1,5 @@
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import IndicatorDot from '@/components/Global/IndicatorDot'
@@ -30,7 +32,6 @@ import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { normalizeEnsName } from '@/utils/ens-name.utils'
 import Badge, { type IconStatusType } from '../Global/Badges/Badge'
 import { VerifiedUserLabel } from '../UserHeader'
-import { PerkIcon } from './PerkIcon'
 import { MerchantLogoIcon } from './MerchantLogoIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -280,7 +281,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : isPerkRewardEntry ? (
-        <PerkIcon size="extra-small" />
+        <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
     ) : avatarUrl ? (
         <div className={'relative flex size-8 items-center justify-center rounded-full'}>
             <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />

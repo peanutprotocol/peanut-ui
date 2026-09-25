@@ -159,6 +159,7 @@ const DeleteAccountButton: FC = () => {
                 onClose={close}
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
+                tone="peanut"
                 icon={<PeanutMascot pose={step.mascotPose} alt={step.mascotAlt} className="h-full w-auto" />}
                 iconContainerClassName="size-32 rounded-none bg-transparent"
                 title={step.title}

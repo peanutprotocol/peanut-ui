@@ -4,7 +4,7 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
@@ -25,7 +25,8 @@ type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-paym
 
 interface ChecklistItem {
     id: ChecklistItemId
-    icon: IconName
+    /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow), the first payment a money move (blue) */
+    bubble: { icon: IconName; color: IconBubbleColor }
     label: string
     sub?: string
     done: boolean
@@ -76,7 +77,7 @@ const GettingStartedChecklist = () => {
         const thirdItem: ChecklistItem = cardAvailable
             ? {
                   id: 'get-card',
-                  icon: CONCEPT_ICONS.card.icon,
+                  bubble: CONCEPT_ICONS.card,
                   label: t('getCard'),
                   sub: t('getCardNote'),
                   done: hasActiveCard,
@@ -84,7 +85,7 @@ const GettingStartedChecklist = () => {
               }
             : {
                   id: 'first-payment',
-                  icon: 'arrow-up',
+                  bubble: { icon: 'arrow-up', color: 'blue' },
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
                   done: milestone === 'activated' || hasSentPayment,
@@ -93,14 +94,14 @@ const GettingStartedChecklist = () => {
         return [
             {
                 id: 'create-account',
-                icon: 'user-plus',
+                bubble: { icon: 'user-plus', color: 'yellow' },
                 label: t('createAccount'),
                 sub: t('createAccountDone'),
                 done: true,
             },
             {
                 id: 'add-money',
-                icon: CONCEPT_ICONS.addMoney.icon,
+                bubble: CONCEPT_ICONS.addMoney,
                 // The Add drawer offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
                 // take you straight to. A residence no bank provider onboards
@@ -165,7 +166,7 @@ const GettingStartedChecklist = () => {
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
-                            leading={<IconBubble icon={item.icon} size="xs" color="yellow" />}
+                            leading={<IconBubble {...item.bubble} size="xs" />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
                             trailing={item.done ? <Badge status="completed" /> : undefined}

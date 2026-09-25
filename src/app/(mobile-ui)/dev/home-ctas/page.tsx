@@ -5,11 +5,11 @@ import type { StaticImageData } from 'next/image'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
+import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import DevPageShell from '../_components/DevPageShell'
 
 /**
@@ -31,7 +31,8 @@ const noop = (label: string) => () => console.log(`[dev/home-ctas] ${label}`)
 type CarouselPreview = {
     id: string
     label: string
-    icon: IconName
+    icon?: IconName
+    concept?: Concept
     title: ReactNode
     description: ReactNode
     iconContainerClassName?: string
@@ -45,9 +46,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     {
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
-        icon: 'qr-code',
-        iconContainerClassName: 'bg-background-icon-bubble-yellow',
-        iconSize: 16,
+        concept: 'qrPay',
         title: (
             <span>
                 Pay with <b>QR code payments</b>
@@ -62,9 +61,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     {
         id: 'kyc-prompt',
         label: 'KYC prompt — unlock QR (un-verified user)',
-        icon: 'qr-code',
-        iconContainerClassName: 'bg-background-icon-bubble-yellow',
-        iconSize: 16,
+        concept: 'qrPay',
         title: (
             <span>
                 Unlock <b>QR code payments</b>
@@ -78,10 +75,8 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'invite-friends',
-        label: 'Invite friends (logo variant)',
-        icon: 'invite-heart',
-        logo: STAR_STRAIGHT_ICON,
-        logoSize: 30,
+        label: 'Invite friends (rewards concept)',
+        concept: 'rewards',
         title: 'Invite friends. Earn rewards',
         description: 'Earn rewards every time your friends use Peanut.',
     },
@@ -141,6 +136,7 @@ export default function HomeCTAsPreviewPage() {
                                 title={cta.title}
                                 description={cta.description}
                                 icon={cta.icon}
+                                concept={cta.concept}
                                 iconContainerClassName={cta.iconContainerClassName}
                                 iconSize={cta.iconSize}
                                 logo={cta.logo}
