@@ -352,7 +352,7 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 
 jest.mock('@/utils/currency', () => ({
-    formatCurrencyAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
+    formatBankAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
 }))
 
 jest.mock('@/utils/format.utils', () => ({

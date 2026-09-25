@@ -8,7 +8,7 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -182,7 +182,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const formattedCurrencyAmount = useMemo(() => {
         if (!amount) return ''
 
-        return formatCurrencyAmount(amount, onrampCurrency)
+        return formatBankAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
 
     const isUk = currentCountryDetails?.id === 'GB' || currentCountryDetails?.iso3 === 'GBR'

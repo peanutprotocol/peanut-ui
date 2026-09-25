@@ -25,7 +25,6 @@ interface WithdrawConfirmViewProps {
     toAddress: string
     /** Rhino's quoted total fee (USD), verbatim from `useCrossChainTransfer`. */
     networkFee?: number
-    peanutFee?: string
     onConfirm: () => void
     onBack: () => void
     isProcessing?: boolean
@@ -90,7 +89,6 @@ export default function ConfirmWithdrawView({
     chain,
     toAddress,
     networkFee = 0,
-    peanutFee = '0.00',
     onConfirm,
     onBack,
     isProcessing,
@@ -237,7 +235,7 @@ export default function ConfirmWithdrawView({
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
                         <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {saveAddressPrompt}

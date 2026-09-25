@@ -240,8 +240,8 @@ export function useTransactionHistory({
     const infiniteLimit = resolveLimit(limit, DEFAULT_INFINITE_PAGE_SIZE)
     const latestLimit = resolveLimit(limit, DEFAULT_LATEST_UNIQUE_ROWS)
     // `signal` is React Query's: it aborts the request when the query is
-    // cancelled or superseded, so a restarted fetch does not leave the old one
-    // running on the server.
+    // cancelled or superseded, so a restarted fetch does not keep the old
+    // connection open. The API still runs the aborted query to the end.
     const fetchHistory = async ({
         cursor,
         limit,
