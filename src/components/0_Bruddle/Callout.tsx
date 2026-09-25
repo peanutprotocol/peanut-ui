@@ -31,7 +31,8 @@ interface CalloutProps {
     /** Checklist body: one check-marked row per entry, instead of `children`. */
     items?: React.ReactNode[]
     /** When set, shows a close button on inline callouts only. A toast leaves on
-     *  its own timer, so `floating` never draws one. */
+     *  its own: on its timer, or (a `persistent` toast) when its caller clears
+     *  it as the condition ends. So `floating` never draws one. */
     onDismiss?: () => void
     /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
@@ -114,7 +115,8 @@ const PRIORITY_STYLES: Record<
  * flat badge tint, the tone lands on a 24px icon bubble, the countdown bar, and
  * a 5% wash of the fill — light enough that the card stays legible over
  * whatever screen it floats above, and opaque so it never reads as a wash.
- * It has no close button (TASK-23054, konrad + hugo): a toast times out, and
+ * It has no close button (TASK-23054, konrad + hugo): a toast times out, or a
+ * persistent one is cleared by its caller when its condition ends, and
  * the × read as a control that did nothing.
  */
 export const Callout = ({
