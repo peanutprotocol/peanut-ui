@@ -145,7 +145,7 @@ beforeEach(() => {
 })
 
 describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
-    it('opens on the USD seed, derives the MXN at the live quote and hands it to the review', async () => {
+    it('opens on the USD seed with the MXN estimate, and hands the review the USD as typed', async () => {
         renderFromRatesCta({ currencyCode: 'MXN', amount: '10' })
         fireEvent.click(screen.getByText('Saved CLABE'))
 
@@ -156,8 +156,8 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
         expect(lastPush().pathname).toContain('mexico')
-        expect(lastPush().searchParams.get('destinationAmount')).toBe('170')
-        expect(lastPush().searchParams.get('amount')).toBeNull()
+        expect(lastPush().searchParams.get('amount')).toBe('10')
+        expect(lastPush().searchParams.get('destinationAmount')).toBeNull()
     })
 
     it('waits for a delayed quote, then opens on the same seed', async () => {
@@ -186,7 +186,8 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         expect(field().value).toBe('20')
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
-        expect(lastPush().searchParams.get('destinationAmount')).toBe('360')
+        expect(lastPush().searchParams.get('amount')).toBe('20')
+        expect(lastPush().searchParams.get('destinationAmount')).toBeNull()
     })
 
     it('below the MX minimum ($3 at Bridge 17): Continue stays disabled and says why', async () => {
@@ -249,6 +250,7 @@ describe('Rates & fees USD amount → a saved EUR account, then Back from the re
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
         expect(lastPush().searchParams.get('destinationAmount')).toBe('20')
+        expect(lastPush().searchParams.get('amount')).toBeNull()
 
         backToAmountStep()
         await waitFor(() => expect(field().value).toBe('20'))
@@ -261,6 +263,7 @@ describe('Rates & fees USD amount → a saved EUR account, then Back from the re
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
         expect(lastPush().searchParams.get('destinationAmount')).toBe('20')
+        expect(lastPush().searchParams.get('amount')).toBeNull()
     })
 
     it('a USD amount the user kept stays USD after Back; the new quote moves the EUR', async () => {
@@ -269,7 +272,7 @@ describe('Rates & fees USD amount → a saved EUR account, then Back from the re
         fireEvent.change(field(), { target: { value: '12' } })
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
-        expect(lastPush().searchParams.get('destinationAmount')).toBe('10.8')
+        expect(lastPush().searchParams.get('amount')).toBe('12')
 
         backToAmountStep()
         await waitFor(() => expect(field().value).toBe('12'))
@@ -278,6 +281,29 @@ describe('Rates & fees USD amount → a saved EUR account, then Back from the re
         setEurRate('1')
         await waitFor(() => expect(screen.getByText(/≈ EUR 12/)).toBeInTheDocument())
         expect(field().value).toBe('12')
+    })
+
+    /*
+     * Chip 5311936420: a USD entry forwarded the EUR estimate floored to cents,
+     * and the review quoted the USDC back from it. At 0.9, USD 12.01 → EUR 10.80
+     * → USD 12.00; a moved rate could exceed what the user meant to spend. The
+     * USD goes to the review as typed, the EUR estimate stays on this screen.
+     */
+    it('USD 12.01 at 0.9 goes to the review as amount=12.01, also after the rate moves', async () => {
+        await openSavedIban()
+
+        fireEvent.change(field(), { target: { value: '12.01' } })
+        await waitFor(() => expect(screen.getByText(/≈ EUR 10\.8/)).toBeInTheDocument())
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        expect(lastPush().searchParams.get('amount')).toBe('12.01')
+        expect(lastPush().searchParams.get('destinationAmount')).toBeNull()
+
+        setEurRate('0.95')
+        await waitFor(() => expect(screen.getByText(/≈ EUR 11\.4/)).toBeInTheDocument())
+        fireEvent.click(continueButton())
+        expect(lastPush().searchParams.get('amount')).toBe('12.01')
+        expect(lastPush().searchParams.get('destinationAmount')).toBeNull()
     })
 
     it('switching to EUR and back to USD keeps USD as the unit for Back', async () => {

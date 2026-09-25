@@ -349,8 +349,11 @@ export function useWithdrawRootFlow() {
             const params = new URLSearchParams()
             for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value)
             if (isFromSendFlow && methodParam && !params.has('method')) params.set('method', methodParam)
-            // a bank-currency amount is handed on as typed; the review quotes its USDC
-            if (bankCurrency) {
+            // Each amount is handed on in the unit it was typed in. A bank-currency
+            // amount goes as destinationAmount and the review quotes its USDC; a USD
+            // amount (any USD account, or a bank account whose field is in USD) goes
+            // as typed — the bank amount beside it is only a floored estimate.
+            if (bankCurrency && !bankFieldInUsdRef.current) {
                 if (destinationAmount) params.set('destinationAmount', destinationAmount)
             } else if (rawTokenAmount) {
                 params.set('amount', rawTokenAmount)

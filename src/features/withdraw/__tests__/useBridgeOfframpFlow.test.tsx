@@ -687,6 +687,22 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(view.result.current.amountToWithdraw).toBe('50')
     })
 
+    // A EUR account whose amount was entered in USD (Chip 5311936420): the amount
+    // step hands on ?amount= alone, and the review spends exactly that USD.
+    it('a EUR account with a USD amount spends the USD as typed, with no bank-amount quote', async () => {
+        armHappyOfframp()
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        const view = renderFlow({ amount: '12.01', step: 'review' })
+
+        expect(view.result.current.bankAmount).toBeNull()
+        expect(view.result.current.amountToWithdraw).toBe('12.01')
+        expect(mockQuoteCalls.some((call) => call.destinationAmount)).toBe(false)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '12.01' }))
+    })
+
     // A 503 on the 30-second refresh used to swap the page for the Retry screen,
     // unmounting an open KYC, terms or confirm step.
     it('a failed refresh keeps the quote on screen, but it is never confirmed', async () => {
