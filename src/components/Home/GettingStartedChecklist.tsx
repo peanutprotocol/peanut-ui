@@ -14,7 +14,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState } from '@/utils/activation-step.utils'
+import { type OnboardingState, canHideChecklist } from '@/utils/activation-step.utils'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -53,6 +54,13 @@ const FIRST_PAYMENT_NOTE_KEY = {
     qr: 'firstPaymentQrNote',
 } as const
 
+/** once a card is issued or applied for, the row says to pay with it, not to get it */
+const FIRST_PAYMENT_HELD_CARD_NOTE_KEY = {
+    card_qr: 'firstPaymentHeldCardQrNote',
+    card: 'firstPaymentHeldCardNote',
+    qr: 'firstPaymentQrNote',
+} as const
+
 /** the pulse placeholder for a one-line subtitle (design.md skeleton recipe) */
 const SubtitleSkeleton = () => (
     // the line box stays 20px, the text line's height, so the row does not jump
@@ -63,7 +71,7 @@ const SubtitleSkeleton = () => (
 
 /**
  * The Home onboarding checklist (TASK-23054): Create account ✓ · Verify
- * identity · Add money · Make the first payment. Home shows it until every row
+ * identity · Add money · First payment. Home shows it until every row
  * is done; the rules for each row live in resolveOnboarding. The payment row
  * appears only for a user who can make an activating spend (card or QR).
  *
@@ -71,7 +79,7 @@ const SubtitleSkeleton = () => (
  * check. The first open row that has something to do is outlined in pink —
  * a row in review is skipped, because there is nothing to do on it.
  */
-const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }) => {
+const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: OnboardingState; onHide?: () => void }) => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
     const [, setHomeDrawer] = useHomeDrawer()
@@ -141,7 +149,7 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                 id: 'first-payment',
                 bubble: FIRST_PAYMENT_BUBBLE[route],
                 label: t('firstPayment'),
-                sub: t(FIRST_PAYMENT_NOTE_KEY[route]),
+                sub: t((onboarding.cardHeld ? FIRST_PAYMENT_HELD_CARD_NOTE_KEY : FIRST_PAYMENT_NOTE_KEY)[route]),
                 done: firstPaymentDone,
                 onTap: tap('first-payment', () => {
                     if (route === 'card_qr') setIsChooserOpen(true)
@@ -215,6 +223,22 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                     )
                 })}
             </ListGroup>
+            {onHide && canHideChecklist(onboarding) && (
+                // tertiary dismiss (design.md), only once the payment row is the one
+                // left, so nobody hides the list before money is in. mt-4 on the
+                // section's gap-2 keeps the 24px the hit area needs under a row
+                <LinkButton
+                    onClick={() => {
+                        posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_HIDDEN, {
+                            first_payment_route: firstPaymentRoute,
+                        })
+                        onHide()
+                    }}
+                    className="mt-4 self-center text-body-s text-foreground-primary"
+                >
+                    {t('hide')}
+                </LinkButton>
+            )}
             {firstPaymentRoute === 'card_qr' && (
                 <FirstPaymentChooser open={isChooserOpen} onClose={() => setIsChooserOpen(false)} />
             )}

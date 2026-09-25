@@ -6,7 +6,6 @@ import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
@@ -32,7 +31,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
-import { hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
+import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA } from '@/utils/home-carousel.utils'
 
 export type CarouselCTA = {
     id: string
@@ -51,10 +50,6 @@ export type CarouselCTA = {
     secondaryIcon?: StaticImageData | string
     iconSize?: number
 }
-
-/** The closed carousel ids that stay hidden (utils/home-carousel.utils.ts). */
-const getDismissedCTAs = (userId: string | undefined): Map<string, Date> =>
-    hiddenCarouselCTAs(getUserPreferences(userId)?.dismissedCarouselCTAs, new Date())
 
 export const useHomeCarouselCTAs = () => {
     const t = useAppTranslations('home.carousel')
@@ -103,11 +98,7 @@ export const useHomeCarouselCTAs = () => {
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.set(ctaId, new Date())
-            const record: Record<string, string> = {}
-            for (const [id, dismissedAt] of dismissedRef.current) {
-                record[id] = dismissedAt.toISOString()
-            }
-            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
+            hideHomeCta(user?.user?.userId, ctaId)
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
@@ -340,7 +331,7 @@ export const useHomeCarouselCTAs = () => {
             return
         }
 
-        dismissedRef.current = getDismissedCTAs(user.user.userId)
+        dismissedRef.current = readHiddenHomeCtas(user.user.userId)
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 

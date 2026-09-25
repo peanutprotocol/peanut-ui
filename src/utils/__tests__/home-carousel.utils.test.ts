@@ -1,9 +1,17 @@
+/** @jest-environment jsdom */
 /**
  * Konrad's QR banner rule (TASK-23054): a carousel card closed with × never
  * comes back, except the allow-list, and "Pay with QR" never shows to a user
  * who already paid a QR or whose residence has no QR rail.
  */
-import { RECURRING_CAROUSEL_CTAS, hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
+import {
+    HOME_CHECKLIST_CTA_ID,
+    RECURRING_CAROUSEL_CTAS,
+    hiddenCarouselCTAs,
+    hideHomeCta,
+    readHiddenHomeCtas,
+    showQrPayCTA,
+} from '@/utils/home-carousel.utils'
 
 const NOW = new Date('2026-09-25T12:00:00Z')
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
@@ -50,5 +58,25 @@ describe('showQrPayCTA', () => {
 
     it('not while history is loading, so it does not flash in and out', () => {
         expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: undefined })).toBe(false)
+    })
+})
+
+describe('one store for every Home CTA a user closes', () => {
+    beforeEach(() => localStorage.clear())
+
+    it('hiding the checklist keeps the carousel cards already closed, and the reverse', () => {
+        hideHomeCta('u1', 'qr-payment')
+        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
+        hideHomeCta('u1', 'invite-friends')
+        expect([...readHiddenHomeCtas('u1').keys()].sort()).toEqual([
+            HOME_CHECKLIST_CTA_ID,
+            'invite-friends',
+            'qr-payment',
+        ])
+    })
+
+    it('is per user', () => {
+        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
+        expect(readHiddenHomeCtas('u2').has(HOME_CHECKLIST_CTA_ID)).toBe(false)
     })
 })

@@ -4,7 +4,7 @@ import { computeDisplaySpendable } from '@/utils/balance.utils'
 
 /**
  * The Home onboarding checklist (TASK-23054, Hugo 2026-09-25):
- * Create account ✓ · Verify identity · Add money · Make the first payment.
+ * Create account ✓ · Verify identity · Add money · First payment.
  * Home shows it until the first payment is done, then the carousel. A user
  * with no activating spend (no card, no QR rail) has no payment row: their
  * list ends at Add money, and Home hands over once it is all done.
@@ -32,6 +32,8 @@ export interface OnboardingState {
     addMoneyDone: boolean
     firstPaymentDone: boolean
     firstPaymentRoute: FirstPaymentRoute
+    /** a card is issued or its application is in; the card copy says "pay with", not "get" */
+    cardHeld?: boolean
     /** first open, actionable row; `completed` once every row is done */
     step: ActivationStep
 }
@@ -78,6 +80,7 @@ export interface OnboardingInput {
     isActivated: boolean
     holdsMoney: boolean
     firstPaymentRoute: FirstPaymentRoute
+    cardHeld: boolean
 }
 
 export function resolveOnboarding(input: OnboardingInput): OnboardingState {
@@ -100,5 +103,21 @@ export function resolveOnboarding(input: OnboardingInput): OnboardingState {
     // (an ID check in review is the one open row left)
     else step = verify === 'done' ? 'completed' : 'verify'
 
-    return { verify, addMoneyDone, firstPaymentDone, firstPaymentRoute: input.firstPaymentRoute, step }
+    return {
+        verify,
+        addMoneyDone,
+        firstPaymentDone,
+        firstPaymentRoute: input.firstPaymentRoute,
+        cardHeld: input.cardHeld,
+        step,
+    }
+}
+
+/**
+ * The checklist can be hidden once only the payment row is left (Create,
+ * Verify and Add money done). It covers users who only move money in and out,
+ * who would otherwise keep a 75% list forever.
+ */
+export function canHideChecklist(state: OnboardingState): boolean {
+    return state.verify === 'done' && state.addMoneyDone && state.step === 'first_payment'
 }

@@ -40,8 +40,12 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 
 let mockCanSpendViaCard = false
+let mockHasCardRelationship = false
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
-    useCardSurfaceAccess: () => ({ canSpendPathViaCard: mockCanSpendViaCard }),
+    useCardSurfaceAccess: () => ({
+        canSpendPathViaCard: mockCanSpendViaCard,
+        hasCardRelationship: mockHasCardRelationship,
+    }),
 }))
 
 let mockCardInfo: unknown = { isEligible: false }
@@ -86,6 +90,7 @@ beforeEach(() => {
     mockRails = []
     mockOverview = undefined
     mockCanSpendViaCard = false
+    mockHasCardRelationship = false
     mockCardInfo = { isEligible: false }
     mockIdentityStatus = 'not_started'
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
@@ -176,6 +181,12 @@ describe('useActivationStatus', () => {
         })
         const { result } = renderHook(() => useActivationStatus())
         expect(result.current.onboarding.firstPaymentRoute).toBe('qr')
+    })
+
+    it('an issued card or a card application marks the card as held', () => {
+        mockCanSpendViaCard = true
+        mockHasCardRelationship = true
+        expect(setup().result.current.onboarding.cardHeld).toBe(true)
     })
 
     it('before the user loads, nothing is complete', () => {
