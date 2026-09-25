@@ -6,6 +6,7 @@ export const APP_HELP_SLUGS = [
     'request-money',
     'card-collateral',
     'passkeys',
+    'security-disclosure',
 ] as const
 export type AppHelpSlug = (typeof APP_HELP_SLUGS)[number]
 export type HelpLocale = 'en' | 'es-419' | 'es-ar' | 'pt-br'
