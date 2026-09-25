@@ -334,8 +334,9 @@ describe('a row the user cannot use', () => {
         fireEvent.click(row)
         expect(onOpen).not.toHaveBeenCalled()
         expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
-        // the rail's full name sits in the drawer, not on the row
-        expect(drawer().getByText('GBP · Faster Payments')).toBeInTheDocument()
+        // the body names the currency; no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
+        expect(drawer().queryByText('GBP · Faster Payments')).not.toBeInTheDocument()
+        expect(drawer().queryByText(/Faster Payments/)).not.toBeInTheDocument()
 
         jest.useFakeTimers()
         fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))

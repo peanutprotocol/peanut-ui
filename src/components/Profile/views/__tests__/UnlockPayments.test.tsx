@@ -402,6 +402,22 @@ describe('UnlockPayments', () => {
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
+    // support is the escape after a failed start, so it is the tertiary
+    // LinkButton under "Try again", not a stroke Button beside it
+    it('offers support under the retry as a link, which opens the support sheet', () => {
+        mockFlowError = 'Not Found'
+        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
+        render()
+        fireEvent.click(screen.getByLabelText('Change'))
+        fireEvent.click(screen.getByText('reverify'))
+
+        const support = screen.getByRole('button', { name: 'Contact support' })
+        expect(support).toHaveClass('underline')
+        expect(screen.getByRole('button', { name: 'Try again' })).not.toHaveClass('underline')
+        fireEvent.click(support)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+    })
+
     it('shows a dated cooldown with one dismiss button', async () => {
         mockFlowError = 'Too many requests'
         mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }

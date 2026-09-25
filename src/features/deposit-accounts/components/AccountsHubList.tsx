@@ -217,7 +217,7 @@ export function AccountsHubList({
                 bodyWrap
                 chevron
                 onClick={() => {
-                    const reason = closedBankRow(row, isKycDegraded, label)
+                    const reason = closedBankRow(row, isKycDegraded)
                     if (reason) setClosed(reason)
                     else onBankRowClick(row)
                 }}
@@ -266,11 +266,7 @@ export function AccountsHubList({
                             accountRow(row.corridor, openBadge(row), () =>
                                 row.openable
                                     ? accounts?.onOpen(row.corridor)
-                                    : setClosed({
-                                          kind: 'not-offered',
-                                          corridor: row.corridor,
-                                          label: `${DEPOSIT_RAILS[row.corridor].currency} · ${railName(row.corridor)}`,
-                                      })
+                                    : setClosed({ kind: 'not-offered', corridor: row.corridor })
                             )
                         )}
                     </ListGroup>
