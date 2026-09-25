@@ -4,7 +4,13 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listContentSlugs, contentLocaleFor, availableContentLocales } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    listContentSlugs,
+    contentLocaleFor,
+    availableContentLocales,
+    helpArticleTitle,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -62,7 +68,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
 
-    const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
+    const displayTitle = helpArticleTitle(mdxSource.frontmatter.title)
     const url = `/${locale}/help/${slug}`
 
     return (

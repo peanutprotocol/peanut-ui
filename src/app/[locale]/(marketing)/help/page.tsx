@@ -3,7 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, isValidLocale, getAlternates } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
-import { readPageContentLocalizedResolved, listContentSlugs } from '@/lib/content'
+import { readPageContentLocalizedResolved, listContentSlugs, helpArticleTitle } from '@/lib/content'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
@@ -111,7 +111,7 @@ export default async function HelpPage({ params }: PageProps) {
                 slug,
                 // The serving locale owns the prose, so link it directly.
                 href: `/${lang}/help/${encodeURIComponent(slug)}`,
-                title: content.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, ''),
+                title: helpArticleTitle(content.frontmatter.title),
                 description: content.frontmatter.description,
                 category: content.frontmatter.category ?? 'General',
             }

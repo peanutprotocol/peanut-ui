@@ -1,6 +1,6 @@
 import { APP_HELP_SLUGS, type AppHelpDocuments, type AppHelpSlug } from './appHelpTypes'
 import { createAppHelpMdxComponents } from './AppHelpMdx'
-import { readPageContentLocalized } from '@/lib/content'
+import { helpArticleTitle, readPageContentLocalized } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 import type { Locale } from '@/i18n/types'
 
@@ -15,7 +15,7 @@ async function helpDocument(slug: AppHelpSlug, locale: Locale) {
         components: createAppHelpMdxComponents(locale),
     })
     return {
-        title: source.frontmatter.title.replace(/\s*\|\s*Peanut(?: Help)?$/, ''),
+        title: helpArticleTitle(source.frontmatter.title),
         content,
     }
 }
