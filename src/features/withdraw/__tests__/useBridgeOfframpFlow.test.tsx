@@ -771,6 +771,32 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(view.result.current.amountToWithdraw).toBe('50')
     })
 
+    // A EUR account whose amount was entered in USD (Chip 5311936420): the amount
+    // step hands on ?amount= alone. On this branch the review prices that USD
+    // side (fees v2): the server quotes the payout for exactly USD 12.01, and the
+    // floored EUR estimate of the amount step never comes back as an amount.
+    it('a EUR account with a USD amount is quoted on its USD side: 12.01 sent, payout from the server', async () => {
+        armHappyOfframp()
+        // the signed quote for USD 12.01 at 0.8973 (Bridge 0.9 less 0.30%): €10.77, bank amount rounded down
+        mockQuote = fixedOutputQuote({ sourceAmount: '12.01', destinationAmount: '10.77' })
+        const view = renderFlow({ amount: '12.01', step: 'review' })
+
+        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '12.01' } })
+        expect(mockQuoteCalls.some((call) => call.amount && 'destinationAmount' in call.amount)).toBe(false)
+        expect(view.result.current.amountToWithdraw).toBe('12.01')
+        // the payout the review shows is the server's, exact — not the 10.80 estimate at 0.9
+        expect(view.result.current.bankAmount?.quote?.destinationAmount).toBe('10.77')
+        expect(view.result.current.bankAmount?.isExact).toBe(true)
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        const payload = mockCreateOfframp.mock.calls[0][0]
+        expect(payload).toMatchObject({ amount: '12.01', quoteId: 'quote-1' })
+        expect(payload).not.toHaveProperty('destinationAmount')
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '12.01', { kind: 'FIAT_OFFRAMP' })
+    })
+
     // A 503 on the 30-second refresh used to swap the page for the Retry screen,
     // unmounting an open KYC, terms or confirm step.
     it('a failed refresh keeps the quote on screen, but it is never confirmed', async () => {
