@@ -15,7 +15,7 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 let mockOpenHelp: jest.Mock | null = null
-jest.mock('@/components/Global/AppHelpDrawer', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
+jest.mock('@/components/Global/AppHelpProvider', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
 
 const renderLink = () => {
     render(<DocsLink href="/en/help/passkeys">docs</DocsLink>, { wrapper: IntlWrapper })
