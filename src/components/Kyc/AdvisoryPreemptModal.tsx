@@ -45,7 +45,7 @@ export default function AdvisoryPreemptModal({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            icon="badge"
+            concept="verification"
             title={t('advisory.title')}
             description={
                 formatted ? t('advisory.descriptionByDate', { deadline: formatted }) : t('advisory.description')
@@ -58,13 +58,8 @@ export default function AdvisoryPreemptModal({
                     shadowSize: '4',
                     disabled: isLoading,
                 },
-                {
-                    text: t('advisory.doLater'),
-                    onClick: onDoLater,
-                    variant: 'secondary',
-                    disabled: isLoading,
-                },
             ]}
+            tertiaryCta={{ text: t('advisory.doLater'), onClick: onDoLater, disabled: isLoading }}
         />
     )
 }

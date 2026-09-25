@@ -5,6 +5,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Badge from '@/components/Global/Badges/Badge'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
@@ -159,6 +160,8 @@ export function CorridorGateDrawer({
         </Button>
     ) : null
 
+    const gateIcon = ICONS[notice.action as keyof typeof ICONS] as IconName | undefined
+
     return (
         <Drawer
             open={open}
@@ -170,8 +173,10 @@ export function CorridorGateDrawer({
                 <div className="flex flex-col items-center text-center">
                     {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
                     <IconBubble
-                        icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
-                        color="gray"
+                        icon={gateIcon ?? 'globe-lock'}
+                        // a wait is yellow; every other reason has a button that clears it,
+                        // so it is a way forward, blue (TASK-22761)
+                        color={waiting ? 'yellow' : 'blue'}
                         className="mb-4"
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">

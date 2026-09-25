@@ -136,6 +136,23 @@ describe.each([
     })
 })
 
+// Chip on ui#3456: verify, terms and email gates have a button yet drew the
+// inactive gray. A wait is yellow; a reason with a way forward is blue.
+describe.each([
+    ['verify', { gate: { kind: 'needs-identity', userMessage: null } as GateState }, 'blue'],
+    ['terms', { gate: { kind: 'accept-tos', tosUrl: 'https://x', userMessage: null } as GateState }, 'blue'],
+    ['support', { gate: { kind: 'blocked-rejection', userMessage: null } as GateState }, 'blue'],
+    ['pending-review', { blockedBy: 'endorsement-pending' as const }, 'yellow'],
+    ['wait', { gate: { kind: 'pending' } as GateState, withTerms: false }, 'yellow'],
+])('the %s gate bubble', (_, options, color) => {
+    it(`is ${color}`, () => {
+        renderFlow(flowProps(options))
+        expect(drawer().querySelector('[class*="bg-background-icon-bubble-"]')).toHaveClass(
+            `bg-background-icon-bubble-${color}`
+        )
+    })
+})
+
 describe('the gate drawer', () => {
     // The title and the button say it: one document to agree to. The identity
     // sentence belonged to a different step (sep-23 review, A5).

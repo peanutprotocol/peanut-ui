@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { PEANUTMAN } from '@/assets/mascot'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
 
@@ -15,14 +16,21 @@ import { type IconBubbleColor } from './IconBubble'
  *
  * Blue is the method color (the IconBubble showcase: "blue plain information
  * or a neutral method/action icon", gray is inactive). Yellow marks what is
- * Peanut's own: the Peanut user, friends, the card, rewards.
+ * Peanut's own: the Peanut user, friends, the card, rewards. QR pay is pink,
+ * the brand fill: it is the one primary action the bottom nav's QR button
+ * draws in `action-primary`, the same pink (hugo, 2026-09-25).
+ *
+ * The bubble names the concept, never its status: a row's status lives in its
+ * badge, so an available and a locked QR row draw the same pink bubble.
  */
 export const CONCEPT_ICONS = {
     bank: { icon: 'bank', color: 'blue' },
     crypto: { icon: 'coins', color: 'blue' },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
-    qrPay: { icon: 'qr-code', color: 'blue' },
+    qrPay: { icon: 'qr-code', color: 'brand' },
+    // sending to a Pix key (Accounts and payments, Spend section)
+    pixKey: { icon: 'arrow-up-right', color: 'blue' },
     addMoney: { icon: 'arrow-down', color: 'blue' },
     // mirrors addMoney: money in is arrow-down, money out is arrow-up
     withdraw: { icon: 'arrow-up', color: 'blue' },
@@ -38,7 +46,11 @@ export const CONCEPT_ICONS = {
     },
     friends: { icon: 'users', color: 'yellow' },
     card: { icon: 'credit-card', color: 'yellow' },
-    rewards: { icon: 'trophy', color: 'yellow' },
+    // the star beside Rewards on the home top nav: points, perks and cashback
+    rewards: {
+        icon: <Image src={STAR_STRAIGHT_ICON} alt="" className="h-1/2 w-auto" />,
+        color: 'yellow',
+    },
     badges: { icon: 'achievements', color: 'yellow' },
 } as const satisfies Record<string, { icon: IconName | React.ReactElement; color: IconBubbleColor }>
 

@@ -17,7 +17,8 @@ const HomeCarouselCTA = () => {
                     key={cta.id}
                     title={cta.title}
                     description={cta.description}
-                    icon={cta.icon as IconName}
+                    icon={cta.icon as IconName | undefined}
+                    concept={cta.concept}
                     onClose={() => {
                         cta.onClose?.()
                         dismissCTA(cta.id)

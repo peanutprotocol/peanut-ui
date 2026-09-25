@@ -251,7 +251,7 @@ const HistoryPage = () => {
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <h2 className="text-heading-card text-foreground-primary">{t('transactions')}</h2>{' '}
-                <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
+                <EmptyState icon="alert" iconColor="red" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
         )
     }

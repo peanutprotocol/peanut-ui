@@ -233,14 +233,8 @@ const ReConsentModal = () => {
                     // squashes h-13 buttons when the CTAs are stacked
                     className: 'sm:flex-none',
                 },
-                {
-                    text: t('reConsent.notNow'),
-                    variant: 'secondary',
-                    disabled: submitting,
-                    onClick: handlePostpone,
-                    className: 'sm:flex-none',
-                },
             ]}
+            tertiaryCta={{ text: t('reConsent.notNow'), disabled: submitting, onClick: handlePostpone }}
             ctaClassName={STACKED_CTAS}
         />
     )
