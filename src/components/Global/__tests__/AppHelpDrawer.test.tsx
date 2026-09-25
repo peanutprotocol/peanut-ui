@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import DocsLink from '../DocsLink'
 import { AppHelpProvider } from '../AppHelpProvider'
@@ -103,6 +103,26 @@ describe('app help drawers', () => {
             expect.objectContaining({ tags: { feature: 'app-help' } })
         )
         expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-state', 'closed')
+        openSpy.mockRestore()
+    })
+
+    it('ignores a load that fails after the drawer closes, and retries on reopen', async () => {
+        const openSpy = jest.spyOn(window, 'open')
+        let finishFirstLoad: (response: Response) => void = () => undefined
+        fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (finishFirstLoad = resolve)))
+        renderLink('es-AR', '/en/help/request-money')
+        openHelp()
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+        finishFirstLoad({ ok: false } as Response)
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+        await act(async () => undefined)
+        expect(openSpy).not.toHaveBeenCalled()
+        expect(mockCaptureException).not.toHaveBeenCalled()
+
+        serve('request-money', 'es-ar')
+        // The page stays aria-hidden while the closed drawer finishes its exit in jsdom.
+        fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
+        expect(await screen.findByText('request-money article es-ar')).toBeInTheDocument()
         openSpy.mockRestore()
     })
 

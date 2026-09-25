@@ -24,7 +24,10 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
     const [loaded, setLoaded] = useState<{ key: string; article: AppHelpArticle } | null>(null)
     const article = loaded?.key === key ? loaded.article : null
 
+    // Load only while open: closing drops a pending result, so a late failure cannot
+    // open the help page after the reader dismissed the drawer. Reopening retries.
     useEffect(() => {
+        if (!open) return
         let current = true
         loadAppHelpArticle(slug, locale).then(
             (result) => {
@@ -37,7 +40,7 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
         return () => {
             current = false
         }
-    }, [slug, locale, onUnavailable])
+    }, [open, slug, locale, onUnavailable])
 
     return (
         <Drawer open={open} onOpenChange={(next) => !next && onClose()} hideBottomNav>
