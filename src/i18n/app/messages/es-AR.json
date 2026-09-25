@@ -7,24 +7,6 @@
     },
     "home": {
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Desbloqueá pagos"
-                },
-                "deposit": {
-                    "title": "Depositá",
-                    "description": "Agregá dinero para hacer tu primer pago"
-                },
-                "card": {
-                    "title": "Gastá donde acepten Visa",
-                    "description": "Usá tu saldo en más de 150M de comercios. En línea y sin contacto.",
-                    "cta": "Pedir tarjeta"
-                },
-                "outbound": {
-                    "title": "Hacé el primer pago",
-                    "description": "Pagá claves Pix y códigos QR de Pix o Mercado Pago"
-                }
-            },
             "addEmail": {
                 "title": "Agregar email"
             },
@@ -33,10 +15,6 @@
             },
             "verificationIssue": {
                 "description": "Contactá a soporte para recibir ayuda con tu verificación."
-            },
-            "spendWithPeanut": {
-                "title": "Pagá con Peanut",
-                "description": "Pagá con tarjeta, una clave Pix o códigos QR de Pix y Mercado Pago"
             },
             "spendChooser": {
                 "title": "Elegí cómo gastar",
@@ -47,13 +25,11 @@
         "gettingStarted": {
             "title": "Empezar",
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Listo. Tu plata ya tiene un usuario",
-            "getCard": "Conseguí la tarjeta Peanut",
             "addMoney": "Agregar dinero",
             "firstPayment": "Hacé el primer pago",
-            "firstPaymentNote": "Mandá unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez",
-            "addMoneyStandingAccounts": "Conseguí datos bancarios a tu nombre. Cobrá en euros, dólares y más."
+            "firstPaymentCardNote": "Pagá un QR o pedí la tarjeta",
+            "firstPaymentQrNote": "Pagá un código QR",
+            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",

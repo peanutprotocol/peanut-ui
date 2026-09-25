@@ -38,11 +38,9 @@ describe('journeyData', () => {
         }
     })
 
-    it('the #2475 chooser surfaces are marked NEW in this PR', () => {
+    it('the TASK-23054 checklist is marked NEW in this PR', () => {
         const newOnes = IN_APP_SURFACES.filter((s) => s.isNewInThisPr).map((s) => s.id)
-        expect(newOnes).toEqual(
-            expect.arrayContaining(['step-outbound-spend', 'modal-spend-chooser', 'step-email-blocked'])
-        )
+        expect(newOnes).toEqual(expect.arrayContaining(['home-checklist', 'step-email-blocked']))
     })
 
     it('maps each lifecycle spec stage to exactly one column', () => {

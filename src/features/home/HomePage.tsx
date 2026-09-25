@@ -8,6 +8,7 @@ import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
@@ -22,22 +23,21 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  *
  * cta surfaces (carousel, activation ctas, card launch, pending verification
  * tasks) are composed as-is — restyling them belongs to the activation
- * project, not the ds rebuild. the unverified "verify" page state renders
- * through ActivationCTAs in the card slot.
+ * project, not the ds rebuild.
  *
  * one CTA surface at a time (hugo, 2026-09-25): a large verification task card
- * replaces the carousel and the activation card; it is due, so it wins. with
- * no task card, activated users get the carousel and everyone else the
- * activation card. PendingVerificationTasks renders `whenEmpty` only when it
- * shows nothing itself.
+ * replaces the carousel and the checklist; it is due, so it wins. with no task
+ * card, a user who finished onboarding gets the carousel and everyone else the
+ * getting-started checklist (ActivationCTAs) — never both.
+ * PendingVerificationTasks renders `whenEmpty` only when it shows nothing itself.
  */
 export function HomePage() {
     const {
         isPageLoading,
         username,
         isActivated,
-        activationStep,
-        dismissCardStep,
+        onboarding,
+        isOnboardingComplete,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
@@ -47,6 +47,10 @@ export function HomePage() {
     useHomeViewAnalytics(isPageLoading)
     const { nextActions, rails } = useCapabilities()
     const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
+    // a rejected bank rail keeps its card even when every checklist row is done
+    // (no card, no QR rail): support or a fix is still the next thing to do
+    const { hasProviderRejection } = useProviderRejection(onboarding)
+    const showCarousel = isOnboardingComplete && !hasProviderRejection
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
@@ -67,19 +71,19 @@ export function HomePage() {
                     <EnableAutoBalanceBanner />
                     <PendingVerificationTasks
                         placement="home"
-                        whenEmptyShowsDocumentRequest={isActivated}
+                        whenEmptyShowsDocumentRequest={showCarousel}
                         whenEmpty={
-                            isActivated ? (
+                            showCarousel ? (
                                 <HomeCarouselCTA documentRequest={documentSlide} />
                             ) : (
-                                <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
+                                <ActivationCTAs onboarding={onboarding} />
                             )
                         }
                     />
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
-                        hideEmptyState={!isActivated}
+                        hideEmptyState={!showCarousel}
                     />
                 </div>
             </div>

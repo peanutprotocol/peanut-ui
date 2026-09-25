@@ -13,7 +13,7 @@ import type { NextAction } from '@/types/capabilities'
 /**
  * `documentRequest`: a future-dated document request before its final week
  * (selectHomeTasks). It leads the carousel as a small item and has no close
- * button, so the carousel's 7-day dismissal can never hide it before its due
+ * button, so a carousel dismissal can never hide it before its due
  * date; in the final week Home moves it to the large task card instead.
  */
 const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) => {

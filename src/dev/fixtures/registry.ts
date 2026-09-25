@@ -1343,6 +1343,301 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home?drawer=request',
         about: 'The Request drawer — share a request link, or share standing bank details.',
     },
+
+    // ---------------------------------------------------------------------
+    // Home onboarding checklist (TASK-23054): Create account · Verify identity ·
+    // Add money · Make the first payment, until the first payment.
+    // ---------------------------------------------------------------------
+    'home-new-user': {
+        route: '/home',
+        balance: '0',
+        about: 'New user in Brazil, card offered: ID check not started, nothing received, the first payment offers QR or card.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                residence: { declared: 'BR', verified: null },
+            },
+        },
+    },
+    'home-verify-processing': {
+        route: '/home',
+        balance: '0',
+        about: 'ID check in review: the verify row shows an In review pill, Add money is next.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'processing' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+            },
+        },
+    },
+    'home-verified-unfunded': {
+        route: '/home',
+        balance: '0',
+        about: 'Home for a verified user with no money received yet (API milestone verified).',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+            },
+        },
+    },
+    'home-verified-unfunded-no-card': {
+        route: '/home',
+        balance: '0',
+        about: 'Verified, API milestone verified, card not offered for the residence.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+            },
+        },
+    },
+    'home-verified-crypto-dust': {
+        route: '/home',
+        balance: '0.17',
+        about: 'Verified, $0.17 arrived by crypto and the ledger has not booked it yet (milestone verified): Add money is done.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+            },
+        },
+    },
+    'home-money-before-verify': {
+        route: '/home',
+        balance: '20',
+        about: 'Money received before the ID check (milestone funded, not verified): Add money is done, Verify identity is next.',
+        responses: {
+            'GET /users/me': {
+                user: { activationMilestone: 'funded', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+            },
+        },
+    },
+    'home-funded': {
+        route: '/home',
+        balance: '50',
+        about: 'Verified, funded by a bank top-up, card and Pix QR open: the first payment is next and opens the chooser.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'enabled', withdraw: 'enabled', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-funded-qr': {
+        route: '/home',
+        balance: '50',
+        about: 'Funded, no card for the residence, Pix QR pay open: the first payment opens the QR scanner.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'enabled', withdraw: 'enabled', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-funded-no-spend-path': {
+        route: '/home',
+        balance: '50',
+        about: 'Verified, funded, no card and no QR pay: three rows, all done, so the carousel shows.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'enabled',
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-collateral-only': {
+        route: '/home',
+        balance: '0',
+        about: 'Card holder whose only money is card collateral (wallet 0, milestone verified): Add money is done.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /rain/cards': {
+                status: { hasApplication: true, railStatus: 'ENABLED' },
+                balance: { spendingPower: 2500, inTransitToCollateralCents: 0 },
+                cards: [
+                    {
+                        id: 'fixture-card',
+                        rainCardId: 'fixture-rain',
+                        status: 'ACTIVE',
+                        last4: '0420',
+                        expiryMonth: 6,
+                        expiryYear: 2069,
+                        network: 'visa',
+                        issuedAt: '2026-01-01T00:00:00Z',
+                        hasWithdrawApproval: false,
+                    },
+                ],
+            },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+            },
+        },
+    },
+    'home-provider-rejection': {
+        route: '/home',
+        balance: '0',
+        about: 'Verified, but the bank partner declined: the verification-issue card replaces the checklist.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'blocked',
+                            reason: {
+                                code: 'provider_rejected',
+                                userMessage: 'The bank partner declined the application.',
+                            },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-region-restricted': {
+        route: '/home',
+        balance: '0',
+        about: 'ID check ended on a restricted region: the region card replaces the checklist.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'failed', reason: { code: 'identity_region_restricted' } },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'home-activated': {
+        route: '/home',
+        balance: '50',
+        about: 'Activated (first card or QR spend done): the carousel replaces the checklist.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'activated',
+                    isActivated: true,
+                    activatedAt: '2026-09-10T00:00:00Z',
+                    firstPaymentAt: '2026-09-10T00:00:00Z',
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+            },
+        },
+    },
     'request-with-bank-alternative': {
         route: '/request',
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',

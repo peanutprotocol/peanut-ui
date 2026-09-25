@@ -4,128 +4,89 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-
-export type ActivationStep = 'verify' | 'deposit' | 'card' | 'outbound' | 'completed'
+import {
+    type OnboardingState,
+    canReachQrPay,
+    holdsMoney,
+    resolveOnboarding,
+    selectFirstPaymentRoute,
+} from '@/utils/activation-step.utils'
+import { useMemo } from 'react'
 
 interface ActivationStatus {
-    /** whether user has activated (≥1 spend: card spend or QR spend on Mercado Pago/Pix) */
+    /**
+     * API activation (Lexicon v2): ≥1 card spend or QR pay on Mercado Pago/Pix.
+     * Gates Rewards and referral UI. If the API omits it, false.
+     */
     isActivated: boolean
     /** timestamp of activation, null if not yet activated */
     activatedAt: string | null
-    /** current step in the activation funnel */
-    activationStep: ActivationStep
+    /** the Home checklist rows and the first open step (utils/activation-step.utils.ts) */
+    onboarding: OnboardingState
+    /** every checklist row is done: Home leaves the checklist for the carousel */
+    isOnboardingComplete: boolean
     /** true while user data is still loading */
     isLoading: boolean
-    /** dismiss the card step — persists locally so it doesn't re-appear */
-    dismissCardStep: () => void
 }
 
-// v2 (2026-08-20): rotated when the card step moved AFTER deposit. The v1
-// flag was written by users dismissing the mis-timed PRE-deposit banner —
-// exactly the funded card-eligible cohort this change re-targets — so
-// honoring it would permanently suppress the step for the people it is for.
-// Worst case of the rotation: one extra "Maybe later".
-const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed_v2'
-
 /**
- * derives the user's activation status for gating rewards/referral UI.
- *
- * activation funnel: registered → verified → funded → card → activated
- * (activated = ≥1 SPEND transaction: card spend or QR spend on Mercado Pago/Pix —
- * other outbound tx kinds like send links, offramps and withdrawals no longer
- * count; the BE computes `isActivated`/`activationMilestone` on /users/me and
- * this hook just consumes them, so it inherits the definition automatically)
- *
- * The `card` step only appears when the user is FUNDED (or already activated),
- * eligible for a Rain card, doesn't hold an active one yet,
- * and hasn't dismissed it via "Maybe later" — card comes after deposit, never
- * before verify/deposit. Otherwise the funnel goes to the spend step
- * (`outbound` — step id kept for continuity, it now means "make your first spend").
- *
- * if the BE omits isActivated (bug/outage), falls back to false so gated UI
- * (rewards/referral) stays hidden rather than leaking.
+ * Home onboarding: Create account ✓ · Verify identity · Add money · Make the
+ * first payment. The rules live in resolveOnboarding; this hook only gathers
+ * the inputs, all from data Home already loads (/users/me, the wallet balance,
+ * the card overview).
  */
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
-    const { isKycApproved } = useCapabilities()
+    const { rails, channelOf } = useCapabilities()
     const { overview } = useRainCardOverview()
-
-    // Share the canonical user-scoped card-info query with home and card —
-    // a second query on the same key with different options makes refetch
-    // timing harder to reason about (this was consolidated once already).
+    const { canSpendPathViaCard } = useCardSurfaceAccess()
     const { cardInfo } = useCardInfo()
-    const residenceRestrictions = useResidenceRestrictions()
-
-    // Read the dismissal flag after mount to avoid hydration mismatch.
-    const [cardDismissed, setCardDismissed] = useState(false)
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-        setCardDismissed(localStorage.getItem(CARD_DISMISSED_STORAGE_KEY) === 'true')
-    }, [])
-
-    const dismissCardStep = useCallback(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(CARD_DISMISSED_STORAGE_KEY, 'true')
-        }
-        setCardDismissed(true)
-    }, [])
+    const { status: identityStatus } = useIdentityVerification()
 
     const isLoading = !user || isFetchingBalance
 
     const derived = useMemo(() => {
-        if (!user?.user) {
-            return { isActivated: false, activatedAt: null, activationStep: 'verify' as ActivationStep }
+        const isActivated = user?.user?.isActivated ?? false
+        // Card eligibility is known once card info answered, or when a held card
+        // settles it. Loading or a failed request is unknown, never "no card".
+        // The Home card-prompt kill switch mutes every card arm; the QR path stands.
+        const canSpendViaCard = underMaintenanceConfig.disableCardPromotion
+            ? false
+            : canSpendPathViaCard || (cardInfo !== undefined ? false : undefined)
+        const residence = user?.residence
+        const firstPaymentRoute = selectFirstPaymentRoute({
+            canSpendViaCard,
+            canPayQr: canReachQrPay(rails, channelOf, residence?.verified ?? residence?.declared),
+        })
+        const onboarding = resolveOnboarding({
+            identityStatus: user?.user ? identityStatus : undefined,
+            milestone: user?.user?.activationMilestone,
+            isActivated,
+            holdsMoney: holdsMoney(balance, overview?.balance),
+            firstPaymentRoute,
+        })
+        return {
+            isActivated,
+            activatedAt: user?.user?.activatedAt ?? null,
+            onboarding,
+            isOnboardingComplete: onboarding.step === 'completed',
         }
+    }, [
+        user?.user,
+        user?.residence,
+        identityStatus,
+        balance,
+        overview?.balance,
+        canSpendPathViaCard,
+        cardInfo,
+        rails,
+        channelOf,
+    ])
 
-        // Default false: if BE omits the field (bug/outage), gate the referral UI rather than expose it
-        const isActivated = user.user.isActivated ?? false
-        const activatedAt = user.user.activatedAt ?? null
-
-        // derive activation step from BE milestone + local balance
-        const beMilestone = user.user.activationMilestone
-        const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
-        let activationStep: ActivationStep = 'completed'
-        if (!isActivated) {
-            if (beMilestone) {
-                const milestoneToStep: Record<string, ActivationStep> = {
-                    registered: 'verify',
-                    verified: 'deposit',
-                    funded: 'outbound',
-                    activated: 'completed',
-                }
-                activationStep = milestoneToStep[beMilestone] ?? 'verify'
-            } else {
-                if (!isKycApproved) {
-                    activationStep = 'verify'
-                } else {
-                    activationStep = hasBalance ? 'outbound' : 'deposit'
-                }
-            }
-        }
-
-        // Home promotes the card only after funding. Direct /card applications
-        // remain available before a deposit. residence restrictions are the same
-        // gate the bottom nav uses (useCardSurfaceAccess), so home never promotes
-        // a card the nav hides.
-        const canApplyForCard = cardInfo?.isEligible === true && !residenceRestrictions.card
-        const hasCard = !!findActiveCard(overview)
-        // Funded = the BE milestone says so, OR the live chain balance is
-        // positive — a user whose inbound is still mid-poller (milestone stuck
-        // at 'verified') has real money and must not be told "add money"
-        // while the card step is withheld.
-        const isFunded = activationStep === 'outbound' || activationStep === 'completed' || hasBalance
-        if (isFunded && canApplyForCard && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardPromotion) {
-            activationStep = 'card'
-        }
-
-        return { isActivated, activatedAt, activationStep }
-    }, [user?.user, isKycApproved, balance, cardInfo?.isEligible, residenceRestrictions.card, overview, cardDismissed])
-
-    return { ...derived, isLoading, dismissCardStep }
+    return { ...derived, isLoading }
 }
