@@ -265,7 +265,7 @@ export default function IconBubblePage() {
 
             <DocSection title="Per surface" description="Where each rule lands.">
                 <DocSection.Content>
-                    <ul className="space-y-1 list-disc pl-5 text-body-s">
+                    <ul className="space-y-1 list-disc pl-4 text-body-s">
                         {SURFACES.map((line) => (
                             <li key={line}>{line}</li>
                         ))}
@@ -280,7 +280,7 @@ export default function IconBubblePage() {
                     <div className="flex flex-col gap-3">
                         {USAGE.map((row) => (
                             <div key={row.color} className="flex items-start gap-3">
-                                <IconBubble icon={row.icon} color={row.color} size="xs" className="mt-0.5" />
+                                <IconBubble icon={row.icon} color={row.color} size="xs" />
                                 <p className="text-body-s">
                                     <code>{row.color}</code>: {row.screens}
                                 </p>
