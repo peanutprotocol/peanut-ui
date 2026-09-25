@@ -1992,7 +1992,8 @@
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
             "enterAccountDetails": "Ingresa los datos del banco o billetera",
-            "accountDetailsHint": "Usa tu CBU, CVU o alias, incluido Mercado Pago."
+            "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}",
+            "destinationLabel": "{country, select, AR {CBU, CVU o alias} BR {Clave Pix} other {Número de cuenta}}"
         },
         "bankForm": {
             "heading": "Ingresa los datos bancarios",

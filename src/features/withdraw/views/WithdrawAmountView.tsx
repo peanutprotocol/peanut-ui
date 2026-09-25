@@ -83,6 +83,8 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                         setSecondaryAmount={onAmountChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
                         secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                        // the quote rounds the USDC up to the cent; the line and the balance check match it
+                        roundSecondaryUp
                         walletBalance={walletBalance}
                         // the balance row is USD and the field is the bank currency:
                         // floor the USD to cents first so the fill never quotes above it

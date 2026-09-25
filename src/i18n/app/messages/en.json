@@ -1992,7 +1992,8 @@
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
             "enterAccountDetails": "Enter bank or wallet details",
-            "accountDetailsHint": "Use your CBU, CVU or alias, including Mercado Pago."
+            "accountDetailsHint": "{country, select, BR {Phone keys start with +55.} other {Mercado Pago accounts work too.}}",
+            "destinationLabel": "{country, select, AR {CBU, CVU or alias} BR {Pix key} other {Account number}}"
         },
         "bankForm": {
             "heading": "Enter bank details",
@@ -2257,7 +2258,7 @@
             "rejectRequest": "Reject request",
             "moreActions": "More actions",
             "splitBill": "Split this bill",
-            "shareReceipt": "Share Receipt",
+            "shareReceipt": "Share receipt",
             "copyLink": "Copy link",
             "linkCopied": "Link copied",
             "linkCopyFailed": "Could not copy the link",
