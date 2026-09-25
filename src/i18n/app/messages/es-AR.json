@@ -67,7 +67,7 @@
         "perk": {
             "holdToUnwrap": "Mantené presionado para abrir la recompensa",
             "iosCopy": {
-                "holdToUnwrap": "Mantené presionado para abrir el cashback"
+                "holdToUnwrap": "Mantené presionado para abrir"
             }
         },
         "carousel": {
@@ -102,15 +102,15 @@
             },
             "iosCopy": {
                 "invite": {
-                    "title": "Invitá amigos. Ganá cashback",
-                    "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                    "title": "Invitá amigos. Ganá puntos",
+                    "description": "Ganá puntos cada vez que tus amigos pagan con Peanut."
                 },
                 "latamInvite": {
-                    "title": "Ganá <b>cashback</b> en pagos QR",
-                    "description": "Invitá amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganás!"
+                    "title": "Ganá <b>puntos</b> en pagos QR",
+                    "description": "Invitá amigos para <b>ganar más puntos</b>. ¡Cuanto más pagan, más ganás!"
                 },
                 "qrPay": {
-                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
+                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>puntos</b>."
                 }
             },
             "card": {
@@ -806,10 +806,9 @@
         },
         "iosCopy": {
             "success": {
-                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir tu cashback.",
-                "holdToClaim": "¡Ganaste cashback! Mantené presionado para abrirlo.",
-                "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más cashback.",
-                "inviteFriends": "Invitá amigos para ganar aún más cashback."
+                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir.",
+                "holdToClaim": "¡Recibiste una sorpresa! Mantené presionado para abrirla.",
+                "inviteFriends": "Invitá amigos para ganar aún más."
             },
             "claim": {
                 "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
@@ -1097,10 +1096,10 @@
         },
         "iosCopy": {
             "perk": {
-                "subtitle": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                "subtitle": "Ganá puntos cada vez que tus amigos pagan con Peanut."
             },
             "actions": {
-                "inviteFriends": "Invitá amigos y ganá más cashback"
+                "inviteFriends": "Invitá amigos y ganá más puntos"
             }
         }
     },
@@ -1121,10 +1120,12 @@
             "step4": "Hacé cualquier pago para reclamarlo."
         },
         "iosCopy": {
-            "noPendingRewards": "No tenés cashback pendiente por ahora.",
-            "earnWhenFriendsUse": "¡Ganás cashback cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más cashback",
-            "howItWorks": {}
+            "noPendingRewards": "No tenés nada pendiente por ahora.",
+            "earnWhenFriendsUse": "¡Ganás puntos cada vez que tus amigos pagan con Peanut!",
+            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más puntos",
+            "howItWorks": {
+                "step3": "Lo que ganás se acumula en tu saldo."
+            }
         }
     },
     "invites": {
@@ -1631,7 +1632,7 @@
         },
         "iosCopy": {
             "inviteFriendsModal": {
-                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
+                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás puntos."
             }
         },
         "countryCombobox": {

@@ -82,7 +82,7 @@
         "scanQr": "Scan QR"
     },
     "home": {
-        "rewards": "Rewards",
+        "rewards": "Points",
         "activation": {
             "steps": {
                 "verify": {
@@ -169,7 +169,7 @@
             "holdToUnwrap": "Hold to unwrap reward",
             "iosCopy": {
                 "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
-                "holdToUnwrap": "Hold to unwrap cashback"
+                "holdToUnwrap": "Hold to unwrap"
             }
         },
         "carousel": {
@@ -208,15 +208,15 @@
             "closeNotificationPrompt": "Close notification prompt",
             "iosCopy": {
                 "invite": {
-                    "title": "Invite friends. Earn cashback",
-                    "description": "Earn cashback every time your friends pay with Peanut."
+                    "title": "Invite friends. Earn points",
+                    "description": "Earn points every time your friends pay with Peanut."
                 },
                 "latamInvite": {
-                    "title": "Earn <b>cashback</b> on QR payments",
-                    "description": "Invite friends to <b>earn more cashback</b>. The more they pay, the more you earn!"
+                    "title": "Earn <b>points</b> on QR payments",
+                    "description": "Invite friends to <b>earn more points</b>. The more they pay, the more you earn!"
                 },
                 "qrPay": {
-                    "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>cashback</b>."
+                    "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>."
                 }
             },
             "card": {
@@ -249,9 +249,6 @@
                 "GBP": "British pound bank transfers",
                 "MXN": "Mexican peso bank transfers"
             }
-        },
-        "iosCopy": {
-            "rewards": "Cashback"
         },
         "openProfile": "Open profile",
         "showBalance": "Show balance",
@@ -552,11 +549,6 @@
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
             "noInviteTitle": "No invite, no Peanut",
             "requestAction": "Request"
-        },
-        "iosCopy": {
-            "menu": {
-                "points": "Cashback"
-            }
         },
         "update": {
             "title": "Update ready",
@@ -1472,12 +1464,11 @@
         },
         "iosCopy": {
             "success": {
-                "earnedRewardTitle": "You earned cashback!",
-                "earnedHoldToClaim": "You earned ${amount}! Hold to unwrap your cashback.",
-                "holdToClaim": "You earned cashback! Hold to unwrap.",
-                "earnedInviteFriends": "You earned ${amount}! Invite friends to earn even more cashback.",
-                "inviteFriends": "Invite friends to earn even more cashback.",
-                "claimReward": "Unwrap Cashback"
+                "earnedRewardTitle": "You got a surprise!",
+                "earnedHoldToClaim": "You earned ${amount}! Hold to unwrap.",
+                "holdToClaim": "You got a surprise! Hold to unwrap.",
+                "inviteFriends": "Invite friends to earn even more.",
+                "claimReward": "Unwrap"
             },
             "claim": {
                 "inviteQrDescription": "Share anywhere. Anyone who scans can join you on Peanut."
@@ -2360,20 +2351,20 @@
         "adjustedSuffix": "· Adjusted",
         "iosCopy": {
             "type": {
-                "reward": "Cashback"
+                "reward": "Receive"
             },
             "perkBanner": {
-                "title": "You earned cashback!",
-                "capped": "${amount} cashback — campaign limit reached!",
-                "received": "You received ${amount} cashback!",
-                "generic": "You received Peanut cashback!"
+                "title": "You got a surprise!",
+                "capped": "You received ${amount}. Campaign limit reached!",
+                "received": "You received ${amount}!",
+                "generic": "You received a surprise from Peanut!"
             },
             "perk": {
-                "title": "Peanut Cashback",
-                "subtitle": "Earn cashback every time your friends pay with Peanut."
+                "title": "Received from Peanut",
+                "subtitle": "Earn points every time your friends pay with Peanut."
             },
             "actions": {
-                "inviteFriends": "Invite friends to earn more cashback"
+                "inviteFriends": "Invite friends to earn more points"
             }
         }
     },
@@ -2388,7 +2379,7 @@
         "yesterday": "Yesterday"
     },
     "rewards": {
-        "title": "Rewards",
+        "title": "Points",
         "youHave": "You have",
         "pendingCallout": "waiting for you. Start spending to claim.",
         "noPendingRewards": "No pending rewards right now.",
@@ -2419,17 +2410,16 @@
             "step4": "Make any payment to claim it."
         },
         "iosCopy": {
-            "title": "Cashback",
             "invitesTitle": "Network",
-            "noPendingRewards": "No cashback waiting right now.",
-            "lifetimeRewards": "Lifetime cashback: {amount}",
-            "earnWhenFriendsUse": "You earn cashback whenever your friends pay with Peanut!",
-            "shareInviteLinkPrompt": "Send your invite link to start earning more cashback",
+            "noPendingRewards": "Nothing waiting for you right now.",
+            "lifetimeRewards": "Earned so far: {amount}",
+            "earnWhenFriendsUse": "You earn points whenever your friends pay with Peanut!",
+            "shareInviteLinkPrompt": "Send your invite link to start earning more points",
             "howItWorks": {
-                "title": "How cashback works",
-                "step3": "Cashback builds up in your balance."
+                "title": "How it works",
+                "step3": "What you earn builds up in your balance."
             },
-            "lifetimeCaption": "in cashback so far"
+            "lifetimeCaption": "so far"
         }
     },
     "invites": {
@@ -3709,7 +3699,7 @@
         "maintenanceBody": "This feature is temporarily unavailable while we work on it. Your funds are safe and everything else works as usual.",
         "iosCopy": {
             "inviteFriendsModal": {
-                "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
+                "description": "Share your link. Every time a friend you brought makes a payment, you earn points."
             }
         },
         "countryCombobox": {

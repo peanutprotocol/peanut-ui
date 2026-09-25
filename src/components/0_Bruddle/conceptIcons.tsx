@@ -46,7 +46,7 @@ export const CONCEPT_ICONS = {
     },
     friends: { icon: 'users', color: 'yellow' },
     card: { icon: 'credit-card', color: 'yellow' },
-    // the star beside Rewards on the home top nav: points, perks and cashback
+    // the star beside Points on the home top nav: points, perks and rewards
     rewards: {
         icon: <Image src={STAR_STRAIGHT_ICON} alt="" className="h-1/2 w-auto" />,
         color: 'yellow',
