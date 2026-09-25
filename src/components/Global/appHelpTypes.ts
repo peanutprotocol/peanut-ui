@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 export const APP_HELP_SLUGS = [
     'verification',
+    'account-recovery',
     'transaction-limits',
     'request-money',
     'card-collateral',
