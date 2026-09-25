@@ -500,7 +500,11 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) =>
         props.visible ? (
-            <div data-testid="initiate-kyc-modal" data-presentation={props.presentation ?? 'modal'}>
+            <div
+                data-testid="initiate-kyc-modal"
+                data-presentation={props.presentation ?? 'modal'}
+                data-nav-title={props.navTitle}
+            >
                 <button data-testid="kyc-verify-button" onClick={props.onVerify}>
                     Verify
                 </button>
@@ -1311,7 +1315,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setGate('loading')
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
@@ -1330,7 +1334,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setGate('needs-identity')
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
     })
 
     // A provisioning rail has nothing for the user to do; offering "Unlock now"
@@ -1365,13 +1369,23 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         renderWithProviders(<OnrampBankPage />)
 
         expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-presentation', 'page')
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
+    })
+
+    // Reached from Add money (the MXN "Unlock" row), so it keeps that title. It
+    // used to borrow "Accounts and payments", a screen the user never opened.
+    test('the verify step keeps the Add money title', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-nav-title', 'Add money')
     })
 
     test('inputAmount step shows amount input and Continue button', () => {
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
     })
@@ -1400,7 +1414,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             renderWithProviders(<OnrampBankPage />)
 
             expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
-            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
     )
@@ -1412,7 +1426,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         renderWithProviders(<OnrampBankPage />)
 
         expect(mockRouterReplace).not.toHaveBeenCalled()
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
     })
 
     test('mexico needs-enrollment unlock sends the NA intent', async () => {
@@ -1708,7 +1722,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
             />
         )
 
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
     })

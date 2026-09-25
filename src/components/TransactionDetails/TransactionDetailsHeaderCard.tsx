@@ -345,7 +345,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                         : isRequestPotTransaction
                                           ? // The pot rollup row only ever renders for the request's
                                             // owner — the generic "Request" label reads as their own
-                                            // ask: "You requested". Named pots keep their name.
+                                            // ask: "Requested". Named pots keep their name.
                                             nameKey === TRANSACTION_NAME_KEYS.request
                                               ? t('title.youRequested')
                                               : localizedUserName

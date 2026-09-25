@@ -269,7 +269,6 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
         return (
             <div data-testid="withdraw-method-view" data-show-all={showAll}>
                 <span data-testid="page-title">{props.pageTitle}</span>
-                <span data-testid="main-heading">{props.mainHeading}</span>
                 <button data-testid="method-view-back" onClick={props.onExit}>
                     Back
                 </button>
@@ -388,15 +387,14 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
+        expect(screen.getByTestId('page-title')).toHaveTextContent('Withdraw')
     })
 
-    test('Method=bank from send flow shows "Send" title and send heading', () => {
+    test('Method=bank from send flow shows the "Send" title', () => {
         renderWithdraw({ method: 'bank' })
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('page-title')).toHaveTextContent('Send')
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to send?')
     })
 
     test('?step=amount with no method in flow memory falls back to the method view (guard)', () => {

@@ -212,7 +212,7 @@ export default function CardPage() {
                             <IconBubble icon="check" color="green" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-body-s text-foreground-secondary">You sent to lucia</h1>
+                            <h1 className="text-body-s text-foreground-secondary">Sent to lucia</h1>
                             <p className="text-heading-s">$24.00</p>
                         </div>
                     </Card>

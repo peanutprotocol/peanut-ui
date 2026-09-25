@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import {
     PeanutWebSocket,
     getWebSocketInstance,
     type RailStatusUpdate,
     type RainCardBalanceChangedData,
 } from '@/services/websocket'
-import { TRANSACTIONS } from '@/constants/query.consts'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -15,20 +13,16 @@ type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 // session with many live updates can't grow the array (and re-processing) unbounded.
 const MAX_WS_HISTORY_ENTRIES = 50
 
-// Kindless pings already answered with a refetch. Every useWebSocket instance
-// registers its own listener on the shared socket, and one ping reaches all of
-// them with the same object. Dozens of instances are mounted at once
-// (useRainCardOverview, reached through useWallet, has one each), and every
-// invalidation aborts and restarts the in-flight history fetch — but the fetch
-// ignores the abort, so each restart is another request. One ping sent ~100
-// identical GET /users/history in half a second on staging (2026-09-24 13:36Z),
-// which starved the 256MB database until it was OOM-killed.
-const refetchedPings = new WeakSet<object>()
-
 interface UseWebSocketOptions {
     autoConnect?: boolean
     username?: string
     onHistoryEntry?: (entry: HistoryEntry) => void
+    /**
+     * A kindless history ping: the server asks the client to refetch history
+     * and balance. Only the app-wide `SocketQueryRefresh` answers it, so one
+     * ping is one refetch however many screens hold a socket listener.
+     */
+    onRefetchRequested?: () => void
     onKycStatusUpdate?: (status: string) => void
     onMantecaKycStatusUpdate?: (status: string) => void
     onSumsubKycStatusUpdate?: (status: string, rejectLabels?: string[]) => void
@@ -45,6 +39,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         autoConnect = true,
         username,
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
@@ -59,10 +54,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [status, setStatus] = useState<WebSocketStatus>('disconnected')
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
-    const queryClient = useQueryClient()
 
     const callbacksRef = useRef({
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
@@ -78,6 +73,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     useEffect(() => {
         callbacksRef.current = {
             onHistoryEntry,
+            onRefetchRequested,
             onKycStatusUpdate,
             onMantecaKycStatusUpdate,
             onSumsubKycStatusUpdate,
@@ -90,6 +86,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
     }, [
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
@@ -171,12 +168,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // charges-ws charge completions, claim.ts sendlink claims) —
                 // the BE expects clients to refetch, not render. Rendering one
                 // hits the transformer's fallback strategy and shows "Sent to
-                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). Balance moves
-                // with these events too, so refresh it alongside the feed.
-                // Default cancelRefetch (true) on purpose: a fetch already in
-                // flight when the ping arrives started pre-commit and may lack
-                // the new row — joining it would clear the invalidation with
-                // stale data. Abort-restart guarantees a post-event response.
+                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). The refetch
+                // itself is `onRefetchRequested`, answered once app-wide.
                 //
                 // The snapshots go with it. They are overlaid on top of the
                 // fetched rows, so an entry the refetch DROPS — a watcher-first
@@ -186,10 +179,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // answer it produces wins; anything REST still returns comes
                 // straight back with it.
                 setHistoryEntries([])
-                if (refetchedPings.has(entry)) return
-                refetchedPings.add(entry)
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
+                callbacksRef.current.onRefetchRequested?.()
                 return
             }
             if (
@@ -280,7 +270,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
             ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }
-    }, [autoConnect, connect, username, queryClient])
+    }, [autoConnect, connect, username])
 
     // Return exposed functionality
     return {

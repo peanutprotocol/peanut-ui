@@ -28,8 +28,6 @@ import {
 } from './withdraw-currencies'
 
 interface WithdrawCurrencyListProps {
-    /** Heading above the search field ("How would you like to cash out?"). */
-    heading: string
     /** A country was resolved — route it (reuses the method view's handler). */
     onCountryClick: (country: CountryData) => void
     /**
@@ -63,7 +61,6 @@ interface WithdrawCurrencyListProps {
  */
 // TODO(va): extract shared currency-first selector shell (with DepositAccountsListScreen)
 export function WithdrawCurrencyList({
-    heading,
     onCountryClick,
     onCryptoClick,
     enforceSupportedCountries,
@@ -133,16 +130,14 @@ export function WithdrawCurrencyList({
 
     return (
         <div className="flex min-h-inherit flex-col gap-4">
-            <div className="space-y-2">
-                <div className="text-body-m-semibold">{heading}</div>
-                <SearchInput
-                    value={query}
-                    onChange={setQuery}
-                    onClear={() => setQuery('')}
-                    placeholder={t('currencyList.searchPlaceholder')}
-                    aria-label={t('currencyList.searchPlaceholder')}
-                />
-            </div>
+            {/* no heading: the nav title already says Withdraw or Send */}
+            <SearchInput
+                value={query}
+                onChange={setQuery}
+                onClear={() => setQuery('')}
+                placeholder={t('currencyList.searchPlaceholder')}
+                aria-label={t('currencyList.searchPlaceholder')}
+            />
 
             {/* crypto sits beside the currencies, never inside them */}
             {!query && onCryptoClick && (

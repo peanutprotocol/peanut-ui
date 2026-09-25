@@ -142,7 +142,7 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "redirecting": "Te llevamos a la tienda…",
+            "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
     },

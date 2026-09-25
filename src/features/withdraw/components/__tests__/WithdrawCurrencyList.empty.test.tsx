@@ -46,8 +46,7 @@ jest.mock('@/components/AddMoney/consts', () => {
 
 import { WithdrawCurrencyList } from '../WithdrawCurrencyList'
 
-const renderList = () =>
-    render(<WithdrawCurrencyList heading="Cash out" onCountryClick={jest.fn()} onCryptoClick={jest.fn()} />)
+const renderList = () => render(<WithdrawCurrencyList onCountryClick={jest.fn()} onCryptoClick={jest.fn()} />)
 const search = (term: string) =>
     fireEvent.change(screen.getByLabelText('withdraw.currencyList.searchPlaceholder'), { target: { value: term } })
 const openOtherCountries = () => fireEvent.click(screen.getByTestId('withdraw-other-countries-toggle'))

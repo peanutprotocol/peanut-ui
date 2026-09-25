@@ -153,7 +153,7 @@ describe('BadgeEarnToast', () => {
         expect(mockMarkSeen).toHaveBeenCalledWith(['SHHHHH', 'PRODUCT_HUNT'])
 
         render(mockToast.mock.calls[0][0].content)
-        expect(screen.getByText(/You unlocked 2 badges/)).toBeInTheDocument()
+        expect(screen.getByText(/2 badges unlocked/)).toBeInTheDocument()
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 

@@ -66,7 +66,6 @@ export default function WithdrawRoot() {
     return (
         <WithdrawMethodView
             pageTitle={flow.isBankFromSend ? tNav('send') : tNav('withdraw')}
-            mainHeading={flow.isBankFromSend ? t('howWouldYouLikeToSend') : t('howWouldYouLikeToWithdraw')}
             onExit={() => void flow.stepper.back()}
             onMethodChosen={() => void flow.stepper.goTo('amount')}
         />
