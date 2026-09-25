@@ -11,7 +11,9 @@ import { loadMessages } from '../messages'
  * concluded these were missing.
  */
 const CHECKLIST_KEYS = [
-    'title',
+    'welcomeTitle',
+    'welcomeBody',
+    'progress',
     'createAccount',
     'createAccountDone',
     'addMoney',

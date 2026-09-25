@@ -107,7 +107,6 @@
             }
         },
         "gettingStarted": {
-            "title": "Get started",
             "createAccount": "Create account",
             "createAccountDone": "Username ready",
             "addMoney": "Add money",
@@ -118,14 +117,17 @@
             "verifyIdentity": "Verify identity",
             "verifyIdentityNote": "One-time ID check",
             "inReview": "In review",
-            "firstPaymentCardNote": "Pay a QR or get the card",
+            "firstPaymentCardNote": "Get the card or pay a QR",
             "firstPaymentQrNote": "Pay a QR code",
             "firstPaymentCardOnlyNote": "Get the Peanut Card",
             "verifyIdentityDone": "ID verified",
             "addMoneyDone": "Money received",
             "firstPaymentHeldCardNote": "Pay with the card",
-            "firstPaymentHeldCardQrNote": "Pay a QR or with the card",
-            "hide": "Hide"
+            "firstPaymentHeldCardQrNote": "Pay with the card or a QR",
+            "hide": "Hide",
+            "welcomeTitle": "Welcome to Peanut!",
+            "welcomeBody": "{count} quick steps to pay, send and receive",
+            "progress": "{done} of {total} done"
         },
         "autoBalance": {
             "title": "Finish setting up the card",

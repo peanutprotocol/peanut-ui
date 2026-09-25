@@ -4,6 +4,8 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
+import Card from '@/components/Global/Card'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
@@ -70,7 +72,9 @@ const SubtitleSkeleton = () => (
 )
 
 /**
- * The Home onboarding checklist (TASK-23054): Create account ✓ · Verify
+ * The Home onboarding checklist (TASK-23054), under a small "Welcome to
+ * Peanut" card with the progress bar. It shows every open row and only the
+ * latest done one. Rows: Create account ✓ · Verify
  * identity · Add money · First payment. Home shows it until every row
  * is done; the rules for each row live in resolveOnboarding. The payment row
  * appears only for a user who can make an activating spend (card or QR).
@@ -173,7 +177,12 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
         verify,
     ])
 
-    const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
+    // the bar and the count cover every row; the list shows every open row and
+    // only the latest done one, so finished steps do not crowd out what is next
+    const doneCount = items.filter((item) => item.done).length
+    const completionPercent = Math.round((doneCount / items.length) * 100)
+    const latestDoneId = items.filter((item) => item.done).at(-1)?.id
+    const visibleItems = items.filter((item) => !item.done || item.id === latestDoneId)
 
     const viewedRef = useRef(false)
     useEffect(() => {
@@ -185,15 +194,36 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
 
     return (
         <Section>
-            <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-body-s text-foreground-secondary">
-                    <span>{t('title')}</span>
-                    <span>{completionPercent}%</span>
+            {/* one height at every width: a one-line subtitle (wide screens) gets the
+                same card as a two-line one; 320 may grow when the title wraps */}
+            <Card
+                position="solo"
+                className="flex min-h-[90px] flex-col justify-center px-4 py-2"
+                data-testid="onboarding-welcome"
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="text-heading-card text-foreground-primary">{t('welcomeTitle')}</span>
+                        <span className="text-body-s text-foreground-secondary">
+                            {t('welcomeBody', { count: items.length })}
+                        </span>
+                    </div>
+                    {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                        PeanutMascot shows a still frame under reduced motion */}
+                    <div className="relative size-[72px] shrink-0">
+                        <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
+                        <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                    </div>
                 </div>
+            </Card>
+            <div className="flex flex-col gap-1">
+                <span className="text-body-s text-foreground-secondary">
+                    {t('progress', { done: doneCount, total: items.length })}
+                </span>
                 <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
             </div>
             <ListGroup className="bg-background-default">
-                {items.map((item) => {
+                {visibleItems.map((item) => {
                     const tappable = !item.done && !!item.onTap
                     return (
                         <ListItem
