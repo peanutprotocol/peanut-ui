@@ -17,6 +17,7 @@ import { useState, type ReactElement, type ReactNode } from 'react'
 import { offersVerification } from '../depositGate'
 import {
     closedBankRow,
+    closedOpenRow,
     corridorMatchesSearch,
     otherWaysRows,
     virtualAccountRows,
@@ -29,6 +30,7 @@ import { canShare } from '../resolveScreen'
 import { SKELETON_PULSE } from '../skeleton'
 import type { DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
@@ -42,9 +44,9 @@ import { CorridorFlag } from './CorridorFlag'
  * Once the user holds an account, the ones they could open fold into one
  * closed row at the foot of the held list, one card with it (Hugo,
  * 2026-09-25): a list of "Not set up" rows under a held account read as a
- * checklist, and working through it runs into the account limit. At the
- * limit the row is gone, since nothing behind it can be opened; the counter
- * beside the heading says why. Each screen decides what a tap does; the rows, their order, their
+ * checklist, and working through it runs into the account limit. It lists
+ * every account the user does not hold; one they cannot open says why on tap,
+ * the limit first (Hugo, 2026-09-25). Each screen decides what a tap does; the rows, their order, their
  * words and the reason behind a row that cannot be used are the same on both.
  * A row is titled by its currency alone; the rail's name is on the screen or
  * drawer behind the tap.
@@ -83,6 +85,7 @@ export function AccountsHubList({
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [closed, setClosed] = useState<ClosedRow | null>(null)
+    const residenceIso2s = useResidenceIso2s()
 
     const isLoading = !!accounts?.isLoading
     const isError = !!accounts?.isError
@@ -135,13 +138,17 @@ export function AccountsHubList({
     }
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, openable }: OpenAccountRow) => {
+    const openBadge = ({ corridor, openable, unchecked }: OpenAccountRow) => {
+        // at the limit the cap is the answer for every row, before any other reason
+        if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
+        // no verdict from the backend: nothing else about the row is known, the gate included
+        if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         const reason = accounts?.unavailable?.[corridor]?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
         if (reason === 'support-required') return <Badge status="neutral" customText={tCommon('contactSupport')} />
         if (reason === 'identity-required' || (reason === undefined && offersVerification(accounts?.gates[corridor])))
-            return <Badge status="pending" customText={t('list.badgeVerify')} />
+            return <Badge status="pending" customText={t('list.badgeVerifyId')} />
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
@@ -156,7 +163,8 @@ export function AccountsHubList({
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         }
-        return <Badge status="neutral" customText={t('list.badgeNotSetUp')} />
+        // an action the user can take now: the info tone (hugo, 2026-09-25)
+        return <Badge status="processing" customText={t('list.badgeSetUp')} />
     }
 
     /*
@@ -176,6 +184,14 @@ export function AccountsHubList({
     // more accounts than the limit, after support lowered it: the count stands alone
     const overCap = accountLimit !== undefined && slotsHeld > accountLimit
     const atLimit = accountLimit !== undefined && slotsHeld >= accountLimit
+    /*
+     * At the limit nothing opens, whatever else holds a row back (chip,
+     * ui#3479): a support or verification block cleared alone would still not
+     * open a third account. The one exception is a row the backend itself
+     * flags at the limit, which keeps the claim step's own limit screen.
+     */
+    const capFirst = (corridor: DepositCorridor) =>
+        atLimit && accounts?.claimable?.[corridor]?.blockedBy !== 'account-limit'
     // the fold sits under the held rows; a search lists every match instead
     const foldOpen = held.length > 0 && !searching
     const counter =
@@ -257,9 +273,15 @@ export function AccountsHubList({
                     row.corridor,
                     openBadge(row),
                     () =>
-                        row.openable
+                        row.openable && !capFirst(row.corridor)
                             ? accounts?.onOpen(row.corridor)
-                            : setClosed({ kind: 'not-offered', corridor: row.corridor }),
+                            : setClosed(
+                                  closedOpenRow(row, {
+                                      reachedLimit: atLimit ? accountLimit : undefined,
+                                      unavailable: accounts?.unavailable?.[row.corridor],
+                                      hasResidence: residenceIso2s.length > 0,
+                                  })
+                              ),
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined
                 )
             )}
@@ -268,7 +290,7 @@ export function AccountsHubList({
     const heldRows = shownHeld.map((corridor) =>
         accountRow(corridor, heldBadge(corridor), () => accounts?.onOpen(corridor))
     )
-    const showFold = foldOpen && !atLimit && shownOpen.length > 0
+    const showFold = foldOpen && shownOpen.length > 0
     const accountSkeletons = isLoading
         ? (accounts?.corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor])).length ?? 0)
         : 0
@@ -328,7 +350,12 @@ export function AccountsHubList({
                 </Section>
             )}
 
-            <ClosedRowDrawer closed={closed} onClose={() => setClosed(null)} onChangeResidence={onChangeResidence} />
+            <ClosedRowDrawer
+                closed={closed}
+                onClose={() => setClosed(null)}
+                onChangeResidence={onChangeResidence}
+                onRetry={accounts?.onRetry}
+            />
         </>
     )
 }
