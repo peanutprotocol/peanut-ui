@@ -9,6 +9,7 @@ function setup(bankRate?: number) {
     const onAmountChange = jest.fn()
     const onDestinationAmountChange = jest.fn()
     const onBalanceFilled = jest.fn()
+    const onDenominationChange = jest.fn()
     renderWithIntl(
         <WithdrawAmountView
             pageTitle="Withdraw"
@@ -30,19 +31,28 @@ function setup(bankRate?: number) {
                           rate: bankRate,
                           initialAmount: '',
                           onAmountChange: onDestinationAmountChange,
+                          onDenominationChange,
                       }
                     : undefined
             }
         />
     )
     const field = screen.getByRole('textbox') as HTMLInputElement
-    return { field, onAmountChange, onDestinationAmountChange, onBalanceFilled }
+    return { field, onAmountChange, onDestinationAmountChange, onBalanceFilled, onDenominationChange }
 }
 
 describe('WithdrawAmountView — bank amount typed in its currency (TASK-23054)', () => {
     it('opens in the bank currency, not USD', () => {
         setup(0.9)
         expect(screen.getByText('EUR')).toBeInTheDocument()
+    })
+
+    it('reports the toggle to USD, so a USD amount is handed on as USD', () => {
+        const { field, onDenominationChange } = setup(0.9)
+        expect(onDenominationChange).toHaveBeenLastCalledWith('EUR')
+        fireEvent.change(field, { target: { value: '90' } })
+        fireEvent.click(screen.getByRole('button', { name: /switch currency/i }))
+        expect(onDenominationChange).toHaveBeenLastCalledWith('USD')
     })
 
     it('stores the typed bank amount and reports the USD it converts to', () => {

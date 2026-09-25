@@ -712,7 +712,6 @@
         },
         "row": {
             "approximate": "An estimate. The rate is set when the transfer converts, so the amount received can differ slightly.",
-            "recipientGets": "Recipient gets",
             "appliesWhenConverting": "Exchange rates apply when converting to {currency}"
         }
     },

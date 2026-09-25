@@ -712,7 +712,6 @@
         },
         "row": {
             "approximate": "É uma estimativa. A taxa é definida quando a transferência é convertida, então o valor recebido pode variar um pouco.",
-            "recipientGets": "O destinatário recebe",
             "appliesWhenConverting": "A taxa de câmbio se aplica na conversão para {currency}"
         }
     },

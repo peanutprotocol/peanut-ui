@@ -37,6 +37,10 @@ export interface PeanutActionDetailsCardProps {
     recipientName: string
     message?: string
     amount: string
+    /** The headline amount, already formatted ("≈ £3.75"); replaces the symbol + `amount` rendering. */
+    amountDisplay?: string
+    /** A second amount under the headline, already formatted: the other currency of a conversion. */
+    secondaryAmount?: string
     tokenSymbol: string
     viewType?: 'NORMAL' | 'SUCCESS'
     className?: HTMLDivElement['className']
@@ -67,6 +71,8 @@ export default function PeanutActionDetailsCard({
     recipientName,
     message,
     amount,
+    amountDisplay,
+    secondaryAmount,
     tokenSymbol,
     viewType = 'NORMAL',
     className,
@@ -238,6 +244,8 @@ export default function PeanutActionDetailsCard({
                     {getTitle()}
                     {isLoading ? (
                         <Loading />
+                    ) : amountDisplay ? (
+                        <h2 className="text-heading-s">{amountDisplay}</h2>
                     ) : (
                         <h2 className="text-heading-s">
                             {(transactionType === 'ADD_MONEY' || isAddBankAccount || isClaimLinkBankAccount) &&
@@ -255,6 +263,9 @@ export default function PeanutActionDetailsCard({
                                 !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
                                 ` ${tokenSymbol}`}
                         </h2>
+                    )}
+                    {!isLoading && secondaryAmount && (
+                        <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>
                     )}
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
