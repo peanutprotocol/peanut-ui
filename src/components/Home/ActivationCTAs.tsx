@@ -37,6 +37,7 @@ interface ActivationCTAsProps {
 
 interface StepConfig {
     icon: IconName
+    // blue for verification, money in and QR; pink for the card (TASK-22761)
     iconColor: IconBubbleColor
     title: string
     description: string
@@ -200,7 +201,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         () => ({
             verify: {
                 icon: 'globe-lock',
-                iconColor: 'brand',
+                iconColor: 'blue',
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
@@ -208,7 +209,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             deposit: {
                 icon: CONCEPT_ICONS.addMoney.icon,
-                iconColor: 'brand',
+                iconColor: 'blue',
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
@@ -219,7 +220,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             card: {
                 icon: CONCEPT_ICONS.card.icon,
-                iconColor: 'yellow',
+                iconColor: CONCEPT_ICONS.card.color,
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -228,7 +229,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             outbound: {
                 icon: CONCEPT_ICONS.qrPay.icon,
-                iconColor: 'brand',
+                iconColor: 'blue',
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
@@ -295,7 +296,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (isRegionRestricted) {
             return {
                 icon: 'globe-lock',
-                iconColor: 'brand',
+                iconColor: 'blue',
                 title: tRegion('title'),
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),
@@ -325,7 +326,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (isEmailBlocked) {
                 return {
                     icon: 'globe-lock',
-                    iconColor: 'brand',
+                    iconColor: 'blue',
                     title: t('addEmail.title'),
                     description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
@@ -335,7 +336,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
-                    iconColor: 'brand',
+                    iconColor: 'blue',
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
@@ -353,7 +354,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (isRestartBlocked) {
                 return {
                     icon: 'globe-lock',
-                    iconColor: 'brand',
+                    iconColor: 'blue',
                     title: tProviderRejection('restartTitle'),
                     description: localizedRejectionMessage || tProviderRejection('restartDescription'),
                     ctaLabel: tProviderRejection('restartTitle'),
@@ -363,7 +364,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // blocked
             return {
                 icon: 'globe-lock',
-                iconColor: 'brand',
+                iconColor: 'blue',
                 title: t('verificationIssue.title'),
                 description: t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
@@ -378,6 +379,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             return {
                 ...steps.outbound,
                 icon: CONCEPT_ICONS.card.icon,
+                iconColor: CONCEPT_ICONS.card.color,
                 title: t('spendWithPeanut.title'),
                 description: t('spendWithPeanut.description'),
             }
