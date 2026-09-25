@@ -4,6 +4,7 @@ import { createServer } from 'node:net'
 import { execFileSync, spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
 import { existsSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { prepare } from './prepare.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 const [sourceArg, sha, outArg] = process.argv.slice(2)
@@ -38,6 +39,8 @@ const run = (cmd, args, cwd = source) =>
             SCREEN_CAPTURE_BUILD: '1',
             NEXT_PUBLIC_PEANUT_API_URL: base + '/screen-capture-api',
             NODE_OPTIONS: '--max-old-space-size=6144',
+            // Fonts come from this checkout, not Google Fonts: see next-font-google/mock.cjs.
+            NEXT_FONT_GOOGLE_MOCKED_RESPONSES: fileURLToPath(new URL('../next-font-google/mock.cjs', import.meta.url)),
         },
     })
 const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source, encoding: 'utf8' }).trim()
