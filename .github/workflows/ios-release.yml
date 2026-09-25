@@ -35,6 +35,11 @@ on:
                 required: false
                 default: false
                 type: boolean
+            prerelease:
+                description: 'Dev pre-release: leave the production OTA channel untouched'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -146,7 +151,13 @@ jobs:
                   PLATFORM: ios
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
+                  PRERELEASE: ${{ inputs.prerelease == true }}
               run: |
+                  if [ "$PRERELEASE" = true ]; then
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Dev pre-release: the production OTA channel is not read or written"
+                      exit 0
+                  fi
                   # The 1.5.x bridge is the only production path for native 1.5.0
                   # clients. Publishing a new .0 to this channel would strand them.
                   BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
@@ -327,9 +338,6 @@ jobs:
                   PROFILE_NAME: ${{ steps.provision.outputs.name }}
                   WALLET_EXTENSION_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_name }}
                   WALLET_EXTENSION_UI_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_ui_name }}
-                  # Monotonic, always-increments-even-on-rerun. TestFlight requires each
-                  # upload's build number to exceed the last.
-                  IOS_BUILD_NUMBER: ${{ github.run_number }}
                   IOS_VERSION_NAME: ${{ steps.version.outputs.name }}
                   # native sentry sdk dsn — Info.plist SentryDSN <- $(SENTRY_DSN) build
                   # setting. same project dsn the js layer bakes into the static export
@@ -344,8 +352,13 @@ jobs:
                   # itself stamped from package.json by scripts/native-ios-postsync.js
                   # during the build step above, so this is belt-and-braces rather than
                   # the only thing standing between us and the old hand-maintained 1.0.
-                  # CURRENT_PROJECT_VERSION is always the CI run number.
+                  # CURRENT_PROJECT_VERSION must exceed every earlier upload of this
+                  # version. run_number cannot promise that: inside workflow_call it
+                  # is the caller's counter, and the main and dev lanes both call this.
+                  # Wall-clock seconds, the scheme Play's versionCode already uses, can.
                   # Info.plist reads both via $(...) build settings.
+                  IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"
+                  echo "build number $IOS_BUILD_NUMBER (version $IOS_VERSION_NAME)"
                   MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
                   XCODE_WALLET_ARGS=()
                   if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then

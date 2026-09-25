@@ -234,8 +234,23 @@ Use the workflow that matches the release:
 | | button | what it does |
 |-|--------|--------------|
 | native | **App Release Android & iOS** | successful `main` push OTA resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| native pre-release | **App Release Android & iOS**, dispatched on `dev` | builds the current `dev` tip under the next `<major>.<build+1>.0` → TestFlight + Play `internal` only; no `v*` tag, no production OTA read or write, so the next `main` release resolves the same version |
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+
+To put native changes that `main` does not have yet in testers' hands, dispatch the same
+workflow on `dev`:
+
+```sh
+gh workflow run release-native.yml --repo peanutprotocol/peanut-ui --ref dev -f track=internal
+```
+
+It refuses a dispatch once `dev` has moved past the dispatched commit, and it skips the
+legacy-bridge preflight, reporting a mismatch as a warning instead. A pre-release binary
+still follows its platform's default OTA channel, so testers receive `main` JS unless
+they opt into beta updates. iOS build numbers are wall-clock seconds (the Play
+`versionCode` scheme), so a later `main` upload of the same version still sorts above a
+pre-release. Promote only `main` releases to the stores.
 
 Merging reviewed code to `main` starts production OTA for that exact commit. A successful
 OTA then starts the native TestFlight and Play internal build for the same commit. To retry

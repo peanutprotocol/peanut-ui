@@ -38,6 +38,11 @@ on:
                 required: false
                 default: false
                 type: boolean
+            prerelease:
+                description: 'Dev pre-release: leave the production OTA channel untouched'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -228,7 +233,13 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
+                  PRERELEASE: ${{ inputs.prerelease == true }}
               run: |
+                  if [ "$PRERELEASE" = true ]; then
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Dev pre-release: the production OTA channel is not read or written"
+                      exit 0
+                  fi
                   BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
                   if [ "$BRIDGE" = active ]; then
                       # A same-version replacement already passed the narrow

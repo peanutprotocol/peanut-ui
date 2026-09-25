@@ -27,6 +27,14 @@ describe('iOS release workflow', () => {
         )
     })
 
+    // Both the main and dev lanes call this workflow, and run_number is the caller's
+    // counter, so it cannot order uploads of one version across them.
+    it('numbers builds by wall clock, not the caller run number', () => {
+        expect(workflowSource).not.toContain('github.run_number')
+        expect(workflowSource).toContain('IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"')
+        expect(workflowSource).toContain('CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"')
+    })
+
     it('accepts plutil raw true for the Wallet extension entitlement', () => {
         expect(workflowSource).toContain('if [ "$PAYMENT" != "true" ]; then')
         expect(workflowSource).not.toContain('if [ "$PAYMENT" != "1" ]; then')
