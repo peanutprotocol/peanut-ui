@@ -2465,6 +2465,28 @@ describe('GROUP 5: Error States', () => {
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     }, 20_000)
 
+    // A refused sender id is a support case, not a KYC prompt: the user is
+    // verified, so "finish verifying your identity" would send them in circles.
+    it('routes a refused sender id on its wire code, shows the support copy, and does not retry', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    }, 20_000)
+
     /*
      * Offline is not an outcome. Under react-query's default networkMode a
      * device that drops mid-retry PAUSES the query — resumable, no fetch in

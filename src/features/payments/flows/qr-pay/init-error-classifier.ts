@@ -22,6 +22,7 @@ export const QR_INIT_CODE = {
     MERCHANT_REFUND: 'MANTECA_MERCHANT_RECENT_REFUND',
     NOT_PROVISIONED: 'MANTECA_USER_NOT_PROVISIONED',
     KYC: 'MANTECA_KYC_REQUIRED',
+    SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     PIX_RECURRING: 'PIX_RECURRING_NOT_SUPPORTED',
     MISSING_AMOUNT: 'PAYMENT_DESTINATION_MISSING_AMOUNT',
@@ -71,6 +72,8 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
     [QR_INIT_CODE.MERCHANT_REFUND]: { amountRetryable: false },
     [QR_INIT_CODE.NOT_PROVISIONED]: { amountRetryable: false },
     [QR_INIT_CODE.KYC]: { amountRetryable: false },
+    // The id on file is what the provider refuses; only support can change it.
+    [QR_INIT_CODE.SENDER_REJECTED]: { amountRetryable: false },
     [QR_INIT_CODE.PIX_MIN_AMOUNT]: { amountRetryable: true },
     [QR_INIT_CODE.PIX_RECURRING]: { amountRetryable: false },
     [QR_INIT_CODE.MISSING_AMOUNT]: { amountRetryable: false },

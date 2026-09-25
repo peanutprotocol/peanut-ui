@@ -34,6 +34,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.MERCHANT_REFUND]: t('errors.merchantNotAvailable'),
             [QR_INIT_CODE.NOT_PROVISIONED]: t('errors.kycRequired'),
             [QR_INIT_CODE.KYC]: t('errors.kycRequired'),
+            [QR_INIT_CODE.SENDER_REJECTED]: t('errors.senderRejected'),
             [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
             [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
             [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),

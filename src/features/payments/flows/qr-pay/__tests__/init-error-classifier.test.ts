@@ -56,6 +56,7 @@ describe('isNonRetryableQrInitError', () => {
         QR_INIT_CODE.MERCHANT_REFUND,
         QR_INIT_CODE.NOT_PROVISIONED,
         QR_INIT_CODE.KYC,
+        QR_INIT_CODE.SENDER_REJECTED,
         QR_INIT_CODE.PIX_MIN_AMOUNT,
         QR_INIT_CODE.PIX_RECURRING,
         QR_INIT_CODE.MISSING_AMOUNT,
@@ -122,7 +123,7 @@ describe('classifyQrInitError — actionability depends on the call site', () =>
     })
 
     it('never marks an identity block amount-retryable', () => {
-        for (const code of [QR_INIT_CODE.KYC, QR_INIT_CODE.NOT_PROVISIONED]) {
+        for (const code of [QR_INIT_CODE.KYC, QR_INIT_CODE.NOT_PROVISIONED, QR_INIT_CODE.SENDER_REJECTED]) {
             expect(classifyQrInitError(apiError('x', code), 'amount-entry')?.amountRetryable).toBe(false)
         }
     })

@@ -1417,6 +1417,7 @@
             "merchantNotAvailable": "Não conseguimos concluir pagamentos por QR para este estabelecimento agora. Tente outro método de pagamento ou outro estabelecimento.",
             "merchantNotAvailableTrySmaller": "Não conseguimos concluir pagamentos por QR deste valor para este estabelecimento agora. Tente um valor menor, outro método de pagamento ou outro estabelecimento.",
             "kycRequired": "Conclua a verificação da sua identidade para pagar com QR.",
+            "senderRejected": "Não conseguimos confirmar o documento da sua conta para este pagamento. Fale com o suporte.",
             "merchantChargeExpired": "A cobrança do caixa expirou. Peça para inserir o valor de novo e escaneie mais uma vez.",
             "initiateUnexpected": "Não foi possível iniciar o pagamento por um erro inesperado. Fale com o suporte",
             "fetchDetails": "Não foi possível obter os detalhes do pagamento QR",
