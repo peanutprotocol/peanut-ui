@@ -130,7 +130,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         id: 'modal-spend-chooser',
         kind: 'modal',
         name: 'Spend chooser (ActionModal)',
-        copy: '"How do you want to spend?" — "Both count as your first payment." Card → /card, QR → scanner',
+        copy: '"Choose how to spend" — "Both count as your first payment." Card → /card, QR → scanner',
         cta: { label: 'Pay with your card / Scan a QR code', dest: '/card | QR scanner' },
         condition:
             'Opened by the outbound step CTA when canApplyForCard; auto-closes if residence becomes restricted mid-open',

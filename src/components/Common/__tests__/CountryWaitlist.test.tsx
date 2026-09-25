@@ -36,7 +36,7 @@ it('confirms only a persisted signup', async () => {
     const button = await screen.findByRole('button', { name: 'Notify me' })
     await waitFor(() => expect(button).not.toBeDisabled())
     fireEvent.click(button)
-    await screen.findByText('You’re on the list')
+    await screen.findByText('On the list')
     expect(mockRequest).toHaveBeenCalledWith('AR', 'send', 'POST')
 })
 it('does not show success when signup fails', async () => {
@@ -48,7 +48,7 @@ it('does not show success when signup fails', async () => {
     await waitFor(() => expect(button).not.toBeDisabled())
     fireEvent.click(button)
     await screen.findByText('Could not update the waitlist. Please try again.')
-    expect(screen.queryByText('You’re on the list')).not.toBeInTheDocument()
+    expect(screen.queryByText('On the list')).not.toBeInTheDocument()
 })
 it('asks guests to sign in without storing an anonymous signup', () => {
     mockUser = null
@@ -62,12 +62,12 @@ it('keeps signup confirmation in the authenticated user cache', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const first = render(client)
     fireEvent.click(await screen.findByRole('button', { name: 'Notify me' }))
-    await screen.findByText('You’re on the list')
+    await screen.findByText('On the list')
     expect(client.getQueryData(['country-waitlist', 'qa', 'AR', 'send'])).toEqual({ joinedAt: '2026-09-17T12:00:00Z' })
     first.unmount()
     mockUser = { user: { userId: 'different-user' } }
     render(client)
     await screen.findByRole('button', { name: 'Notify me' })
-    expect(screen.queryByText('You’re on the list')).not.toBeInTheDocument()
+    expect(screen.queryByText('On the list')).not.toBeInTheDocument()
     expect(client.getQueryData(['country-waitlist', 'different-user', 'AR', 'send'])).toEqual({ joinedAt: null })
 })

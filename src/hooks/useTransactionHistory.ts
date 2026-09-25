@@ -239,7 +239,18 @@ export function useTransactionHistory({
     // a page's worth of distinct rows and bottom out on the page ceiling.
     const infiniteLimit = resolveLimit(limit, DEFAULT_INFINITE_PAGE_SIZE)
     const latestLimit = resolveLimit(limit, DEFAULT_LATEST_UNIQUE_ROWS)
-    const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
+    // `signal` is React Query's: it aborts the request when the query is
+    // cancelled or superseded, so a restarted fetch does not leave the old one
+    // running on the server.
+    const fetchHistory = async ({
+        cursor,
+        limit,
+        signal,
+    }: {
+        cursor?: string
+        limit: number
+        signal?: AbortSignal
+    }): Promise<HistoryResponse> => {
         // demo mode: transactions made this session (utils/demo-transactions.ts)
         // prepended to the static seed. Run through completeHistoryEntry (same as
         // real entries below) so amounts/links format correctly.
@@ -260,6 +271,7 @@ export function useTransactionHistory({
         const response = await serverFetch(`/users/history?${queryParams.toString()}`, {
             method: 'GET',
             cache: 'no-store',
+            signal,
         })
 
         if (!response.ok) {
@@ -289,8 +301,11 @@ export function useTransactionHistory({
             'latest',
             { limit: latestLimit, targetUsername: filterMutualTxs ? username : undefined },
         ],
-        queryFn: () =>
-            collectLatestEntries((cursor) => fetchHistory({ cursor, limit: latestPageSize(latestLimit) }), latestLimit),
+        queryFn: ({ signal }) =>
+            collectLatestEntries(
+                (cursor) => fetchHistory({ cursor, limit: latestPageSize(latestLimit), signal }),
+                latestLimit
+            ),
         enabled: mode === 'latest' && enabled,
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
@@ -301,7 +316,7 @@ export function useTransactionHistory({
     // Infinite scrolling (main history page).
     const infiniteQuery = useInfiniteQuery({
         queryKey: [TRANSACTIONS, 'infinite', { limit: infiniteLimit }],
-        queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit: infiniteLimit }),
+        queryFn: ({ pageParam, signal }) => fetchHistory({ cursor: pageParam, limit: infiniteLimit, signal }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage, _allPages, lastPageParam) => {
             if (!lastPage.hasMore) return undefined

@@ -1,9 +1,6 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { serverFetch } from '@/utils/api-fetch'
-import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import type { ReactNode } from 'react'
 
@@ -20,10 +17,6 @@ const fakeWs = {
 jest.mock('@/services/websocket', () => ({
     getWebSocketInstance: () => fakeWs,
 }))
-jest.mock('@/utils/api-fetch', () => ({
-    serverFetch: jest.fn(),
-}))
-const serverFetchMock = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 function emitHistoryEntry(entry: Partial<HistoryEntry>) {
     act(() => {
@@ -53,10 +46,10 @@ describe('useWebSocket — history_entry handling', () => {
      * answer wins over anything held locally.
      */
     it('kindless ping clears the snapshots it supersedes, so the refetched rows win', () => {
-        const { wrapper, client } = makeWrapper()
-        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+        const { wrapper } = makeWrapper()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice' }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onRefetchRequested }), { wrapper })
 
         emitHistoryEntry({
             uuid: 'watcher-deposit',
@@ -71,36 +64,41 @@ describe('useWebSocket — history_entry handling', () => {
         expect(result.current.historyEntries).toHaveLength(0)
         // nothing is lost by dropping them: the same ping asks for the rows
         // again, and whatever REST still returns comes back with the answer
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
+        expect(onRefetchRequested).toHaveBeenCalledTimes(1)
     })
 
     // Regression for the "Sent to Transaction $0.00" flash (PEANUT-UI-QCW):
     // charge completions arrive as minimal {uuid, status} pings with no
     // extraData — the BE expects a refetch. Rendering one routes the
     // transformer to its fallback strategy (name "Transaction", amount 0).
-    it('kindless charge ping is not rendered — it invalidates the transactions query instead', () => {
+    it('kindless charge ping is not rendered — it asks for a refetch instead', () => {
         const { wrapper, client } = makeWrapper()
         const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
         const onHistoryEntry = jest.fn()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry, onRefetchRequested }), {
+            wrapper,
+        })
 
         emitHistoryEntry({ uuid: 'charge-1', type: 'TRANSACTION_INTENT', status: 'COMPLETED' } as HistoryEntry)
 
         expect(result.current.historyEntries).toHaveLength(0)
         expect(onHistoryEntry).not.toHaveBeenCalled()
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
-        // Charge completions move balance; the ping must refresh it since the
-        // per-page callbacks (which used to) no longer see kindless entries.
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] })
+        expect(onRefetchRequested).toHaveBeenCalledTimes(1)
+        // the listener itself never invalidates: every mounted instance would
+        // (SocketQueryRefresh is the one that answers)
+        expect(invalidateSpy).not.toHaveBeenCalled()
     })
 
     it('full entry with a kind is surfaced to state and the callback', () => {
-        const { wrapper, client } = makeWrapper()
-        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+        const { wrapper } = makeWrapper()
         const onHistoryEntry = jest.fn()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry, onRefetchRequested }), {
+            wrapper,
+        })
 
         const entry = {
             uuid: 'dep-1',
@@ -114,7 +112,7 @@ describe('useWebSocket — history_entry handling', () => {
 
         expect(result.current.historyEntries).toEqual([entry])
         expect(onHistoryEntry).toHaveBeenCalledWith(entry)
-        expect(invalidateSpy).not.toHaveBeenCalled()
+        expect(onRefetchRequested).not.toHaveBeenCalled()
     })
 
     it('pending request entries (NEW, no senderAccount) are still ignored', () => {
@@ -132,83 +130,5 @@ describe('useWebSocket — history_entry handling', () => {
 
         expect(result.current.historyEntries).toHaveLength(0)
         expect(onHistoryEntry).not.toHaveBeenCalled()
-    })
-})
-
-describe('useWebSocket — one kindless ping, one refetch', () => {
-    beforeEach(() => {
-        for (const key of Object.keys(handlers)) delete handlers[key]
-        serverFetchMock.mockReset()
-    })
-
-    it('invalidates once however many instances are mounted', () => {
-        const { wrapper, client } = makeWrapper()
-        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
-
-        renderHook(
-            () => {
-                useWebSocket({ username: 'alice' })
-                useWebSocket({ username: 'alice' })
-                useWebSocket({ username: 'alice' })
-            },
-            { wrapper }
-        )
-
-        emitHistoryEntry({ uuid: 'charge-1', type: 'TRANSACTION_INTENT', status: 'COMPLETED' } as HistoryEntry)
-
-        expect(invalidateSpy).toHaveBeenCalledTimes(2)
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] })
-
-        // a later ping is a new event and still asks again
-        emitHistoryEntry({ uuid: 'charge-2', type: 'TRANSACTION_INTENT', status: 'COMPLETED' } as HistoryEntry)
-        expect(invalidateSpy).toHaveBeenCalledTimes(4)
-    })
-
-    /**
-     * The staging burst of 2026-09-24 13:36Z: ~100 identical first-page
-     * requests in half a second from one phone. Each mounted instance
-     * invalidated, each invalidation restarted the in-flight fetch, and the
-     * fetch does not honour the abort, so every restart was a new request.
-     */
-    it('one ping sends one history request, not one per mounted instance', async () => {
-        const { wrapper } = makeWrapper()
-        const page = { entries: [], hasMore: false }
-        serverFetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page) } as Response)
-
-        // twenty components that each hold a socket listener, as useWallet's
-        // consumers do on home
-        const Listener = () => {
-            useWebSocket({ username: 'alice' })
-            return null
-        }
-        const Screen = ({ children }: { children: ReactNode }) =>
-            wrapper({
-                children: (
-                    <>
-                        {Array.from({ length: 20 }, (_, i) => (
-                            <Listener key={i} />
-                        ))}
-                        {children}
-                    </>
-                ),
-            })
-
-        const { result } = renderHook(() => useTransactionHistory({ mode: 'latest', limit: 10 }), {
-            wrapper: Screen,
-        })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
-        expect(serverFetchMock).toHaveBeenCalledTimes(1)
-
-        // the refetch stays in flight while the ping fans out, as it did on
-        // the slow database
-        serverFetchMock.mockReturnValue(new Promise<Response>(() => {}))
-        emitHistoryEntry({ uuid: 'charge-1', type: 'TRANSACTION_INTENT', status: 'COMPLETED' } as HistoryEntry)
-
-        await act(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 50))
-        })
-        expect(serverFetchMock).toHaveBeenCalledTimes(2)
-        expect(serverFetchMock.mock.calls[1][0]).toBe('/users/history?limit=50')
     })
 })

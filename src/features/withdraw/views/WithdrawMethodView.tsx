@@ -35,7 +35,6 @@ import { useTranslations } from 'next-intl'
 
 interface WithdrawMethodViewProps {
     pageTitle: string
-    mainHeading: string
     /** Leave the flow (back on the first screen). */
     onExit: () => void
     /** A method was chosen and stored in the flow context — advance to the amount step. */
@@ -50,7 +49,7 @@ interface WithdrawMethodViewProps {
  * Withdraw-only: the former dual-flow AddWithdrawRouterView is gone (its
  * `add` branches had no consumer — add-money renders AddWithdrawCountriesList).
  */
-export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mainHeading, onExit, onMethodChosen }) => {
+export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onExit, onMethodChosen }) => {
     const router = useRouter()
     const { user } = useAuth()
     const tGlobal = useTranslations('global')
@@ -345,7 +344,6 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             />
 
             <WithdrawCurrencyList
-                heading={mainHeading}
                 enforceSupportedCountries={isBankFromSend}
                 initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}

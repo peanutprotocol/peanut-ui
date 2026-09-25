@@ -47,9 +47,6 @@ export function useBridgeBankFlow() {
     const locale = useLocale()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
-    // Same words as the profile surface of the same name, reused rather than
-    // restated so the two cannot drift.
-    const tUnlock = useTranslations('profile.unlockPayments')
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -400,7 +397,6 @@ export function useBridgeBankFlow() {
         locale,
         t,
         tCommon,
-        tUnlock,
         // gate + kyc
         gate,
         sumsubFlow,

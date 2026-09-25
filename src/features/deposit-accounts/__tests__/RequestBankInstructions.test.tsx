@@ -58,7 +58,7 @@ describe('RequestBankInstructions', () => {
 
             renderInstructions('EUR', 'sepa_eu', '250')
 
-            expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €230')).toBeInTheDocument()
             expect(screen.getByText(/Estimated at today’s rate/)).toBeInTheDocument()
         })
 
@@ -70,7 +70,7 @@ describe('RequestBankInstructions', () => {
             expect(useExchangeRate).toHaveBeenCalledWith(
                 expect.objectContaining({ sourceCurrency: 'USD', destinationCurrency: 'ARS' })
             )
-            expect(screen.getByText('≈ 13,500.00 ARS')).toBeInTheDocument()
+            expect(screen.getByText('≈ ARS 13,500')).toBeInTheDocument()
         })
 
         // Rounding down would leave the request short of what it asked for.
@@ -79,7 +79,7 @@ describe('RequestBankInstructions', () => {
 
             renderInstructions('EUR', 'sepa_eu', '250')
 
-            expect(screen.getByText('≈ 230.93 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €230.93')).toBeInTheDocument()
         })
 
         it('passes a dollar account through as an exact, copyable amount', () => {
@@ -92,7 +92,7 @@ describe('RequestBankInstructions', () => {
                 { wrapper }
             )
 
-            expect(screen.getByText('250.00 USD')).toBeInTheDocument()
+            expect(screen.getByText('$250')).toBeInTheDocument()
             expect(screen.getByText('Send this amount and the request is marked paid.')).toBeInTheDocument()
             expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
         })
@@ -145,7 +145,7 @@ describe('RequestBankInstructions', () => {
         it('shows the API estimate when the payer typed nothing, and reads no client rate', () => {
             renderWithServerAmount(eurEstimate, { remainingUsd: 100 })
 
-            expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €92')).toBeInTheDocument()
             expect(screen.getByText(/Estimated at today’s rate/)).toBeInTheDocument()
             expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
         })
@@ -154,8 +154,8 @@ describe('RequestBankInstructions', () => {
         it('shows the payer their own contribution, not the whole request', () => {
             renderWithServerAmount(eurEstimate, { usdAmount: '20', remainingUsd: 100 })
 
-            expect(screen.getByText('≈ 18.40 EUR')).toBeInTheDocument()
-            expect(screen.queryByText(/92\.00/)).not.toBeInTheDocument()
+            expect(screen.getByText('≈ €18.40')).toBeInTheDocument()
+            expect(screen.queryByText('≈ €92')).not.toBeInTheDocument()
         })
 
         it('shows an exact same-currency amount as copyable when the payer pays the rest', () => {
@@ -164,7 +164,7 @@ describe('RequestBankInstructions', () => {
                 { usdAmount: '108', remainingUsd: 108 }
             )
 
-            expect(screen.getByText('100.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('€100')).toBeInTheDocument()
             expect(screen.getByText('Send this amount and the request is marked paid.')).toBeInTheDocument()
         })
 
@@ -176,20 +176,20 @@ describe('RequestBankInstructions', () => {
                 { usdAmount: '27', remainingUsd: 108 }
             )
 
-            expect(screen.getByText('≈ 25.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €25')).toBeInTheDocument()
             expect(screen.queryByText('Send this amount and the request is marked paid.')).not.toBeInTheDocument()
         })
 
         it('never rounds the API figure down', () => {
             renderWithServerAmount({ amount: '91.991', currency: 'EUR', isEstimate: true }, { remainingUsd: 100 })
 
-            expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €92')).toBeInTheDocument()
         })
 
         it('states dollars and says the bank converts when the API has no figure', () => {
             renderWithServerAmount({ amount: null, currency: 'EUR', isEstimate: true }, { usdAmount: '20' })
 
-            expect(screen.getByText('20.00 USD')).toBeInTheDocument()
+            expect(screen.getByText('$20')).toBeInTheDocument()
             expect(screen.getByText(/There is no EUR estimate right now/)).toBeInTheDocument()
             expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
         })
@@ -198,7 +198,7 @@ describe('RequestBankInstructions', () => {
             useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
             renderWithServerAmount({ amount: '80.00', currency: 'GBP', isEstimate: false }, { usdAmount: '250' })
 
-            expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €230')).toBeInTheDocument()
             expect(screen.queryByText(/GBP/)).not.toBeInTheDocument()
         })
 
@@ -206,7 +206,7 @@ describe('RequestBankInstructions', () => {
             useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
             renderWithServerAmount({ amount: 'not-a-number' }, { usdAmount: '250' })
 
-            expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
+            expect(screen.getByText('≈ €230')).toBeInTheDocument()
         })
     })
 
