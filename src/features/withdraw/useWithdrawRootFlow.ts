@@ -4,8 +4,9 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { getCountryFromAccount, getCountryFromPath } from '@/utils/bridge.utils'
-import { bankWithdrawMinUsd } from './amount-validation'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
+import { BRIDGE_OFFRAMP_MIN_USD, bankPayoutMinimum, meetsBankPayoutMinimum } from './amount-validation'
+import { formatBankAmount } from '@/utils/currency'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -138,13 +139,6 @@ export function useWithdrawRootFlow() {
     // by the hook. Empty while loading so we don't flash "$0.00".
     const walletBalance = balance === undefined ? '' : formattedSpendableBalance
 
-    // derive the country for minimum amount validation
-    const countryIso2 = useMemo(() => {
-        if (selectedBankAccount) return getCountryFromAccount(selectedBankAccount)?.iso2 || ''
-        if (selectedMethod?.countryPath) return getCountryFromPath(selectedMethod.countryPath)?.iso2 || ''
-        return ''
-    }, [selectedBankAccount, selectedMethod])
-
     // crypto withdrawals are plain on-chain transfers — fiat-rail minimums don't
     // apply. selectedMethod is the routing source of truth; the URL param only
     // covers the first render before the mount effect commits the crypto method.
@@ -157,19 +151,19 @@ export function useWithdrawRootFlow() {
     const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
 
-    // compute minimum withdrawal in USD using the exchange rate
-    const minUsdAmount = useMemo(() => {
-        // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
-        // are direct transfers with no floor, matching send-via-link. Rhino's
-        // per-network bridge minimums are enforced chain-aware at review time
-        // (see withdraw/crypto), once the destination is known.
-        if (isCryptoWithdraw) return 0
-        // shared with the submit-side re-check in useBridgeOfframpFlow (Chip
-        // round 5) — one conversion, two enforcement points. It converts with the
-        // quote rate the amount itself uses: a GBP, MXN or COP account opens this
-        // step only once that rate has loaded.
-        return bankWithdrawMinUsd(countryIso2, bankRate.quote?.rate)
-    }, [isCryptoWithdraw, countryIso2, bankRate.quote?.rate])
+    // The USD floor under every bank payout. No amount-step minimum for crypto:
+    // same-chain (Arbitrum) withdrawals are direct transfers with no floor,
+    // matching send-via-link. Rhino's per-network bridge minimums are enforced
+    // chain-aware at review time (see withdraw/crypto), once the destination is
+    // known.
+    const minUsdAmount = isCryptoWithdraw ? 0 : BRIDGE_OFFRAMP_MIN_USD
+
+    // A bank amount typed in its currency meets the payout minimum in that
+    // currency: exactly 50 MXN passes (TASK-23054). The USD floor above still
+    // applies to what it converts to. Shared with the submit-side re-check in
+    // useBridgeOfframpFlow.
+    const belowBankMinimum =
+        !!bankCurrency && !!destinationAmount && !meetsBankPayoutMinimum(Number(destinationAmount), bankCurrency)
 
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits
@@ -200,15 +194,19 @@ export function useWithdrawRootFlow() {
             // balance check so a pre-filled amount isn't false-blocked; the effect
             // re-validates once it lands (validateAmount is in its deps).
             const balanceLoaded = balance !== undefined
-            if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
+            if (!belowBankMinimum && usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
 
             // determine message
             let message = ''
-            if (usdEquivalent < minUsdAmount) {
-                const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
+            if (belowBankMinimum || usdEquivalent < minUsdAmount) {
+                // the minimum in the currency the user typed
+                const minDisplay =
+                    belowBankMinimum && bankCurrency
+                        ? formatBankAmount(bankPayoutMinimum(bankCurrency), bankCurrency)
+                        : formatBankAmount(minUsdAmount, 'USD')
                 message = isFromSendFlow
                     ? t('errors.minimumSend', { amount: minDisplay })
                     : t('errors.minimumWithdrawal', { amount: minDisplay })
@@ -220,7 +218,7 @@ export function useWithdrawRootFlow() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, t, tErrors]
+        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, belowBankMinimum, bankCurrency, t, tErrors]
     )
 
     // The exact string the balance tap last filled. Any other value reaching
@@ -429,7 +427,7 @@ export function useWithdrawRootFlow() {
         const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
-        if (numericAmount < minUsdAmount) return true // below the method's USD minimum
+        if (numericAmount < minUsdAmount || belowBankMinimum) return true // below a payout minimum
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
@@ -445,6 +443,7 @@ export function useWithdrawRootFlow() {
         maxDecimalAmount,
         error.showError,
         minUsdAmount,
+        belowBankMinimum,
         isCryptoWithdraw,
         limitsValidation.isLoading,
         limitsValidation.isBlocking,

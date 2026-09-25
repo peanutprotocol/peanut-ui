@@ -1,7 +1,7 @@
 import { parseUnits } from 'viem'
 import { type Account, AccountType } from '@/interfaces/interfaces'
-import { getCountryFromAccount } from '@/utils/bridge.utils'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from '../amount-validation'
+import { bankAmountCurrency } from '../bank-amount'
+import { bankPayoutMinimum, meetsBankPayoutMinimum, validateBankOfframpAmount } from '../amount-validation'
 
 const savedAccountWithoutCountry = (type: AccountType): Account =>
     ({
@@ -66,55 +66,45 @@ describe('validateBankOfframpAmount', () => {
     })
 })
 
-describe('bankWithdrawMinUsd', () => {
-    it('US and unknown destinations: the $1 floor, no rate needed', () => {
-        expect(bankWithdrawMinUsd('US', undefined)).toBe(1)
-        expect(bankWithdrawMinUsd('', undefined)).toBe(1)
-        expect(bankWithdrawMinNeedsRate('US')).toBe(false)
+// The payout minimum is compared in the currency the bank is paid in, so the
+// minimum itself is accepted as typed (TASK-23054). The old USD conversion,
+// rounded up, refused exactly 50 MXN.
+describe('meetsBankPayoutMinimum', () => {
+    it.each([
+        ['mxn', 50, 49.99],
+        ['gbp', 3, 2.99],
+        ['cop', 4000, 3999.99],
+        ['eur', 1, 0.99],
+        ['usd', 1, 0.99],
+    ])('%s: exactly %d passes, %d is refused', (currency, minimum, below) => {
+        expect(bankPayoutMinimum(currency)).toBe(minimum)
+        expect(meetsBankPayoutMinimum(minimum, currency)).toBe(true)
+        expect(meetsBankPayoutMinimum(below, currency)).toBe(false)
     })
 
-    it('EUR destinations: €1 ≈ $1, no rate needed', () => {
-        expect(bankWithdrawMinUsd('PT', undefined)).toBe(1)
-        expect(bankWithdrawMinNeedsRate('PT')).toBe(false)
+    it('reads the currency in any case, and a missing one has the 1 minimum', () => {
+        expect(bankPayoutMinimum('MXN')).toBe(50)
+        expect(bankPayoutMinimum(null)).toBe(1)
     })
 
-    it('GB: £3 converts through the sell rate, rounded up', () => {
-        expect(bankWithdrawMinUsd('GB', '0.79')).toBe(4) // ceil(3 / 0.79)
-        expect(bankWithdrawMinNeedsRate('GB')).toBe(true)
-    })
-
-    it('MX: 50 MXN converts through the sell rate, rounded up', () => {
-        expect(bankWithdrawMinUsd('MX', '17')).toBe(3) // ceil(50 / 17)
-        expect(bankWithdrawMinNeedsRate('MX')).toBe(true)
+    it('an amount that is not a number never passes', () => {
+        expect(meetsBankPayoutMinimum(Number.NaN, 'mxn')).toBe(false)
+        expect(meetsBankPayoutMinimum(Number.NaN, 'eur')).toBe(false)
     })
 
     it.each([
-        [AccountType.GB, '0.79', 4],
-        [AccountType.CLABE, '17', 3],
-    ])('uses the %s rail minimum for a saved account with blank country metadata', (type, rate, minimum) => {
-        const countryIso2 = getCountryFromAccount(savedAccountWithoutCountry(type))?.iso2
-
-        expect(countryIso2).toBeDefined()
-        if (!countryIso2) throw new Error(`No country resolved for ${type}`)
-        expect(bankWithdrawMinUsd(countryIso2, rate)).toBe(minimum)
-        expect(bankWithdrawMinNeedsRate(countryIso2)).toBe(true)
-    })
-
-    it('falls back to the $1 Bridge floor while the rate loads — callers gate on bankWithdrawMinNeedsRate', () => {
-        expect(bankWithdrawMinUsd('GB', undefined)).toBe(1)
-        expect(bankWithdrawMinUsd('MX', '0')).toBe(1)
+        [AccountType.GB, 3],
+        [AccountType.CLABE, 50],
+    ])('a saved %s account with blank country metadata still gets its currency minimum', (type, minimum) => {
+        expect(bankPayoutMinimum(bankAmountCurrency(savedAccountWithoutCountry(type)))).toBe(minimum)
     })
 })
 
-describe('validateBankOfframpAmount with a destination rail minimum (Chip round 5)', () => {
+describe('validateBankOfframpAmount — the $1 Bridge floor', () => {
     const balance = 100n * 10n ** 6n
 
-    it('blocks below the converted minimum, passes at or above it', () => {
-        expect(validateBankOfframpAmount('2', balance, 4)).toEqual({ ok: false, reason: 'belowMinimum' })
-        expect(validateBankOfframpAmount('4', balance, 4)).toEqual({ ok: true, normalized: '4' })
-    })
-
-    it('the $1 Bridge floor always applies beneath the destination minimum', () => {
-        expect(validateBankOfframpAmount('0.5', balance, 0)).toEqual({ ok: false, reason: 'belowMinimum' })
+    it('refuses under $1 and passes at it', () => {
+        expect(validateBankOfframpAmount('0.99', balance)).toEqual({ ok: false, reason: 'belowMinimum' })
+        expect(validateBankOfframpAmount('1', balance)).toEqual({ ok: true, normalized: '1' })
     })
 })

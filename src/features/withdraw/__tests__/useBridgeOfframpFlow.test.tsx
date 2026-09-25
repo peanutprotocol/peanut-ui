@@ -73,8 +73,8 @@ jest.mock('@/utils/bridge.utils', () => ({
             ? { id: 'GBR', iso2: 'GB', title: 'United Kingdom' }
             : { id: 'US', iso2: 'US', title: 'United States' },
     railJurisdictionForBank: () => 'US',
-    // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN)
-    getMinimumAmount: (id: string) => (id === 'MX' ? 50 : id === 'GB' || id === 'GBR' ? 3 : 1),
+    // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN / 4,000 COP)
+    getMinimumAmount: (id: string) => ({ MX: 50, GB: 3, GBR: 3, CO: 4000 })[id] ?? 1,
 }))
 
 // bank amount typed in its currency (TASK-23054): the quote the review shows and
@@ -472,6 +472,8 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
 describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
     const submitWithReference = async (reference: string) => {
         armHappyOfframp()
+        // $50 converts far above any rail's payout minimum at this rate
+        mockQuote = { rate: '4000' }
         const view = renderFlow({ amount: '50', step: 'review' })
         act(() => view.result.current.setReference(reference))
         await act(async () => {
@@ -603,6 +605,47 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(mockSetError).toHaveBeenCalledWith({
             showError: true,
             errorMessage: 'errors.notEnoughBalanceAddFunds',
+        })
+    })
+
+    // The minimum is compared in the bank's currency, as typed: exactly 50 MXN
+    // passes. The old check converted it to USD and rounded up ($3 = 54.60 MXN).
+    // The quote's USDC stays above the $1 floor in every case, so only the
+    // bank-currency minimum decides.
+    describe.each([
+        ['mxn', 'spei', '49.99', '50', '2.75'],
+        ['gbp', 'faster_payments', '2.99', '3', '3.81'],
+        ['cop', 'bre_b', '3999.99', '4000', '1.02'],
+    ])('%s: the payout minimum at the boundary', (currency, paymentRail, below, minimum, sourceAmount) => {
+        beforeEach(() => {
+            mockOfframpConfig = { currency, paymentRail }
+            mockQuote = { rate: '18.2', sourceAmount }
+        })
+
+        it(`${below} is refused before anything is created`, async () => {
+            const view = renderFlow({ destinationAmount: below, step: 'review' })
+
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+            })
+
+            expect(mockCreateOfframp).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'withdraw.errors.minimumWithdrawal',
+            })
+        })
+
+        it(`exactly ${minimum} goes through`, async () => {
+            armHappyOfframp()
+            const view = renderFlow({ destinationAmount: minimum, step: 'review' })
+
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+            })
+
+            expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: sourceAmount }))
         })
     })
 
