@@ -94,7 +94,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
     })
 
     it('a rail with no reference shows no field', () => {
-        renderWithIntl(<Harness rail="wire" />)
+        renderWithIntl(<Harness rail="swift" />)
         expect(referenceInput()).not.toBeInTheDocument()
     })
 
@@ -434,5 +434,100 @@ describe('WithdrawBankReviewView — the amount leads in the currency the user t
         const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
         expect(submitRetry).toBeDisabled()
         expect(quoteRetry).toBeEnabled()
+    })
+})
+
+describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', () => {
+    const usAccount = {
+        id: 'acct-us',
+        type: AccountType.US,
+        identifier: '123456780',
+        routingNumber: '021000021',
+        details: { countryCode: 'USA', accountOwnerName: 'Anna Rossi' },
+    } as unknown as Account
+
+    const UsdHarness = ({
+        selected,
+        wireBlock = null,
+        onSelect = jest.fn(),
+    }: {
+        selected: 'ach_same_day' | 'wire'
+        wireBlock?: 'belowMinimum' | 'accountCannotTake' | null
+        onSelect?: (speed: 'ach_same_day' | 'wire') => void
+    }) => {
+        const feeUsd = selected === 'wire' ? '20.00' : '0.00'
+        return (
+            <WithdrawBankReviewView
+                bankAccount={usAccount}
+                amount="50"
+                payout={{ currency: 'usd', bankConvertsTo: null, enteredInBankCurrency: false }}
+                isRateLoading={false}
+                fromSendFlow={false}
+                isLoading={false}
+                isSubmitReady
+                submittedTxHash={null}
+                error={{ showError: false, errorMessage: '' }}
+                balanceErrorMessage={null}
+                confirmPendingCopy="processing"
+                referenceSpec={bankReferenceSpecForRail(selected)}
+                payoutNoteKey={payoutNoteForRail(selected)}
+                payoutDefaultReferenceNoteKey={null}
+                reference=""
+                referenceProblem={null}
+                onReferenceChange={jest.fn()}
+                onSubmit={jest.fn()}
+                onDone={jest.fn()}
+                usdSpeed={{
+                    options: [
+                        { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+                        { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: wireBlock },
+                    ],
+                    selected,
+                    onSelect,
+                    feeUsd,
+                    receivedUsd: selected === 'wire' ? '30.00' : '50.00',
+                }}
+            />
+        )
+    }
+
+    const row = (label: string) => screen.getByText(label).closest('div')!.parentElement!
+
+    it('states both speeds with their fees before anything is confirmed', () => {
+        renderWithIntl(<UsdHarness selected="ach_same_day" />)
+        expect(screen.getByText('Same day (ACH)')).toBeInTheDocument()
+        expect(screen.getByText('Usually the same business day, otherwise the next')).toBeInTheDocument()
+        expect(screen.getByText('Free')).toBeInTheDocument()
+        expect(screen.getByText('Wire')).toBeInTheDocument()
+        expect(screen.getByText(/\$20(\.00)? fee/)).toBeInTheDocument()
+        expect(screen.getByTestId('usd-speed-ach_same_day')).toHaveAttribute('aria-checked', 'true')
+    })
+
+    it('a wire shows its fee on its own line and what the bank receives', () => {
+        renderWithIntl(<UsdHarness selected="wire" />)
+        expect(screen.getByTestId('usd-speed-wire')).toHaveAttribute('aria-checked', 'true')
+        expect(row('Fee')).toHaveTextContent(/\$20(\.00)?/)
+        expect(row('Bank receives')).toHaveTextContent(/\$30(\.00)?/)
+        // the wire memo field replaces the 10-character ACH one
+        expect(screen.getByText(/Up to 140 characters/)).toBeInTheDocument()
+    })
+
+    it('picking a speed reports it', () => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness selected="ach_same_day" onSelect={onSelect} />)
+        fireEvent.click(screen.getByTestId('usd-speed-wire'))
+        expect(onSelect).toHaveBeenCalledWith('wire')
+    })
+
+    it.each([
+        ['belowMinimum' as const, /Needs at least \$21(\.00)?/],
+        ['accountCannotTake' as const, /This account cannot receive a wire/],
+    ])('a wire that cannot be picked says why (%s) and takes no tap', (block, reason) => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness selected="ach_same_day" wireBlock={block} onSelect={onSelect} />)
+        expect(screen.getByText(reason)).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('usd-speed-wire'))
+        expect(onSelect).not.toHaveBeenCalled()
+        expect(screen.getByTestId('usd-speed-wire')).toHaveAttribute('aria-disabled', 'true')
     })
 })

@@ -215,6 +215,7 @@ export function useReceiptViewModel(
             ),
             txId: !!transaction.txHash,
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled' && !feeRepeatsNetworkFee,
+            bankReceives: transaction.payoutReceivedUsd !== undefined && transaction.status !== 'cancelled',
             conversion: showsConversion,
             exchangeRate: !!receiptExchangeRate(transaction) && !foldsRateIntoConversion,
             bankAccountDetails: !!(

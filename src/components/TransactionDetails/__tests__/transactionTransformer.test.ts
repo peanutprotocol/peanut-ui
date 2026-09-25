@@ -1045,3 +1045,29 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 })
+
+describe('a wire fee is its own receipt line (TASK-23054)', () => {
+    const usAccount: Account = { identifier: '123456780', type: 'US', isUser: false }
+    const withdrawal = (extraData: Record<string, unknown>) =>
+        mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', ...extraData },
+            })
+        ).transactionDetails
+
+    it('carries the fee and what the bank received', () => {
+        const details = withdrawal({ payoutFeeUsd: 20 })
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBe(80)
+    })
+
+    it('a free payout keeps the convention: no fee line, nothing received to state', () => {
+        for (const payoutFeeUsd of [undefined, null, 0]) {
+            const details = withdrawal({ payoutFeeUsd })
+            expect(details.fee).toBeUndefined()
+            expect(details.payoutReceivedUsd).toBeUndefined()
+        }
+    })
+})

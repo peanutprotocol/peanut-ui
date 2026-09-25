@@ -126,6 +126,8 @@ export interface HistoryEntryExtraData {
      *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
      *  entry (SDA path). Baked into the displayed amount in the transformer. */
     networkFeeUsd?: number | null
+    /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
+    payoutFeeUsd?: number | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */
     destinationTxHash?: string

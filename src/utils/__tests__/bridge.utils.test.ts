@@ -82,7 +82,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
             expect(offrampConfig).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach',
+                paymentRail: 'ach_same_day',
             })
         })
 
@@ -180,7 +180,7 @@ describe('bridge.utils', () => {
             const config = getOfframpCurrencyConfig('US')
             expect(config).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach',
+                paymentRail: 'ach_same_day',
             })
         })
 
@@ -214,10 +214,10 @@ describe('bridge.utils', () => {
             })
         })
 
-        it('US account → USD / ach', () => {
+        it('US account → USD / same-day ACH, the free default (TASK-23054)', () => {
             expect(getOfframpConfigFromAccount({ type: 'us' })).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach',
+                paymentRail: 'ach_same_day',
             })
         })
 
@@ -268,7 +268,7 @@ describe('bridge.utils', () => {
         it('falls back to country-based picking when type is missing', () => {
             expect(getOfframpConfigFromAccount({ country: 'US' })).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach',
+                paymentRail: 'ach_same_day',
             })
             // Unknown country → EU/SEPA default, mirrors prior behavior
             expect(getOfframpConfigFromAccount({ country: 'XYZ' })).toEqual({
@@ -443,7 +443,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
 
             expect(onrampConfig.paymentRail).toBe('ach_push')
-            expect(offrampConfig.paymentRail).toBe('ach')
+            expect(offrampConfig.paymentRail).toBe('ach_same_day')
             expect(onrampConfig.currency).toBe(offrampConfig.currency)
         })
 
@@ -552,7 +552,7 @@ describe('getBankPayout — what each saved account class actually receives', ()
         ['Romanian IBAN', saved('iban', 'ROU'), 'eur', 'sepa', 'RON'],
         ['Icelandic IBAN', saved('iban', 'ISL'), 'eur', 'sepa', 'ISK'],
         ['UK sort code (gb)', saved('gb', 'GBR'), 'gbp', 'faster_payments', null],
-        ['US ACH', saved('us', 'USA'), 'usd', 'ach', null],
+        ['US ACH', saved('us', 'USA'), 'usd', 'ach_same_day', null],
         ['Mexican CLABE', saved('clabe', 'MEX'), 'mxn', 'spei', null],
         ['Colombian account', saved('co_bank_transfer', 'COL'), 'cop', 'co_bank_transfer', null],
         ['Prisma-shaped UK sort code', saved('BANK_GB', 'GBR'), 'gbp', 'faster_payments', null],

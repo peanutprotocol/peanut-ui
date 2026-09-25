@@ -678,6 +678,24 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
         },
     },
+    // TASK-23054: a USD withdrawal picks same-day ACH (free) or a wire. Pick
+    // the US account, type an amount and continue: the review shows both
+    // speeds, the fee and what the bank receives. The fee is the backend's.
+    'withdraw-usd-speed': {
+        route: '/withdraw',
+        about: 'USD withdrawal review: same-day ACH or wire, with the wire fee and what the bank receives.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, BANK_ACCOUNTS[1]] },
+            'GET /bridge/offramp/rail-fees': {
+                currency: 'USD',
+                minimumAfterFeeUsd: '1.00',
+                rails: [
+                    { rail: 'ach_same_day', feeUsd: '0.00' },
+                    { rail: 'wire', feeUsd: '20.00' },
+                ],
+            },
+        },
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',

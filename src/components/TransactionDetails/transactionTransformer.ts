@@ -389,6 +389,8 @@ export interface TransactionDetails {
     haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
+    /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
+    payoutReceivedUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
@@ -654,6 +656,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // so this shows the true amount deducted instead of just the principal.
     const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
     const amount = baseAmount + networkFeeUsd
+    // The one fee shown as its own line: a wire's, which the user picked and
+    // saw before confirming (TASK-23054). The bank receives the amount less it.
+    const payoutFeeUsd =
+        typeof entry.extraData?.payoutFeeUsd === 'number' && entry.extraData.payoutFeeUsd > 0
+            ? entry.extraData.payoutFeeUsd
+            : undefined
 
     const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
         computeDerivedFields(entry)
@@ -708,12 +716,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
-        // rate, never surfaced as a separate line item. Keep the backend field
-        // populated for ops/debug, but never thread it to the UI. `fee` stays
-        // `undefined` so `rowVisibilityConfig.fee` is always false and the
-        // drawer's fee row never renders. If this rule changes, update
-        // docs/product-conventions.md first.
-        fee: undefined,
+        // rate, never surfaced as a separate line item — with one exception, a
+        // wire's flat fee (TASK-23054, Hugo 2026-09-25: "communicate it
+        // clearly"). The user chose it on the review screen, so the receipt
+        // states it and what the bank received.
+        fee: payoutFeeUsd,
+        payoutReceivedUsd:
+            payoutFeeUsd !== undefined ? Math.max(Math.round((amount - payoutFeeUsd) * 100) / 100, 0) : undefined,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
