@@ -174,8 +174,9 @@ export function CorridorGateDrawer({
                     {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
                     <IconBubble
                         icon={gateIcon ?? 'globe-lock'}
-                        // waiting on review is yellow, a way forward is blue, a closed gate gray
-                        color={!gateIcon ? 'gray' : gateIcon === 'clock' ? 'yellow' : 'blue'}
+                        // a wait is yellow; every other reason has a button that clears it,
+                        // so it is a way forward, blue (TASK-22761)
+                        color={waiting ? 'yellow' : 'blue'}
                         className="mb-4"
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
