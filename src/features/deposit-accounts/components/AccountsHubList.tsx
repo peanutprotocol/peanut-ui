@@ -137,6 +137,8 @@ export function AccountsHubList({
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
     const openBadge = ({ corridor, openable, unchecked }: OpenAccountRow) => {
+        // at the limit the cap is the answer for every row, before any other reason
+        if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         const reason = accounts?.unavailable?.[corridor]?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
@@ -145,12 +147,8 @@ export function AccountsHubList({
             return <Badge status="pending" customText={t('list.badgeVerify')} />
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
-        // at the limit nothing opens; the tap says so (`closedOpenRow`)
-        if (unchecked && !atLimit) return <Badge status="neutral" customText={tCommon('status.unknown')} />
-        if (!openable)
-            return (
-                <Badge status="neutral" customText={t(atLimit ? 'list.badgeLimitReached' : 'list.badgeNotOffered')} />
-            )
+        if (unchecked) return <Badge status="neutral" customText={tCommon('status.unknown')} />
+        if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         switch (accounts?.claimable?.[corridor]?.blockedBy) {
             // the provider is reviewing the corridor the user asked for
             case 'endorsement-pending':
@@ -182,6 +180,14 @@ export function AccountsHubList({
     // more accounts than the limit, after support lowered it: the count stands alone
     const overCap = accountLimit !== undefined && slotsHeld > accountLimit
     const atLimit = accountLimit !== undefined && slotsHeld >= accountLimit
+    /*
+     * At the limit nothing opens, whatever else holds a row back (chip,
+     * ui#3479): a support or verification block cleared alone would still not
+     * open a third account. The one exception is a row the backend itself
+     * flags at the limit, which keeps the claim step's own limit screen.
+     */
+    const capFirst = (corridor: DepositCorridor) =>
+        atLimit && accounts?.claimable?.[corridor]?.blockedBy !== 'account-limit'
     // the fold sits under the held rows; a search lists every match instead
     const foldOpen = held.length > 0 && !searching
     const counter =
@@ -263,7 +269,7 @@ export function AccountsHubList({
                     row.corridor,
                     openBadge(row),
                     () =>
-                        row.openable
+                        row.openable && !capFirst(row.corridor)
                             ? accounts?.onOpen(row.corridor)
                             : setClosed(
                                   closedOpenRow(row, {

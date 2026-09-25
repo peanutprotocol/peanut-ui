@@ -334,6 +334,30 @@ describe('the accounts still to open fold once one is held', () => {
         expect(drawer().getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
     })
 
+    // chip, ui#3479: a support or verification block cleared alone would still not open a third account
+    it('puts the cap first at the limit, before a support or verification block', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 2,
+            unavailable: {
+                BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'support-required'),
+                FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'identity-required'),
+            },
+            onOpen,
+        })
+
+        unfoldOpenAccounts()
+        for (const corridor of ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB'] as const) {
+            expect(inRow(container, corridor).getByText(LIST.badgeLimitReached)).toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText('Contact support')).not.toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText(LIST.badgeVerify)).not.toBeInTheDocument()
+        }
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+        expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
+    })
+
     // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
     it.each([
         ['a ready rail with no verdict', 'ACH_US', READY],
