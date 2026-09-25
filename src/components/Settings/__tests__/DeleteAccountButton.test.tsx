@@ -44,7 +44,7 @@ jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default
 // can assert the dismissal wiring without rendering the real modal.
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: ({ visible, title, description, ctas, preventClose, hideModalCloseButton }: any) =>
+    default: ({ visible, title, description, ctas, tertiaryCta, preventClose, hideModalCloseButton }: any) =>
         visible ? (
             <div
                 data-testid="modal"
@@ -58,6 +58,11 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {tertiaryCta && (
+                    <button disabled={tertiaryCta.disabled} onClick={tertiaryCta.onClick}>
+                        {tertiaryCta.text}
+                    </button>
+                )}
             </div>
         ) : null,
 }))

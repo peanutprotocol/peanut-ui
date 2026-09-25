@@ -332,7 +332,7 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <LinkButton onClick={handleSkipEmail} className="self-center">
+                                <LinkButton onClick={handleSkipEmail} className="mt-2 self-center">
                                     {tCommon('skipForNow')}
                                 </LinkButton>
                             )}
@@ -349,7 +349,7 @@ const JoinWaitlistPage = () => {
                                 {tNotifications('enable')}
                             </Button>
 
-                            <LinkButton onClick={() => setStep('jail')} className="self-center">
+                            <LinkButton onClick={() => setStep('jail')} className="mt-2 self-center">
                                 {tNotifications('notNow')}
                             </LinkButton>
                         </div>

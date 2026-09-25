@@ -91,13 +91,8 @@ export function SetupNotificationsPrompt({
                         loading: isRequestingPermission,
                         disabled: isRequestingPermission,
                     },
-                    {
-                        text: t('notNow'),
-                        onClick: onClose,
-                        variant: 'secondary',
-                        className: 'sm:flex-none',
-                    },
                 ]}
+                tertiaryCta={{ text: t('notNow'), onClick: onClose }}
             />
         </>
     )
