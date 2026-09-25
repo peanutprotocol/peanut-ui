@@ -135,6 +135,8 @@ describe('AvatarPicker', () => {
         // even rows; a ratio on the tiles would size them from the row height and spill past the column
         expect(grid).toHaveClass('grid-cols-3', 'auto-rows-fr')
         for (const el of [...tiles(), die()]) expect(el).not.toHaveClass('aspect-square')
+        // a 91px tile wraps a translated name to three lines; a clamp would cut it
+        expect(tiles()[0].innerHTML).not.toMatch(/line-clamp/)
     })
 
     // a user refetch (the pending-rail poller, a post-save fetchUser) must not

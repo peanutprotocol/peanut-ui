@@ -192,11 +192,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         size="l"
                                         className="aspect-square h-auto w-3/5"
                                     />
-                                    {/* One line reserved, two allowed: a name that wraps grows the rows, so
-                                        nothing clips. */}
+                                    {/* One line reserved and no clamp: in a 91px tile a translated name can
+                                        take three lines (pt-BR "Cartão do primeiro swipe"). It grows the rows,
+                                        so nothing is cut. */}
                                     <span
                                         className={twMerge(
-                                            'mt-1 line-clamp-2 min-h-4 text-label-m',
+                                            'mt-1 min-h-4 text-label-m',
                                             checked && 'text-foreground-over-color-primary'
                                         )}
                                     >
@@ -205,7 +206,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     {/* grey on pink is 2.95:1, so the chosen tile's line takes the over-color ink */}
                                     <span
                                         className={twMerge(
-                                            'line-clamp-2 min-h-4 text-body-xs text-foreground-secondary',
+                                            'min-h-4 text-body-xs text-foreground-secondary',
                                             checked && 'text-foreground-over-color-primary'
                                         )}
                                     >
