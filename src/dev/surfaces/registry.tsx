@@ -28,7 +28,6 @@ import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
@@ -258,18 +257,6 @@ export const SURFACES: Record<string, Surface> = {
     '20-a-setupnotificationsmodal': {
         ...SURFACE_META['20-a-setupnotificationsmodal'],
         render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
-    },
-    '21-b-advisorypreemptmodal': {
-        ...SURFACE_META['21-b-advisorypreemptmodal'],
-        render: () => (
-            <AdvisoryPreemptModal
-                visible
-                effectiveDate="2026-10-01"
-                onCompleteNow={noop}
-                onDoLater={noop}
-                onClose={noop}
-            />
-        ),
     },
     '22-b-initiatekycmodal': {
         ...SURFACE_META['22-b-initiatekycmodal'],

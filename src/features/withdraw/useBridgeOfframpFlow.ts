@@ -19,9 +19,9 @@ import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
-import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
-import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
+import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
@@ -62,7 +62,7 @@ import {
  * Flow hook for the Bridge bank-withdraw review page
  * (/withdraw/[country]/bank): the review → success stepper (named screen ids
  * in the URL), the offramp submission (create → send on-chain → confirm), the
- * capability gates and the KYC/advisory modal state. The amount arrives in the
+ * capability gates and the KYC modal state. The amount arrives in the
  * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
  * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
  * TASK-23054), whose USDC comes from a quote. The selected account lives in
@@ -204,21 +204,11 @@ export function useBridgeOfframpFlow() {
         // success on this page can't mis-fire eea_uplift_completed.
         onManualClose: resetUpliftFunnel,
     })
-    // A ready bank rail can still carry a pending Bridge requirement (the gate's
-    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt before the
-    // withdrawal — the offramp cannot proceed until it's completed.
-    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
-    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
-        advisory,
-        isLoading: sumsubFlow.isLoading,
-        // Route through the self-heal resubmit path (reheal-tagged action) so the
-        // completed submission round-trips to Bridge. start-action mints a plain
-        // token whose webhook completion has no Bridge relay → answers are dropped.
-        onCompleteNow: () => {
-            if (!advisory) return Promise.resolve()
-            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
-        },
-    })
+    // A ready bank rail can still carry a future-dated Bridge requirement (the
+    // gate's `advisory`). The rail works until that date, so the withdrawal never
+    // waits on it: inside the heads-up window the review screen shows a notice, and the verification
+    // starts from the Home and Accounts task cards (PendingVerificationTasks).
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
 
     // close kyc modal when sumsub sdk opens
@@ -521,22 +511,13 @@ export function useBridgeOfframpFlow() {
         }
     }
 
-    // Enforce the mandatory verification pre-empt, then run the offramp. When the
-    // gate isn't `ready` (or there's no pending requirement) this is a no-op and
-    // proceedWithOfframp runs straight away (it handles the not-ready cases).
-    // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
-    // funnel event as it opens.
     // A fresh closure every render, on purpose (Chip review round 4): a
     // useCallback here froze the FIRST render's proceedWithOfframp — its
     // captured `gate`/`balance` never updated (the deps are all stable for
     // the page's lifetime), so a click after capabilities resolved ran the
     // stale `gate.kind === 'loading'` no-op forever. Nothing needs a stable
     // identity: this is a button onClick, not an effect dep.
-    const handleCreateAndInitiateOfframp = () => {
-        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
-        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
-        advisoryIntercept(() => void proceedWithOfframp())
-    }
+    const handleCreateAndInitiateOfframp = () => void proceedWithOfframp()
 
     useEffect(() => {
         fetchUser()
@@ -621,7 +602,7 @@ export function useBridgeOfframpFlow() {
         resetUpliftFunnel,
         showBridgeTos,
         hideTos,
-        advisoryModalProps,
+        advisoryDeadline,
         pendingModal,
     }
 }

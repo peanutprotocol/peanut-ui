@@ -7,7 +7,6 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { getCountryFromPath } from '@/utils/bridge.utils'
@@ -95,6 +94,7 @@ export default function WithdrawBankPage() {
                             : undefined
                     }
                     fromSendFlow={fromSendFlow}
+                    verificationDeadline={flow.advisoryDeadline}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
                     submittedTxHash={flow.submittedTxHash}
@@ -171,8 +171,6 @@ export default function WithdrawBankPage() {
                 reasonCode={getGateReasonCode(gate)}
                 regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
-            <AdvisoryPreemptModal {...flow.advisoryModalProps} />
-
             <KycReverificationPendingModal
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}

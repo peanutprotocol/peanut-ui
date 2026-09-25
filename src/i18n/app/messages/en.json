@@ -225,6 +225,10 @@
             }
         },
         "pendingTasks": {
+            "documentTitle": "One more document needed",
+            "documentDescription": "Needed to keep bank transfers running.",
+            "documentDueBy": "Due {deadline} to keep bank transfers running.",
+            "documentCta": "Complete now",
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}",
             "verifyTitle": "Additional verification needed",
@@ -2782,11 +2786,8 @@
             "cta": "Send or request money"
         },
         "advisory": {
-            "title": "This one takes a bit longer",
-            "descriptionByDate": "Your account needs one more document by {deadline} to keep bank transfers running. It only takes a couple of minutes.",
-            "description": "Your account needs one more document to keep bank transfers running. It only takes a couple of minutes.",
-            "completeNow": "Complete now",
-            "doLater": "Do this later"
+            "title": "One more document needed",
+            "descriptionByDate": "Due {deadline}. Bank transfers keep working until then. Complete it from Home."
         },
         "progress": {
             "verifyingTitle": "Checking ID",

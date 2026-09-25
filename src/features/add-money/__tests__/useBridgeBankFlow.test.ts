@@ -94,12 +94,6 @@ jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
     }),
 }))
 
-// intercept passes straight through unless the test overrides it
-const mockAdvisoryIntercept = jest.fn((proceed: () => void) => proceed())
-jest.mock('@/hooks/useAdvisoryPreempt', () => ({
-    useAdvisoryPreempt: () => ({ intercept: mockAdvisoryIntercept, modalProps: {} }),
-}))
-
 const mockGuardWithTos = jest.fn()
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: mockGuardWithTos, showBridgeTos: false, hideTos: jest.fn() }),
@@ -190,7 +184,6 @@ describe('useBridgeBankFlow', () => {
         mockOnrampFlow.setOnrampData = jest.fn((data) => {
             mockOnrampFlow.onrampData = data
         })
-        mockAdvisoryIntercept.mockImplementation((proceed: () => void) => proceed())
         mockUseLimitsValidation.mockReturnValue({ isBlocking: false, isWarning: false })
     })
 
@@ -230,6 +223,21 @@ describe('useBridgeBankFlow', () => {
             country: 'germany',
         })
         expect(result.current.showWarningModal).toBe(true)
+    })
+
+    it('a future-dated verification request never holds the deposit: Continue opens the confirmation and the deadline is exposed for the notice', () => {
+        const dueSoon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        mockGate = {
+            kind: 'ready',
+            advisory: { effectiveDate: dueSoon, actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' },
+        }
+        const { result } = renderFlow('?step=inputAmount&amount=100')
+
+        expect(result.current.advisoryDeadline).toBe(dueSoon)
+        act(() => result.current.handleAmountContinue())
+
+        expect(result.current.showWarningModal).toBe(true)
+        expect(result.current.showKycModal).toBe(false)
     })
 
     it('Continue on a pending gate opens the wait modal, never the KYC modal', () => {
