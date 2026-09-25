@@ -12,13 +12,7 @@ import {
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
 import { useTranslations } from 'next-intl'
-import {
-    formatNumberForDisplay,
-    formatCurrency,
-    printableUserHandle,
-    isStableCoin,
-    shortenStringLong,
-} from '@/utils/general.utils'
+import { formatNumberForDisplay, printableUserHandle, isStableCoin, shortenStringLong } from '@/utils/general.utils'
 import {
     getAvatarUrl,
     getTransactionSign,
@@ -27,6 +21,7 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
+import { formatBankAmount } from '@/utils/currency'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
@@ -167,15 +162,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
 
-    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString(), 2, 0)
-    const formattedTotalAmountCollected = formatCurrency(transaction.totalAmountCollected.toString(), 2, 0)
+    // The receipt's amount format: cents shown, no ".00" on a round amount.
+    // The row used to drop a trailing zero, so the list said "$12.5" beside a
+    // receipt that said "$12.50".
+    const formattedAmount = formatBankAmount(Math.abs(usdAmount), 'USD')
+    const formattedTotalAmountCollected = formatBankAmount(transaction.totalAmountCollected, 'USD')
 
-    let displayAmount = `${sign}$${formattedAmount}`
+    let displayAmount = `${sign}${formattedAmount}`
 
     if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
-        displayAmount = `$${formattedTotalAmountCollected} / $${formattedAmount}`
+        displayAmount = `${formattedTotalAmountCollected} / ${formattedAmount}`
     } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        displayAmount = `$${formattedTotalAmountCollected}`
+        displayAmount = formattedTotalAmountCollected
     }
 
     let currencyDisplayAmount: string | undefined

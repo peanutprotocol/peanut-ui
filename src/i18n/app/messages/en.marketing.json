@@ -56,7 +56,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed",
+        "slideToProceed": "Slide to proceed",
         "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
@@ -141,7 +141,7 @@
         },
         "downloadNow": "Download now",
         "smartLink": {
-            "redirecting": "Taking you to the store…",
+            "redirecting": "Opening the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }
     },

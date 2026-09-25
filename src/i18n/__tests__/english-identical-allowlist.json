@@ -1,0 +1,90 @@
+{
+    "marketing": {
+        "statusServiceMantecaAr": {
+            "locales": ["es-419", "es-ar", "pt-br"],
+            "reason": "country name and currency code (Argentina (ARS)), spelled the same in Spanish and Portuguese"
+        }
+    },
+    "app": {
+        "profile.backup.changePhoneModal.iphoneToIphoneTitle": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "iPhone platform name in a short title, no words to translate"
+        },
+        "profile.backup.changePhoneModal.androidToAndroidTitle": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Android platform name in a short title, no words to translate"
+        },
+        "profile.backup.changePhoneModal.crossPlatformTitle": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "iPhone/Android platform names in a short title, no words to translate"
+        },
+        "qrPay.peanutManAlt": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "mascot name (Peanut Man), a proper noun"
+        },
+        "card.addToWallet.appleWallet": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Apple Wallet is a product name"
+        },
+        "card.addToWallet.googleWallet": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Google Wallet is a product name"
+        },
+        "badges.catalog.FOUNDER_HOUSE.name": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "event badge name (Founder Haus), a proper noun"
+        },
+        "badges.catalog.ETHFLORIPA_HUB.name": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "event badge name (EthFloripa Hub), a proper noun"
+        },
+        "badges.catalog.TOKEN_NATION_SP_2026.name": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "event badge name (Token Nation 2026), a proper noun"
+        },
+        "badges.catalog.ARBIVERSE_DEVCONNECT_BA_2025.name": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "event badge name (Peanut x Arbiverse), brand names"
+        },
+        "badges.catalog.PRODUCT_HUNT.name": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Product Hunt is a product name"
+        },
+        "addMoney.manteca.razonSocial": {
+            "locales": ["es-419", "es-AR"],
+            "reason": "en already holds the Argentine field name \"Razón Social\", which is correct Spanish for es-419 and es-AR; pt-BR has \"Razão Social\""
+        },
+        "shhhhh.marquee.peanutCard": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name (PEANUT CARD), kept in English on every locale"
+        },
+        "profile.unlockPayments.rows.brl": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "currency code and payment rail name (BRL · Pix), the same in every language"
+        },
+        "profile.unlockPayments.rows.mxn": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "currency code and payment rail name (MXN · SPEI), the same in every language"
+        },
+        "withdraw.bankForm.documentTypeCc": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Colombian ID document name; en already holds the Spanish legal term \"Cédula de ciudadanía\""
+        },
+        "withdraw.bankForm.documentTypeCe": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Colombian ID document name; en already holds the Spanish legal term \"Cédula de extranjería\""
+        },
+        "depositAccounts.rows.rails.faster_payments": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "UK payment rail name (Faster Payments), a proper noun"
+        },
+        "depositAccounts.corridors.FASTER_PAYMENTS_GB.railName": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "UK payment rail name (Faster Payments), a proper noun"
+        },
+        "shhhhh.hero.title": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand line, kept in English (Konrad 24 Sep 2026)"
+        }
+    }
+}

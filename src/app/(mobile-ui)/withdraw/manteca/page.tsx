@@ -1145,12 +1145,14 @@ function MantecaBankWithdrawFlow() {
                         <h2 className="text-heading-card text-foreground-primary">
                             {t('manteca.enterAccountDetails')}
                         </h2>
-                        <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('manteca.accountDetailsHint', { country: selectedCountry?.id ?? '' })}
+                        </p>
                         <div className="space-y-2">
                             <Field error={fieldError}>
                                 <ValidatedInput
                                     value={destinationAddress}
-                                    placeholder={countryConfig!.accountNumberLabel}
+                                    placeholder={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
                                     onUpdate={(update) => {
                                         // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                         const normalizedValue =
@@ -1259,7 +1261,10 @@ function MantecaBankWithdrawFlow() {
                     </Card>
                     {/* Review Summary */}
                     <Card className="space-y-0 px-4">
-                        <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
+                        <PaymentInfoRow
+                            label={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
+                            value={destinationAddress}
+                        />
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}

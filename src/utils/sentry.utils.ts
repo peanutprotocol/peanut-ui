@@ -30,12 +30,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // typed code, surfaced inline to the user — not server bugs.
     { pattern: /\/invites\/validate/, statuses: [400, 409] },
     // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
-    // quota noise and is not. useGetExchangeRate swallows the failure and
-    // returns a rate of '1', which bankWithdrawMinUsd turns into a wrong
-    // withdrawal minimum (MX shows $50 instead of ~$3) with nothing gating
-    // submission — so this 429 is the only alert for a wrong number on a money
-    // screen, and for the open FX-stampede P2 behind it. It reports until the
-    // keyed single-flight fix in no-cache.ts lands.
+    // quota noise and is not: it is the only alert for the open FX-stampede P2
+    // behind it. It reports until the keyed single-flight fix in no-cache.ts
+    // lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded
@@ -617,10 +614,12 @@ export const fetchWithSentry = async (
     /*
      * The caller's cancel (React Query aborts a fetch it superseded or no longer
      * needs). Each leg's own timeout controller also follows it, so a cancel
-     * ends the request instead of leaving it running. It used to be replaced by
-     * the timeout signal: on 2026-09-24 ~100 superseded history requests kept
-     * running and starved the staging database. A cancel is not a failure, so
-     * it is never retried, never falls back to the OS client, and never reported.
+     * closes the connection and frees the client. It does not stop the query
+     * on the server, which runs to the end: the API's per-user rate limit is
+     * what bounds a burst. The signal used to be replaced by the timeout
+     * signal, and on 2026-09-24 ~100 superseded history requests piled up and
+     * starved the staging database. A cancel is not a failure, so it is never
+     * retried, never falls back to the OS client, and never reported.
      */
     const callerSignal = options.signal ?? undefined
     if (callerSignal?.aborted) throw cancelError(callerSignal)

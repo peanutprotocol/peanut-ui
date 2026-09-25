@@ -31,7 +31,7 @@ jest.mock('../../components/ShowNameToggle', () => ({ __esModule: true, default:
 jest.mock('@/components/Settings/DeleteAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 
-const save = () => fireEvent.click(screen.getByRole('button', { name: /Save Changes|Send code/ }))
+const save = () => fireEvent.click(screen.getByRole('button', { name: /Save changes|Send code/ }))
 const verify = async () => {
     await screen.findByLabelText('Verification code')
     expect(updateUserById).not.toHaveBeenCalled()
@@ -42,7 +42,7 @@ const change = async (label: string, value: string) => {
     await act(async () => {
         fireEvent.change(screen.getByLabelText(label), { target: { value } })
     })
-    await waitFor(() => expect(screen.getByRole('button', { name: /Save Changes|Send code/ })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: /Save changes|Send code/ })).toBeEnabled())
 }
 
 beforeEach(() => {
@@ -58,7 +58,7 @@ beforeEach(() => {
 test.each([false, true])('email is editable with verified=%s and only the changed email is sent', async (verified) => {
     mockVerified = verified
     renderWithIntl(<ProfileEditView />)
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
     await change('Email for notifications', ' new@example.com ')
     save()
@@ -190,7 +190,7 @@ test('late auth hydrates without enabling a no-op save', async () => {
     mockUser = user
     view.rerender(<ProfileEditView />)
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('old@example.com')
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
 test('a duplicate email error is linked to its input and can be corrected', async () => {

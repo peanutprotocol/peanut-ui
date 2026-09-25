@@ -158,8 +158,8 @@ const PaymentSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
-        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier

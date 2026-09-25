@@ -1,4 +1,4 @@
-import { localizedCountryName, localizedCountryTitle } from '../country-name.utils'
+import { localizedCountryName, localizedCountryTitle, ptBrFromPreposition } from '../country-name.utils'
 
 describe('localizedCountryName', () => {
     it('translates a known ISO-2 code', () => {
@@ -32,5 +32,19 @@ describe('localizedCountryTitle', () => {
 
     it('keeps the title for the crypto pseudo-entry, which has no iso2', () => {
         expect(localizedCountryTitle('pt-BR', { title: 'Crypto' })).toBe('Crypto')
+    })
+})
+
+describe('ptBrFromPreposition', () => {
+    it('contracts de with the article', () => {
+        expect(ptBrFromPreposition('fr')).toBe('da')
+        expect(ptBrFromPreposition('GB')).toBe('do')
+        expect(ptBrFromPreposition('US')).toBe('dos')
+    })
+
+    it('keeps plain de for Portugal, unknown codes and no code', () => {
+        expect(ptBrFromPreposition('PT')).toBe('de')
+        expect(ptBrFromPreposition('QM')).toBe('de')
+        expect(ptBrFromPreposition(undefined)).toBe('de')
     })
 })

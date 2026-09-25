@@ -108,6 +108,7 @@ export interface Translations {
     landingPayLocalBody: string
     landingMercadoPagoAria: string
     landingPixAria: string
+    landingPayLocalPhoneAlt: string
 
     // Landing page — security section
     landingSecurityHeading: string
@@ -119,9 +120,9 @@ export interface Translations {
     landingSecurityHelpDesc: string
     landingTalkToSupport: string
 
-    // Landing page — send-in-seconds section
-    landingSendTagline1: string
-    landingSendTagline2: string
+    // Landing page — send-in-seconds section (closing CTA)
+    landingClosingHeadline: string
+    landingClosingSubline: string
 
     // Landing page — hero
     landingHeroTapScan: string
@@ -298,6 +299,13 @@ export interface Translations {
     footerSendTo: string // "Send to {name}"
     footerSendFrom: string // "Send from {name}"
     footerPeanutVs: string // "Peanut vs {name}"
+    // Learn More link labels, looked up by footer-manifest slug (SEOFooter)
+    footerLinkPricing: string
+    footerLinkSupportedNetworks: string
+    footerLinkDigitalNomads: string
+    footerLinkFamilies: string
+    footerLinkRemoteWorkers: string
+    footerLinkVerification: string
 
     // Misc
     lastUpdated: string // "Last updated: {date}"

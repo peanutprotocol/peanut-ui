@@ -263,7 +263,6 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
         return (
             <div data-testid="withdraw-method-view" data-show-all={showAll}>
                 <span data-testid="page-title">{props.pageTitle}</span>
-                <span data-testid="main-heading">{props.mainHeading}</span>
                 <button data-testid="method-view-back" onClick={props.onExit}>
                     Back
                 </button>
@@ -381,15 +380,14 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
+        expect(screen.getByTestId('page-title')).toHaveTextContent('Withdraw')
     })
 
-    test('Method=bank from send flow shows "Send" title and send heading', () => {
+    test('Method=bank from send flow shows the "Send" title', () => {
         renderWithdraw({ method: 'bank' })
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('page-title')).toHaveTextContent('Send')
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to send?')
     })
 
     test('?step=amount with no method in flow memory falls back to the method view (guard)', () => {
@@ -601,6 +599,42 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
             bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
         }
     })
+
+    // The minimum is compared in the currency the user types: exactly 50 MXN
+    // passes. The old check converted it to USD at the quote rate and rounded
+    // up, so 50 MXN at 18.2 needed $3 — 54.60 MXN.
+    test.each([
+        ['mxn', 'spei', 'MX', 'mexico', '18.2', '49.99', '50', 'MX$50'],
+        ['gbp', 'faster_payments', 'GB', 'united-kingdom', '0.79', '2.99', '3', '£3'],
+        ['cop', 'bre_b', 'CO', 'colombia', '3900', '3999.99', '4000', 'Col$4,000'],
+    ])(
+        '%s: the payout minimum at the boundary, in the typed currency',
+        async (currency, paymentRail, iso2, path, rate, below, minimum, shown) => {
+            const minimums: Record<string, number> = { MX: 50, GB: 3, CO: 4000 }
+            const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+            bridgeUtils.getMinimumAmount.mockImplementation((code: string) => minimums[code] ?? 1)
+            try {
+                mockGetOfframpConfigFromAccount.mockReturnValue({ currency, paymentRail })
+                mockGetCountryFromAccount.mockReturnValue({ iso2, path })
+                mockBankRate = rate
+                renderWithdraw({ step: 'amount' })
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: below } })
+                expect(screen.getByText('Continue')).toBeDisabled()
+                await waitFor(() =>
+                    expect(mockSetError).toHaveBeenCalledWith({
+                        showError: true,
+                        errorMessage: `Minimum withdrawal is ${shown}.`,
+                    })
+                )
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: minimum } })
+                expect(screen.getByText('Continue')).not.toBeDisabled()
+            } finally {
+                bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
+            }
+        }
+    )
 
     test('a mid-typing "90." is handed on as 90', () => {
         renderWithdraw({ step: 'amount' })

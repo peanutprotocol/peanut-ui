@@ -1,6 +1,7 @@
 'use client'
 
 import { formatTokenAmount } from '@/utils/general.utils'
+import { formatAmountNumber, roundUpToDecimals } from '@/utils/currency'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
@@ -22,6 +23,13 @@ interface AmountInputProps {
     disabled?: boolean
     primaryDenomination?: { symbol: string; price: number; decimals: number }
     secondaryDenomination?: { symbol: string; price: number; decimals: number }
+    /**
+     * Round the conversion INTO the secondary denomination up, not down. Set it
+     * where the secondary is the USD that pays a local amount the user typed:
+     * the server rounds that charge up to the cent, so a floored line showed
+     * one cent less than the review (TASK-23054).
+     */
+    roundSecondaryUp?: boolean
     setCurrentDenomination?: (denomination: string) => void
     walletBalance?: string
     /**
@@ -54,6 +62,7 @@ const AmountInput = ({
     disabled,
     primaryDenomination = { symbol: '$', price: 1, decimals: 2 },
     secondaryDenomination,
+    roundSecondaryUp = false,
     setCurrentDenomination,
     walletBalance,
     balanceFillAmount,
@@ -165,8 +174,22 @@ const AmountInput = ({
     const alternativeDisplayValue = useMemo(() => {
         if (!secondaryDenomination || !alternativeValue) return '0.00'
         const scaledDownValue = alternativeValue / 10 ** DECIMAL_SCALE
-        return formatTokenAmount(scaledDownValue, denominations[alternativeDisplaySymbol]?.decimals) ?? '0.00'
-    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations])
+        const decimals = denominations[alternativeDisplaySymbol]?.decimals
+        if (roundSecondaryUp && alternativeDisplaySymbol === secondaryDenomination.symbol) {
+            // formatTokenAmount floors, and a float like 11.17 * 100 can floor a cent away
+            return roundUpToDecimals(scaledDownValue, decimals).toLocaleString('en-US', {
+                maximumFractionDigits: decimals,
+            })
+        }
+        return formatTokenAmount(scaledDownValue, decimals) ?? '0.00'
+    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations, roundSecondaryUp])
+
+    // A cent-denominated line reads like every other amount: "0.10", "11", never
+    // "0.1" (design.md, copy). A finer denomination keeps its own digits.
+    const conversionLabel =
+        denominations[alternativeDisplaySymbol]?.decimals === 2
+            ? formatAmountNumber(alternativeDisplayValue.replace(/,/g, ''))
+            : alternativeDisplayValue
 
     // primaryDenomination.symbol is included: it decides which consumer gets the
     // display value vs the converted one, so a stale read here reports the amounts
@@ -369,7 +392,7 @@ const AmountInput = ({
                     <label
                         className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
                     >
-                        ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}{' '}
+                        ≈ {alternativeDisplaySymbol} {conversionLabel}{' '}
                     </label>
                 )}
 

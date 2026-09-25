@@ -6,7 +6,8 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import type { RequestDepositInstructions } from '@/services/services.types'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
+import { formatBankAmount } from '@/utils/currency'
 import { instructionRows } from '../instructionRows'
 import { bankPayAmountFigure, readServerPayerAmount, resolveBankPayAmount } from '../payerAmount'
 import { corridorFromRailId } from '../rails'
@@ -41,7 +42,6 @@ export function RequestBankInstructions({
     serverCountsAllPayments?: boolean
 }) {
     const t = useTranslations('payment')
-    const format = useFormatter()
     const { t: tDeposit, rowLabels, railLabels, arrivalDetail, senderLimit } = useDepositAccountCopy()
     const account = instructions.depositAccount
     const accountCurrency = account.currency.toUpperCase()
@@ -73,10 +73,8 @@ export function RequestBankInstructions({
     let amountRow: { text: string; copyValue?: string; note?: string } | undefined
     if (amount) {
         const { value, currency, digits, approx } = bankPayAmountFigure(amount)
-        const text = t(approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
-            amount: format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits }),
-            currency,
-        })
+        const formatted = formatBankAmount(value, currency)
+        const text = approx ? t('bankTransfer.amountValueApprox', { amount: formatted }) : formatted
         if (amount.kind === 'usd-only') {
             amountRow = {
                 text,

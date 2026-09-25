@@ -195,7 +195,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         amountToConvert={amount}
                     />
                 )}
-                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
+                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={'$0'} />
             </Card>
 
             {payoutNoteKey && (
