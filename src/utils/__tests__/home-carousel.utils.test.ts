@@ -11,7 +11,9 @@ import {
     hideHomeCta,
     readHiddenHomeCtas,
     showQrPayCTA,
+    showVerifyCTA,
 } from '@/utils/home-carousel.utils'
+import { QrKycState } from '@/constants/kyc.consts'
 
 const NOW = new Date('2026-09-25T12:00:00Z')
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
@@ -78,5 +80,29 @@ describe('one store for every Home CTA a user closes', () => {
     it('is per user', () => {
         hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
         expect(readHiddenHomeCtas('u2').has(HOME_CHECKLIST_CTA_ID)).toBe(false)
+    })
+})
+
+describe('showVerifyCTA — the verify slide follows the QR-pay gate', () => {
+    const base = { hasKycApproval: false, isInFlight: false, isCardEligible: false }
+
+    it('shows when verifying opens QR pay', () => {
+        expect(showVerifyCTA({ ...base, qrGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION })).toBe(true)
+    })
+
+    it.each([
+        QrKycState.REGION_RESTRICTED,
+        QrKycState.PROVIDER_REJECTION_BLOCKED,
+        QrKycState.PROCEED_TO_PAY,
+        QrKycState.LOADING,
+    ])('never for %s', (qrGateState) => {
+        expect(showVerifyCTA({ ...base, qrGateState })).toBe(false)
+    })
+
+    it('never mid-flow, for a verified user, or for a card-eligible user', () => {
+        const qrGateState = QrKycState.REQUIRES_IDENTITY_VERIFICATION
+        expect(showVerifyCTA({ ...base, qrGateState, isInFlight: true })).toBe(false)
+        expect(showVerifyCTA({ ...base, qrGateState, hasKycApproval: true })).toBe(false)
+        expect(showVerifyCTA({ ...base, qrGateState, isCardEligible: true })).toBe(false)
     })
 })

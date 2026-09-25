@@ -2,6 +2,7 @@
 
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type OnboardingState } from '@/utils/activation-step.utils'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
@@ -27,6 +28,8 @@ interface ActivationCTAsProps {
     onboarding: OnboardingState
     /** hides the checklist once only the payment row is left (Home owns the stored choice) */
     onHideChecklist?: () => void
+    /** hides a blocked card by its dismissal key (Home owns the stored choice) */
+    onHideBlockedCard?: (ctaId: string) => void
 }
 
 interface StepConfig {
@@ -44,8 +47,9 @@ interface StepConfig {
  * outranks everything; a provider rejection replaces the checklist for a
  * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ onboarding, onHideChecklist }: ActivationCTAsProps) {
+export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBlockedCard }: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
+    const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
@@ -56,6 +60,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist }: Activati
     const residenceRestrictions = useResidenceRestrictions()
 
     const {
+        blockedCard,
         hasProviderRejection,
         hasFixableRejection,
         fixableProvider,
@@ -240,6 +245,23 @@ export default function ActivationCTAs({ onboarding, onHideChecklist }: Activati
                 >
                     {step.ctaLabel}
                 </Button>
+                {blockedCard && onHideBlockedCard && (
+                    // tertiary dismiss (design.md). mt-3 tops the card's gap-3 up to
+                    // the 24px the LinkButton's hit area needs under the primary.
+                    // The fix or support route stays in Profile → Accounts.
+                    <LinkButton
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
+                                card_kind: blockedCard.kind,
+                                reason_code: blockedCard.reasonCode,
+                            })
+                            onHideBlockedCard(blockedCard.ctaId)
+                        }}
+                        className="mt-3 text-body-s text-foreground-primary"
+                    >
+                        {tGettingStarted('hide')}
+                    </LinkButton>
+                )}
             </div>
             <ProvideEmailStep
                 visible={showProvideEmail}
