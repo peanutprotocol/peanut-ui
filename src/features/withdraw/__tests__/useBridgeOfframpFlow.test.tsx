@@ -165,8 +165,9 @@ jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
     useEeaUpliftFunnel: () => stableUpliftFunnel,
 }))
 
+const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: mockFetchUser }),
 }))
 
 const mockCreateOfframp = jest.fn()
@@ -190,6 +191,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSetError = jest.fn()
+const mockSetSelectedBankAccount = jest.fn()
 const bankAccount = { id: 'acct-1', bridgeAccountId: 'ext-1' }
 // mutable: the context-loss recovery cases simulate a refresh that remounted
 // the withdraw-scoped provider without a selected account
@@ -199,6 +201,7 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
         selectedBankAccount: mockBankAccount,
         error: { showError: false, errorMessage: '' },
         setError: mockSetError,
+        setSelectedBankAccount: mockSetSelectedBankAccount,
     }),
 }))
 
@@ -442,6 +445,46 @@ describe('useBridgeOfframpFlow — card re-approval cancelled before the money l
 
         expect(mockSetError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
         expect(posthog.capture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+})
+
+describe('useBridgeOfframpFlow — saved account the provider refused (TASK-23054)', () => {
+    it('shows the mapped copy, refetches the saved accounts and offers to add the account again instead of Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            error: 'This bank account can no longer be used. Add it again.',
+            code: 'BANK_ACCOUNT_NOT_USABLE',
+            status: 409,
+        })
+        const view = renderFlow({ amount: '50', step: 'review' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'This bank account can no longer be used. Add it again.',
+        })
+
+        act(() => view.result.current.onAddBankAccountAgain!())
+        // clearing the account is what sends the review back to the bank form
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+    })
+
+    it('any other create error keeps Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({ error: 'Bridge is down', status: 502 })
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSetError).toHaveBeenCalledWith({ showError: true, errorMessage: 'Bridge is down' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
     })
 })
 

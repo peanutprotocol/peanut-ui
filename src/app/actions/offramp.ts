@@ -24,7 +24,7 @@ export type CreateOfframpSuccessResponse = {
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; status?: number }> {
     try {
         const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
@@ -44,7 +44,11 @@ export async function createOfframp(
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer.' }
+            return {
+                error: data.error || 'Failed to create off-ramp transfer.',
+                code: data.code,
+                status: response.status,
+            }
         }
 
         return { data }

@@ -271,6 +271,14 @@ describe('one-level .cause walk on the fallback', () => {
 })
 
 describe('backend wire codes', () => {
+    test('a saved bank account the provider refused maps to the add-it-again copy, not the 409 prose', () => {
+        const err = new ApiError('This bank account can no longer be used. Add it again.', {
+            status: 409,
+            code: 'BANK_ACCOUNT_NOT_USABLE',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'bankAccountNotUsable' })
+    })
+
     test('a wire-coded stale approval maps to localized copy instead of passthrough', () => {
         const stale = Object.assign(new Error('Your card needs to be re-enabled before you can withdraw.'), {
             name: 'StaleCardApprovalError',
