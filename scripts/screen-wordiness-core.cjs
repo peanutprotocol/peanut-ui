@@ -495,4 +495,4 @@ function findRegressions(screens, baseline) {
     return screens.filter((s) => s.words > Math.max(budget, baseline.screens[s.screen] ?? 0))
 }
 
-module.exports = { countMessageWords, measureScreens, isScreenRoot, findRegressions }
+module.exports = { countMessageWords, measureScreens, isScreenRoot, findRegressions, closingBrace, flattenCatalog }
