@@ -61,6 +61,8 @@ const mockTrackUpliftStarted = jest.fn()
 jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
     useEeaUpliftFunnel: () => ({ trackStarted: mockTrackUpliftStarted, trackCompleted: jest.fn(), reset: jest.fn() }),
 }))
+const daysFromNow = (days: number) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const carousel = <div data-testid="when-empty">carousel</div>
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
 const sepaTosAction: NextAction = {
@@ -196,12 +198,33 @@ describe('PendingVerificationTasks', () => {
             expect(screen.queryByTestId('document-task-start-error')).not.toBeInTheDocument()
         })
 
-        it('on Home it has no dismiss X and ignores a stored dismissal: the bank-screen notice points here', () => {
-            mockNextActions = [documentTask]
-            mockStoredDismissal = [`sumsub:eea_uplift|place_of_birth_missing|${dueSoon}`]
-            render(<PendingVerificationTasks dismissible />)
+        it('on Home in its final week it has no dismiss X and ignores a stored dismissal: the bank-screen notice points here', () => {
+            const finalWeek = { ...documentTask, effectiveDate: daysFromNow(3) }
+            mockNextActions = [finalWeek]
+            mockStoredDismissal = [`sumsub:eea_uplift|place_of_birth_missing|${finalWeek.effectiveDate}`]
+            render(<PendingVerificationTasks placement="home" />)
             expect(screen.getByText('One more document needed')).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
+        })
+
+        it('on Home before its final week it is not a large card: the carousel (whenEmpty) carries it', () => {
+            mockNextActions = [documentTask] // due in 10 days
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.queryByText('One more document needed')).not.toBeInTheDocument()
+            expect(screen.getByTestId('when-empty')).toBeInTheDocument()
+        })
+
+        it('on Home in its final week the large card replaces the carousel — never both', () => {
+            mockNextActions = [{ ...documentTask, effectiveDate: daysFromNow(3) }]
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
+            expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        })
+
+        it('Profile keeps the request for the whole heads-up window', () => {
+            mockNextActions = [documentTask] // due in 10 days
+            render(<PendingVerificationTasks />)
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
         })
 
         it('a request due outside the heads-up window is not shown yet', () => {
@@ -270,6 +293,28 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
     })
 
+    describe('never two CTA surfaces on Home', () => {
+        it('no task: the carousel (whenEmpty) renders', () => {
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.getByTestId('when-empty')).toBeInTheDocument()
+        })
+
+        it('a blocking ToS task: the card renders and the carousel does not', () => {
+            mockNextActions = [tosAction]
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        })
+
+        it('dismissing the last advisory card brings the carousel back', () => {
+            mockNextActions = [{ ...sepaTosAction, effectiveDate: '2099-09-01' }]
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
+            expect(screen.getByTestId('when-empty')).toBeInTheDocument()
+        })
+    })
+
     describe('dismissal (home mount)', () => {
         // Only ADVISORY (future-dated) tasks are dismissible — a blocking
         // fingerprint is constant over time, so honoring one would hide a NEW
@@ -287,7 +332,7 @@ describe('PendingVerificationTasks', () => {
 
         it("an advisory slide's X dismisses ONLY that task — the other slide stays and the fingerprint persists", () => {
             mockNextActions = [advisoryTos, advisoryHosted]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
 
             fireEvent.click(
                 screen.getByRole('button', { name: /dismiss accept updated bank transfer provider terms/i })
@@ -301,7 +346,7 @@ describe('PendingVerificationTasks', () => {
 
         it('BLOCKING slides carry no X; advisory siblings on the same mount do', () => {
             mockNextActions = [tosAction, advisoryHosted]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
 
             expect(screen.queryByRole('button', { name: /dismiss accept terms of service/i })).not.toBeInTheDocument()
             expect(screen.getByRole('button', { name: /dismiss additional verification needed/i })).toBeInTheDocument()
@@ -310,7 +355,7 @@ describe('PendingVerificationTasks', () => {
         it('a stored (pre-fix) blocking fingerprint never hides a blocking task', () => {
             mockStoredDismissal = legacyBlockingFingerprints
             mockNextActions = [tosAction, hostedAction]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
             expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
@@ -318,7 +363,7 @@ describe('PendingVerificationTasks', () => {
         it('dismissing the last remaining advisory hides the card entirely', () => {
             mockStoredDismissal = [advisoryTosFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
-            const { container } = render(<PendingVerificationTasks dismissible />)
+            const { container } = render(<PendingVerificationTasks placement="home" />)
 
             fireEvent.click(screen.getByRole('button', { name: /dismiss additional verification needed/i }))
             expect(container).toBeEmptyDOMElement()
@@ -330,7 +375,7 @@ describe('PendingVerificationTasks', () => {
         it('stored dismissed fingerprints hide only their advisories; undismissed tasks still show', () => {
             mockStoredDismissal = [advisoryTosFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
             expect(screen.queryByText('Accept updated bank transfer provider terms')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
@@ -340,35 +385,35 @@ describe('PendingVerificationTasks', () => {
             mockStoredDismissal = [advisoryTosFingerprint]
             // …and on Sep 1 Bridge reclassifies the same requirement as due now.
             mockNextActions = [{ ...sepaTosAction, requirementKey: 'tos_v2_acceptance' }]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
             expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
         })
 
         it('a NEW requirement under the shared bridge-hosted key re-surfaces despite a dismissal', () => {
             mockStoredDismissal = [advisoryHostedFingerprint]
             mockNextActions = [{ ...advisoryHosted, requirementKey: 'kyc_with_proof_of_address' }]
-            render(<PendingVerificationTasks dismissible />)
+            render(<PendingVerificationTasks placement="home" />)
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
         it('all pending advisories stored as dismissed → card hidden', () => {
             mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
-            const { container } = render(<PendingVerificationTasks dismissible />)
+            const { container } = render(<PendingVerificationTasks placement="home" />)
             expect(container).toBeEmptyDOMElement()
         })
 
         it("a user switch does not inherit the previous user's dismissals", () => {
             mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
-            const { container, rerender } = render(<PendingVerificationTasks dismissible />)
+            const { container, rerender } = render(<PendingVerificationTasks placement="home" />)
             expect(container).toBeEmptyDOMElement()
 
             // user-2 logs in on the same mount with no stored dismissals —
             // user-1's in-memory keys must not hide user-2's tasks.
             mockUserId = 'user-2'
             mockStoredDismissal = undefined
-            rerender(<PendingVerificationTasks dismissible />)
+            rerender(<PendingVerificationTasks placement="home" />)
             expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })

@@ -1,24 +1,65 @@
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 /**
- * How many days before its due date a future-dated document request shows up:
- * the Home and Accounts task slide and the bank-screen notice both read this.
- * Earlier than that it stays silent. Bridge's expiring-ID requests are dated
- * years ahead, and a notice that far out is noise.
+ * How many days before its due date a future-dated document request shows up.
+ * Earlier than that it stays silent: Bridge dates expiring-ID requests years
+ * ahead, and a notice that far out is noise. Inside the window the bank-screen
+ * notice and the Accounts task show it, and Home shows it as a carousel slide.
  */
 export const ADVISORY_HEADS_UP_WINDOW_DAYS = 30
 
+/**
+ * The last days before the due date. Home then promotes the request from a
+ * carousel slide to the large task card, and hides the carousel.
+ */
+export const ADVISORY_FINAL_WEEK_DAYS = 7
+
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Milliseconds until the due date; null for no date or an unreadable one. */
+function msUntilDue(effectiveDate: string | undefined, now: Date): number | null {
+    if (!effectiveDate) return null
+    const due = new Date(effectiveDate).getTime()
+    return Number.isNaN(due) ? null : due - now.getTime()
+}
 
 /**
  * The request's due date when it falls inside the heads-up window (a date
  * already past counts: it is still due), otherwise undefined.
  */
 export function headsUpDeadline(effectiveDate: string | undefined, now: Date = new Date()): string | undefined {
-    if (!effectiveDate) return undefined
-    const due = new Date(effectiveDate).getTime()
-    if (Number.isNaN(due)) return undefined
-    return due - now.getTime() <= ADVISORY_HEADS_UP_WINDOW_DAYS * DAY_MS ? effectiveDate : undefined
+    const ms = msUntilDue(effectiveDate, now)
+    return ms !== null && ms <= ADVISORY_HEADS_UP_WINDOW_DAYS * DAY_MS ? effectiveDate : undefined
+}
+
+/** Due in the last week, or already past. */
+export function isInFinalWeek(effectiveDate: string | undefined, now: Date = new Date()): boolean {
+    const ms = msUntilDue(effectiveDate, now)
+    return ms !== null && ms <= ADVISORY_FINAL_WEEK_DAYS * DAY_MS
+}
+
+/** A future-dated document request (Bridge advisory Sumsub step). */
+const isDocumentRequest = (action: NextAction): boolean => action.kind === 'sumsub' && !!action.effectiveDate
+
+/**
+ * The Home split of the verification tasks. Home shows one CTA surface at a
+ * time: the large task card or the carousel, never both.
+ *
+ * - `largeTasks`: the large card. A document request joins it only in its
+ *   final week.
+ * - `documentSlide`: a document request inside the heads-up window but before
+ *   its final week. It leads the carousel as a small item.
+ */
+export function selectHomeTasks(
+    nextActions: NextAction[],
+    rails: RailCapability[] = [],
+    now: Date = new Date()
+): { largeTasks: NextAction[]; documentSlide: NextAction | undefined } {
+    const tasks = selectBridgeTasks(nextActions, rails, now)
+    return {
+        largeTasks: tasks.filter((task) => !isDocumentRequest(task) || isInFinalWeek(task.effectiveDate, now)),
+        documentSlide: tasks.find((task) => isDocumentRequest(task) && !isInFinalWeek(task.effectiveDate, now)),
+    }
 }
 
 /**

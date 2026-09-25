@@ -227,6 +227,7 @@
         "pendingTasks": {
             "documentTitle": "One more document needed",
             "documentDescription": "Needed to keep bank transfers running.",
+            "documentDueBy": "Due {deadline} to keep bank transfers running.",
             "documentCta": "Complete now",
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}",

@@ -7,6 +7,8 @@ import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
@@ -22,6 +24,12 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  * tasks) are composed as-is — restyling them belongs to the activation
  * project, not the ds rebuild. the unverified "verify" page state renders
  * through ActivationCTAs in the card slot.
+ *
+ * one CTA surface at a time (hugo, 2026-09-25): a large verification task card
+ * replaces the carousel and the activation card; it is due, so it wins. with
+ * no task card, activated users get the carousel and everyone else the
+ * activation card. PendingVerificationTasks renders `whenEmpty` only when it
+ * shows nothing itself.
  */
 export function HomePage() {
     const {
@@ -37,6 +45,8 @@ export function HomePage() {
         toggleBalanceVisibility,
     } = useHomeFlow()
     useHomeViewAnalytics(isPageLoading)
+    const { nextActions, rails } = useCapabilities()
+    const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
@@ -55,12 +65,16 @@ export function HomePage() {
                 />
                 <div className="flex flex-col gap-2">
                     <EnableAutoBalanceBanner />
-                    <PendingVerificationTasks dismissible />
-                    {isActivated ? (
-                        <HomeCarouselCTA />
-                    ) : (
-                        <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
-                    )}
+                    <PendingVerificationTasks
+                        placement="home"
+                        whenEmpty={
+                            isActivated ? (
+                                <HomeCarouselCTA documentRequest={documentSlide} />
+                            ) : (
+                                <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
+                            )
+                        }
+                    />
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}

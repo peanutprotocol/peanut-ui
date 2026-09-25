@@ -227,6 +227,7 @@
         "pendingTasks": {
             "documentTitle": "Mais um documento necessário",
             "documentDescription": "Necessário para manter as transferências bancárias funcionando.",
+            "documentDueBy": "Prazo: {deadline}. Necessário para manter as transferências bancárias funcionando.",
             "documentCta": "Concluir agora",
             "completeBefore": "Conclua até {deadline}",
             "dismiss": "Dispensar {task}",

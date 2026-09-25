@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -8,14 +8,11 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import Carousel from '@/components/Global/Carousel'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
-import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
-import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
-import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
-import { upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { bridgeTaskDismissalKey, selectBridgeTasks, selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -27,7 +24,7 @@ type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN'
 const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 
 // Advisory ToS and hosted tasks can be dismissed. The document request cannot:
-// it only shows inside its heads-up window, and the bank-screen notice sends
+// it reaches this card only in its final week, and the bank-screen notice sends
 // the user here to complete it.
 const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate && task.kind !== 'sumsub'
 
@@ -44,11 +41,15 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * HomeCarouselCTA); a single task looks identical to a static card.
  *
  * A future-dated `sumsub` task (Bridge asks for one more document by a date;
- * the rails keep working until then) starts the document flow right here. This
- * card is where that request lives: bank screens only show a heads-up and never
- * hold a transfer for it. The Sumsub modals stay mounted after the task
- * disappears, so a flow in progress survives the list refetching. A failed start
- * shows its error in the slide, never a silent no-op.
+ * the rails keep working until then) starts the document flow right here. Bank
+ * screens only show a heads-up and never hold a transfer for it. On Home it is
+ * a large card only in its final week; before that it is a small carousel slide
+ * (selectHomeTasks). The Sumsub modals stay mounted after the task disappears,
+ * so a flow in progress survives the list refetching. A failed start shows its
+ * error in the slide, never a silent no-op.
+ *
+ * Home shows one CTA surface at a time: this card, or `whenEmpty` (the carousel
+ * or the activation card) when no task is visible — never both.
  *
  * The ToS flow is SNAPSHOTTED at tap time: the task list re-derives from every
  * user refetch (~4s auto-refresh while rails are pending), and the open modal
@@ -56,7 +57,7 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * running. The hosted flow hands off to the vendor, so it goes through the
  * additional-verification screen first (see AdditionalVerificationView).
  *
- * `dismissible` (the /home mount): each ADVISORY (future-dated) slide carries
+ * `placement="home"`: each ADVISORY (future-dated) slide carries
  * its own X that dismisses ONLY that task — the other slides stay. Dismissals
  * persist per task FINGERPRINT (key + requirement + due state, see
  * bridgeTaskDismissalKey), so a task that changes substance re-surfaces
@@ -65,24 +66,21 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * and their rails are gated NOW; the Profile → Unlocked regions mount is
  * non-dismissible for everything.
  */
-export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
+export default function PendingVerificationTasks({
+    placement = 'profile',
+    whenEmpty = null,
+}: {
+    placement?: 'home' | 'profile'
+    /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
+    whenEmpty?: ReactNode
+}) {
+    const dismissible = placement === 'home'
     const t = useTranslations('home')
     const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
-    // The document task the user last tapped, so its start error renders on
-    // that slide only.
-    const [startedDocumentTaskKey, setStartedDocumentTaskKey] = useState<string | null>(null)
     const router = useRouter()
-    const {
-        trackStarted: trackUpliftStarted,
-        trackCompleted: trackUpliftCompleted,
-        reset: resetUpliftFunnel,
-    } = useEeaUpliftFunnel('verification-tasks')
-    const kycFlow = useMultiPhaseKycFlow({
-        onKycApproved: () => trackUpliftCompleted(),
-        onManualClose: resetUpliftFunnel,
-    })
+    const documentFlow = useDocumentRequestFlow()
     // Stored dismissals, tagged with the user they were loaded for
     // (localStorage is unreadable during SSR, hence the post-render effect).
     // The dismissible mount must not paint until the CURRENT user's entry is
@@ -92,7 +90,10 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const tasks = selectBridgeTasks(nextActions, rails ?? [])
+    const tasks =
+        placement === 'home'
+            ? selectHomeTasks(nextActions, rails ?? []).largeTasks
+            : selectBridgeTasks(nextActions, rails ?? [])
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
@@ -146,19 +147,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 return
             }
             if (task.kind === 'sumsub') {
-                setStartedDocumentTaskKey(task.key)
-                const upliftTrigger = task.effectiveDate
-                    ? upliftTriggerFromAdvisory({
-                          effectiveDate: task.effectiveDate,
-                          actionKey: task.key,
-                          requirementKey: task.requirementKey,
-                      })
-                    : null
-                if (upliftTrigger) trackUpliftStarted(upliftTrigger)
-                // The self-heal resubmit route tags the action so the completed
-                // submission reaches the payment partner; a plain start-action
-                // token would drop the answers.
-                void kycFlow.handleSelfHealResubmit('BRIDGE', task.requirementKey)
+                documentFlow.start(task)
                 return
             }
             // The hosted flow gets its own screen first. It runs at the vendor,
@@ -167,7 +156,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // one. That is a page's worth of prep, and it owns the handoff.
             router.push('/profile/accounts-and-payments/additional')
         },
-        [router, kycFlow, trackUpliftStarted]
+        [router, documentFlow]
     )
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
@@ -223,9 +212,18 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         }
     }
 
-    const kycModals = <SumsubKycModals flow={kycFlow} />
+    // Advisory tasks wait for stored dismissals (see above). Until then neither
+    // the card nor `whenEmpty` paints, or the carousel would flash in and out.
+    const isHydratingDismissals = dismissible && dismissedKeys === null && tasks.some((task) => isDismissibleTask(task))
 
-    if (visibleTasks.length === 0 && !activeTosTask) return kycModals
+    if (visibleTasks.length === 0 && !activeTosTask) {
+        return (
+            <>
+                {!isHydratingDismissals && whenEmpty}
+                {documentFlow.modals}
+            </>
+        )
+    }
 
     return (
         <>
@@ -238,9 +236,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             const isDocument = task.kind === 'sumsub'
                             const deadline = formatEffectiveDate(task.effectiveDate)
                             const startError =
-                                isDocument && startedDocumentTaskKey === task.key && !kycFlow.isLoading
-                                    ? kycFlow.error
-                                    : null
+                                isDocument && documentFlow.startedTaskKey === task.key ? documentFlow.error : null
                             return (
                                 <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
@@ -272,8 +268,8 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             variant="primary"
                                             shadowSize="4"
                                             className="mt-1 w-full"
-                                            loading={isDocument && kycFlow.isLoading}
-                                            disabled={isDocument && kycFlow.isLoading}
+                                            loading={isDocument && documentFlow.isLoading}
+                                            disabled={isDocument && documentFlow.isLoading}
                                             onClick={() => handleOpenTask(task)}
                                         >
                                             {isDocument
@@ -299,7 +295,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 </div>
             )}
 
-            {kycModals}
+            {visibleTasks.length === 0 && !isHydratingDismissals && whenEmpty}
+
+            {documentFlow.modals}
 
             {activeTosTask && (
                 <BridgeTosStep

@@ -1,9 +1,12 @@
 import {
+    ADVISORY_FINAL_WEEK_DAYS,
     ADVISORY_HEADS_UP_WINDOW_DAYS,
     bridgeTaskDismissalKey,
     hasNativeBridgeStep,
     headsUpDeadline,
+    isInFinalWeek,
     selectBridgeTasks,
+    selectHomeTasks,
 } from '../bridge-tasks.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
@@ -127,6 +130,41 @@ describe('headsUpDeadline', () => {
         expect(headsUpDeadline('2026-06-29', now)).toBe('2026-06-29')
         expect(headsUpDeadline(undefined, now)).toBeUndefined()
         expect(headsUpDeadline('not-a-date', now)).toBeUndefined()
+    })
+})
+
+describe('selectHomeTasks — one CTA surface on Home', () => {
+    const now = new Date('2026-09-25T12:00:00Z')
+    const due = (days: number) => new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
+    const documentRequest = (days: number) =>
+        action({ key: 'sumsub:eea_uplift', kind: 'sumsub', effectiveDate: due(days), requirementKey: 'nationalities' })
+
+    it(`more than ${ADVISORY_HEADS_UP_WINDOW_DAYS} days out: nothing on Home`, () => {
+        expect(selectHomeTasks([documentRequest(40)], [], now)).toEqual({ largeTasks: [], documentSlide: undefined })
+    })
+
+    it(`${ADVISORY_HEADS_UP_WINDOW_DAYS} to ${ADVISORY_FINAL_WEEK_DAYS + 1} days out: one small carousel slide, no large card`, () => {
+        const request = documentRequest(20)
+        expect(selectHomeTasks([request], [], now)).toEqual({ largeTasks: [], documentSlide: request })
+        expect(selectHomeTasks([documentRequest(8)], [], now).largeTasks).toEqual([])
+    })
+
+    it(`last ${ADVISORY_FINAL_WEEK_DAYS} days, or past due: the large card, no slide`, () => {
+        for (const days of [7, 3, -2]) {
+            const request = documentRequest(days)
+            expect(selectHomeTasks([request], [], now)).toEqual({ largeTasks: [request], documentSlide: undefined })
+        }
+    })
+
+    it('ToS and hosted tasks stay large cards whatever their date', () => {
+        const tos = action({ key: 'accept-tos:sepa', effectiveDate: due(60) })
+        expect(selectHomeTasks([tos, documentRequest(20)], [], now).largeTasks).toEqual([tos])
+    })
+
+    it('isInFinalWeek: the edge is exactly the final-week constant', () => {
+        expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS), now)).toBe(true)
+        expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS + 1), now)).toBe(false)
+        expect(isInFinalWeek(undefined, now)).toBe(false)
     })
 })
 
