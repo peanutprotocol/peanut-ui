@@ -41,7 +41,13 @@ import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAm
 import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
+import {
+    BRIDGE_OFFRAMP_MIN_USD,
+    bankPayoutMinimum,
+    meetsBankPayoutMinimum,
+    validateBankOfframpAmount,
+} from './amount-validation'
+import { formatBankAmount } from '@/utils/currency'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
     bankReferenceDestinationFields,
@@ -147,15 +153,15 @@ export function useBridgeOfframpFlow() {
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const countryFromPath = getCountryFromPath(country)
 
-    // The destination's rail minimum, in USD — the amount step enforces it and
-    // the submit re-checks it (Chip round 5: the flat $1 floor bypassed the
-    // GB £3 / MX 50 MXN minimums). GB/MX minimums are local-currency, so they
-    // convert through the same sell rate the amount step uses; until that rate
-    // loads the submit stays disabled rather than under-enforcing.
-    // iso2, not id: the UK record is { id: 'GBR', iso2: 'GB' } and an id-keyed
-    // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
-    const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
-    const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
+    // The destination's payout minimum is in the account's currency (£3,
+    // 50 MXN, 4,000 COP) — the amount step enforces it and the submit
+    // re-checks it (Chip round 5: the flat $1 floor bypassed them). A bank
+    // amount typed in that currency is compared as typed, so exactly 50 MXN
+    // passes (TASK-23054). A USD ?amount= from an older link converts at the
+    // quote rate first; until that rate loads the submit stays disabled rather
+    // than under-enforcing.
+    const payoutMinimum = bankPayoutMinimum(accountCurrency)
+    const minNeedsRate = !bankCurrency && payoutMinimum > 1
     // One rate for the amount and the minimum: the quote. Without a typed bank
     // amount it is fetched for the rate alone, when the minimum needs one.
     const bankQuote = useBridgeOfframpQuote({
@@ -166,8 +172,14 @@ export function useBridgeOfframpFlow() {
     const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
     // a quote whose refresh failed stays on screen but is not confirmed
     const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
-    const minUsd = bankWithdrawMinUsd(countryIso2, bankQuote.quote?.rate)
-    const isMinReady = !minNeedsRate || (isQuoteCurrent && parseFloat(bankQuote.quote?.rate ?? '0') > 0)
+    const quoteRate = parseFloat(bankQuote.quote?.rate ?? '0')
+    const isMinReady = !minNeedsRate || (isQuoteCurrent && quoteRate > 0)
+    // What the bank receives, in its currency; undefined when only the $1 floor applies.
+    const bankPayoutAmount = bankCurrency
+        ? Number(destinationAmount)
+        : minNeedsRate
+          ? Number(urlAmount) * quoteRate
+          : undefined
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -310,9 +322,9 @@ export function useBridgeOfframpFlow() {
             return
         }
 
-        // The GB/MX rail minimum converts through the FX rate — the submit is
-        // disabled until it loads; reaching here early is a race, not a user
-        // error: no-op rather than under-enforce.
+        // A USD ?amount= meets a GBP/MXN/COP minimum through the quote rate —
+        // the submit is disabled until it loads; reaching here early is a race,
+        // not a user error: no-op rather than under-enforce.
         if (!isMinReady) return
         // The ToS step calls this directly, past the disabled button: a quote
         // whose refresh failed is never confirmed.
@@ -323,9 +335,10 @@ export function useBridgeOfframpFlow() {
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
-        // or above the destination's rail minimum (round 5 — was a flat $1),
-        // within the displayed balance. The normalized string goes on the wire.
-        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance, minUsd)
+        // or above the $1 floor, within the displayed balance, and then at or
+        // above the destination's payout minimum in its own currency (round 5 —
+        // was a flat $1). The normalized string goes on the wire.
+        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
         if (!amountCheck.ok) {
             // the submit button is disabled until the balance loads — reaching
             // here with balanceLoading is a race, not a user error: no-op.
@@ -334,9 +347,22 @@ export function useBridgeOfframpFlow() {
                 amountCheck.reason === 'insufficientBalance'
                     ? tErrors('notEnoughBalanceAddFunds')
                     : amountCheck.reason === 'belowMinimum'
-                      ? t('errors.minimumWithdrawal', { amount: `$${minUsd}` })
+                      ? t('errors.minimumWithdrawal', { amount: formatBankAmount(BRIDGE_OFFRAMP_MIN_USD, 'USD') })
                       : t('errors.invalidAmount')
             setError({ showError: true, errorMessage })
+            return
+        }
+        if (
+            accountCurrency &&
+            bankPayoutAmount !== undefined &&
+            !meetsBankPayoutMinimum(bankPayoutAmount, accountCurrency)
+        ) {
+            setError({
+                showError: true,
+                errorMessage: t('errors.minimumWithdrawal', {
+                    amount: formatBankAmount(payoutMinimum, accountCurrency),
+                }),
+            })
             return
         }
         const amountUsd = amountCheck.normalized
