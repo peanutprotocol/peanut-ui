@@ -16,6 +16,7 @@ import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
+import { formatEffectiveDate } from '@/utils/format.utils'
 
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
@@ -148,12 +149,14 @@ describe('PendingVerificationTasks', () => {
     })
 
     describe('future-dated document request (Bridge advisory sumsub step)', () => {
+        // inside the heads-up window: due in 10 days
+        const dueSoon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
         const documentTask: NextAction = {
             key: 'sumsub:eea_uplift',
             kind: 'sumsub',
             purpose: 'unlock-bridge-sepa',
             levelKey: 'eea_uplift',
-            effectiveDate: '2099-10-01',
+            effectiveDate: dueSoon,
             requirementKey: 'place_of_birth_missing',
         }
 
@@ -162,7 +165,7 @@ describe('PendingVerificationTasks', () => {
             render(<PendingVerificationTasks />)
 
             expect(screen.getByText('One more document needed')).toBeInTheDocument()
-            expect(screen.getByText('Complete before October 1, 2099')).toBeInTheDocument()
+            expect(screen.getByText(`Complete before ${formatEffectiveDate(dueSoon)}`)).toBeInTheDocument()
             fireEvent.click(screen.getByRole('button', { name: 'Complete now' }))
 
             expect(mockHandleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE', 'place_of_birth_missing')
@@ -191,6 +194,20 @@ describe('PendingVerificationTasks', () => {
             mockKycFlow = { ...mockKycFlow, error: 'stale' }
             render(<PendingVerificationTasks />)
             expect(screen.queryByTestId('document-task-start-error')).not.toBeInTheDocument()
+        })
+
+        it('on Home it has no dismiss X and ignores a stored dismissal: the bank-screen notice points here', () => {
+            mockNextActions = [documentTask]
+            mockStoredDismissal = [`sumsub:eea_uplift|place_of_birth_missing|${dueSoon}`]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
+        })
+
+        it('a request due outside the heads-up window is not shown yet', () => {
+            mockNextActions = [{ ...documentTask, effectiveDate: '2099-10-01' }]
+            const { container } = render(<PendingVerificationTasks />)
+            expect(container).toBeEmptyDOMElement()
         })
 
         it('a blocking sumsub step (no date) is not a Home task — its rail gate owns it', () => {

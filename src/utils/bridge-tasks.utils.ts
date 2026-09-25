@@ -1,11 +1,32 @@
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 /**
+ * How many days before its due date a future-dated document request shows up:
+ * the Home and Accounts task slide and the bank-screen notice both read this.
+ * Earlier than that it stays silent. Bridge's expiring-ID requests are dated
+ * years ahead, and a notice that far out is noise.
+ */
+export const ADVISORY_HEADS_UP_WINDOW_DAYS = 30
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The request's due date when it falls inside the heads-up window (a date
+ * already past counts: it is still due), otherwise undefined.
+ */
+export function headsUpDeadline(effectiveDate: string | undefined, now: Date = new Date()): string | undefined {
+    if (!effectiveDate) return undefined
+    const due = new Date(effectiveDate).getTime()
+    if (Number.isNaN(due)) return undefined
+    return due - now.getTime() <= ADVISORY_HEADS_UP_WINDOW_DAYS * DAY_MS ? effectiveDate : undefined
+}
+
+/**
  * The nextActions renderable as pending Bridge verification tasks:
  * `accept-tos` (blocking, rail-attached — or advisory orphan) and
  * `bridge-hosted` (the hosted-flow catch-all), plus a future-dated `sumsub`
- * document request (only Bridge advisories carry `effectiveDate`; a blocking
- * sumsub step is gated on its own rail). One filter catches both the
+ * document request inside the heads-up window (only Bridge advisories carry
+ * `effectiveDate`; a blocking sumsub step is gated on its own rail). One filter catches both the
  * blocking and the advisory (future-dated, `effectiveDate`-carrying)
  * populations — advisory actions arrive as orphans no rail references, so
  * reading top-level `nextActions` is the only way to see them.
@@ -18,12 +39,16 @@ import type { NextAction, RailCapability } from '@/types/capabilities'
  * emits the pair; this keeps older API responses honest too. Advisory hosted
  * tasks are about keeping access on a working rail and stay.
  */
-export function selectBridgeTasks(nextActions: NextAction[], rails: RailCapability[] = []): NextAction[] {
+export function selectBridgeTasks(
+    nextActions: NextAction[],
+    rails: RailCapability[] = [],
+    now: Date = new Date()
+): NextAction[] {
     const tasks = nextActions.filter(
         (action) =>
             action.kind === 'accept-tos' ||
             action.kind === 'bridge-hosted' ||
-            (action.kind === 'sumsub' && !!action.effectiveDate)
+            (action.kind === 'sumsub' && !!headsUpDeadline(action.effectiveDate, now))
     )
     if (!hasNativeBridgeStep(nextActions, rails)) return tasks
     return tasks.filter((action) => action.kind !== 'bridge-hosted' || !!action.effectiveDate)

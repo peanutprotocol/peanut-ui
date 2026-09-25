@@ -20,6 +20,7 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
@@ -205,9 +206,9 @@ export function useBridgeOfframpFlow() {
     })
     // A ready bank rail can still carry a future-dated Bridge requirement (the
     // gate's `advisory`). The rail works until that date, so the withdrawal never
-    // waits on it: the review screen shows a heads-up, and the verification
+    // waits on it: inside the heads-up window the review screen shows a notice, and the verification
     // starts from the Home and Accounts task cards (PendingVerificationTasks).
-    const advisoryDeadline = gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
 
     // close kyc modal when sumsub sdk opens

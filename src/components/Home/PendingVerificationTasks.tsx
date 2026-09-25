@@ -26,6 +26,11 @@ import Card from '../Global/Card'
 type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN'
 const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 
+// Advisory ToS and hosted tasks can be dismissed. The document request cannot:
+// it only shows inside its heads-up window, and the bank-screen notice sends
+// the user here to complete it.
+const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate && task.kind !== 'sumsub'
+
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
  * mirror of Bridge's "additional verification needed" dashboard state. Reads
@@ -130,7 +135,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         ? tasks
         : tasks.filter(
               (task) =>
-                  !task.effectiveDate ||
+                  !isDismissibleTask(task) ||
                   (dismissedKeys !== null && !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
           )
 
@@ -239,7 +244,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             return (
                                 <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
-                                        {dismissible && !!task.effectiveDate && (
+                                        {dismissible && isDismissibleTask(task) && (
                                             <button
                                                 type="button"
                                                 aria-label={t('pendingTasks.dismiss', { task: copy.title })}

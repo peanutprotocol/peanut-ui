@@ -1,4 +1,10 @@
-import { bridgeTaskDismissalKey, hasNativeBridgeStep, selectBridgeTasks } from '../bridge-tasks.utils'
+import {
+    ADVISORY_HEADS_UP_WINDOW_DAYS,
+    bridgeTaskDismissalKey,
+    hasNativeBridgeStep,
+    headsUpDeadline,
+    selectBridgeTasks,
+} from '../bridge-tasks.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 const action = (overrides: Partial<NextAction>): NextAction => ({
@@ -76,14 +82,21 @@ describe('selectBridgeTasks', () => {
         expect(selectBridgeTasks([advisory, poaUpload], rails)).toEqual([advisory])
     })
 
-    it('keeps a future-dated sumsub document request, never a blocking one', () => {
-        const advisoryDocument = action({
+    it('keeps a sumsub document request due inside the heads-up window, never a blocking one', () => {
+        const now = new Date('2026-09-25T12:00:00Z')
+        const eeaUplift = action({
             key: 'sumsub:eea_uplift',
             kind: 'sumsub',
-            effectiveDate: '2099-10-01',
+            effectiveDate: '2026-10-01',
             requirementKey: 'place_of_birth_missing',
         })
-        expect(selectBridgeTasks([advisoryDocument, poaUpload])).toEqual([advisoryDocument])
+        const expiringId = action({
+            key: 'sumsub:government_id',
+            kind: 'sumsub',
+            effectiveDate: '2027-07-31',
+            requirementKey: 'government_id_expired',
+        })
+        expect(selectBridgeTasks([eeaUplift, expiringId, poaUpload], [], now)).toEqual([eeaUplift])
     })
 
     it('passes advisory metadata (effectiveDate) through untouched', () => {
@@ -91,6 +104,29 @@ describe('selectBridgeTasks', () => {
             action({ key: 'bridge-hosted', kind: 'bridge-hosted', effectiveDate: '2099-09-01' }),
         ])
         expect(task.effectiveDate).toBe('2099-09-01')
+    })
+})
+
+describe('headsUpDeadline', () => {
+    const now = new Date('2026-09-25T12:00:00Z')
+
+    it('the EEA uplift due 2026-10-01 is inside the window; an ID expiring in 2027 is outside', () => {
+        expect(headsUpDeadline('2026-10-01', now)).toBe('2026-10-01')
+        expect(headsUpDeadline('2027-07-31', now)).toBeUndefined()
+    })
+
+    it(`the edge is exactly ${ADVISORY_HEADS_UP_WINDOW_DAYS} days`, () => {
+        const day = 24 * 60 * 60 * 1000
+        const edge = new Date(now.getTime() + ADVISORY_HEADS_UP_WINDOW_DAYS * day)
+        const pastEdge = new Date(edge.getTime() + day)
+        expect(headsUpDeadline(edge.toISOString(), now)).toBe(edge.toISOString())
+        expect(headsUpDeadline(pastEdge.toISOString(), now)).toBeUndefined()
+    })
+
+    it('a past date is still due, so it stays inside; no date or a bad date is outside', () => {
+        expect(headsUpDeadline('2026-06-29', now)).toBe('2026-06-29')
+        expect(headsUpDeadline(undefined, now)).toBeUndefined()
+        expect(headsUpDeadline('not-a-date', now)).toBeUndefined()
     })
 })
 

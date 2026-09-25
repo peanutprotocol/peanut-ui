@@ -20,6 +20,7 @@ import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCurrencyConfig, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { nextDepositStep, isVerifiableGate } from '@/utils/capability-gate'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { formatAmount } from '@/utils/general.utils'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -136,9 +137,9 @@ export function useBridgeBankFlow() {
     const pendingModal = useWaitingOnProviderModal(gate)
     // A ready bank rail can still carry a future-dated Bridge requirement (the
     // gate's `advisory`). The rail works until that date, so the deposit never
-    // waits on it: the screen shows a heads-up, and the verification starts
+    // waits on it: inside the heads-up window the screen shows a notice, and the verification starts
     // from the Home and Accounts task cards (PendingVerificationTasks).
-    const advisoryDeadline = gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 

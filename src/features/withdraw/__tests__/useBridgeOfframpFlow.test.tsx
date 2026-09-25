@@ -259,10 +259,11 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
 
     it('a future-dated verification request never holds the withdrawal: the deadline is exposed for the notice and the offramp runs', async () => {
         armHappyOfframp()
-        mockAdvisory = { effectiveDate: '2099-10-01', actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' }
+        const dueSoon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        mockAdvisory = { effectiveDate: dueSoon, actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' }
         const view = renderFlow({ amount: '50', step: 'review' })
 
-        expect(view.result.current.advisoryDeadline).toBe('2099-10-01')
+        expect(view.result.current.advisoryDeadline).toBe(dueSoon)
         await act(async () => {
             view.result.current.handleCreateAndInitiateOfframp()
         })
@@ -270,6 +271,16 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
         expect(stableUpliftFunnel.trackStarted).not.toHaveBeenCalled()
+    })
+
+    it('a request due outside the heads-up window shows no notice', () => {
+        mockAdvisory = {
+            effectiveDate: '2099-10-01',
+            actionKey: 'sumsub:government_id',
+            requirementKey: 'government_id_expired',
+        }
+        const view = renderFlow({ amount: '50', step: 'review' })
+        expect(view.result.current.advisoryDeadline).toBeUndefined()
     })
 
     it('a click after the gate and balance resolve runs the offramp (regression: memoized handler froze the loading gate)', async () => {

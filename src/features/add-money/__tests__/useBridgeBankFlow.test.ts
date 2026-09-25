@@ -226,13 +226,14 @@ describe('useBridgeBankFlow', () => {
     })
 
     it('a future-dated verification request never holds the deposit: Continue opens the confirmation and the deadline is exposed for the notice', () => {
+        const dueSoon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
         mockGate = {
             kind: 'ready',
-            advisory: { effectiveDate: '2099-10-01', actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' },
+            advisory: { effectiveDate: dueSoon, actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' },
         }
         const { result } = renderFlow('?step=inputAmount&amount=100')
 
-        expect(result.current.advisoryDeadline).toBe('2099-10-01')
+        expect(result.current.advisoryDeadline).toBe(dueSoon)
         act(() => result.current.handleAmountContinue())
 
         expect(result.current.showWarningModal).toBe(true)
