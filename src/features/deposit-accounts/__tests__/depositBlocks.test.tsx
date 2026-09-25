@@ -173,7 +173,7 @@ describe('the screen a blocked corridor lands on', () => {
         // names — a genuinely-held account elsewhere — so the cap screen is true.
         const props = flowProps('account-limit', true)
         render(flow(props))
-        expect(screen.getByText('You already have 1 account')).toBeInTheDocument()
+        expect(screen.getByText('1 account already open')).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
         tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
@@ -279,7 +279,7 @@ describe('the screen a blocked corridor lands on', () => {
 
     it('states the number of accounts the user holds, not a default', () => {
         render(flow({ ...flowProps('account-limit', true), slotsHeld: 3 }))
-        expect(screen.getByText('You already have 3 accounts')).toBeInTheDocument()
+        expect(screen.getByText('3 accounts already open')).toBeInTheDocument()
     })
 
     describe('a review that waits on a verified user', () => {

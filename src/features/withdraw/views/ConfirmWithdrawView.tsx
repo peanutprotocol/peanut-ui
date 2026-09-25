@@ -43,7 +43,7 @@ interface WithdrawConfirmViewProps {
      */
     receiveAmount?: string | null
     /**
-     * The exact USDC the kernel spends (decimal string) — the honest "You pay".
+     * The exact USDC the kernel spends (decimal string) — the honest "Total".
      * SDA (receive mode) = principal + quoted fee; bridge (pay mode) = principal
      * (any fee comes out of what the recipient receives). Nullable while
      * calculating.
@@ -222,7 +222,7 @@ export default function ConfirmWithdrawView({
                         // top (the sponsored row), or a quoted fee. Withdraw
                         // quotes are pay-mode (useCrossChainTransfer), so the
                         // fee comes out of what the recipient receives — it is
-                        // never added on top of You pay.
+                        // never added on top of Total.
                         // A failed quote shows a dash, and neither string is
                         // true then — one promises free delivery, the other
                         // describes a fee nobody quoted.

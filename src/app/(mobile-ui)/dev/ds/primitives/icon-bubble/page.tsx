@@ -132,7 +132,7 @@ export default function IconBubblePage() {
                     <div className="flex items-center gap-3">
                         <IconBubble icon="check" color="green" />
                         <div className="space-y-1">
-                            <p className="text-body-s text-foreground-secondary">You sent to lucia</p>
+                            <p className="text-body-s text-foreground-secondary">Sent to lucia</p>
                             <p className="text-heading-s">$24.00</p>
                         </div>
                     </div>

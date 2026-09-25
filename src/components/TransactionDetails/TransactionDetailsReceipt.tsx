@@ -10,6 +10,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { PerkIcon } from './PerkIcon'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
@@ -88,7 +89,7 @@ export const TransactionDetailsReceipt = ({
     const headline = receiptHeadlineAmount(transaction, safeAmount, getTransactionSign(transaction))
     const amountDisplay = headline.isCollectedTotal
         ? t('amountCollected', { amount: formattedTotalAmountCollected })
-        : `$${formatCurrency(Math.abs(headline.amount).toString())}`
+        : formatBankAmount(Math.abs(headline.amount), 'USD')
 
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = headline.sign

@@ -6,6 +6,7 @@
  *
  *   abd71b882 (2026-03-20) "you're withdrawing" -> "you're sending"
  *   d532b6a65 (2026-07-13) "You're sending"     -> "You're withdrawing"
+ *   (2026-09-24 the pronoun went: "Sending" / "Withdrawing", same split)
  *
  * Both were right about the flow in front of them: Send -> Crypto /
  * Bank navigates into the withdraw routes, so this one card serves two user
@@ -38,15 +39,15 @@ describe('PeanutActionDetailsCard — withdraw vs send framing', () => {
         it('reads as a withdrawal by default', () => {
             renderWithIntl(<PeanutActionDetailsCard {...baseProps} transactionType={transactionType} />)
 
-            expect(screen.getByText(/You're withdrawing/i)).toBeInTheDocument()
-            expect(screen.queryByText(/You're sending/i)).not.toBeInTheDocument()
+            expect(screen.getByText('Withdrawing')).toBeInTheDocument()
+            expect(screen.queryByText('Sending')).not.toBeInTheDocument()
         })
 
         it('reads as a send when reached through the send flow', () => {
             renderWithIntl(<PeanutActionDetailsCard {...baseProps} transactionType={transactionType} isFromSendFlow />)
 
-            expect(screen.getByText(/You're sending/i)).toBeInTheDocument()
-            expect(screen.queryByText(/You're withdrawing/i)).not.toBeInTheDocument()
+            expect(screen.getByText('Sending')).toBeInTheDocument()
+            expect(screen.queryByText('Withdrawing')).not.toBeInTheDocument()
         })
     })
 
@@ -54,7 +55,7 @@ describe('PeanutActionDetailsCard — withdraw vs send framing', () => {
         // ADD_MONEY has no send framing — the flag must not leak across the map.
         renderWithIntl(<PeanutActionDetailsCard {...baseProps} transactionType="ADD_MONEY" isFromSendFlow />)
 
-        expect(screen.getByText(/You're adding/i)).toBeInTheDocument()
+        expect(screen.getByText('Adding')).toBeInTheDocument()
     })
 })
 

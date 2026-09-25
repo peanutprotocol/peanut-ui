@@ -268,12 +268,7 @@ const mockOnMethodChosen = jest.fn()
 const renderView = (searchParams: Record<string, string> = {}) =>
     render(
         <NuqsTestingAdapter searchParams={searchParams}>
-            <WithdrawMethodView
-                pageTitle="Withdraw"
-                mainHeading="Where to?"
-                onExit={mockOnExit}
-                onMethodChosen={mockOnMethodChosen}
-            />
+            <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
         </NuqsTestingAdapter>
     )
 
@@ -449,12 +444,7 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
         const onUrlUpdate = jest.fn()
         render(
             <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
-                <WithdrawMethodView
-                    pageTitle="Withdraw"
-                    mainHeading="Where to?"
-                    onExit={mockOnExit}
-                    onMethodChosen={mockOnMethodChosen}
-                />
+                <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
             </NuqsTestingAdapter>
         )
         fireEvent.click(screen.getByTestId('hub-bank-row'))
@@ -515,12 +505,7 @@ describe('WithdrawMethodView — Withdraw → Crypto shows the address book firs
     const renderWithMemory = (searchParams: Record<string, string>) =>
         render(
             <NuqsTestingAdapter searchParams={searchParams} hasMemory>
-                <WithdrawMethodView
-                    pageTitle="Withdraw"
-                    mainHeading="Where to?"
-                    onExit={mockOnExit}
-                    onMethodChosen={mockOnMethodChosen}
-                />
+                <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
             </NuqsTestingAdapter>
         )
 
