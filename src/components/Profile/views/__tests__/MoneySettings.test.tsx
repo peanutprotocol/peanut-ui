@@ -347,7 +347,7 @@ describe('MoneySettings', () => {
 
             render('payments')
             expect(screen.getByText('QR payments')).toBeInTheDocument()
-            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
+            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
             expect(screen.getByText('Pix key payments')).toBeInTheDocument()
         })
     })
@@ -982,8 +982,8 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
-            // lines at 375px; the description holds it in two
-            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
+            // lines at 375px; the description names it in one (Slava, 2026-09-25)
+            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
 
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
@@ -1027,10 +1027,10 @@ describe('MoneySettings', () => {
 
         // A Brazilian user read "QR payments" as scan-only and paid Pix keys
         // in another app (2026-09-23). The key send is its own row.
-        it('names Pix key payments with the key types, and offers them to a user without QR', () => {
+        it('names Pix key payments with where they pay, and offers them to a user without QR', () => {
             render('payments')
 
-            expect(screen.getByText('Brazil. CPF, CNPJ, phone, email or random key.')).toBeInTheDocument()
+            expect(screen.getByText('Any Pix key in Brazil')).toBeInTheDocument()
             fireEvent.click(screen.getByText('Pix key payments'))
             expect(screen.getByText('unlock-modal-open:Pix key payments')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()

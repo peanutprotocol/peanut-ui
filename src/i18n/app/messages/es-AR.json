@@ -272,8 +272,8 @@
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
-            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "qrPayNote": "Brasil y Argentina",
+            "pixKeyNote": "Claves Pix de Brasil",
             "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {

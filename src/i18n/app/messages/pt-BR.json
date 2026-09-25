@@ -450,8 +450,8 @@
                 "aboutTitle": "O que desbloqueia",
                 "limitsTitle": "Limites"
             },
-            "qrPayNote": "Escaneie o QR code de uma loja no Brasil ou na Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, telefone, e-mail ou chave aleatória.",
+            "qrPayNote": "Brasil e Argentina",
+            "pixKeyNote": "Chaves Pix do Brasil",
             "pixSendNote": "Envie para qualquer chave Pix"
         },
         "backup": {

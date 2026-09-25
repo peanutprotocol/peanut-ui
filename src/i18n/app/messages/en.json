@@ -450,8 +450,8 @@
                 "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
-            "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
-            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key.",
+            "qrPayNote": "Brazil and Argentina",
+            "pixKeyNote": "Any Pix key in Brazil",
             "pixSendNote": "Send to any Pix key"
         },
         "backup": {

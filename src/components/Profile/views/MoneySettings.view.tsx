@@ -757,9 +757,8 @@ const RowSection = ({
                             title={t(`rows.${row.labelKey}`)}
                             // QR payments and Pix keys are the rows people do
                             // not recognise by name, so each carries its
-                            // explainer under the title — the countries and
-                            // key types, which wrapped the title over three
-                            // lines at 375px.
+                            // explainer under the title — where each pays, in
+                            // one line at 375px (Slava, 2026-09-25).
                             body={row.note && t(row.note)}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
