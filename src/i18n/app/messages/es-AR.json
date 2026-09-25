@@ -1013,7 +1013,7 @@
             "selectBank": "Seleccioná el banco",
             "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
             "enterAccountDetails": "Ingresá los datos del banco o billetera",
-            "accountDetailsHint": "Usá tu CBU, CVU o alias, incluido Mercado Pago."
+            "accountDetailsHint": "{country, select, BR {Usá una clave Pix. Incluí +55 si es un teléfono.} other {Usá tu CBU, CVU o alias, incluido Mercado Pago.}}"
         },
         "bankForm": {
             "heading": "Ingresá los datos bancarios",

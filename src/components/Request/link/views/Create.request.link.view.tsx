@@ -102,6 +102,8 @@ export const CreateRequestLinkView = () => {
                     {...(currency !== 'USD' && {
                         primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
                         secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
+                        // the server stores the USD rounded up to the cent; the line shows that figure
+                        roundSecondaryUp: true,
                     })}
                 />
 
