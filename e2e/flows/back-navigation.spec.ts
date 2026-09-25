@@ -103,6 +103,22 @@ test.describe('back navigation', () => {
         expect(page.url()).not.toContain('/add-money')
     })
 
+    test('request link: header back returns home, and browser back from home does not reopen request', async ({
+        page,
+    }) => {
+        await page.goto('/home?__fixture=home-activated', { waitUntil: 'domcontentloaded' })
+        await page.getByTestId('home-submenu-request').click({ timeout: 60_000 })
+        await page.getByTestId('home-drawer-request-share-link').click()
+        await page.waitForURL(/\/request/)
+
+        await navBack(page)
+        await page.waitForURL(/\/home/)
+        await expect(page.getByTestId('home-submenu-request')).toBeVisible()
+
+        await page.goBack()
+        expect(page.url()).not.toContain('/request')
+    })
+
     test('activity: header back returns home, and browser back from home does not reopen activity', async ({
         page,
     }) => {
