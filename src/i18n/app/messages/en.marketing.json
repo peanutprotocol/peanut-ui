@@ -56,7 +56,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed",
+        "slideToProceed": "Slide to proceed",
         "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
