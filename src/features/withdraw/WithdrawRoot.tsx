@@ -53,7 +53,9 @@ export default function WithdrawRoot() {
                         ? {
                               currency: bankAmount.currency.toUpperCase(),
                               rate: Number(bankAmount.rate),
-                              initialAmount: bankAmount.destinationAmount,
+                              // back or refresh restores the field in the currency it was typed in
+                              initialAmount: bankAmount.isInUsd ? flow.rawTokenAmount : bankAmount.destinationAmount,
+                              initialDenomination: bankAmount.isInUsd ? 'USD' : bankAmount.currency.toUpperCase(),
                               onAmountChange: bankAmount.onDestinationAmountChange,
                               onDenominationChange: bankAmount.onDenominationChange,
                           }
