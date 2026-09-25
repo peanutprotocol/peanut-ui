@@ -137,6 +137,8 @@ describe('AvatarPicker', () => {
         for (const el of [...tiles(), die()]) expect(el).not.toHaveClass('aspect-square')
         // a 91px tile wraps a translated name to three lines; a clamp would cut it
         expect(tiles()[0].innerHTML).not.toMatch(/line-clamp/)
+        // every name reserves two lines, so a roll of one-line names keeps the grid height (TASK-23054)
+        for (const el of tiles()) expect(el.lastElementChild).toHaveClass('min-h-8')
     })
 
     // a user refetch (the pending-rail poller, a post-save fetchUser) must not
@@ -167,11 +169,12 @@ describe('AvatarPicker', () => {
         expect(screen.queryByRole('heading')).not.toBeInTheDocument()
     })
 
-    it('names and lines every tile', () => {
+    // the subtitle varied in length per roll and changed the screen height (TASK-23054)
+    it('names every tile, with no subtitle under the name', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tile(A)).toHaveTextContent('Two short of rich')
-        expect(tile(/Bold Chili/)).toHaveTextContent('Picked the spicy one')
+        expect(tile(A)).toHaveTextContent(/^Jackpot Cherry$/)
+        expect(tile(/Bold Chili/)).toHaveTextContent(/^Bold Chili$/)
         for (const el of tiles()) expect(el.textContent?.trim()).not.toBe('')
     })
 
@@ -180,8 +183,7 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const initial = tiles()[0]
-        expect(initial).toHaveTextContent('Just S')
-        expect(initial).toHaveTextContent('Initial')
+        expect(initial).toHaveTextContent(/^Just S$/)
 
         fireEvent.click(initial)
 
@@ -217,18 +219,21 @@ describe('AvatarPicker', () => {
     })
 
     it.each([
-        { locale: 'es-419', messages: es419, artName: 'Escarabajo de bugs', expectedName: 'Cazador de bugs' },
-        { locale: 'pt-BR', messages: ptBR, artName: 'Besouro dos bugs', expectedName: 'Caçador de bugs' },
-    ] as const)('localizes the earned badge name and art in $locale', ({ locale, messages, artName, expectedName }) => {
-        renderWithIntl(
-            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
-                <AvatarPicker open onOpenChange={jest.fn()} />
-            </NextIntlClientProvider>
-        )
+        { locale: 'es-419', messages: es419, artName: 'Escarabajo de bugs', badgeName: 'Cazador de bugs' },
+        { locale: 'pt-BR', messages: ptBR, artName: 'Besouro dos bugs', badgeName: 'Caçador de bugs' },
+    ] as const)(
+        'localizes the earned art name in $locale, without the badge name',
+        ({ locale, messages, artName, badgeName }) => {
+            renderWithIntl(
+                <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                    <AvatarPicker open onOpenChange={jest.fn()} />
+                </NextIntlClientProvider>
+            )
 
-        expect(tile(new RegExp(artName))).toHaveTextContent(expectedName)
-        expect(tile(new RegExp(artName))).not.toHaveTextContent('Bug Whisperer')
-    })
+            expect(tile(new RegExp(artName))).not.toHaveTextContent(badgeName)
+            expect(tile(new RegExp(artName))).not.toHaveTextContent('Bug Whisperer')
+        }
+    )
 
     it('gives simultaneously visible wink artworks distinct Spanish names', () => {
         mockBadgeParam = 'BETA_TESTER'
@@ -256,9 +261,9 @@ describe('AvatarPicker', () => {
 
         const earned = tiles().filter((el) => el.textContent?.includes('Earned'))
         expect(earned.length).toBeGreaterThan(0)
-        // named after its art, lined with the badge that unlocked it
+        // named after its art; the badge that unlocked it is not shown (TASK-23054)
         expect(earned[0]).toHaveTextContent('Beetle')
-        expect(earned[0]).toHaveTextContent('Bug Whisperer')
+        expect(earned[0]).not.toHaveTextContent('Bug Whisperer')
         // design.md badges: "Earned" is done, so it reads success green
         expect(within(earned[0]).getByText('Earned')).toHaveClass('bg-background-badge-success')
 
