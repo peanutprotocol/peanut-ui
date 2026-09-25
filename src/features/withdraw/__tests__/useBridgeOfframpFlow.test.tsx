@@ -218,7 +218,7 @@ const renderFlow = (searchParams: Record<string, string>) =>
 
 const armHappyOfframp = () => {
     mockCreateOfframp.mockResolvedValue({
-        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1', intentId: 'offramp-intent-1' },
     })
     mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
     mockConfirmOfframp.mockResolvedValue({})
@@ -250,7 +250,11 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
 
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
+        // the offramp intent goes along, so a card-balance funding shows as one withdrawal
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
+        })
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
     })
 
@@ -579,7 +583,10 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(payload.amount).toBe('2233.39')
         // the bank amount never reaches the offramp: the transfer converts the USDC
         expect(payload).not.toHaveProperty('destinationAmount')
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', { kind: 'FIAT_OFFRAMP' })
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
+        })
     })
 
     it('is not ready to submit until the quote arrives', async () => {

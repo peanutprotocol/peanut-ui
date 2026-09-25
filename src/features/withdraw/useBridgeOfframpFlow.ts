@@ -435,7 +435,8 @@ export function useBridgeOfframpFlow() {
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
                 createPayload.amount,
-                { kind: 'FIAT_OFFRAMP' }
+                // Card-balance funding links to this offramp, so Activity shows one withdrawal
+                { kind: 'FIAT_OFFRAMP', fundsIntentId: data.intentId }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {

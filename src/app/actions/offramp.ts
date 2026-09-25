@@ -11,6 +11,8 @@ export type CreateOfframpSuccessResponse = {
         toAddress: string
         blockchainMemo?: string
     }
+    /** The OFFRAMP intent. Absent on the guest route. */
+    intentId?: string
 }
 
 /**
