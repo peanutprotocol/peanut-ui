@@ -21,7 +21,7 @@ describe('CONCEPT_ICONS', () => {
         warn.mockRestore()
     })
 
-    test('uses the icon-bubble tones; only QR pay takes the brand fill, never a logo fill', () => {
+    test('uses the icon-bubble tones; only QR pay takes the brand fill', () => {
         for (const concept of CONCEPTS) {
             const allowed = concept === 'qrPay' ? ['brand'] : ['green', 'red', 'yellow', 'gray', 'blue']
             expect(allowed).toContain(CONCEPT_ICONS[concept].color)
