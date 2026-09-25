@@ -612,7 +612,7 @@
     "limits": {
         "title": "Payment limits",
         "pageDescription": "Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly.",
-        "unlockedRegions": "Accounts and payments",
+        "unlockedRegions": "Unlocked regions",
         "lockedRegions": "Locked regions",
         "otherRegions": "Other regions",
         "cardLimits": {

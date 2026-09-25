@@ -1,5 +1,5 @@
 import { createMdxComponents } from '@/components/Marketing/mdx/components'
-import { readPageContentLocalized, resolveContentHref } from '@/lib/content'
+import { helpArticleTitle, readPageContentLocalized, resolveContentHref } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 import { APP_HELP_SLUGS, HELP_LOCALES, type AppHelpArticle, type AppHelpSlug, type HelpLocale } from './appHelpTypes'
 import { serializeMdxTree } from './serializeMdxTree'
@@ -39,7 +39,7 @@ export async function loadAppHelpArticle(slug: AppHelpSlug, locale: HelpLocale):
     const { content } = await renderContent(source.body, locale, { components })
 
     return {
-        title: source.frontmatter.title.replace(/\s*\|\s*Peanut(?: Help)?$/, ''),
+        title: helpArticleTitle(source.frontmatter.title),
         body: serializeMdxTree(content, {
             componentNames,
             resolveHref: (href) => resolveContentHref(href, locale),

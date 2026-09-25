@@ -118,13 +118,13 @@
             "verifyIdentity": "Verificar identidade",
             "verifyIdentityNote": "Verificação única",
             "inReview": "Em análise",
-            "firstPaymentCardNote": "Pague com QR ou cartão",
-            "firstPaymentQrNote": "Pagar um código QR",
+            "firstPaymentCardNote": "Pague com QR ou peça o cartão",
+            "firstPaymentQrNote": "Pague com código QR",
             "firstPaymentCardOnlyNote": "Peça o cartão Peanut",
             "verifyIdentityDone": "Identidade verificada",
             "addMoneyDone": "Dinheiro recebido",
             "firstPaymentHeldCardNote": "Pague com o cartão",
-            "firstPaymentHeldCardQrNote": "Pague com QR ou cartão",
+            "firstPaymentHeldCardQrNote": "Pague com QR ou com o cartão",
             "hide": "Ocultar"
         },
         "autoBalance": {
@@ -547,7 +547,7 @@
         "about": {
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
-            "policiesHeading": "A parte oficial",
+            "policiesHeading": "Políticas",
             "policies": {
                 "terms": "Termos de Serviço",
                 "privacy": "Política de Privacidade",
@@ -612,7 +612,7 @@
     "limits": {
         "title": "Limites de pagamento",
         "pageDescription": "Os limites de pagamento controlam quanto você pode enviar e receber. Variam por região e são renovados todo mês ou ano.",
-        "unlockedRegions": "Contas e pagamentos",
+        "unlockedRegions": "Regiões desbloqueadas",
         "lockedRegions": "Regiões bloqueadas",
         "otherRegions": "Outras regiões",
         "cardLimits": {

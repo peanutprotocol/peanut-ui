@@ -39,6 +39,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
     'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
+    'Pay a QR code':
+        'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
 }
 
 describe('deepMerge fallback', () => {

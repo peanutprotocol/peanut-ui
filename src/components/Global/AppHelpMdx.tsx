@@ -23,7 +23,7 @@ const APP_HELP_COMPONENTS: Record<string, ComponentType<Props>> = {
     ),
     table: ({ children }) => (
         <div className="mb-4 overflow-x-auto">
-            <table className="w-full min-w-[32rem] border-collapse text-left text-body-xs">{children}</table>
+            <table className="w-full border-collapse text-left text-body-xs">{children}</table>
         </div>
     ),
     th: ({ children }) => <th className="border border-border-subtle p-2 align-top">{children}</th>,
