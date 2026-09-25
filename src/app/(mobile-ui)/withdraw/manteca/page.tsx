@@ -963,7 +963,7 @@ function MantecaBankWithdrawFlow() {
                     <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
-                                router.push('/home')
+                                router.replace('/home')
                                 resetState()
                             }}
                             shadowSize="4"

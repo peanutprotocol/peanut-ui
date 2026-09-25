@@ -9,6 +9,7 @@ import { Icon, type IconName } from '../Icons/Icon'
 import { Banner } from '@/components/Global/Banner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
+import { hasInAppHistory } from '@/hooks/useSafeBack'
 
 export interface NavHeaderProps {
     onPrev?: () => void
@@ -69,6 +70,16 @@ const NavHeader = ({
                         <Button
                             variant="ghost"
                             href={href ?? '/home'}
+                            // Back pops the entry this page was opened from, like
+                            // useSafeBack. Following the link pushed the parent on
+                            // top instead, so browser back from the parent
+                            // reopened this page (Activity → back → home → back →
+                            // Activity). The link stays the no-history fallback.
+                            onClick={(event) => {
+                                if (!hasInAppHistory()) return
+                                event.preventDefault()
+                                window.history.back()
+                            }}
                             className={NAV_CIRCLE_BUTTON_CLASSES}
                             aria-label={tCommon('back')}
                             data-testid="nav-back"

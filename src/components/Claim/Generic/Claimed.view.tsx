@@ -57,7 +57,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                     className="w-full"
                     onClick={() => {
                         if (user) {
-                            router.push('/home')
+                            router.replace('/home')
                             return
                         }
                         if (interceptGuestCta()) return

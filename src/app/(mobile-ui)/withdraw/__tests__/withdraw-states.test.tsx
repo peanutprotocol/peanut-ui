@@ -411,7 +411,7 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     // The exchange-rate widget's "Try it!" CTA lands here for users with a
@@ -420,15 +420,15 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw({ returnTo: '/profile/exchange-rate?from=USD&to=EUR' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
-        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterReplace).not.toHaveBeenCalledWith('/home')
     })
 
     test('Back ignores an off-origin ?returnTo and still resets to /home', () => {
         renderWithdraw({ returnTo: 'https://evil.example/phish' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     test('Back from the send flow still goes to /send, ignoring ?returnTo', () => {

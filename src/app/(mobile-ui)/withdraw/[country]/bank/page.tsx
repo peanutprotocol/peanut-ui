@@ -79,7 +79,7 @@ export default function WithdrawBankPage() {
                 onPrev={() => {
                     if (step === 'success') {
                         // the flow provider is /withdraw-scoped — navigation IS the reset
-                        router.push('/home')
+                        router.replace('/home')
                     } else {
                         flow.onBack()
                     }
@@ -107,7 +107,7 @@ export default function WithdrawBankPage() {
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
-                    onDone={() => router.push('/home')}
+                    onDone={() => router.replace('/home')}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                     onAddBankAccountAgain={flow.onAddBankAccountAgain}
                 />

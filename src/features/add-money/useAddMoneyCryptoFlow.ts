@@ -5,7 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
@@ -13,7 +13,6 @@ import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/se
 import { getExplorerUrl } from '@/utils/general.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useMemo, useState } from 'react'
@@ -50,8 +49,10 @@ export function useAddMoneyCryptoFlow() {
         { get: (key: string) => (key === RETURN_TO_PARAM ? rawReturnTo : null) },
         '/add-money/crypto'
     )
-    const router = useRouter()
-    const onBack = returnTo ? () => router.push(returnTo) : safeBack
+    // rewinds to the origin, past that /home entry; pushing it kept this flow
+    // under the origin, so back from the origin reopened the deposit
+    const leaveToOrigin = useReturnTo(returnTo ?? '/add-money')
+    const onBack = returnTo ? leaveToOrigin : safeBack
     const { address: peanutWalletAddress } = useWallet()
     // no default: a bare /add-money/crypto shows the choose-network step per the
     // Add/Crypto board (17830:78020); ?network= deep-links keep working

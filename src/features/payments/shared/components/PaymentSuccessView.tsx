@@ -78,10 +78,6 @@ type DirectSuccessViewProps = {
      */
     isFromSendFlow?: boolean
     redirectTo?: string
-    // When true, the "Done"/cancel navigation replaces the current history entry instead of
-    // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
-    // pop the user back into the now-completed flow.
-    replaceOnDone?: boolean
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
@@ -106,7 +102,6 @@ const PaymentSuccessView = ({
     isWithdrawFlow,
     isFromSendFlow,
     redirectTo = '/home',
-    replaceOnDone = false,
     onComplete,
     points,
     chargeDetails,
@@ -279,14 +274,11 @@ const PaymentSuccessView = ({
     }, [queryClient])
 
     const handleDone = () => {
-        // Navigate first, then call onComplete - otherwise onComplete may reset state
-        // causing this component to unmount before router.push executes
-        const target = !!authUser?.user.userId ? redirectTo : '/setup'
-        if (replaceOnDone) {
-            router.replace(target)
-        } else {
-            router.push(target)
-        }
+        // Replace, never push: a pushed /home keeps the finished flow under it,
+        // so back from home reopened the request or send the user had just
+        // completed (QA-09). Navigate before onComplete, which may reset state
+        // and unmount this view first.
+        router.replace(!!authUser?.user.userId ? redirectTo : '/setup')
         onComplete?.()
     }
 

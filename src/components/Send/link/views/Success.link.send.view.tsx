@@ -58,7 +58,7 @@ const LinkSendSuccessView = () => {
                 icon="cancel"
                 title={tNav('send')}
                 onPrev={() => {
-                    router.push('/home')
+                    router.replace('/home')
                     resetLinkSendFlow()
                 }}
             />
@@ -151,7 +151,7 @@ const LinkSendSuccessView = () => {
 
                                 // Brief delay for toast visibility
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
-                                router.push('/home')
+                                router.replace('/home')
                             } catch (invalidateError) {
                                 console.error('Failed to update after claim:', invalidateError)
                                 captureException(invalidateError, {
@@ -165,7 +165,7 @@ const LinkSendSuccessView = () => {
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccessRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
-                                router.push('/home')
+                                router.replace('/home')
                             }
                         } catch (error) {
                             if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
@@ -176,7 +176,7 @@ const LinkSendSuccessView = () => {
                                 setShowCancelLinkDrawer(false)
                                 toast.info(friendly(error))
                                 void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
-                                router.push('/home')
+                                router.replace('/home')
                                 return
                             }
                             captureException(error)

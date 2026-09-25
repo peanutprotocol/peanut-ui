@@ -163,7 +163,7 @@ export const SuccessClaimLinkView = ({
                     shadowSize="4"
                     onClick={() => {
                         if (!isBankClaim) fetchUser()
-                        router.push('/home')
+                        router.replace('/home')
                     }}
                     className="w-full"
                 >
@@ -224,10 +224,10 @@ export const SuccessClaimLinkView = ({
                     {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
                     {isRetryable ? (
                         <div className="mt-2 flex justify-center">
-                            <LinkButton onClick={() => router.push('/home')}>{t('backToHome')}</LinkButton>
+                            <LinkButton onClick={() => router.replace('/home')}>{t('backToHome')}</LinkButton>
                         </div>
                     ) : (
-                        <Button shadowSize="4" className="w-full" onClick={() => router.push('/home')}>
+                        <Button shadowSize="4" className="w-full" onClick={() => router.replace('/home')}>
                             {t('backToHome')}
                         </Button>
                     )}
@@ -243,7 +243,7 @@ export const SuccessClaimLinkView = ({
                 icon="cancel"
                 title={navHeaderTitle}
                 onPrev={() => {
-                    router.push('/home')
+                    router.replace('/home')
                 }}
             />
             <PageStack.Center className="relative z-10 gap-4">

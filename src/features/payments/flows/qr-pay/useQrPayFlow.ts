@@ -529,7 +529,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             const elapsed = Date.now() - hiddenAt
             hiddenAt = null
             if (elapsed > STALE_THRESHOLD_MS) {
-                router.push('/home')
+                router.replace('/home')
             }
         }
         document.addEventListener('visibilitychange', onVisibility)

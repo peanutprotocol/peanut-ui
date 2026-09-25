@@ -215,7 +215,7 @@ export function QrPaySuccessView() {
                         <>
                             {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
                             {rewardRevealed ? (
-                                <Button shadowSize="4" onClick={() => router.push('/home')}>
+                                <Button shadowSize="4" onClick={() => router.replace('/home')}>
                                     {tCommon('goToHome')}
                                 </Button>
                             ) : (
