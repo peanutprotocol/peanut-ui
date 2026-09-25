@@ -9,15 +9,13 @@ import { useCallback } from 'react'
 import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon, type IconName } from '../Icons/Icon'
 import { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-
-// the avatar takes a CSS color, not a class: the bank concept's bubble fill as a variable
-const BANK_BUBBLE_BG = `var(--color-background-icon-bubble-${CONCEPT_ICONS.bank.color})`
 
 export type PeanutActionDetailsCardTransactionType =
     | 'REQUEST'
@@ -143,8 +141,9 @@ export default function PeanutActionDetailsCard({
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
             return 'bank'
+        // an external address or wallet is the crypto concept
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
-            return 'wallet-outline'
+            return CONCEPT_ICONS.crypto.icon
         return undefined
     }, [viewType, transactionType, recipientType])
 
@@ -158,7 +157,8 @@ export default function PeanutActionDetailsCard({
             transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
-            return 'var(--color-background-icon-bubble-yellow)'
+            // bank and crypto are both method concepts: the blue method fill
+            return `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`
         return getColorForUsername(recipientName).lightShade
     }
 
@@ -204,16 +204,8 @@ export default function PeanutActionDetailsCard({
         if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
             return undefined
         const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
-        return (
-            <AvatarWithBadge
-                size="m"
-                logo={imgSrc}
-                icon={CONCEPT_ICONS.bank.icon}
-                inlineStyle={{ backgroundColor: BANK_BUBBLE_BG }}
-                iconFillColor={AVATAR_TEXT_DARK}
-                fallback={{ icon: CONCEPT_ICONS.bank.icon, bgColor: BANK_BUBBLE_BG }}
-            />
-        )
+        const bankBubble = <IconBubble {...CONCEPT_ICONS.bank} size="m" />
+        return imgSrc ? <AvatarWithBadge size="m" logo={imgSrc} fallback={bankBubble} /> : bankBubble
     }
 
     return (
