@@ -25,6 +25,8 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
+    /** hides the checklist once only the payment row is left (Home owns the stored choice) */
+    onHideChecklist?: () => void
 }
 
 interface StepConfig {
@@ -42,7 +44,7 @@ interface StepConfig {
  * outranks everything; a provider rejection replaces the checklist for a
  * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ onboarding }: ActivationCTAsProps) {
+export default function ActivationCTAs({ onboarding, onHideChecklist }: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tIdentity = useTranslations('identity')
     const tRegion = useTranslations('kyc.regionRestricted')
@@ -182,7 +184,7 @@ export default function ActivationCTAs({ onboarding }: ActivationCTAsProps) {
         return null
     }
 
-    if (!step) return <GettingStartedChecklist onboarding={onboarding} />
+    if (!step) return <GettingStartedChecklist onboarding={onboarding} onHide={onHideChecklist} />
 
     return (
         <Card position="solo" className="p-0">

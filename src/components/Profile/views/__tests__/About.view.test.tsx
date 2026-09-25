@@ -25,6 +25,9 @@ jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
+let mockOpenHelp: jest.Mock | null = null
+jest.mock('@/components/Global/AppHelpDrawer', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
+
 const fetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser }) }))
 
@@ -32,6 +35,7 @@ const claimPeanutTeamBadge = jest.fn<Promise<boolean>, []>()
 jest.mock('@/services/peanut-team-badge', () => ({ claimPeanutTeamBadge: () => claimPeanutTeamBadge() }))
 
 beforeEach(() => {
+    mockOpenHelp = null
     access.supported = true
     toast.info.mockClear()
     fetchUser.mockClear()
@@ -66,6 +70,31 @@ describe('AboutView', () => {
             'href',
             '/en/help/security-disclosure'
         )
+    })
+
+    // TASK-23054: in the app, Security Disclosure opens the help drawer, and
+    // that row once rendered as a <button> that ended at ~60% width.
+    it('renders every policy row the same way in one card, the last row closing it', () => {
+        mockOpenHelp = jest.fn()
+        render(<AboutView appVersion="1.2.3" />)
+        const rows = Object.values(en.profile.about.policies).map(
+            (name) => screen.getByText(name).closest('a') as HTMLElement
+        )
+        expect(rows).toHaveLength(8)
+        expect(new Set(rows.map((row) => row.parentElement)).size).toBe(1)
+        expect(new Set(rows.map((row) => row.tagName)).size).toBe(1)
+        expect(new Set(rows.map((row) => row.className.replace('cursor-pointer', '').trim())).size).toBe(1)
+
+        const cards = rows.map((row) => row.firstElementChild as HTMLElement)
+        expect(cards[0]).toHaveClass('rounded-t-sm')
+        for (const card of cards.slice(1, -1)) {
+            expect(card).not.toHaveClass('rounded-t-sm')
+            expect(card).not.toHaveClass('rounded-b-sm')
+        }
+        expect(cards[cards.length - 1]).toHaveClass('rounded-b-sm')
+
+        fireEvent.click(rows[rows.length - 1])
+        expect(mockOpenHelp).toHaveBeenCalledWith('security-disclosure')
     })
 
     it('keeps the beta switch hidden until the fifth tap', async () => {

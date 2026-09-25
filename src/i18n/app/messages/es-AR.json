@@ -26,10 +26,11 @@
             "title": "Empezar",
             "createAccount": "Crear cuenta",
             "addMoney": "Agregar dinero",
-            "firstPayment": "Hacé el primer pago",
             "firstPaymentCardNote": "Pagá un QR o pedí la tarjeta",
             "firstPaymentQrNote": "Pagá un código QR",
-            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut"
+            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
+            "firstPaymentHeldCardNote": "Pagá con la tarjeta",
+            "firstPaymentHeldCardQrNote": "Pagá un QR o con la tarjeta"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",
