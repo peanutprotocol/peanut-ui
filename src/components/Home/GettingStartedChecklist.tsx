@@ -25,7 +25,7 @@ type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-paym
 
 interface ChecklistItem {
     id: ChecklistItemId
-    /** a product concept's item spreads CONCEPT_ICONS; the account steps keep the checklist yellow */
+    /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow), the first payment a money move (blue) */
     bubble: { icon: IconName; color: IconBubbleColor }
     label: string
     sub?: string
@@ -85,7 +85,7 @@ const GettingStartedChecklist = () => {
               }
             : {
                   id: 'first-payment',
-                  bubble: { icon: 'arrow-up', color: 'yellow' },
+                  bubble: { icon: 'arrow-up', color: 'blue' },
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
                   done: milestone === 'activated' || hasSentPayment,

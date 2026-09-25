@@ -36,7 +36,7 @@ interface ActivationCTAsProps {
 }
 
 interface StepConfig {
-    /** a product concept's step spreads CONCEPT_ICONS; the rest are account states */
+    /** a product concept's step spreads CONCEPT_ICONS; verification and account steps are blue (TASK-22761) */
     bubble: { icon: IconName; color: IconBubbleColor }
     title: string
     description: string
@@ -199,7 +199,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
             verify: {
-                bubble: { icon: 'globe-lock', color: 'brand' },
+                bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
@@ -290,7 +290,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // with the explanation and point them at what still works.
         if (isRegionRestricted) {
             return {
-                bubble: { icon: 'globe-lock', color: 'brand' },
+                bubble: { icon: 'globe-lock', color: 'blue' },
                 title: tRegion('title'),
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),
@@ -319,7 +319,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // sheet, and hid the document-upload path entirely when both coexisted.
             if (isEmailBlocked) {
                 return {
-                    bubble: { icon: 'globe-lock', color: 'brand' },
+                    bubble: { icon: 'globe-lock', color: 'blue' },
                     title: t('addEmail.title'),
                     description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
@@ -328,7 +328,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
             if (hasFixableRejection) {
                 return {
-                    bubble: { icon: 'globe-lock', color: 'brand' },
+                    bubble: { icon: 'globe-lock', color: 'blue' },
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
@@ -345,7 +345,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // for one canonical key instead of two that can diverge.
             if (isRestartBlocked) {
                 return {
-                    bubble: { icon: 'globe-lock', color: 'brand' },
+                    bubble: { icon: 'globe-lock', color: 'blue' },
                     title: tProviderRejection('restartTitle'),
                     description: localizedRejectionMessage || tProviderRejection('restartDescription'),
                     ctaLabel: tProviderRejection('restartTitle'),
@@ -354,7 +354,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
             // blocked
             return {
-                bubble: { icon: 'globe-lock', color: 'brand' },
+                bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('verificationIssue.title'),
                 description: t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),

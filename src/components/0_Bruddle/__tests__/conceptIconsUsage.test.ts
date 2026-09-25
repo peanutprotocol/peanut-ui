@@ -41,12 +41,8 @@ const EXEMPT = new Map<string, string>([
     ],
     ['components/Migration/ScanToDownloadModal.tsx :: qr-code', 'a QR that downloads the app, not QR pay'],
     [
-        'components/Profile/views/ResidenceChangeDrawer.tsx :: globe',
-        'residence, not the "other countries" row (design decision pending)',
-    ],
-    [
         'features/deposit-accounts/components/ClaimAccountScreen.tsx :: link',
-        'a gray explainer bullet about a shareable link, not a send or request link (design decision pending)',
+        'an explainer bullet about a shareable account link, not a send or request link',
     ],
     [
         'features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx :: link',
