@@ -2101,7 +2101,7 @@
             "searchPlaceholder": "Buscar moneda o país",
             "flagAlt": "Bandera de {currency}",
             "otherCountriesTitle": "Otros países",
-            "otherCountriesPitch": "Encuentra tu país y retira en tu moneda local"
+            "otherCountriesPitch": "Elige un país"
         }
     },
     "transaction": {
@@ -4085,7 +4085,7 @@
             "badgeLimitReached": "Límite alcanzado",
             "notOfferedBody": "Las cuentas virtuales en {currency} no están abiertas para esta cuenta. Soporte puede revisar por qué.",
             "countriesTitle": "Todos los países",
-            "countriesPitch": "Elige el país de tu banco.",
+            "countriesPitch": "Elige un país",
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeNotSetUp": "Sin configurar",

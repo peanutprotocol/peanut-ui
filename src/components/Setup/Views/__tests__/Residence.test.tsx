@@ -114,8 +114,18 @@ describe('ResidenceStep', () => {
         // persisted after signup — collapsing must clear the stored pick.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        const toggle = screen.getByRole('button', { name: /Have documents from more than one country/ })
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        fireEvent.click(toggle)
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
+    })
+
+    it('opening the selector clears nothing', () => {
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: /Have documents from more than one country/ }))
+        expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
     it('shows the per-country availability comparison with the truth-first guidance', () => {

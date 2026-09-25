@@ -2101,7 +2101,7 @@
             "searchPlaceholder": "Search currency or country",
             "flagAlt": "{currency} flag",
             "otherCountriesTitle": "Other countries",
-            "otherCountriesPitch": "Find your country and withdraw in its local currency"
+            "otherCountriesPitch": "Pick a country"
         }
     },
     "transaction": {
@@ -4085,7 +4085,7 @@
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "{currency} virtual accounts are not open for this account. Support can check why.",
             "countriesTitle": "All countries",
-            "countriesPitch": "Pick the country your bank is in.",
+            "countriesPitch": "Pick a country",
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
