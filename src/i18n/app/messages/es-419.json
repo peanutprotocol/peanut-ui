@@ -549,7 +549,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "La parte oficial",
+            "policiesHeading": "Políticas",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -614,7 +614,7 @@
     "limits": {
         "title": "Límites de pago",
         "pageDescription": "Los límites de pago controlan cuánto puedes enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
-        "unlockedRegions": "Cuentas y pagos",
+        "unlockedRegions": "Regiones desbloqueadas",
         "lockedRegions": "Regiones bloqueadas",
         "otherRegions": "Otras regiones",
         "cardLimits": {
