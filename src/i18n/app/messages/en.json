@@ -2192,7 +2192,6 @@
         },
         "nameInSentence": {
             "merchant": "merchant",
-            "cardPayment": "card payment",
             "depositSource": "deposit source",
             "externalWallet": "external wallet",
             "externalAccount": "external account",

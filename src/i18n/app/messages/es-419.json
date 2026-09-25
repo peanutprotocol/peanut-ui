@@ -2192,7 +2192,6 @@
         },
         "nameInSentence": {
             "merchant": "comercio",
-            "cardPayment": "pago con tarjeta",
             "depositSource": "origen del depósito",
             "externalWallet": "billetera externa",
             "externalAccount": "cuenta externa",

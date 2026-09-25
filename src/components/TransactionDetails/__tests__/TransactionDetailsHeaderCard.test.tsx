@@ -244,6 +244,17 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
         expect(screen.queryByText(/Received from/)).not.toBeInTheDocument()
     })
 
+    it('renders a card spend with no merchant bare, not "Paid to card payment"', () => {
+        renderHeaderCard({
+            direction: 'qr_payment',
+            status: 'completed',
+            userName: 'Card payment',
+            nameKey: 'name.cardPayment',
+        })
+        expect(screen.getByText('Card payment')).toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
+    })
+
     it("words the user's own open request pot as 'Requested'", () => {
         renderHeaderCard({
             direction: 'request_received',
