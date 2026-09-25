@@ -1615,6 +1615,9 @@ export const FIXTURES: Record<string, Fixture> = {
         balance: '40',
         about: 'Verified and funded, but card eligibility failed to load: the payment row holds its place.',
         fails: ['GET /card'],
+        // the held row is the subject: its pulse placeholder is this state, not a page loading
+        isLoadingState: true,
+        waitFor: '[data-testid="checklist-first-payment"] .animate-pulse',
         responses: {
             'GET /users/me': {
                 user: {
