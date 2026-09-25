@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ToastStack from '../ToastStack'
@@ -34,7 +34,6 @@ describe('ToastStack', () => {
     // this is the rain cooldown pill's real path (RainCooldownContext:111 —
     // content set, no hideIcon from the caller).
     test('custom-content toast renders exactly one icon: the content one, not the stock priority icon', () => {
-        const dismiss = jest.fn()
         const { container } = render(
             <ToastStack
                 toasts={[
@@ -49,21 +48,23 @@ describe('ToastStack', () => {
                         ),
                     },
                 ]}
-                dismiss={dismiss}
             />
         )
-        const close = screen.getByRole('button', { name: 'Close' })
-        expect(container.querySelectorAll('svg')).toHaveLength(2) // content icon + close glyph
+        expect(container.querySelectorAll('svg')).toHaveLength(1)
         expect(screen.getByText(/Card cool-down/)).toBeInTheDocument()
-        expect(screen.getAllByRole('button')).toHaveLength(1)
-        fireEvent.click(close)
-        expect(dismiss).toHaveBeenCalledWith('rain-cooldown')
+    })
+
+    // TASK-23054 (konrad + hugo): a toast leaves on its own timer, so it carries
+    // no close button. The old × read as a control and did nothing useful.
+    test('a toast renders no close button and still announces itself', () => {
+        render(<ToastStack toasts={[{ id: 1, type: 'success', duration: 2000, message: 'Link copied' }]} />)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.getByRole('status')).toHaveTextContent('Link copied')
     })
 
     test('plain-message toast keeps the stock priority icon', () => {
-        const { container } = render(<ToastStack toasts={[{ id: 1, message: 'Link copied' }]} dismiss={() => {}} />)
-        expect(container.querySelectorAll('svg')).toHaveLength(2) // priority icon + close glyph
-        expect(screen.getAllByRole('button')).toHaveLength(1)
+        const { container } = render(<ToastStack toasts={[{ id: 1, message: 'Link copied' }]} />)
+        expect(container.querySelectorAll('svg')).toHaveLength(1)
     })
 
     // chip: the countdown strip going static was only half of it — an 80px
@@ -81,7 +82,6 @@ describe('ToastStack', () => {
             render(
                 <ToastStack
                     toasts={[{ id: 'x', duration: 2000, type: 'success', message: 'Link cancelled successfully!' }]}
-                    dismiss={() => {}}
                 />
             )
 
