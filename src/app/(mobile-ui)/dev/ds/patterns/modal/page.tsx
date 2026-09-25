@@ -13,7 +13,7 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
 
-const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info']
+const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info', 'peanut']
 
 export default function ModalPage() {
     const [showActionModal, setShowActionModal] = useState(false)
@@ -64,6 +64,7 @@ export default function ModalPage() {
                             }}
                             title="Confirm Action"
                             description="Are you sure you want to proceed? This action cannot be undone."
+                            tone="attention"
                             icon="alert"
                             checkbox={{
                                 text: 'I understand the consequences',
@@ -95,8 +96,10 @@ export default function ModalPage() {
                     <div className="flex flex-col gap-2">
                         <p className="text-body-s text-foreground-secondary">
                             <code>tone</code> picks the bubble color and a default icon: error (red, ban), attention
-                            (yellow, alert), success (green, check), info (blue, info). An explicit <code>icon</code> or{' '}
-                            <code>iconContainerClassName</code> still wins.
+                            (yellow, alert), success (green, check), info (blue, info), peanut (yellow, no default: name
+                            the Peanut thing). A product concept passes <code>concept</code> and takes its CONCEPT_ICONS
+                            pair (QR pay pink, card yellow, bank blue). An explicit <code>icon</code> still wins over a
+                            tone. An icon without a tone or a concept does not compile.
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {TONES.map((tone) => (
@@ -109,6 +112,7 @@ export default function ModalPage() {
                             visible={toneModal !== null}
                             onClose={() => setToneModal(null)}
                             tone={toneModal ?? 'info'}
+                            icon={toneModal === 'peanut' ? 'bell' : undefined}
                             title={`tone="${toneModal ?? 'info'}"`}
                             description="Icon and bubble color come from the tone, not from a class name."
                             ctas={[{ text: 'Close', variant: 'secondary', onClick: () => setToneModal(null) }]}
@@ -122,9 +126,9 @@ export default function ModalPage() {
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
                             {
                                 name: 'tone',
-                                type: "'error' | 'attention' | 'success' | 'info'",
+                                type: "'error' | 'attention' | 'success' | 'info' | 'peanut'",
                                 default: '(none)',
-                                description: 'Semantic bubble color + default icon',
+                                description: 'Semantic bubble color + default icon. Required whenever an icon renders',
                             },
                             {
                                 name: 'description',
@@ -218,8 +222,10 @@ export default function ModalPage() {
                     undocumented modal shell.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Prefer <code>tone</code> over iconContainerClassName: yellow is for attention only, red for errors,
-                    green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
+                    Every icon takes a <code>tone</code> or a <code>concept</code>: red for errors, green for success,
+                    blue for plain information, yellow for attention and for Peanut&apos;s own. A concept keeps its
+                    CONCEPT_ICONS color, so QR pay is pink here too. There is no implicit color; never recolor the
+                    bubble with iconContainerClassName.
                 </DesignNote>
             </DocSection>
 
@@ -231,6 +237,7 @@ export default function ModalPage() {
                     code={`<ActionModal
   visible={visible && !showIframe && !isConfirming}
   onClose={onSkip}
+  tone={error ? 'error' : 'info'}
   icon={error ? 'alert' : 'badge'}
   title={error ? t('bridgeTos.errorTitle') : copy.title}
   description={error || copy.description}
@@ -252,6 +259,7 @@ export default function ModalPage() {
                     <ActionModal
                         visible={bridgeTosModal}
                         onClose={() => setBridgeTosModal(false)}
+                        tone="info"
                         icon="badge"
                         title="Accept Bridge terms"
                         description="Bridge is our banking partner. Accept their terms to finish verification."

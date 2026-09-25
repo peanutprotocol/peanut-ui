@@ -22,30 +22,51 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
-export type ActionModalTone = 'error' | 'attention' | 'success' | 'info'
+export type ActionModalTone = 'error' | 'attention' | 'success' | 'info' | 'peanut'
 
 // mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for attention
-// only, red for errors, green for success, blue for plain information
-const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
+// only, red for errors, green for success, blue for plain information.
+// `peanut` is Peanut's own (the app, the wallet, friends), yellow like the
+// Peanut concepts in CONCEPT_ICONS; it has no default glyph, the caller
+// names the Peanut thing. A product concept passes `concept` instead.
+const TONE_STYLES: Record<ActionModalTone, { icon?: IconName; color: IconBubbleColor }> = {
     error: { icon: 'ban', color: 'red' },
     attention: { icon: 'alert', color: 'yellow' },
     success: { icon: 'check', color: 'green' },
     info: { icon: 'info', color: 'blue' },
+    peanut: { color: 'yellow' },
 }
 
-export interface ActionModalProps {
+/**
+ * An icon never renders without a color that says something (TASK-22761):
+ * a tone, or a product concept's own pair. There is no implicit color.
+ */
+type ActionModalIconProps =
+    | {
+          /** Semantic bubble color + default icon. An explicit `icon` still wins. */
+          tone: ActionModalTone
+          concept?: undefined
+          icon?: IconName | React.ReactElement
+          isLoadingIcon?: boolean
+      }
+    | {
+          /** A product concept's bubble (CONCEPT_ICONS): its icon and color, as on every other surface. */
+          concept: Concept
+          tone?: undefined
+          icon?: undefined
+          isLoadingIcon?: false
+      }
+    | { tone?: undefined; concept?: undefined; icon?: undefined; isLoadingIcon?: false }
+
+export type ActionModalProps = ActionModalBaseProps & ActionModalIconProps
+
+interface ActionModalBaseProps {
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
-    /** Semantic bubble color + default icon. Explicit `icon` / `iconContainerClassName` still win. */
-    tone?: ActionModalTone
-    /** A product concept's bubble (CONCEPT_ICONS): its icon and color, the same as on every other surface. */
-    concept?: Concept
-    icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
-    isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
     ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
@@ -103,7 +124,6 @@ const ActionModal: React.FC<ActionModalProps> = ({
     hideOverlay,
 }) => {
     const defaultModalPanelClasses = 'mx-8 max-w-md'
-    const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
     const bubbleStyle = concept ? CONCEPT_ICONS[concept] : tone ? TONE_STYLES[tone] : undefined
     const icon = customIcon ?? bubbleStyle?.icon
@@ -172,14 +192,9 @@ const ActionModal: React.FC<ActionModalProps> = ({
                             size="m"
                             icon={iconContent}
                             color={bubbleStyle?.color}
-                            // custom classes AUGMENT the default (or the tone), never
-                            // bare-|| replace it — the IconBubble board forbids
-                            // resizing the bubble, and the ! overrides existed only
-                            // because of the old replace
-                            className={twMerge(
-                                bubbleStyle ? undefined : defaultIconContainerClassName,
-                                customIconContainerClassName
-                            )}
+                            // custom classes AUGMENT the color, never replace it —
+                            // the IconBubble board forbids resizing the bubble
+                            className={customIconContainerClassName}
                             data-testid="action-modal-icon"
                         />
                     )}

@@ -52,6 +52,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             onClose={handleClose}
             title={t('inviteFriendsModal.title')}
             description={t('inviteFriendsModal.description')}
+            tone="peanut"
             icon="user-plus"
             content={
                 <>

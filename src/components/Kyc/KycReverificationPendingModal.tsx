@@ -27,8 +27,8 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
         <ActionModal
             visible={isOpen}
             onClose={onClose}
+            tone="attention"
             icon="clock"
-            iconContainerClassName="bg-background-icon-bubble-yellow text-black"
             title={t('reverificationPending.title')}
             description={<p>{message ?? t('reverificationPending.description')}</p>}
             ctas={[
