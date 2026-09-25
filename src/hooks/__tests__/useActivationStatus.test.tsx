@@ -26,8 +26,9 @@ jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
 
+let mockOverview: unknown = undefined
 jest.mock('@/hooks/useRainCardOverview', () => ({
-    useRainCardOverview: () => ({ overview: undefined }),
+    useRainCardOverview: () => ({ overview: mockOverview }),
 }))
 
 const mockUseQuery = jest.fn()
@@ -83,6 +84,7 @@ function setup(opts: {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    mockOverview = undefined
     mockResidenceRestrictions = { banking: false, card: false }
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
 })
@@ -170,5 +172,26 @@ describe('card gate on the milestone-less fallback path', () => {
     it('not kyc approved + eligible residence → verify', () => {
         const { result } = setup({ isKycApproved: false, isCardEligible: true })
         expect(result.current.activationStep).toBe('verify')
+    })
+})
+
+describe('any money on the account ticks "Add money" (TASK-23054)', () => {
+    it('verified + $0.17 by crypto, no card → spend step, funded', () => {
+        const { result } = setup({ milestone: 'verified', balance: '170000' })
+        expect(result.current.activationStep).toBe('outbound')
+        expect(result.current.isFunded).toBe(true)
+    })
+
+    it('verified + $0 → add money, not funded', () => {
+        const { result } = setup({ milestone: 'verified', balance: '0' })
+        expect(result.current.activationStep).toBe('deposit')
+        expect(result.current.isFunded).toBe(false)
+    })
+
+    it('verified + wallet 0 + card collateral → spend step, funded', () => {
+        mockOverview = { balance: { spendingPower: 2500, inTransitToCollateralCents: 0 } }
+        const { result } = setup({ milestone: 'verified', balance: '0' })
+        expect(result.current.activationStep).toBe('outbound')
+        expect(result.current.isFunded).toBe(true)
     })
 })

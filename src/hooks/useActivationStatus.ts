@@ -8,9 +8,8 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { type ActivationStep, holdsMoney, resolveActivationStep } from '@/utils/activation-step.utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-
-export type ActivationStep = 'verify' | 'deposit' | 'card' | 'outbound' | 'completed'
 
 interface ActivationStatus {
     /** whether user has activated (≥1 spend: card spend or QR spend on Mercado Pago/Pix) */
@@ -19,6 +18,8 @@ interface ActivationStatus {
     activatedAt: string | null
     /** current step in the activation funnel */
     activationStep: ActivationStep
+    /** "Add money" is done: API milestone funded, or any money on the account */
+    isFunded: boolean
     /** true while user data is still loading */
     isLoading: boolean
     /** dismiss the card step — persists locally so it doesn't re-appear */
@@ -40,6 +41,10 @@ const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed_v2'
  * other outbound tx kinds like send links, offramps and withdrawals no longer
  * count; the BE computes `isActivated`/`activationMilestone` on /users/me and
  * this hook just consumes them, so it inherits the definition automatically)
+ *
+ * FUNDED means the BE milestone says so OR the account holds any money
+ * (wallet or card collateral) — see resolveActivationStep. Rules and tests
+ * live in utils/activation-step.utils.ts.
  *
  * The `card` step only appears when the user is FUNDED (or already activated),
  * eligible for a Rain card, doesn't hold an active one yet,
@@ -80,51 +85,34 @@ export function useActivationStatus(): ActivationStatus {
 
     const derived = useMemo(() => {
         if (!user?.user) {
-            return { isActivated: false, activatedAt: null, activationStep: 'verify' as ActivationStep }
+            return {
+                isActivated: false,
+                activatedAt: null,
+                activationStep: 'verify' as ActivationStep,
+                isFunded: false,
+            }
         }
 
         // Default false: if BE omits the field (bug/outage), gate the referral UI rather than expose it
         const isActivated = user.user.isActivated ?? false
         const activatedAt = user.user.activatedAt ?? null
 
-        // derive activation step from BE milestone + local balance
-        const beMilestone = user.user.activationMilestone
-        const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
-        let activationStep: ActivationStep = 'completed'
-        if (!isActivated) {
-            if (beMilestone) {
-                const milestoneToStep: Record<string, ActivationStep> = {
-                    registered: 'verify',
-                    verified: 'deposit',
-                    funded: 'outbound',
-                    activated: 'completed',
-                }
-                activationStep = milestoneToStep[beMilestone] ?? 'verify'
-            } else {
-                if (!isKycApproved) {
-                    activationStep = 'verify'
-                } else {
-                    activationStep = hasBalance ? 'outbound' : 'deposit'
-                }
-            }
-        }
-
         // Home promotes the card only after funding. Direct /card applications
         // remain available before a deposit. residence restrictions are the same
         // gate the bottom nav uses (useCardSurfaceAccess), so home never promotes
         // a card the nav hides.
-        const canApplyForCard = cardInfo?.isEligible === true && !residenceRestrictions.card
-        const hasCard = !!findActiveCard(overview)
-        // Funded = the BE milestone says so, OR the live chain balance is
-        // positive — a user whose inbound is still mid-poller (milestone stuck
-        // at 'verified') has real money and must not be told "add money"
-        // while the card step is withheld.
-        const isFunded = activationStep === 'outbound' || activationStep === 'completed' || hasBalance
-        if (isFunded && canApplyForCard && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardPromotion) {
-            activationStep = 'card'
-        }
+        const { step, isFunded } = resolveActivationStep({
+            isActivated,
+            milestone: user.user.activationMilestone,
+            isKycApproved,
+            holdsMoney: holdsMoney(balance, overview?.balance),
+            canApplyForCard: cardInfo?.isEligible === true && !residenceRestrictions.card,
+            hasActiveCard: !!findActiveCard(overview),
+            cardDismissed,
+            cardPromotionDisabled: underMaintenanceConfig.disableCardPromotion,
+        })
 
-        return { isActivated, activatedAt, activationStep }
+        return { isActivated, activatedAt, activationStep: step, isFunded }
     }, [user?.user, isKycApproved, balance, cardInfo?.isEligible, residenceRestrictions.card, overview, cardDismissed])
 
     return { ...derived, isLoading, dismissCardStep }

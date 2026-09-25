@@ -54,6 +54,11 @@ jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: mockIsEligible, isFetching: mockIsCardInfoFetching }),
 }))
 
+// "funded" is resolved in useActivationStatus (milestone OR any money held);
+// the checklist only renders it
+let mockIsFunded = false
+jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => ({ isFunded: mockIsFunded }) }))
+
 let mockOverview: unknown = null
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: mockOverview }) }))
 jest.mock('@/components/Card/cardState.utils', () => ({
@@ -69,6 +74,7 @@ describe('GettingStartedChecklist', () => {
         mockIsEligible = true
         mockIsCardInfoFetching = false
         mockOverview = null
+        mockIsFunded = false
     })
 
     // ListItem renders a div[role=button] only for tappable rows. Done rows are
@@ -164,9 +170,26 @@ describe('GettingStartedChecklist', () => {
 
     it('marks add money done once funded', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
+        mockIsFunded = true
         render()
         expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
         expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
+        expect(screen.getByText('67%')).toBeInTheDocument()
+    })
+
+    // $0.17 sent by crypto leaves no ledger credit, so the milestone stays at
+    // verified; the money on the account still ticks the row.
+    it('marks add money done when money is held while the milestone lags at verified', () => {
+        mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
+        mockIsFunded = true
+        render()
+        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
+    })
+
+    it('leaves add money open while nothing has arrived', () => {
+        mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
+        render()
+        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('role', 'button')
     })
 
     // Any outgoing peer payment (a send to a saved contact included) completes

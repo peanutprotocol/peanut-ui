@@ -16,6 +16,7 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
+import { useActivationStatus } from '@/hooks/useActivationStatus'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
@@ -62,7 +63,9 @@ const GettingStartedChecklist = () => {
     const milestone = user?.user?.activationMilestone ?? 'registered'
     const hasSentPayment = !!user?.user?.firstPaymentAt
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
-    const isFunded = milestone === 'funded' || milestone === 'activated'
+    // Same "funded" as the activation step: the milestone, or any money held
+    // (wallet or card collateral), so $0.17 sent by crypto ticks Add money too.
+    const { isFunded } = useActivationStatus()
     const hasActiveCard = !!findActiveCard(overview)
     // isEligible is undefined only for the initial no-data load and remains
     // stable from cached data during background refetches, so the third slot

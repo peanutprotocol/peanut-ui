@@ -9,7 +9,7 @@ import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import { type ActivationStep } from '@/hooks/useActivationStatus'
+import { type ActivationStep } from '@/utils/activation-step.utils'
 import DevPageShell from '../_components/DevPageShell'
 
 /**
