@@ -160,6 +160,9 @@ jobs:
                       if [ "${{ inputs.pushDebug }}" = "true" ]; then
                           echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true"
                       fi
+                      if [ "${{ inputs.prerelease }}" = "true" ]; then
+                          echo "NEXT_PUBLIC_NATIVE_PRERELEASE=true"
+                      fi
                       if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
                           echo "NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true"
                       fi

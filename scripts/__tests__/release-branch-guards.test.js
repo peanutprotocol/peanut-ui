@@ -305,6 +305,7 @@ describe('native release source branch', () => {
         for (const platform of ['ios', 'android']) {
             const callee = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
             expect(callee).toContain('PRERELEASE: ${{ inputs.prerelease == true }}')
+            expect(callee).toContain('echo "NEXT_PUBLIC_NATIVE_PRERELEASE=true"')
             expect(callee).toContain(
                 'if [ "$PRERELEASE" = true ]; then\n                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"'
             )

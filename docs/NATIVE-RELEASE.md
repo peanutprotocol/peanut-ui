@@ -246,9 +246,11 @@ gh workflow run release-native.yml --repo peanutprotocol/peanut-ui --ref dev -f 
 ```
 
 It refuses a dispatch once `dev` has moved past the dispatched commit, and it skips the
-legacy-bridge preflight, reporting a mismatch as a warning instead. A pre-release binary
-still follows its platform's default OTA channel, so testers receive `main` JS unless
-they opt into beta updates. iOS build numbers are wall-clock seconds (the Play
+legacy-bridge preflight, reporting a mismatch as a warning instead. The build bakes
+`NEXT_PUBLIC_NATIVE_PRERELEASE=true`, which turns off the OTA check and the beta-updates
+switch: production serves `main` JS for the older native surfaces, and staging bundles
+sort below the unreleased native version, so neither lane can safely update it. Testers
+run the dev JS the binary was built with; dispatch again for newer dev. iOS build numbers are wall-clock seconds (the Play
 `versionCode` scheme), so a later `main` upload of the same version still sorts above a
 pre-release. Promote only `main` releases to the stores.
 

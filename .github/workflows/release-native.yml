@@ -146,16 +146,16 @@ jobs:
                   node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
                   echo "The Android 1.6.x bridge remains compatible with this main commit"
 
-            # Testers on the platform default channel receive the legacy bridge
-            # bundle built from main, so a surface mismatch is worth seeing even
-            # though it cannot reach the production fleet from here.
+            # Pre-release binaries skip OTA (NEXT_PUBLIC_NATIVE_PRERELEASE), so a
+            # mismatch here does not affect testers. It does mean main cannot ship
+            # these native changes until the legacy lane has a migration path.
             - name: Report legacy OTA lane compatibility
               if: steps.guard.outputs.prerelease == 'true'
               run: |
                   node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios ||
-                      echo "::warning::iOS native surface differs from the 1.5.x bridge; this TestFlight build may receive main JS built for 1.5.0 unless testers opt into beta updates"
+                      echo "::warning::iOS native surface differs from the 1.5.x bridge; a main release of this tree would be refused"
                   node scripts/check-native-ota-surface.mjs v1.6.0 --platform android ||
-                      echo "::warning::Android native surface differs from the 1.6.x bridge; this internal build may receive main JS built for 1.6.0 unless testers opt into beta updates"
+                      echo "::warning::Android native surface differs from the 1.6.x bridge; a main release of this tree would be refused"
 
             - name: Resolve next build version
               id: resolve
