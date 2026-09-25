@@ -173,6 +173,12 @@ jobs:
 
             - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
 
+            # Report only (TASK-23054). Runs before the budget step, and a crash
+            # here never skips the budget.
+            - name: i18n length drift
+              continue-on-error: true
+              run: node scripts/i18n-length-drift.mjs
+
             - name: Screen wordiness budget
               run: node scripts/screen-wordiness.mjs --check
 

@@ -31,6 +31,7 @@
         "check:api": "pnpm gen:api && git diff --exit-code src/types/api.generated.ts",
         "test": "jest",
         "screens:test": "node --test scripts/screens/*.test.mjs",
+        "i18n:drift": "node scripts/i18n-length-drift.mjs",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "test:e2e:regression": "playwright test --config=playwright.regression.config.ts",
