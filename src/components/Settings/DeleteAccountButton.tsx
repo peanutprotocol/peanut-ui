@@ -9,7 +9,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountHasBalanceError, usersApi } from '@/services/users'
@@ -24,6 +24,7 @@ type Step = {
     title: string
     description: string
     ctas: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
 }
 
 const DeleteAccountButton: FC = () => {
@@ -112,10 +113,8 @@ const DeleteAccountButton: FC = () => {
             mascotAlt: t('pointingPeanutAlt'),
             title: t('blockedTitle'),
             description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
-            ctas: [
-                { text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney },
-                { text: t('blockedCancelCta'), variant: 'secondary', shadowSize: '4', onClick: close },
-            ],
+            ctas: [{ text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney }],
+            tertiaryCta: { text: t('blockedCancelCta'), onClick: close },
         },
         confirm: {
             mascotPose: 'sad',
@@ -131,8 +130,8 @@ const DeleteAccountButton: FC = () => {
                     disabled: isSubmitting,
                     onClick: confirmDelete,
                 },
-                { text: t('cancelCta'), variant: 'secondary', shadowSize: '4', disabled: isSubmitting, onClick: close },
             ],
+            tertiaryCta: { text: t('cancelCta'), disabled: isSubmitting, onClick: close },
         },
         done: {
             mascotPose: 'worried',
@@ -165,6 +164,7 @@ const DeleteAccountButton: FC = () => {
                 title={step.title}
                 description={step.description}
                 ctas={step.ctas}
+                tertiaryCta={step.tertiaryCta}
             />
         </>
     )

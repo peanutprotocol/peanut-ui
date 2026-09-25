@@ -40,13 +40,8 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                         variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
-                    {
-                        text: tCommon('cancel'),
-                        onClick: () => onDismiss(),
-                        variant: 'secondary' as ButtonVariant,
-                        className: 'w-full',
-                    },
                 ],
+                tertiaryCta: { text: tCommon('cancel'), onClick: () => onDismiss() },
             }
         }
 
@@ -65,13 +60,8 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
-                {
-                    text: tCommon('continue'),
-                    onClick: () => onDismiss(),
-                    variant: 'secondary' as ButtonVariant,
-                    className: 'w-full',
-                },
             ],
+            tertiaryCta: { text: tCommon('continue'), onClick: () => onDismiss() },
         }
     }, [variant, onDismiss, onExit, setIsSupportModalOpen, t, tCommon])
 
@@ -89,6 +79,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             modalClassName="!z-[10001]"
             preventClose={true}
             ctas={modalDetails.ctas}
+            tertiaryCta={modalDetails.tertiaryCta}
         />
     )
 }

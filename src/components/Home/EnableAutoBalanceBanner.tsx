@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { captureMessage } from '@sentry/nextjs'
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
@@ -123,14 +123,14 @@ export default function EnableAutoBalanceBanner() {
     // Escape hatch, shown once a grant has failed — or "succeeded" without
     // clearing the modal — so the user is never trapped behind this
     // non-dismissible modal.
-    if (errorForThisCard || stuckAfterSuccess) {
-        ctas.push({
-            text: tCommon('skipForNow'),
-            variant: 'secondary',
-            disabled: isGranting,
-            onClick: () => setDismissedFor(card?.id ?? null),
-        })
-    }
+    const tertiaryCta: ActionModalTertiaryCta | undefined =
+        errorForThisCard || stuckAfterSuccess
+            ? {
+                  text: tCommon('skipForNow'),
+                  disabled: isGranting,
+                  onClick: () => setDismissedFor(card?.id ?? null),
+              }
+            : undefined
 
     const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
@@ -144,6 +144,7 @@ export default function EnableAutoBalanceBanner() {
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
             ctas={ctas}
+            tertiaryCta={tertiaryCta}
         />
     )
 }

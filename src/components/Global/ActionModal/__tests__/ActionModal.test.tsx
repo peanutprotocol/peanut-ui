@@ -73,3 +73,29 @@ describe('ActionModal tone', () => {
         expect(onChange).toHaveBeenCalledWith(true)
     })
 })
+
+describe('ActionModal tertiaryCta', () => {
+    it('renders the dismiss action as an underlined link 24px under the primary, not as a Button', () => {
+        const onCancel = jest.fn()
+        renderModal({
+            ctas: [{ text: 'Confirm', onClick: jest.fn() }],
+            tertiaryCta: { text: 'Cancel', onClick: onCancel },
+        })
+        const cancel = screen.getByRole('button', { name: 'Cancel' })
+        expect(cancel).toHaveClass('underline')
+        expect(cancel).not.toHaveClass('btn')
+        expect(cancel.parentElement).toHaveClass('mt-6')
+        fireEvent.click(cancel)
+        expect(onCancel).toHaveBeenCalledTimes(1)
+    })
+
+    it('disables the link while the primary action runs', () => {
+        renderModal({ tertiaryCta: { text: 'Not now', onClick: jest.fn(), disabled: true } })
+        expect(screen.getByRole('button', { name: 'Not now' })).toBeDisabled()
+    })
+
+    it('renders a link when given an href', () => {
+        renderModal({ tertiaryCta: { text: 'No wallet yet', href: '/setup' } })
+        expect(screen.getByRole('link', { name: 'No wallet yet' })).toHaveAttribute('href', '/setup')
+    })
+})
