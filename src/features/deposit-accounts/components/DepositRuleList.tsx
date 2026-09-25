@@ -18,11 +18,15 @@ export function RuleWithInfo({ text, why }: { text: string; why: string }) {
     return (
         <span className="inline">
             {text}
-            {/* Non-breaking space binds the (i) to the last word so it never
-                orphans onto a line of its own when the sentence wraps. */}
-            {' '}
-            <span className="inline-flex translate-y-0.5 align-baseline">
-                <MoreInfo text={why} />
+            {/* The non-breaking space binds the (i) to the last word so it never
+                orphans onto a line of its own when the sentence wraps. It needs
+                the nowrap wrapper: the (i) is an inline-flex box, and browsers
+                allow a break before such a box even after a non-breaking space. */}
+            <span className="whitespace-nowrap">
+                {' '}
+                <span className="inline-flex translate-y-0.5 align-baseline">
+                    <MoreInfo text={why} />
+                </span>
             </span>
         </span>
     )

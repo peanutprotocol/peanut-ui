@@ -11,6 +11,7 @@
 
 import type { Fixture } from './types'
 import {
+    CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
     DEPOSIT_RAIL_POLICY,
@@ -702,6 +703,48 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Bridge bank-account form for Spain — Field label/error chrome.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
+    // TASK-23054: the bank currency list, titled by currency code alone.
+    'withdraw-currency-list': {
+        route: '/withdraw?showAll=true&rail=bank',
+        about: 'Withdraw to a bank: one row per currency, the code as title and the name under it.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // TASK-23054: a US account owned by someone who lives in Portugal (a Wise
+    // USD account). The owner's address is theirs, in Portugal, with no state.
+    'withdraw-bank-form-us-abroad': {
+        route: '/withdraw/usa?step=form',
+        about: 'US bank form for a Portuguese resident: country Portugal, address filled in, no state.',
+        responses: {
+            'GET /users/me': {
+                accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS],
+                residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: 'Rua Augusta 100',
+                city: 'Lisboa',
+                postalCode: '1100-053',
+                subdivisionCode: null,
+                countryCode: 'PT',
+            },
+        },
+    },
+    'withdraw-bank-form-us-resident': {
+        route: '/withdraw/usa?step=form',
+        about: 'US bank form for a US resident: country United States, address and state filled in.',
+        responses: {
+            'GET /users/me': {
+                accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS],
+                residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: '350 5th Ave',
+                city: 'New York',
+                postalCode: '10118',
+                subdivisionCode: 'NY',
+                countryCode: 'US',
+            },
+        },
+    },
     // ---- the pick-first order (TASK-22589) ----
     // The first screen of the flow: pick where the money goes, before any amount.
     'withdraw-pick': {
@@ -1266,6 +1309,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_EUR] },
+        },
+    },
+    'get-paid-claim-cop': {
+        route: '/add-money?method=bank&step=claim&corridor=BANK_TRANSFER_CO',
+        about: 'The same step on the Bre-B peso corridor: a business may pay, other people not yet, with a floor.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_COP] },
         },
     },
     'get-paid-details-eur': {

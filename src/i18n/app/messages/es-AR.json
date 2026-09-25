@@ -23,14 +23,13 @@
             }
         },
         "gettingStarted": {
-            "title": "Empezar",
             "createAccount": "Crear cuenta",
             "addMoney": "Agregar dinero",
-            "firstPaymentCardNote": "Pagá un QR o pedí la tarjeta",
+            "firstPaymentCardNote": "Pedí la tarjeta o pagá un QR",
             "firstPaymentQrNote": "Pagá un código QR",
             "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
             "firstPaymentHeldCardNote": "Pagá con la tarjeta",
-            "firstPaymentHeldCardQrNote": "Pagá un QR o con la tarjeta"
+            "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",
@@ -1003,6 +1002,7 @@
             "heading": "Ingresá los datos bancarios",
             "accountOwnerNameFull": "Ingresá nombre y apellido",
             "state": "Seleccioná el estado",
+            "countryPlaceholder": "Seleccioná el país",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1763,8 +1763,9 @@
             "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
         },
         "claim": {
-            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
+            "heading": "Recibí pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",
