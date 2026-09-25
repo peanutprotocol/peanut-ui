@@ -5,7 +5,8 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { HOME_CHECKLIST_CTA_ID, hideHomeCta, readHiddenHomeCtas } from '@/utils/home-carousel.utils'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useBalanceVisibility } from './useBalanceVisibility'
 
@@ -28,6 +29,22 @@ export function useHomeFlow() {
     const username = user?.user.username
     const userId = user?.user.userId
     const { isBalanceHidden, toggleBalanceVisibility } = useBalanceVisibility(userId)
+
+    // Home's "Hide" choices (the checklist, a blocked card) live in the same
+    // store as carousel dismissals. Read after mount: per-device localStorage.
+    const [hiddenHomeCtas, setHiddenHomeCtas] = useState<ReadonlySet<string>>(new Set())
+    useEffect(() => {
+        setHiddenHomeCtas(new Set(readHiddenHomeCtas(userId).keys()))
+    }, [userId])
+    const hideCta = useCallback(
+        (id: string) => {
+            hideHomeCta(userId, id)
+            setHiddenHomeCtas((prev) => new Set(prev).add(id))
+        },
+        [userId]
+    )
+    const hideChecklist = useCallback(() => hideCta(HOME_CHECKLIST_CTA_ID), [hideCta])
+    const isChecklistHidden = hiddenHomeCtas.has(HOME_CHECKLIST_CTA_ID)
 
     // re-fetch user on mount to pick up activation status changes (e.g. after qr payment)
     useEffect(() => {
@@ -54,6 +71,10 @@ export function useHomeFlow() {
         isActivated,
         onboarding,
         isOnboardingComplete,
+        isChecklistHidden,
+        hideChecklist,
+        hiddenHomeCtas,
+        hideCta,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,

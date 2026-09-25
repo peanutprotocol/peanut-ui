@@ -75,10 +75,10 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         id: 'home-checklist',
         kind: 'step',
         name: 'Getting-started checklist',
-        copy: '"Get started" — Create account ✓ · Verify identity · Add money · Make the first payment',
+        copy: '"Get started" — Create account ✓ · Verify identity · Add money · First payment',
         cta: { label: 'row tap', dest: '/profile/accounts | Add drawer | first-payment chooser, /card or QR scanner' },
         condition:
-            'Home until the first payment (resolveOnboarding, utils/activation-step.utils.ts). Verify: identity verified; "In review" on the subtitle while processing. Add money: any money received (milestone funded) or any wallet/collateral balance. First payment: API isActivated (card spend or QR pay); the row exists only when the card or a QR pay is reachable (selectFirstPaymentRoute; QR counts before verification in AR/BR), so a user with neither has three rows and completes at Add money. While card eligibility is unknown the row holds its place. The first open, actionable row is outlined in pink. Replaced only by the region-restricted card or a provider rejection.',
+            'Home until the first payment (resolveOnboarding, utils/activation-step.utils.ts). Verify: identity verified; "In review" on the subtitle while processing. Add money: any money received (milestone funded) or any wallet/collateral balance. First payment: API isActivated (card spend or QR pay); the row exists when the card or QR pay is open (selectFirstPaymentRoute). QR pay is open to every user in any country once verified, unless the capabilities block it, so only a user with no card AND blocked QR pay has three rows and completes at Add money. While card eligibility is unknown the row holds its place. Replaced only by the region-restricted card or a provider rejection.',
         sourceFile: 'src/components/Home/GettingStartedChecklist.tsx',
         states: ['no-access', 'access-pre-kyc', 'kycd-no-card', 'card-active-unfunded', 'funded-no-spend'],
         isNewInThisPr: true,

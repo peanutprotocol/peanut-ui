@@ -338,6 +338,15 @@ export function readPageContentLocalizedResolved<T = Record<string, unknown>>(
     return null
 }
 
+/**
+ * A help article's title without its site suffix. The frontmatter title is the
+ * browser-tab title, and every locale ends it with its own " | …" suffix
+ * ("Peanut Help", "Ayuda Peanut", "Ajuda Peanut", "Peanut").
+ */
+export function helpArticleTitle(frontmatterTitle: string): string {
+    return frontmatterTitle.replace(/\s*\|[^|]*$/, '')
+}
+
 /** Read page content with locale fallback */
 export function readPageContentLocalized<T = Record<string, unknown>>(
     intent: string,

@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -27,7 +28,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/request',
@@ -308,6 +309,7 @@ jest.mock('@/components/User/UserCard', () => ({
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
 import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -454,6 +456,7 @@ function applyDefaults() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    safeBackTesting.reset()
     mockSearchParams.clear()
     applyDefaults()
 })
@@ -511,7 +514,7 @@ describe('GROUP 1: Initial Form States', () => {
         renderCreateRequest()
 
         fireEvent.click(screen.getByTestId('nav-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     test.each(['/request', '/request?amount=20', '/request/', 'https://outside.example'])(
@@ -521,17 +524,38 @@ describe('GROUP 1: Initial Form States', () => {
 
             fireEvent.click(screen.getByTestId('nav-back'))
 
-            expect(mockRouterPush).toHaveBeenCalledWith('/home')
+            expect(mockRouterReplace).toHaveBeenCalledWith('/home')
             expect(mockRouterBack).not.toHaveBeenCalled()
         }
     )
+
+    // Home → Request drawer → Share a request link → back pushed /home, so
+    // browser back from home reopened Request (TASK-23054 integration pass).
+    test('with home behind it in history, back rewinds to home instead of pushing it', async () => {
+        window.history.replaceState(null, '', '/')
+        safeBackTesting.reset()
+        window.history.pushState({}, '', '/home')
+        window.history.pushState({}, '', '/request')
+        renderCreateRequest()
+
+        const popped = new Promise<void>((resolve) =>
+            window.addEventListener('popstate', () => resolve(), { once: true })
+        )
+        fireEvent.click(screen.getByTestId('nav-back'))
+        await act(() => popped)
+
+        expect(window.location.pathname).toBe('/home')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        safeBackTesting.reset()
+    })
 
     test('request Back honors a safe explicit origin', () => {
         renderCreateRequest({ returnTo: '/profile?section=payments' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?section=payments')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile?section=payments')
         expect(mockRouterBack).not.toHaveBeenCalled()
     })
 

@@ -11,6 +11,7 @@
 
 import type { Fixture } from './types'
 import {
+    CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
     DEPOSIT_RAIL_POLICY,
@@ -145,6 +146,23 @@ const HUGE_HISTORY_ENTRY = {
     recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '9876543.21' },
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
+}
+
+// A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
+const WIRE_WITHDRAWAL_ENTRY = {
+    uuid: 'fixture-wire-withdrawal',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    amount: '100',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '938636999398030', type: 'US', isUser: false },
+    currency: { amount: '80.00', code: 'USD' },
+    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
 }
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
@@ -415,6 +433,22 @@ const BLOCKED_BANK_CAPABILITIES = {
     restrictions: [],
 }
 
+/**
+ * QR pay closed for this user: the one case the Home checklist has no payment
+ * row (QR pay is open to every verified user unless the capabilities block it).
+ */
+const QR_PAY_BLOCKED_RAIL = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'blocked',
+    operations: { pay: 'blocked', deposit: 'blocked', withdraw: 'blocked' },
+    reason: { code: 'provider_rejected', userMessage: 'QR payments are not available for this account.' },
+}
+
 /** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
 const MANTECA_AR_CAPABILITIES = {
     rails: [
@@ -452,6 +486,41 @@ const BRIDGE_CO_CAPABILITIES = {
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
+}
+
+/**
+ * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident.
+ * EUR is held and USD can open. The backend's own signals decide the rest
+ * (peanut-api-ts `listDepositCorridors`): GBP is `not-offered`, MXN is in
+ * neither list because its provider preview failed, and COP asks for
+ * verification.
+ */
+const PROFILE_ACCOUNTS_MIX = {
+    'GET /users/me': {
+        capabilities: VA_READY_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [DEPOSIT_ACCOUNT_EUR],
+        claimable: [CLAIMABLE_USD_PREVIEW],
+        unavailable: [
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GBR',
+                currency: 'GBP',
+                reason: 'not-offered',
+            },
+            {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                country: 'COL',
+                currency: 'COP',
+                reason: 'identity-required',
+            },
+        ],
+    },
 }
 
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
@@ -627,11 +696,73 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
         },
     },
+    // TASK-23054: a USD withdrawal goes by bank transfer (ACH, with a free
+    // same-day option) or wire. Pick the US account, type an amount and
+    // continue: the review shows both speeds, the fee and what the bank
+    // receives. The fee is the backend's.
+    'withdraw-usd-speed': {
+        route: '/withdraw',
+        about: 'USD withdrawal review: ACH (same day optional) or wire, with the wire fee and what the bank receives.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, BANK_ACCOUNTS[1]] },
+            'GET /bridge/offramp/rail-fees': {
+                currency: 'USD',
+                minimumAfterFeeUsd: '1.00',
+                rails: [
+                    { rail: 'ach', feeUsd: '0.00' },
+                    { rail: 'ach_same_day', feeUsd: '0.00' },
+                    { rail: 'wire', feeUsd: '20.00' },
+                ],
+            },
+        },
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',
         about: 'Bridge bank-account form for Spain — Field label/error chrome.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // TASK-23054: the bank currency list, titled by currency code alone.
+    'withdraw-currency-list': {
+        route: '/withdraw?showAll=true&rail=bank',
+        about: 'Withdraw to a bank: one row per currency, the code as title and the name under it.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // TASK-23054: a US account owned by someone who lives in Portugal (a Wise
+    // USD account). The owner's address is theirs, in Portugal, with no state.
+    'withdraw-bank-form-us-abroad': {
+        route: '/withdraw/usa?step=form',
+        about: 'US bank form for a Portuguese resident: country Portugal, address filled in, no state.',
+        responses: {
+            'GET /users/me': {
+                accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS],
+                residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: 'Rua Augusta 100',
+                city: 'Lisboa',
+                postalCode: '1100-053',
+                subdivisionCode: null,
+                countryCode: 'PT',
+            },
+        },
+    },
+    'withdraw-bank-form-us-resident': {
+        route: '/withdraw/usa?step=form',
+        about: 'US bank form for a US resident: country United States, address and state filled in.',
+        responses: {
+            'GET /users/me': {
+                accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS],
+                residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: '350 5th Ave',
+                city: 'New York',
+                postalCode: '10118',
+                subdivisionCode: 'NY',
+                countryCode: 'US',
+            },
+        },
     },
     // ---- the pick-first order (TASK-22589) ----
     // The first screen of the flow: pick where the money goes, before any amount.
@@ -887,6 +1018,11 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     // Empty states.
     // ---------------------------------------------------------------------
+    'history-wire-withdrawal': {
+        route: '/history',
+        about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
+        responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
     'empty-history': {
         route: '/history',
         about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',
@@ -1119,8 +1255,19 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts': {
         route: '/profile/accounts',
-        about: 'Accounts page: one euro account held, the accounts still to open folded into one row.',
-        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP is not offered where they live, MXN could not be checked (no verdict), COP needs verification.',
+        responses: PROFILE_ACCOUNTS_MIX,
+    },
+    'profile-accounts-no-residence': {
+        route: '/profile/accounts',
+        about: 'The same mix with no residence set: GBP asks for a residence instead.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+            },
+        },
     },
     'profile-accounts-two-held': {
         route: '/profile/accounts',
@@ -1135,11 +1282,12 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-at-limit': {
         route: '/profile/accounts',
-        about: 'Accounts page at the limit: two of two held, no fold, the counter says why.',
+        about: 'Accounts page at the limit: two of two held; the fold stays, and every row in it says the limit is reached.',
         responses: {
-            ...VA_READY_RESPONSE,
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
             'GET /users/deposit-accounts': {
                 depositAccounts: [DEPOSIT_ACCOUNT_EUR, DEPOSIT_ACCOUNT_MXN],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, blockedBy: 'account-limit' }],
                 accountLimit: 2,
             },
         },
@@ -1185,6 +1333,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_EUR] },
+        },
+    },
+    'get-paid-claim-cop': {
+        route: '/add-money?method=bank&step=claim&corridor=BANK_TRANSFER_CO',
+        about: 'The same step on the Bre-B peso corridor: a business may pay, other people not yet, with a floor.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_COP] },
         },
     },
     'get-paid-details-eur': {
@@ -1346,19 +1502,18 @@ export const FIXTURES: Record<string, Fixture> = {
 
     // ---------------------------------------------------------------------
     // Home onboarding checklist (TASK-23054): Create account · Verify identity ·
-    // Add money · Make the first payment, until the first payment.
+    // Add money · First payment, until the first payment.
     // ---------------------------------------------------------------------
     'home-new-user': {
         route: '/home',
         balance: '0',
-        about: 'New user in Brazil, card offered: ID check not started, nothing received, the first payment offers QR or card.',
+        about: 'New user, card offered: ID check not started, nothing received, the first payment offers QR or card (any country).',
         responses: {
             ...NO_TIMELINE_EXTRAS,
             'GET /users/me': {
                 user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
-                residence: { declared: 'BR', verified: null },
             },
         },
     },
@@ -1396,7 +1551,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-verified-unfunded-no-card': {
         route: '/home',
         balance: '0',
-        about: 'Verified, API milestone verified, card not offered for the residence.',
+        about: 'Verified, $0, card not offered for the residence: the first payment is QR only.',
         responses: {
             ...NO_TIMELINE_EXTRAS,
             'GET /card': { isEligible: false, geoProhibited: true },
@@ -1505,10 +1660,134 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'home-qr-blocked-unfunded': {
+        route: '/home',
+        balance: '0',
+        about: 'Verified, $0, no card, QR pay blocked, bank rail working: three rows, Add money next.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'enabled',
+                        },
+                        QR_PAY_BLOCKED_RAIL,
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    // Stuck states (TASK-23054): the ones a user can sit in for days.
+    'home-verify-processing-long': {
+        route: '/home',
+        balance: '0',
+        about: 'ID check in review for two weeks: the verify row keeps saying In review, Add money stays open.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'processing', submittedAt: '2026-09-11T10:00:00Z' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+            },
+        },
+    },
+    'home-card-application-pending': {
+        route: '/home',
+        balance: '40',
+        about: 'Verified, funded, card application in review: the payment row says to pay with the card or a QR.',
+        responses: {
+            'GET /rain/cards': { status: { hasApplication: true, railStatus: 'PENDING' }, cards: [], balance: null },
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'rain.card_rain',
+                            provider: 'rain',
+                            method: 'CARD_RAIN',
+                            channel: 'card',
+                            country: 'GLOBAL',
+                            currency: 'USD',
+                            status: 'pending',
+                        },
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-card-info-failed': {
+        route: '/home',
+        balance: '40',
+        about: 'Verified and funded, but card eligibility failed to load: the payment row holds its place.',
+        fails: ['GET /card'],
+        // the held row is the subject: its pulse placeholder is this state, not a page loading
+        isLoadingState: true,
+        waitFor: '[data-testid="checklist-first-payment"] .animate-pulse',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+            },
+        },
+    },
+    'home-money-in-out-only': {
+        route: '/home',
+        balance: '12',
+        about: 'Verified, money in and out (sends, withdrawals), no card or QR spend yet: the Hide link shows.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: '2026-09-15T00:00:00Z',
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+            },
+        },
+    },
     'home-funded-no-spend-path': {
         route: '/home',
         balance: '50',
-        about: 'Verified, funded, no card and no QR pay: three rows, all done, so the carousel shows.',
+        about: 'Verified, funded, no card, QR pay blocked: three rows, all done, so the carousel shows.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
             'GET /users/me': {
@@ -1529,6 +1808,7 @@ export const FIXTURES: Record<string, Fixture> = {
                             currency: 'USD',
                             status: 'enabled',
                         },
+                        QR_PAY_BLOCKED_RAIL,
                     ],
                     nextActions: [],
                     restrictions: [],
@@ -1568,6 +1848,33 @@ export const FIXTURES: Record<string, Fixture> = {
                     activationCelebratedAt: '2026-09-01T00:00:00Z',
                 },
                 identityVerification: { status: 'verified' },
+                // the holder's card rail: the payment row says to pay with the card
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'rain.card_rain',
+                            provider: 'rain',
+                            method: 'CARD_RAIN',
+                            channel: 'card',
+                            country: 'GLOBAL',
+                            currency: 'USD',
+                            status: 'enabled',
+                            operations: { pay: 'enabled' },
+                        },
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
             },
         },
     },

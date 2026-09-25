@@ -1,9 +1,19 @@
+/** @jest-environment jsdom */
 /**
  * Konrad's QR banner rule (TASK-23054): a carousel card closed with × never
  * comes back, except the allow-list, and "Pay with QR" never shows to a user
  * who already paid a QR or whose residence has no QR rail.
  */
-import { RECURRING_CAROUSEL_CTAS, hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
+import {
+    HOME_CHECKLIST_CTA_ID,
+    RECURRING_CAROUSEL_CTAS,
+    hiddenCarouselCTAs,
+    hideHomeCta,
+    readHiddenHomeCtas,
+    showQrPayCTA,
+    showVerifyCTA,
+} from '@/utils/home-carousel.utils'
+import { QrKycState } from '@/constants/kyc.consts'
 
 const NOW = new Date('2026-09-25T12:00:00Z')
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
@@ -36,19 +46,63 @@ describe('hiddenCarouselCTAs', () => {
 })
 
 describe('showQrPayCTA', () => {
-    it('shows to a user with a QR rail who has not paid a QR', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: false })).toBe(true)
+    it('shows to a user who can pay a QR now and has not paid one', () => {
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: false })).toBe(true)
     })
 
     it('never after a QR pay', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: true })).toBe(false)
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: true })).toBe(false)
     })
 
-    it('never for a residence with no QR rail', () => {
-        expect(showQrPayCTA({ hasQrRail: false, hasMadeQrPayment: false })).toBe(false)
+    it('never while the QR gate says the user cannot pay yet', () => {
+        expect(showQrPayCTA({ canPayQrNow: false, hasMadeQrPayment: false })).toBe(false)
     })
 
     it('not while history is loading, so it does not flash in and out', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: undefined })).toBe(false)
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: undefined })).toBe(false)
+    })
+})
+
+describe('one store for every Home CTA a user closes', () => {
+    beforeEach(() => localStorage.clear())
+
+    it('hiding the checklist keeps the carousel cards already closed, and the reverse', () => {
+        hideHomeCta('u1', 'qr-payment')
+        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
+        hideHomeCta('u1', 'invite-friends')
+        expect([...readHiddenHomeCtas('u1').keys()].sort()).toEqual([
+            HOME_CHECKLIST_CTA_ID,
+            'invite-friends',
+            'qr-payment',
+        ])
+    })
+
+    it('is per user', () => {
+        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
+        expect(readHiddenHomeCtas('u2').has(HOME_CHECKLIST_CTA_ID)).toBe(false)
+    })
+})
+
+describe('showVerifyCTA — the verify slide follows the QR-pay gate', () => {
+    const base = { isIdentityVerified: false, isInFlight: false, isCardEligible: false }
+
+    it('shows when verifying opens QR pay', () => {
+        expect(showVerifyCTA({ ...base, qrGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION })).toBe(true)
+    })
+
+    it.each([
+        QrKycState.REGION_RESTRICTED,
+        QrKycState.PROVIDER_REJECTION_BLOCKED,
+        QrKycState.PROCEED_TO_PAY,
+        QrKycState.LOADING,
+    ])('never for %s', (qrGateState) => {
+        expect(showVerifyCTA({ ...base, qrGateState })).toBe(false)
+    })
+
+    it('never mid-flow, for a verified identity (pool rail or not), or for a card-eligible user', () => {
+        const qrGateState = QrKycState.REQUIRES_IDENTITY_VERIFICATION
+        expect(showVerifyCTA({ ...base, qrGateState, isInFlight: true })).toBe(false)
+        expect(showVerifyCTA({ ...base, qrGateState, isIdentityVerified: true })).toBe(false)
+        expect(showVerifyCTA({ ...base, qrGateState, isCardEligible: true })).toBe(false)
     })
 })

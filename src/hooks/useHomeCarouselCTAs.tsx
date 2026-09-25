@@ -6,7 +6,6 @@ import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
@@ -29,8 +28,11 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { hasQrPayRail } from '@/utils/activation-step.utils'
-import { hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
+import { QrKycState } from '@/constants/kyc.consts'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { useIdentityVerification } from './useIdentityVerification'
+import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA, showVerifyCTA } from '@/utils/home-carousel.utils'
+import { verifyRowStatus } from '@/utils/activation-step.utils'
 
 export type CarouselCTA = {
     id: string
@@ -50,10 +52,6 @@ export type CarouselCTA = {
     iconSize?: number
 }
 
-/** The closed carousel ids that stay hidden (utils/home-carousel.utils.ts). */
-const getDismissedCTAs = (userId: string | undefined): Map<string, Date> =>
-    hiddenCarouselCTAs(getUserPreferences(userId)?.dismissedCarouselCTAs, new Date())
-
 export const useHomeCarouselCTAs = () => {
     const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
@@ -71,7 +69,8 @@ export const useHomeCarouselCTAs = () => {
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails, channelOf } = useCapabilities()
+    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { isRegionRestricted, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -100,11 +99,7 @@ export const useHomeCarouselCTAs = () => {
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.set(ctaId, new Date())
-            const record: Record<string, string> = {}
-            for (const [id, dismissedAt] of dismissedRef.current) {
-                record[id] = dismissedAt.toISOString()
-            }
-            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
+            hideHomeCta(user?.user?.userId, ctaId)
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
@@ -159,9 +154,6 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
-        // Rain (card) does NOT count; a card-only user must still see the verify CTA.
-        const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
@@ -199,7 +191,15 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (showQrPayCTA({ hasQrRail: hasQrPayRail(rails, channelOf), hasMadeQrPayment })) {
+        // the same gate the QR pay page reads: the slide shows only when a scan would pay
+        const qrGate = selectQrKycGate({
+            isLoading: false,
+            isRegionRestricted,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
+            nextActions,
+        })
+        if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
@@ -274,8 +274,16 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Card-eligible users use the card verification flow instead of bank onboarding.
-        if (!hasKycApproval && !isInFlight && isCardEligible === false) {
+        // Same QR-pay gate as the QR slide above: no "unlock" ask where the ID
+        // check can never open QR pay (region refused, provider blocked).
+        if (
+            showVerifyCTA({
+                qrGateState: qrGate.kycGateState,
+                isIdentityVerified: verifyRowStatus(identityStatus) === 'done',
+                isInFlight,
+                isCardEligible,
+            })
+        ) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
@@ -294,7 +302,6 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPushOptedIn,
         canDo,
-        bankRails,
         isInFlight,
         router,
         requestPermission,
@@ -306,6 +313,9 @@ export const useHomeCarouselCTAs = () => {
         cardInfo,
         rails,
         channelOf,
+        nextActions,
+        isRegionRestricted,
+        identityStatus,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
@@ -327,7 +337,7 @@ export const useHomeCarouselCTAs = () => {
             return
         }
 
-        dismissedRef.current = getDismissedCTAs(user.user.userId)
+        dismissedRef.current = readHiddenHomeCtas(user.user.userId)
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 

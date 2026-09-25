@@ -1,17 +1,15 @@
 /**
  * The Home onboarding checklist rules (TASK-23054):
- * Create account ✓ · Verify identity · Add money · Make the first payment.
+ * Create account ✓ · Verify identity · Add money · First payment.
  *
  * "Add money" is done on any money received or held (wallet or card
- * collateral) — $0.17 by crypto counts. "Make the first payment" is done only
+ * collateral) — $0.17 by crypto counts. "First payment" is done only
  * on the API activation (card spend or QR pay), and exists only for a user who
  * can make one; a user with neither card nor QR has three rows.
  */
-import type { RailCapability } from '@/types/capabilities'
 import {
     type OnboardingInput,
-    canReachQrPay,
-    hasQrPayRail,
+    canHideChecklist,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
@@ -25,6 +23,7 @@ const base: OnboardingInput = {
     isActivated: false,
     holdsMoney: false,
     firstPaymentRoute: 'card_qr',
+    cardHeld: false,
 }
 const resolve = (overrides: Partial<OnboardingInput>) => resolveOnboarding({ ...base, ...overrides })
 
@@ -55,6 +54,7 @@ describe('resolveOnboarding — every state on the page', () => {
             addMoneyDone: false,
             firstPaymentDone: false,
             firstPaymentRoute: 'card_qr',
+            cardHeld: false,
             step: 'verify',
         })
     })
@@ -160,80 +160,29 @@ describe('selectFirstPaymentRoute — the one eligibility selector', () => {
         expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: true })).toBe('pending')
         expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: false })).toBe('pending')
     })
-})
 
-describe('canReachQrPay — QR now, or once verified', () => {
-    const channelOf = (rail: RailCapability) => rail.channel
-    const pix = (pay: string) =>
-        ({
-            id: 'manteca.pix_br',
-            provider: 'manteca',
-            method: 'PIX_BR',
-            channel: 'bank',
-            country: 'BR',
-            currency: 'BRL',
-            status: 'enabled',
-            operations: { pay, deposit: 'requires-info' },
-        }) as RailCapability
-
-    it('a new user in Brazil or Argentina with no rail yet can reach it', () => {
-        expect(canReachQrPay([], channelOf, 'BR')).toBe(true)
-        expect(canReachQrPay([], channelOf, 'ar')).toBe(true)
-    })
-
-    it('a residence with no QR rail cannot', () => {
-        expect(canReachQrPay([], channelOf, 'US')).toBe(false)
-        expect(canReachQrPay([], channelOf, null)).toBe(false)
-    })
-
-    it('a pay op waiting on verification counts; a blocked one does not, whatever the residence', () => {
-        expect(canReachQrPay([pix('requires-info')], channelOf, 'BR')).toBe(true)
-        expect(canReachQrPay([pix('enabled')], channelOf, null)).toBe(true)
-        expect(canReachQrPay([pix('blocked')], channelOf, 'BR')).toBe(false)
+    it('the QR gate still loading → pending, whatever the card answer', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: undefined })).toBe('pending')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: undefined })).toBe('pending')
     })
 })
 
-describe('hasQrPayRail', () => {
-    const channelOf = (rail: RailCapability) => rail.channel
-    const rail = (overrides: Partial<RailCapability>) =>
-        ({
-            id: 'manteca.pix_br',
-            provider: 'manteca',
-            method: 'PIX_BR',
-            channel: 'bank',
-            country: 'BR',
-            currency: 'BRL',
-            status: 'enabled',
-            ...overrides,
-        }) as RailCapability
+describe('canHideChecklist — only once the payment row is the one left', () => {
+    const funded = { identityStatus: 'verified' as const, milestone: 'funded' as const, holdsMoney: true }
 
-    it('a Pix rail whose pay op is enabled (bank channel) pays QRs', () => {
-        expect(hasQrPayRail([rail({ operations: { pay: 'enabled', deposit: 'requires-info' } })], channelOf)).toBe(true)
+    it('verified and funded, payment open → can hide', () => {
+        expect(canHideChecklist(resolve(funded))).toBe(true)
     })
 
-    it('an enabled MercadoPago qr-only rail pays QRs', () => {
-        expect(
-            hasQrPayRail(
-                [rail({ id: 'manteca.mercadopago_qr_ar', channel: 'qr-only', operations: { pay: 'enabled' } })],
-                channelOf
-            )
-        ).toBe(true)
+    it('not before Add money is done, and not before the ID check is done', () => {
+        expect(canHideChecklist(resolve({ identityStatus: 'verified', milestone: 'verified' }))).toBe(false)
+        expect(canHideChecklist(resolve({ milestone: 'funded', holdsMoney: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ identityStatus: 'processing', milestone: 'funded' }))).toBe(false)
     })
 
-    it('a bank-only Manteca rail (no pay op) does not, even though it is enabled', () => {
-        expect(
-            hasQrPayRail(
-                [rail({ id: 'manteca.bank_transfer_ar', operations: { deposit: 'enabled', withdraw: 'enabled' } })],
-                channelOf
-            )
-        ).toBe(false)
-    })
-
-    it('a pay op that is not enabled does not', () => {
-        expect(hasQrPayRail([rail({ operations: { pay: 'requires-info' } })], channelOf)).toBe(false)
-    })
-
-    it('a non-Manteca rail never does', () => {
-        expect(hasQrPayRail([rail({ provider: 'bridge', operations: { pay: 'enabled' } })], channelOf)).toBe(false)
+    it('not when there is nothing left to hide', () => {
+        expect(canHideChecklist(resolve({ ...funded, isActivated: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'none' }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'pending' }))).toBe(false)
     })
 })

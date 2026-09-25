@@ -1,4 +1,13 @@
-import { bankCorridorFor, corridorAcceptsAddressCountry, hasBridgeBankCorridor } from '../bank-corridors'
+import {
+    addressCountryAlpha2,
+    addressCountryAlpha3,
+    addressStatesFor,
+    asksAddressCountry,
+    bankCorridorFor,
+    corridorAcceptsAddressCountry,
+    fixedAddressCountry,
+    hasBridgeBankCorridor,
+} from '../bank-corridors'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
@@ -84,7 +93,8 @@ describe('the corridors the table absorbed', () => {
         expect(gb?.accountType).toBe(BridgeAccountType.GB)
         // Bridge requires the beneficiary address on the UK body; the UK has no state.
         expect(gb?.needsAddress).toBe(true)
-        expect(gb?.states).toBeUndefined()
+        expect(addressStatesFor(fixedAddressCountry(gb!))).toEqual([])
+        expect(asksAddressCountry(gb!)).toBe(false)
         expect(gb?.fields.map((field) => field.name)).toEqual(['sortCode'])
         expect(gb?.fields[0].test?.('12-34-56')).toBe(true)
     })
@@ -105,7 +115,8 @@ describe('the corridors the table absorbed', () => {
         const sepa = bankCorridorFor('DEU')
         // Bridge requires the beneficiary address on the SEPA body; SEPA has no state.
         expect(sepa?.needsAddress).toBe(true)
-        expect(sepa?.states).toBeUndefined()
+        expect(fixedAddressCountry(sepa!)).toBeNull()
+        expect(asksAddressCountry(sepa!)).toBe(false)
     })
 })
 
@@ -157,9 +168,9 @@ describe('the withdraw picker and the withdraw form agree on every country', () 
 })
 
 /**
- * A prefilled address has to belong to the corridor it lands in. The provider
- * would take a French address on a US payout and pay against a beneficiary who
- * does not live there.
+ * A prefilled address has to belong to the corridor it lands in, where the
+ * corridor fixes the country. A US account takes its owner's address in any
+ * country (Bridge beneficiary address validation), so any address fits there.
  */
 describe('which country an address may come from', () => {
     it.each([
@@ -168,10 +179,10 @@ describe('which country an address may come from', () => {
         ['a US address, euro corridor', 'SEPA', 'US', false],
         ['a UK address, euro corridor', 'SEPA', 'GB', false],
         ['a US address, US corridor', 'USA', 'US', true],
-        ['a French address, US corridor', 'USA', 'FR', false],
+        ['a French address, US corridor', 'USA', 'FR', true],
         ['a UK address, UK corridor', 'GB', 'GBR', true],
         ['a Mexican address, Mexican corridor', 'MX', 'MEX', true],
-        ['a Mexican address, US corridor', 'USA', 'MX', false],
+        ['a Mexican address, US corridor', 'USA', 'MX', true],
     ])('%s', (_, country, addressCountry, expected) => {
         const corridor = bankCorridorFor(country)!
         expect(corridorAcceptsAddressCountry(corridor, addressCountry)).toBe(expected)
@@ -185,5 +196,49 @@ describe('which country an address may come from', () => {
 
     it('Colombia asks for no address, so the question never arises', () => {
         expect(bankCorridorFor('CO')!.needsAddress).toBe(false)
+    })
+})
+
+describe("the owner's address on a US account", () => {
+    it('asks which country the address is in, only on the US corridor', () => {
+        expect(asksAddressCountry(bankCorridorFor('USA'))).toBe(true)
+        expect(asksAddressCountry(bankCorridorFor('MX'))).toBe(false)
+        expect(asksAddressCountry(bankCorridorFor('GB'))).toBe(false)
+        expect(asksAddressCountry(bankCorridorFor('SEPA'))).toBe(false)
+        // Colombia asks for no address at all
+        expect(asksAddressCountry(bankCorridorFor('CO'))).toBe(false)
+        expect(asksAddressCountry(null)).toBe(false)
+    })
+
+    it('fixes the country where the corridor has one', () => {
+        expect(fixedAddressCountry(bankCorridorFor('MX')!)).toBe('MX')
+        expect(fixedAddressCountry(bankCorridorFor('GB')!)).toBe('GB')
+        expect(fixedAddressCountry(bankCorridorFor('USA')!)).toBeNull()
+    })
+
+    it('offers states for a US or Mexican address and none elsewhere', () => {
+        expect(addressStatesFor('US').map((state) => state.code)).toContain('CA')
+        expect(addressStatesFor('us').map((state) => state.code)).toContain('NY')
+        expect(addressStatesFor('MX').map((state) => state.code)).toContain('CMX')
+        for (const country of ['PT', 'AR', 'GB', 'DE', '', null, undefined]) {
+            expect(addressStatesFor(country)).toEqual([])
+        }
+    })
+
+    it('turns an alpha-2 country into the alpha-3 Bridge takes, for countries outside the corridors too', () => {
+        expect(addressCountryAlpha3('US')).toBe('USA')
+        expect(addressCountryAlpha3('pt')).toBe('PRT')
+        expect(addressCountryAlpha3('AR')).toBe('ARG')
+        expect(addressCountryAlpha3('NG')).toBe('NGA')
+        expect(addressCountryAlpha3('ZZ')).toBeNull()
+        expect(addressCountryAlpha3(null)).toBeNull()
+    })
+
+    it('reads an alpha-3 country from a saved account back as alpha-2, for any catalog country', () => {
+        expect(addressCountryAlpha2('USA')).toBe('US')
+        expect(addressCountryAlpha2('ARG')).toBe('AR')
+        expect(addressCountryAlpha2('NGA')).toBe('NG')
+        expect(addressCountryAlpha2('pt')).toBe('PT')
+        expect(addressCountryAlpha2('ZZZ')).toBeNull()
     })
 })

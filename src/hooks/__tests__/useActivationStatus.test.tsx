@@ -17,9 +17,21 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ balance: mockBalance, isFetchingBalance: false }),
 }))
 
-let mockRails: Array<Record<string, unknown>> = []
+type MockRail = { provider: string; status: string; operations?: Record<string, string> }
+let mockRails: MockRail[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: mockRails, channelOf: (rail: { channel: string }) => rail.channel }),
+    // canDo mirrors the real hook: per-op status, falling back to the rail status
+    useCapabilities: () => ({
+        isLoading: false,
+        nextActions: [],
+        railsForProvider: (provider: string) => mockRails.filter((rail) => rail.provider === provider),
+        canDo: (op: string, opts?: { provider?: string }) =>
+            mockRails.some(
+                (rail) =>
+                    (opts?.provider === undefined || rail.provider === opts.provider) &&
+                    (rail.operations?.[op] ?? rail.status) === 'enabled'
+            ),
+    }),
 }))
 
 let mockOverview: unknown = undefined
@@ -28,8 +40,12 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 
 let mockCanSpendViaCard = false
+let mockHasCardRelationship = false
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
-    useCardSurfaceAccess: () => ({ canSpendPathViaCard: mockCanSpendViaCard }),
+    useCardSurfaceAccess: () => ({
+        canSpendPathViaCard: mockCanSpendViaCard,
+        hasCardRelationship: mockHasCardRelationship,
+    }),
 }))
 
 let mockCardInfo: unknown = { isEligible: false }
@@ -39,7 +55,7 @@ jest.mock('@/hooks/useCardInfo', () => ({
 
 let mockIdentityStatus = 'not_started'
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ status: mockIdentityStatus }),
+    useIdentityVerification: () => ({ status: mockIdentityStatus, isRegionRestricted: false }),
 }))
 
 jest.mock('@/config/underMaintenance.config', () => ({
@@ -47,6 +63,14 @@ jest.mock('@/config/underMaintenance.config', () => ({
     default: { disableCardPromotion: false },
 }))
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+
+const BLOCKED_QR_RAIL = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    channel: 'bank',
+    status: 'blocked',
+    operations: { pay: 'blocked' },
+}
 
 const QR_RAIL = {
     id: 'manteca.pix_br',
@@ -66,6 +90,7 @@ beforeEach(() => {
     mockRails = []
     mockOverview = undefined
     mockCanSpendViaCard = false
+    mockHasCardRelationship = false
     mockCardInfo = { isEligible: false }
     mockIdentityStatus = 'not_started'
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
@@ -104,7 +129,7 @@ describe('useActivationStatus', () => {
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('card_qr')
         ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = true
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('qr')
-        mockRails = []
+        mockRails = [BLOCKED_QR_RAIL]
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('none')
     })
 
@@ -122,8 +147,9 @@ describe('useActivationStatus', () => {
         expect(result.current.onboarding.step).toBe('first_payment')
     })
 
-    it('no card and no QR: complete once verified and funded — isActivated stays false', () => {
+    it('no card and QR pay blocked: complete once verified and funded — isActivated stays false', () => {
         mockIdentityStatus = 'verified'
+        mockRails = [BLOCKED_QR_RAIL]
         const { result } = setup({ activationMilestone: 'funded' })
         expect(result.current.isOnboardingComplete).toBe(true)
         expect(result.current.isActivated).toBe(false)
@@ -137,13 +163,30 @@ describe('useActivationStatus', () => {
         expect(result.current.isOnboardingComplete).toBe(false)
     })
 
-    it('a card-eligible user in Brazil sees card and QR before verifying', () => {
-        mockCanSpendViaCard = true
+    it.each(['BR', 'US', 'DE', null])(
+        'a new card-eligible user sees card and QR before verifying, whatever the residence (%s)',
+        (declared) => {
+            mockCanSpendViaCard = true
+            mockUseAuth.mockReturnValue({
+                user: { user: { userId: 'u1', isActivated: false }, residence: { declared, verified: null } },
+            })
+            const { result } = renderHook(() => useActivationStatus())
+            expect(result.current.onboarding.firstPaymentRoute).toBe('card_qr')
+        }
+    )
+
+    it('a new user without the card sees the QR path, not three rows', () => {
         mockUseAuth.mockReturnValue({
-            user: { user: { userId: 'u1', isActivated: false }, residence: { declared: 'BR', verified: null } },
+            user: { user: { userId: 'u1', isActivated: false }, residence: { declared: 'US', verified: null } },
         })
         const { result } = renderHook(() => useActivationStatus())
-        expect(result.current.onboarding.firstPaymentRoute).toBe('card_qr')
+        expect(result.current.onboarding.firstPaymentRoute).toBe('qr')
+    })
+
+    it('an issued card or a card application marks the card as held', () => {
+        mockCanSpendViaCard = true
+        mockHasCardRelationship = true
+        expect(setup().result.current.onboarding.cardHeld).toBe(true)
     })
 
     it('before the user loads, nothing is complete', () => {

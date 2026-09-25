@@ -10,11 +10,11 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import {
     type OnboardingState,
-    canReachQrPay,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
 } from '@/utils/activation-step.utils'
+import { qrPayIsAPath, selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useMemo } from 'react'
 
 interface ActivationStatus {
@@ -34,19 +34,19 @@ interface ActivationStatus {
 }
 
 /**
- * Home onboarding: Create account ✓ · Verify identity · Add money · Make the
- * first payment. The rules live in resolveOnboarding; this hook only gathers
+ * Home onboarding: Create account ✓ · Verify identity · Add money · First
+ * payment. The rules live in resolveOnboarding; this hook only gathers
  * the inputs, all from data Home already loads (/users/me, the wallet balance,
  * the card overview).
  */
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
-    const { rails, channelOf } = useCapabilities()
+    const { canDo, railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
     const { overview } = useRainCardOverview()
-    const { canSpendPathViaCard } = useCardSurfaceAccess()
+    const { canSpendPathViaCard, hasCardRelationship } = useCardSurfaceAccess()
     const { cardInfo } = useCardInfo()
-    const { status: identityStatus } = useIdentityVerification()
+    const { status: identityStatus, isRegionRestricted } = useIdentityVerification()
 
     const isLoading = !user || isFetchingBalance
 
@@ -58,10 +58,17 @@ export function useActivationStatus(): ActivationStatus {
         const canSpendViaCard = underMaintenanceConfig.disableCardPromotion
             ? false
             : canSpendPathViaCard || (cardInfo !== undefined ? false : undefined)
-        const residence = user?.residence
+        // QR asks the same gate the QR pay page uses, so the two never disagree.
+        const qrGate = selectQrKycGate({
+            isLoading: isLoadingCapabilities || !user,
+            isRegionRestricted,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: railsForProvider('manteca'),
+            nextActions,
+        })
         const firstPaymentRoute = selectFirstPaymentRoute({
             canSpendViaCard,
-            canPayQr: canReachQrPay(rails, channelOf, residence?.verified ?? residence?.declared),
+            canPayQr: qrPayIsAPath(qrGate.kycGateState),
         })
         const onboarding = resolveOnboarding({
             identityStatus: user?.user ? identityStatus : undefined,
@@ -69,6 +76,7 @@ export function useActivationStatus(): ActivationStatus {
             isActivated,
             holdsMoney: holdsMoney(balance, overview?.balance),
             firstPaymentRoute,
+            cardHeld: hasCardRelationship,
         })
         return {
             isActivated,
@@ -77,15 +85,18 @@ export function useActivationStatus(): ActivationStatus {
             isOnboardingComplete: onboarding.step === 'completed',
         }
     }, [
-        user?.user,
-        user?.residence,
+        user,
         identityStatus,
+        isRegionRestricted,
         balance,
         overview?.balance,
         canSpendPathViaCard,
+        hasCardRelationship,
         cardInfo,
-        rails,
-        channelOf,
+        isLoadingCapabilities,
+        canDo,
+        railsForProvider,
+        nextActions,
     ])
 
     return { ...derived, isLoading }

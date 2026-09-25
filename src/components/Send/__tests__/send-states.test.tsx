@@ -254,6 +254,7 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
         expect(screen.getByText('Send with a link')).toBeInTheDocument()
         expect(screen.getByText('Perfect for WhatsApp and Messenger')).toBeInTheDocument()
+        expect(screen.queryByText(/No account needed for crypto-wallet claims/)).not.toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
@@ -406,11 +407,11 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=bank')
     })
 
-    test('Clicking exchange-or-wallet navigates to /withdraw?method=crypto', () => {
+    test('Clicking exchange-or-wallet navigates straight to /withdraw/crypto', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Crypto'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
     })
 
     test('Pix navigates into the manteca PIX flow', () => {

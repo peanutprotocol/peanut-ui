@@ -4,6 +4,8 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
+import Card from '@/components/Global/Card'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
@@ -14,7 +16,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState } from '@/utils/activation-step.utils'
+import { type OnboardingState, canHideChecklist } from '@/utils/activation-step.utils'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -53,6 +56,13 @@ const FIRST_PAYMENT_NOTE_KEY = {
     qr: 'firstPaymentQrNote',
 } as const
 
+/** once a card is issued or applied for, the row says to pay with it, not to get it */
+const FIRST_PAYMENT_HELD_CARD_NOTE_KEY = {
+    card_qr: 'firstPaymentHeldCardQrNote',
+    card: 'firstPaymentHeldCardNote',
+    qr: 'firstPaymentQrNote',
+} as const
+
 /** the pulse placeholder for a one-line subtitle (design.md skeleton recipe) */
 const SubtitleSkeleton = () => (
     // the line box stays 20px, the text line's height, so the row does not jump
@@ -62,16 +72,18 @@ const SubtitleSkeleton = () => (
 )
 
 /**
- * The Home onboarding checklist (TASK-23054): Create account ✓ · Verify
- * identity · Add money · Make the first payment. Home shows it until every row
+ * The Home onboarding checklist (TASK-23054), under a small "Welcome to
+ * Peanut" card with the progress bar. It shows every open row and only the
+ * latest done one. Rows: Create account ✓ · Verify
+ * identity · Add money · First payment. Home shows it until every row
  * is done; the rules for each row live in resolveOnboarding. The payment row
  * appears only for a user who can make an activating spend (card or QR).
  *
  * Every open row stays tappable, in any order: money can arrive before the ID
- * check. The first open row that has something to do is outlined in pink —
- * a row in review is skipped, because there is nothing to do on it.
+ * check. Every row has the same ListItem border (Hugo, 2026-09-25): the next
+ * step shows only by its order and its chevron.
  */
-const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }) => {
+const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: OnboardingState; onHide?: () => void }) => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
     const [, setHomeDrawer] = useHomeDrawer()
@@ -141,7 +153,7 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                 id: 'first-payment',
                 bubble: FIRST_PAYMENT_BUBBLE[route],
                 label: t('firstPayment'),
-                sub: t(FIRST_PAYMENT_NOTE_KEY[route]),
+                sub: t((onboarding.cardHeld ? FIRST_PAYMENT_HELD_CARD_NOTE_KEY : FIRST_PAYMENT_NOTE_KEY)[route]),
                 done: firstPaymentDone,
                 onTap: tap('first-payment', () => {
                     if (route === 'card_qr') setIsChooserOpen(true)
@@ -152,6 +164,7 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
         }
         return rows
     }, [
+        onboarding.cardHeld,
         addMoneyDone,
         depositAccountsEnabled,
         firstPaymentDone,
@@ -164,8 +177,12 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
         verify,
     ])
 
-    const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
-    const nextId = items.find((item) => !item.done && !item.inReview && !item.pending)?.id
+    // the bar and the count cover every row; the list shows every open row and
+    // only the latest done one, so finished steps do not crowd out what is next
+    const doneCount = items.filter((item) => item.done).length
+    const completionPercent = Math.round((doneCount / items.length) * 100)
+    const latestDoneId = items.filter((item) => item.done).at(-1)?.id
+    const visibleItems = items.filter((item) => !item.done || item.id === latestDoneId)
 
     const viewedRef = useRef(false)
     useEffect(() => {
@@ -177,15 +194,41 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
 
     return (
         <Section>
-            <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-body-s text-foreground-secondary">
-                    <span>{t('title')}</span>
-                    <span>{completionPercent}%</span>
+            {/* one height at every width: a one-line subtitle (wide screens) gets the
+                same card as a two-line one; 320 may grow when the title wraps */}
+            <Card
+                position="solo"
+                className="flex min-h-[90px] flex-col justify-center px-4 py-2"
+                data-testid="onboarding-welcome"
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        {/* es writes "Bienvenid@", which screen readers read as "arroba":
+                            the visible title is hidden from them and a spoken form is read instead */}
+                        <span className="text-heading-card text-foreground-primary">
+                            <span aria-hidden>{t('welcomeTitle')}</span>
+                            <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                        </span>
+                        <span className="text-body-s text-foreground-secondary">
+                            {t('welcomeBody', { count: items.length })}
+                        </span>
+                    </div>
+                    {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                        PeanutMascot shows a still frame under reduced motion */}
+                    <div className="relative size-[72px] shrink-0">
+                        <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
+                        <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                    </div>
                 </div>
+            </Card>
+            <div className="flex flex-col gap-1">
+                <span className="text-body-s text-foreground-secondary">
+                    {t('progress', { done: doneCount, total: items.length })}
+                </span>
                 <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
             </div>
             <ListGroup className="bg-background-default">
-                {items.map((item) => {
+                {visibleItems.map((item) => {
                     const tappable = !item.done && !!item.onTap
                     return (
                         <ListItem
@@ -208,13 +251,26 @@ const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }
                             }
                             chevron={tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={
-                                item.id === nextId ? 'outline-2 -outline-offset-2 outline-action-primary' : undefined
-                            }
                         />
                     )
                 })}
             </ListGroup>
+            {onHide && canHideChecklist(onboarding) && (
+                // tertiary dismiss (design.md), only once the payment row is the one
+                // left, so nobody hides the list before money is in. mt-4 on the
+                // section's gap-2 keeps the 24px the hit area needs under a row
+                <LinkButton
+                    onClick={() => {
+                        posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_HIDDEN, {
+                            first_payment_route: firstPaymentRoute,
+                        })
+                        onHide()
+                    }}
+                    className="mt-4 self-center text-body-s text-foreground-primary"
+                >
+                    {t('hide')}
+                </LinkButton>
+            )}
             {firstPaymentRoute === 'card_qr' && (
                 <FirstPaymentChooser open={isChooserOpen} onClose={() => setIsChooserOpen(false)} />
             )}

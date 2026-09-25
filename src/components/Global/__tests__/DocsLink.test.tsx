@@ -14,6 +14,9 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: (...args: unknown[]) => mockOpenExternalUrl(...args),
 }))
 
+let mockOpenHelp: jest.Mock | null = null
+jest.mock('@/components/Global/AppHelpProvider', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
+
 const renderLink = () => {
     render(<DocsLink href="/en/help/passkeys">docs</DocsLink>, { wrapper: IntlWrapper })
     return screen.getByRole('link', { name: 'docs' })
@@ -23,6 +26,7 @@ describe('DocsLink', () => {
     beforeEach(() => {
         mockIsPWA = false
         mockIsCapacitor = false
+        mockOpenHelp = null
         mockOpenExternalUrl.mockClear()
     })
 
@@ -44,5 +48,38 @@ describe('DocsLink', () => {
         const link = renderLink()
         fireEvent.click(link)
         expect(mockOpenExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/\/en\/help\/passkeys$/))
+    })
+
+    describe('in-app help article', () => {
+        const renderRow = () =>
+            render(
+                <DocsLink href="/en/help/security-disclosure" className="block">
+                    row
+                </DocsLink>,
+                { wrapper: IntlWrapper }
+            ).container.firstElementChild as HTMLElement
+
+        // TASK-23054: a <button> sizes to its content where an <a> stretches, so
+        // the drawer branch cut the About policy card short at the last row.
+        it('renders the same element and classes as the link branch', () => {
+            const linkRow = renderRow()
+            mockOpenHelp = jest.fn()
+            const drawerRow = renderRow()
+            expect(drawerRow.tagName).toBe(linkRow.tagName)
+            expect(drawerRow.className.split(' ')).toEqual(expect.arrayContaining(linkRow.className.split(' ')))
+        })
+
+        // no href: the native link interceptor would open the web page instead
+        it('opens the drawer on tap and keyboard, with no href', () => {
+            mockOpenHelp = jest.fn()
+            render(<DocsLink href="/en/help/security-disclosure">docs</DocsLink>, { wrapper: IntlWrapper })
+            const trigger = screen.getByRole('button', { name: 'docs' })
+            expect(trigger).not.toHaveAttribute('href')
+            fireEvent.click(trigger)
+            fireEvent.keyDown(trigger, { key: 'Enter' })
+            fireEvent.keyDown(trigger, { key: ' ' })
+            expect(mockOpenHelp).toHaveBeenCalledTimes(3)
+            expect(mockOpenHelp).toHaveBeenCalledWith('security-disclosure')
+        })
     })
 })

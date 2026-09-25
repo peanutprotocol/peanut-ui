@@ -4,6 +4,9 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
+import { type BlockedCardKind, blockedCardCtaId } from '@/utils/home-carousel.utils'
 import { type OnboardingState } from '@/utils/activation-step.utils'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useMemo } from 'react'
@@ -13,6 +16,10 @@ import { useMemo } from 'react'
  * and which one. HomePage reads it too: a user whose checklist is otherwise
  * done (no card, no QR rail, verified, funded) still sees the rejection card
  * instead of the carousel.
+ *
+ * `blockedCard` names the one blocked card Home would show (region refusal
+ * first, then the rejection kinds in the card's own order) and its dismissal
+ * key, so HomePage and ActivationCTAs agree on what "Hide" hides.
  */
 export function useProviderRejection(onboarding: OnboardingState) {
     const { rails, channelOf, nextActions } = useCapabilities()
@@ -120,7 +127,30 @@ export function useProviderRejection(onboarding: OnboardingState) {
         !hasCardPath &&
         (hasFixableRejection || hasBlockedRejection)
 
+    const { isRegionRestricted } = useIdentityVerification()
+    const blockedCard = useMemo((): { kind: BlockedCardKind; reasonCode: string | null; ctaId: string } | null => {
+        const card = (kind: BlockedCardKind, reasonCode: string | null) => ({
+            kind,
+            reasonCode,
+            ctaId: blockedCardCtaId(kind, reasonCode),
+        })
+        if (isRegionRestricted) return card('region-restricted', IDENTITY_REGION_RESTRICTED_CODE)
+        if (!hasProviderRejection) return null
+        if (isEmailBlocked) return card('add-email', primaryRejectionCode)
+        if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
+        if (isRestartBlocked) return card('restart-identity', primaryRejectionCode)
+        return card('verification-issue', primaryRejectionCode)
+    }, [
+        isRegionRestricted,
+        hasProviderRejection,
+        isEmailBlocked,
+        hasFixableRejection,
+        isRestartBlocked,
+        primaryRejectionCode,
+    ])
+
     return {
+        blockedCard,
         hasProviderRejection,
         hasFixableRejection,
         fixableProvider,

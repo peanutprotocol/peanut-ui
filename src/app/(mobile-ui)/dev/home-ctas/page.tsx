@@ -134,7 +134,7 @@ const ONBOARDING_STATES: { label: string; onboarding: OnboardingState }[] = [
         },
     },
     {
-        label: 'Money in before the ID check, no card or QR (three rows) — verify next',
+        label: 'Money in before the ID check, no card, QR pay blocked (three rows) — verify next',
         onboarding: {
             verify: 'todo',
             addMoneyDone: true,

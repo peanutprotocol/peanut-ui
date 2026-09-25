@@ -1,5 +1,6 @@
 import {
     type OfframpQuote,
+    type UsdPayoutRailFees,
     type TCreateGuestOfframpRequest,
     type TCreateOfframpRequest,
 } from '../../services/services.types'
@@ -82,6 +83,45 @@ export async function getOfframpQuote(
         return { data }
     } catch (error) {
         console.error('Error calling offramp quote API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * The rails a USD withdrawal may use and the fee for each, from the backend's
+ * one fee table. The app shows these and never a fee of its own.
+ */
+export async function getUsdPayoutRailFees(): Promise<{ data?: UsdPayoutRailFees; error?: string }> {
+    try {
+        const response = await serverFetch('/bridge/offramp/rail-fees', { method: 'GET' })
+        const data = await response.json()
+        if (!response.ok) return { error: data.error || 'Failed to get the payout fees.' }
+        return { data }
+    } catch (error) {
+        console.error('Error calling offramp rail fees API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * The rails the provider says this US account can take (`payment_rails`),
+ * or null when it does not say. A wire needs an address the bank accepts.
+ */
+export async function getExternalAccountPaymentRails(
+    customerId: string,
+    externalAccountId: string
+): Promise<{ data?: { supported: string[] } | null; error?: string }> {
+    try {
+        const response = await serverFetch(
+            `/bridge/customers/${encodeURIComponent(customerId)}/external-accounts/${encodeURIComponent(externalAccountId)}`,
+            { method: 'GET' }
+        )
+        const data = await response.json()
+        if (!response.ok) return { error: data.error || 'Failed to read the bank account.' }
+        const supported = data?.payment_rails?.supported
+        return { data: Array.isArray(supported) ? { supported: supported.map(String) } : null }
+    } catch (error) {
+        console.error('Error calling external account API:', error)
         return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
     }
 }

@@ -23,13 +23,13 @@
             }
         },
         "gettingStarted": {
-            "title": "Empezar",
             "createAccount": "Crear cuenta",
             "addMoney": "Agregar dinero",
-            "firstPayment": "Hacé el primer pago",
-            "firstPaymentCardNote": "Pagá un QR o pedí la tarjeta",
+            "firstPaymentCardNote": "Pedí la tarjeta o pagá un QR",
             "firstPaymentQrNote": "Pagá un código QR",
-            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut"
+            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
+            "firstPaymentHeldCardNote": "Pagá con la tarjeta",
+            "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",
@@ -248,8 +248,8 @@
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
-            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "qrPayNote": "Brasil y Argentina",
+            "pixKeyNote": "Claves Pix de Brasil",
             "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {
@@ -325,7 +325,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "La parte oficial",
+            "policiesHeading": "Políticas",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -1002,6 +1002,7 @@
             "heading": "Ingresá los datos bancarios",
             "accountOwnerNameFull": "Ingresá nombre y apellido",
             "state": "Seleccioná el estado",
+            "countryPlaceholder": "Seleccioná el país",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1755,11 +1756,16 @@
             "errorBody": "Tus cuentas están bien. Revisá la conexión y probá de nuevo.",
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
-            "countriesTitle": "Todos los países"
+            "countriesTitle": "Todos los países",
+            "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
+            "uncheckedBody": "Volvé a intentarlo en un momento.",
+            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
+            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
         },
         "claim": {
-            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
+            "heading": "Recibí pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",

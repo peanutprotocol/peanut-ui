@@ -9,6 +9,7 @@ import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
+import { canHideChecklist } from '@/utils/activation-step.utils'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
@@ -27,7 +28,8 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  *
  * one CTA surface at a time (hugo, 2026-09-25): a large verification task card
  * replaces the carousel and the checklist; it is due, so it wins. with no task
- * card, a user who finished onboarding gets the carousel and everyone else the
+ * card, a user who finished onboarding (or hid the checklist once only the
+ * payment row was left) gets the carousel and everyone else the
  * getting-started checklist (ActivationCTAs) — never both.
  * PendingVerificationTasks renders `whenEmpty` only when it shows nothing itself.
  */
@@ -38,6 +40,10 @@ export function HomePage() {
         isActivated,
         onboarding,
         isOnboardingComplete,
+        isChecklistHidden,
+        hideChecklist,
+        hiddenHomeCtas,
+        hideCta,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
@@ -47,10 +53,14 @@ export function HomePage() {
     useHomeViewAnalytics(isPageLoading)
     const { nextActions, rails } = useCapabilities()
     const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
-    // a rejected bank rail keeps its card even when every checklist row is done
-    // (no card, no QR rail): support or a fix is still the next thing to do
-    const { hasProviderRejection } = useProviderRejection(onboarding)
-    const showCarousel = isOnboardingComplete && !hasProviderRejection
+    const { blockedCard } = useProviderRejection(onboarding)
+    // a blocked card (region refused, provider rejection) owns the slot until
+    // the user hides it, even when every checklist row is done; hiding hands over
+    // to the carousel, and Profile → Accounts keeps the fix or support route. A hidden checklist
+    // counts as done only while it may be hidden (payment row left).
+    const showCarousel = blockedCard
+        ? hiddenHomeCtas.has(blockedCard.ctaId)
+        : isOnboardingComplete || (isChecklistHidden && canHideChecklist(onboarding))
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
@@ -76,7 +86,11 @@ export function HomePage() {
                             showCarousel ? (
                                 <HomeCarouselCTA documentRequest={documentSlide} />
                             ) : (
-                                <ActivationCTAs onboarding={onboarding} />
+                                <ActivationCTAs
+                                    onboarding={onboarding}
+                                    onHideChecklist={hideChecklist}
+                                    onHideBlockedCard={hideCta}
+                                />
                             )
                         }
                     />

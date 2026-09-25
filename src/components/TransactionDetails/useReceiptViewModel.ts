@@ -215,6 +215,10 @@ export function useReceiptViewModel(
             ),
             txId: !!transaction.txHash,
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled' && !feeRepeatsNetworkFee,
+            // only while the payout can still arrive: a returned or failed wire paid the bank nothing
+            bankReceives:
+                transaction.payoutReceivedUsd !== undefined &&
+                !['cancelled', 'failed', 'refunded'].includes(transaction.status ?? ''),
             conversion: showsConversion,
             exchangeRate: !!receiptExchangeRate(transaction) && !foldsRateIntoConversion,
             bankAccountDetails: !!(
