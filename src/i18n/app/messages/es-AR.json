@@ -130,7 +130,8 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Cuentas y pagos",
+            "accounts": "Cuentas",
+            "payments": "Pagos",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -162,7 +163,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Cuentas y pagos",
+            "titles": {
+                "accounts": "Cuentas",
+                "payments": "Pagos"
+            },
             "residence": {
                 "label": "Residencia",
                 "unknown": "Residencia sin definir",

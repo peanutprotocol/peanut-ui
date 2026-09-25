@@ -312,7 +312,7 @@ export const useHomeCarouselCTAs = () => {
                 concept: 'qrPay',
                 iconSize: 16,
                 onClick: () => {
-                    router.push('/profile/accounts-and-payments')
+                    router.push('/profile/accounts')
                 },
             })
         }
