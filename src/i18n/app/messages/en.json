@@ -2355,9 +2355,9 @@
             },
             "perkBanner": {
                 "title": "You got a surprise!",
-                "capped": "You received ${amount}. Campaign limit reached!",
+                "capped": "${amount} received — campaign limit reached!",
                 "received": "You received ${amount}!",
-                "generic": "You received a surprise from Peanut!"
+                "generic": "Peanut sent you a surprise!"
             },
             "perk": {
                 "title": "Received from Peanut",
@@ -2411,13 +2411,14 @@
         },
         "iosCopy": {
             "invitesTitle": "Network",
-            "noPendingRewards": "Nothing waiting for you right now.",
+            "noPendingRewards": "Nothing waiting right now.",
             "lifetimeRewards": "Earned so far: {amount}",
             "earnWhenFriendsUse": "You earn points whenever your friends pay with Peanut!",
             "shareInviteLinkPrompt": "Send your invite link to start earning more points",
             "howItWorks": {
                 "title": "How it works",
-                "step3": "What you earn builds up in your balance."
+                "step3": "Earnings build up in your balance.",
+                "step4": "Make any payment to claim them."
             },
             "lifetimeCaption": "so far"
         }
