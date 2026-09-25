@@ -148,6 +148,23 @@ const HUGE_HISTORY_ENTRY = {
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
 }
 
+// A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
+const WIRE_WITHDRAWAL_ENTRY = {
+    uuid: 'fixture-wire-withdrawal',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    amount: '100',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '938636999398030', type: 'US', isUser: false },
+    currency: { amount: '80.00', code: 'USD' },
+    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -679,6 +696,26 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
         },
     },
+    // TASK-23054: a USD withdrawal goes by bank transfer (ACH, with a free
+    // same-day option) or wire. Pick the US account, type an amount and
+    // continue: the review shows both speeds, the fee and what the bank
+    // receives. The fee is the backend's.
+    'withdraw-usd-speed': {
+        route: '/withdraw',
+        about: 'USD withdrawal review: ACH (same day optional) or wire, with the wire fee and what the bank receives.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, BANK_ACCOUNTS[1]] },
+            'GET /bridge/offramp/rail-fees': {
+                currency: 'USD',
+                minimumAfterFeeUsd: '1.00',
+                rails: [
+                    { rail: 'ach', feeUsd: '0.00' },
+                    { rail: 'ach_same_day', feeUsd: '0.00' },
+                    { rail: 'wire', feeUsd: '20.00' },
+                ],
+            },
+        },
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',
@@ -981,6 +1018,11 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     // Empty states.
     // ---------------------------------------------------------------------
+    'history-wire-withdrawal': {
+        route: '/history',
+        about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
+        responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
     'empty-history': {
         route: '/history',
         about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',

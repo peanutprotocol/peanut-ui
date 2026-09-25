@@ -23,6 +23,9 @@ import {
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
 import RateUnavailable from '@/components/Global/RateUnavailable'
+import { formatBankAmount } from '@/utils/currency'
+import { UsdPayoutSpeedChoice } from '@/features/withdraw/components/UsdPayoutSpeedChoice'
+import { type UsdPayoutSpeed, type UsdPayoutSpeedOption } from '@/features/withdraw/usd-payout-speed'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
@@ -58,6 +61,14 @@ interface WithdrawBankReviewViewProps {
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
+    /** USD only: same-day ACH or wire, the fee and what the bank receives. */
+    usdSpeed?: {
+        options: UsdPayoutSpeedOption[]
+        selected: UsdPayoutSpeed
+        onSelect: (speed: UsdPayoutSpeed) => void
+        feeUsd: string
+        receivedUsd: string
+    } | null
 }
 
 /** Review step of the Bridge bank withdraw — dumb view, logic in useBridgeOfframpFlow. */
@@ -84,6 +95,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onDone,
     onRetryQuote,
     onAddBankAccountAgain,
+    usdSpeed,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -146,6 +158,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
 
             {verificationDeadline && <VerificationDeadlineNotice effectiveDate={verificationDeadline} />}
 
+            {usdSpeed && (
+                <UsdPayoutSpeedChoice
+                    options={usdSpeed.options}
+                    selected={usdSpeed.selected}
+                    onSelect={usdSpeed.onSelect}
+                    disabled={isLoading || !!submittedTxHash}
+                />
+            )}
+
             <Card className="rounded-sm">
                 {/* The holder is whoever the account was saved under — often not
                     the user (a parent, a partner). When no name was stored, leave
@@ -200,7 +221,20 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         moreInfoText={tRate('approximate')}
                     />
                 )}
-                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={'$0'} />
+                {/* A USD payout's fee is the chosen speed's, from the backend's fee
+                    table, and the bank receives the amount less it. */}
+                <PaymentInfoRow
+                    hideBottomBorder={!usdSpeed}
+                    label={t('bank.fee')}
+                    value={usdSpeed ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD') : '$0'}
+                />
+                {usdSpeed && (
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        label={t('bank.bankReceives')}
+                        value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
+                    />
+                )}
             </Card>
 
             {payoutNoteKey && (

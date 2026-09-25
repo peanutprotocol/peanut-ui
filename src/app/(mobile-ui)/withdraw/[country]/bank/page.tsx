@@ -112,6 +112,7 @@ export default function WithdrawBankPage() {
                     onDone={leaveToHome}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                     onAddBankAccountAgain={flow.onAddBankAccountAgain}
+                    usdSpeed={flow.usdSpeed}
                 />
             )}
 

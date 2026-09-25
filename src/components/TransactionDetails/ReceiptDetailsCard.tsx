@@ -100,7 +100,7 @@ export function ReceiptDetailsCard({
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
 
-    const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
+    const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
 
     return (
         <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
@@ -174,6 +174,13 @@ export function ReceiptDetailsCard({
             {rowVisibilityConfig.cardPayment && <CardPaymentRows transaction={transaction} />}
 
             {rowVisibilityConfig.fee && <DataRow label={t('rows.fee')} value={feeDisplay} />}
+
+            {rowVisibilityConfig.bankReceives && (
+                <DataRow
+                    label={t('rows.bankReceives')}
+                    value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                />
+            )}
 
             {rowVisibilityConfig.mantecaDepositInfo && (
                 <MantecaDepositInfo transaction={transaction} country={country} />

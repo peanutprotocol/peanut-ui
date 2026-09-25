@@ -1801,6 +1801,24 @@
                             }
                         },
                         "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
                     }
                 },
                 "summary": "Initiate an off-ramp transfer",
@@ -23344,6 +23362,89 @@
                         "description": "Default Response"
                     }
                 }
+            }
+        },
+        "/bridge/offramp/rail-fees": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "currency": {
+                                            "enum": [
+                                                "USD"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "minimumAfterFeeUsd": {
+                                            "type": "string"
+                                        },
+                                        "rails": {
+                                            "items": {
+                                                "properties": {
+                                                    "feeUsd": {
+                                                        "type": "string"
+                                                    },
+                                                    "rail": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "ach"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "ach_same_day"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "wire"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "rail",
+                                                    "feeUsd"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "currency",
+                                        "minimumAfterFeeUsd",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "The rails a USD bank payout may use, and the fee for each",
+                "tags": [
+                    "offramp"
+                ]
             }
         }
     },
