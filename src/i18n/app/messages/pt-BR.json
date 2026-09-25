@@ -122,7 +122,10 @@
             "firstPaymentQrNote": "Pagar um código QR",
             "firstPaymentCardOnlyNote": "Peça o cartão Peanut",
             "verifyIdentityDone": "Identidade verificada",
-            "addMoneyDone": "Dinheiro recebido"
+            "addMoneyDone": "Dinheiro recebido",
+            "firstPaymentHeldCardNote": "Pague com o cartão",
+            "firstPaymentHeldCardQrNote": "Pague com QR ou cartão",
+            "hide": "Ocultar"
         },
         "autoBalance": {
             "title": "Termine de configurar o cartão",

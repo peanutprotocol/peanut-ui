@@ -111,7 +111,7 @@
             "createAccount": "Create account",
             "createAccountDone": "Username ready",
             "addMoney": "Add money",
-            "firstPayment": "Make the first payment",
+            "firstPayment": "First payment",
             "addMoneyRoutes": "Bank transfer or crypto",
             "addMoneyStandingAccounts": "Bank details or crypto",
             "addMoneyRoutesNoBank": "Crypto from any wallet",
@@ -122,7 +122,10 @@
             "firstPaymentQrNote": "Pay a QR code",
             "firstPaymentCardOnlyNote": "Get the Peanut Card",
             "verifyIdentityDone": "ID verified",
-            "addMoneyDone": "Money received"
+            "addMoneyDone": "Money received",
+            "firstPaymentHeldCardNote": "Pay with the card",
+            "firstPaymentHeldCardQrNote": "Pay a QR or with the card",
+            "hide": "Hide"
         },
         "autoBalance": {
             "title": "Finish setting up the card",

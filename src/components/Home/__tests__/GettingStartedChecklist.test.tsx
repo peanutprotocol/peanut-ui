@@ -23,10 +23,11 @@ const NEW_USER: OnboardingState = {
     step: 'verify',
 }
 
+const mockOnHide = jest.fn()
 const render = (onboarding: Partial<OnboardingState> = {}) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
-            <GettingStartedChecklist onboarding={{ ...NEW_USER, ...onboarding }} />
+            <GettingStartedChecklist onboarding={{ ...NEW_USER, ...onboarding }} onHide={mockOnHide} />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
     )
@@ -41,7 +42,11 @@ jest.mock('@/features/home/useHomeDrawer', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen }),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
 
 // the standing-accounts flag rewrites the add-money subtitle; off by default
 let mockDepositAccounts = false
@@ -75,7 +80,7 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Create account')).toBeInTheDocument()
         expect(screen.getByText('Verify identity')).toBeInTheDocument()
         expect(screen.getByText('Add money')).toBeInTheDocument()
-        expect(screen.getByText('Make the first payment')).toBeInTheDocument()
+        expect(screen.getByText('First payment')).toBeInTheDocument()
         expect(screen.getByText('25%')).toBeInTheDocument()
         // the three open rows are tappable; the done account row is not
         expect(screen.getAllByRole('button')).toHaveLength(3)
@@ -124,28 +129,58 @@ describe('GettingStartedChecklist', () => {
         it('card and QR: both named, the tap opens the chooser', () => {
             render({ firstPaymentRoute: 'card_qr' })
             expect(screen.getByText('Pay a QR or get the card')).toBeInTheDocument()
-            fireEvent.click(screen.getByText('Make the first payment'))
+            fireEvent.click(screen.getByText('First payment'))
             expect(screen.getByText('first-payment-chooser')).toBeInTheDocument()
         })
 
         it('qr: QR copy, the tap opens the scanner', () => {
             render({ firstPaymentRoute: 'qr' })
             expect(screen.getByText('Pay a QR code')).toBeInTheDocument()
-            fireEvent.click(screen.getByText('Make the first payment'))
+            fireEvent.click(screen.getByText('First payment'))
             expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        })
+
+        it('a held card (issued or applied for) says pay with it, never get it again', () => {
+            render({ firstPaymentRoute: 'card', cardHeld: true })
+            expect(screen.getByText('Pay with the card')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('First payment'))
+            expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        it('switches copy when the card becomes held (application submitted mid-session)', () => {
+            const onboarding = { ...NEW_USER, firstPaymentRoute: 'card' as const, cardHeld: false }
+            const view = rtlRender(
+                <NuqsTestingAdapter>
+                    <GettingStartedChecklist onboarding={onboarding} onHide={mockOnHide} />
+                </NuqsTestingAdapter>,
+                { wrapper: IntlWrapper }
+            )
+            expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
+            view.rerender(
+                <NuqsTestingAdapter>
+                    <GettingStartedChecklist onboarding={{ ...onboarding, cardHeld: true }} onHide={mockOnHide} />
+                </NuqsTestingAdapter>
+            )
+            expect(screen.getByText('Pay with the card')).toBeInTheDocument()
+            expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
+        })
+
+        it('a held card with QR open', () => {
+            render({ firstPaymentRoute: 'card_qr', cardHeld: true })
+            expect(screen.getByText('Pay a QR or with the card')).toBeInTheDocument()
         })
 
         it('card only: card copy, the tap opens /card', () => {
             render({ firstPaymentRoute: 'card' })
             expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
-            fireEvent.click(screen.getByText('Make the first payment'))
+            fireEvent.click(screen.getByText('First payment'))
             expect(mockPush).toHaveBeenCalledWith('/card')
         })
 
         it('none: no payment row — three rows, 100% once verified and funded', () => {
             render({ firstPaymentRoute: 'none', verify: 'done', addMoneyDone: true, step: 'completed' })
             expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
-            expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
+            expect(screen.queryByText('First payment')).not.toBeInTheDocument()
             expect(screen.getByText('100%')).toBeInTheDocument()
         })
     })
@@ -209,5 +244,25 @@ describe('GettingStartedChecklist', () => {
             expect(screen.getByText('Crypto from any wallet')).toBeInTheDocument()
             expect(screen.queryByText(/Bank/)).not.toBeInTheDocument()
         })
+    })
+})
+
+describe('GettingStartedChecklist — Hide', () => {
+    beforeEach(() => jest.clearAllMocks())
+
+    it('shows once only the payment row is left, and hides on tap with an event', () => {
+        render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
+        fireEvent.click(screen.getByText('Hide'))
+        expect(mockOnHide).toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith('home_checklist_hidden', { first_payment_route: 'card_qr' })
+    })
+
+    it.each<[string, Partial<OnboardingState>]>([
+        ['before verify', { addMoneyDone: true }],
+        ['before Add money', { verify: 'done', step: 'add_money' }],
+        ['while the ID check is in review', { verify: 'in_review', addMoneyDone: true, step: 'first_payment' }],
+    ])('never %s', (_label, onboarding) => {
+        render(onboarding)
+        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
     })
 })

@@ -27,6 +27,9 @@ const CHECKLIST_KEYS = [
     'firstPaymentCardNote',
     'firstPaymentQrNote',
     'firstPaymentCardOnlyNote',
+    'firstPaymentHeldCardNote',
+    'firstPaymentHeldCardQrNote',
+    'hide',
 ] as const
 
 describe('getting-started checklist copy resolves in every locale', () => {
