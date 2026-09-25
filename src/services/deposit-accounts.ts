@@ -50,7 +50,7 @@ const countOrUndefined = (value: unknown): number | undefined =>
 
 export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
     const response = await apiFetch('/users/deposit-accounts', { method: 'GET' })
-    if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load your deposit accounts')
+    if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load virtual accounts')
     const body = (await response.json()) as DepositAccountsResponse & AccountCapFields
     // An API that predates the preview sends no `claimable` at all. The claim
     // step then states no terms, which is what it did before this field
