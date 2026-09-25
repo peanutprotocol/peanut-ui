@@ -2690,7 +2690,11 @@
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
         },
-        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}"
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
+        "mystery": {
+            "title": "Mystery badges",
+            "description": "More appear for special moments."
+        }
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
