@@ -7,7 +7,7 @@
         "app/(mobile-ui)/badges/page.tsx": 114,
         "app/(mobile-ui)/card-recovery/page.tsx": 78,
         "app/(mobile-ui)/fix-card-signature/page.tsx": 126,
-        "app/(mobile-ui)/home/page.tsx": 404,
+        "app/(mobile-ui)/home/page.tsx": 388,
         "app/(mobile-ui)/profile/backup/page.tsx": 352,
         "app/(mobile-ui)/profile/view/page.tsx": 185,
         "app/(mobile-ui)/receipt/page.tsx": 558,

@@ -59,6 +59,12 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
 
+// the mascot is a lottie animation; here it is a marker
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: () => <span data-testid="mascot" />,
+}))
+
 // the chooser is its own component; here it is a marker that says whether it is open
 jest.mock('@/components/Home/FirstPaymentChooser', () => ({
     __esModule: true,
@@ -72,14 +78,14 @@ describe('GettingStartedChecklist', () => {
         mockDepositAccounts = false
     })
 
-    it('renders four rows, account pre-checked, 25% for a new user', () => {
+    it('renders four rows, account pre-checked, 1 of 4 done for a new user', () => {
         render()
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
         expect(screen.getByText('Create account')).toBeInTheDocument()
         expect(screen.getByText('Verify identity')).toBeInTheDocument()
         expect(screen.getByText('Add money')).toBeInTheDocument()
         expect(screen.getByText('First payment')).toBeInTheDocument()
-        expect(screen.getByText('25%')).toBeInTheDocument()
+        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
         // the three open rows are tappable; the done account row is not
         expect(screen.getAllByRole('button')).toHaveLength(3)
     })
@@ -111,21 +117,21 @@ describe('GettingStartedChecklist', () => {
         expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
     })
 
-    it('money in before the ID check: Add money done, verify still open, 50%', () => {
+    it('money in before the ID check: Add money done, verify still open, 2 of 4', () => {
         render({ addMoneyDone: true })
         expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
-        expect(screen.getByText('50%')).toBeInTheDocument()
+        expect(screen.getByText('2 of 4 done')).toBeInTheDocument()
     })
 
-    it('verified and funded: the first payment is the one open row, 75%', () => {
+    it('verified and funded: the first payment is the one open row, 3 of 4', () => {
         render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
-        expect(screen.getByText('75%')).toBeInTheDocument()
+        expect(screen.getByText('3 of 4 done')).toBeInTheDocument()
     })
 
     describe('first-payment row follows the route', () => {
         it('card and QR: both named, the tap opens the chooser', () => {
             render({ firstPaymentRoute: 'card_qr' })
-            expect(screen.getByText('Pay a QR or get the card')).toBeInTheDocument()
+            expect(screen.getByText('Get the card or pay a QR')).toBeInTheDocument()
             fireEvent.click(screen.getByText('First payment'))
             expect(screen.getByText('first-payment-chooser')).toBeInTheDocument()
         })
@@ -164,7 +170,7 @@ describe('GettingStartedChecklist', () => {
 
         it('a held card with QR open', () => {
             render({ firstPaymentRoute: 'card_qr', cardHeld: true })
-            expect(screen.getByText('Pay a QR or with the card')).toBeInTheDocument()
+            expect(screen.getByText('Pay with the card or a QR')).toBeInTheDocument()
         })
 
         it('card only: card copy, the tap opens /card', () => {
@@ -174,11 +180,11 @@ describe('GettingStartedChecklist', () => {
             expect(mockPush).toHaveBeenCalledWith('/card')
         })
 
-        it('none: no payment row — three rows, 100% once verified and funded', () => {
+        it('none: no payment row — 3 of 3 done once verified and funded, one done row shown', () => {
             render({ firstPaymentRoute: 'none', verify: 'done', addMoneyDone: true, step: 'completed' })
-            expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
+            expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(1)
             expect(screen.queryByText('First payment')).not.toBeInTheDocument()
-            expect(screen.getByText('100%')).toBeInTheDocument()
+            expect(screen.getByText('3 of 3 done')).toBeInTheDocument()
         })
     })
 
@@ -187,7 +193,7 @@ describe('GettingStartedChecklist', () => {
         const row = screen.getByTestId('checklist-first-payment')
         expect(row).not.toHaveAttribute('role')
         expect(row.querySelector('.animate-pulse')).not.toBeNull()
-        expect(screen.getByText('75%')).toBeInTheDocument()
+        expect(screen.getByText('3 of 4 done')).toBeInTheDocument()
     })
 
     describe('every row is one height: title plus one subtitle line, in every state', () => {
@@ -210,9 +216,11 @@ describe('GettingStartedChecklist', () => {
         })
 
         it('done rows keep a subtitle', () => {
-            render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
+            render()
             expect(screen.getByText('Username ready')).toBeInTheDocument()
+            render({ verify: 'done', step: 'add_money' })
             expect(screen.getByText('ID verified')).toBeInTheDocument()
+            render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
             expect(screen.getByText('Money received')).toBeInTheDocument()
         })
 
@@ -260,5 +268,32 @@ describe('GettingStartedChecklist — Hide', () => {
     ])('never %s', (_label, onboarding) => {
         render(onboarding)
         expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+    })
+})
+
+describe('GettingStartedChecklist — welcome card and one done row', () => {
+    it('welcomes with the real step count and the progress', () => {
+        render()
+        expect(screen.getByText('Welcome to Peanut!')).toBeInTheDocument()
+        expect(screen.getByText('4 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
+    })
+
+    it('says three steps when there is no payment row', () => {
+        render({ firstPaymentRoute: 'none' })
+        expect(screen.getByText('3 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('1 of 3 done')).toBeInTheDocument()
+    })
+
+    it('shows only the latest done row, and every open row in order', () => {
+        render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
+        const ids = screen.getAllByTestId(/^checklist-/).map((row) => row.getAttribute('data-testid'))
+        expect(ids).toEqual(['checklist-add-money', 'checklist-first-payment'])
+    })
+
+    it('a done row after an open one: the open row stays, the latest done one shows', () => {
+        render({ addMoneyDone: true })
+        const ids = screen.getAllByTestId(/^checklist-/).map((row) => row.getAttribute('data-testid'))
+        expect(ids).toEqual(['checklist-verify-identity', 'checklist-add-money', 'checklist-first-payment'])
     })
 })
