@@ -2,7 +2,7 @@ import { act, render as rtlRender, screen, waitFor, type RenderOptions } from '@
 import { type ReactElement, type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'
-import { SumsubNativeSdk } from '../SumsubNativeSdk'
+import { ORPHANED_SDK_GRACE_MS, SumsubNativeSdk } from '../SumsubNativeSdk'
 
 const IntlWrapper = ({ children }: { children: ReactNode }) => (
     <NextIntlClientProvider locale="en" messages={en}>
@@ -22,6 +22,20 @@ jest.mock('@/components/Global/Modal', () => ({
     default: function MockModal({ visible, children }: { visible: boolean; children: ReactNode }) {
         if (!visible) return null
         return <div data-testid="modal">{children}</div>
+    },
+}))
+
+let isAndroid = false
+jest.mock('@/utils/capacitor', () => ({ isAndroidNativeBridge: () => isAndroid }))
+
+let appStateHandler: ((state: { isActive: boolean }) => void) | undefined
+const removeAppStateListener = jest.fn()
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: (_event: string, handler: (state: { isActive: boolean }) => void) => {
+            appStateHandler = handler
+            return Promise.resolve({ remove: removeAppStateListener })
+        },
     },
 }))
 
@@ -57,6 +71,9 @@ describe('SumsubNativeSdk', () => {
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined
+        isAndroid = false
+        appStateHandler = undefined
+        removeAppStateListener.mockReset()
         launch.mockReturnValue(new Promise(() => {}))
         installSdk()
     })
@@ -278,5 +295,107 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(dismiss).toHaveBeenCalledTimes(1)
+    })
+
+    // TASK-22030: Android can destroy the SDK screen without the plugin calling
+    // back (an app-icon tap cleared the task). launch() then never settles, the
+    // instance lock stays held and Verify does nothing until the app is killed.
+    describe('android: SDK screen destroyed without a callback', () => {
+        beforeEach(() => {
+            isAndroid = true
+            jest.useFakeTimers()
+        })
+        afterEach(() => {
+            jest.useRealTimers()
+        })
+
+        const openSdk = async (props: ReturnType<typeof baseProps> & Record<string, unknown>) => {
+            const utils = render(<SumsubNativeSdk visible {...props} />)
+            // let the dynamic @capacitor/app import register its listener
+            await act(async () => {})
+            return utils
+        }
+
+        const resumeApp = (isActive = true) => act(() => appStateHandler?.({ isActive }))
+
+        it('releases the lock and exits the flow when the WebView resumes with no callback', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(resetSdk).toHaveBeenCalledTimes(1)
+            expect(props.onClose).toHaveBeenCalledTimes(1)
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned', { platform: 'native' })
+        })
+
+        it('lets a normal close callback win inside the grace period', async () => {
+            let resolveLaunch: (value: unknown) => void = () => {}
+            launch.mockReturnValue(new Promise((resolve) => (resolveLaunch = resolve)))
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                resolveLaunch({ success: true, status: 'Pending' })
+            })
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(props.onComplete).toHaveBeenCalledTimes(1)
+            expect(props.onClose).not.toHaveBeenCalled()
+            expect(resetSdk).not.toHaveBeenCalled()
+        })
+
+        // A permission prompt before the SDK screen opens resumes the WebView;
+        // the SDK screen then covers it, which Capacitor reports as inactive.
+        it('does not recover when the WebView is covered again before the grace period ends', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp(true)
+            await resumeApp(false)
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(resetSdk).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it('still completes a single-level flow the user submitted before the screen was destroyed', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await act(async () => {
+                statusHandler?.({ newStatus: 'Pending' })
+            })
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(props.onComplete).toHaveBeenCalledTimes(1)
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it('removes the listener when the flow closes', async () => {
+            const { unmount } = await openSdk(baseProps())
+            unmount()
+            expect(removeAppStateListener).toHaveBeenCalledTimes(1)
+        })
+
+        // iOS app state follows the whole app, so a resume there says nothing
+        // about whether the SDK screen is still up.
+        it('does not watch app state off Android', async () => {
+            isAndroid = false
+            await openSdk(baseProps())
+            expect(appStateHandler).toBeUndefined()
+        })
     })
 })
