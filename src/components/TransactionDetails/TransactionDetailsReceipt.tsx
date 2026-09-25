@@ -190,7 +190,7 @@ export const TransactionDetailsReceipt = ({
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
                 <Card position="solo" className="p-4">
                     <div className="flex items-center gap-3">
-                        <PerkIcon size="small" />
+                        <PerkIcon size="s" />
                         <div className="flex flex-col gap-1">
                             <span className="text-body-m-semibold text-foreground-primary">
                                 {t('perkBanner.title')}

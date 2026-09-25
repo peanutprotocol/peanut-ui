@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { IconBubble, type IconBubbleColor } from '../IconBubble'
-import { CONCEPT_ICONS, type Concept } from '../conceptIcons'
+import { CONCEPT_ICONS, conceptBubbleFor, type Concept } from '../conceptIcons'
 
 const CONCEPTS = Object.keys(CONCEPT_ICONS) as Concept[]
 
@@ -13,14 +13,34 @@ describe('CONCEPT_ICONS', () => {
         // Icon returns null and warns for a name it does not know
         expect(bubble.querySelector('svg, img')).toBeInTheDocument()
         expect(warn).not.toHaveBeenCalled()
-        expect(bubble).toHaveClass(`bg-background-icon-bubble-${CONCEPT_ICONS[concept].color}`)
+        const { color } = CONCEPT_ICONS[concept]
+        expect(bubble).toHaveClass(color === 'brand' ? 'bg-background-brand' : `bg-background-icon-bubble-${color}`)
         warn.mockRestore()
     })
 
-    test('uses only the icon-bubble tones, no brand or logo fill', () => {
+    // TASK-22761: a concept is a method (blue) or Peanut's own (pink). green,
+    // yellow, red and gray are states and never name a concept.
+    test('uses only blue or pink', () => {
         for (const concept of CONCEPTS) {
-            expect(['green', 'red', 'yellow', 'gray', 'blue']).toContain(CONCEPT_ICONS[concept].color)
+            expect(['blue', 'brand']).toContain(CONCEPT_ICONS[concept].color)
         }
+    })
+
+    test("Peanut's own concepts are pink", () => {
+        for (const concept of ['peanutUser', 'friends', 'card', 'rewards', 'badges'] as const) {
+            expect(CONCEPT_ICONS[concept].color).toBe('brand')
+        }
+    })
+
+    test('a state swaps the color and keeps the concept icon', () => {
+        expect(conceptBubbleFor('sendLink', 'completed')).toEqual({ icon: 'link', color: 'blue' })
+        expect(conceptBubbleFor('card', 'completed').color).toBe('brand')
+        expect(conceptBubbleFor('sendLink', 'pending')).toEqual({ icon: 'link', color: 'yellow' })
+        expect(conceptBubbleFor('crypto', 'processing').color).toBe('yellow')
+        expect(conceptBubbleFor('bank', 'failed').color).toBe('red')
+        expect(conceptBubbleFor('card', 'cancelled').color).toBe('gray')
+        expect(conceptBubbleFor('card', 'refunded').color).toBe('gray')
+        expect(conceptBubbleFor('qrPay').color).toBe('blue')
     })
 
     test('gray stays the inactive tone: no concept is gray', () => {

@@ -42,7 +42,7 @@ export function PerkRewardReceipt({
             {/* head (board composition): centered icon → type line → amount →
                 badge. Completed = base state, no badge (states board). */}
             <div className="flex flex-col items-center gap-3 text-center">
-                <PerkIcon size="medium" />
+                <PerkIcon size="m" />
                 <div className="flex w-full flex-col items-center gap-2">
                     <div className="flex w-full flex-col items-center gap-1">
                         <h2 className="text-body-xs text-foreground-secondary">{t('perk.title')}</h2>

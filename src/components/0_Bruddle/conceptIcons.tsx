@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import { PEANUTMAN } from '@/assets/mascot'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
+import { type StatusType } from '@/components/Global/Badges/Badge'
 import { type IconBubbleColor } from './IconBubble'
 
 /**
@@ -13,9 +15,10 @@ import { type IconBubbleColor } from './IconBubble'
  * concepts: they name one country, network or brand and keep their own image
  * in the same leading slot.
  *
- * Blue is the method color (the IconBubble showcase: "blue plain information
- * or a neutral method/action icon", gray is inactive). Yellow marks what is
- * Peanut's own: the Peanut user, friends, the card, rewards.
+ * Blue = a method, an identity object or plain information; pink = Peanut's
+ * own (the Peanut user, friends, the card, rewards, badges). A concept's color
+ * never changes with status: where a row shows state, STATE_BUBBLE_COLORS
+ * below swaps the color and the concept keeps its icon (TASK-22761).
  */
 export const CONCEPT_ICONS = {
     bank: { icon: 'bank', color: 'blue' },
@@ -34,12 +37,36 @@ export const CONCEPT_ICONS = {
     // 5/8 of the bubble: 20px in the s bubble, as the mascot was drawn there
     peanutUser: {
         icon: <Image src={PEANUTMAN} alt="" className="h-5/8 w-auto" />,
-        color: 'yellow',
+        color: 'brand',
     },
-    friends: { icon: 'users', color: 'yellow' },
-    card: { icon: 'credit-card', color: 'yellow' },
-    rewards: { icon: 'trophy', color: 'yellow' },
-    badges: { icon: 'achievements', color: 'yellow' },
+    friends: { icon: 'users', color: 'brand' },
+    card: { icon: 'credit-card', color: 'brand' },
+    // the points star, drawn like the mascot above
+    rewards: {
+        icon: <Image src={STAR_STRAIGHT_ICON} alt="" className="h-5/8 w-auto" />,
+        color: 'brand',
+    },
+    badges: { icon: 'achievements', color: 'brand' },
 } as const satisfies Record<string, { icon: IconName | React.ReactElement; color: IconBubbleColor }>
 
 export type Concept = keyof typeof CONCEPT_ICONS
+
+/**
+ * In a list that mixes states (activity rows, the receipt head, Unlock
+ * payments, the identity verification row) the icon is the concept and the
+ * color is the state. A status missing here (completed, active, closed)
+ * keeps the concept's own color.
+ */
+export const STATE_BUBBLE_COLORS: Partial<Record<StatusType, IconBubbleColor>> = {
+    pending: 'yellow',
+    processing: 'yellow',
+    failed: 'red',
+    cancelled: 'gray',
+    refunded: 'gray',
+}
+
+/** The concept's bubble, colored by the row's state. */
+export const conceptBubbleFor = (concept: Concept, status?: StatusType) => ({
+    icon: CONCEPT_ICONS[concept].icon,
+    color: (status && STATE_BUBBLE_COLORS[status]) || CONCEPT_ICONS[concept].color,
+})

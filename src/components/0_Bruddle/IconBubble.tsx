@@ -2,7 +2,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
 type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
-export type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'brand' | 'logo'
+export type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'brand'
 
 interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     icon: IconName | React.ReactElement
@@ -28,6 +28,16 @@ const bubbleIconSizes: Record<IconBubbleSize, number> = {
     l: 40,
 }
 
+/**
+ * One meaning per color (TASK-22761):
+ * - green: done. success screens, completed steps. never a concept.
+ * - yellow: waiting or needs you. pending, processing, warnings, confirms. never a concept.
+ * - red: failed or blocked. errors, destructive confirms, error empty states.
+ * - blue: a method, an identity object or plain information.
+ * - brand (pink): Peanut's own. the Peanut user, friends, card, rewards, badges.
+ *   never an error or warning, never an implicit default.
+ * - gray: inactive. not available, cancelled, empty results, nothing selected.
+ */
 const bubbleColors: Record<IconBubbleColor, string> = {
     green: 'bg-background-icon-bubble-green',
     red: 'bg-background-icon-bubble-red',
@@ -37,9 +47,6 @@ const bubbleColors: Record<IconBubbleColor, string> = {
     // no iconBubble/brand variable exists in figma; the brand fill is the
     // same semantic token the brand surfaces already use.
     brand: 'bg-background-brand',
-    // board icon.bubble.color.logo (17370:154707): brand/payment mark fills the
-    // bubble — no colored background, content clipped round
-    logo: 'overflow-hidden',
 }
 
 /**
