@@ -12,7 +12,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -695,19 +695,22 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
+/** The concept each icon row names; a row without one is a blue method. */
+const ROW_CONCEPTS: Partial<Record<UnlockRow['labelKey'], Concept>> = {
+    p2p: 'peanutUser',
+    card: 'card',
+    crypto: 'crypto',
+    qrPay: 'qrPay',
+}
+
 /**
- * Peanut-native rows keep their concept bubble (CONCEPT_ICONS) instead of the
- * status-color bubble every other row uses: the Peanut user and the card look
- * the same here as on the Send page and in activity.
+ * icon = the row's concept (the Peanut user and the card look the same here as
+ * on the Send page and in activity), color = the chip's state (BUBBLE_COLOR).
  */
 function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
-    if (row.labelKey === 'p2p') {
-        return <IconBubble {...CONCEPT_ICONS.peanutUser} size={size} />
-    }
-    if (row.labelKey === 'card') {
-        return <IconBubble {...CONCEPT_ICONS.card} size={size} />
-    }
-    return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
+    const concept = ROW_CONCEPTS[row.labelKey]
+    const { icon, color } = concept ? CONCEPT_ICONS[concept] : { icon: row.icon as IconName, color: 'blue' as const }
+    return <IconBubble icon={icon} size={size} color={BUBBLE_COLOR[row.chip] ?? color} />
 }
 
 const RowSection = ({

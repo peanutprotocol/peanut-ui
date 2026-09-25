@@ -40,12 +40,17 @@ export function isRowTappable(row: UnlockRow, isKycDegraded: boolean): boolean {
 
 type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
 
-/** IconBubble color per chip — used only by rows that still lead with an icon (the Peanut group). */
-export const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
+/**
+ * IconBubble color per chip, for the rows that lead with an icon. `null` keeps
+ * the row's concept color (qr, pix and crypto blue; P2P and card pink): an
+ * available or unlockable method is that method. Waiting is yellow, not
+ * available is gray (TASK-22761).
+ */
+export const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor | null> = {
+    active: null,
+    alwaysOn: null,
+    unlock: null,
+    processing: 'yellow',
     attention: 'yellow',
     notAvailable: 'gray',
 }
