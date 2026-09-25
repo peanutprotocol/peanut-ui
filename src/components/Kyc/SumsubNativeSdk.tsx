@@ -7,6 +7,7 @@ import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
+import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
@@ -21,6 +22,13 @@ const STALE_INSTANCE_ERROR = 'Aborted since another instance is in use!'
 
 const isStaleInstanceError = (error: unknown) =>
     (error instanceof Error ? error.message : String(error)).includes(STALE_INSTANCE_ERROR)
+
+/**
+ * How long a resumed Android WebView waits for the plugin's close callback
+ * before it treats the native SDK screen as destroyed. A normal close sends
+ * the callback as the SDK screen finishes, well inside this window.
+ */
+export const ORPHANED_SDK_GRACE_MS = 2000
 
 /**
  * Drives the Sumsub Cordova SDK inside the Capacitor shell.
@@ -100,7 +108,23 @@ export const SumsubNativeSdk = ({
 
         let instance: SNSMobileSDKInstance | null = null
         let cancelled = false
+        let settled = false
         let hasSubmitted = false
+        let orphanTimer: ReturnType<typeof setTimeout> | undefined
+        let removeResumeListener: (() => void) | undefined
+
+        const handleExit = (status: string | undefined) => {
+            // Native status is per level. Only the backend confirms a complete workflow.
+            const closedSubmitted = SUBMITTED_STATES.has(status ?? '')
+            if (!isMultiLevelRef.current && (hasSubmitted || closedSubmitted)) {
+                onCompleteRef.current()
+            } else {
+                // The level they DID finish still counts for the funnel —
+                // routing this as a close must not also lose the submit.
+                if (hasSubmitted || closedSubmitted) onSubmittedRef.current?.()
+                onCloseRef.current()
+            }
+        }
 
         try {
             instance = sumsub
@@ -133,33 +157,65 @@ export const SumsubNativeSdk = ({
 
             void launchWithStaleLockRecovery().then(
                 (result) => {
-                    if (cancelled) return
+                    if (cancelled || settled) return
+                    settled = true
                     if (result?.success === false) {
                         reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
                         return
                     }
-                    // Native status is per level. Only the backend confirms a complete workflow.
-                    const closedSubmitted = SUBMITTED_STATES.has(result?.status ?? '')
-                    if (!isMultiLevelRef.current && (hasSubmitted || closedSubmitted)) {
-                        onCompleteRef.current()
-                    } else {
-                        // The level they DID finish still counts for the funnel —
-                        // routing this as a close must not also lose the submit.
-                        if (hasSubmitted || closedSubmitted) onSubmittedRef.current?.()
-                        onCloseRef.current()
-                    }
+                    handleExit(result?.status)
                 },
                 (error) => {
-                    if (cancelled) return
+                    if (cancelled || settled) return
+                    settled = true
                     reportFailure('launch-rejected', error)
                 }
             )
+
+            // Android runs the SDK as its own activity above the WebView's, so
+            // the WebView only resumes once the SDK screen is gone. If the OS
+            // destroyed that screen (task cleared, activity reclaimed), the plugin
+            // never calls back: launch() stays pending, the instance lock stays
+            // held, and Verify does nothing until the app is killed. A resume
+            // with no callback after a grace period means exactly that, so
+            // release the lock and exit the flow like a normal close. iOS is
+            // excluded: its app state follows the whole app, not the WebView,
+            // so a resume there says nothing about the SDK screen.
+            if (isAndroidNativeBridge()) {
+                void import('@capacitor/app')
+                    .then(({ App }) =>
+                        App.addListener('appStateChange', ({ isActive }) => {
+                            // Capacitor reports active on every resume but inactive
+                            // only once the WebView is fully covered. A resume just
+                            // before the SDK screen opens (a permission prompt) is
+                            // followed by that inactive, which cancels the check.
+                            clearTimeout(orphanTimer)
+                            if (!isActive || settled || cancelled) return
+                            orphanTimer = setTimeout(() => {
+                                if (settled || cancelled) return
+                                settled = true
+                                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED, { platform: 'native' })
+                                sumsub.reset?.()
+                                handleExit(undefined)
+                            }, ORPHANED_SDK_GRACE_MS)
+                        })
+                    )
+                    .then((handle) => {
+                        if (cancelled) void handle.remove()
+                        else removeResumeListener = () => void handle.remove()
+                    })
+                    .catch(() => {
+                        // no app plugin: nothing to recover with
+                    })
+            }
         } catch (error) {
             reportFailure('init-threw', error)
         }
 
         return () => {
             cancelled = true
+            clearTimeout(orphanTimer)
+            removeResumeListener?.()
             // Close the native screen when the React flow ends. The plugin may
             // leave its JavaScript lock behind; the next launch recovers it above.
             try {

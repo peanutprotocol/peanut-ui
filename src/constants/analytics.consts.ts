@@ -233,6 +233,8 @@ export const ANALYTICS_EVENTS = {
     KYC_SDK_LAUNCHED: 'kyc_sdk_launched',
     KYC_SDK_LAUNCH_TIMEOUT: 'kyc_sdk_launch_timeout',
     KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
+    // android destroyed the native sdk screen without a close callback (TASK-22030)
+    KYC_SDK_ORPHANED: 'kyc_sdk_orphaned',
 
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
