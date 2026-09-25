@@ -1764,7 +1764,8 @@
         },
         "claim": {
             "heading": "Recibí pagos en {currency}",
-            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel."
+            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",

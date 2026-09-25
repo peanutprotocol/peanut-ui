@@ -4068,7 +4068,7 @@
         "claim": {
             "heading": "Recibe pagos en {currency}",
             "subheading": "Datos bancarios a tu nombre. Compártelos con empleadores, clientes o plataformas como Deel.",
-            "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
+            "conditionTerms": "Quién puede pagar depende de las reglas de {currency}. Se muestran cuando la cuenta esté abierta.",
             "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
             "benefitStable": "Se comparten una vez y sirven para cada pago",
             "benefitBalance": "Llega en USD al saldo de Peanut",
@@ -4077,7 +4077,8 @@
             "cta": "Abrir cuenta en {currency}",
             "errorTitle": "No pudimos abrir la cuenta",
             "faqSepaShared": "Una cuenta en euros (SEPA) funciona en toda la eurozona. El IBAN puede emitirse en otro país de la UE.",
-            "whoCanPay": "Quién puede pagar"
+            "whoCanPay": "Quién puede pagar",
+            "termsAgreement": "Al abrir la cuenta, aceptas los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",

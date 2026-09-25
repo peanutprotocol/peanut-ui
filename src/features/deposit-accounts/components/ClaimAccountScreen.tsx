@@ -9,12 +9,16 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositFeeLine } from './DepositFeeLine'
 import { DepositRuleList } from './DepositRuleList'
+
+/** Section 8A of the terms; DocsLink retargets it at the reader's locale. */
+const VIRTUAL_ACCOUNT_TERMS_HREF = '/en/terms#virtual-accounts'
 
 /**
  * The claim step — the one screen where the user decides to hold an account.
@@ -116,8 +120,8 @@ export function ClaimAccountScreen({
                 )}
             </div>
             {/*
-             * The CTA is the LAST child, and that is load-bearing rather than
-             * taste. The shell reserves 6rem below the scroller to clear the
+             * The CTA ends the page (only the terms line follows it), and that
+             * is load-bearing rather than taste. The shell reserves 6rem below the scroller to clear the
              * fixed bottom nav, and the reservation clears whatever ends the
              * page. With the Callout after it the reservation cleared the
              * Callout instead, and at 375x667 the button first painted at
@@ -174,15 +178,32 @@ export function ClaimAccountScreen({
                     />
                 )}
                 {!isUnavailable && (
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        loading={isClaiming}
-                        disabled={isClaiming}
-                        onClick={onClaim}
-                    >
-                        {t('claim.cta', { currency: rail.currency })}
-                    </Button>
+                    <>
+                        <Button
+                            variant="primary"
+                            className="w-full"
+                            loading={isClaiming}
+                            disabled={isClaiming}
+                            onClick={onClaim}
+                        >
+                            {t('claim.cta', { currency: rail.currency })}
+                        </Button>
+                        {/* The terms the tap agrees to. It sits under the button,
+                            so the shell reservation still clears the button. */}
+                        <p className="text-center text-body-xs text-foreground-secondary">
+                            {t.rich('claim.termsAgreement', {
+                                currency: rail.currency,
+                                terms: (chunks) => (
+                                    <DocsLink
+                                        href={VIRTUAL_ACCOUNT_TERMS_HREF}
+                                        className="underline underline-offset-2"
+                                    >
+                                        {chunks}
+                                    </DocsLink>
+                                ),
+                            })}
+                        </p>
+                    </>
                 )}
             </PageStack.Footer>
         </PageStack>

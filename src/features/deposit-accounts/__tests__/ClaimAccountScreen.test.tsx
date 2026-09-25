@@ -140,7 +140,9 @@ describe('the claim screen when the backend previewed the terms', () => {
     it('drops the promise that the terms come later, now that they are on screen', () => {
         claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
 
-        expect(screen.queryByText(/You will see them as soon as the account is open/)).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(messages.depositAccounts.claim.conditionTerms.replace('{currency}', 'USD'))
+        ).not.toBeInTheDocument()
         expect(screen.getByText(messages.depositAccounts.claim.conditionNoReference)).toBeInTheDocument()
     })
 
@@ -165,7 +167,9 @@ describe('the claim screen when the backend previewed the terms', () => {
 
         expect(screen.queryByText(messages.depositAccounts.claim.whoCanPay)).not.toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.statePending)).not.toBeInTheDocument()
-        expect(screen.getByText(/You will see them as soon as the account is open/)).toBeInTheDocument()
+        expect(
+            screen.getByText(messages.depositAccounts.claim.conditionTerms.replace('{currency}', 'EUR'))
+        ).toBeInTheDocument()
     })
 })
 
@@ -243,5 +247,23 @@ describe('the timing row on the claim screen', () => {
         claim({ rail: DEPOSIT_RAILS.BANK_TRANSFER_CO })
 
         expect(screen.getByText('Get paid in COP')).toBeInTheDocument()
+    })
+})
+
+/** The tap that opens the account agrees to its terms, so the step links them under the button. */
+describe('the terms line on the claim screen', () => {
+    it('links the virtual account terms under the button', () => {
+        claim()
+
+        const link = screen.getByRole('link', { name: 'EUR account terms' })
+        expect(link.getAttribute('href')).toContain('/terms#virtual-accounts')
+        const cta = screen.getByRole('button', { name: /Open EUR account/i })
+        expect(cta.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows no terms line when the account cannot be opened', () => {
+        claim({ error: 'deposit accounts are not enabled', isUnavailable: true })
+
+        expect(screen.queryByRole('link', { name: 'EUR account terms' })).not.toBeInTheDocument()
     })
 })
