@@ -23401,6 +23401,12 @@
                                                         "anyOf": [
                                                             {
                                                                 "enum": [
+                                                                    "ach"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
                                                                     "ach_same_day"
                                                                 ],
                                                                 "type": "string"

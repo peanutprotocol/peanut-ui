@@ -72,7 +72,7 @@
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 543,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
-        "features/withdraw/views/WithdrawBankReviewView.tsx": 205,
+        "features/withdraw/views/WithdrawBankReviewView.tsx": 214,
         "features/withdraw/views/WithdrawMethodView.tsx": 105
     }
 }

@@ -13411,7 +13411,7 @@ export interface paths {
                             minimumAfterFeeUsd: string;
                             rails: {
                                 feeUsd: string;
-                                rail: "ach_same_day" | "wire";
+                                rail: "ach" | "ach_same_day" | "wire";
                             }[];
                         };
                     };

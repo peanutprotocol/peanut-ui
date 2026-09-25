@@ -55,10 +55,9 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
     if (countryId === 'US' || countryId === 'USA') {
         return {
             currency: 'usd',
-            // Same-day ACH is the default payout and free; the provider sends it
-            // next-day where the bank cannot take same-day. A wire is the paid
-            // choice the withdraw review offers (TASK-23054).
-            paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach_same_day',
+            // Standard ACH is the default payout; the withdraw review offers
+            // same-day ACH (free) and a wire (paid) on top (TASK-23054).
+            paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach',
         }
     }
 

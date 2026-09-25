@@ -65,7 +65,7 @@ jest.mock('@/utils/bridge-accounts.utils', () => ({
 // iso2: 'GB' }, which is exactly what round 6 caught an id-keyed ternary on.
 let mockCountryId = 'US'
 // mutable rail: the reference rides a different request field on each rail
-let mockOfframpConfig = { currency: 'usd', paymentRail: 'ach_same_day' }
+let mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
 jest.mock('@/utils/bridge.utils', () => ({
     getOfframpConfigFromAccount: () => mockOfframpConfig,
     getBankPayout: () => ({ ...mockOfframpConfig, bankConvertsTo: null }),
@@ -100,6 +100,7 @@ jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
 // USD speeds (TASK-23054): the fee table and the account's rails, as the
 // backend answers them. Same-day ACH free and a $20 wire by default.
 let mockSpeedOptions = [
+    { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
     { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
     { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: null },
 ] as Array<{ speed: string; feeUsd: string; minimumUsd: string; block: string | null }>
@@ -243,8 +244,9 @@ beforeEach(() => {
     mockAdvisory = undefined
     mockBalance = 100n * 10n ** 6n
     mockCountryId = 'US'
-    mockOfframpConfig = { currency: 'usd', paymentRail: 'ach_same_day' }
+    mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
     mockSpeedOptions = [
+        { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
         { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
         { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: null },
     ]
@@ -588,10 +590,9 @@ describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
     it('ACH: the reference goes out as achReference, and never as a SEPA or wire field', async () => {
         await submitWithReference('RENT SEP')
 
-        // same-day ACH takes the ACH reference field
         expect(sentDestination()).toEqual({
             currency: 'usd',
-            paymentRail: 'ach_same_day',
+            paymentRail: 'ach',
             externalAccountId: 'ext-1',
             achReference: 'RENT SEP',
         })
@@ -832,7 +833,7 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
     })
 })
 
-describe('useBridgeOfframpFlow — USD speed: same-day ACH or wire (TASK-23054)', () => {
+describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire (TASK-23054)', () => {
     const submit = async (searchParams: Record<string, string>, reference = '') => {
         armHappyOfframp()
         const view = renderFlow(searchParams)
@@ -844,18 +845,38 @@ describe('useBridgeOfframpFlow — USD speed: same-day ACH or wire (TASK-23054)'
     }
     const sent = () => mockCreateOfframp.mock.calls[0][0] as Record<string, unknown>
 
-    it('goes out same-day ACH by default, free, and the bank receives the whole amount', async () => {
+    it('goes out standard ACH by default, free, and the bank receives the whole amount', async () => {
         const view = await submit({ amount: '50', step: 'review' })
 
-        expect(view.result.current.usdSpeed).toMatchObject({
-            selected: 'ach_same_day',
-            feeUsd: '0.00',
-            receivedUsd: '50.00',
-        })
-        expect(sent().destination).toMatchObject({ paymentRail: 'ach_same_day' })
+        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'ach', feeUsd: '0.00', receivedUsd: '50.00' })
+        expect(sent().destination).toMatchObject({ paymentRail: 'ach' })
         // the fee is the backend's to set: the request carries none
         expect(sent()).not.toHaveProperty('developer_fee')
         expect(sent()).not.toHaveProperty('developerFee')
+    })
+
+    it('same day (the ticked box, ?speed=ach_same_day) sends ach_same_day, free, with the ACH reference field', async () => {
+        const view = await submit({ amount: '50', step: 'review', speed: 'ach_same_day' }, 'RENT SEP')
+
+        expect(view.result.current.usdSpeed).toMatchObject({ feeUsd: '0.00', receivedUsd: '50.00' })
+        expect(sent().destination).toEqual({
+            currency: 'usd',
+            paymentRail: 'ach_same_day',
+            externalAccountId: 'ext-1',
+            achReference: 'RENT SEP',
+        })
+    })
+
+    it('picking a speed moves the review to it', async () => {
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect('ach_same_day')
+        })
+        expect(view.result.current.usdSpeed?.selected).toBe('ach_same_day')
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect('wire')
+        })
+        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'wire', feeUsd: '20.00' })
     })
 
     it('a wire goes out on the wire rail with its memo, and the review shows the fee and the net', async () => {
@@ -871,15 +892,15 @@ describe('useBridgeOfframpFlow — USD speed: same-day ACH or wire (TASK-23054)'
         })
     })
 
-    it('a wire that cannot be picked goes out same-day ACH, whatever the URL asks', async () => {
+    it('a wire that cannot be picked goes out standard ACH, whatever the URL asks', async () => {
         mockSpeedOptions = [
-            { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+            { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
             { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: 'belowMinimum' },
         ]
         const view = await submit({ amount: '10', step: 'review', speed: 'wire' })
 
-        expect(view.result.current.usdSpeed?.selected).toBe('ach_same_day')
-        expect(sent().destination).toMatchObject({ paymentRail: 'ach_same_day' })
+        expect(view.result.current.usdSpeed?.selected).toBe('ach')
+        expect(sent().destination).toMatchObject({ paymentRail: 'ach' })
     })
 
     it('while the fees and the account rails load, nothing is sent', async () => {
@@ -889,14 +910,6 @@ describe('useBridgeOfframpFlow — USD speed: same-day ACH or wire (TASK-23054)'
         expect(view.result.current.isSubmitReady).toBe(false)
         expect(mockCreateOfframp).not.toHaveBeenCalled()
         expect(mockSendMoney).not.toHaveBeenCalled()
-    })
-
-    it('picking a speed moves the review to it', async () => {
-        const view = renderFlow({ amount: '50', step: 'review' })
-        await act(async () => {
-            view.result.current.usdSpeed!.onSelect('wire')
-        })
-        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'wire', feeUsd: '20.00' })
     })
 
     it('offers no speed on a non-USD account', () => {

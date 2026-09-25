@@ -446,15 +446,18 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
         details: { countryCode: 'USA', accountOwnerName: 'Anna Rossi' },
     } as unknown as Account
 
+    type Speed = 'ach' | 'ach_same_day' | 'wire'
     const UsdHarness = ({
-        selected,
+        initial,
         wireBlock = null,
         onSelect = jest.fn(),
     }: {
-        selected: 'ach_same_day' | 'wire'
+        initial: Speed
         wireBlock?: 'belowMinimum' | 'accountCannotTake' | null
-        onSelect?: (speed: 'ach_same_day' | 'wire') => void
+        onSelect?: (speed: Speed) => void
     }) => {
+        // the flow hook holds the speed in the URL; the harness holds it here
+        const [selected, setSelected] = React.useState<Speed>(initial)
         const feeUsd = selected === 'wire' ? '20.00' : '0.00'
         return (
             <WithdrawBankReviewView
@@ -479,11 +482,15 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
                 onDone={jest.fn()}
                 usdSpeed={{
                     options: [
+                        { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
                         { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
                         { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: wireBlock },
                     ],
                     selected,
-                    onSelect,
+                    onSelect: (speed) => {
+                        onSelect(speed)
+                        setSelected(speed)
+                    },
                     feeUsd,
                     receivedUsd: selected === 'wire' ? '30.00' : '50.00',
                 }}
@@ -492,19 +499,46 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
     }
 
     const row = (label: string) => screen.getByText(label).closest('div')!.parentElement!
+    const sameDayBox = () => screen.queryByRole('checkbox', { name: /Same day/ })
 
-    it('states both speeds with their fees before anything is confirmed', () => {
-        renderWithIntl(<UsdHarness selected="ach_same_day" />)
-        expect(screen.getByText('Same day (ACH)')).toBeInTheDocument()
-        expect(screen.getByText('Usually the same business day, otherwise the next')).toBeInTheDocument()
-        expect(screen.getByText('Free')).toBeInTheDocument()
+    it('states both speeds with their fees, and offers same day under ACH, unticked', () => {
+        renderWithIntl(<UsdHarness initial="ach" />)
+        expect(screen.getByText('Bank transfer (ACH)')).toBeInTheDocument()
+        expect(screen.getByText('1–3 business days')).toBeInTheDocument()
         expect(screen.getByText('Wire')).toBeInTheDocument()
         expect(screen.getByText(/\$20(\.00)? fee/)).toBeInTheDocument()
-        expect(screen.getByTestId('usd-speed-ach_same_day')).toHaveAttribute('aria-checked', 'true')
+        expect(screen.getByTestId('usd-speed-ach')).toHaveAttribute('aria-checked', 'true')
+        expect(sameDayBox()).not.toBeChecked()
+        expect(screen.getByText('Same day · Free')).toBeInTheDocument()
+        expect(screen.getByText('Usually the same business day, otherwise the next')).toBeInTheDocument()
+    })
+
+    it('ticking same day picks ach_same_day; unticking goes back to ach', () => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness initial="ach" onSelect={onSelect} />)
+        fireEvent.click(sameDayBox()!)
+        expect(onSelect).toHaveBeenLastCalledWith('ach_same_day')
+        expect(sameDayBox()).toBeChecked()
+        fireEvent.click(sameDayBox()!)
+        expect(onSelect).toHaveBeenLastCalledWith('ach')
+    })
+
+    it('a wire hides the same-day box, and going back to ACH keeps what it said', () => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness initial="ach" onSelect={onSelect} />)
+        fireEvent.click(sameDayBox()!)
+
+        fireEvent.click(screen.getByTestId('usd-speed-wire'))
+        expect(onSelect).toHaveBeenLastCalledWith('wire')
+        expect(sameDayBox()).toBeNull()
+
+        fireEvent.click(screen.getByTestId('usd-speed-ach'))
+        expect(onSelect).toHaveBeenLastCalledWith('ach_same_day')
+        expect(sameDayBox()).toBeChecked()
     })
 
     it('a wire shows its fee on its own line and what the bank receives', () => {
-        renderWithIntl(<UsdHarness selected="wire" />)
+        renderWithIntl(<UsdHarness initial="wire" />)
         expect(screen.getByTestId('usd-speed-wire')).toHaveAttribute('aria-checked', 'true')
         expect(row('Fee')).toHaveTextContent(/\$20(\.00)?/)
         expect(row('Bank receives')).toHaveTextContent(/\$30(\.00)?/)
@@ -512,19 +546,12 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
         expect(screen.getByText(/Up to 140 characters/)).toBeInTheDocument()
     })
 
-    it('picking a speed reports it', () => {
-        const onSelect = jest.fn()
-        renderWithIntl(<UsdHarness selected="ach_same_day" onSelect={onSelect} />)
-        fireEvent.click(screen.getByTestId('usd-speed-wire'))
-        expect(onSelect).toHaveBeenCalledWith('wire')
-    })
-
     it.each([
         ['belowMinimum' as const, /Needs at least \$21(\.00)?/],
         ['accountCannotTake' as const, /This account cannot receive a wire/],
     ])('a wire that cannot be picked says why (%s) and takes no tap', (block, reason) => {
         const onSelect = jest.fn()
-        renderWithIntl(<UsdHarness selected="ach_same_day" wireBlock={block} onSelect={onSelect} />)
+        renderWithIntl(<UsdHarness initial="ach" wireBlock={block} onSelect={onSelect} />)
         expect(screen.getByText(reason)).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('usd-speed-wire'))
         expect(onSelect).not.toHaveBeenCalled()

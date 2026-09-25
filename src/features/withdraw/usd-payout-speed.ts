@@ -1,15 +1,16 @@
 /**
- * The two speeds a USD bank withdrawal can take (TASK-23054).
+ * The speeds a USD bank withdrawal can take (TASK-23054).
  *
- * Same-day ACH is the default and free. A wire costs a flat fee that the
- * backend sets and charges (GET /bridge/offramp/rail-fees); the app never
- * holds a number of its own. The provider withholds the fee from the payout,
- * so the bank receives the amount less the fee.
+ * Standard ACH is the default and free; same-day ACH is a free opt-in on it.
+ * A wire costs a flat fee that the backend sets and charges (GET
+ * /bridge/offramp/rail-fees); the app never holds a number of its own. The
+ * provider withholds the fee from the payout, so the bank receives the amount
+ * less the fee.
  */
 
-export const USD_PAYOUT_SPEEDS = ['ach_same_day', 'wire'] as const
+export const USD_PAYOUT_SPEEDS = ['ach', 'ach_same_day', 'wire'] as const
 export type UsdPayoutSpeed = (typeof USD_PAYOUT_SPEEDS)[number]
-export const DEFAULT_USD_PAYOUT_SPEED: UsdPayoutSpeed = 'ach_same_day'
+export const DEFAULT_USD_PAYOUT_SPEED: UsdPayoutSpeed = 'ach'
 
 /** Why a speed cannot be picked for this withdrawal. */
 export type UsdPayoutSpeedBlock = 'belowMinimum' | 'accountCannotTake'
@@ -52,12 +53,12 @@ export function usdPayoutSpeedOptions({
         if (!listed && speed !== DEFAULT_USD_PAYOUT_SPEED) return []
         const feeUsd = listed?.feeUsd ?? '0.00'
         const minimum = Number(feeUsd) + minimumAfterFee
-        // Same-day ACH is never blocked: the provider sends it next-day where
-        // the bank cannot take same-day (apidocs, processing windows).
+        // Only a wire can be blocked. Same-day ACH goes out next-day where the
+        // bank cannot take same-day (apidocs, processing windows).
         const block: UsdPayoutSpeedBlock | null =
-            speed !== DEFAULT_USD_PAYOUT_SPEED && supportedRails && !supportedRails.includes(speed)
+            speed === 'wire' && supportedRails && !supportedRails.includes(speed)
                 ? 'accountCannotTake'
-                : Number(feeUsd) > 0 && !(amountUsd >= minimum)
+                : speed === 'wire' && Number(feeUsd) > 0 && !(amountUsd >= minimum)
                   ? 'belowMinimum'
                   : null
         return [{ speed, feeUsd, minimumUsd: minimum.toFixed(2), block }]

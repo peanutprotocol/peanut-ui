@@ -15,6 +15,7 @@ const FEES = {
     currency: 'USD',
     minimumAfterFeeUsd: '1.00',
     rails: [
+        { rail: 'ach', feeUsd: '0.00' },
         { rail: 'ach_same_day', feeUsd: '0.00' },
         { rail: 'wire', feeUsd: '20.00' },
     ],
@@ -52,6 +53,7 @@ describe('useUsdPayoutSpeeds', () => {
 
         await waitFor(() => expect(view.result.current.isReady).toBe(true))
         expect(view.result.current.options.map((option) => [option.speed, option.feeUsd, option.block])).toEqual([
+            ['ach', '0.00', null],
             ['ach_same_day', '0.00', null],
             ['wire', '20.00', null],
         ])
@@ -63,16 +65,16 @@ describe('useUsdPayoutSpeeds', () => {
         const view = render()
 
         await waitFor(() => expect(view.result.current.isReady).toBe(true))
-        expect(view.result.current.options[1]).toMatchObject({ speed: 'wire', block: 'accountCannotTake' })
+        expect(view.result.current.options[2]).toMatchObject({ speed: 'wire', block: 'accountCannotTake' })
     })
 
-    it('a failed fee read leaves same-day ACH alone, and the withdrawal can go ahead', async () => {
+    it('a failed fee read leaves standard ACH alone, and the withdrawal can go ahead', async () => {
         mockGetFees.mockResolvedValue({ error: 'Not found' })
         const view = render()
 
         // one retry after a second, then the answer is final
         await waitFor(() => expect(view.result.current.isReady).toBe(true), { timeout: 4000 })
-        expect(view.result.current.options.map((option) => option.speed)).toEqual(['ach_same_day'])
+        expect(view.result.current.options.map((option) => option.speed)).toEqual(['ach'])
     })
 
     it('reads nothing for a non-USD account', () => {
