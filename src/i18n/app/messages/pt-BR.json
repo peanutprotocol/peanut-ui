@@ -4071,17 +4071,19 @@
             "badgeActionNeeded": "Ação necessária"
         },
         "claim": {
-            "heading": "Dados bancários em {currency}",
-            "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
-            "conditionTerms": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
+            "heading": "Receba pagamentos em {currency}",
+            "subheading": "Dados bancários no seu nome. Compartilhe com empregadores, clientes ou plataformas como a Deel.",
+            "conditionTerms": "Quem pode pagar depende das regras de {currency}. Elas aparecem quando a conta for aberta.",
             "statePending": "As regras do seu estado são confirmadas quando você abre a conta.",
-            "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
-            "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
+            "benefitStable": "Compartilhe uma vez e use em todos os pagamentos",
+            "benefitBalance": "Chega em USD no saldo da Peanut",
             "conditionNoReference": "Sem referência nem código para lembrar.",
             "conditionReference": "Toda transferência precisa da referência mostrada com seus dados; sem ela não dá para associá-la à sua conta.",
             "cta": "Abrir conta em {currency}",
             "errorTitle": "Não conseguimos abrir a conta",
-            "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE."
+            "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE.",
+            "whoCanPay": "Quem pode pagar",
+            "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4099,7 +4101,6 @@
             "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
             "referenceRequired": "Toda transferência precisa desta referência.",
-            "whoCanPay": "Quem pode pagar",
             "termsToggle": "Limites e tarifas",
             "residenceCta": "Atualizar residência",
             "qrPayCta": "Pagar um código QR"
@@ -4146,22 +4147,27 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
+                "arrivalShort": "Costuma chegar no mesmo dia útil (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
                 "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
+                "arrivalShort": "Costuma chegar em minutos (Faster Payments)",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
                 "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
+                "arrivalShort": "De 1 a 3 dias úteis por ACH, no mesmo dia por wire",
                 "railName": "ACH ou wire"
             },
             "SPEI_MX": {
                 "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
+                "arrivalShort": "Costuma chegar em minutos (SPEI)",
                 "railName": "SPEI"
             },
             "PIX_BR": {
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
+                "arrivalShort": "Costuma chegar em minutos (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Residência necessária",
                 "residenceRequired": "Só residentes legais no Brasil podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
@@ -4169,6 +4175,7 @@
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
+                "arrivalShort": "Costuma chegar em minutos",
                 "railName": "Banco ou Mercado Pago",
                 "residenceTitle": "Residência necessária",
                 "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
@@ -4176,7 +4183,8 @@
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos."
+                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos.",
+                "arrivalShort": "Costuma chegar em minutos (Bre-B)"
             }
         },
         "gate": {
@@ -4228,7 +4236,7 @@
                 "why": "Pagamentos de qualquer pessoa são aceitos nesta moeda, em qualquer valor. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownOrBusinessAny": {
-                "line": "Conta própria ou empresa: qualquer valor",
+                "line": "Conta própria ou uma empresa: qualquer valor",
                 "why": "Transferências da sua própria conta bancária e pagamentos de uma empresa não têm limite de valor, então salário e faturas passam sem mudança. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownAccount": {
@@ -4244,15 +4252,15 @@
                 "why": "Ainda não são aceitas transferências da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessAny": {
-                "line": "Empresa: qualquer valor",
+                "line": "Uma empresa: qualquer valor",
                 "why": "Um pagamento de uma empresa não tem limite. Salário e faturas passam sem mudança."
             },
             "businessNotYet": {
-                "line": "Empresa: ainda não",
+                "line": "Uma empresa: ainda não",
                 "why": "Pagamentos de empresas ainda não estão disponíveis nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessUnconfirmed": {
-                "line": "Empresa: não confirmado",
+                "line": "Uma empresa: não confirmado",
                 "why": "Pagamentos de empresas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "individualAny": {
@@ -4280,7 +4288,7 @@
                 "why": "Pagamentos de outras pessoas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {
-                "line": "Depósito mínimo: {min}",
+                "line": "Mínimo: {min}",
                 "why": "Os depósitos devem ser de pelo menos {min}, incluindo pagamentos de teste."
             },
             "stateRestricted": {
@@ -4292,7 +4300,7 @@
                 "why": "Só é creditada uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
             },
             "businessAllowed": {
-                "line": "Empresa: aceito",
+                "line": "Uma empresa: sim",
                 "why": "Empresas registradas podem te pagar. Os limites mostrados aqui continuam valendo."
             },
             "maximum": {

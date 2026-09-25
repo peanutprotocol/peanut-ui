@@ -11,6 +11,7 @@
 
 import type { Fixture } from './types'
 import {
+    CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
     DEPOSIT_RAIL_POLICY,
@@ -1290,6 +1291,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_EUR] },
+        },
+    },
+    'get-paid-claim-cop': {
+        route: '/add-money?method=bank&step=claim&corridor=BANK_TRANSFER_CO',
+        about: 'The same step on the Bre-B peso corridor: a business may pay, other people not yet, with a floor.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_COP] },
         },
     },
     'get-paid-details-eur': {

@@ -197,9 +197,9 @@ describe('the details screen, collapsed and open', () => {
     const secondary = [
         messages.depositAccounts.rules.ownOrBusinessAny.line,
         // a round amount without cents, and no closing period (QA 2026-09-24)
-        'Anyone else: under €4,000 per transfer',
+        'Other people: Under €4,000 per transfer',
         messages.depositAccounts.rules.individualCapFamily.line,
-        'Minimum deposit: €1',
+        'Minimum: €1',
         messages.depositAccounts.fees.converted,
         messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
     ]
@@ -224,7 +224,7 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.getByRole('button', { name: messages.depositAccounts.details.shareCta })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta })).toBeInTheDocument()
         for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
-        expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.whoCanPay)).not.toBeInTheDocument()
         // "Bank details" is the screen title only; no section header repeats it over the card
         expect(messages.depositAccounts.title).toBe(messages.depositAccounts.details.sectionTitle)
         expect(screen.getAllByText(messages.depositAccounts.details.sectionTitle)).toHaveLength(1)
@@ -275,7 +275,7 @@ describe('the details screen, collapsed and open', () => {
         openTerms()
         expect(screen.getAllByText(messages.depositAccounts.rules.individualNotYet.line)).toHaveLength(1)
         expect(screen.getAllByText(messages.depositAccounts.rules.ownOrBusinessAny.line)).toHaveLength(1)
-        expect(screen.getByText('Minimum deposit: £2')).toBeInTheDocument()
+        expect(screen.getByText('Minimum: £2')).toBeInTheDocument()
     })
 
     it('reveals who can pay, the fee and the timing when the toggle opens', () => {

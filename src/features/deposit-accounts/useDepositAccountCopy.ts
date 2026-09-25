@@ -41,6 +41,21 @@ const ARRIVAL_DETAIL_KEYS = {
 } as const satisfies Record<DepositCorridor, string>
 
 /**
+ * The same timing as one short row for the claim step's benefit list. The
+ * full sentence stays for the details toggle and the payer's bank-transfer
+ * screen, where it sits among other sentences.
+ */
+const ARRIVAL_SHORT_KEYS = {
+    SEPA_EU: 'corridors.SEPA_EU.arrivalShort',
+    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrivalShort',
+    ACH_US: 'corridors.ACH_US.arrivalShort',
+    SPEI_MX: 'corridors.SPEI_MX.arrivalShort',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrivalShort',
+    PIX_BR: 'corridors.PIX_BR.arrivalShort',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalShort',
+} as const satisfies Record<DepositCorridor, string>
+
+/**
  * Every payment rail a corridor can name, written out for the same reason as
  * the corridor keys above: a rail Bridge starts returning without its copy
  * fails the build instead of reaching a user as `transfer_ar`.
@@ -154,6 +169,7 @@ export function useDepositAccountCopy() {
 
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
+    const arrivalShort = (corridor: DepositCorridor) => t(ARRIVAL_SHORT_KEYS[corridor])
 
     /**
      * The rails ONE account takes, for the heading above its details. The
@@ -177,6 +193,7 @@ export function useDepositAccountCopy() {
         railName,
         accountRailName,
         arrivalDetail,
+        arrivalShort,
         claimErrorBody,
         feeLine,
     }

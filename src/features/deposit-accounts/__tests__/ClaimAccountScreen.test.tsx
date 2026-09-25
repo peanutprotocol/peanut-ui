@@ -1,13 +1,16 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { ClaimAccountScreen } from '../components/ClaimAccountScreen'
-import { CLAIMABLE_EUR, CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
+import { CLAIMABLE_COP, CLAIMABLE_EUR, CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
 import { DEPOSIT_RAILS } from '../rails'
 import type { ClaimableCorridor, DepositRail } from '../types'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+
+const openWhoCanPay = () =>
+    fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.claim.whoCanPay }))
 
 type ClaimProps = { error?: string; isUnavailable?: boolean; rail?: DepositRail; terms?: ClaimableCorridor }
 
@@ -81,8 +84,9 @@ describe('the CTA ends the page, so the shell reservation clears it', () => {
             messages.depositAccounts.claim.statePending,
         ],
     ])('puts %s above the button', (_name, props, noteText) => {
-        const { rail } = props as ClaimProps
+        const { rail, terms } = props as ClaimProps
         claim(props as ClaimProps)
+        if (terms) openWhoCanPay()
         const cta = screen.getByRole('button', { name: new RegExp(`Open ${rail?.currency ?? 'EUR'} account`, 'i') })
         expect(orderOf(cta, screen.getByText(noteText))).toBe('note-first')
     })
@@ -97,36 +101,61 @@ describe('the claim screen when the backend previewed the terms', () => {
     // QA 2026-09-24: each rule once per screen — the floor is a rule line, not a second "good to know" item
     it('states the minimum deposit once', () => {
         claim({ terms: CLAIMABLE_EUR })
+        openWhoCanPay()
 
-        expect(screen.getAllByText(/Minimum deposit/)).toHaveLength(1)
-        expect(screen.getByText('Minimum deposit: €1')).toBeInTheDocument()
+        expect(screen.getAllByText(/Minimum/)).toHaveLength(1)
+        expect(screen.getByText('Minimum: €1')).toBeInTheDocument()
     })
 
     const ruleText = (key: keyof typeof messages.depositAccounts.rules) => messages.depositAccounts.rules[key].line
 
-    it('states who may pay in: the holder, a business, another person', () => {
+    // TASK-23054: the terms sit behind one closed toggle, so the benefit rows are the screen
+    it('keeps who may pay in behind a closed toggle', () => {
         claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
 
-        expect(screen.getByText(messages.depositAccounts.details.whoCanPay)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: messages.depositAccounts.claim.whoCanPay })).toHaveAttribute(
+            'aria-expanded',
+            'false'
+        )
+        expect(screen.queryByText(ruleText('ownOrBusinessAny'))).not.toBeInTheDocument()
+    })
+
+    it('states who may pay in: the holder, a business, another person', () => {
+        claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
+        openWhoCanPay()
+
         expect(screen.getByText(ruleText('ownOrBusinessAny'))).toBeInTheDocument()
-        expect(screen.getByText('Anyone else: under $4,000 per transfer')).toBeInTheDocument()
+        expect(screen.getByText('Other people: Under $4,000 per transfer')).toBeInTheDocument()
+    })
+
+    it('states the Colombian terms in the lines the details screen uses', () => {
+        claim({ rail: DEPOSIT_RAILS.BANK_TRANSFER_CO, terms: CLAIMABLE_COP })
+        openWhoCanPay()
+
+        expect(screen.getByText(ruleText('ownAccount'))).toBeInTheDocument()
+        expect(screen.getByText(ruleText('businessAllowed'))).toBeInTheDocument()
+        expect(screen.getByText(ruleText('individualNotYet'))).toBeInTheDocument()
     })
 
     it('drops the promise that the terms come later, now that they are on screen', () => {
         claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
 
-        expect(screen.queryByText(/You will see them as soon as the account is open/)).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(messages.depositAccounts.claim.conditionTerms.replace('{currency}', 'USD'))
+        ).not.toBeInTheDocument()
         expect(screen.getByText(messages.depositAccounts.claim.conditionNoReference)).toBeInTheDocument()
     })
 
     it('says the state rule is still to come only where one exists — the dollar corridor', () => {
         claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
+        openWhoCanPay()
 
         expect(screen.getByText(messages.depositAccounts.claim.statePending)).toBeInTheDocument()
     })
 
     it('says nothing about a state rule on a corridor whose terms are resolved', () => {
         claim({ terms: CLAIMABLE_EUR })
+        openWhoCanPay()
 
         expect(screen.getByText(ruleText('ownOrBusinessAny'))).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.statePending)).not.toBeInTheDocument()
@@ -136,9 +165,11 @@ describe('the claim screen when the backend previewed the terms', () => {
     it('promises the terms with the account when none were previewed', () => {
         claim()
 
-        expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.whoCanPay)).not.toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.statePending)).not.toBeInTheDocument()
-        expect(screen.getByText(/You will see them as soon as the account is open/)).toBeInTheDocument()
+        expect(
+            screen.getByText(messages.depositAccounts.claim.conditionTerms.replace('{currency}', 'EUR'))
+        ).toBeInTheDocument()
     })
 })
 
@@ -196,5 +227,43 @@ describe('the reference condition on the claim screen', () => {
 
         expect(screen.getByText(messages.depositAccounts.claim.conditionReference)).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.conditionNoReference)).not.toBeInTheDocument()
+    })
+})
+
+/** TASK-23054: each corridor states its own timing as one short benefit row */
+describe('the timing row on the claim screen', () => {
+    it.each([
+        ['BANK_TRANSFER_CO', DEPOSIT_RAILS.BANK_TRANSFER_CO],
+        ['SEPA_EU', DEPOSIT_RAILS.SEPA_EU],
+        ['ACH_US', DEPOSIT_RAILS.ACH_US],
+    ] as const)('shows the short %s timing, not the full sentence', (corridor, rail) => {
+        claim({ rail })
+
+        expect(screen.getByText(messages.depositAccounts.corridors[corridor].arrivalShort)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.corridors[corridor].arrivalDetail)).not.toBeInTheDocument()
+    })
+
+    it('titles the step by what the account does', () => {
+        claim({ rail: DEPOSIT_RAILS.BANK_TRANSFER_CO })
+
+        expect(screen.getByText('Get paid in COP')).toBeInTheDocument()
+    })
+})
+
+/** The tap that opens the account agrees to its terms, so the step links them under the button. */
+describe('the terms line on the claim screen', () => {
+    it('links the virtual account terms under the button', () => {
+        claim()
+
+        const link = screen.getByRole('link', { name: 'EUR account terms' })
+        expect(link.getAttribute('href')).toContain('/terms#virtual-accounts')
+        const cta = screen.getByRole('button', { name: /Open EUR account/i })
+        expect(cta.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows no terms line when the account cannot be opened', () => {
+        claim({ error: 'deposit accounts are not enabled', isUnavailable: true })
+
+        expect(screen.queryByRole('link', { name: 'EUR account terms' })).not.toBeInTheDocument()
     })
 })

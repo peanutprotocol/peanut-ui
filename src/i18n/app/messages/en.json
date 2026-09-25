@@ -4071,17 +4071,19 @@
             "badgeActionNeeded": "Action needed"
         },
         "claim": {
-            "heading": "Bank details in {currency}",
-            "subheading": "Real bank details your employer, client or platform already knows how to use.",
-            "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
+            "heading": "Get paid in {currency}",
+            "subheading": "Bank details in your name. Share them with employers, clients or platforms like Deel.",
+            "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
-            "benefitStable": "Hand these details over once — they stay the same for every payment after.",
-            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "benefitStable": "Share once, use for every payment",
+            "benefitBalance": "Arrives as USD in the Peanut balance",
             "conditionNoReference": "No reference or memo to remember.",
             "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
-            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country."
+            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
+            "whoCanPay": "Who can pay",
+            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4099,7 +4101,6 @@
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "referenceRequired": "Every transfer needs this reference.",
-            "whoCanPay": "Who can pay",
             "termsToggle": "Limits and fees",
             "residenceCta": "Update residence",
             "qrPayCta": "Pay a QR code"
@@ -4146,22 +4147,27 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
+                "arrivalShort": "Usually arrives the same business day (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
                 "arrivalDetail": "Faster Payments usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Faster Payments)",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
                 "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
+                "arrivalShort": "1 to 3 business days by ACH, same day by wire",
                 "railName": "ACH or wire"
             },
             "SPEI_MX": {
                 "arrivalDetail": "SPEI transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (SPEI)",
                 "railName": "SPEI"
             },
             "PIX_BR": {
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Residence required",
                 "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
@@ -4169,6 +4175,7 @@
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes",
                 "railName": "Bank or Mercado Pago",
                 "residenceTitle": "Residence required",
                 "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
@@ -4176,7 +4183,8 @@
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Bre-B)"
             }
         },
         "gate": {
@@ -4224,63 +4232,63 @@
                 "why": "Money paid in still lands in your Peanut balance. The name on the account is not your own, so a payroll form that checks the name needs the account holder shown above."
             },
             "anyoneAny": {
-                "line": "Anyone: any amount",
+                "line": "Anyone: Any amount",
                 "why": "Payments from anyone are accepted in this currency, whatever the amount. Contact support before sending more than US$100,000."
             },
             "ownOrBusinessAny": {
-                "line": "Own account or business: any amount",
+                "line": "Own account or a business: Any amount",
                 "why": "Transfers from your own bank account and payments from a business have no amount limit, so salary and invoices go through unchanged. Contact support before sending more than US$100,000."
             },
             "ownAccount": {
-                "line": "Own account: yes",
+                "line": "Own account: Yes",
                 "why": "Transfers from your own bank account are supported. Contact support before sending more than US$100,000."
             },
             "ownAccountMax": {
-                "line": "Own account: up to {max}",
+                "line": "Own account: Up to {max}",
                 "why": "Money you send yourself is a top-up, not a payment from someone else. Transfers from your own account are accepted up to {max} in this currency. If a larger transfer of your own comes back, contact support."
             },
             "ownAccountNo": {
-                "line": "Own account: not yet",
+                "line": "Own account: Not yet",
                 "why": "Transfers from your own bank account are not accepted in this currency yet. We will say so here the day that changes."
             },
             "businessAny": {
-                "line": "Business: any amount",
+                "line": "A business: Any amount",
                 "why": "A payment from a business has no limit. Salary and invoices go through unchanged."
             },
             "businessNotYet": {
-                "line": "Business: not yet",
+                "line": "A business: Not yet",
                 "why": "Payments from a business are not available in this currency yet. We will say so here the day that changes."
             },
             "businessUnconfirmed": {
-                "line": "Business: not confirmed",
+                "line": "A business: Not confirmed",
                 "why": "Payments from a business are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "individualAny": {
-                "line": "Anyone else: any amount",
+                "line": "Other people: Any amount",
                 "why": "Payments from other people are accepted in this currency, so you can hand these details to whoever is paying you."
             },
             "individualCap": {
-                "line": "Anyone else: under {cap} per transfer",
+                "line": "Other people: Under {cap} per transfer",
                 "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
             },
             "individualCapFamily": {
-                "line": "Family with the same surname: any amount",
+                "line": "Family with the same surname: Any amount",
                 "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
             },
             "individualVolume": {
-                "line": "Anyone else: up to {limit} in total",
+                "line": "Other people: Up to {limit} in total",
                 "why": "The total other people may pay into this account is capped at {limit}. The period this total covers is not published, so contact support before a large payment. A business can pay any amount."
             },
             "individualNotYet": {
-                "line": "Anyone else: not yet",
+                "line": "Other people: Not yet",
                 "why": "Payments from other people are not available on this account yet."
             },
             "individualUnconfirmed": {
-                "line": "Anyone else: not confirmed",
+                "line": "Other people: Not confirmed",
                 "why": "Payments from other people are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {
-                "line": "Minimum deposit: {min}",
+                "line": "Minimum: {min}",
                 "why": "Deposits must be at least {min}, including test payments."
             },
             "stateRestricted": {
@@ -4292,7 +4300,7 @@
                 "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
             },
             "businessAllowed": {
-                "line": "Business: supported",
+                "line": "A business: Yes",
                 "why": "Registered businesses can pay you. The limits shown here still apply."
             },
             "maximum": {
