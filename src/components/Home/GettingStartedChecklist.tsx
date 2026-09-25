@@ -203,7 +203,12 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
             >
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-heading-card text-foreground-primary">{t('welcomeTitle')}</span>
+                        {/* es writes "Bienvenid@", which screen readers read as "arroba":
+                            the visible title is hidden from them and a spoken form is read instead */}
+                        <span className="text-heading-card text-foreground-primary">
+                            <span aria-hidden>{t('welcomeTitle')}</span>
+                            <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                        </span>
                         <span className="text-body-s text-foreground-secondary">
                             {t('welcomeBody', { count: items.length })}
                         </span>
