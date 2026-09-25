@@ -30,6 +30,7 @@ function setup(bankRate?: number) {
                           currency: 'EUR',
                           rate: bankRate,
                           initialAmount: '',
+                          initialDenomination: 'EUR',
                           onAmountChange: onDestinationAmountChange,
                           onDenominationChange,
                       }
