@@ -45,7 +45,8 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 }))
 
 const CLABE = { type: 'clabe', identifier: '646180111800000000', details: { countryName: 'mexico' } }
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { accounts: [CLABE] } }) }))
+const IBAN = { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } }
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { accounts: [CLABE, IBAN] } }) }))
 jest.mock('@/hooks/useSavedAddresses', () => ({
     useSavedAddresses: () => ({ savedAddresses: [], isLoading: false, rename: {}, remove: {} }),
 }))
@@ -72,7 +73,10 @@ jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () 
 jest.mock('@/components/Common/SavedAccountsView', () => ({
     __esModule: true,
     default: (props: { onAccountClick: (account: unknown, path: string) => void }) => (
-        <button onClick={() => props.onAccountClick(CLABE, '/withdraw/mexico/bank')}>Saved CLABE</button>
+        <>
+            <button onClick={() => props.onAccountClick(CLABE, '/withdraw/mexico/bank')}>Saved CLABE</button>
+            <button onClick={() => props.onAccountClick(IBAN, '/withdraw/germany/bank')}>Saved IBAN</button>
+        </>
     ),
 }))
 jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
@@ -95,22 +99,37 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
 import { WithdrawFlowProvider } from '../WithdrawFlowContext'
 import WithdrawRoot from '../WithdrawRoot'
 
+// Browser Back from the review lands on the amount step again: the /withdraw
+// layout (flow provider, URL, quote cache) stays, the page remounts.
+function RemountableRoot() {
+    const [mount, setMount] = React.useState(0)
+    return (
+        <>
+            <button onClick={() => setMount((n) => n + 1)}>remount page</button>
+            <WithdrawRoot key={mount} />
+        </>
+    )
+}
+
 let queryClient: QueryClient
+const mockUrlUpdate = jest.fn()
 function renderFromRatesCta(params: Record<string, string>) {
     mockSearchParams = new URLSearchParams(params)
     queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
     render(
-        <NuqsTestingAdapter searchParams={params} hasMemory>
+        <NuqsTestingAdapter searchParams={params} hasMemory onUrlUpdate={mockUrlUpdate}>
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <WithdrawFlowProvider>
-                        <WithdrawRoot />
+                        <RemountableRoot />
                     </WithdrawFlowProvider>
                 </QueryClientProvider>
             </IntlWrapper>
         </NuqsTestingAdapter>
     )
 }
+const currentUrl = () => mockUrlUpdate.mock.calls.at(-1)?.[0].searchParams as URLSearchParams | undefined
+const backToAmountStep = () => fireEvent.click(screen.getByText('remount page'))
 
 const field = () => screen.getByRole('textbox') as HTMLInputElement
 const continueButton = () => screen.getByRole('button', { name: 'Continue' })
@@ -198,6 +217,82 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         fireEvent.click(retry)
         await waitFor(() => expect(field().value).toBe('10'))
     }, 15_000)
+})
+
+/*
+ * Chip 5311722761: Rates amount 10 → saved EUR account → switch the field to
+ * EUR → type 20 → Continue → Back. The USD seed stayed in the URL, so the
+ * remounted step opened on the converted USD and a new quote re-derived the
+ * EUR — replacing the 20 the user typed. The unit the user picked now stays.
+ */
+describe('Rates & fees USD amount → a saved EUR account, then Back from the review', () => {
+    const setEurRate = (rate: string) =>
+        act(() => {
+            queryClient.setQueryData(['bridgeOfframpQuote', 'eur', null], { rate })
+        })
+    const openSavedIban = async () => {
+        mockGetOfframpQuote.mockResolvedValue({ data: { rate: '0.9' } })
+        renderFromRatesCta({ currencyCode: 'EUR', amount: '10' })
+        fireEvent.click(screen.getByText('Saved IBAN'))
+        await waitFor(() => expect(field().value).toBe('10'))
+        expect(screen.getByText('USD')).toBeInTheDocument()
+    }
+
+    it('a bank amount typed in EUR stays 20 EUR after Back and a new quote', async () => {
+        await openSavedIban()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Switch currency' }))
+        await waitFor(() => expect(screen.getByText('EUR')).toBeInTheDocument())
+        // the USD seed leaves the URL with the switch
+        await waitFor(() => expect(currentUrl()?.get('amount')).toBeNull())
+        fireEvent.change(field(), { target: { value: '20' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        expect(lastPush().searchParams.get('destinationAmount')).toBe('20')
+
+        backToAmountStep()
+        await waitFor(() => expect(field().value).toBe('20'))
+        expect(screen.getByText('EUR')).toBeInTheDocument()
+
+        setEurRate('0.95')
+        // the new rate moves the USD under it, never the EUR the user typed
+        await waitFor(() => expect(screen.getByText(/≈ USD 21\.05/)).toBeInTheDocument())
+        expect(field().value).toBe('20')
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        expect(lastPush().searchParams.get('destinationAmount')).toBe('20')
+    })
+
+    it('a USD amount the user kept stays USD after Back; the new quote moves the EUR', async () => {
+        await openSavedIban()
+
+        fireEvent.change(field(), { target: { value: '12' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        expect(lastPush().searchParams.get('destinationAmount')).toBe('10.8')
+
+        backToAmountStep()
+        await waitFor(() => expect(field().value).toBe('12'))
+        expect(screen.getByText('USD')).toBeInTheDocument()
+
+        setEurRate('1')
+        await waitFor(() => expect(screen.getByText(/≈ EUR 12/)).toBeInTheDocument())
+        expect(field().value).toBe('12')
+    })
+
+    it('switching to EUR and back to USD keeps USD as the unit for Back', async () => {
+        await openSavedIban()
+
+        const toggle = () => fireEvent.click(screen.getByRole('button', { name: 'Switch currency' }))
+        toggle()
+        await waitFor(() => expect(screen.getByText('EUR')).toBeInTheDocument())
+        toggle()
+        await waitFor(() => expect(screen.getByText('USD')).toBeInTheDocument())
+        await waitFor(() => expect(currentUrl()?.get('amount')).toBe(field().value))
+
+        backToAmountStep()
+        await waitFor(() => expect(screen.getByText('USD')).toBeInTheDocument())
+    })
 })
 
 describe('Rates & fees USD amount → a new Bridge destination', () => {

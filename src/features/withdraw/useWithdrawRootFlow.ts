@@ -163,6 +163,10 @@ export function useWithdrawRootFlow() {
     // review quotes. Typing in the bank currency never writes `amount`, so its
     // presence here means the entry is in USD.
     const bankUsdEntry = !!bankCurrency && !!urlAmount
+    // The unit the bank-currency field shows right now, set by its unit report.
+    // A ref: the field reports its unit and then its amounts in one flush, before
+    // the URL (and bankUsdEntry) catch up.
+    const bankFieldInUsdRef = useRef(false)
 
     // The same gate the bank submit re-checks (useBridgeOfframpFlow): one
     // minimum source. A GBP, MXN or COP account converts it with the quote rate
@@ -279,10 +283,11 @@ export function useWithdrawRootFlow() {
             // the URL is the durable copy of the typed amount (survives refresh,
             // shareable mid-flow) — nuqs throttles the actual history writes.
             // For a bank-currency amount the USD is only derived; the bank amount is
-            // stored — unless the entry is in USD, whose typed value must survive a refresh.
-            // An unchanged value is not rewritten: a URL write discards a navigation in
-            // flight (Continue's push), and a re-report of the seed must not clear it.
-            if ((!bankCurrency || bankUsdEntry) && newValue !== urlAmount) {
+            // stored — unless the field is in USD, whose typed value must survive a
+            // refresh and Back. An unchanged value is not rewritten: a URL write
+            // discards a navigation in flight (Continue's push), and a re-report of
+            // the seed must not clear it.
+            if ((!bankCurrency || bankFieldInUsdRef.current) && newValue !== urlAmount) {
                 void setUrlAmount(newValue === '' ? null : newValue)
             }
 
@@ -291,7 +296,7 @@ export function useWithdrawRootFlow() {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, urlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, bankUsdEntry]
+        [setUrlAmount, urlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency]
     )
 
     const handleDestinationAmountChange = useCallback(
@@ -305,6 +310,23 @@ export function useWithdrawRootFlow() {
             void setDestinationAmount(next || null)
         },
         [setDestinationAmount, destinationAmount]
+    )
+
+    // The unit the user types in is kept in the URL: `amount` present means USD
+    // (see bankUsdEntry). Switching the field to the bank currency drops the USD,
+    // so Back reopens on the bank amount the user typed and a new quote cannot
+    // replace it; switching to USD stores the USD, so Back reopens on that.
+    const handleBankDenominationChange = useCallback(
+        (symbol: string) => {
+            if (!bankCurrency) return
+            bankFieldInUsdRef.current = symbol === 'USD'
+            if (symbol === 'USD') {
+                if (rawTokenAmount && rawTokenAmount !== urlAmount) void setUrlAmount(rawTokenAmount)
+            } else if (urlAmount) {
+                void setUrlAmount(null)
+            }
+        },
+        [bankCurrency, rawTokenAmount, urlAmount, setUrlAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -498,6 +520,7 @@ export function useWithdrawRootFlow() {
                   initialAmount: bankUsdEntry ? urlAmount : destinationAmount,
                   initialDenomination: bankUsdEntry ? 'USD' : undefined,
                   onDestinationAmountChange: handleDestinationAmountChange,
+                  onDenominationChange: handleBankDenominationChange,
               }
             : null,
         handleAmountChange,
