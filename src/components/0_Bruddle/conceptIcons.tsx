@@ -15,14 +15,21 @@ import { type IconBubbleColor } from './IconBubble'
  *
  * Blue is the method color (the IconBubble showcase: "blue plain information
  * or a neutral method/action icon", gray is inactive). Yellow marks what is
- * Peanut's own: the Peanut user, friends, the card, rewards.
+ * Peanut's own: the Peanut user, friends, the card, rewards. QR pay is pink,
+ * the brand fill: it is the one primary action the bottom nav's QR button
+ * draws in `action-primary`, the same pink (hugo, 2026-09-25).
+ *
+ * The bubble names the concept, never its status: a row's status lives in its
+ * badge, so an available and a locked QR row draw the same pink bubble.
  */
 export const CONCEPT_ICONS = {
     bank: { icon: 'bank', color: 'blue' },
     crypto: { icon: 'coins', color: 'blue' },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
-    qrPay: { icon: 'qr-code', color: 'blue' },
+    qrPay: { icon: 'qr-code', color: 'brand' },
+    // sending to a Pix key (Accounts and payments, Spend section)
+    pixKey: { icon: 'arrow-up-right', color: 'blue' },
     addMoney: { icon: 'arrow-down', color: 'blue' },
     // mirrors addMoney: money in is arrow-down, money out is arrow-up
     withdraw: { icon: 'arrow-up', color: 'blue' },

@@ -1,6 +1,7 @@
 'use client'
 
 import { type IconName } from '@/components/Global/Icons/Icon'
+import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -40,7 +41,9 @@ export type CarouselCTA = {
     id: string
     title: string | React.ReactNode
     description: string | React.ReactNode
-    icon: IconName
+    icon?: IconName
+    /** a product concept's CTA: its CONCEPT_ICONS bubble replaces icon + iconContainerClassName */
+    concept?: Concept
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
@@ -151,7 +154,6 @@ export const useHomeCarouselCTAs = () => {
                 id: 'user-interview',
                 title: t('userInterview.title'),
                 description: t('userInterview.description'),
-                icon: 'peanut-support', // required by the type; hidden — the mascot takes precedence
                 mascotPose: 'waving-hello',
                 // The mascot fills its container, and the shared one is size-8;
                 // widen it so the mascot reads at 44px like the other CTA logos.
@@ -234,8 +236,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'qr-code',
+                concept: 'qrPay',
                 onClick: () => {
                     setIsQRScannerOpen(true)
                 },
@@ -298,8 +299,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'card-offer',
                 title: <span>{t.rich('card.title', { b })}</span>,
                 description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-primary',
-                icon: 'credit-card',
+                concept: 'card',
                 iconSize: 16,
                 onClick: () => {
                     router.push('/card')
@@ -313,8 +313,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'qr-code',
+                concept: 'qrPay',
                 iconSize: 16,
                 onClick: () => {
                     router.push('/profile/accounts-and-payments')

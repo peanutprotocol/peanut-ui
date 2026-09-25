@@ -9,11 +9,15 @@ import { useCallback } from 'react'
 import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
 import { Card } from '@/components/0_Bruddle/Card'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon, type IconName } from '../Icons/Icon'
 import { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
+
+// the avatar takes a CSS color, not a class: the bank concept's bubble fill as a variable
+const BANK_BUBBLE_BG = `var(--color-background-icon-bubble-${CONCEPT_ICONS.bank.color})`
 
 export type PeanutActionDetailsCardTransactionType =
     | 'REQUEST'
@@ -204,10 +208,10 @@ export default function PeanutActionDetailsCard({
             <AvatarWithBadge
                 size="m"
                 logo={imgSrc}
-                icon="bank"
-                inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}
+                icon={CONCEPT_ICONS.bank.icon}
+                inlineStyle={{ backgroundColor: BANK_BUBBLE_BG }}
                 iconFillColor={AVATAR_TEXT_DARK}
-                fallback={{ icon: 'bank', bgColor: 'var(--color-background-icon-bubble-blue)' }}
+                fallback={{ icon: CONCEPT_ICONS.bank.icon, bgColor: BANK_BUBBLE_BG }}
             />
         )
     }

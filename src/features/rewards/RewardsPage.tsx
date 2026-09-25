@@ -308,7 +308,7 @@ export function RewardsPage() {
                     <>
                         {/* if user has no invites: canonical empty state with modal button */}
                         <EmptyState
-                            icon="trophy"
+                            concept="rewards"
                             title={t('noInvitesYet')}
                             description={t('shareInviteLinkPrompt')}
                             containerClassName="!mt-8"

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { render } from '@testing-library/react'
 import { IconBubble, type IconBubbleColor } from '../IconBubble'
 import { CONCEPT_ICONS, type Concept } from '../conceptIcons'
@@ -13,14 +15,26 @@ describe('CONCEPT_ICONS', () => {
         // Icon returns null and warns for a name it does not know
         expect(bubble.querySelector('svg, img')).toBeInTheDocument()
         expect(warn).not.toHaveBeenCalled()
-        expect(bubble).toHaveClass(`bg-background-icon-bubble-${CONCEPT_ICONS[concept].color}`)
+        const { color } = CONCEPT_ICONS[concept]
+        expect(bubble).toHaveClass(color === 'brand' ? 'bg-background-brand' : `bg-background-icon-bubble-${color}`)
         warn.mockRestore()
     })
 
-    test('uses only the icon-bubble tones, no brand or logo fill', () => {
+    test('uses the icon-bubble tones; only QR pay takes the brand fill, never a logo fill', () => {
         for (const concept of CONCEPTS) {
-            expect(['green', 'red', 'yellow', 'gray', 'blue']).toContain(CONCEPT_ICONS[concept].color)
+            const allowed = concept === 'qrPay' ? ['brand'] : ['green', 'red', 'yellow', 'gray', 'blue']
+            expect(allowed).toContain(CONCEPT_ICONS[concept].color)
         }
+    })
+
+    // QA 2026-09-25: the nav QR button was pink and the Accounts and payments
+    // QR row green. The brand fill is the nav button's action-primary pink.
+    test('QR pay is the pink of the bottom nav QR button', () => {
+        expect(CONCEPT_ICONS.qrPay).toEqual({ icon: 'qr-code', color: 'brand' })
+        const css = readFileSync(join(__dirname, '..', '..', '..', 'styles', 'globals.css'), 'utf8')
+        const token = (name: string) => css.match(new RegExp(`--color-${name}:\\s*([^;]+);`))?.[1]
+        expect(token('background-brand')).toBeDefined()
+        expect(token('background-brand')).toBe(token('action-primary'))
     })
 
     test('gray stays the inactive tone: no concept is gray', () => {

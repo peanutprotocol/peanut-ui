@@ -1,6 +1,7 @@
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
@@ -39,6 +40,8 @@ export interface ActionModalProps {
     description?: string | React.ReactNode
     /** Semantic bubble color + default icon. Explicit `icon` / `iconContainerClassName` still win. */
     tone?: ActionModalTone
+    /** A product concept's bubble (CONCEPT_ICONS): its icon and color, the same as on every other surface. */
+    concept?: Concept
     icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
@@ -76,6 +79,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     title,
     description,
     tone,
+    concept,
     icon: customIcon,
     iconProps,
     iconContainerClassName: customIconContainerClassName,
@@ -101,8 +105,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
     const defaultModalPanelClasses = 'mx-8 max-w-md'
     const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
-    const toneStyle = tone ? TONE_STYLES[tone] : undefined
-    const icon = customIcon ?? toneStyle?.icon
+    const bubbleStyle = concept ? CONCEPT_ICONS[concept] : tone ? TONE_STYLES[tone] : undefined
+    const icon = customIcon ?? bubbleStyle?.icon
 
     // board bubble is the 48px icon bubble with a 24px icon (17800:57255,
     // 17829:74078) — was a hand-rolled 32px circle with a 16px icon
@@ -167,13 +171,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            color={toneStyle?.color}
+                            color={bubbleStyle?.color}
                             // custom classes AUGMENT the default (or the tone), never
                             // bare-|| replace it — the IconBubble board forbids
                             // resizing the bubble, and the ! overrides existed only
                             // because of the old replace
                             className={twMerge(
-                                toneStyle ? undefined : defaultIconContainerClassName,
+                                bubbleStyle ? undefined : defaultIconContainerClassName,
                                 customIconContainerClassName
                             )}
                             data-testid="action-modal-icon"

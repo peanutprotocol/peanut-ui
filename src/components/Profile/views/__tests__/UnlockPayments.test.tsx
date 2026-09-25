@@ -888,6 +888,26 @@ describe('UnlockPayments', () => {
             expect(mockPush).not.toHaveBeenCalled()
         })
 
+        // QA 2026-09-25: an Available QR row drew a green status bubble while
+        // the bottom nav drew QR pink. The bubble is the concept; the badge is the status.
+        it.each([
+            ['locked', []],
+            [
+                'available',
+                [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }],
+            ],
+        ])('draws each row with its concept bubble while %s', (_state, rails: unknown[]) => {
+            mockRails = rails
+            render()
+
+            const bubbleOf = (title: string) =>
+                (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
+            expect(bubbleOf('QR payments')).toHaveClass('bg-background-brand')
+            expect(bubbleOf('Pix key payments')).toHaveClass('bg-background-icon-bubble-blue')
+            expect(bubbleOf('Peanut card')).toHaveClass('bg-background-icon-bubble-yellow')
+            expect(bubbleOf('Crypto')).toHaveClass('bg-background-icon-bubble-blue')
+        })
+
         it('reads Available once the QR rail is live, and explains itself in the drawer', () => {
             mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
             render()

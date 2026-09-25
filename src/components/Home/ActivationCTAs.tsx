@@ -36,8 +36,8 @@ interface ActivationCTAsProps {
 }
 
 interface StepConfig {
-    icon: IconName
-    iconColor: IconBubbleColor
+    /** a product concept's step spreads CONCEPT_ICONS; the rest are account states */
+    bubble: { icon: IconName; color: IconBubbleColor }
     title: string
     description: string
     ctaLabel: string
@@ -199,16 +199,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
             verify: {
-                icon: 'globe-lock',
-                iconColor: 'brand',
+                bubble: { icon: 'globe-lock', color: 'brand' },
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
                 href: '/profile/accounts-and-payments',
             },
             deposit: {
-                icon: CONCEPT_ICONS.addMoney.icon,
-                iconColor: 'brand',
+                bubble: CONCEPT_ICONS.addMoney,
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
@@ -218,8 +216,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 href: '/home?drawer=add',
             },
             card: {
-                icon: CONCEPT_ICONS.card.icon,
-                iconColor: 'yellow',
+                bubble: CONCEPT_ICONS.card,
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -227,8 +224,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 dismissable: true,
             },
             outbound: {
-                icon: CONCEPT_ICONS.qrPay.icon,
-                iconColor: 'brand',
+                bubble: CONCEPT_ICONS.qrPay,
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
@@ -294,8 +290,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // with the explanation and point them at what still works.
         if (isRegionRestricted) {
             return {
-                icon: 'globe-lock',
-                iconColor: 'brand',
+                bubble: { icon: 'globe-lock', color: 'brand' },
                 title: tRegion('title'),
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),
@@ -324,8 +319,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // sheet, and hid the document-upload path entirely when both coexisted.
             if (isEmailBlocked) {
                 return {
-                    icon: 'globe-lock',
-                    iconColor: 'brand',
+                    bubble: { icon: 'globe-lock', color: 'brand' },
                     title: t('addEmail.title'),
                     description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
@@ -334,8 +328,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
             if (hasFixableRejection) {
                 return {
-                    icon: 'globe-lock',
-                    iconColor: 'brand',
+                    bubble: { icon: 'globe-lock', color: 'brand' },
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
@@ -352,8 +345,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // for one canonical key instead of two that can diverge.
             if (isRestartBlocked) {
                 return {
-                    icon: 'globe-lock',
-                    iconColor: 'brand',
+                    bubble: { icon: 'globe-lock', color: 'brand' },
                     title: tProviderRejection('restartTitle'),
                     description: localizedRejectionMessage || tProviderRejection('restartDescription'),
                     ctaLabel: tProviderRejection('restartTitle'),
@@ -362,8 +354,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
             // blocked
             return {
-                icon: 'globe-lock',
-                iconColor: 'brand',
+                bubble: { icon: 'globe-lock', color: 'brand' },
                 title: t('verificationIssue.title'),
                 description: t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
@@ -377,7 +368,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (activationStep === 'outbound' && canApplyForCard) {
             return {
                 ...steps.outbound,
-                icon: CONCEPT_ICONS.card.icon,
+                bubble: CONCEPT_ICONS.card,
                 title: t('spendWithPeanut.title'),
                 description: t('spendWithPeanut.description'),
             }
@@ -430,7 +421,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     return (
         <Card position="solo" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
-                <IconBubble icon={step.icon} color={step.iconColor} />
+                <IconBubble {...step.bubble} />
                 <div className="w-full text-center">
                     <div className="text-heading-card">{step.title}</div>
                     <div className="text-body-s text-foreground-secondary">{step.description}</div>
@@ -514,7 +505,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         {/* the head owns the M/12 beneath it; everything after it
                             keeps the drawer's L/16 rhythm */}
                         <div className="mb-3 flex w-full flex-col items-center gap-4">
-                            <IconBubble icon={CONCEPT_ICONS.card.icon} color="brand" />
+                            <IconBubble {...CONCEPT_ICONS.card} />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
                                 <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>

@@ -81,7 +81,7 @@ const InvitesPage = () => {
                 <NavHeader title={t('invitesTitle')} onPrev={onBack} />
                 <div className="mx-auto my-auto w-full">
                     <EmptyState
-                        icon="trophy"
+                        concept="rewards"
                         title={t('noInvitesYet')}
                         description={t('shareInviteLinkPrompt')}
                         cta={

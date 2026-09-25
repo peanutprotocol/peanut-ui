@@ -143,7 +143,7 @@ describe('closedBankRow', () => {
     const row = (over: Partial<UnlockRow>): UnlockRow => ({
         id: 'ars-bank',
         labelKey: 'ars',
-        icon: 'bank',
+        concept: 'bank',
         chip: 'unlock',
         corridor: 'BANK_TRANSFER_AR',
         regionPath: 'latam',
