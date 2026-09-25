@@ -20,16 +20,19 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  *
  * cta surfaces (carousel, activation ctas, card launch, pending verification
  * tasks) are composed as-is — restyling them belongs to the activation
- * project, not the ds rebuild. the unverified "verify" page state renders
- * through ActivationCTAs in the card slot.
+ * project, not the ds rebuild.
+ *
+ * one CTA class at a time (hugo, 2026-09-25): until the first payment the
+ * slot is the getting-started checklist (ActivationCTAs), after it the
+ * carousel. never both.
  */
 export function HomePage() {
     const {
         isPageLoading,
         username,
         isActivated,
-        activationStep,
-        dismissCardStep,
+        onboarding,
+        isOnboardingComplete,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
@@ -56,15 +59,11 @@ export function HomePage() {
                 <div className="flex flex-col gap-2">
                     <EnableAutoBalanceBanner />
                     <PendingVerificationTasks dismissible />
-                    {isActivated ? (
-                        <HomeCarouselCTA />
-                    ) : (
-                        <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
-                    )}
+                    {isOnboardingComplete ? <HomeCarouselCTA /> : <ActivationCTAs onboarding={onboarding} />}
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
-                        hideEmptyState={!isActivated}
+                        hideEmptyState={!isOnboardingComplete}
                     />
                 </div>
             </div>

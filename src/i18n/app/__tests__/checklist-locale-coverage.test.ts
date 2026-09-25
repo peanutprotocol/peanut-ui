@@ -18,10 +18,13 @@ const CHECKLIST_KEYS = [
     'addMoneyRoutes',
     'addMoneyRoutesKyc',
     'addMoneyStandingAccounts',
-    'getCard',
-    'getCardNote',
+    'verifyIdentity',
+    'verifyIdentityNote',
+    'inReview',
     'firstPayment',
-    'firstPaymentNote',
+    'firstPaymentCardNote',
+    'firstPaymentQrNote',
+    'firstPaymentCardOnlyNote',
 ] as const
 
 describe('getting-started checklist copy resolves in every locale', () => {
@@ -42,7 +45,7 @@ describe('getting-started checklist copy resolves in every locale', () => {
         const es419 = (await loadMessages('es-419')) as unknown as Record<string, any>
 
         expect(esAR.home.gettingStarted.addMoneyRoutes).toBe(es419.home.gettingStarted.addMoneyRoutes)
-        expect(esAR.home.gettingStarted.getCardNote).toBe(es419.home.gettingStarted.getCardNote)
+        expect(esAR.home.gettingStarted.verifyIdentityNote).toBe(es419.home.gettingStarted.verifyIdentityNote)
         // and its own delta still wins where it does restate one
         expect(esAR.home.gettingStarted.addMoneyRoutesKyc).not.toBe(es419.home.gettingStarted.addMoneyRoutesKyc)
     })

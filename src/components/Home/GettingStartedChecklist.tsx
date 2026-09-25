@@ -8,93 +8,75 @@ import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBub
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
+import FirstPaymentChooser from '@/components/Home/FirstPaymentChooser'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useAuth } from '@/context/authContext'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { useActivationStatus } from '@/hooks/useActivationStatus'
+import { type OnboardingState } from '@/utils/activation-step.utils'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-payment'
+type ChecklistItemId = 'create-account' | 'verify-identity' | 'add-money' | 'first-payment'
 
 interface ChecklistItem {
     id: ChecklistItemId
-    /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow), the first payment a money move (blue) */
-    bubble: { icon: IconName; color: IconBubbleColor }
+    /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow) */
+    bubble: { icon: IconName | React.ReactElement; color: IconBubbleColor }
     label: string
     sub?: string
     done: boolean
+    /** open but nothing to do yet (ID check in review): a pill instead of a subtitle */
+    inReview?: boolean
     onTap?: () => void
 }
 
+/** where the ID check starts, and where its status lives while in review */
+const VERIFY_HREF = '/profile/accounts-and-payments'
+
+const FIRST_PAYMENT_BUBBLE = {
+    card_qr: CONCEPT_ICONS.card,
+    card: CONCEPT_ICONS.card,
+    qr: CONCEPT_ICONS.qrPay,
+} as const
+
+const FIRST_PAYMENT_NOTE_KEY = {
+    card_qr: 'firstPaymentCardNote',
+    card: 'firstPaymentCardOnlyNote',
+    qr: 'firstPaymentQrNote',
+} as const
+
 /**
- * The home getting-started checklist: exactly three items, mirroring the
- * Unlock payments screen's status language so home and profile tell one story.
+ * The Home onboarding checklist (TASK-23054): Create account ✓ · Verify
+ * identity · Add money · Make the first payment. Home shows it until every row
+ * is done; the rules for each row live in resolveOnboarding. The payment row
+ * appears only for a user who can make an activating spend (card or QR).
  *
- *   1. Create your account — always done (progress the user can feel)
- *   2. Add money — label follows residence (PIX in Brazil, SEPA in Europe…);
- *      while unverified the subtitle carries the honest KYC cost, and the tap
- *      leads into add-money where verification triggers contextually
- *   3. Get the card when the residence is eligible; otherwise the slot goes to
- *      the first payment, so no one sees a dangling card step
- *
- * Home renders this checklist before funding; the parent owns funded and
- * activated states. Since account creation is already complete by the time
- * this surface appears, its reachable progress copy is the canonical
- * "Get started" label alongside the current percentage.
+ * Every open row stays tappable, in any order: money can arrive before the ID
+ * check. The first open row that has something to do is outlined in pink —
+ * a row in review is skipped, because there is nothing to do on it.
  */
-const GettingStartedChecklist = () => {
+const GettingStartedChecklist = ({ onboarding }: { onboarding: OnboardingState }) => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
     const [, setHomeDrawer] = useHomeDrawer()
-    const { user } = useAuth()
+    const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const depositAccountsEnabled = useDepositAccountsEnabled()
-    const { isEligible } = useCardInfo()
-    const { overview } = useRainCardOverview()
+    const [isChooserOpen, setIsChooserOpen] = useState(false)
 
-    const milestone = user?.user?.activationMilestone ?? 'registered'
-    const hasSentPayment = !!user?.user?.firstPaymentAt
-    const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
-    // Same "funded" as the activation step: the milestone, or any money held
-    // (wallet or card collateral), so $0.17 sent by crypto ticks Add money too.
-    const { isFunded } = useActivationStatus()
-    const hasActiveCard = !!findActiveCard(overview)
-    // isEligible is undefined only for the initial no-data load and remains
-    // stable from cached data during background refetches, so the third slot
-    // does not flip between card and first-payment on focus or reconnect.
-    const cardAvailable = !restrictions.card && isEligible === true
+    const { verify, addMoneyDone, firstPaymentDone, firstPaymentRoute } = onboarding
+    const isVerified = verify === 'done'
 
     const items: ChecklistItem[] = useMemo(() => {
         const tap = (id: ChecklistItemId, action: () => void) => () => {
             posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_ITEM_CLICKED, { item: id })
             action()
         }
-        const thirdItem: ChecklistItem = cardAvailable
-            ? {
-                  id: 'get-card',
-                  bubble: CONCEPT_ICONS.card,
-                  label: t('getCard'),
-                  sub: t('getCardNote'),
-                  done: hasActiveCard,
-                  onTap: tap('get-card', () => router.push('/card')),
-              }
-            : {
-                  id: 'first-payment',
-                  bubble: { icon: 'arrow-up', color: 'blue' },
-                  label: t('firstPayment'),
-                  sub: t('firstPaymentNote'),
-                  done: milestone === 'activated' || hasSentPayment,
-                  onTap: tap('first-payment', () => router.push('/send')),
-              }
-        return [
+        const rows: ChecklistItem[] = [
             {
                 id: 'create-account',
                 bubble: { icon: 'user-plus', color: 'yellow' },
@@ -103,16 +85,20 @@ const GettingStartedChecklist = () => {
                 done: true,
             },
             {
+                id: 'verify-identity',
+                bubble: CONCEPT_ICONS.verification,
+                label: t('verifyIdentity'),
+                sub: t('verifyIdentityNote'),
+                done: verify === 'done',
+                inReview: verify === 'in_review',
+                onTap: tap('verify-identity', () => router.push(VERIFY_HREF)),
+            },
+            {
                 id: 'add-money',
                 bubble: CONCEPT_ICONS.addMoney,
-                // The Add drawer offers bank transfer AND
-                // crypto — naming one rail promised a route the chooser doesn't
-                // take you straight to. A residence no bank provider onboards
-                // drops the bank half rather than selling an ID check that
-                // cannot deliver it (same ruling as the signup residence step).
                 label: t('addMoney'),
-                // With standing accounts live, the step is a win rather than a
-                // chore: bank details of the user's own, not an ID check to pay for.
+                // A residence no bank provider onboards drops the bank half
+                // rather than selling an ID check that cannot deliver it.
                 sub: restrictions.banking
                     ? t('addMoneyRoutesNoBank')
                     : depositAccountsEnabled
@@ -120,43 +106,56 @@ const GettingStartedChecklist = () => {
                       : isVerified
                         ? t('addMoneyRoutes')
                         : t('addMoneyRoutesKyc'),
-                done: isFunded,
+                done: addMoneyDone,
                 onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
-            thirdItem,
         ]
+        if (firstPaymentRoute !== 'none') {
+            const route = firstPaymentRoute
+            rows.push({
+                id: 'first-payment',
+                bubble: FIRST_PAYMENT_BUBBLE[route],
+                label: t('firstPayment'),
+                sub: t(FIRST_PAYMENT_NOTE_KEY[route]),
+                done: firstPaymentDone,
+                onTap: tap('first-payment', () => {
+                    if (route === 'card_qr') setIsChooserOpen(true)
+                    else if (route === 'card') router.push('/card')
+                    else setIsQRScannerOpen(true)
+                }),
+            })
+        }
+        return rows
     }, [
-        cardAvailable,
+        addMoneyDone,
         depositAccountsEnabled,
-        hasActiveCard,
-        hasSentPayment,
-        isFunded,
+        firstPaymentDone,
+        firstPaymentRoute,
         isVerified,
-        milestone,
         restrictions.banking,
         router,
         setHomeDrawer,
+        setIsQRScannerOpen,
         t,
+        verify,
     ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
-    const progressLabel = t('title')
+    const nextId = items.find((item) => !item.done && !item.inReview)?.id
 
     const viewedRef = useRef(false)
     useEffect(() => {
         if (!viewedRef.current) {
             viewedRef.current = true
-            posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_VIEWED, {
-                third_item: items[2].id,
-            })
+            posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_VIEWED, { first_payment_route: firstPaymentRoute })
         }
-    }, [items])
+    }, [firstPaymentRoute])
 
     return (
         <Section>
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-body-s text-foreground-secondary">
-                    <span>{progressLabel}</span>
+                    <span>{t('title')}</span>
                     <span>{completionPercent}%</span>
                 </div>
                 <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
@@ -164,7 +163,8 @@ const GettingStartedChecklist = () => {
             <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
-                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !!item.sub)
+                    const isNext = item.id === nextId
+                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !item.inReview)
                     return (
                         <ListItem
                             key={item.id}
@@ -172,17 +172,26 @@ const GettingStartedChecklist = () => {
                             leading={<IconBubble {...item.bubble} size="xs" />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
-                            trailing={item.done ? <Badge status="completed" /> : undefined}
+                            trailing={
+                                item.done ? (
+                                    <Badge status="completed" />
+                                ) : item.inReview ? (
+                                    <Badge status="processing" customText={t('inReview')} />
+                                ) : undefined
+                            }
                             bodyWrap
                             chevron={tappable}
                             // a done row is finished, not unavailable: it renders as a plain,
                             // untappable row instead of a disabled one
-                            disabled={!item.done && !tappable}
                             onClick={tappable ? item.onTap : undefined}
+                            className={isNext ? 'outline-2 -outline-offset-2 outline-action-primary' : undefined}
                         />
                     )
                 })}
             </ListGroup>
+            {firstPaymentRoute === 'card_qr' && (
+                <FirstPaymentChooser open={isChooserOpen} onClose={() => setIsChooserOpen(false)} />
+            )}
         </Section>
     )
 }

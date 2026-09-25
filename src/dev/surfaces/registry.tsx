@@ -65,6 +65,7 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
+import type { OnboardingState } from '@/utils/activation-step.utils'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
@@ -116,6 +117,14 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
     )
 }
 
+/** verified, funded, card and QR open: the first-payment row opens the chooser */
+const FUNDED_CARD_ONBOARDING: OnboardingState = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'first_payment',
+}
 const noop = () => {}
 const asyncNoop = async () => {}
 
@@ -800,11 +809,11 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '70-d-activationctas-outbound': {
-        // the spend chooser opens on the card's CTA tap — the shot spec (or a
-        // human) clicks "Start Spending"; needs a fixture granting card access
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
-        render: () => <ActivationCTAs activationStep="outbound" />,
+        // the first-payment chooser opens on the row tap — the shot spec (or a
+        // human) clicks the row; needs a fixture granting card access
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
+        render: () => <ActivationCTAs onboarding={FUNDED_CARD_ONBOARDING} />,
     },
     '66-d-backupfaqlosephone': {
         name: 'Backup FAQ — lose phone',

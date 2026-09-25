@@ -84,28 +84,6 @@
     "home": {
         "rewards": "Rewards",
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Unlock payments",
-                    "description": "Bank deposits, QR codes, and local payment methods",
-                    "cta": "Unlock now"
-                },
-                "deposit": {
-                    "title": "Deposit",
-                    "description": "Add money to make your first payment",
-                    "cta": "Add money"
-                },
-                "card": {
-                    "title": "Spend anywhere Visa is accepted",
-                    "description": "Use your balance at 150M+ merchants. Online, contactless.",
-                    "cta": "Get card"
-                },
-                "outbound": {
-                    "title": "Make the first payment",
-                    "description": "Pay Pix keys and Pix or MercadoPago QRs",
-                    "cta": "Start Spending"
-                }
-            },
             "addEmail": {
                 "title": "Add email",
                 "description": "We need an email address to finish setting up your account.",
@@ -121,10 +99,6 @@
                 "description": "Contact support for help with your verification.",
                 "cta": "Contact support"
             },
-            "spendWithPeanut": {
-                "title": "Spend with Peanut",
-                "description": "Pay by card, Pix key, or Pix and MercadoPago QR"
-            },
             "spendChooser": {
                 "title": "Choose how to spend",
                 "description": "Both count as your first payment.",
@@ -136,15 +110,18 @@
             "title": "Get started",
             "createAccount": "Create account",
             "createAccountDone": "Done. Your money has a username now",
-            "getCard": "Get the Peanut Card",
             "addMoney": "Add money",
             "firstPayment": "Make the first payment",
-            "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
             "addMoneyStandingAccounts": "Claim your own bank details. Get paid in euros, dollars and more.",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
             "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
-            "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
+            "verifyIdentity": "Verify identity",
+            "verifyIdentityNote": "A one-time ID check. Unlocks bank transfers and QR payments",
+            "inReview": "In review",
+            "firstPaymentCardNote": "Get the Peanut Card or pay a QR",
+            "firstPaymentQrNote": "Pay a QR code",
+            "firstPaymentCardOnlyNote": "Get the Peanut Card"
         },
         "autoBalance": {
             "title": "Finish setting up the card",

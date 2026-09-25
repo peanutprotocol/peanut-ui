@@ -1,43 +1,49 @@
 /** @jest-environment jsdom */
 /**
- * GettingStartedChecklist — the 3-item home to-do list.
+ * GettingStartedChecklist — the Home onboarding checklist (TASK-23054).
  *
- * Contract: always exactly three rows; registration pre-checked; the add-money
- * label follows residence and carries the KYC cost only while unverified; the
- * third slot is the card when eligible, otherwise the first payment (never a
- * dangling card step); the reachable Home progress state stays visible.
+ * Contract: four rows — Create account ✓ · Verify identity · Add money · Make
+ * the first payment. Every open row stays tappable in any order; the first
+ * open, actionable row is outlined in pink; an ID check in review shows a pill
+ * and is skipped by the outline. The first-payment row follows the one route
+ * selector: card_qr → chooser, card → /card, qr → scanner, none → no row.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import type { OnboardingState } from '@/utils/activation-step.utils'
 
-const mockUrlUpdate = jest.fn()
-const render = () =>
+const NEW_USER: OnboardingState = {
+    verify: 'todo',
+    addMoneyDone: false,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'verify',
+}
+
+const render = (onboarding: Partial<OnboardingState> = {}) =>
     rtlRender(
-        <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile" onUrlUpdate={mockUrlUpdate}>
-            <GettingStartedChecklist />
+        <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
+            <GettingStartedChecklist onboarding={{ ...NEW_USER, ...onboarding }} />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
     )
 
 const mockPush = jest.fn()
 const mockSetHomeDrawer = jest.fn()
+const mockSetIsQRScannerOpen = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/features/home/useHomeDrawer', () => ({
     useHomeDrawer: () => [null, mockSetHomeDrawer],
 }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen }),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-let mockUser: {
-    user?: { activationMilestone?: string; firstPaymentAt?: string | null }
-    residence?: { declared: string | null; verified: string | null }
-} | null = null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
-
 // the standing-accounts flag rewrites the add-money subtitle; off by default
-// here, so every case below reads the pre-launch copy unless it says otherwise
 let mockDepositAccounts = false
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockDepositAccounts,
@@ -48,213 +54,132 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
 
-let mockIsEligible: boolean | undefined = true
-let mockIsCardInfoFetching = false
-jest.mock('@/hooks/useCardInfo', () => ({
-    useCardInfo: () => ({ isEligible: mockIsEligible, isFetching: mockIsCardInfoFetching }),
+// the chooser is its own component; here it is a marker that says whether it is open
+jest.mock('@/components/Home/FirstPaymentChooser', () => ({
+    __esModule: true,
+    default: ({ open }: { open: boolean }) => (open ? <div>first-payment-chooser</div> : null),
 }))
 
-// "funded" is resolved in useActivationStatus (milestone OR any money held);
-// the checklist only renders it
-let mockIsFunded = false
-jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => ({ isFunded: mockIsFunded }) }))
-
-let mockOverview: unknown = null
-jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: mockOverview }) }))
-jest.mock('@/components/Card/cardState.utils', () => ({
-    findActiveCard: (overview: unknown) => (overview ? { id: 'card-1' } : null),
-}))
+const outlined = (testId: string) => screen.getByTestId(testId).className.includes('outline-action-primary')
 
 describe('GettingStartedChecklist', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: 'BR', verified: null } }
         mockRestrictions = { banking: false, card: false }
         mockDepositAccounts = false
-        mockIsEligible = true
-        mockIsCardInfoFetching = false
-        mockOverview = null
-        mockIsFunded = false
     })
 
-    // ListItem renders a div[role=button] only for tappable rows. Done rows are
-    // plain rows, not disabled ones, so rows are counted by test id.
-    it('renders exactly three rows with registration pre-checked', () => {
+    it('renders four rows, account pre-checked, 25% for a new user', () => {
         render()
-        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
-        expect(screen.getAllByRole('button')).toHaveLength(2)
+        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
         expect(screen.getByText('Create account')).toBeInTheDocument()
-        expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('aria-disabled')
-        expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('role')
-        expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
-    })
-
-    it('keeps completed rows on the same white surface as pending rows', () => {
-        render()
-        const completed = screen.getByTestId('checklist-create-account')
-        expect(completed).toHaveClass('bg-background-default', 'border-border-default')
-        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-background-default', 'border-border-default')
-        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-background-default', 'border-border-default')
-        expect(completed).not.toHaveClass('bg-background-disabled', 'bg-background-icon-bubble-green/10')
-        expect(completed).not.toHaveClass('border-border-subtle')
-    })
-
-    it('uses Get started for the reachable 33% Home state', () => {
-        render()
-        expect(screen.getByText('Get started')).toBeInTheDocument()
-        expect(screen.getByText('33%')).toBeInTheDocument()
-        expect(screen.queryByText('Keep going')).not.toBeInTheDocument()
-    })
-
-    it('wraps checklist subtitles instead of truncating them', () => {
-        render()
-        const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
-        expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
-        expect(subtitle).not.toHaveClass('truncate')
-    })
-
-    // The row opens the Add drawer, offering bank transfer AND crypto, so
-    // it no longer names one rail per residence — that promised a route the
-    // chooser does not take you straight to.
-    it.each([['BR'], ['MX'], ['US'], ['DE'], ['NG']])(
-        'the add-money label names the action, not a rail: %s',
-        (iso2) => {
-            mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: iso2, verified: null } }
-            render()
-            expect(screen.getByText('Add money')).toBeInTheDocument()
-            expect(screen.queryByText(/PIX|SPEI|SEPA|from your bank/)).not.toBeInTheDocument()
-        }
-    )
-
-    it('carries the KYC cost only while unverified', () => {
-        render()
-        expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
-        mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
-        render()
-        // the verified render names both routes without the ID-check cost
-        expect(screen.getAllByText('Bank transfer or crypto').length).toBe(1)
-        expect(screen.getAllByText(/one-time ID check/).length).toBe(1) // only the first render's copy
-    })
-
-    /**
-     * Once standing accounts are live the step stops being a chore. The row
-     * promises the thing the user gets, not the ID check it costs.
-     */
-    it('promises the standing account once deposit accounts are live', () => {
-        mockDepositAccounts = true
-        render()
-
-        expect(
-            screen.getByText('Claim your own bank details. Get paid in euros, dollars and more.')
-        ).toBeInTheDocument()
-        expect(screen.queryByText(/one-time ID check/)).not.toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
         expect(screen.getByText('Add money')).toBeInTheDocument()
-    })
-
-    it('keeps the pre-launch line while the flag is off', () => {
-        render()
-
-        expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
-        expect(screen.queryByText(/Claim your own bank details/)).not.toBeInTheDocument()
-    })
-
-    it('drops the bank half for a residence no bank provider onboards', () => {
-        // the ID check would unlock nothing there, so it must not be the price
-        // named on the row (same ruling as the signup residence step)
-        mockRestrictions = { banking: true, card: false }
-        render()
-        expect(screen.getByText('Crypto from any wallet or exchange')).toBeInTheDocument()
-        expect(screen.queryByText(/one-time ID check/)).not.toBeInTheDocument()
-        expect(screen.queryByText(/Bank transfer/)).not.toBeInTheDocument()
-    })
-
-    it('marks add money done once funded', () => {
-        mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
-        mockIsFunded = true
-        render()
-        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
-        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
-        expect(screen.getByText('67%')).toBeInTheDocument()
-    })
-
-    // $0.17 sent by crypto leaves no ledger credit, so the milestone stays at
-    // verified; the money on the account still ticks the row.
-    it('marks add money done when money is held while the milestone lags at verified', () => {
-        mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
-        mockIsFunded = true
-        render()
-        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
-    })
-
-    it('leaves add money open while nothing has arrived', () => {
-        mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
-        render()
-        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('role', 'button')
-    })
-
-    // Any outgoing peer payment (a send to a saved contact included) completes
-    // the row, even though activation itself stays card/QR spend only.
-    it('marks the first payment done once the user has sent money to anyone', () => {
-        mockRestrictions = { banking: false, card: true }
-        // verified but not yet funded keeps the list on screen; the payment row
-        // alone completes from the peer-payment fact
-        mockUser = {
-            user: { activationMilestone: 'verified', firstPaymentAt: '2026-09-01T10:00:00.000Z' },
-            residence: { declared: 'BR', verified: 'BR' },
-        }
-        render()
-        expect(screen.getByTestId('checklist-first-payment')).not.toHaveAttribute('role')
-        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
-        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('role', 'button')
-    })
-
-    it('third slot is the card when eligible, and it routes to /card', () => {
-        render()
-        fireEvent.click(screen.getByText('Get the Peanut Card'))
-        expect(mockPush).toHaveBeenCalledWith('/card')
-        expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
-    })
-
-    // The note promises a send to a Peanut user, ENS name or wallet address —
-    // that is the /send flow, not the QR scanner the row used to open.
-    it('third slot falls back to first payment when the card is unavailable, routing to /send', () => {
-        mockRestrictions = { banking: false, card: true }
-        render()
-        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
-        expect(
-            screen.getByText('Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.')
-        ).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Make the first payment'))
-        expect(mockPush).toHaveBeenCalledWith('/send')
-    })
-
-    it('ineligible card (server says no) also falls back to first payment', () => {
-        mockIsEligible = false
-        render()
-        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
         expect(screen.getByText('Make the first payment')).toBeInTheDocument()
+        expect(screen.getByText('25%')).toBeInTheDocument()
+        // the three open rows are tappable; the done account row is not
+        expect(screen.getAllByRole('button')).toHaveLength(3)
     })
 
-    it('unknown eligibility (still loading) never shows the card step', () => {
-        // The first-payment step is always a valid action; a card step the
-        // server may yet deny is not. Undefined must not read as eligible.
-        mockIsEligible = undefined
+    it('outlines the first open row: verify for a new user', () => {
         render()
-        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
-        expect(screen.getByText('Make the first payment')).toBeInTheDocument()
+        expect(outlined('checklist-verify-identity')).toBe(true)
+        expect(outlined('checklist-add-money')).toBe(false)
     })
 
-    it('keeps the cached card row stable while eligibility is refetching', () => {
-        mockIsEligible = true
-        mockIsCardInfoFetching = true
+    it('an ID check in review shows a pill, no subtitle, and passes the outline to Add money', () => {
+        render({ verify: 'in_review', step: 'add_money' })
+        expect(screen.getByText('In review')).toBeInTheDocument()
+        expect(screen.queryByText(/A one-time ID check/)).not.toBeInTheDocument()
+        expect(outlined('checklist-verify-identity')).toBe(false)
+        expect(outlined('checklist-add-money')).toBe(true)
+    })
+
+    it('verify opens the ID check screen', () => {
         render()
-        expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
-        expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Verify identity'))
+        expect(mockPush).toHaveBeenCalledWith('/profile/accounts-and-payments')
     })
 
-    it('opens the Home add-money drawer directly', () => {
+    it('Add money is tappable before verify and opens the Add drawer', () => {
         render()
         fireEvent.click(screen.getByText('Add money'))
         expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
+    })
+
+    it('money in before the ID check: Add money done, verify still outlined, 50%', () => {
+        render({ addMoneyDone: true })
+        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('role')
+        expect(outlined('checklist-verify-identity')).toBe(true)
+        expect(screen.getByText('50%')).toBeInTheDocument()
+    })
+
+    it('verified and funded: the first payment is outlined, 75%', () => {
+        render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
+        expect(outlined('checklist-first-payment')).toBe(true)
+        expect(screen.getByText('75%')).toBeInTheDocument()
+    })
+
+    describe('first-payment row follows the route', () => {
+        it('card and QR: both named, the tap opens the chooser', () => {
+            render({ firstPaymentRoute: 'card_qr' })
+            expect(screen.getByText('Get the Peanut Card or pay a QR')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Make the first payment'))
+            expect(screen.getByText('first-payment-chooser')).toBeInTheDocument()
+        })
+
+        it('qr: QR copy, the tap opens the scanner', () => {
+            render({ firstPaymentRoute: 'qr' })
+            expect(screen.getByText('Pay a QR code')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Make the first payment'))
+            expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        })
+
+        it('card only: card copy, the tap opens /card', () => {
+            render({ firstPaymentRoute: 'card' })
+            expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Make the first payment'))
+            expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        it('none: no payment row — three rows, 100% once verified and funded', () => {
+            render({ firstPaymentRoute: 'none', verify: 'done', addMoneyDone: true, step: 'completed' })
+            expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
+            expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
+            expect(screen.getByText('100%')).toBeInTheDocument()
+        })
+    })
+
+    describe('add-money subtitle', () => {
+        it('carries the KYC cost only while unverified', () => {
+            render()
+            expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
+        })
+
+        it('names both routes without the cost once verified', () => {
+            render({ verify: 'done', step: 'add_money' })
+            expect(screen.getByText('Bank transfer or crypto')).toBeInTheDocument()
+        })
+
+        it('promises the standing account once deposit accounts are live', () => {
+            mockDepositAccounts = true
+            render()
+            expect(
+                screen.getByText('Claim your own bank details. Get paid in euros, dollars and more.')
+            ).toBeInTheDocument()
+        })
+
+        it('drops the bank half for a residence no bank provider onboards', () => {
+            mockRestrictions = { banking: true, card: false }
+            render()
+            expect(screen.getByText('Crypto from any wallet or exchange')).toBeInTheDocument()
+            expect(screen.queryByText(/Bank transfer/)).not.toBeInTheDocument()
+        })
+
+        it('wraps subtitles instead of truncating them', () => {
+            render()
+            const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
+            expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
+        })
     })
 })

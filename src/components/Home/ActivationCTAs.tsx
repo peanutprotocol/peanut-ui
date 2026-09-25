@@ -1,19 +1,16 @@
 'use client'
 
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { type ActivationStep } from '@/utils/activation-step.utils'
+import { type OnboardingState } from '@/utils/activation-step.utils'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -30,9 +27,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface ActivationCTAsProps {
-    activationStep: ActivationStep
-    /** Dismisses the card step (persists locally). Only relevant for step='card'. */
-    onDismissCard?: () => void
+    onboarding: OnboardingState
 }
 
 interface StepConfig {
@@ -42,78 +37,31 @@ interface StepConfig {
     description: string
     ctaLabel: string
     href: string
-    dismissable?: boolean
 }
 
 /**
- * single activation CTA for non-activated users on the home screen.
- * shows only the current step the user needs to complete.
- * when sumsub is approved but a provider rejected the user, overrides
- * the deposit/outbound step with a "complete your setup" message.
+ * The Home slot before the first payment: the getting-started checklist, or —
+ * when a door on it is shut — the one card that says why. Region restriction
+ * outranks everything; a provider rejection replaces the checklist for a
+ * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
+export default function ActivationCTAs({ onboarding }: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
-    const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
-    const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
+    const { openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
-    // Card spend counts as activation too — card-access users get a card+QR
-    // chooser on the outbound step instead of jumping straight to the scanner.
-    // `undefined` while loading collapses to false → scanner behavior (never
-    // tease the card to a user we can't confirm has access), which is also why
-    // the scanner path must stand on its own QR-rail check below.
     // canSpendPathViaCard, not showCardSurface: a prohibited residence with
     // only a pending application keeps the /card surface to watch its status,
-    // but a spend CTA would promise a card that cannot issue.
+    // but a card path would promise a card that cannot issue. The Home
+    // card-prompt kill switch mutes it; /card itself stays available.
     const { canSpendPathViaCard } = useCardSurfaceAccess()
-    // The Home card-prompt kill switch mutes every card arm in this component
-    // (outbound copy, chooser, spend-to-activate) while the QR path stands.
-    // /card itself stays available — the switch is documented as prompt-only.
     const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : canSpendPathViaCard
-    // Suppress the "Unlock payments" verify CTA while identity is mid-flight
-    // (Sumsub processing / action_required). The user already took the verify
-    // action; the identity-verification page surfaces the in-progress modal,
-    // and bouncing them through here again would imply they need to re-act.
-    const {
-        isProcessing: isIdentityProcessing,
-        needsAction: isIdentityActionRequired,
-        isRegionRestricted,
-    } = useIdentityVerification()
+    const { isRegionRestricted } = useIdentityVerification()
     const residenceRestrictions = useResidenceRestrictions()
-
-    // Activation is one of exactly two events (BE, GET /users/me): a card spend
-    // authorization, or a Manteca QR pay on Pix / Mercado Pago. Send links,
-    // direct sends, offramps and withdrawals are volume, not activation — so
-    // the spend step is only honest while one of those two is open to the user.
-    //
-    // Keyed on the provider and the `pay` op, never on the channel: Pix is a
-    // BANK-channel method that happens to carry `pay` (peanut-api-ts
-    // METHOD_CHANNELS — MercadoPago is the only `qr-only` entry), and the QR
-    // pool enables its rails one at a time, so a `qr-only` filter silently
-    // drops every Brazilian user whose Pix pays but whose MercadoPago row did
-    // not enable.
-    //
-    // `pay` must be present AND enabled — deliberately not `canDo`/
-    // `operationStatus`, whose `operations.pay ?? status` fallback would read a
-    // bank-only rail's missing `pay` as the rail's enabled status and hand it a
-    // phantom QR capability. MANTECA_METHOD_OPERATIONS lists every op a method
-    // supports (BANK_TRANSFER_AR is deposit+withdraw only), so on a rail that
-    // carries the map an absent `pay` means "no merchant QR". The map is only
-    // absent for an unknown method or a response predating it, where the
-    // qr-only channel is pay by construction.
-    const hasQrSpendRail = useMemo(
-        () =>
-            rails.some((rail) => {
-                if (rail.provider !== 'manteca') return false
-                if (rail.operations) return rail.operations.pay === 'enabled'
-                return channelOf(rail) === 'qr-only' && rail.status === 'enabled'
-            }),
-        [rails, channelOf]
-    )
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -188,51 +136,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         : primaryRejectionMessage
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
-    const [showSpendChooser, setShowSpendChooser] = useState(false)
-
-    // If card access is revoked (or the card-info refetch flips it) while the
-    // chooser is open, close it — a no-access user must never see the card option.
-    useEffect(() => {
-        if (canApplyForCard !== true) setShowSpendChooser(false)
-    }, [canApplyForCard])
-
-    const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
-        () => ({
-            verify: {
-                bubble: { icon: 'globe-lock', color: 'blue' },
-                title: t('steps.verify.title'),
-                description: t('steps.verify.description'),
-                ctaLabel: t('steps.verify.cta'),
-                href: '/profile/accounts-and-payments',
-            },
-            deposit: {
-                bubble: CONCEPT_ICONS.addMoney,
-                title: t('steps.deposit.title'),
-                description: t('steps.deposit.description'),
-                ctaLabel: t('steps.deposit.cta'),
-                // This Home-owned CTA can open the Home drawer directly. Keep
-                // /add-money itself as the external/deep-link compatibility
-                // route for flows that carry return state.
-                href: '/home?drawer=add',
-            },
-            card: {
-                bubble: CONCEPT_ICONS.card,
-                title: t('steps.card.title'),
-                description: t('steps.card.description'),
-                ctaLabel: t('steps.card.cta'),
-                href: '/card',
-                dismissable: true,
-            },
-            outbound: {
-                bubble: CONCEPT_ICONS.qrPay,
-                title: t('steps.outbound.title'),
-                description: t('steps.outbound.description'),
-                ctaLabel: t('steps.outbound.cta'),
-                href: '', // handled in onClick — card chooser or the QR scanner
-            },
-        }),
-        [t]
-    )
 
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/accounts-and-payments (which
@@ -240,15 +143,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
 
-    const lastTrackedStep = useRef<ActivationStep | null>(null)
+    // Each onboarding step is reported once per session, not on every Home visit.
+    const userId = user?.user?.userId
     useEffect(() => {
-        if (activationStep !== 'completed' && activationStep !== lastTrackedStep.current) {
-            lastTrackedStep.current = activationStep
-            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_STEP_VIEWED, {
-                step: activationStep,
-            })
-        }
-    }, [activationStep])
+        const step = onboarding.step
+        if (step === 'completed' || !userId) return
+        const key = `peanut_activation_step_viewed:${userId}:${step}`
+        try {
+            if (sessionStorage.getItem(key)) return
+            sessionStorage.setItem(key, '1')
+        } catch {}
+        posthog.capture(ANALYTICS_EVENTS.ACTIVATION_STEP_VIEWED, { step })
+    }, [onboarding.step, userId])
 
     // A user who can already transact — they hold an active card (its rail reads
     // `enabled`), have any other enabled rail, or the BE has marked them
@@ -263,8 +169,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         [rails, user?.user?.isActivated]
     )
 
-    // provider rejection overrides the step copy when user is past the verify step
-    // (sumsub approved but provider rejected — deposit/outbound CTAs are useless),
+    // provider rejection replaces the checklist once identity is verified
+    // (sumsub approved but provider rejected — the bank rows are useless),
     // UNLESS they can already transact via card / another rail (see above), or
     // they have a card PATH: a card-eligible user without a card doesn't need
     // the rejected bank rail to progress (crypto deposit → card), so nagging
@@ -275,19 +181,17 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // flow, in context.)
     const hasCardPath = canApplyForCard === true
     const hasProviderRejection =
-        activationStep !== 'verify' &&
-        activationStep !== 'card' &&
+        onboarding.verify === 'done' &&
+        !onboarding.firstPaymentDone &&
         !canAlreadyTransact &&
         !hasCardPath &&
         (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
-        // Highest precedence, ahead of every funnel step AND every provider
-        // rejection: a region-restricted user can never finish the funnel, so
-        // "Unlock payments" is a CTA that leads nowhere. They stay on 'verify'
-        // forever (the milestone never advances past `registered`), which is
-        // exactly the state that would nag them indefinitely. Replace the card
-        // with the explanation and point them at what still works.
+        // Highest precedence, ahead of the checklist AND every provider
+        // rejection: a region-restricted user can never pass "Verify identity",
+        // so the list would nag them indefinitely. Replace it with the
+        // explanation and point them at what still works.
         if (isRegionRestricted) {
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
@@ -297,19 +201,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 href: REGION_RESTRICTED_CTA_HREF,
             }
         }
-
-        if (activationStep === 'completed' && !hasProviderRejection) return null
-
-        // Hide the verify CTA while identity is processing — user already
-        // submitted, the BE is reviewing, no further action from them.
-        // action_required is the exception: that means we DO need them back.
-        if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
-
-        // A fully restricted residence (no bank rails AND no card) has nothing
-        // behind "Unlock payments" — the ID check could only end on a terminal
-        // rejection, so the offer itself is dishonest. Partial restrictions
-        // keep the CTA: one half of the unlock still works.
-        if (activationStep === 'verify' && residenceRestrictions.banking && residenceRestrictions.card) return null
 
         if (hasProviderRejection) {
             // Email-blocked (status=blocked) outranks a fixable RFI (status=requires-info)
@@ -362,61 +253,29 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
         }
 
-        // Card-access users can activate by swiping too — broaden the QR-only
-        // framing. Users without card access keep the QR copy untouched so we
-        // never tease a card they can't get.
-        if (activationStep === 'outbound' && canApplyForCard) {
-            return {
-                ...steps.outbound,
-                bubble: CONCEPT_ICONS.card,
-                title: t('spendWithPeanut.title'),
-                description: t('spendWithPeanut.description'),
-            }
-        }
-
-        return steps[activationStep as Exclude<ActivationStep, 'completed'>]
+        return null
     }, [
         t,
-        steps,
-        activationStep,
         hasProviderRejection,
         hasFixableRejection,
         isEmailBlocked,
         isRestartBlocked,
         localizedRejectionMessage,
-        isIdentityProcessing,
-        isIdentityActionRequired,
-        residenceRestrictions,
-        canApplyForCard,
         isRegionRestricted,
         tRegion,
         tProviderRejection,
     ])
 
-    if (!step) return null
+    if (onboarding.step === 'completed' && !step) return null
 
-    // The 3-item checklist is the Home empty state (product decision,
-    // TASK-22114): pre-funding it is the whole card slot; once money has moved
-    // the activity list takes its place. Everything else falls through to the
-    // single-step card below —
-    //   • `outbound` / `card`: funded but NOT yet activated. Activation still
-    //     needs a spend, so the one remaining step keeps a CTA. Dropping it
-    //     stranded funded accounts with no route to the spend (and to Rewards).
-    //   • provider rejections, email blocks, and the region-restricted
-    //     explanation, which outranks the checklist: every step on the list is
-    //     a door that user cannot open, so offering the list would be dishonest.
-    const isFundedNotActivated = activationStep === 'outbound' || activationStep === 'card'
-    if (!hasProviderRejection && !isRegionRestricted && !isFundedNotActivated) return <GettingStartedChecklist />
-
-    // The spend step survives only while a spend that ACTIVATES is open: the
-    // card (`/card`, or the chooser) or a QR pay. A funded user with neither
-    // cannot clear this step at all — a peer send is volume, not activation —
-    // so the card would reappear after every payment they make. They keep the
-    // activity list instead.
-    const canSpendToActivate = canApplyForCard === true || hasQrSpendRail
-    if (activationStep === 'outbound' && !hasProviderRejection && !isRegionRestricted && !canSpendToActivate) {
+    // A fully restricted residence (no bank rails AND no card) has nothing
+    // behind "Verify identity" — the ID check could only end on a terminal
+    // rejection, so the list would offer doors that cannot open.
+    if (!step && onboarding.verify === 'todo' && residenceRestrictions.banking && residenceRestrictions.card) {
         return null
     }
+
+    if (!step) return <GettingStartedChecklist onboarding={onboarding} />
 
     return (
         <Card position="solo" className="p-0">
@@ -465,14 +324,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 // this the fixable rail's own code.
                                 reasonCode: primaryRejectionCode,
                             })
-                        } else if (activationStep === 'outbound' && !hasProviderRejection && canApplyForCard) {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
-                            setShowSpendChooser(true)
-                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            // No card, so the QR pay is this user's only
-                            // activating spend — and the gate above already
-                            // established they hold the rail for it.
-                            setIsQRScannerOpen(true)
                         } else {
                             router.push(step.href)
                         }
@@ -480,68 +331,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 >
                     {step.ctaLabel}
                 </Button>
-                {step.dismissable && onDismissCard && (
-                    // deliberate body-s size kept; states come from LinkButton.
-                    // mt-3 tops the card's gap-3 up to the tertiary's 24px, so
-                    // LinkButton's 14px upward hit-area slop clears the primary
-                    <LinkButton onClick={onDismissCard} className="mt-3 text-body-s text-foreground-primary">
-                        {tCommon('maybeLater')}
-                    </LinkButton>
-                )}
             </div>
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <Drawer
-                open={showSpendChooser && canApplyForCard === true}
-                onOpenChange={(open) => {
-                    if (!open) setShowSpendChooser(false)
-                }}
-            >
-                <DrawerContent>
-                    <div className="flex flex-col items-center pt-1 pb-6 text-center">
-                        {/* the head owns the M/12 beneath it; everything after it
-                            keeps the drawer's L/16 rhythm */}
-                        <div className="mb-3 flex w-full flex-col items-center gap-4">
-                            <IconBubble {...CONCEPT_ICONS.card} />
-                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                                <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
-                                <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>
-                            </DrawerHeader>
-                        </div>
-                        <div className="flex w-full flex-col items-center gap-4">
-                            <Button
-                                shadowSize="4"
-                                className="w-full justify-center"
-                                onClick={() => {
-                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
-                                        choice: 'card',
-                                    })
-                                    setShowSpendChooser(false)
-                                    router.push('/card')
-                                }}
-                            >
-                                {t('spendChooser.payWithCard')}
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                className="w-full justify-center"
-                                onClick={() => {
-                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
-                                        choice: 'qr',
-                                    })
-                                    setShowSpendChooser(false)
-                                    setIsQRScannerOpen(true)
-                                }}
-                            >
-                                {t('spendChooser.scanQr')}
-                            </Button>
-                        </div>
-                    </div>
-                </DrawerContent>
-            </Drawer>
             <SumsubKycModals flow={kycFlow} />
         </Card>
     )

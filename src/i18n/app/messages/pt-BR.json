@@ -84,28 +84,6 @@
     "home": {
         "rewards": "Recompensas",
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Desbloqueie pagamentos",
-                    "description": "Depósitos bancários, códigos QR e métodos de pagamento locais",
-                    "cta": "Desbloquear agora"
-                },
-                "deposit": {
-                    "title": "Deposite",
-                    "description": "Adicione dinheiro para fazer seu primeiro pagamento",
-                    "cta": "Adicionar dinheiro"
-                },
-                "card": {
-                    "title": "Gaste onde a Visa é aceita",
-                    "description": "Use seu saldo em mais de 150M de estabelecimentos. Online e por aproximação.",
-                    "cta": "Pedir cartão"
-                },
-                "outbound": {
-                    "title": "Faça o primeiro pagamento",
-                    "description": "Pague chaves Pix e códigos QR do Pix ou do MercadoPago",
-                    "cta": "Começar a gastar"
-                }
-            },
             "addEmail": {
                 "title": "Adicionar e-mail",
                 "description": "Precisamos de um e-mail para terminar de configurar sua conta.",
@@ -121,10 +99,6 @@
                 "description": "Fale com o suporte para receber ajuda com sua verificação.",
                 "cta": "Falar com o suporte"
             },
-            "spendWithPeanut": {
-                "title": "Pague com a Peanut",
-                "description": "Pague com cartão, uma chave Pix ou QR codes de Pix e MercadoPago"
-            },
             "spendChooser": {
                 "title": "Escolha como gastar",
                 "description": "As duas contam como seu primeiro pagamento.",
@@ -136,15 +110,18 @@
             "title": "Começar",
             "createAccount": "Criar conta",
             "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
-            "getCard": "Peça o cartão Peanut",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Faça o primeiro pagamento",
-            "firstPaymentNote": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
             "addMoneyStandingAccounts": "Tenha dados bancários no seu nome. Receba em euros, dólares e mais.",
             "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
             "addMoneyRoutesNoBank": "Cripto de qualquer carteira ou corretora",
-            "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
+            "verifyIdentity": "Verificar identidade",
+            "verifyIdentityNote": "Uma verificação única. Libera transferências bancárias e pagamentos com QR",
+            "inReview": "Em análise",
+            "firstPaymentCardNote": "Peça o cartão Peanut ou pague um QR",
+            "firstPaymentQrNote": "Pagar um código QR",
+            "firstPaymentCardOnlyNote": "Peça o cartão Peanut"
         },
         "autoBalance": {
             "title": "Termine de configurar o cartão",
