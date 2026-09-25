@@ -144,8 +144,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     return (
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
-                {/* Pad the grid for focus rings; scroll-area padding must retain its safe-area inset. */}
-                <div className="grid grid-cols-3 gap-2 py-1">
+                {/* Pad the grid for focus rings; scroll-area padding must retain its safe-area inset.
+                    Every row is as tall as the tallest tile: auto-rows-fr evens the rows, and the explicit
+                    stretch overrides aspect-square's default start alignment, which left a one-line tile
+                    shorter than a wrapped neighbour. */}
+                <div className="grid auto-rows-fr grid-cols-3 items-stretch gap-2 py-1">
                     {/* Keep tiles in the grid and the roll button outside the radio group. */}
                     <div role="radiogroup" aria-label={t('title')} className="contents" onKeyDown={roveAvatarTiles}>
                         {hand.map((key, index) => {
@@ -162,16 +165,16 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     tabIndex={index === focusIndex ? 0 : -1}
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
-                                        // Native buttons share Card's surface. Three square tiles per row on every phone
-                                        // (TASK-23054). The sticker takes 3/5 of the tile width, so it scales with the tile
-                                        // instead of stepping at a breakpoint; the Earned tag may overlap its corner, the
-                                        // text never. With one line each of name and line the tile stays square; a name
-                                        // that wraps grows its row. The chosen tile follows the selected-rows
+                                        // Native buttons share Card's surface. Three tiles per row on every phone, square at
+                                        // least (TASK-23054). The sticker takes 3/5 of the tile width, so it scales with the
+                                        // tile instead of stepping at a breakpoint. The 12px top padding lets the Earned tag
+                                        // (4px down, 20px tall) overlap only the sticker's top corner, never the text or the
+                                        // face. A name that wraps grows every row alike. The chosen tile follows the selected-rows
                                         // rule in design.md: action-primary fill, over-color ink on every line, and a second
                                         // channel besides colour (WCAG 1.4.1), here a 1px inset ring inside the 1px border:
                                         // it reads as a 2px edge but takes no layout, so the tile does not shift (QA-42).
                                         // inset-ring, not ring: globals.css redefines the bare ring utility.
-                                        `relative flex aspect-square flex-col items-center ${CARD_SURFACE} px-1 pt-2 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                        `relative flex aspect-square flex-col items-center ${CARD_SURFACE} px-1 pt-3 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                         checked && 'bg-action-primary inset-ring inset-ring-border-default'
                                     )}
                                 >
@@ -188,8 +191,8 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         size="l"
                                         className="aspect-square h-auto w-3/5"
                                     />
-                                    {/* One line reserved, two allowed: a name that wraps grows its grid row
-                                        (rows stretch to the tallest tile), so nothing clips. */}
+                                    {/* One line reserved, two allowed: a name that wraps grows the rows, so
+                                        nothing clips. */}
                                     <span
                                         className={twMerge(
                                             'mt-1 line-clamp-2 min-h-4 text-label-m',

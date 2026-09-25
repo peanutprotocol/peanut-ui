@@ -125,14 +125,14 @@ afterEach(() => jest.restoreAllMocks())
 
 describe('AvatarPicker', () => {
     // one 3x3 screen on every phone (TASK-23054): the initial, seven dealt
-    // stickers and the die, three square tiles to a row
+    // stickers and the die, three tiles to a row, square at least, rows even
     it('deals eight tiles and the die, three square tiles to a row', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tiles()).toHaveLength(8)
         expect(die()).toBeInTheDocument()
         const grid = die().parentElement
-        expect(grid).toHaveClass('grid-cols-3')
+        expect(grid).toHaveClass('grid-cols-3', 'auto-rows-fr', 'items-stretch')
         for (const el of [...tiles(), die()]) expect(el).toHaveClass('aspect-square')
     })
 
