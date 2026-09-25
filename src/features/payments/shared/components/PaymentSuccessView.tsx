@@ -66,6 +66,8 @@ type DirectSuccessViewProps = {
     type?: 'SEND' | 'REQUEST' | 'DEPOSIT'
     headerTitle?: string
     currencyAmount?: string
+    /** A second amount under the headline, already formatted: the other currency of a conversion. */
+    secondaryAmount?: string
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     /**
@@ -99,6 +101,7 @@ const PaymentSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
+    secondaryAmount,
     isExternalWalletFlow,
     isWithdrawFlow,
     isFromSendFlow,
@@ -341,6 +344,7 @@ const PaymentSuccessView = ({
                                 ))}
                         </h1>
                         <h2 className="text-heading-s">{displayAmount}</h2>
+                        {secondaryAmount && <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>}
                         {message && (
                             <p className="text-body-s text-foreground-secondary">
                                 {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}

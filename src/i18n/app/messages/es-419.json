@@ -225,6 +225,10 @@
             }
         },
         "pendingTasks": {
+            "documentTitle": "Se necesita un documento más",
+            "documentDescription": "Es necesario para que las transferencias bancarias sigan funcionando.",
+            "documentDueBy": "Vence el {deadline}. Es necesario para que las transferencias bancarias sigan funcionando.",
+            "documentCta": "Completar ahora",
             "completeBefore": "Completar antes del {deadline}",
             "dismiss": "Descartar {task}",
             "verifyTitle": "Se necesita verificación adicional",
@@ -716,7 +720,6 @@
         },
         "row": {
             "approximate": "Es un estimado. El tipo de cambio se fija al convertir la transferencia, así que el monto recibido puede variar un poco.",
-            "recipientGets": "El destinatario recibe",
             "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
         }
     },
@@ -2694,7 +2697,11 @@
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
+        "mystery": {
+            "title": "Insignias misteriosas",
+            "description": "Aparecen más en momentos especiales."
+        }
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -2782,11 +2789,8 @@
             "cta": "Enviar o solicitar dinero"
         },
         "advisory": {
-            "title": "Esto toma un poco más",
-            "descriptionByDate": "Tu cuenta necesita un documento más antes del {deadline} para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
-            "description": "Tu cuenta necesita un documento más para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
-            "completeNow": "Completar ahora",
-            "doLater": "Hacerlo después"
+            "title": "Se necesita un documento más",
+            "descriptionByDate": "Vence el {deadline}. Las transferencias bancarias siguen funcionando hasta entonces. Complétalo desde Inicio."
         },
         "progress": {
             "verifyingTitle": "Revisando la identificación",

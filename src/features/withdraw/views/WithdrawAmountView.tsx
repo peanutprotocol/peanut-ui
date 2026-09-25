@@ -41,6 +41,8 @@ interface WithdrawAmountViewProps {
         rate: number
         initialAmount: string
         onAmountChange: (value: string) => void
+        /** The field's currency toggle: 'USD' when the user types the USD amount instead. */
+        onDenominationChange: (symbol: string) => void
     }
 }
 
@@ -81,6 +83,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                         initialAmount={bankAmount.initialAmount}
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
+                        setCurrentDenomination={bankAmount.onDenominationChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
                         secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                         // the quote rounds the USDC up to the cent; the line and the balance check match it
