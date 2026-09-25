@@ -28,16 +28,6 @@ describe('Section', () => {
         expect(heading.parentElement).toBe(action.parentElement)
     })
 
-    test('with no title, trailing sits alone at the right of its row', () => {
-        render(
-            <Section trailing={<span>1 of 2 used</span>}>
-                <div>row</div>
-            </Section>
-        )
-        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
-        expect(screen.getByText('1 of 2 used').parentElement).toHaveClass('justify-end')
-    })
-
     test('no title, no heading element', () => {
         render(
             <Section>

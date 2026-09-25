@@ -1122,6 +1122,28 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Accounts page: one euro account held, the accounts still to open folded into one row.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
+    'profile-accounts-two-held': {
+        route: '/profile/accounts',
+        about: 'Accounts page: euro and peso accounts held under a raised limit of three, the fold closing the card.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': {
+                depositAccounts: [DEPOSIT_ACCOUNT_EUR, DEPOSIT_ACCOUNT_MXN],
+                accountLimit: 3,
+            },
+        },
+    },
+    'profile-accounts-at-limit': {
+        route: '/profile/accounts',
+        about: 'Accounts page at the limit: two of two held, no fold, the counter says why.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': {
+                depositAccounts: [DEPOSIT_ACCOUNT_EUR, DEPOSIT_ACCOUNT_MXN],
+                accountLimit: 2,
+            },
+        },
+    },
     'profile-accounts-none-held': {
         route: '/profile/accounts',
         about: 'Accounts page with no account held: every account to open listed, nothing folded.',

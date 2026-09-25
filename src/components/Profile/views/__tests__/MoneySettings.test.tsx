@@ -297,7 +297,7 @@ describe('MoneySettings', () => {
             // The user holds no account here, so no held section renders — an
             // empty heading would promise details that do not exist.
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
-            expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+            expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) expect(screen.getByText(title)).toBeInTheDocument()
             for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut-to-Peanut payments', 'Crypto']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
@@ -312,7 +312,7 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
             // P2P and crypto both carry the always-on chip.
             expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
-            expect(screen.queryByText('Other ways to move money into Peanut')).not.toBeInTheDocument()
+            expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
             }
@@ -322,7 +322,7 @@ describe('MoneySettings', () => {
             mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
             render(page)
             const residence = screen.getByText('Residence')
-            const firstList = screen.getByText(page === 'accounts' ? 'Other ways to move money into Peanut' : 'Spend')
+            const firstList = screen.getByText(page === 'accounts' ? 'Other ways to move money with Peanut' : 'Spend')
             expect(residence.compareDocumentPosition(firstList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
             fireEvent.click(screen.getByLabelText('Change'))
             expect(screen.getByText('change-modal-open')).toBeInTheDocument()
@@ -513,7 +513,7 @@ describe('MoneySettings', () => {
         it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
             render()
 
-            expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+            expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
             expect(
                 screen.getByText('These also add and withdraw money. They are not accounts in your name.')
             ).toBeInTheDocument()
@@ -534,7 +534,7 @@ describe('MoneySettings', () => {
 
         /*
          * A corridor the user could open is not one they hold: it sits under
-         * "Open an account", the list Add money shows too (QA-18), and
+         * "Open new account", the list Add money shows too (QA-18), and
          * the tap goes to the claim step there.
          */
         it('rail and an account they could open: offered under its own heading, never as held', () => {
@@ -545,7 +545,7 @@ describe('MoneySettings', () => {
             render()
 
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
-            expect(screen.getByText('Open an account')).toBeInTheDocument()
+            expect(screen.getByText('Open new account')).toBeInTheDocument()
             fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
             expect(mockPush).toHaveBeenCalledWith(
                 '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts'
@@ -561,13 +561,12 @@ describe('MoneySettings', () => {
             render()
 
             const held = screen.getByTestId('virtual-accounts')
-            // the page title already says "Accounts", so the section drops its
-            // heading and keeps the word as its accessible name
-            expect(within(held).queryByRole('heading')).not.toBeInTheDocument()
-            expect(screen.getAllByText('Accounts')).toHaveLength(1)
-            expect(screen.getByRole('region', { name: 'Accounts' })).toBe(held)
-            // the counter and its reason stay on the section's top row
-            expect(within(held).getByTestId('account-counter')).toHaveTextContent('1 of 2 used')
+            // the heading, the counter and its reason share the section's top row
+            // (hugo, 2026-09-25: the heading stays, beside the counter)
+            const heading = within(held).getByRole('heading', { name: 'Accounts' })
+            const counter = within(held).getByTestId('account-counter')
+            expect(counter).toHaveTextContent('1 of 2 used')
+            expect(heading.parentElement).toBe(counter.parentElement)
             expect(within(held).getByLabelText('Why a limit?')).toBeInTheDocument()
             // a payer can be handed these details; rail access never says Ready
             expect(screen.getByText('Ready')).toBeInTheDocument()
@@ -583,7 +582,7 @@ describe('MoneySettings', () => {
         mockDepositCorridors = ['SEPA_EU', 'ACH_US']
         render()
 
-        expect(screen.getByTestId('open-accounts-toggle')).toHaveTextContent('Open an account')
+        expect(screen.getByTestId('open-accounts-toggle')).toHaveTextContent('Open new account')
         expect(screen.queryByTestId('deposit-account-ACH_US')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('open-accounts-toggle'))
         fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
@@ -630,7 +629,7 @@ describe('MoneySettings', () => {
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
         expect(screen.getByTestId('virtual-accounts')).toBeInTheDocument()
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts'
@@ -657,7 +656,7 @@ describe('MoneySettings', () => {
         })
         render()
 
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
         expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         expect(screen.queryByText('USD')).not.toBeInTheDocument()
     })
@@ -733,7 +732,7 @@ describe('MoneySettings', () => {
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
         expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })

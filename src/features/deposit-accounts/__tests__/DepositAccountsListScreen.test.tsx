@@ -181,11 +181,11 @@ const drawer = () => within(screen.getByTestId('closed-row-drawer'))
 
 /*
  * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only the accounts the
- * user holds; the others sit under "Open an account". Aleks read MXN
+ * user holds; the others sit under "Open new account". Aleks read MXN
  * under "Your account numbers" as his own.
  */
 describe('the virtual accounts, held and to open', () => {
-    it('lists held accounts under their own heading and the rest under "Open an account"', () => {
+    it('lists held accounts under their own heading and the rest under "Open new account"', () => {
         list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') } })
 
         expect(screen.getByRole('heading', { name: LIST.heldTitle })).toBeInTheDocument()
@@ -280,6 +280,44 @@ describe('the accounts still to open fold once one is held', () => {
         expect(onOpen).toHaveBeenCalledWith('ACH_US')
     })
 
+    // Hugo, 2026-09-25: the fold is the last row of the held card, not a card of its own
+    it('closes the held card with the fold, one outline and no doubled border', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 3,
+        })
+
+        const held = screen.getByTestId('virtual-accounts')
+        const toggle = screen.getByTestId('open-accounts-toggle')
+        expect(held).toContainElement(toggle)
+        // the held rows and the fold item are siblings in one list
+        const item = screen.getByTestId('open-accounts-item')
+        expect(item).toContainElement(toggle)
+        const heldList = rowOf(container, 'SEPA_EU')!.closest('.border')!.parentElement
+        expect(item.parentElement).toBe(heldList)
+        // the item is the card's foot: square top, no top border of its own
+        expect(item).toHaveClass('rounded-b-sm', 'border-t-0')
+        expect(heldList?.lastElementChild).toBe(item)
+
+        unfoldOpenAccounts()
+        // the rows inside sit under the line the content draws; none adds its own top border
+        for (const corridor of corridorsIn('open-virtual-accounts')) {
+            expect(rowOf(container, corridor as DepositCorridor)!.closest('.border')).toHaveClass('border-t-0')
+        }
+    })
+
+    // nothing behind the fold can be opened at the limit; the counter says why
+    it('drops the fold at the account limit', () => {
+        list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 2,
+        })
+
+        expect(screen.queryByTestId('open-accounts-toggle')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('open-virtual-accounts')).not.toBeInTheDocument()
+        expect(screen.getByTestId('account-counter')).toHaveTextContent('2 of 2 used')
+    })
+
     it('folds under a revoked account too, which still sits in the held list', () => {
         const revoked = { ...heldAccount('ACH_US'), status: 'revoked' as const }
         list(false, { accounts: { ...NONE, ACH_US: revoked } })
@@ -329,7 +367,7 @@ describe('an account the user could open', () => {
     /*
      * At the account limit the tap explains the limit and offers support (the
      * gate drawer behind `onOpen`). The row no longer reads "Available", which
-     * under "Open an account" promised an account the user cannot open.
+     * under "Open new account" promised an account the user cannot open.
      */
     it('says the limit is reached, and leads to the drawer that explains it', () => {
         const onOpen = jest.fn()
@@ -338,7 +376,8 @@ describe('an account the user could open', () => {
             claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') },
             onOpen,
         })
-        unfoldOpenAccounts()
+        // at the limit there is no fold; a search still finds the row
+        search('mxn')
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
         expect(inRow(container, 'SPEI_MX').queryByText('Available')).not.toBeInTheDocument()

@@ -4089,8 +4089,8 @@
         "list": {
             "addTitle": "Adicionar dinheiro",
             "heldTitle": "Contas",
-            "openTitle": "Abrir uma conta",
-            "otherWaysTitle": "Outras formas de mover dinheiro para o Peanut",
+            "openTitle": "Abrir nova conta",
+            "otherWaysTitle": "Outras formas de mover dinheiro com o Peanut",
             "otherWaysBody": "Também servem para adicionar e sacar dinheiro. Não são contas no seu nome.",
             "badgeLimitReached": "Limite atingido",
             "notOfferedBody": "Não conseguimos abrir contas em {currency} para você. O suporte pode verificar o motivo.",

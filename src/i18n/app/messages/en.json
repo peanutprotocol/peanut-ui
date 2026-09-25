@@ -4089,8 +4089,8 @@
         "list": {
             "addTitle": "Add money",
             "heldTitle": "Accounts",
-            "openTitle": "Open an account",
-            "otherWaysTitle": "Other ways to move money into Peanut",
+            "openTitle": "Open new account",
+            "otherWaysTitle": "Other ways to move money with Peanut",
             "otherWaysBody": "These also add and withdraw money. They are not accounts in your name.",
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",

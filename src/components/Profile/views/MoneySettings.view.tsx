@@ -312,8 +312,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         onBankRowClick: handleRowClick,
         onChangeResidence: () => setIsChangeModalOpen(true),
         isKycDegraded,
-        // the page title already reads "Accounts"; Add money keeps the heading
-        hideHeldTitle: true,
     }
 
     // A residence re-verification never sets a region intent, so without the

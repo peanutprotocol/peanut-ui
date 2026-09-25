@@ -26,13 +26,13 @@ test('capture checkpoints follow the merged app locale catalogs', () => {
 // p72 opens the fold on the profile Accounts page in every capture locale
 test('the open-an-account fold is clicked by its localized name', () => {
     const expected = {
-        en: 'Open an account',
-        'es-419': 'Abrir una cuenta',
-        'es-AR': 'Abrir una cuenta',
-        'pt-BR': 'Abrir uma conta',
+        en: 'Open new account',
+        'es-419': 'Abrir cuenta nueva',
+        'es-AR': 'Abrir cuenta nueva',
+        'pt-BR': 'Abrir nova conta',
     }
     for (const [locale, label] of Object.entries(expected)) {
-        assert.equal(localizedCaptureText(locale, source)('Open an account'), label)
+        assert.equal(localizedCaptureText(locale, source)('Open new account'), label)
     }
 })
 
