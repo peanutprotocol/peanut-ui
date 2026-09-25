@@ -151,23 +151,22 @@ describe('closedBankRow', () => {
     })
 
     it('names the residence the Argentine and Brazilian rows need', () => {
-        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'residence' }), false, 'ARS')).toEqual({
+        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'residence' }), false)).toEqual({
             kind: 'residence',
             corridor: 'BANK_TRANSFER_AR',
-            label: 'ARS',
         })
     })
 
     it('names the country rule where bank transfers are closed for every rail', () => {
-        expect(
-            closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'restricted-country' }), false, 'ARS')
-        ).toEqual({ kind: 'restricted-country', label: 'ARS' })
+        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'restricted-country' }), false)).toEqual({
+            kind: 'restricted-country',
+        })
     })
 
     it('explains a verification outage on a row that needs verification, and leaves a working row alone', () => {
-        expect(closedBankRow(row({}), true, 'ARS')).toEqual({ kind: 'verification-down', label: 'ARS' })
-        expect(closedBankRow(row({ chip: 'active' }), true, 'ARS')).toBeNull()
-        expect(closedBankRow(row({}), false, 'ARS')).toBeNull()
+        expect(closedBankRow(row({}), true)).toEqual({ kind: 'verification-down' })
+        expect(closedBankRow(row({ chip: 'active' }), true)).toBeNull()
+        expect(closedBankRow(row({}), false)).toBeNull()
     })
 })
 

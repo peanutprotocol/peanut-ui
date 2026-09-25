@@ -56,6 +56,9 @@ describe('KycProcessingModal', () => {
         expect(screen.getByText(/left the verification unfinished/)).toBeInTheDocument()
         fireEvent.click(screen.getByText('Continue verification'))
         expect(onResume).toHaveBeenCalled()
+        // support is the escape, so a LinkButton under the primary, not a stroke Button
+        expect(screen.getByRole('button', { name: 'Contact support' })).toHaveClass('underline')
+        expect(screen.getByRole('button', { name: 'Continue verification' })).not.toHaveClass('underline')
         fireEvent.click(screen.getByText('Contact support'))
         expect(onContactSupport).toHaveBeenCalled()
     })

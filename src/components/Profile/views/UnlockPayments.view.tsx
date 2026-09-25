@@ -154,9 +154,8 @@ const UnlockPayments = () => {
         (row: UnlockRow) =>
             setClosedSpendRow({
                 kind: row.labelKey === 'card' && !restrictions.banking ? 'card-restricted' : 'restricted-country',
-                label: t(`rows.${row.labelKey}`),
             }),
-        [restrictions.banking, t]
+        [restrictions.banking]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
@@ -622,14 +621,6 @@ const UnlockPayments = () => {
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
-                              {
-                                  text: tCommon('contactSupport'),
-                                  variant: 'secondary',
-                                  onClick: () => {
-                                      setErrorAcknowledged(true)
-                                      setIsSupportModalOpen(true)
-                                  },
-                              },
                           ]
                         : [
                               {
@@ -639,6 +630,22 @@ const UnlockPayments = () => {
                                   onClick: () => setErrorAcknowledged(true),
                               },
                           ]
+                }
+                // support is the escape after a failed retry, not a second way
+                // to unlock, so it is the tertiary LinkButton under the primary
+                footer={
+                    failedRegionRetriable ? (
+                        <div className="flex justify-center">
+                            <LinkButton
+                                onClick={() => {
+                                    setErrorAcknowledged(true)
+                                    setIsSupportModalOpen(true)
+                                }}
+                            >
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        </div>
+                    ) : undefined
                 }
             />
 

@@ -101,14 +101,38 @@ const expectBackOnList = (onUrlUpdate: jest.Mock) =>
 
 describe.each([
     ['account-limit', { blockedBy: 'account-limit' as const }, GATE.limitTitle.replace(/\{count.*\}\}/, '1 account')],
-    ['pending-review', { blockedBy: 'endorsement-pending' as const }, GATE.reviewTitle],
-    ['wait', { gate: { kind: 'pending' } as GateState, withTerms: false }, GATE.waitTitle],
+    ['pending-review', { blockedBy: 'endorsement-pending' as const }, GATE.reviewTitle.replace('{currency}', 'EUR')],
+    ['wait', { gate: { kind: 'pending' } as GateState, withTerms: false }, GATE.waitTitle.replace('{currency}', 'EUR')],
 ])('the %s gate', (_, options, title) => {
     it('opens as a bottom drawer over the list, which stays mounted', () => {
         renderFlow(flowProps(options))
         expect(screen.getByTestId('hub')).toBeInTheDocument()
         expect(drawer()).toHaveAttribute('data-vaul-drawer-direction', 'bottom')
         expect(drawer()).toHaveTextContent(title)
+    })
+
+    // Hugo QA 2026-09-25: the "EUR · SEPA" line under the buttons was not in the DS
+    it('has no rail caption under the buttons', () => {
+        renderFlow(flowProps(options))
+        expect(drawer()).not.toHaveTextContent('EUR · SEPA')
+        expect(drawer()).not.toHaveTextContent(messages.depositAccounts.corridors.SEPA_EU.railName)
+    })
+})
+
+/*
+ * With the caption gone, the title names the currency wherever the drawer is
+ * about one account; the other reasons (limit, identity, terms, email) hold
+ * for every account alike.
+ */
+describe.each([
+    ['support', { gate: { kind: 'blocked-rejection', userMessage: null } as GateState }, GATE.blockedTitle],
+    ['pending-review', { blockedBy: 'endorsement-pending' as const }, GATE.reviewTitle],
+    ['wait', { gate: { kind: 'pending' } as GateState, withTerms: false }, GATE.waitTitle],
+])('the %s gate title', (_, options, title) => {
+    it('names the currency the user tapped', () => {
+        renderFlow(flowProps(options))
+        expect(title).toContain('{currency}')
+        expect(screen.getByRole('heading', { name: title.replace('{currency}', 'EUR') })).toBeInTheDocument()
     })
 })
 
@@ -140,7 +164,7 @@ describe('the gate drawer', () => {
         const { rerenderFlow } = renderFlow(flowProps({ blockedBy: 'endorsement-pending' }))
         rerenderFlow(flowProps({ blockedBy: 'endorsement-pending' }))
         expect(screen.getByTestId('hub')).toBeInTheDocument()
-        expect(drawer()).toHaveTextContent(GATE.reviewTitle)
+        expect(drawer()).toHaveTextContent(GATE.reviewTitle.replace('{currency}', 'EUR'))
 
         rerenderFlow(flowProps())
         expect(screen.getByTestId('claim')).toBeInTheDocument()
