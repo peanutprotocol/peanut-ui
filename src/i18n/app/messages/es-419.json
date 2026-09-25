@@ -2411,13 +2411,14 @@
         },
         "iosCopy": {
             "invitesTitle": "Red",
-            "noPendingRewards": "No tienes nada pendiente por ahora.",
+            "noPendingRewards": "Nada pendiente por ahora.",
             "lifetimeRewards": "Ganado hasta ahora: {amount}",
             "earnWhenFriendsUse": "¡Ganas puntos cada vez que tus amigos pagan con Peanut!",
             "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más puntos",
             "howItWorks": {
                 "title": "Cómo funciona",
-                "step3": "Lo que ganas se acumula en tu saldo."
+                "step3": "Tus ganancias se acumulan en tu saldo.",
+                "step4": "Haz cualquier pago para reclamarlas."
             },
             "lifetimeCaption": "hasta ahora"
         }
