@@ -274,7 +274,8 @@ describe('GettingStartedChecklist — Hide', () => {
 describe('GettingStartedChecklist — welcome card and one done row', () => {
     it('welcomes with the real step count and the progress', () => {
         render()
-        expect(screen.getByText('Welcome to Peanut!')).toBeInTheDocument()
+        // visible title (hidden from screen readers) plus its spoken form
+        expect(screen.getAllByText('Welcome to Peanut!')).toHaveLength(2)
         expect(screen.getByText('4 quick steps to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
     })

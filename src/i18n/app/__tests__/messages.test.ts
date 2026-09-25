@@ -31,6 +31,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
+    'Welcome to Peanut!':
+        'visible title vs. its spoken form: es shows "¡Bienvenid@ a Peanut!", screen readers get "¡Te damos la bienvenida a Peanut!" (the @ is read as "arroba")',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
     Username:
         "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",

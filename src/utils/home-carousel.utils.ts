@@ -100,20 +100,23 @@ export function hideHomeCta(userId: string | undefined, id: string): void {
 
 /**
  * A carousel slide that asks the user to verify ("Unlock QR code payments")
- * shows only when verifying can open QR pay: the QR-pay gate says QR is a path
- * but not yet open. Never for a refused region or a blocked provider, where
- * the ID check leads nowhere, and never while the user is already mid-flow.
+ * shows only to a user whose identity is not verified, and only when verifying
+ * can open QR pay: the QR-pay gate says QR is a path but not yet open. Never
+ * for a refused region or a blocked provider, where the ID check leads
+ * nowhere, and never while the user is already mid-flow. "Verified" is the
+ * identity status itself (the checklist's Verify row reads the same), not a
+ * provider rail: a verified user with no pool rail must not be asked again.
  */
 export function showVerifyCTA(input: {
     qrGateState: QrKycState
-    hasKycApproval: boolean
+    isIdentityVerified: boolean
     isInFlight: boolean
     isCardEligible: boolean | undefined
 }): boolean {
     return (
         qrPayIsAPath(input.qrGateState) === true &&
         input.qrGateState !== QrKycState.PROCEED_TO_PAY &&
-        !input.hasKycApproval &&
+        !input.isIdentityVerified &&
         !input.isInFlight &&
         // card-eligible users verify through the card flow instead
         input.isCardEligible === false

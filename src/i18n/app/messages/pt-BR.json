@@ -127,7 +127,8 @@
             "hide": "Ocultar",
             "welcomeTitle": "Boas-vindas ao Peanut!",
             "welcomeBody": "{count} passos rápidos para pagar, enviar e receber",
-            "progress": "{done} de {total} concluídos"
+            "progress": "{done} de {total} concluídos",
+            "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
         "autoBalance": {
             "title": "Termine de configurar o cartão",

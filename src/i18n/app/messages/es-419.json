@@ -125,9 +125,10 @@
             "firstPaymentHeldCardNote": "Paga con la tarjeta",
             "firstPaymentHeldCardQrNote": "Paga con la tarjeta o un QR",
             "hide": "Ocultar",
-            "welcomeTitle": "¡Te damos la bienvenida a Peanut!",
+            "welcomeTitle": "¡Bienvenid@ a Peanut!",
             "welcomeBody": "{count} pasos rápidos para pagar, enviar y recibir",
-            "progress": "{done} de {total} listos"
+            "progress": "{done} de {total} listos",
+            "welcomeTitleSpoken": "¡Te damos la bienvenida a Peanut!"
         },
         "autoBalance": {
             "title": "Termina de configurar la tarjeta",

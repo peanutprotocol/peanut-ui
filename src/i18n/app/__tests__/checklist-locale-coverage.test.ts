@@ -12,6 +12,7 @@ import { loadMessages } from '../messages'
  */
 const CHECKLIST_KEYS = [
     'welcomeTitle',
+    'welcomeTitleSpoken',
     'welcomeBody',
     'progress',
     'createAccount',
@@ -56,4 +57,15 @@ describe('getting-started checklist copy resolves in every locale', () => {
         // and its own delta still wins where it does restate one
         expect(esAR.home.gettingStarted.firstPaymentCardNote).not.toBe(es419.home.gettingStarted.firstPaymentCardNote)
     })
+})
+
+describe('the Spanish welcome title', () => {
+    it.each(['es-419', 'es-AR'] as const)(
+        '%s shows "Bienvenid@" and gives screen readers a spoken form without the @',
+        async (locale) => {
+            const g = ((await loadMessages(locale)) as unknown as Record<string, any>).home.gettingStarted
+            expect(g.welcomeTitle).toBe('¡Bienvenid@ a Peanut!')
+            expect(g.welcomeTitleSpoken).toBe('¡Te damos la bienvenida a Peanut!')
+        }
+    )
 })

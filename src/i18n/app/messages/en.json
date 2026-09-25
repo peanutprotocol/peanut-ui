@@ -127,7 +127,8 @@
             "hide": "Hide",
             "welcomeTitle": "Welcome to Peanut!",
             "welcomeBody": "{count} quick steps to pay, send and receive",
-            "progress": "{done} of {total} done"
+            "progress": "{done} of {total} done",
+            "welcomeTitleSpoken": "Welcome to Peanut!"
         },
         "autoBalance": {
             "title": "Finish setting up the card",

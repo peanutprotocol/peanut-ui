@@ -84,7 +84,7 @@ describe('one store for every Home CTA a user closes', () => {
 })
 
 describe('showVerifyCTA — the verify slide follows the QR-pay gate', () => {
-    const base = { hasKycApproval: false, isInFlight: false, isCardEligible: false }
+    const base = { isIdentityVerified: false, isInFlight: false, isCardEligible: false }
 
     it('shows when verifying opens QR pay', () => {
         expect(showVerifyCTA({ ...base, qrGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION })).toBe(true)
@@ -99,10 +99,10 @@ describe('showVerifyCTA — the verify slide follows the QR-pay gate', () => {
         expect(showVerifyCTA({ ...base, qrGateState })).toBe(false)
     })
 
-    it('never mid-flow, for a verified user, or for a card-eligible user', () => {
+    it('never mid-flow, for a verified identity (pool rail or not), or for a card-eligible user', () => {
         const qrGateState = QrKycState.REQUIRES_IDENTITY_VERIFICATION
         expect(showVerifyCTA({ ...base, qrGateState, isInFlight: true })).toBe(false)
-        expect(showVerifyCTA({ ...base, qrGateState, hasKycApproval: true })).toBe(false)
+        expect(showVerifyCTA({ ...base, qrGateState, isIdentityVerified: true })).toBe(false)
         expect(showVerifyCTA({ ...base, qrGateState, isCardEligible: true })).toBe(false)
     })
 })
