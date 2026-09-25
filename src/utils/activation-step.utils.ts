@@ -115,9 +115,15 @@ export function resolveOnboarding(input: OnboardingInput): OnboardingState {
 
 /**
  * The checklist can be hidden once only the payment row is left (Create,
- * Verify and Add money done). It covers users who only move money in and out,
- * who would otherwise keep a 75% list forever.
+ * Verify and Add money done) and known. It covers users who only move money
+ * in and out, who would otherwise keep a 75% list forever.
  */
 export function canHideChecklist(state: OnboardingState): boolean {
-    return state.verify === 'done' && state.addMoneyDone && state.step === 'first_payment'
+    // not while the payment row itself is still loading
+    return (
+        state.verify === 'done' &&
+        state.addMoneyDone &&
+        state.step === 'first_payment' &&
+        state.firstPaymentRoute !== 'pending'
+    )
 }

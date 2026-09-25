@@ -160,6 +160,7 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
         }
         return rows
     }, [
+        onboarding.cardHeld,
         addMoneyDone,
         depositAccountsEnabled,
         firstPaymentDone,

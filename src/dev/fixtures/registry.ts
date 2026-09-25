@@ -1705,6 +1705,33 @@ export const FIXTURES: Record<string, Fixture> = {
                     activationCelebratedAt: '2026-09-01T00:00:00Z',
                 },
                 identityVerification: { status: 'verified' },
+                // the holder's card rail: the payment row says to pay with the card
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'rain.card_rain',
+                            provider: 'rain',
+                            method: 'CARD_RAIN',
+                            channel: 'card',
+                            country: 'GLOBAL',
+                            currency: 'USD',
+                            status: 'enabled',
+                            operations: { pay: 'enabled' },
+                        },
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
             },
         },
     },

@@ -183,5 +183,6 @@ describe('canHideChecklist — only once the payment row is the one left', () =>
     it('not when there is nothing left to hide', () => {
         expect(canHideChecklist(resolve({ ...funded, isActivated: true }))).toBe(false)
         expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'none' }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'pending' }))).toBe(false)
     })
 })

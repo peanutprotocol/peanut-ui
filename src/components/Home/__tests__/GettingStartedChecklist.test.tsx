@@ -147,6 +147,24 @@ describe('GettingStartedChecklist', () => {
             expect(mockPush).toHaveBeenCalledWith('/card')
         })
 
+        it('switches copy when the card becomes held (application submitted mid-session)', () => {
+            const onboarding = { ...NEW_USER, firstPaymentRoute: 'card' as const, cardHeld: false }
+            const view = rtlRender(
+                <NuqsTestingAdapter>
+                    <GettingStartedChecklist onboarding={onboarding} onHide={mockOnHide} />
+                </NuqsTestingAdapter>,
+                { wrapper: IntlWrapper }
+            )
+            expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
+            view.rerender(
+                <NuqsTestingAdapter>
+                    <GettingStartedChecklist onboarding={{ ...onboarding, cardHeld: true }} onHide={mockOnHide} />
+                </NuqsTestingAdapter>
+            )
+            expect(screen.getByText('Pay with the card')).toBeInTheDocument()
+            expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
+        })
+
         it('a held card with QR open', () => {
             render({ firstPaymentRoute: 'card_qr', cardHeld: true })
             expect(screen.getByText('Pay a QR or with the card')).toBeInTheDocument()
