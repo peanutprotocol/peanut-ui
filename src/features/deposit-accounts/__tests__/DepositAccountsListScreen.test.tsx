@@ -178,12 +178,12 @@ const search = (term: string) => fireEvent.change(screen.getByRole('textbox'), {
 const drawer = () => within(screen.getByTestId('closed-row-drawer'))
 
 /*
- * QA 2026-09-24 (QA-03/04/15): "Virtual accounts" lists only the accounts the
- * user holds; the others sit under "Open a virtual account". Aleks read MXN
+ * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only the accounts the
+ * user holds; the others sit under "Open an account". Aleks read MXN
  * under "Your account numbers" as his own.
  */
 describe('the virtual accounts, held and to open', () => {
-    it('lists held accounts under their own heading and the rest under "Open a virtual account"', () => {
+    it('lists held accounts under their own heading and the rest under "Open an account"', () => {
         list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') } })
 
         expect(screen.getByRole('heading', { name: LIST.heldTitle })).toBeInTheDocument()
@@ -272,7 +272,7 @@ describe('an account the user could open', () => {
     /*
      * At the account limit the tap explains the limit and offers support (the
      * gate drawer behind `onOpen`). The row no longer reads "Available", which
-     * under "Open a virtual account" promised an account the user cannot open.
+     * under "Open an account" promised an account the user cannot open.
      */
     it('says the limit is reached, and leads to the drawer that explains it', () => {
         const onOpen = jest.fn()

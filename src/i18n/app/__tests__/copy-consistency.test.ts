@@ -157,13 +157,15 @@ const RETIRED: Array<[string, RegExp, readonly string[]]> = [
     ['"withdraw", never "cash out"', /cash\s*out|cashout/i, ['withdraw', 'transaction.type']],
     ['"verification", never "KYC"', /(?<!\p{L})KYC(?!\p{L})/u, ['addMoney.methods']],
     ['"Pix", never "PIX"', /(?<!\p{L})PIX(?!\p{L})/u, ['addMoney.pix', 'withdraw.pixKey']],
-    // Hugo, 2026-09-24: standing bank details are "virtual accounts" on the
-    // money screens, and "account numbers" is retired from them.
+    // Hugo, 2026-09-24: "account numbers" is retired from the money screens.
     [
-        '"virtual account", never "account numbers"',
+        '"account", never "account numbers"',
         /account\s+numbers|números\s+de\s+(cuenta|conta)/i,
         ['depositAccounts.list', 'profile.unlockPayments'],
     ],
+    // Hugo, 2026-09-25: the standing bank details are an "account"; "virtual"
+    // was a technicality. No namespace keeps it.
+    ['"account", never "virtual account"', /virtual\s+accounts?|cuentas?\s+virtual|contas?\s+virtua/i, Object.keys(en)],
 ]
 
 describe.each(APP_LOCALES)('retired terms are gone from the fixed surfaces (%s)', (locale) => {
