@@ -8,8 +8,8 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useParams, useSearchParams } from 'next/navigation'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -49,7 +49,9 @@ const MantecaAddMoney: FC = () => {
     const queryClient = useQueryClient()
     const locale = useLocale()
     const t = useTranslations('addMoney')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -422,7 +424,7 @@ const MantecaAddMoney: FC = () => {
                 onBack={onBack}
                 // Terminal exit — `replace` so device/browser back can't pop into the
                 // finished deposit (whose step=showQR would redirect to a new one).
-                onDone={() => router.replace('/home')}
+                onDone={leaveToHome}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )

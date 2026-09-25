@@ -42,7 +42,6 @@ export function AddMoneyCryptoPage() {
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
-                replaceOnDone
                 onComplete={handleSuccessComplete}
             />
         )

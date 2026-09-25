@@ -28,7 +28,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -195,6 +195,9 @@ function MantecaBankWithdrawFlow() {
     })
     const step = stepper.step
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
@@ -963,7 +966,7 @@ function MantecaBankWithdrawFlow() {
                     <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
-                                router.push('/home')
+                                leaveToHome()
                                 resetState()
                             }}
                             shadowSize="4"

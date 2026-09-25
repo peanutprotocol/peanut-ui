@@ -1,6 +1,6 @@
 'use client'
 
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -42,6 +42,13 @@ export function useWithdrawRootFlow() {
     const [methodParam] = useQueryState('method', parseAsString)
     const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins
+    // over /home, which only fits tab-bar entries. Rewinds rather than pushes:
+    // a pushed /home kept the withdraw flow under it, so back from home
+    // reopened it.
+    const leaveFlow = useReturnTo(
+        readReturnTo({ get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) }, '/withdraw') ?? '/home'
+    )
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
     const {
@@ -76,13 +83,7 @@ export function useWithdrawRootFlow() {
                 goBackToSend()
                 return
             }
-            // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
-            // wins over the /home reset, which only fits tab-bar entries
-            const returnTo = readReturnTo(
-                { get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) },
-                '/withdraw'
-            )
-            router.push(returnTo ?? '/home')
+            leaveFlow()
         },
     })
 

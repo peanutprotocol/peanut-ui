@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import GlobalCard from '@/components/Global/Card'
@@ -33,6 +34,9 @@ export function QrPaySuccessView() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const { user } = useAuth()
     const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef } = useQrPayFlow()
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
@@ -215,7 +219,7 @@ export function QrPaySuccessView() {
                         <>
                             {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
                             {rewardRevealed ? (
-                                <Button shadowSize="4" onClick={() => router.push('/home')}>
+                                <Button shadowSize="4" onClick={leaveToHome}>
                                     {tCommon('goToHome')}
                                 </Button>
                             ) : (

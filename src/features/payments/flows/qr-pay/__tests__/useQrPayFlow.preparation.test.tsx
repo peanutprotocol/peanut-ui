@@ -43,7 +43,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({ useStaleSessionGuard: () => () => false }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/usePointsCalculation', () => ({
     usePointsCalculation: () => ({ pointsData: null, pointsDivRef: { current: null } }),
 }))

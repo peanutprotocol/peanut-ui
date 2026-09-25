@@ -21,8 +21,10 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockSafeBack = jest.fn()
+const mockReturnTo = jest.fn()
 jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => mockSafeBack,
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
 }))
 
 // param-aware read-only stand-in: returnTo comes from the test's search params,
@@ -91,12 +93,13 @@ beforeEach(() => {
 // ---------- tests ----------
 
 describe('AddMoneyCryptoPage back handler', () => {
-    test('back pushes a same-origin ?returnTo instead of history-back', () => {
+    test('back returns to a same-origin ?returnTo instead of history-back', () => {
         renderPage('/profile/exchange-rate?from=USD&to=EUR')
 
         fireEvent.click(screen.getByTestId('choose-network-back'))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockReturnTo).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockSafeBack).not.toHaveBeenCalled()
     })
 
@@ -106,7 +109,7 @@ describe('AddMoneyCryptoPage back handler', () => {
         fireEvent.click(screen.getByTestId('choose-network-back'))
 
         expect(mockSafeBack).toHaveBeenCalled()
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockReturnTo).not.toHaveBeenCalled()
     })
 
     test('no returnTo behaves like before — plain useSafeBack', () => {
@@ -115,6 +118,6 @@ describe('AddMoneyCryptoPage back handler', () => {
         fireEvent.click(screen.getByTestId('choose-network-back'))
 
         expect(mockSafeBack).toHaveBeenCalled()
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockReturnTo).not.toHaveBeenCalled()
     })
 })

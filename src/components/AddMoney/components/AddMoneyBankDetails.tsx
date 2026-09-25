@@ -6,6 +6,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatBankAmount } from '@/utils/currency'
@@ -71,6 +72,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     // routing and country context
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const params = useParams()
     // Native routes keep the country in query state instead of a path segment.
     const currentCountryName = (params.country as string) || countryFromQuery || ''
@@ -479,7 +483,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             : t('bankDetails.etaSepa')}
                 </p>
 
-                <Button onClick={() => router.push('/home')} variant="primary" className="w-full" shadowSize="4">
+                <Button onClick={leaveToHome} variant="primary" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>
 

@@ -1064,7 +1064,7 @@ describe('GROUP 1: Landing', () => {
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('hub-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     // Entering add-money from the exchange-rate widget's "Try it!" CTA used to
@@ -1075,8 +1075,8 @@ describe('GROUP 1: Landing', () => {
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('hub-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
-        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterReplace).not.toHaveBeenCalledWith('/home')
     })
 
     test('back ignores an off-origin ?returnTo and still resets to /home', () => {
@@ -1085,7 +1085,7 @@ describe('GROUP 1: Landing', () => {
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('hub-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 })
 
