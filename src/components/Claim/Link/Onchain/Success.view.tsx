@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -220,9 +221,16 @@ export const SuccessClaimLinkView = ({
                             {tCommon('tryAgain')}
                         </Button>
                     )}
-                    <Button variant="secondary" className="w-full" onClick={() => router.push('/home')}>
-                        {t('backToHome')}
-                    </Button>
+                    {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
+                    {isRetryable ? (
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={() => router.push('/home')}>{t('backToHome')}</LinkButton>
+                        </div>
+                    ) : (
+                        <Button shadowSize="4" className="w-full" onClick={() => router.push('/home')}>
+                            {t('backToHome')}
+                        </Button>
+                    )}
                 </PageStack.Center>
             </PageStack>
         )

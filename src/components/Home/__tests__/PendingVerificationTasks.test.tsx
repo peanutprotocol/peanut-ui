@@ -209,7 +209,7 @@ describe('PendingVerificationTasks', () => {
 
         it('on Home before its final week it is not a large card: the carousel (whenEmpty) carries it', () => {
             mockNextActions = [documentTask] // due in 10 days
-            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} whenEmptyShowsDocumentRequest />)
             expect(screen.queryByText('One more document needed')).not.toBeInTheDocument()
             expect(screen.getByTestId('when-empty')).toBeInTheDocument()
         })
@@ -217,6 +217,21 @@ describe('PendingVerificationTasks', () => {
         it('on Home in its final week the large card replaces the carousel — never both', () => {
             mockNextActions = [{ ...documentTask, effectiveDate: daysFromNow(3) }]
             render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
+            expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        })
+
+        it('before its final week, with no carousel to carry it (activation card on Home), the card carries it', () => {
+            mockNextActions = [documentTask] // due in 10 days
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
+            expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        })
+
+        it('before its final week, when another task card hides the carousel, the card carries it too', () => {
+            mockNextActions = [tosAction, documentTask]
+            render(<PendingVerificationTasks placement="home" whenEmpty={carousel} whenEmptyShowsDocumentRequest />)
+            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
             expect(screen.getByText('One more document needed')).toBeInTheDocument()
             expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
         })

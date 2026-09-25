@@ -132,13 +132,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                         className: 'w-full',
                         shadowSize: '4',
                     },
-                    {
-                        text: t('bridgeTos.notNow'),
-                        onClick: onSkip,
-                        variant: 'secondary' as const,
-                        className: 'w-full',
-                    },
                 ]}
+                tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
             />
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}

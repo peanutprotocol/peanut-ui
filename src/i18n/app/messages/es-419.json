@@ -2694,7 +2694,11 @@
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}"
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
+        "mystery": {
+            "title": "Insignias misteriosas",
+            "description": "Aparecen más en momentos especiales."
+        }
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",

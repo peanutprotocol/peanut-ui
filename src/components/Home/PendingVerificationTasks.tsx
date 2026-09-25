@@ -69,10 +69,17 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
 export default function PendingVerificationTasks({
     placement = 'profile',
     whenEmpty = null,
+    whenEmptyShowsDocumentRequest = false,
 }: {
     placement?: 'home' | 'profile'
     /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
     whenEmpty?: ReactNode
+    /**
+     * Home: `whenEmpty` is the carousel, which carries a document request before
+     * its final week. When it is not (the activation card), or when another task
+     * card hides it, this card carries the request instead, so it stays reachable.
+     */
+    whenEmptyShowsDocumentRequest?: boolean
 }) {
     const dismissible = placement === 'home'
     const t = useTranslations('home')
@@ -90,10 +97,8 @@ export default function PendingVerificationTasks({
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const tasks =
-        placement === 'home'
-            ? selectHomeTasks(nextActions, rails ?? []).largeTasks
-            : selectBridgeTasks(nextActions, rails ?? [])
+    const homeTasks = placement === 'home' ? selectHomeTasks(nextActions, rails ?? []) : null
+    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, rails ?? [])
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
@@ -132,13 +137,18 @@ export default function PendingVerificationTasks({
     // Profile (/code-review 08-04). Blocking tasks therefore always render;
     // advisory ones hold the first paint until stored dismissals hydrate
     // (an empty list would flash already-dismissed slides).
-    const visibleTasks = !dismissible
+    const visibleLargeTasks = !dismissible
         ? tasks
         : tasks.filter(
               (task) =>
                   !isDismissibleTask(task) ||
                   (dismissedKeys !== null && !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
           )
+    const documentSlide = homeTasks?.documentSlide
+    const visibleTasks =
+        documentSlide && (!whenEmptyShowsDocumentRequest || visibleLargeTasks.length > 0)
+            ? [...visibleLargeTasks, documentSlide]
+            : visibleLargeTasks
 
     const handleOpenTask = useCallback(
         (task: NextAction) => {

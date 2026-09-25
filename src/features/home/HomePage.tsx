@@ -67,6 +67,7 @@ export function HomePage() {
                     <EnableAutoBalanceBanner />
                     <PendingVerificationTasks
                         placement="home"
+                        whenEmptyShowsDocumentRequest={isActivated}
                         whenEmpty={
                             isActivated ? (
                                 <HomeCarouselCTA documentRequest={documentSlide} />
