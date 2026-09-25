@@ -517,6 +517,9 @@
                                                     },
                                                     {
                                                         "properties": {
+                                                            "earnable": {
+                                                                "type": "boolean"
+                                                            },
                                                             "unlock": {
                                                                 "anyOf": [
                                                                     {
@@ -647,7 +650,8 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "unlock"
+                                                            "unlock",
+                                                            "earnable"
                                                         ],
                                                         "type": "object"
                                                     }

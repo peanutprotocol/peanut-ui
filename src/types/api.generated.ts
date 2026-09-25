@@ -370,6 +370,7 @@ export interface paths {
                                 name: string;
                                 publicDescription: string;
                             } & {
+                                earnable: boolean;
                                 unlock: {
                                     /** @enum {string} */
                                     kind: "invites";
