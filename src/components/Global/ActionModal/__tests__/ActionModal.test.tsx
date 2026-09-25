@@ -1,6 +1,7 @@
 /**
  * `tone` is the semantic color contract: yellow is for attention only, red for
- * errors, green for success, blue for plain information. Call sites used to
+ * errors, green for success, blue for plain information, pink for Peanut's
+ * own. An icon never renders without one. Call sites used to
  * pick the bubble color through a free-form class, which is how every second
  * modal ended up yellow.
  */
@@ -15,8 +16,11 @@ jest.mock('@/components/Global/Modal', () => ({
         visible ? <div>{children}</div> : null,
 }))
 
-const renderModal = (props: Partial<React.ComponentProps<typeof ActionModal>>) =>
-    render(<ActionModal visible onClose={jest.fn()} title="Title" {...props} />, { wrapper: IntlWrapper })
+type Props = React.ComponentProps<typeof ActionModal>
+const renderModal = (props: Partial<Props>) =>
+    render(<ActionModal {...({ visible: true, onClose: jest.fn(), title: 'Title', ...props } as Props)} />, {
+        wrapper: IntlWrapper,
+    })
 
 const bubble = (container: HTMLElement) =>
     container.querySelector('[data-testid="action-modal-icon"]') as HTMLElement | null
@@ -33,9 +37,15 @@ describe('ActionModal tone', () => {
         expect(bubble(container)!.querySelector(`.${iconClass}`)).not.toBeNull()
     })
 
-    it('keeps the pink default bubble without a tone', () => {
-        const { container } = renderModal({ icon: 'alert' })
-        expect(bubble(container)).toHaveClass('bg-action-primary')
+    it('brand is the pink bubble around the given icon', () => {
+        const { container } = renderModal({ tone: 'brand', icon: 'bell' })
+        expect(bubble(container)).toHaveClass('bg-background-brand')
+        expect(bubble(container)!.querySelector('.lucide-bell')).not.toBeNull()
+    })
+
+    it('draws no bubble without a tone: there is no implicit color', () => {
+        const { container } = renderModal({})
+        expect(bubble(container)).toBeNull()
     })
 
     it('lets an explicit icon and container class win over the tone', () => {

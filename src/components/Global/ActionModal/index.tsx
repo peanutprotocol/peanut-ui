@@ -21,28 +21,42 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
-export type ActionModalTone = 'error' | 'attention' | 'success' | 'info'
+export type ActionModalTone = 'error' | 'attention' | 'success' | 'info' | 'brand'
 
 // mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for attention
-// only, red for errors, green for success, blue for plain information
-const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
+// only, red for errors, green for success, blue for plain information, pink
+// for Peanut's own moments (TASK-22761). brand has no default glyph: the
+// caller names the Peanut thing.
+const TONE_STYLES: Record<ActionModalTone, { icon?: IconName; color: IconBubbleColor }> = {
     error: { icon: 'ban', color: 'red' },
     attention: { icon: 'alert', color: 'yellow' },
     success: { icon: 'check', color: 'green' },
     info: { icon: 'info', color: 'blue' },
+    brand: { color: 'brand' },
 }
 
-export interface ActionModalProps {
+/**
+ * An icon never renders without a tone: the bubble's color has to say
+ * something (TASK-22761). There is no implicit color.
+ */
+type ActionModalIconProps =
+    | {
+          /** Semantic bubble color + default icon. An explicit `icon` still wins. */
+          tone: ActionModalTone
+          icon?: IconName | React.ReactElement
+          isLoadingIcon?: boolean
+      }
+    | { tone?: undefined; icon?: undefined; isLoadingIcon?: false }
+
+export type ActionModalProps = ActionModalBaseProps & ActionModalIconProps
+
+interface ActionModalBaseProps {
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
-    /** Semantic bubble color + default icon. Explicit `icon` / `iconContainerClassName` still win. */
-    tone?: ActionModalTone
-    icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
-    isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
     ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
@@ -99,7 +113,6 @@ const ActionModal: React.FC<ActionModalProps> = ({
     hideOverlay,
 }) => {
     const defaultModalPanelClasses = 'mx-8 max-w-md'
-    const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
     const toneStyle = tone ? TONE_STYLES[tone] : undefined
     const icon = customIcon ?? toneStyle?.icon
@@ -168,14 +181,9 @@ const ActionModal: React.FC<ActionModalProps> = ({
                             size="m"
                             icon={iconContent}
                             color={toneStyle?.color}
-                            // custom classes AUGMENT the default (or the tone), never
-                            // bare-|| replace it — the IconBubble board forbids
-                            // resizing the bubble, and the ! overrides existed only
-                            // because of the old replace
-                            className={twMerge(
-                                toneStyle ? undefined : defaultIconContainerClassName,
-                                customIconContainerClassName
-                            )}
+                            // custom classes AUGMENT the tone, never replace its
+                            // color — the IconBubble board forbids resizing the bubble
+                            className={customIconContainerClassName}
                             data-testid="action-modal-icon"
                         />
                     )}

@@ -119,6 +119,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
             <ActionModal
                 visible={visible && !showIframe && !isConfirming}
                 onClose={onSkip}
+                tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : copy.title}
                 description={error || copy.description}

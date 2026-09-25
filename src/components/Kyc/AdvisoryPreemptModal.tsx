@@ -45,6 +45,7 @@ export default function AdvisoryPreemptModal({
         <ActionModal
             visible={visible}
             onClose={onClose}
+            tone="info"
             icon="badge"
             title={t('advisory.title')}
             description={

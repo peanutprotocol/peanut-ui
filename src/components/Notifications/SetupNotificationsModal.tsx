@@ -76,6 +76,7 @@ export function SetupNotificationsPrompt({
                 onClose={onClose}
                 title={t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
                 description={t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')}
+                tone="brand"
                 icon="bell"
                 // stacked CTAs at every width; sm:flex-none stops ActionModal's
                 // sm:flex-1 from stretching the buttons in the column

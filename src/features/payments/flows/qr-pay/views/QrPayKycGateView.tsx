@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import NavHeader from '@/components/Global/NavHeader'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import ActionModal from '@/components/Global/ActionModal'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -41,10 +42,13 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.unlockTitle')}
                 description={t('kyc.unlockDescription')}
+                tone="info"
                 icon={
                     methodIcon ? (
                         <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
-                    ) : undefined
+                    ) : (
+                        CONCEPT_ICONS.qrPay.icon
+                    )
                 }
                 ctas={[
                     {
@@ -72,6 +76,7 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.inProgressTitle')}
                 description={t('kyc.inProgressDescription')}
+                tone="attention"
                 icon="shield"
                 ctas={[
                     {
