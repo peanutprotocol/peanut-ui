@@ -560,7 +560,15 @@ describe('MoneySettings', () => {
             }
             render()
 
-            expect(screen.getByTestId('virtual-accounts')).toBeInTheDocument()
+            const held = screen.getByTestId('virtual-accounts')
+            // the page title already says "Accounts", so the section drops its
+            // heading and keeps the word as its accessible name
+            expect(within(held).queryByRole('heading')).not.toBeInTheDocument()
+            expect(screen.getAllByText('Accounts')).toHaveLength(1)
+            expect(screen.getByRole('region', { name: 'Accounts' })).toBe(held)
+            // the counter and its reason stay on the section's top row
+            expect(within(held).getByTestId('account-counter')).toHaveTextContent('1 of 2 used')
+            expect(within(held).getByLabelText('Why a limit?')).toBeInTheDocument()
             // a payer can be handed these details; rail access never says Ready
             expect(screen.getByText('Ready')).toBeInTheDocument()
             expect(screen.queryByText('Active')).not.toBeInTheDocument()

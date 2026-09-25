@@ -57,6 +57,7 @@ export function AccountsHubList({
     searchTerm = '',
     extraRows = [],
     footer,
+    hideHeldTitle = false,
 }: {
     /** absent where the virtual accounts are not read (their rollout flag is off) */
     accounts?: HubAccounts
@@ -75,6 +76,12 @@ export function AccountsHubList({
     extraRows?: ReactElement[]
     /** under the other ways (the countries accordion) */
     footer?: ReactNode
+    /**
+     * drop the held section's heading where the page title already says it
+     * (profile Accounts); the counter stays in the heading row, and the
+     * heading word stays the section's accessible name
+     */
+    hideHeldTitle?: boolean
 }) {
     const { t, railName } = useDepositAccountCopy()
     const tRows = useTranslations('profile.unlockPayments')
@@ -268,7 +275,12 @@ export function AccountsHubList({
             {accountSkeletons > 0 && <ListGroup>{skeletonRows(accountSkeletons)}</ListGroup>}
 
             {!isLoading && shownHeld.length > 0 && (
-                <Section title={t('list.heldTitle')} trailing={counter} data-testid="virtual-accounts">
+                <Section
+                    title={hideHeldTitle ? undefined : t('list.heldTitle')}
+                    aria-label={hideHeldTitle ? t('list.heldTitle') : undefined}
+                    trailing={counter}
+                    data-testid="virtual-accounts"
+                >
                     <ListGroup>
                         {shownHeld.map((corridor) =>
                             accountRow(corridor, heldBadge(corridor), () => accounts?.onOpen(corridor))

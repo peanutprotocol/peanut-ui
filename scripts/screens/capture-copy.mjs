@@ -13,6 +13,7 @@ const COPY_PATHS = new Map([
     ['Earn from invites', 'global.earlyUserModal.title'],
     ["Chat couldn't load", 'global.supportDrawer.chatLoadFailed'],
     ['A small update to our terms', 'global.reConsent.title'],
+    ['Open an account', 'depositAccounts.list.openTitle'],
 ])
 
 const read = (source, locale) =>
