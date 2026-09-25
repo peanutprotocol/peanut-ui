@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -23,7 +22,7 @@ import { useAuth } from '@/context/authContext'
 import { getShakeClass } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
-import { STAR_STRAIGHT_ICON } from '@/assets/icons'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { useQrReceipt } from '../useQrReceipt'
@@ -112,9 +111,7 @@ export function QrPaySuccessView() {
                 {/* Reward Eligibility Card - Show before claiming */}
                 {rewardClaimable && (
                     <GlobalCard ref={pointsDivRef} className="flex items-start gap-3 bg-background-default p-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
-                        </div>
+                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
                         <div className="flex flex-col gap-2">
                             <h2 className="text-heading-card">{t('success.earnedRewardTitle')}</h2>
                             <p className="text-body-s">
@@ -136,9 +133,7 @@ export function QrPaySuccessView() {
                 {/* Reward Success Banner - Show after claiming */}
                 {rewardRevealed && (
                     <GlobalCard className="flex items-start gap-3 bg-background-default p-4">
-                        <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
-                        </div>
+                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
                         <div className="flex flex-col gap-2">
                             <h2 className="text-heading-s">{t('success.earnedRewardTitle')}</h2>
                             <p className="text-body-m">

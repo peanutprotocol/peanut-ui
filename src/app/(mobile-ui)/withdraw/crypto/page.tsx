@@ -1053,6 +1053,7 @@ export default function WithdrawCryptoPage() {
                         )}
                     </div>
                 }
+                tone="attention"
                 icon="alert"
                 footer={
                     <div className="w-full">

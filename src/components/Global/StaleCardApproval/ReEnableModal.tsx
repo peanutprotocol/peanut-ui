@@ -94,8 +94,7 @@ export default function StaleCardApprovalReEnableModal() {
         <ActionModal
             visible={visible}
             onClose={close}
-            icon="credit-card"
-            iconContainerClassName="bg-background-icon-bubble-yellow"
+            concept="card"
             title={succeeded ? t('staleCardApprovalModal.successTitle') : t('staleCardApprovalModal.title')}
             description={
                 succeeded

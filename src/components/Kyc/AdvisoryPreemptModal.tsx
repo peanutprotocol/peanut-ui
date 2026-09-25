@@ -45,7 +45,7 @@ export default function AdvisoryPreemptModal({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            icon="badge"
+            concept="verification"
             title={t('advisory.title')}
             description={
                 formatted ? t('advisory.descriptionByDate', { deadline: formatted }) : t('advisory.description')

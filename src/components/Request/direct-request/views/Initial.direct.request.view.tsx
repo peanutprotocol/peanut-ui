@@ -292,6 +292,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     {lookupFailed ? (
                         <EmptyState
                             icon="error"
+                            iconColor="red"
                             title={tCommon('somethingWentWrong')}
                             description={t('errors.contactsUnavailable')}
                             cta={

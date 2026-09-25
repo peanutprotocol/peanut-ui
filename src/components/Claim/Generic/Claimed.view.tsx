@@ -30,7 +30,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
             <PageStack.Center className="gap-4">
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">
-                        <IconBubble icon="info" size="s" color="yellow" />
+                        <IconBubble icon="info" size="s" color="blue" />
                     </div>
                     <div className="space-y-2 text-center">
                         <h1 className="text-heading-card text-foreground-primary">{t('claimed.title')}</h1>

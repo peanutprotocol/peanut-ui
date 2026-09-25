@@ -91,7 +91,7 @@ export const Badges = () => {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState
-                        icon="achievements"
+                        concept="badges"
                         title={catalog.isError ? t('loadErrorTitle') : t('emptyTitle')}
                         description={catalog.isError ? t('loadErrorDescription') : t('emptyDescription')}
                     />
