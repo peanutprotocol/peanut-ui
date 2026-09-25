@@ -26,7 +26,7 @@ jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
 let mockOpenHelp: jest.Mock | null = null
-jest.mock('@/components/Global/AppHelpDrawer', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
+jest.mock('@/components/Global/AppHelpProvider', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
 
 const fetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser }) }))
