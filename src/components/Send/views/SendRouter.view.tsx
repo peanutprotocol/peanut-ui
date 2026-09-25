@@ -198,7 +198,6 @@ export const SendRouterView = () => {
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
                             <ChatAppsLine />
-                            <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
                         </div>
                     </div>
                     <Button

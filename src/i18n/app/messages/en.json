@@ -986,7 +986,6 @@
     "send": {
         "linkCard": {
             "title": "Send with a link",
-            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {
@@ -3545,7 +3544,6 @@
             "requestTitle": "Request money",
             "requestDescription": "No account needed, just send a DM.",
             "sendTitle": "Send with a link",
-            "sendDescription": "Anyone with the link can claim it",
             "perfectForChats": "Perfect for WhatsApp and Messenger"
         },
         "peanutActionDetailsCard": {
