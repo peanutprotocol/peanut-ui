@@ -49,6 +49,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
  *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
  *  copy-free — it only classifies. */
 export type FriendlyErrorCode =
+    | 'bankAccountNotUsable'
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
     | 'balanceSettling'
@@ -147,6 +148,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // A claim or cancel on a deposit the recipient already withdrew. The API
     // leaves the link CLAIMED and answers 409 with this code (TASK-22091).
     [API_ERROR_CODES.LINK_ALREADY_CLAIMED]: 'sendLinkAlreadyClaimed',
+    // A saved bank account the provider refused for good (TASK-23054). The API
+    // has already switched it off, so a retry cannot help: add it again.
+    [API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE]: 'bankAccountNotUsable',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a

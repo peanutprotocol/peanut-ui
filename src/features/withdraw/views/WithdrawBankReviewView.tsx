@@ -52,6 +52,8 @@ interface WithdrawBankReviewViewProps {
     onDone: () => void
     /** Set while the quote's last refresh failed: the amounts stay, submit waits for a fresh quote. */
     onRetryQuote?: () => void
+    /** Set when the provider refused the saved account for good: add it again replaces Retry. */
+    onAddBankAccountAgain?: () => void
 }
 
 /** Review step of the Bridge bank withdraw — dumb view, logic in useBridgeOfframpFlow. */
@@ -75,6 +77,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onSubmit,
     onDone,
     onRetryQuote,
+    onAddBankAccountAgain,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -252,6 +255,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 // state and a Done button that takes the user home.
                 <Button shadowSize="4" className="w-full" onClick={onDone}>
                     {tCommon('done')}
+                </Button>
+            ) : error.showError && onAddBankAccountAgain ? (
+                <Button shadowSize="4" className="w-full" onClick={onAddBankAccountAgain}>
+                    {t('withdrawToBank')}
                 </Button>
             ) : error.showError ? (
                 <Button
