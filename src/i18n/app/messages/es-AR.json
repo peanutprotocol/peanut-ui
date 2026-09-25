@@ -1116,11 +1116,10 @@
             "step4": "Hacé cualquier pago para reclamarlo."
         },
         "iosCopy": {
-            "noPendingRewards": "No tenés nada pendiente por ahora.",
             "earnWhenFriendsUse": "¡Ganás puntos cada vez que tus amigos pagan con Peanut!",
             "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más puntos",
             "howItWorks": {
-                "step3": "Lo que ganás se acumula en tu saldo."
+                "step4": "Hacé cualquier pago para reclamarlas."
             }
         }
     },

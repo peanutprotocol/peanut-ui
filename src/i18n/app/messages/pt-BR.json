@@ -2413,7 +2413,8 @@
             "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais pontos",
             "howItWorks": {
                 "title": "Como funciona",
-                "step3": "O que você ganha vai se acumulando no saldo."
+                "step3": "Seus ganhos vão se acumulando no saldo.",
+                "step4": "Faça qualquer pagamento para resgatá-los."
             },
             "lifetimeCaption": "até agora"
         }
