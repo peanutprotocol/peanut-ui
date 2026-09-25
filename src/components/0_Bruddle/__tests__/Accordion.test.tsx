@@ -49,7 +49,7 @@ describe('Accordion', () => {
                     <Accordion.Trigger
                         leading={<span data-testid="bubble" />}
                         title="All countries"
-                        body="Pick the country your bank is in."
+                        body="Pick a country"
                     />
                     <Accordion.Content flush>List</Accordion.Content>
                 </Accordion.Item>
@@ -58,10 +58,7 @@ describe('Accordion', () => {
         const trigger = screen.getByRole('button', { name: /All countries/ })
         expect(trigger).toContainElement(screen.getByTestId('bubble'))
         expect(screen.getByText('All countries')).toHaveClass('text-body-m-semibold')
-        expect(screen.getByText('Pick the country your bank is in.')).toHaveClass(
-            'text-body-s',
-            'text-foreground-secondary'
-        )
+        expect(screen.getByText('Pick a country')).toHaveClass('text-body-s', 'text-foreground-secondary')
         expect(trigger).toHaveAttribute('aria-expanded', 'false')
     })
 
@@ -129,6 +126,25 @@ describe('Accordion', () => {
         )
         const trigger = screen.getByRole('button', { name: /See bank details/ })
         expect(trigger).toHaveClass('underline')
-        expect(trigger.closest('h3')?.parentElement?.className).not.toContain('border')
+        expect(trigger.parentElement?.parentElement?.className).not.toContain('border')
+        // an in-card toggle is not a section heading
+        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    })
+
+    test('detached variant: the trigger is the card, the content sits below with no border', () => {
+        render(
+            <Accordion type="single" collapsible variant="detached" defaultValue="countries">
+                <Accordion.Item value="countries">
+                    <Accordion.Trigger title="All countries" />
+                    <Accordion.Content flush>List</Accordion.Content>
+                </Accordion.Item>
+            </Accordion>
+        )
+        const trigger = screen.getByRole('button', { name: /All countries/ })
+        expect(trigger).toHaveClass('border', 'border-border-default', 'rounded-sm')
+        expect(trigger.parentElement?.parentElement?.className).not.toContain('border')
+        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+        expect(screen.getByText('List')).not.toHaveClass('border-t')
+        expect(screen.getByText('List').parentElement).toHaveClass('mt-2')
     })
 })

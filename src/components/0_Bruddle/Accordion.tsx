@@ -17,8 +17,13 @@ import { Icon } from '../Global/Icons/Icon'
  *
  * `variant="link"` is the in-card toggle (receipt bank details, a second
  * residence): no item border, the trigger is an underlined text link.
+ *
+ * `variant="detached"` is a disclosure row over a list that is its own card:
+ * the trigger is the bordered row, and the open content sits 8px below it
+ * with no border of its own (add money "All countries", withdraw "Other
+ * countries"; ruled 2026-09-25, kush: the row and the list are two cards).
  */
-type AccordionVariant = 'card' | 'link'
+type AccordionVariant = 'card' | 'link' | 'detached'
 
 // the variant lives on the root so item, trigger and content read one answer
 // and a caller cannot mix a link trigger into a bordered item
@@ -70,14 +75,27 @@ type AccordionTriggerProps = React.ComponentPropsWithoutRef<typeof AccordionPrim
     body?: React.ReactNode
 }
 
+// A div, not radix's default h3, for the row and link triggers: a country
+// row or an in-card toggle is not a section heading, and an h3 there adds a
+// heading to the page outline (the residence step has exactly one).
+const RowHeader = ({ children }: { children: React.ReactNode }) => (
+    <AccordionPrimitive.Header asChild>
+        <div className="flex">{children}</div>
+    </AccordionPrimitive.Header>
+)
+
 const focusRing = 'focus-visible:outline-[3px] focus-visible:outline-action-focus'
+
+// in the detached variant the trigger is the card: the item's border and hover
+const detachedRow =
+    'rounded-sm border border-border-default bg-background-default transition-colors duration-instant hover:bg-background-disabled'
 
 const AccordionTrigger = ({ className, children, leading, title, body, ...props }: AccordionTriggerProps) => {
     const variant = useContext(VariantContext)
 
     if (variant === 'link') {
         return (
-            <AccordionPrimitive.Header className="flex">
+            <RowHeader>
                 {/* the receipt toggle's shape: a full-width 44px row (py-3 on a
                     20px line), so the link needs no pseudo-element tap target */}
                 <AccordionPrimitive.Trigger
@@ -95,7 +113,7 @@ const AccordionTrigger = ({ className, children, leading, title, body, ...props 
                         className="shrink-0 transition-transform duration-moderate group-data-[state=open]:rotate-180"
                     />
                 </AccordionPrimitive.Trigger>
-            </AccordionPrimitive.Header>
+            </RowHeader>
         )
     }
 
@@ -109,13 +127,14 @@ const AccordionTrigger = ({ className, children, leading, title, body, ...props 
 
     if (title !== undefined) {
         return (
-            <AccordionPrimitive.Header className="flex">
+            <RowHeader>
                 {/* class strings copied from ListItem, not ListItem itself: a
                     row component nested in the trigger would put a second
                     button role inside this one */}
                 <AccordionPrimitive.Trigger
                     className={twMerge(
                         'group flex w-full items-center justify-between gap-3 p-4 text-left text-foreground-primary data-[disabled]:text-foreground-secondary',
+                        variant === 'detached' && detachedRow,
                         focusRing,
                         className
                     )}
@@ -134,7 +153,7 @@ const AccordionTrigger = ({ className, children, leading, title, body, ...props 
                     </div>
                     {chevron}
                 </AccordionPrimitive.Trigger>
-            </AccordionPrimitive.Header>
+            </RowHeader>
         )
     }
 
@@ -147,6 +166,7 @@ const AccordionTrigger = ({ className, children, leading, title, body, ...props 
                     'text-body-s ' +
                     twMerge(
                         'group flex w-full items-center justify-between gap-2 p-4 text-left text-foreground-primary data-[disabled]:text-foreground-secondary',
+                        variant === 'detached' && detachedRow,
                         focusRing,
                         className
                     )
@@ -178,6 +198,7 @@ const AccordionContent = ({ className, children, flush, forceMount, ...props }: 
             className={twMerge(
                 'overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down',
                 flush && variant === 'card' && '-mx-px -mb-px',
+                variant === 'detached' && 'mt-2',
                 // the Tabs pattern: radix never sets `hidden` on a forceMount
                 // panel, so the closed state hides it here. Kept mounted so a
                 // country list keeps its search and scroll across a close. The
