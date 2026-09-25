@@ -173,6 +173,9 @@ function discoverRoutes(): Set<string> {
         '/profile/backup',
         '/profile/edit',
         '/profile/exchange-rate',
+        '/profile/accounts',
+        '/profile/payments',
+        // retired 2026-09-25; the route still redirects to /profile/accounts
         '/profile/accounts-and-payments',
         '/home',
         '/send',

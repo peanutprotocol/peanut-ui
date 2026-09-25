@@ -278,7 +278,8 @@
             "yourBadges": "Selos",
             "points": "Pontos",
             "personalDetails": "Editar perfil",
-            "unlockedRegions": "Contas e pagamentos",
+            "accounts": "Contas",
+            "payments": "Pagamentos",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar nome completo",
             "backup": "Backup",
@@ -337,7 +338,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Contas e pagamentos",
+            "titles": {
+                "accounts": "Contas",
+                "payments": "Pagamentos"
+            },
             "residence": {
                 "label": "Residência",
                 "unknown": "Residência não definida",

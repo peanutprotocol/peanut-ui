@@ -1,5 +1,6 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -32,13 +33,16 @@ import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
 /**
- * The one list of ways money gets into Peanut, shared by Add money and
- * Accounts and payments (Hugo, 2026-09-24: Add money is a subset of Accounts
- * and payments, with one copy and one design).
+ * The one list of ways money gets into Peanut, shared by Add money and the
+ * profile Accounts page (Hugo, 2026-09-24: Add money is a subset of Accounts,
+ * with one copy and one design).
  *
- * Three sections: the virtual accounts the user holds, the ones they could
- * open, and the other ways — bank rails and, on Add money, crypto and the
- * countries. Each screen decides what a tap does; the rows, their order, their
+ * Three sections: the accounts the user holds, the ones they could open, and
+ * the other ways — bank rails and, on Add money, crypto and the countries.
+ * Once the user holds an account, the ones they could open fold into one
+ * closed row (Hugo, 2026-09-25): a list of "Not set up" rows under a held
+ * account read as a checklist, and working through it runs into the account
+ * limit. Each screen decides what a tap does; the rows, their order, their
  * words and the reason behind a row that cannot be used are the same on both.
  * A row is titled by its currency alone; the rail's name is on the screen or
  * drawer behind the tap.
@@ -86,6 +90,9 @@ export function AccountsHubList({
     const { held, open } = accounts ? virtualAccountRows(accounts, claimsEnabled) : { held: [], open: [] }
     const shownHeld = held.filter((corridor) => matches(corridor, railName(corridor)))
     const shownOpen = open.filter((row) => matches(row.corridor, railName(row.corridor)))
+    // A search shows every match, so the fold steps aside while the user types
+    // (the countries row on Add money does the same).
+    const foldOpen = held.length > 0 && !searchTerm.trim()
 
     // An active virtual account covers its currency, so the bank row for it goes.
     const activeCurrencies = new Set(
@@ -229,6 +236,17 @@ export function AccountsHubList({
     // Until the accounts are read, the bank rows cannot be deduped against them,
     // so they wait behind skeletons with the accounts.
     const otherWays = [...(isLoading ? skeletonRows(bankRows.length) : shownBankRows.map(bankRow)), ...extraRows]
+    const openRows = (
+        <ListGroup>
+            {shownOpen.map((row) =>
+                accountRow(row.corridor, openBadge(row), () =>
+                    row.openable
+                        ? accounts?.onOpen(row.corridor)
+                        : setClosed({ kind: 'not-offered', corridor: row.corridor })
+                )
+            )}
+        </ListGroup>
+    )
     const accountSkeletons = isLoading
         ? (accounts?.corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor])).length ?? 0)
         : 0
@@ -259,19 +277,24 @@ export function AccountsHubList({
                 </Section>
             )}
 
-            {!isLoading && shownOpen.length > 0 && (
-                <Section title={t('list.openTitle')} data-testid="open-virtual-accounts">
-                    <ListGroup>
-                        {shownOpen.map((row) =>
-                            accountRow(row.corridor, openBadge(row), () =>
-                                row.openable
-                                    ? accounts?.onOpen(row.corridor)
-                                    : setClosed({ kind: 'not-offered', corridor: row.corridor })
-                            )
-                        )}
-                    </ListGroup>
-                </Section>
-            )}
+            {!isLoading &&
+                shownOpen.length > 0 &&
+                (foldOpen ? (
+                    <Accordion type="single" collapsible variant="detached" data-testid="open-virtual-accounts">
+                        <Accordion.Item value="open">
+                            <Accordion.Trigger
+                                leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                title={t('list.openTitle')}
+                                data-testid="open-accounts-toggle"
+                            />
+                            <Accordion.Content flush>{openRows}</Accordion.Content>
+                        </Accordion.Item>
+                    </Accordion>
+                ) : (
+                    <Section title={t('list.openTitle')} data-testid="open-virtual-accounts">
+                        {openRows}
+                    </Section>
+                ))}
 
             {(otherWays.length > 0 || footer) && (
                 <Section title={t('list.otherWaysTitle')} data-testid="other-ways">

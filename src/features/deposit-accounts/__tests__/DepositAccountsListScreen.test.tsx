@@ -174,6 +174,8 @@ const corridorsIn = (testId: string) =>
     )
 
 const countriesTrigger = () => screen.getByTestId('other-countries-toggle')
+/** the one row the accounts still to open fold into once the user holds one */
+const unfoldOpenAccounts = () => fireEvent.click(screen.getByTestId('open-accounts-toggle'))
 const search = (term: string) => fireEvent.change(screen.getByRole('textbox'), { target: { value: term } })
 const drawer = () => within(screen.getByTestId('closed-row-drawer'))
 
@@ -188,6 +190,7 @@ describe('the virtual accounts, held and to open', () => {
 
         expect(screen.getByRole('heading', { name: LIST.heldTitle })).toBeInTheDocument()
         expect(corridorsIn('virtual-accounts')).toEqual(['SEPA_EU', 'SPEI_MX'])
+        unfoldOpenAccounts()
         expect(corridorsIn('open-virtual-accounts')).toEqual(['FASTER_PAYMENTS_GB', 'ACH_US', 'BANK_TRANSFER_CO'])
     })
 
@@ -201,6 +204,7 @@ describe('the virtual accounts, held and to open', () => {
     // QA-16/05/23: the currency alone; the rail is named behind the tap
     it('titles each row by its currency alone, with no subtitle', () => {
         const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
+        unfoldOpenAccounts()
 
         expect(rowOf(container, 'SEPA_EU')).toHaveTextContent(/^EUR/)
         expect(rowOf(container, 'SEPA_EU')).not.toHaveTextContent('SEPA')
@@ -243,6 +247,59 @@ describe('the virtual accounts, held and to open', () => {
     })
 })
 
+/*
+ * Hugo, 2026-09-25: under a held account, a list of "Not set up" rows read as
+ * a checklist, and working through it runs into the account limit. Once the
+ * user holds one, the rest fold into one row; with none held they stay listed.
+ */
+describe('the accounts still to open fold once one is held', () => {
+    it('lists them open while the user holds none', () => {
+        const { container } = list(false)
+
+        expect(screen.queryByTestId('open-accounts-toggle')).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: LIST.openTitle })).toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+    })
+
+    it('folds them into one closed row once the user holds one, and lists them on a tap', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') }, onOpen })
+
+        const toggle = screen.getByTestId('open-accounts-toggle')
+        expect(toggle).toHaveTextContent(LIST.openTitle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        // the held account stays in view; only the ones to open fold
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
+        // the bank rows below do not fold with them
+        expect(bankRow('ars')).toBeInTheDocument()
+
+        unfoldOpenAccounts()
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+    })
+
+    it('folds under a revoked account too, which still sits in the held list', () => {
+        const revoked = { ...heldAccount('ACH_US'), status: 'revoked' as const }
+        list(false, { accounts: { ...NONE, ACH_US: revoked } })
+
+        expect(screen.getByTestId('open-accounts-toggle')).toBeInTheDocument()
+    })
+
+    it('lists every match while a search runs, and folds back when it clears', () => {
+        const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
+
+        search('usd')
+        expect(screen.queryByTestId('open-accounts-toggle')).not.toBeInTheDocument()
+        expect(rowOf(container, 'ACH_US')).toBeInTheDocument()
+
+        search('')
+        expect(screen.getByTestId('open-accounts-toggle')).toBeInTheDocument()
+        expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
+    })
+})
+
 describe('an account the user could open', () => {
     it('says Not set up where a tap opens it', () => {
         const onOpen = jest.fn()
@@ -281,6 +338,7 @@ describe('an account the user could open', () => {
             claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') },
             onOpen,
         })
+        unfoldOpenAccounts()
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
         expect(inRow(container, 'SPEI_MX').queryByText('Available')).not.toBeInTheDocument()
@@ -379,7 +437,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(drawer().getByRole('button', { name: messages.depositAccounts.details.residenceCta }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts-and-payments?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
     })
 
     it('says bank transfers are closed where the country of residence closes them all', () => {

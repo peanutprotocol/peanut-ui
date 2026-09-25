@@ -129,7 +129,7 @@ describe('PendingVerificationTasks', () => {
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts-and-payments/additional')
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {

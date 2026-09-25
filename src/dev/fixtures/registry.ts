@@ -525,8 +525,8 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-verification': {
-        route: '/profile/accounts-and-payments',
-        about: 'Unlocked regions for a user whose ID check passed.',
+        route: '/profile/accounts',
+        about: 'Accounts page for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
     rewards: {
@@ -902,7 +902,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // fully unlocked user whatever the status says.
     // ---------------------------------------------------------------------
     unverified: {
-        route: '/profile/accounts-and-payments',
+        route: '/profile/accounts',
         about: 'ID check never started: no region unlocked, all four locked.',
         responses: {
             'GET /users/me': {
@@ -912,7 +912,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-awaiting-upload': {
-        route: '/profile/accounts-and-payments',
+        route: '/profile/accounts',
         about: 'ID upload still required: no in-review notice or support escalation.',
         responses: {
             'GET /users/me': {
@@ -929,7 +929,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-review-overdue': {
-        route: '/profile/accounts-and-payments',
+        route: '/profile/accounts',
         about: 'ID submitted for review over seven days ago: overdue notice with support text link.',
         responses: {
             'GET /users/me': {
@@ -944,7 +944,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'kyc-action-required': {
-        route: '/profile/accounts-and-payments',
+        route: '/profile/accounts',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
         responses: {
             'GET /users/me': {
@@ -1084,6 +1084,21 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money?method=bank',
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'profile-accounts': {
+        route: '/profile/accounts',
+        about: 'Accounts page: one euro account held, the accounts still to open folded into one row.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'profile-accounts-none-held': {
+        route: '/profile/accounts',
+        about: 'Accounts page with no account held: every account to open listed, nothing folded.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
+    'profile-payments': {
+        route: '/profile/payments',
+        about: 'Payments page: residence, the card, QR and Pix key payments, then the Peanut rows.',
+        responses: VA_READY_RESPONSE,
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',
