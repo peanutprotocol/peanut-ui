@@ -7,7 +7,7 @@
         "app/(mobile-ui)/badges/page.tsx": 107,
         "app/(mobile-ui)/card-recovery/page.tsx": 78,
         "app/(mobile-ui)/fix-card-signature/page.tsx": 126,
-        "app/(mobile-ui)/home/page.tsx": 468,
+        "app/(mobile-ui)/home/page.tsx": 478,
         "app/(mobile-ui)/profile/backup/page.tsx": 352,
         "app/(mobile-ui)/profile/view/page.tsx": 185,
         "app/(mobile-ui)/receipt/page.tsx": 561,
@@ -46,7 +46,7 @@
         "components/Profile/views/About.view.tsx": 243,
         "components/Profile/views/ProfileEdit.view.tsx": 294,
         "components/Profile/views/ResidenceChangeDrawer.tsx": 86,
-        "components/Profile/views/UnlockPayments.view.tsx": 671,
+        "components/Profile/views/UnlockPayments.view.tsx": 682,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 183,
         "components/Send/link/views/Initial.link.send.view.tsx": 68,
         "components/Send/views/Contacts.view.tsx": 96,
@@ -54,7 +54,7 @@
         "components/Setup/components/PasskeyInfoDrawer.tsx": 68,
         "components/Setup/Views/PasskeySetupHelpDrawer.tsx": 89,
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 528,
-        "features/add-money/views/BridgeBankOnrampView.tsx": 491,
+        "features/add-money/views/BridgeBankOnrampView.tsx": 518,
         "features/deposit-accounts/components/ClaimAccountScreen.tsx": 221,
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 148,
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 222,
@@ -71,7 +71,7 @@
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 544,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 138,
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
-        "features/withdraw/views/WithdrawBankReviewView.tsx": 155,
+        "features/withdraw/views/WithdrawBankReviewView.tsx": 187,
         "features/withdraw/views/WithdrawMethodView.tsx": 112
     }
 }

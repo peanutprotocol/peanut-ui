@@ -48,6 +48,18 @@ const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush }),
 }))
+const mockHandleSelfHealResubmit = jest.fn()
+let mockKycFlow: { isLoading: boolean; error: string | null; handleSelfHealResubmit: jest.Mock }
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => mockKycFlow,
+}))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({
+    SumsubKycModals: () => null,
+}))
+const mockTrackUpliftStarted = jest.fn()
+jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
+    useEeaUpliftFunnel: () => ({ trackStarted: mockTrackUpliftStarted, trackCompleted: jest.fn(), reset: jest.fn() }),
+}))
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
 const sepaTosAction: NextAction = {
@@ -72,6 +84,9 @@ describe('PendingVerificationTasks', () => {
         mockStoredDismissal = undefined
         mockUpdatePreferences.mockReset()
         mockUserId = 'user-1'
+        mockHandleSelfHealResubmit.mockReset()
+        mockTrackUpliftStarted.mockReset()
+        mockKycFlow = { isLoading: false, error: null, handleSelfHealResubmit: mockHandleSelfHealResubmit }
     })
 
     it('renders nothing when no bridge task is pending', () => {
@@ -132,10 +147,63 @@ describe('PendingVerificationTasks', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts-and-payments/additional')
     })
 
+    describe('future-dated document request (Bridge advisory sumsub step)', () => {
+        const documentTask: NextAction = {
+            key: 'sumsub:eea_uplift',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge-sepa',
+            levelKey: 'eea_uplift',
+            effectiveDate: '2099-10-01',
+            requirementKey: 'place_of_birth_missing',
+        }
+
+        it('renders the request with its deadline, and the tap starts the document flow for that requirement', () => {
+            mockNextActions = [documentTask]
+            render(<PendingVerificationTasks />)
+
+            expect(screen.getByText('One more document needed')).toBeInTheDocument()
+            expect(screen.getByText('Complete before October 1, 2099')).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Complete now' }))
+
+            expect(mockHandleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE', 'place_of_birth_missing')
+            expect(mockTrackUpliftStarted).toHaveBeenCalledWith(
+                expect.objectContaining({ requirementKey: 'place_of_birth_missing', source: 'advisory' })
+            )
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+
+        it('a failed start shows its error on the slide instead of doing nothing', () => {
+            mockNextActions = [documentTask]
+            const view = render(<PendingVerificationTasks />)
+            expect(screen.queryByTestId('document-task-start-error')).not.toBeInTheDocument()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Complete now' }))
+            mockKycFlow = { ...mockKycFlow, error: 'Failed to initiate document resubmission' }
+            view.rerender(<PendingVerificationTasks />)
+
+            expect(screen.getByTestId('document-task-start-error')).toHaveTextContent(
+                'Failed to initiate document resubmission'
+            )
+        })
+
+        it('an error from before the tap is not shown on the slide', () => {
+            mockNextActions = [documentTask]
+            mockKycFlow = { ...mockKycFlow, error: 'stale' }
+            render(<PendingVerificationTasks />)
+            expect(screen.queryByTestId('document-task-start-error')).not.toBeInTheDocument()
+        })
+
+        it('a blocking sumsub step (no date) is not a Home task — its rail gate owns it', () => {
+            mockNextActions = [{ ...documentTask, effectiveDate: undefined }]
+            const { container } = render(<PendingVerificationTasks />)
+            expect(container).toBeEmptyDOMElement()
+        })
+    })
+
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
         mockNextActions = [{ ...hostedAction, effectiveDate: '2099-09-01' }]
         const { rerender } = render(<PendingVerificationTasks />)
-        // Long month — the SAME formatter AdvisoryPreemptModal uses
+        // Long month, UTC — the same date on every slide
         // (formatEffectiveDate), so one deadline never renders two ways.
         expect(screen.getByText(/complete before september 1, 2099/i)).toBeInTheDocument()
         expect(screen.getByText(/keep bank transfers available/i)).toBeInTheDocument()

@@ -225,6 +225,9 @@
             }
         },
         "pendingTasks": {
+            "documentTitle": "Mais um documento necessário",
+            "documentDescription": "Necessário para manter as transferências bancárias funcionando.",
+            "documentCta": "Concluir agora",
             "completeBefore": "Conclua até {deadline}",
             "dismiss": "Dispensar {task}",
             "verifyTitle": "Verificação adicional necessária",
@@ -2778,11 +2781,8 @@
             "cta": "Enviar ou pedir dinheiro"
         },
         "advisory": {
-            "title": "Este leva um pouco mais de tempo",
-            "descriptionByDate": "Sua conta precisa de mais um documento até {deadline} para que as transferências bancárias continuem funcionando. Leva só alguns minutos.",
-            "description": "Sua conta precisa de mais um documento para que as transferências bancárias continuem funcionando. Leva só alguns minutos.",
-            "completeNow": "Completar agora",
-            "doLater": "Fazer depois"
+            "title": "Mais um documento necessário",
+            "descriptionByDate": "Prazo: {deadline}. As transferências bancárias continuam funcionando até lá. Conclua pelo Início."
         },
         "progress": {
             "verifyingTitle": "Verificando a identificação",

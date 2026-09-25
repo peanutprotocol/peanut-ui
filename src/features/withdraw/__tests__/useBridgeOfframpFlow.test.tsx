@@ -151,15 +151,9 @@ jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
     useWaitingOnProviderModal: () => ({ open: jest.fn(), isOpen: false }),
 }))
 
-// the advisory pre-empt is pass-through here — its own behavior has its own
-// tests. IMPORTANT: render-stable singletons, like the real hooks (their
-// returns are useCallback-stable) — unstable mocks would recompute the old
-// memoized submit handler and hide the frozen-closure regression.
-const stableAdvisoryPreempt = { intercept: (fn: () => void) => fn(), modalProps: {} }
-jest.mock('@/hooks/useAdvisoryPreempt', () => ({
-    useAdvisoryPreempt: () => stableAdvisoryPreempt,
-}))
-
+// IMPORTANT: render-stable singletons, like the real hooks (their returns are
+// useCallback-stable) — unstable mocks would recompute the old memoized submit
+// handler and hide the frozen-closure regression.
 const stableUpliftFunnel = { trackStarted: jest.fn(), trackCompleted: jest.fn(), reset: jest.fn() }
 jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
     useEeaUpliftFunnel: () => stableUpliftFunnel,
@@ -180,8 +174,9 @@ jest.mock('@/app/actions/offramp', () => ({
 // mutable gate + balance: the stale-closure regression flips these mid-test.
 // gateFor is a fresh function each render, so the hook's gate memo recomputes.
 let mockGateKind: string = 'ready'
+let mockAdvisory: { effectiveDate: string; actionKey: string; requirementKey?: string } | undefined
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: () => ({ kind: mockGateKind, advisory: undefined }) }),
+    useCapabilities: () => ({ gateFor: () => ({ kind: mockGateKind, advisory: mockAdvisory }) }),
 }))
 
 const mockSendMoney = jest.fn()
@@ -230,6 +225,7 @@ const armHappyOfframp = () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockGateKind = 'ready'
+    mockAdvisory = undefined
     mockBalance = 100n * 10n ** 6n
     mockCountryId = 'US'
     mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
@@ -259,6 +255,21 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             fundsIntentId: 'offramp-intent-1',
         })
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+    })
+
+    it('a future-dated verification request never holds the withdrawal: the deadline is exposed for the notice and the offramp runs', async () => {
+        armHappyOfframp()
+        mockAdvisory = { effectiveDate: '2099-10-01', actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' }
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.advisoryDeadline).toBe('2099-10-01')
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
+        expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+        expect(stableUpliftFunnel.trackStarted).not.toHaveBeenCalled()
     })
 
     it('a click after the gate and balance resolve runs the offramp (regression: memoized handler froze the loading gate)', async () => {

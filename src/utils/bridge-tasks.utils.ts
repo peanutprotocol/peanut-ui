@@ -3,7 +3,9 @@ import type { NextAction, RailCapability } from '@/types/capabilities'
 /**
  * The nextActions renderable as pending Bridge verification tasks:
  * `accept-tos` (blocking, rail-attached — or advisory orphan) and
- * `bridge-hosted` (the hosted-flow catch-all). One filter catches both the
+ * `bridge-hosted` (the hosted-flow catch-all), plus a future-dated `sumsub`
+ * document request (only Bridge advisories carry `effectiveDate`; a blocking
+ * sumsub step is gated on its own rail). One filter catches both the
  * blocking and the advisory (future-dated, `effectiveDate`-carrying)
  * populations — advisory actions arrive as orphans no rail references, so
  * reading top-level `nextActions` is the only way to see them.
@@ -17,7 +19,12 @@ import type { NextAction, RailCapability } from '@/types/capabilities'
  * tasks are about keeping access on a working rail and stay.
  */
 export function selectBridgeTasks(nextActions: NextAction[], rails: RailCapability[] = []): NextAction[] {
-    const tasks = nextActions.filter((action) => action.kind === 'accept-tos' || action.kind === 'bridge-hosted')
+    const tasks = nextActions.filter(
+        (action) =>
+            action.kind === 'accept-tos' ||
+            action.kind === 'bridge-hosted' ||
+            (action.kind === 'sumsub' && !!action.effectiveDate)
+    )
     if (!hasNativeBridgeStep(nextActions, rails)) return tasks
     return tasks.filter((action) => action.kind !== 'bridge-hosted' || !!action.effectiveDate)
 }

@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -31,6 +32,8 @@ interface WithdrawBankReviewViewProps {
     /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
     bankAmount?: { currency: string; destinationAmount: string; rate: string }
     fromSendFlow: boolean
+    /** ISO date a future-dated verification becomes due; shows a non-blocking heads-up. */
+    verificationDeadline?: string
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
     isSubmitReady: boolean
@@ -62,6 +65,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     amount,
     bankAmount,
     fromSendFlow,
+    verificationDeadline,
     isLoading,
     isSubmitReady,
     submittedTxHash,
@@ -140,6 +144,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     {t('bank.eurDescription')}
                 </Callout>
             )}
+
+            {verificationDeadline && <VerificationDeadlineNotice effectiveDate={verificationDeadline} />}
 
             <Card className="rounded-sm">
                 {/* The holder is whoever the account was saved under — often not

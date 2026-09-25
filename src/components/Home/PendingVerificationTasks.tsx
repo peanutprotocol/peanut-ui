@@ -4,13 +4,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Carousel from '@/components/Global/Carousel'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import type { NextAction } from '@/types/capabilities'
 import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -33,6 +38,13 @@ const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
  * as full-width horizontal carousel slides (same embla setup as
  * HomeCarouselCTA); a single task looks identical to a static card.
  *
+ * A future-dated `sumsub` task (Bridge asks for one more document by a date;
+ * the rails keep working until then) starts the document flow right here. This
+ * card is where that request lives: bank screens only show a heads-up and never
+ * hold a transfer for it. The Sumsub modals stay mounted after the task
+ * disappears, so a flow in progress survives the list refetching. A failed start
+ * shows its error in the slide, never a silent no-op.
+ *
  * The ToS flow is SNAPSHOTTED at tap time: the task list re-derives from every
  * user refetch (~4s auto-refresh while rails are pending), and the open modal
  * must survive its task disappearing mid-flow — the card hides, the flow keeps
@@ -53,7 +65,19 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
+    // The document task the user last tapped, so its start error renders on
+    // that slide only.
+    const [startedDocumentTaskKey, setStartedDocumentTaskKey] = useState<string | null>(null)
     const router = useRouter()
+    const {
+        trackStarted: trackUpliftStarted,
+        trackCompleted: trackUpliftCompleted,
+        reset: resetUpliftFunnel,
+    } = useEeaUpliftFunnel('verification-tasks')
+    const kycFlow = useMultiPhaseKycFlow({
+        onKycApproved: () => trackUpliftCompleted(),
+        onManualClose: resetUpliftFunnel,
+    })
     // Stored dismissals, tagged with the user they were loaded for
     // (localStorage is unreadable during SSR, hence the post-render effect).
     // The dismissible mount must not paint until the CURRENT user's entry is
@@ -116,13 +140,29 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 setActiveTosTask(task)
                 return
             }
+            if (task.kind === 'sumsub') {
+                setStartedDocumentTaskKey(task.key)
+                const upliftTrigger = task.effectiveDate
+                    ? upliftTriggerFromAdvisory({
+                          effectiveDate: task.effectiveDate,
+                          actionKey: task.key,
+                          requirementKey: task.requirementKey,
+                      })
+                    : null
+                if (upliftTrigger) trackUpliftStarted(upliftTrigger)
+                // The self-heal resubmit route tags the action so the completed
+                // submission reaches the payment partner; a plain start-action
+                // token would drop the answers.
+                void kycFlow.handleSelfHealResubmit('BRIDGE', task.requirementKey)
+                return
+            }
             // The hosted flow gets its own screen first. It runs at the vendor,
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
             router.push('/profile/accounts-and-payments/additional')
         },
-        [router]
+        [router, kycFlow, trackUpliftStarted]
     )
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
@@ -146,6 +186,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     }
     const taskCopy = (task: NextAction): { title: string; description: string } => {
         const advisory = !!task.effectiveDate
+        if (task.kind === 'sumsub') {
+            return { title: t('pendingTasks.documentTitle'), description: t('pendingTasks.documentDescription') }
+        }
         if (task.kind === 'accept-tos') {
             if (task.key === 'accept-tos:sepa') {
                 return {
@@ -175,7 +218,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         }
     }
 
-    if (visibleTasks.length === 0 && !activeTosTask) return null
+    const kycModals = <SumsubKycModals flow={kycFlow} />
+
+    if (visibleTasks.length === 0 && !activeTosTask) return kycModals
 
     return (
         <>
@@ -185,7 +230,12 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                         {visibleTasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
+                            const isDocument = task.kind === 'sumsub'
                             const deadline = formatEffectiveDate(task.effectiveDate)
+                            const startError =
+                                isDocument && startedDocumentTaskKey === task.key && !kycFlow.isLoading
+                                    ? kycFlow.error
+                                    : null
                             return (
                                 <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
@@ -200,7 +250,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             </button>
                                         )}
                                         <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
-                                            <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
+                                            <Icon name={isHosted || isDocument ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
                                             <div className="text-body-m-semibold">{copy.title}</div>
@@ -217,10 +267,25 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             variant="primary"
                                             shadowSize="4"
                                             className="mt-1 w-full"
+                                            loading={isDocument && kycFlow.isLoading}
+                                            disabled={isDocument && kycFlow.isLoading}
                                             onClick={() => handleOpenTask(task)}
                                         >
-                                            {isHosted ? 'Complete verification' : 'Review terms'}
+                                            {isDocument
+                                                ? t('pendingTasks.documentCta')
+                                                : isHosted
+                                                  ? 'Complete verification'
+                                                  : 'Review terms'}
                                         </Button>
+                                        {startError && (
+                                            <Callout
+                                                priority="error"
+                                                className="w-full text-left"
+                                                data-testid="document-task-start-error"
+                                            >
+                                                {startError}
+                                            </Callout>
+                                        )}
                                     </div>
                                 </Card>
                             )
@@ -228,6 +293,8 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                     </Carousel>
                 </div>
             )}
+
+            {kycModals}
 
             {activeTosTask && (
                 <BridgeTosStep

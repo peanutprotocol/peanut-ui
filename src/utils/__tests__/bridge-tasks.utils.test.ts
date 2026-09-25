@@ -76,6 +76,16 @@ describe('selectBridgeTasks', () => {
         expect(selectBridgeTasks([advisory, poaUpload], rails)).toEqual([advisory])
     })
 
+    it('keeps a future-dated sumsub document request, never a blocking one', () => {
+        const advisoryDocument = action({
+            key: 'sumsub:eea_uplift',
+            kind: 'sumsub',
+            effectiveDate: '2099-10-01',
+            requirementKey: 'place_of_birth_missing',
+        })
+        expect(selectBridgeTasks([advisoryDocument, poaUpload])).toEqual([advisoryDocument])
+    })
+
     it('passes advisory metadata (effectiveDate) through untouched', () => {
         const [task] = selectBridgeTasks([
             action({ key: 'bridge-hosted', kind: 'bridge-hosted', effectiveDate: '2099-09-01' }),
