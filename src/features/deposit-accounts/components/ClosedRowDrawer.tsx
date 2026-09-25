@@ -89,6 +89,18 @@ export function ClosedRowDrawer({
                         act: () => openSupportWithMessage(`Account limit reached (${row.limit})`),
                     },
                 }
+            case 'not-offered-residence':
+                return {
+                    title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('errors.residenceRestricted'),
+                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
+            case 'residence-missing':
+                return {
+                    title: tAccounts('residence.unknown'),
+                    body: t('list.residenceMissingBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
             // the provider preview failed: say so, blame nothing, and read again
             case 'unchecked':
                 return {

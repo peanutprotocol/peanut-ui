@@ -176,23 +176,37 @@ export type ClosedRow =
     | { kind: 'account-limit'; limit: number }
     /** the backend could not say whether this account opens (its preview failed) */
     | { kind: 'unchecked'; corridor: DepositCorridor }
+    /** the backend does not offer this corridor to this user, whose residence is known */
+    | { kind: 'not-offered-residence'; corridor: DepositCorridor }
+    /** the backend does not offer it, and the user has not said where they live */
+    | { kind: 'residence-missing'; corridor: DepositCorridor }
 
 /**
  * Why an account the user does not hold cannot be opened from the list.
  *
  * The limit comes first: at the limit nothing opens, whatever else is true.
- * Then a corridor the backend gave no verdict on, which says only that it
- * could not be checked, then the backend's own answer.
+ * Then the backend's own signal, never a guess from the gate:
+ * - no verdict at all (the corridor is in neither list): its provider preview
+ *   failed, so the row says only that it could not be checked;
+ * - `not-offered`: the API's word for "their region, or not open yet"
+ *   (peanut-api-ts `unavailableReason`). The residence is what the user can
+ *   change, so the row says so, or asks for one where none is set.
  */
 export function closedOpenRow(
     row: OpenAccountRow,
     context: {
         /** the account limit, where the user has reached it */
         reachedLimit?: number
+        unavailable?: UnavailableCorridor
+        hasResidence: boolean
     }
 ): ClosedRow {
     if (context.reachedLimit !== undefined) return { kind: 'account-limit', limit: context.reachedLimit }
     if (row.unchecked) return { kind: 'unchecked', corridor: row.corridor }
+    if (context.unavailable?.reason === 'not-offered')
+        return context.hasResidence
+            ? { kind: 'not-offered-residence', corridor: row.corridor }
+            : { kind: 'residence-missing', corridor: row.corridor }
     return { kind: 'not-offered', corridor: row.corridor }
 }
 

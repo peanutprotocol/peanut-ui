@@ -455,16 +455,15 @@ const VA_READY_RESPONSE = {
 }
 
 /**
- * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident
- * with euro, dollar and peso rails. EUR is held; USD can open; the backend
- * gives no verdict on GBP, withholds MXN and asks for verification on COP.
+ * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident.
+ * EUR is held and USD can open. The backend's own signals decide the rest
+ * (peanut-api-ts `listDepositCorridors`): GBP is `not-offered`, MXN is in
+ * neither list because its provider preview failed, and COP asks for
+ * verification.
  */
 const PROFILE_ACCOUNTS_MIX = {
     'GET /users/me': {
-        capabilities: {
-            ...VA_READY_CAPABILITIES,
-            rails: VA_READY_CAPABILITIES.rails.filter((rail) => rail.method !== 'FASTER_PAYMENTS_GB'),
-        },
+        capabilities: VA_READY_CAPABILITIES,
         depositAccounts: { enabled: true },
         residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
     },
@@ -472,7 +471,13 @@ const PROFILE_ACCOUNTS_MIX = {
         depositAccounts: [DEPOSIT_ACCOUNT_EUR],
         claimable: [CLAIMABLE_USD_PREVIEW],
         unavailable: [
-            { railId: 'bridge.spei_mx', method: 'SPEI_MX', country: 'MEX', currency: 'MXN', reason: 'not-offered' },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GBR',
+                currency: 'GBP',
+                reason: 'not-offered',
+            },
             {
                 railId: 'bridge.bank_transfer_co',
                 method: 'BANK_TRANSFER_CO',
@@ -1149,8 +1154,19 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP could not be checked (no verdict from the backend), MXN is not offered, COP needs verification.',
+        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP is not offered where they live, MXN could not be checked (no verdict), COP needs verification.',
         responses: PROFILE_ACCOUNTS_MIX,
+    },
+    'profile-accounts-no-residence': {
+        route: '/profile/accounts',
+        about: 'The same mix with no residence set: GBP asks for a residence instead.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+            },
+        },
     },
     'profile-accounts-two-held': {
         route: '/profile/accounts',

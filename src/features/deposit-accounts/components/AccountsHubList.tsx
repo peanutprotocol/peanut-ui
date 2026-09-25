@@ -30,6 +30,7 @@ import { canShare } from '../resolveScreen'
 import { SKELETON_PULSE } from '../skeleton'
 import type { DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
@@ -84,6 +85,7 @@ export function AccountsHubList({
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [closed, setClosed] = useState<ClosedRow | null>(null)
+    const residenceIso2s = useResidenceIso2s()
 
     const isLoading = !!accounts?.isLoading
     const isError = !!accounts?.isError
@@ -274,6 +276,8 @@ export function AccountsHubList({
                             : setClosed(
                                   closedOpenRow(row, {
                                       reachedLimit: atLimit ? accountLimit : undefined,
+                                      unavailable: accounts?.unavailable?.[row.corridor],
+                                      hasResidence: residenceIso2s.length > 0,
                                   })
                               ),
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined

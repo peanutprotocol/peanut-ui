@@ -358,6 +358,38 @@ describe('the accounts still to open fold once one is held', () => {
         expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
     })
 
+    // the API sends `not-offered` for a corridor it does not offer this user (region, or no rail)
+    it('explains a not-offered account by where the user lives, with the way to change it', () => {
+        residenceIso2s = ['PT']
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
+        })
+
+        unfoldOpenAccounts()
+        expect(inRow(container, 'FASTER_PAYMENTS_GB').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
+        expect(drawer().getByText(messages.depositAccounts.errors.residenceRestricted)).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
+    it('asks for a residence where none is set', () => {
+        residenceIso2s = []
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            unavailable: { SPEI_MX: withheld('SPEI_MX', 'not-offered') },
+        })
+
+        unfoldOpenAccounts()
+        fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
+        expect(drawer().getByText('Residence not set')).toBeInTheDocument()
+        expect(
+            drawer().getByText('MXN accounts depend on where you live. Set a residence to check.')
+        ).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
     // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
     it.each([
         ['a ready rail with no verdict', 'ACH_US', READY],
@@ -490,7 +522,8 @@ describe('an account the user could open', () => {
  * says why — never a grey row that does nothing (Kush's COP · Bre-B row).
  */
 describe('a row the user cannot use', () => {
-    it('sorts a withheld account last, reads Not available, and explains itself with a way to support', () => {
+    it('sorts a withheld account last, reads Not available, and explains itself with the way to change the residence', () => {
+        residenceIso2s = ['PT']
         const onOpen = jest.fn()
         const { container } = list(false, {
             unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
@@ -504,16 +537,16 @@ describe('a row the user cannot use', () => {
 
         fireEvent.click(row)
         expect(onOpen).not.toHaveBeenCalled()
-        expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
+        // the API's not-offered is "their region, or not open yet": the residence is what the user can change
+        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
         // the body names the currency; no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
-        expect(drawer().queryByText('GBP · Faster Payments')).not.toBeInTheDocument()
         expect(drawer().queryByText(/Faster Payments/)).not.toBeInTheDocument()
 
         jest.useFakeTimers()
-        fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))
+        fireEvent.click(drawer().getByRole('button', { name: 'Update residence' }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('FASTER_PAYMENTS_GB'))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
     })
 
     // Kush's staging row: a stale rejected Bre-B rail left the gate at blocked-rejection

@@ -139,7 +139,10 @@ describe('closedOpenRow', () => {
         )!
 
     it('names the limit first: at the limit nothing opens', () => {
-        expect(closedOpenRow(rowOf([], READY), { reachedLimit: 2 })).toEqual({ kind: 'account-limit', limit: 2 })
+        expect(closedOpenRow(rowOf([], READY), { reachedLimit: 2, hasResidence: true })).toEqual({
+            kind: 'account-limit',
+            limit: 2,
+        })
     })
 
     // chip, ui#3479: a missing verdict is unknown, never openable and never a residence refusal
@@ -149,16 +152,25 @@ describe('closedOpenRow', () => {
     ])('reads %s as unchecked', (_case, gate) => {
         const row = rowOf([], gate)
         expect(row.openable).toBe(false)
-        expect(closedOpenRow(row, {})).toEqual({ kind: 'unchecked', corridor: 'FASTER_PAYMENTS_GB' })
+        expect(closedOpenRow(row, { hasResidence: true })).toEqual({
+            kind: 'unchecked',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
     })
 
-    it("otherwise the backend's own answer: not offered", () => {
-        const { open } = virtualAccountRows(
-            input({ unavailable: { FASTER_PAYMENTS_GB: notOffered('FASTER_PAYMENTS_GB') } }),
-            true
-        )
+    // the API's `not-offered` is "their region, or not open yet"; the residence is what the user can change
+    it("reads the backend's not-offered as where the user lives, or asks where that is", () => {
+        const unavailable = notOffered('FASTER_PAYMENTS_GB')
+        const { open } = virtualAccountRows(input({ unavailable: { FASTER_PAYMENTS_GB: unavailable } }), true)
         const row = open.find((r) => r.corridor === 'FASTER_PAYMENTS_GB')!
-        expect(closedOpenRow(row, {})).toEqual({ kind: 'not-offered', corridor: 'FASTER_PAYMENTS_GB' })
+        expect(closedOpenRow(row, { unavailable, hasResidence: true })).toEqual({
+            kind: 'not-offered-residence',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
+        expect(closedOpenRow(row, { unavailable, hasResidence: false })).toEqual({
+            kind: 'residence-missing',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
     })
 })
 
