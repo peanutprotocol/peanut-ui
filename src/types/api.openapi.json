@@ -517,6 +517,9 @@
                                                     },
                                                     {
                                                         "properties": {
+                                                            "earnable": {
+                                                                "type": "boolean"
+                                                            },
                                                             "unlock": {
                                                                 "anyOf": [
                                                                     {
@@ -647,7 +650,8 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "unlock"
+                                                            "unlock",
+                                                            "earnable"
                                                         ],
                                                         "type": "object"
                                                     }
@@ -1744,13 +1748,17 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "intentId": {
+                                            "type": "string"
+                                        },
                                         "transferId": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "transferId",
-                                        "depositInstructions"
+                                        "depositInstructions",
+                                        "intentId"
                                     ],
                                     "type": "object"
                                 }
@@ -12902,6 +12910,10 @@
                                     },
                                     "directTransfer": {
                                         "type": "boolean"
+                                    },
+                                    "fundsIntentId": {
+                                        "format": "uuid",
+                                        "type": "string"
                                     },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",

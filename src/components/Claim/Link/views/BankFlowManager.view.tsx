@@ -7,6 +7,7 @@ import { useCallback, useContext, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
+import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { type Address, formatUnits } from 'viem'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { formatTokenAmount } from '@/utils/general.utils'
@@ -335,6 +336,15 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 offrampResponse = await createOfframp(offrampRequestParams)
             }
 
+            if (offrampResponse.code === API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE) {
+                // The API switched the account off: refetch so the saved list drops
+                // it, and let the wire code pick the copy in toFriendlyError below.
+                void fetchUser()
+                throw new ApiError(offrampResponse.error ?? '', {
+                    status: offrampResponse.status ?? 409,
+                    code: offrampResponse.code,
+                })
+            }
             if (offrampResponse.error || !offrampResponse.data) {
                 throw new Error(offrampResponse.error || 'Failed to create offramp')
             }

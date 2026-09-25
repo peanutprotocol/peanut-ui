@@ -40,8 +40,8 @@ const notOffered = (corridor: DepositCorridor): UnavailableCorridor => ({
 })
 
 /**
- * QA 2026-09-24 (QA-03/04/15): "Virtual accounts" lists only accounts the user
- * holds. The rest sit under "Open a virtual account".
+ * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only accounts the user
+ * holds. The rest sit under "Open an account".
  */
 describe('virtualAccountRows', () => {
     it('lists held accounts apart from the ones the user could open, one-off transfers in neither', () => {
@@ -143,7 +143,7 @@ describe('closedBankRow', () => {
     const row = (over: Partial<UnlockRow>): UnlockRow => ({
         id: 'ars-bank',
         labelKey: 'ars',
-        icon: 'bank',
+        concept: 'bank',
         chip: 'unlock',
         corridor: 'BANK_TRANSFER_AR',
         regionPath: 'latam',
@@ -151,23 +151,22 @@ describe('closedBankRow', () => {
     })
 
     it('names the residence the Argentine and Brazilian rows need', () => {
-        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'residence' }), false, 'ARS')).toEqual({
+        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'residence' }), false)).toEqual({
             kind: 'residence',
             corridor: 'BANK_TRANSFER_AR',
-            label: 'ARS',
         })
     })
 
     it('names the country rule where bank transfers are closed for every rail', () => {
-        expect(
-            closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'restricted-country' }), false, 'ARS')
-        ).toEqual({ kind: 'restricted-country', label: 'ARS' })
+        expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'restricted-country' }), false)).toEqual({
+            kind: 'restricted-country',
+        })
     })
 
     it('explains a verification outage on a row that needs verification, and leaves a working row alone', () => {
-        expect(closedBankRow(row({}), true, 'ARS')).toEqual({ kind: 'verification-down', label: 'ARS' })
-        expect(closedBankRow(row({ chip: 'active' }), true, 'ARS')).toBeNull()
-        expect(closedBankRow(row({}), false, 'ARS')).toBeNull()
+        expect(closedBankRow(row({}), true)).toEqual({ kind: 'verification-down' })
+        expect(closedBankRow(row({ chip: 'active' }), true)).toBeNull()
+        expect(closedBankRow(row({}), false)).toBeNull()
     })
 })
 

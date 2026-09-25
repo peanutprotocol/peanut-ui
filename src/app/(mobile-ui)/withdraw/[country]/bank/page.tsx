@@ -110,6 +110,7 @@ export default function WithdrawBankPage() {
                     onSubmit={flow.handleCreateAndInitiateOfframp}
                     onDone={() => router.push('/home')}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
+                    onAddBankAccountAgain={flow.onAddBankAccountAgain}
                 />
             )}
 

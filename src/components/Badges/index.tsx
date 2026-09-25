@@ -91,7 +91,7 @@ export const Badges = () => {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState
-                        icon="achievements"
+                        concept="badges"
                         title={catalog.isError ? t('loadErrorTitle') : t('emptyTitle')}
                         description={catalog.isError ? t('loadErrorDescription') : t('emptyDescription')}
                     />
@@ -113,10 +113,10 @@ export const Badges = () => {
                             onClick={() => setSelectedBadge(badge)}
                             className={twMerge(
                                 // Two tiles per row on every phone: three squeezed names and copy at 320-430px
-                                // (TASK-22677). The 32px top padding clears the Earned pill (20px tall, 4px down) by 8px so
-                                // the tag never touches the art. Under xs (390px) the art is 48px and the
-                                // name margin and bottom padding tighter, so a 140-167px tile is close to square.
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus xs:pb-3`,
+                                // (TASK-22677). The art is a square 3/4 of the tile width, so it scales with the
+                                // tile at every width and reserves its box before the image loads (no layout
+                                // shift). The Earned pill may overlap the art's corner (TASK-23054), never the text.
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-2 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
@@ -127,14 +127,14 @@ export const Badges = () => {
                                 src={badge.logo!}
                                 alt=""
                                 className={twMerge(
-                                    'h-12 w-full object-contain xs:h-14',
+                                    'aspect-square h-auto w-3/4 object-contain',
                                     !badge.earned && 'opacity-40 grayscale'
                                 )}
                                 height={100}
                                 width={100}
                                 unoptimized
                             />
-                            <span className="mt-1 line-clamp-2 h-8 w-full text-label-m xs:mt-2">{badge.name}</span>
+                            <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
                             {/* two lines: the tap opens the detail drawer with the full description */}
                             <span className="line-clamp-2 h-8 w-full text-body-xs text-foreground-secondary">
                                 {badge.description}

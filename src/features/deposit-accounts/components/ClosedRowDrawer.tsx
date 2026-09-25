@@ -60,7 +60,7 @@ export function ClosedRowDrawer({
                     cta: {
                         label: tCommon('contactSupport'),
                         // English on purpose: it is for the support agent, not the user
-                        act: () => openSupportWithMessage(`Virtual account not offered: ${row.corridor}`),
+                        act: () => openSupportWithMessage(`Account not offered: ${row.corridor}`),
                     },
                 }
             case 'restricted-country':
@@ -87,7 +87,7 @@ export function ClosedRowDrawer({
     return (
         <Drawer open={!!closed} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pb-4" data-testid="closed-row-drawer">
-                {closed && content && (
+                {content && (
                     <div className="flex flex-col items-center text-center">
                         <IconBubble icon="globe-lock" color="gray" className="mb-4" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
@@ -105,8 +105,6 @@ export function ClosedRowDrawer({
                         >
                             {content.cta.label}
                         </Button>
-                        {/* the rail's full name lives here, not on the row (QA 2026-09-24) */}
-                        <p className="mt-4 text-body-xs text-foreground-secondary">{closed.label}</p>
                     </div>
                 )}
             </DrawerContent>

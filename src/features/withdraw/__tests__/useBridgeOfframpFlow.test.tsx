@@ -165,8 +165,9 @@ jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
     useEeaUpliftFunnel: () => stableUpliftFunnel,
 }))
 
+const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: mockFetchUser }),
 }))
 
 const mockCreateOfframp = jest.fn()
@@ -190,6 +191,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSetError = jest.fn()
+const mockSetSelectedBankAccount = jest.fn()
 const bankAccount = { id: 'acct-1', bridgeAccountId: 'ext-1' }
 // mutable: the context-loss recovery cases simulate a refresh that remounted
 // the withdraw-scoped provider without a selected account
@@ -199,6 +201,7 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
         selectedBankAccount: mockBankAccount,
         error: { showError: false, errorMessage: '' },
         setError: mockSetError,
+        setSelectedBankAccount: mockSetSelectedBankAccount,
     }),
 }))
 
@@ -218,7 +221,7 @@ const renderFlow = (searchParams: Record<string, string>) =>
 
 const armHappyOfframp = () => {
     mockCreateOfframp.mockResolvedValue({
-        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1', intentId: 'offramp-intent-1' },
     })
     mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
     mockConfirmOfframp.mockResolvedValue({})
@@ -250,7 +253,11 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
 
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
+        // the offramp intent goes along, so a card-balance funding shows as one withdrawal
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
+        })
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
     })
 
@@ -445,6 +452,46 @@ describe('useBridgeOfframpFlow — card re-approval cancelled before the money l
     })
 })
 
+describe('useBridgeOfframpFlow — saved account the provider refused (TASK-23054)', () => {
+    it('shows the mapped copy, refetches the saved accounts and offers to add the account again instead of Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            error: 'This bank account can no longer be used. Add it again.',
+            code: 'BANK_ACCOUNT_NOT_USABLE',
+            status: 409,
+        })
+        const view = renderFlow({ amount: '50', step: 'review' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'This bank account can no longer be used. Add it again.',
+        })
+
+        act(() => view.result.current.onAddBankAccountAgain!())
+        // clearing the account is what sends the review back to the bank form
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+    })
+
+    it('any other create error keeps Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({ error: 'Bridge is down', status: 502 })
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSetError).toHaveBeenCalledWith({ showError: true, errorMessage: 'Bridge is down' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+    })
+})
+
 describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amount (Chip round 10)', () => {
     it('review without a selected account: recovery to country selection carries ?amount=', () => {
         mockBankAccount = null
@@ -579,7 +626,10 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(payload.amount).toBe('2233.39')
         // the bank amount never reaches the offramp: the transfer converts the USDC
         expect(payload).not.toHaveProperty('destinationAmount')
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', { kind: 'FIAT_OFFRAMP' })
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
+        })
     })
 
     it('is not ready to submit until the quote arrives', async () => {

@@ -11,9 +11,13 @@ import { twMerge } from '@/utils/tw'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 
 interface CarouselCTAProps {
-    icon: IconName
+    icon?: IconName
+    /** a product concept's CTA draws its CONCEPT_ICONS bubble in place of icon + iconContainerClassName */
+    concept?: Concept
     title: string | React.ReactNode
     description: string | React.ReactNode
     logo?: StaticImageData
@@ -30,6 +34,7 @@ const CarouselCTA = ({
     title,
     description,
     icon,
+    concept,
     onClose,
     onClick,
     logo,
@@ -92,41 +97,45 @@ const CarouselCTA = ({
             </button>
 
             {/* Icon container */}
-            <div
-                className={twMerge(
-                    'relative flex size-8 items-center justify-center rounded-full',
-                    logo || mascotPose ? 'bg-transparent' : 'bg-action-primary',
-                    iconContainerClassName
-                )}
-            >
-                {/* Artwork takes precedence over the fallback icon. */}
-                {!logo && !mascotPose && <Icon name={icon} size={iconSize} />}
-                {mascotPose && (
-                    <PeanutMascot
-                        pose={mascotPose}
-                        alt={typeof title === 'string' ? title : undefined}
-                        className="size-full"
-                    />
-                )}
-                {logo && (
-                    <Image
-                        src={logo}
-                        alt={typeof title === 'string' ? title : 'logo'}
-                        width={logoSize}
-                        height={logoSize}
-                    />
-                )}
-                {secondaryIcon && (
-                    <Image
-                        src={secondaryIcon}
-                        alt="secondary icon"
-                        height={64}
-                        width={64}
-                        quality={100}
-                        className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
-                    />
-                )}
-            </div>
+            {concept ? (
+                <IconBubble {...CONCEPT_ICONS[concept]} size="s" />
+            ) : (
+                <div
+                    className={twMerge(
+                        'relative flex size-8 items-center justify-center rounded-full',
+                        logo || mascotPose ? 'bg-transparent' : 'bg-action-primary',
+                        iconContainerClassName
+                    )}
+                >
+                    {/* Artwork takes precedence over the fallback icon. */}
+                    {!logo && !mascotPose && icon && <Icon name={icon} size={iconSize} />}
+                    {mascotPose && (
+                        <PeanutMascot
+                            pose={mascotPose}
+                            alt={typeof title === 'string' ? title : undefined}
+                            className="size-full"
+                        />
+                    )}
+                    {logo && (
+                        <Image
+                            src={logo}
+                            alt={typeof title === 'string' ? title : 'logo'}
+                            width={logoSize}
+                            height={logoSize}
+                        />
+                    )}
+                    {secondaryIcon && (
+                        <Image
+                            src={secondaryIcon}
+                            alt="secondary icon"
+                            height={64}
+                            width={64}
+                            quality={100}
+                            className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
+                        />
+                    )}
+                </div>
+            )}
 
             {/* Content */}
             <div className="flex w-[80%] flex-col">

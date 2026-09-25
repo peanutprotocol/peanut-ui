@@ -12,6 +12,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
@@ -254,9 +255,9 @@ export const InitiateKycModal = ({
                         >
                             {t('degraded.notifyMe')}
                         </Button>
-                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
-                            {tCommon('gotIt')}
-                        </Button>
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={onClose}>{tCommon('gotIt')}</LinkButton>
+                        </div>
                     </div>
                 </DrawerContent>
             </Drawer>

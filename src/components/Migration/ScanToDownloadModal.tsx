@@ -25,6 +25,7 @@ export default function ScanToDownloadModal({
         <ActionModal
             visible={visible}
             onClose={onClose}
+            tone="peanut"
             icon="qr-code"
             title={t('qr.title')}
             content={

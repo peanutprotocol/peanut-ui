@@ -61,8 +61,8 @@ export const KycVerificationInProgressModal = ({
             <ActionModal
                 visible={isOpen}
                 onClose={onClose}
+                tone="attention"
                 icon={'clock' as IconName}
-                iconContainerClassName="bg-background-icon-bubble-yellow text-black"
                 title={t('progress.verifyingTitle')}
                 description={
                     <p>{stillGoing ? t('progress.verifyingStillGoing') : t('progress.verifyingDescription')}</p>
@@ -116,8 +116,8 @@ export const KycVerificationInProgressModal = ({
             <ActionModal
                 visible={isOpen}
                 onClose={onClose}
+                tone="attention"
                 isLoadingIcon
-                iconContainerClassName="bg-background-icon-bubble-yellow text-black"
                 title={title}
                 description={description}
                 ctas={
@@ -146,8 +146,8 @@ export const KycVerificationInProgressModal = ({
             <ActionModal
                 visible={isOpen}
                 onClose={onClose}
+                tone="success"
                 icon={'check' as IconName}
-                iconContainerClassName="bg-background-icon-bubble-green"
                 title={t('progress.bridgeTosTitle')}
                 description={description}
                 ctas={[
@@ -175,8 +175,8 @@ export const KycVerificationInProgressModal = ({
         <ActionModal
             visible={isOpen}
             onClose={onClose}
+            tone="success"
             icon={'check' as IconName}
-            iconContainerClassName="bg-background-icon-bubble-green"
             title={t('progress.completeTitle')}
             description={t('progress.completeDescription')}
             ctas={[

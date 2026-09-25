@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 
 interface KycProcessingModalProps {
@@ -64,7 +65,8 @@ export const KycProcessingModal = ({
                             </DrawerDescription>
                         </DrawerHeader>
                     </div>
-                    <div className="flex w-full flex-col items-center gap-4">
+                    {/* gap-6: the LinkButton's hit area reaches 14px above its text */}
+                    <div className="flex w-full flex-col items-center gap-6">
                         {canResume ? (
                             <Button shadowSize="4" className="w-full justify-center" onClick={onResume}>
                                 {t('continueVerification')}
@@ -75,9 +77,7 @@ export const KycProcessingModal = ({
                             </Button>
                         )}
                         {isStale && onContactSupport && (
-                            <Button variant="secondary" className="w-full justify-center" onClick={onContactSupport}>
-                                {tCommon('contactSupport')}
-                            </Button>
+                            <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                         )}
                     </div>
                 </div>

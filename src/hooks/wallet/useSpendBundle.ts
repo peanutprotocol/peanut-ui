@@ -67,6 +67,11 @@ export interface SpendBundleInput {
      *  (skipping it leaves the charge PENDING forever and the spend invisible
      *  in Activity). */
     chargeId?: string
+    /** The offramp intent this spend funds (a Bridge bank withdrawal). On the
+     *  `collateral-only` strategy the backend links its collateral record to
+     *  that intent, so Activity shows the withdrawal once. Ignored for
+     *  `smart-only` and `mixed`, which write no visible record of their own. */
+    fundsIntentId?: string
     /** Extra calls to include in the kernel UserOp (for approve+deposit-style flows).
      *  If present, collateral-only routing is NOT eligible — calls must run from the kernel. */
     subsequentCalls?: UserOpEncodedParams[]
@@ -157,6 +162,7 @@ export const useSpendBundle = () => {
                 rainSpendingPower,
                 kind,
                 chargeId,
+                fundsIntentId,
                 onStrategyDecided,
                 onGrantRequired,
             } = input
@@ -324,6 +330,7 @@ export const useSpendBundle = () => {
                                 // recordPayment re-enters the same trusted-completion
                                 // path idempotently (see SpendBundleInput.chargeId).
                                 chargeId,
+                                fundsIntentId,
                             },
                             { suppressCooldownEvent: recoveringController }
                         )

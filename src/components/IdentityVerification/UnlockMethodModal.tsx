@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
@@ -49,7 +50,7 @@ const UnlockMethodModal = ({
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="shield" className="bg-action-primary" />
+                        <IconBubble icon="shield" color="blue" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>
                                 {methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}
@@ -71,9 +72,9 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
-                            {t('notNow')}
-                        </Button>
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={onClose}>{t('notNow')}</LinkButton>
+                        </div>
                         <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                     </div>
                 </div>

@@ -370,6 +370,7 @@ export interface paths {
                                 name: string;
                                 publicDescription: string;
                             } & {
+                                earnable: boolean;
                                 unlock: {
                                     /** @enum {string} */
                                     kind: "invites";
@@ -950,6 +951,7 @@ export interface paths {
                                 blockchainMemo?: string;
                                 toAddress: string;
                             };
+                            intentId: string;
                             transferId: string;
                         };
                     };
@@ -7585,6 +7587,8 @@ export interface paths {
                         amount: string;
                         chargeId?: string;
                         directTransfer: boolean;
+                        /** Format: uuid */
+                        fundsIntentId?: string;
                         recipientAddress: string;
                         totalAmountCents?: string;
                     };

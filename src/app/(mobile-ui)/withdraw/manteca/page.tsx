@@ -96,6 +96,7 @@ import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/Mant
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -1236,12 +1237,7 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <IconBubble
-                                    icon="bank"
-                                    size="xs"
-                                    color="blue"
-                                    className="absolute -right-1 -bottom-1"
-                                />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">

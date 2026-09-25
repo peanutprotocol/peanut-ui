@@ -178,12 +178,12 @@ const search = (term: string) => fireEvent.change(screen.getByRole('textbox'), {
 const drawer = () => within(screen.getByTestId('closed-row-drawer'))
 
 /*
- * QA 2026-09-24 (QA-03/04/15): "Virtual accounts" lists only the accounts the
- * user holds; the others sit under "Open a virtual account". Aleks read MXN
+ * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only the accounts the
+ * user holds; the others sit under "Open an account". Aleks read MXN
  * under "Your account numbers" as his own.
  */
 describe('the virtual accounts, held and to open', () => {
-    it('lists held accounts under their own heading and the rest under "Open a virtual account"', () => {
+    it('lists held accounts under their own heading and the rest under "Open an account"', () => {
         list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') } })
 
         expect(screen.getByRole('heading', { name: LIST.heldTitle })).toBeInTheDocument()
@@ -272,7 +272,7 @@ describe('an account the user could open', () => {
     /*
      * At the account limit the tap explains the limit and offers support (the
      * gate drawer behind `onOpen`). The row no longer reads "Available", which
-     * under "Open a virtual account" promised an account the user cannot open.
+     * under "Open an account" promised an account the user cannot open.
      */
     it('says the limit is reached, and leads to the drawer that explains it', () => {
         const onOpen = jest.fn()
@@ -334,8 +334,9 @@ describe('a row the user cannot use', () => {
         fireEvent.click(row)
         expect(onOpen).not.toHaveBeenCalled()
         expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
-        // the rail's full name sits in the drawer, not on the row
-        expect(drawer().getByText('GBP · Faster Payments')).toBeInTheDocument()
+        // the body names the currency; no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
+        expect(drawer().queryByText('GBP · Faster Payments')).not.toBeInTheDocument()
+        expect(drawer().queryByText(/Faster Payments/)).not.toBeInTheDocument()
 
         jest.useFakeTimers()
         fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))

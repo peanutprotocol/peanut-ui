@@ -1,7 +1,6 @@
 'use client'
 
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import VirtualAccountsHub from './VirtualAccountsHub'
@@ -38,7 +37,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits } from './MethodLimits'
-import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
+import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
@@ -155,9 +154,8 @@ const UnlockPayments = () => {
         (row: UnlockRow) =>
             setClosedSpendRow({
                 kind: row.labelKey === 'card' && !restrictions.banking ? 'card-restricted' : 'restricted-country',
-                label: t(`rows.${row.labelKey}`),
             }),
-        [restrictions.banking, t]
+        [restrictions.banking]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
@@ -623,14 +621,6 @@ const UnlockPayments = () => {
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
-                              {
-                                  text: tCommon('contactSupport'),
-                                  variant: 'secondary',
-                                  onClick: () => {
-                                      setErrorAcknowledged(true)
-                                      setIsSupportModalOpen(true)
-                                  },
-                              },
                           ]
                         : [
                               {
@@ -640,6 +630,22 @@ const UnlockPayments = () => {
                                   onClick: () => setErrorAcknowledged(true),
                               },
                           ]
+                }
+                // support is the escape after a failed retry, not a second way
+                // to unlock, so it is the tertiary LinkButton under the primary
+                footer={
+                    failedRegionRetriable ? (
+                        <div className="flex justify-center">
+                            <LinkButton
+                                onClick={() => {
+                                    setErrorAcknowledged(true)
+                                    setIsSupportModalOpen(true)
+                                }}
+                            >
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        </div>
+                    ) : undefined
                 }
             />
 
@@ -651,7 +657,7 @@ const UnlockPayments = () => {
                                 Mirrors InitiateKycModal's drawer hero (IconBubble
                                 + DrawerHeader/DrawerTitle + a secondary line). */}
                             <div className="flex flex-col items-center gap-4 text-center">
-                                {peanutRowLeading(detailsRow, 'm')}
+                                {rowLeading(detailsRow, 'm')}
                                 <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                     <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
                                     <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
@@ -696,18 +702,12 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
 }
 
 /**
- * Peanut-native rows keep their concept bubble (CONCEPT_ICONS) instead of the
- * status-color bubble every other row uses: the Peanut user and the card look
- * the same here as on the Send page and in activity.
+ * Every row leads with its concept's bubble (CONCEPT_ICONS), whatever its
+ * status: the badge carries the status, so QR payments look the same here as
+ * in the bottom nav, activity and receipts.
  */
-function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
-    if (row.labelKey === 'p2p') {
-        return <IconBubble {...CONCEPT_ICONS.peanutUser} size={size} />
-    }
-    if (row.labelKey === 'card') {
-        return <IconBubble {...CONCEPT_ICONS.card} size={size} />
-    }
-    return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
+function rowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    return <IconBubble {...CONCEPT_ICONS[row.concept]} size={size} />
 }
 
 const RowSection = ({
@@ -737,7 +737,7 @@ const RowSection = ({
                             // a closed row that explains itself is still a tap target,
                             // as the bank rows are (AccountsHubList)
                             disabled={row.chip === 'notAvailable' && !closed}
-                            leading={peanutRowLeading(row)}
+                            leading={rowLeading(row)}
                             title={t(`rows.${row.labelKey}`)}
                             // QR payments and Pix keys are the rows people do
                             // not recognise by name, so each carries its
