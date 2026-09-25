@@ -65,4 +65,12 @@ describe('PerkRewardReceipt status badge', () => {
         renderWithStatus('completed')
         expect(screen.queryByText('Completed')).not.toBeInTheDocument()
     })
+
+    // QA 2026-09-25: the reward star sat on green; rewards are the star on yellow
+    test('the head draws the rewards star on yellow', () => {
+        const { container } = renderWithStatus('completed')
+        const bubble = container.querySelector('.rounded-full')
+        expect(bubble).toHaveClass('bg-background-icon-bubble-yellow')
+        expect(bubble?.querySelector('img')).toBeInTheDocument()
+    })
 })

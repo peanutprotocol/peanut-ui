@@ -82,6 +82,9 @@ describe('demoRespond — routing', () => {
         expect(codes).not.toEqual(
             expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
         )
+        // every account holds BETA_TESTER from sign-up, so the API does not list it as earnable
+        expect(codes).not.toContain('BETA_TESTER')
+        expect(data.badges.every(({ earnable }: { earnable: boolean }) => earnable)).toBe(true)
     })
 
     it('returns populated contacts for GET /users/contacts', async () => {

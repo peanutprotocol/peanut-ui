@@ -87,15 +87,15 @@ export function ClaimAccountScreen({
 
                 <ListGroup>
                     <ListItem
-                        leading={<IconBubble icon="wallet" size="s" color="gray" className="self-start" />}
+                        leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
                         title={t('claim.benefitBalance')}
                     />
                     <ListItem
-                        leading={<IconBubble icon="clock" size="s" color="gray" className="self-start" />}
+                        leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
                         title={arrivalDetail(rail.corridor)}
                     />
                     <ListItem
-                        leading={<IconBubble icon="link" size="s" color="gray" className="self-start" />}
+                        leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
                         title={t('claim.benefitStable')}
                     />
                 </ListGroup>

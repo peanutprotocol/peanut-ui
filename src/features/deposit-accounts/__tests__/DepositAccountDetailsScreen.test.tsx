@@ -225,7 +225,9 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta })).toBeInTheDocument()
         for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.details.whoCanPay)).not.toBeInTheDocument()
-        expect(screen.queryByText(messages.depositAccounts.details.sectionTitle)).not.toBeInTheDocument()
+        // "Bank details" is the screen title only; no section header repeats it over the card
+        expect(messages.depositAccounts.title).toBe(messages.depositAccounts.details.sectionTitle)
+        expect(screen.getAllByText(messages.depositAccounts.details.sectionTitle)).toHaveLength(1)
         // the heading already names the rail
         expect(screen.queryByText(messages.depositAccounts.rows.accepts)).not.toBeInTheDocument()
     })

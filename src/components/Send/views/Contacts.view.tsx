@@ -252,6 +252,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     containerClassName="w-full"
                                     title={t('contacts.errorTitle')}
                                     icon="alert"
+                                    iconColor="red"
                                     description={t('contacts.errorDescription')}
                                     cta={
                                         <Button

@@ -81,13 +81,11 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     isPeer,
     status,
 }) => {
-    let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
     let displayLogoUrl: string | undefined = undefined
     let calculatedBgColor = AVATAR_WALLET_BG
-    let iconFillColor = AVATAR_TEXT_DARK
     let textColor = AVATAR_TEXT_DARK
-    let logoFallback: { icon: IconName; bgColor?: string; iconFillColor?: string } | undefined = undefined
+    let logoFallback: React.ReactNode = undefined
 
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
@@ -138,12 +136,8 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             calculatedBgColor = AVATAR_WALLET_BG
             // If the flag asset 404s (obscure IBAN prefix that circle-flags
             // doesn't ship, or a mapping/asset drift like the EUR → 'eu'
-            // case), swap to the bank concept's icon and bubble color.
-            logoFallback = {
-                icon: CONCEPT_ICONS.bank.icon,
-                bgColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.bank.color})`,
-                iconFillColor: AVATAR_TEXT_DARK,
-            }
+            // case), swap to the bank concept's bubble.
+            logoFallback = conceptBubble('bank')
             break
         }
         case 'card_pay':
@@ -169,36 +163,27 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 const colors = getColorForUsername(userName)
                 calculatedBgColor = colors.lightShade
                 textColor = colors.darkShade
-                displayIconName = undefined
             } else if (displayInitials) {
                 // The one branch with a person behind it, so it shows who they
                 // are: their picked avatar, or the letter sticker drawn from
                 // the name this row already displays (TASK-22625). `decorative`
                 // because that name is on screen right next to it.
                 return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
-            } else {
-                // fallback for send/request if no initials and not link/address
-                displayIconName = 'wallet-outline'
-                calculatedBgColor = AVATAR_WALLET_BG
-                iconFillColor = AVATAR_TEXT_DARK
             }
+            // no name and not a link: an external wallet, the crypto concept
+            if (!displayInitials) return conceptBubble('crypto')
             break
         default:
-            displayIconName = 'wallet-outline'
-            calculatedBgColor = AVATAR_WALLET_BG
-            iconFillColor = AVATAR_TEXT_DARK
-            break
+            return conceptBubble('crypto')
     }
 
     return (
         <AvatarWithBadge
             name={userName}
-            icon={displayIconName}
             logo={displayLogoUrl}
             size={size}
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}
-            iconFillColor={iconFillColor}
             fallback={logoFallback}
         />
     )

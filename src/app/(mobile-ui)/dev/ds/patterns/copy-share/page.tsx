@@ -335,7 +335,7 @@ copyRef.current?.copy()`}
 </span>`}
                 >
                     <div className="flex items-center justify-between gap-2">
-                        <span className="text-heading-card text-foreground-primary">Virtual accounts</span>
+                        <span className="text-heading-card text-foreground-primary">Accounts</span>
                         <span className="flex shrink-0 items-center gap-1">
                             <Badge status="neutral" customText="2 of 3" />
                             <MoreInfo text="Each account is opened with a partner bank, so the number you can hold at once is limited. Contact support if you need more." />

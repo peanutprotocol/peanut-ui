@@ -29,7 +29,7 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="lock" className="bg-action-primary" />
+                        <IconBubble icon="lock" color="blue" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('title')}</DrawerTitle>
                         </DrawerHeader>

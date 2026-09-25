@@ -40,8 +40,8 @@ const notOffered = (corridor: DepositCorridor): UnavailableCorridor => ({
 })
 
 /**
- * QA 2026-09-24 (QA-03/04/15): "Virtual accounts" lists only accounts the user
- * holds. The rest sit under "Open a virtual account".
+ * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only accounts the user
+ * holds. The rest sit under "Open an account".
  */
 describe('virtualAccountRows', () => {
     it('lists held accounts apart from the ones the user could open, one-off transfers in neither', () => {
@@ -143,7 +143,7 @@ describe('closedBankRow', () => {
     const row = (over: Partial<UnlockRow>): UnlockRow => ({
         id: 'ars-bank',
         labelKey: 'ars',
-        icon: 'bank',
+        concept: 'bank',
         chip: 'unlock',
         corridor: 'BANK_TRANSFER_AR',
         regionPath: 'latam',

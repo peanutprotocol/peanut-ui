@@ -140,8 +140,7 @@ export default function EnableAutoBalanceBanner() {
             onClose={() => {}}
             preventClose
             hideModalCloseButton
-            icon="credit-card"
-            iconContainerClassName="bg-background-icon-bubble-yellow"
+            concept="card"
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
             ctas={ctas}

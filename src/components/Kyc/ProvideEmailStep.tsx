@@ -79,6 +79,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         <ActionModal
             visible={visible}
             onClose={onSkip}
+            tone="info"
             icon={'user-id' as IconName}
             title={t('provideEmail.title')}
             description={t('provideEmail.description')}

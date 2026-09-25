@@ -297,6 +297,7 @@ export default function RecoverFundsPage() {
                 <div className="my-auto">
                     <EmptyState
                         icon={balancesError ? 'alert' : 'wallet'}
+                        iconColor={balancesError ? 'red' : 'gray'}
                         title={balancesError ? tCommon('somethingWentWrong') : t('noTokens')}
                         description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
                         cta={

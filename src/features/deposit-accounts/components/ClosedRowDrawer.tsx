@@ -60,7 +60,7 @@ export function ClosedRowDrawer({
                     cta: {
                         label: tCommon('contactSupport'),
                         // English on purpose: it is for the support agent, not the user
-                        act: () => openSupportWithMessage(`Virtual account not offered: ${row.corridor}`),
+                        act: () => openSupportWithMessage(`Account not offered: ${row.corridor}`),
                     },
                 }
             case 'restricted-country':

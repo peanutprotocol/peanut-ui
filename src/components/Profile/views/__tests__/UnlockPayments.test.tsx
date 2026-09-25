@@ -291,7 +291,7 @@ describe('UnlockPayments', () => {
         // The user holds no account here, so only the second section renders —
         // an empty "Virtual accounts" heading would promise details that do
         // not exist.
-        expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+        expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
         const accountsHeading = screen.getByText('Other ways to move money into Peanut')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -468,9 +468,9 @@ describe('UnlockPayments', () => {
 
             expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
             expect(
-                screen.getByText('These also add and withdraw money. They are not virtual accounts in your name.')
+                screen.getByText('These also add and withdraw money. They are not accounts in your name.')
             ).toBeInTheDocument()
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
             // the word that meant two things is gone from the vocabulary
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -482,12 +482,12 @@ describe('UnlockPayments', () => {
 
             expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
         })
 
         /*
          * A corridor the user could open is not one they hold: it sits under
-         * "Open a virtual account", the list Add money shows too (QA-18), and
+         * "Open an account", the list Add money shows too (QA-18), and
          * the tap goes to the claim step there.
          */
         it('rail and an account they could open: offered under its own heading, never as held', () => {
@@ -497,8 +497,8 @@ describe('UnlockPayments', () => {
             mockDepositCorridors = ['ACH_US']
             render()
 
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
-            expect(screen.getByText('Open a virtual account')).toBeInTheDocument()
+            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
+            expect(screen.getByText('Open an account')).toBeInTheDocument()
             fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
             expect(mockPush).toHaveBeenCalledWith(
                 '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts-and-payments'
@@ -513,7 +513,7 @@ describe('UnlockPayments', () => {
             }
             render()
 
-            expect(screen.getByText('Virtual accounts')).toBeInTheDocument()
+            expect(screen.getByText('Accounts')).toBeInTheDocument()
             // a payer can be handed these details; rail access never says Ready
             expect(screen.getByText('Ready')).toBeInTheDocument()
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -557,7 +557,7 @@ describe('UnlockPayments', () => {
         // under its own heading, and the corridors their verification opens sit
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
-        expect(screen.getByText('Virtual accounts')).toBeInTheDocument()
+        expect(screen.getByText('Accounts')).toBeInTheDocument()
         expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
@@ -658,7 +658,7 @@ describe('UnlockPayments', () => {
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
         expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
-        expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+        expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })
 
@@ -902,6 +902,26 @@ describe('UnlockPayments', () => {
             fireEvent.click(screen.getByText('QR payments'))
             expect(screen.getByText('unlock-modal-open:QR payments')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        // QA 2026-09-25: an Available QR row drew a green status bubble while
+        // the bottom nav drew QR pink. The bubble is the concept; the badge is the status.
+        it.each([
+            ['locked', []],
+            [
+                'available',
+                [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }],
+            ],
+        ])('draws each row with its concept bubble while %s', (_state, rails: unknown[]) => {
+            mockRails = rails
+            render()
+
+            const bubbleOf = (title: string) =>
+                (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
+            expect(bubbleOf('QR payments')).toHaveClass('bg-background-brand')
+            expect(bubbleOf('Pix key payments')).toHaveClass('bg-background-icon-bubble-blue')
+            expect(bubbleOf('Peanut card')).toHaveClass('bg-background-icon-bubble-yellow')
+            expect(bubbleOf('Crypto')).toHaveClass('bg-background-icon-bubble-blue')
         })
 
         it('reads Available once the QR rail is live, and explains itself in the drawer', () => {

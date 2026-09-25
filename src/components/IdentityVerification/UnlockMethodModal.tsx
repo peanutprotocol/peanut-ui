@@ -50,7 +50,7 @@ const UnlockMethodModal = ({
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="shield" className="bg-action-primary" />
+                        <IconBubble icon="shield" color="blue" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>
                                 {methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}

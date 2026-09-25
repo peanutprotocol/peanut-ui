@@ -28,8 +28,9 @@ export type BadgeView = {
     logo?: string | StaticImageData
 }
 
-/** Earned badges lead (newest first); the remaining achievable catalog follows
- * in canonical API order. Held retired badges remain visible. */
+/** Earned badges lead (newest first); the remaining earnable catalog follows
+ * in canonical API order. A held badge stays visible even when nobody can earn
+ * it any more; a badge the API marks not earnable is never a locked tile. */
 export function buildBadgeCollection(
     ownedBadges: readonly OwnedBadge[],
     catalog: readonly BadgeCatalogEntry[]
@@ -56,7 +57,7 @@ export function buildBadgeCollection(
             }
         }),
         ...catalog
-            .filter((badge) => !held.has(badge.code))
+            .filter((badge) => badge.earnable && !held.has(badge.code))
             .map((badge) => ({
                 code: badge.code,
                 name: badge.name,

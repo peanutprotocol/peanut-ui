@@ -50,6 +50,7 @@ export function QrPayProviderRejectionView() {
                           ? (qrKycUserMessage ?? t('kyc.restartDescription'))
                           : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
+                tone="error"
                 icon={
                     methodIcon ? (
                         <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />

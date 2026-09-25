@@ -18,6 +18,7 @@ const GuestLoginModal = () => {
         <ActionModal
             visible={isSignInModalOpen}
             onClose={closeModal}
+            tone="peanut"
             icon="wallet"
             title={t('guestLoginModal.title')}
             ctas={[
