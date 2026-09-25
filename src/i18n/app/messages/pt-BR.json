@@ -2690,7 +2690,11 @@
                 "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
             }
         },
-        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}"
+        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
+        "mystery": {
+            "title": "Selos misteriosos",
+            "description": "Aparecem mais em momentos especiais."
+        }
     },
     "notifications": {
         "setupTitle": "Ativar as notificações?",
