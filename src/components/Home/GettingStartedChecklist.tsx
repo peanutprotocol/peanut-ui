@@ -5,8 +5,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
-import Image from 'next/image'
-import { PEANUTMAN } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
@@ -195,24 +194,34 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
 
     return (
         <Section>
-            <Card position="solo" className="flex flex-col gap-3 p-4" data-testid="onboarding-welcome">
-                <div className="flex items-center gap-3">
-                    {/* the static mascot, not the lottie one: every new user sees this card */}
-                    <Image src={PEANUTMAN} alt="" className="h-12 w-auto shrink-0" />
+            {/* one height at every width: a one-line subtitle (wide screens) gets the
+                same card as a two-line one; 320 may grow when the title wraps */}
+            <Card
+                position="solo"
+                className="flex min-h-[90px] flex-col justify-center px-4 py-2"
+                data-testid="onboarding-welcome"
+            >
+                <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <span className="text-heading-card text-foreground-primary">{t('welcomeTitle')}</span>
                         <span className="text-body-s text-foreground-secondary">
                             {t('welcomeBody', { count: items.length })}
                         </span>
                     </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                    <span className="text-body-s text-foreground-secondary">
-                        {t('progress', { done: doneCount, total: items.length })}
-                    </span>
-                    <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
+                    {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                        PeanutMascot shows a still frame under reduced motion */}
+                    <div className="relative size-[72px] shrink-0">
+                        <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
+                        <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                    </div>
                 </div>
             </Card>
+            <div className="flex flex-col gap-1">
+                <span className="text-body-s text-foreground-secondary">
+                    {t('progress', { done: doneCount, total: items.length })}
+                </span>
+                <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
+            </div>
             <ListGroup className="bg-background-default">
                 {visibleItems.map((item) => {
                     const tappable = !item.done && !!item.onTap

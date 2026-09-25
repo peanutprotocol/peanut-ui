@@ -125,8 +125,8 @@
             "firstPaymentHeldCardNote": "Paga con la tarjeta",
             "firstPaymentHeldCardQrNote": "Paga con la tarjeta o un QR",
             "hide": "Ocultar",
-            "welcomeTitle": "Te damos la bienvenida a Peanut",
-            "welcomeBody": "{count, plural, =3 {Tres} =4 {Cuatro} other {#}} pasos rápidos para pagar, enviar y recibir dinero.",
+            "welcomeTitle": "¡Te damos la bienvenida a Peanut!",
+            "welcomeBody": "{count} pasos rápidos para pagar, enviar y recibir",
             "progress": "{done} de {total} listos"
         },
         "autoBalance": {

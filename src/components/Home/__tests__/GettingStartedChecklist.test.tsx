@@ -59,6 +59,12 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
 
+// the mascot is a lottie animation; here it is a marker
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: () => <span data-testid="mascot" />,
+}))
+
 // the chooser is its own component; here it is a marker that says whether it is open
 jest.mock('@/components/Home/FirstPaymentChooser', () => ({
     __esModule: true,
@@ -268,18 +274,14 @@ describe('GettingStartedChecklist — Hide', () => {
 describe('GettingStartedChecklist — welcome card and one done row', () => {
     it('welcomes with the real step count and the progress', () => {
         render()
-        expect(screen.getByText('Welcome to Peanut')).toBeInTheDocument()
-        expect(
-            screen.getByText("Four quick steps and you're ready to pay, send and receive money.")
-        ).toBeInTheDocument()
+        expect(screen.getByText('Welcome to Peanut!')).toBeInTheDocument()
+        expect(screen.getByText('4 quick steps to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
     })
 
     it('says three steps when there is no payment row', () => {
         render({ firstPaymentRoute: 'none' })
-        expect(
-            screen.getByText("Three quick steps and you're ready to pay, send and receive money.")
-        ).toBeInTheDocument()
+        expect(screen.getByText('3 quick steps to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 3 done')).toBeInTheDocument()
     })
 
