@@ -191,15 +191,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         router.replace(`/withdraw${isBankFromSend ? `?method=${methodParam}` : ''}`)
     }, [flow, view, currentCountry, router, isBankFromSend, methodParam])
 
+    // A country whose one live rail is Manteca has no screen here: it forwards to
+    // that flow. Known from the URL on the first render, so the rail list never
+    // shows on the way (TASK-23054).
+    const mantecaForwardPath =
+        liveRails.length === 1 && liveRails[0].path?.includes('/manteca') ? liveRails[0].path : undefined
     useEffect(() => {
-        const rail = liveRails.length === 1 ? liveRails[0] : undefined
-        if (rail?.path?.includes('/manteca')) {
-            const extra = new URLSearchParams()
-            if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
-            if (urlAmount) extra.set('amount', urlAmount)
-            router.replace(rewriteMethodPath(rail.path, extra.toString()))
-        }
-    }, [liveRails, router, isBankFromSend, methodParam, urlAmount])
+        if (!mantecaForwardPath) return
+        const extra = new URLSearchParams()
+        if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
+        if (urlAmount) extra.set('amount', urlAmount)
+        router.replace(rewriteMethodPath(mantecaForwardPath, extra.toString()))
+    }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
@@ -473,6 +476,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // The redirect above is in flight. Rendering the form meanwhile would flash
     // a screen the user cannot complete, which is the thing being prevented.
     if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
+    if (mantecaForwardPath) return null
 
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (

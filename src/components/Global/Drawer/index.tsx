@@ -120,20 +120,31 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
             >
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-full bg-foreground-secondary" />
-                <div className="flex w-full justify-center">
+                {/* -mb-2 gives back the 8px shadow reserve below, so the sheet
+                 * keeps its height and every consumer's bottom spacing. */}
+                <div className="-mb-2 flex w-full justify-center">
                     {/* The scroll wrapper owns the horizontal L/16 container
                      * padding (design.md spacing table). It must live HERE,
                      * inside the overflow box: overflow-auto clips painting at
                      * its own edge, so padding on the panel around it leaves a
                      * w-full button's 4px offset shadow outside the clip box —
                      * cut off in a straight line. Consumers must not re-add
-                     * horizontal padding on the panel or on their content. */}
+                     * horizontal padding on the panel or on their content.
+                     *
+                     * The same holds at the bottom edge: a CTA that ends the
+                     * content sits flush with the clip box, and the panel's own
+                     * pb-* is outside it (TASK-23054, "Update residence"). The
+                     * ::after block reserves 8px — the deepest button shadow —
+                     * inside the box. It is a pseudo-element rather than padding
+                     * so a consumer's scrollAreaClassName pb-* cannot remove it,
+                     * and it sits above pb-safe-bottom, so the native inset still
+                     * applies. */}
                     <div
                         ref={scrollAreaRef}
                         className={twMerge(
                             // scrollbar-none: android flashes a scrollbar on this
                             // container while the sheet itself is being dragged
-                            'scrollbar-none max-h-[80vh] w-full overflow-auto px-4 pb-safe-bottom md:max-w-xl',
+                            'scrollbar-none max-h-[80vh] w-full overflow-auto px-4 pb-safe-bottom after:block after:h-2 md:max-w-xl',
                             scrollAreaClassName
                         )}
                     >

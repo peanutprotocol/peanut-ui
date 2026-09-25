@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '..'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
@@ -68,6 +69,26 @@ describe('DrawerContent accessibility', () => {
         } finally {
             errorSpy.mockRestore()
         }
+    })
+})
+
+// jsdom has no layout, so this pins the contract as classes; the painted result
+// is checked in a real browser by e2e/flows/drawer-shadow-clip.spec.ts.
+describe('DrawerContent CTA shadow reserve (TASK-23054)', () => {
+    it('reserves the deepest button shadow inside the scroll box, whatever padding the caller sets', () => {
+        const scrollAreaRef = createRef<HTMLDivElement>()
+        render(
+            <Drawer open>
+                <DrawerContent accessibleTitle="Sheet" scrollAreaClassName="pb-12" scrollAreaRef={scrollAreaRef}>
+                    <button>Update residence</button>
+                </DrawerContent>
+            </Drawer>
+        )
+
+        const scrollArea = scrollAreaRef.current!
+        expect(scrollArea).toHaveClass('overflow-auto', 'pb-12', 'after:block', 'after:h-2')
+        // the wrapper gives the 8px back, so the sheet height does not change
+        expect(scrollArea.parentElement).toHaveClass('-mb-2')
     })
 })
 
