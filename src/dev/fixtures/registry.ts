@@ -1407,7 +1407,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-funded': {
         route: '/home',
         balance: '50',
-        about: 'Verified, funded by a bank top-up, card open: the first payment is next and opens the chooser.',
+        about: 'Verified, funded by a bank top-up, card and Pix QR open: the first payment is next and opens the chooser.',
         responses: {
             'GET /users/me': {
                 user: {
@@ -1415,6 +1415,22 @@ export const FIXTURES: Record<string, Fixture> = {
                     isActivated: false,
                     firstPaymentAt: null,
                     activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'enabled', withdraw: 'enabled', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
                 },
             },
         },
