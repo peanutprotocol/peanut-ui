@@ -34,6 +34,24 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { displayableBadges } from '@/constants/badges.consts'
 
 /**
+ * the oldest timestamp history is known to be loaded through while more pages
+ * can still load, for placing badge and kyc rows. Infinity means nothing older
+ * can be placed yet.
+ *
+ * uses the api cursor, not the oldest visible row: sources are interleaved and
+ * some rows are filtered out, so a visible row can sit below unread ones.
+ */
+function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number {
+    if (!pages?.length) return Infinity
+    // an earlier page's cursor is still a safe (newer) boundary if the latest is unusable
+    for (let i = pages.length - 1; i >= 0; i--) {
+        const ms = Date.parse(pages[i].cursor?.split('::')[0] ?? '')
+        if (Number.isFinite(ms)) return ms
+    }
+    return Infinity
+}
+
+/**
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
@@ -173,10 +191,18 @@ const HistoryPage = () => {
         }
         const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry> = [...allEntries]
 
+        // badge and kyc rows wait until history is loaded past them, so they
+        // don't sit at the bottom and jump when older pages arrive. rows at the
+        // cursor timestamp itself wait too, since equal timestamps can span pages.
+        // once no further page can load, all of them show
+        const loadedThroughMs = hasNextPage ? getLoadedThroughMs(historyData?.pages) : null
+        const isLoadedThrough = (timestamp: string | Date) =>
+            loadedThroughMs === null || new Date(timestamp).getTime() > loadedThroughMs
+
         // inject badge items from user profile, placed by earnedAt
         const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
-            if (!b.earnedAt) return
+            if (!b.earnedAt || !isLoadedThrough(b.earnedAt)) return
             entries.push({
                 isBadge: true,
                 uuid: b.id ?? b.code,
@@ -191,7 +217,7 @@ const HistoryPage = () => {
         // add the single identity-verification row (provider-agnostic)
         if (user) {
             const kycEntry = buildKycHistoryEntry(user)
-            if (kycEntry) entries.push(kycEntry)
+            if (kycEntry && isLoadedThrough(kycEntry.timestamp)) entries.push(kycEntry)
         }
 
         entries.sort((a, b) => {
@@ -201,7 +227,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, user, isLoading])
+    }, [allEntries, historyData, hasNextPage, user, isLoading])
 
     // Memoize per-row drawer projection so the .map() below doesn't recompute
     // mapTransactionDataForDrawer per row on every parent rerender (websocket
@@ -230,7 +256,9 @@ const HistoryPage = () => {
         )
     }
 
-    if (!isLoading && combinedAndSortedEntries.length === 0) {
+    // keep the list (and its loader) while more pages can load: an empty first
+    // page can still have older rows behind it
+    if (!isLoading && !hasNextPage && combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={t('title')} />
