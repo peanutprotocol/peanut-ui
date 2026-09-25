@@ -199,6 +199,13 @@ const AccordionContent = ({ className, children, flush, forceMount, ...props }: 
                 'overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down',
                 flush && variant === 'card' && '-mx-px -mb-px',
                 variant === 'detached' && 'mt-2',
+                // overflow-hidden clips anything drawn outside the box. A link
+                // item's content sits on the card edge and can hold a text input
+                // (the residence second country), whose 3px focus ring replaces
+                // its border: clipped, the focused field lost its outline on
+                // three sides. The 4px gutter keeps the ring and the dropdown's
+                // offset shadow inside the clip without moving the content.
+                variant === 'link' && '-mx-1 px-1',
                 // the Tabs pattern: radix never sets `hidden` on a forceMount
                 // panel, so the closed state hides it here. Kept mounted so a
                 // country list keeps its search and scroll across a close. The
@@ -216,7 +223,7 @@ const AccordionContent = ({ className, children, flush, forceMount, ...props }: 
                     twMerge(
                         'text-foreground-primary',
                         variant === 'card' && 'border-t border-border-default',
-                        !flush && (variant === 'card' ? 'p-4' : 'pb-3'),
+                        !flush && (variant === 'card' ? 'p-4' : variant === 'link' ? 'pt-1 pb-3' : 'pb-3'),
                         className
                     )
                 }
