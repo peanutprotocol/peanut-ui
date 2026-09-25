@@ -3909,7 +3909,6 @@
         "earned": "Ganho",
         "rollDie": "Jogar o dado",
         "initialName": "Só {letter}",
-        "initialLine": "Inicial",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "crystal": "Cristal da Arbiverse",
@@ -3994,84 +3993,64 @@
         },
         "cast": {
             "apple": {
-                "name": "Cereja premiada",
-                "line": "Faltam duas para ficar rica"
+                "name": "Cereja premiada"
             },
             "avocado": {
-                "name": "Fatia de melancia",
-                "line": "Dá para onze pessoas"
+                "name": "Fatia de melancia"
             },
             "cactus": {
-                "name": "Pimenta corajosa",
-                "line": "Escolheu a mais picante"
+                "name": "Pimenta corajosa"
             },
             "cloud": {
-                "name": "Nuvem rabugenta",
-                "line": "Reclama, mas vem"
+                "name": "Nuvem rabugenta"
             },
             "cube": {
-                "name": "Dado da sorte",
-                "line": "Resolve todo empate"
+                "name": "Dado da sorte"
             },
             "donut": {
-                "name": "Rosquinha glaceada",
-                "line": "Falta o meio"
+                "name": "Rosquinha glaceada"
             },
             "drop": {
-                "name": "Copo de bubble tea",
-                "line": "Bebe em pleno drama"
+                "name": "Copo de bubble tea"
             },
             "egg": {
-                "name": "Biscoito da sorte",
-                "line": "Vago de propósito"
+                "name": "Biscoito da sorte"
             },
             "fish": {
-                "name": "Baiacu inflado",
-                "line": "Exagera na hora certa"
+                "name": "Baiacu inflado"
             },
             "flower": {
-                "name": "Joaninha da sorte",
-                "line": "Pousa na conta"
+                "name": "Joaninha da sorte"
             },
             "frog": {
-                "name": "Axolote sorridente",
-                "line": "Nunca diz não"
+                "name": "Axolote sorridente"
             },
             "gem": {
-                "name": "Ferradura da sorte",
-                "line": "Pesada, mas dá sorte"
+                "name": "Ferradura da sorte"
             },
             "ghost": {
-                "name": "Gato da sorte",
-                "line": "Sorri para o acaso"
+                "name": "Gato da sorte"
             },
             "heart": {
-                "name": "Capivara serena",
-                "line": "Topa qualquer coisa"
+                "name": "Capivara serena"
             },
             "leaf": {
-                "name": "Pretzel torcido",
-                "line": "Pensa demais no plano"
+                "name": "Pretzel torcido"
             },
             "moon": {
-                "name": "Tigela de ramen",
-                "line": "Cura a ressaca"
+                "name": "Tigela de ramen"
             },
             "mushroom": {
-                "name": "Ouriço espinhoso",
-                "line": "Fofo por baixo"
+                "name": "Ouriço espinhoso"
             },
             "planet": {
-                "name": "Caranguejo de lado",
-                "line": "Desvia da pergunta"
+                "name": "Caranguejo de lado"
             },
             "star": {
-                "name": "Estrela dos desejos",
-                "line": "Realiza metade"
+                "name": "Estrela dos desejos"
             },
             "sun": {
-                "name": "Ganso mandão",
-                "line": "Junta a turma"
+                "name": "Ganso mandão"
             }
         }
     },

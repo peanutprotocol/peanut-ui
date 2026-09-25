@@ -3909,7 +3909,6 @@
         "earned": "Ganado",
         "rollDie": "Tirar el dado",
         "initialName": "Solo {letter}",
-        "initialLine": "Inicial",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "crystal": "Cristal de Arbiverse",
@@ -3994,84 +3993,64 @@
         },
         "cast": {
             "apple": {
-                "name": "Cereza ganadora",
-                "line": "A dos de ser rica"
+                "name": "Cereza ganadora"
             },
             "avocado": {
-                "name": "Rebanada de sandía",
-                "line": "Alcanza para once personas"
+                "name": "Rebanada de sandía"
             },
             "cactus": {
-                "name": "Chile valiente",
-                "line": "Eligió el picante"
+                "name": "Chile valiente"
             },
             "cloud": {
-                "name": "Nube gruñona",
-                "line": "Se queja, pero viene"
+                "name": "Nube gruñona"
             },
             "cube": {
-                "name": "Dado de la suerte",
-                "line": "Resuelve todo empate"
+                "name": "Dado de la suerte"
             },
             "donut": {
-                "name": "Dona glaseada",
-                "line": "Le falta el centro"
+                "name": "Dona glaseada"
             },
             "drop": {
-                "name": "Té de burbujas",
-                "line": "Sorbe en pleno drama"
+                "name": "Té de burbujas"
             },
             "egg": {
-                "name": "Galleta de la fortuna",
-                "line": "Ambigua a propósito"
+                "name": "Galleta de la fortuna"
             },
             "fish": {
-                "name": "Pez globo inflado",
-                "line": "Exagera a pedido"
+                "name": "Pez globo inflado"
             },
             "flower": {
-                "name": "Catarina de la suerte",
-                "line": "Se posa en la cuenta"
+                "name": "Catarina de la suerte"
             },
             "frog": {
-                "name": "Ajolote sonriente",
-                "line": "Nunca dice que no"
+                "name": "Ajolote sonriente"
             },
             "gem": {
-                "name": "Herradura de la suerte",
-                "line": "Pesada pero con suerte"
+                "name": "Herradura de la suerte"
             },
             "ghost": {
-                "name": "Gato de la suerte",
-                "line": "Le sonríe al azar"
+                "name": "Gato de la suerte"
             },
             "heart": {
-                "name": "Capibara serena",
-                "line": "Todo le parece bien"
+                "name": "Capibara serena"
             },
             "leaf": {
-                "name": "Pretzel retorcido",
-                "line": "Le da mil vueltas al plan"
+                "name": "Pretzel retorcido"
             },
             "moon": {
-                "name": "Tazón de ramen",
-                "line": "Cura la resaca"
+                "name": "Tazón de ramen"
             },
             "mushroom": {
-                "name": "Erizo espinoso",
-                "line": "Blandito por dentro"
+                "name": "Erizo espinoso"
             },
             "planet": {
-                "name": "Cangrejo de costado",
-                "line": "Esquiva la pregunta"
+                "name": "Cangrejo de costado"
             },
             "star": {
-                "name": "Estrella de los deseos",
-                "line": "Cumple la mitad"
+                "name": "Estrella de los deseos"
             },
             "sun": {
-                "name": "Ganso mandón",
-                "line": "Arrea al grupo"
+                "name": "Ganso mandón"
             }
         }
     },
