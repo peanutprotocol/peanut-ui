@@ -150,15 +150,14 @@ export function corridorMatchesSearch(
 
 /**
  * A row the user cannot use, and why. The tap opens a drawer with the reason
- * rather than doing nothing. `label` is the row's full name, rail included.
+ * rather than doing nothing.
  */
-export type ClosedRow = { label: string } & (
+export type ClosedRow =
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
     | { kind: 'card-restricted' }
     | { kind: 'verification-down' }
-)
 
 /**
  * The bank rows under the virtual accounts. A row goes where an active virtual
@@ -176,13 +175,13 @@ export function otherWaysRows(rows: readonly UnlockRow[], activeCurrencies: Read
  * During a verification outage an unlock cannot start, so a row that needs
  * one says so.
  */
-export function closedBankRow(row: UnlockRow, isKycDegraded: boolean, label: string): ClosedRow | null {
+export function closedBankRow(row: UnlockRow, isKycDegraded: boolean): ClosedRow | null {
     if (row.chip === 'notAvailable') {
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
-            ? { kind: 'residence', corridor: row.corridor, label }
-            : { kind: 'restricted-country', label }
+            ? { kind: 'residence', corridor: row.corridor }
+            : { kind: 'restricted-country' }
     }
-    if (isKycDegraded && row.chip !== 'active') return { kind: 'verification-down', label }
+    if (isKycDegraded && row.chip !== 'active') return { kind: 'verification-down' }
     return null
 }

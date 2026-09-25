@@ -203,6 +203,10 @@ describe('the screen a blocked corridor lands on', () => {
             // the leading button is first in the DOM, so screen order and tab
             // order say the same thing
             expect(buttons.indexOf(topUp)).toBeLessThan(buttons.indexOf(support))
+            // support is the escape, not a second way in: the tertiary
+            // LinkButton, never a stroke Button beside the primary
+            expect(support).toHaveClass('underline')
+            expect(topUp).not.toHaveClass('underline')
         })
 
         it('takes the user to that transfer, not to support', () => {
@@ -264,7 +268,7 @@ describe('the screen a blocked corridor lands on', () => {
         const props = flowProps('account-limit')
         render(flow(props))
         expect(screen.queryByText(GATE.limitBody)).not.toBeInTheDocument()
-        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.blockedTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.queryByTestId('corridor-gate-account-limit')).not.toBeInTheDocument()
         tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
@@ -288,10 +292,10 @@ describe('the screen a blocked corridor lands on', () => {
         it('opens the provider page for this corridor, and never identity verification', () => {
             const props = flowProps('endorsement-required', false, PENDING)
             render(flow(props))
-            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
-            expect(screen.queryByText(GATE.waitTitle)).not.toBeInTheDocument()
+            expect(screen.queryByText(GATE.waitTitle.replace('{currency}', 'EUR'))).not.toBeInTheDocument()
             tapGateButton(screen.getByTestId('corridor-gate-finish-review'))
             expect(props.review?.start).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onResolveGate).not.toHaveBeenCalled()
@@ -303,7 +307,7 @@ describe('the screen a blocked corridor lands on', () => {
         ])('says what is needed and offers support when %s', (_, review) => {
             const props = { ...flowProps('endorsement-required', false, PENDING), review: review() }
             render(flow(props))
-            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewSupportBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
             tapGateButton(screen.getByTestId('corridor-gate-finish-review-support'))
             expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'review')
@@ -350,14 +354,14 @@ describe('the screen a blocked corridor lands on', () => {
 
         it('keeps the under-review wait for a review the provider is still running', () => {
             render(flow(flowProps('endorsement-pending', false, PENDING)))
-            expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         })
     })
 
     it('waits while the review runs, with nothing for the user to press but back', () => {
         const props = flowProps('endorsement-pending')
         render(flow(props))
-        expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.getByText(GATE.reviewBody)).toBeInTheDocument()
         tapGateButton(screen.getByTestId('corridor-gate-pending-review'))
         expect(props.onResolveGate).not.toHaveBeenCalled()
@@ -366,7 +370,7 @@ describe('the screen a blocked corridor lands on', () => {
 
     it('continues into the claim by itself once the review clears', () => {
         const { rerender } = render(flow(flowProps('endorsement-pending')))
-        expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         // The preview stops saying it is blocked, and the flow moves on with no
         // tap: the user is watching this screen while the provider answers.
         rerender(flow(flowProps()))
@@ -399,7 +403,7 @@ describe('the screen behind a corridor the backend withheld', () => {
     it('support-required: offers a person, and never a verification run', () => {
         const props = withheldProps('support-required')
         render(flow(props))
-        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.blockedTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
         tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
