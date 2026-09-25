@@ -40,6 +40,8 @@ export interface OpenAccountRow {
     view: DepositGateView
     /** false: the tap only explains why the account cannot be opened */
     openable: boolean
+    /** the backend gave no verdict on this corridor, so nothing is known about it */
+    unchecked: boolean
 }
 
 /**
@@ -59,7 +61,9 @@ export function canTopUp(corridor: DepositCorridor, gates: Record<DepositCorrido
  * it is not here: it is a bank row. Every other account the user does not
  * hold gets a row, whether or not a rail exists for it (Hugo, 2026-09-25:
  * "the other virtual account options should still show"): a row the user
- * cannot open says why on tap (`closedOpenRow`).
+ * cannot open says why on tap (`closedOpenRow`). A corridor outside
+ * `corridors` is one the backend gave no verdict on (its provider preview
+ * failed): the row is unchecked, never openable, and blames nothing.
  *
  * A held account always opens: the gate governs opening a new one, not reading
  * one that exists, and revoked details still explain returned payments. An
@@ -69,7 +73,7 @@ export function canTopUp(corridor: DepositCorridor, gates: Record<DepositCorrido
  * as the reads land.
  */
 export function virtualAccountRows(
-    { accounts, claimable, unavailable, gates }: VirtualAccountsInput,
+    { corridors, accounts, claimable, unavailable, gates }: VirtualAccountsInput,
     claimsEnabled: boolean
 ): { held: DepositCorridor[]; open: OpenAccountRow[] } {
     const accountCorridors = DEPOSIT_RAIL_ORDER.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor]))
@@ -82,7 +86,15 @@ export function virtualAccountRows(
             // With the corridor's own terms: for a corridor the backend offers,
             // those terms decide, and the capability gate alone would call it closed.
             const view = depositGateView(gates[corridor], claimable?.[corridor])
-            return { corridor, view, openable: isOpenable(corridor, view, unavailable, gates) }
+            // the gate alone would call a ready rail openable and a review
+            // corridor a residence refusal; with no verdict it is neither
+            const unchecked = !corridors.includes(corridor)
+            return {
+                corridor,
+                view,
+                unchecked,
+                openable: !unchecked && isOpenable(corridor, view, unavailable, gates),
+            }
         })
         .sort((a, b) => Number(b.openable) - Number(a.openable))
     return { held, open }
@@ -162,35 +174,25 @@ export type ClosedRow =
     | { kind: 'verification-down' }
     /** at the account limit: nothing more opens until support raises it */
     | { kind: 'account-limit'; limit: number }
-    /** no rail for this corridor where the user lives */
-    | { kind: 'not-offered-residence'; corridor: DepositCorridor }
-    /** no residence stated, so nothing says which accounts apply */
-    | { kind: 'residence-missing'; corridor: DepositCorridor }
+    /** the backend could not say whether this account opens (its preview failed) */
+    | { kind: 'unchecked'; corridor: DepositCorridor }
 
 /**
  * Why an account the user does not hold cannot be opened from the list.
  *
  * The limit comes first: at the limit nothing opens, whatever else is true.
- * Then the backend's own answer for the corridor, then the one thing the app
- * knows without it: a verified user with no rail for the corridor is not
- * offered it where they live, and a user with no residence has not said
- * where that is.
+ * Then a corridor the backend gave no verdict on, which says only that it
+ * could not be checked, then the backend's own answer.
  */
 export function closedOpenRow(
     row: OpenAccountRow,
     context: {
         /** the account limit, where the user has reached it */
         reachedLimit?: number
-        unavailable?: UnavailableCorridor
-        hasResidence: boolean
     }
 ): ClosedRow {
     if (context.reachedLimit !== undefined) return { kind: 'account-limit', limit: context.reachedLimit }
-    if (context.unavailable?.reason === 'not-offered') return { kind: 'not-offered', corridor: row.corridor }
-    if (row.view.notice?.kind === 'needs-enrollment')
-        return context.hasResidence
-            ? { kind: 'not-offered-residence', corridor: row.corridor }
-            : { kind: 'residence-missing', corridor: row.corridor }
+    if (row.unchecked) return { kind: 'unchecked', corridor: row.corridor }
     return { kind: 'not-offered', corridor: row.corridor }
 }
 

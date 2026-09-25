@@ -30,7 +30,6 @@ import { canShare } from '../resolveScreen'
 import { SKELETON_PULSE } from '../skeleton'
 import type { DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
-import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
@@ -85,7 +84,6 @@ export function AccountsHubList({
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [closed, setClosed] = useState<ClosedRow | null>(null)
-    const residenceIso2s = useResidenceIso2s()
 
     const isLoading = !!accounts?.isLoading
     const isError = !!accounts?.isError
@@ -138,7 +136,7 @@ export function AccountsHubList({
     }
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, openable }: OpenAccountRow) => {
+    const openBadge = ({ corridor, openable, unchecked }: OpenAccountRow) => {
         const reason = accounts?.unavailable?.[corridor]?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
@@ -148,6 +146,7 @@ export function AccountsHubList({
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
         // at the limit nothing opens; the tap says so (`closedOpenRow`)
+        if (unchecked && !atLimit) return <Badge status="neutral" customText={tCommon('status.unknown')} />
         if (!openable)
             return (
                 <Badge status="neutral" customText={t(atLimit ? 'list.badgeLimitReached' : 'list.badgeNotOffered')} />
@@ -269,8 +268,6 @@ export function AccountsHubList({
                             : setClosed(
                                   closedOpenRow(row, {
                                       reachedLimit: atLimit ? accountLimit : undefined,
-                                      unavailable: accounts?.unavailable?.[row.corridor],
-                                      hasResidence: residenceIso2s.length > 0,
                                   })
                               ),
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined
@@ -341,7 +338,12 @@ export function AccountsHubList({
                 </Section>
             )}
 
-            <ClosedRowDrawer closed={closed} onClose={() => setClosed(null)} onChangeResidence={onChangeResidence} />
+            <ClosedRowDrawer
+                closed={closed}
+                onClose={() => setClosed(null)}
+                onChangeResidence={onChangeResidence}
+                onRetry={accounts?.onRetry}
+            />
         </>
     )
 }

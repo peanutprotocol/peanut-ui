@@ -62,18 +62,20 @@ describe('virtualAccountRows', () => {
     })
 
     // Hugo, 2026-09-25: "the other virtual account options should still show"
-    it('lists every account the user does not hold, a rail or not, and only a railed one opens', () => {
+    it('lists every account the user does not hold; one the backend gave no verdict on is unchecked', () => {
         const gates = corridorRecord<GateState>((corridor) =>
-            corridor === 'SEPA_EU' ? READY : { kind: 'needs-enrollment' }
+            corridor === 'BANK_TRANSFER_CO' ? { kind: 'needs-enrollment' } : READY
         )
+        // only SEPA_EU has a verdict; ACH_US is a ready rail with none, and
+        // BANK_TRANSFER_CO a review corridor with no rail and none (chip, ui#3479)
         const { open } = virtualAccountRows(input({ corridors: ['SEPA_EU'], gates }), true)
 
-        expect(open.map((row) => [row.corridor, row.openable])).toEqual([
-            ['SEPA_EU', true],
-            ['FASTER_PAYMENTS_GB', false],
-            ['ACH_US', false],
-            ['SPEI_MX', false],
-            ['BANK_TRANSFER_CO', false],
+        expect(open.map((row) => [row.corridor, row.openable, row.unchecked])).toEqual([
+            ['SEPA_EU', true, false],
+            ['FASTER_PAYMENTS_GB', false, true],
+            ['ACH_US', false, true],
+            ['SPEI_MX', false, true],
+            ['BANK_TRANSFER_CO', false, true],
         ])
     })
 
@@ -131,40 +133,32 @@ describe('virtualAccountRows', () => {
 })
 
 describe('closedOpenRow', () => {
-    const closedRow = (gate: GateState) =>
-        virtualAccountRows(input({ corridors: [], gates: corridorRecord<GateState>(() => gate) }), true).open.find(
+    const rowOf = (corridors: DepositCorridor[], gate: GateState) =>
+        virtualAccountRows(input({ corridors, gates: corridorRecord<GateState>(() => gate) }), true).open.find(
             (row) => row.corridor === 'FASTER_PAYMENTS_GB'
         )!
 
     it('names the limit first: at the limit nothing opens', () => {
-        expect(
-            closedOpenRow(closedRow({ kind: 'needs-enrollment' }), {
-                reachedLimit: 2,
-                unavailable: notOffered('FASTER_PAYMENTS_GB'),
-                hasResidence: true,
-            })
-        ).toEqual({ kind: 'account-limit', limit: 2 })
+        expect(closedOpenRow(rowOf([], READY), { reachedLimit: 2 })).toEqual({ kind: 'account-limit', limit: 2 })
     })
 
-    it("then the backend's own answer", () => {
-        expect(
-            closedOpenRow(closedRow({ kind: 'needs-enrollment' }), {
-                unavailable: notOffered('FASTER_PAYMENTS_GB'),
-                hasResidence: true,
-            })
-        ).toEqual({ kind: 'not-offered', corridor: 'FASTER_PAYMENTS_GB' })
+    // chip, ui#3479: a missing verdict is unknown, never openable and never a residence refusal
+    it.each([
+        ['a ready rail with no verdict', READY],
+        ['a review corridor with no rail and no verdict', { kind: 'needs-enrollment' } as GateState],
+    ])('reads %s as unchecked', (_case, gate) => {
+        const row = rowOf([], gate)
+        expect(row.openable).toBe(false)
+        expect(closedOpenRow(row, {})).toEqual({ kind: 'unchecked', corridor: 'FASTER_PAYMENTS_GB' })
     })
 
-    it('reads a verified user with no rail as not offered where they live, or asks where that is', () => {
-        const row = closedRow({ kind: 'needs-enrollment' })
-        expect(closedOpenRow(row, { hasResidence: true })).toEqual({
-            kind: 'not-offered-residence',
-            corridor: 'FASTER_PAYMENTS_GB',
-        })
-        expect(closedOpenRow(row, { hasResidence: false })).toEqual({
-            kind: 'residence-missing',
-            corridor: 'FASTER_PAYMENTS_GB',
-        })
+    it("otherwise the backend's own answer: not offered", () => {
+        const { open } = virtualAccountRows(
+            input({ unavailable: { FASTER_PAYMENTS_GB: notOffered('FASTER_PAYMENTS_GB') } }),
+            true
+        )
+        const row = open.find((r) => r.corridor === 'FASTER_PAYMENTS_GB')!
+        expect(closedOpenRow(row, {})).toEqual({ kind: 'not-offered', corridor: 'FASTER_PAYMENTS_GB' })
     })
 })
 

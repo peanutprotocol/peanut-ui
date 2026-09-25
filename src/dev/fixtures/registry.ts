@@ -456,8 +456,8 @@ const VA_READY_RESPONSE = {
 
 /**
  * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident
- * with euro, dollar and peso rails. EUR is held; USD can open; GBP has no rail
- * where they live; the backend withholds MXN and asks for verification on COP.
+ * with euro, dollar and peso rails. EUR is held; USD can open; the backend
+ * gives no verdict on GBP, withholds MXN and asks for verification on COP.
  */
 const PROFILE_ACCOUNTS_MIX = {
     'GET /users/me': {
@@ -1149,19 +1149,8 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP has no rail where they live, MXN is not offered, COP needs verification.',
+        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP could not be checked (no verdict from the backend), MXN is not offered, COP needs verification.',
         responses: PROFILE_ACCOUNTS_MIX,
-    },
-    'profile-accounts-no-residence': {
-        route: '/profile/accounts',
-        about: 'The same mix with no residence stated: a row with no rail asks for one.',
-        responses: {
-            ...PROFILE_ACCOUNTS_MIX,
-            'GET /users/me': {
-                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
-                residence: { declared: null, verified: null, pending: null, declaredSecond: null },
-            },
-        },
     },
     'profile-accounts-two-held': {
         route: '/profile/accounts',

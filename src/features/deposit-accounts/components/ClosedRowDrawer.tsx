@@ -28,12 +28,15 @@ export function ClosedRowDrawer({
     closed,
     onClose,
     onChangeResidence,
+    onRetry,
 }: {
     /** the tapped row and why it is closed; null keeps the drawer shut */
     closed: ClosedRow | null
     onClose: () => void
     /** opens the residence change, on this screen or on Accounts and payments */
     onChangeResidence: () => void
+    /** reads the accounts again, for a row the backend could not check */
+    onRetry?: () => void
 }) {
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
@@ -86,17 +89,12 @@ export function ClosedRowDrawer({
                         act: () => openSupportWithMessage(`Account limit reached (${row.limit})`),
                     },
                 }
-            case 'not-offered-residence':
+            // the provider preview failed: say so, blame nothing, and read again
+            case 'unchecked':
                 return {
-                    title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
-                    body: t('errors.residenceRestricted'),
-                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
-                }
-            case 'residence-missing':
-                return {
-                    title: tAccounts('residence.unknown'),
-                    body: t('list.residenceMissingBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
-                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                    title: t('list.uncheckedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('list.uncheckedBody'),
+                    cta: { label: t('list.errorRetry'), act: onRetry },
                 }
             case 'verification-down':
                 return {

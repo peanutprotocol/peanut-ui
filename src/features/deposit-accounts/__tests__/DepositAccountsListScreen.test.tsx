@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import esMessages from '@/i18n/app/messages/es-419.json'
@@ -118,6 +118,7 @@ const list = (
         slotsHeld?: number
         accountLimit?: number
         onOpen?: (corridor: DepositCorridor) => void
+        onRetry?: () => void
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
     } = {}
@@ -137,7 +138,7 @@ const list = (
                     isError={opts.isError ?? false}
                     onBack={() => {}}
                     onOpen={opts.onOpen ?? (() => {})}
-                    onRetry={() => {}}
+                    onRetry={opts.onRetry ?? (() => {})}
                 />
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
@@ -333,39 +334,38 @@ describe('the accounts still to open fold once one is held', () => {
         expect(drawer().getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
     })
 
-    it('explains an account with no rail where the user lives, with the way to change it', () => {
-        residenceIso2s = ['PT']
+    // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
+    it.each([
+        ['a ready rail with no verdict', 'ACH_US', READY],
+        [
+            'a review corridor with no rail and no verdict',
+            'BANK_TRANSFER_CO',
+            { kind: 'needs-enrollment' } as GateState,
+        ],
+    ] as const)('shows %s as unknown, and the tap offers a retry', (_case, corridor, gate) => {
+        const onRetry = jest.fn()
+        const onOpen = jest.fn()
         const { container } = list(false, {
+            corridors: ['SEPA_EU'],
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
-            gates: corridorRecord<GateState>((corridor) =>
-                corridor === 'SEPA_EU' ? READY : { kind: 'needs-enrollment' }
-            ),
+            gates: corridorRecord<GateState>((c) => (c === corridor ? gate : READY)),
+            onOpen,
+            onRetry,
         })
 
         unfoldOpenAccounts()
-        expect(inRow(container, 'FASTER_PAYMENTS_GB').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
-        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
-        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
-        expect(drawer().getByText(messages.depositAccounts.errors.residenceRestricted)).toBeInTheDocument()
-        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
-    })
-
-    it('asks for a residence where none is set', () => {
-        residenceIso2s = []
-        const { container } = list(false, {
-            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
-            gates: corridorRecord<GateState>((corridor) =>
-                corridor === 'SEPA_EU' ? READY : { kind: 'needs-enrollment' }
-            ),
-        })
-
-        unfoldOpenAccounts()
-        fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
-        expect(drawer().getByText('Residence not set')).toBeInTheDocument()
-        expect(
-            drawer().getByText('MXN accounts depend on where you live. Set a residence to check.')
-        ).toBeInTheDocument()
-        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+        expect(inRow(container, corridor).getByText('Unknown')).toBeInTheDocument()
+        expect(inRow(container, corridor).queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, corridor) as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+        const currency = corridor === 'ACH_US' ? 'USD' : 'COP'
+        expect(drawer().getByText(`We could not check the ${currency} account`)).toBeInTheDocument()
+        expect(drawer().queryByText(/residence/i)).not.toBeInTheDocument()
+        jest.useFakeTimers()
+        fireEvent.click(drawer().getByRole('button', { name: LIST.errorRetry }))
+        act(() => jest.runAllTimers())
+        jest.useRealTimers()
+        expect(onRetry).toHaveBeenCalled()
     })
 
     it('folds under a revoked account too, which still sits in the held list', () => {

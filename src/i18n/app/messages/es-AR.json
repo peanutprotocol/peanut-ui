@@ -1779,7 +1779,8 @@
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
             "countriesTitle": "Todos los países",
-            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo."
+            "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
+            "uncheckedBody": "Volvé a intentarlo en un momento."
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
