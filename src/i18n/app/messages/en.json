@@ -282,7 +282,8 @@
             "yourBadges": "Badges",
             "points": "Points",
             "personalDetails": "Edit profile",
-            "unlockedRegions": "Accounts and payments",
+            "accounts": "Accounts",
+            "payments": "Payments",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show full name",
             "backup": "Backup",
@@ -341,7 +342,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Accounts and payments",
+            "titles": {
+                "accounts": "Accounts",
+                "payments": "Payments"
+            },
             "residence": {
                 "label": "Residence",
                 "unknown": "Residence not set",
@@ -4085,8 +4089,8 @@
         "list": {
             "addTitle": "Add money",
             "heldTitle": "Accounts",
-            "openTitle": "Open an account",
-            "otherWaysTitle": "Other ways to move money into Peanut",
+            "openTitle": "Open new account",
+            "otherWaysTitle": "Other ways to move money with Peanut",
             "otherWaysBody": "These also add and withdraw money. They are not accounts in your name.",
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",

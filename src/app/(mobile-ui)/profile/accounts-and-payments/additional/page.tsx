@@ -1,6 +1,6 @@
-import type React from 'react'
-import { AdditionalVerificationView } from '@/components/Kyc/AdditionalVerificationView'
+import RouteAlias from '@/components/Global/RouteAlias'
 
-export default function AdditionalVerificationPage(): React.JSX.Element {
-    return <AdditionalVerificationView />
+/** Retired 2026-09-25 with /profile/accounts-and-payments. */
+export default function AccountsAndPaymentsAdditionalAlias() {
+    return <RouteAlias to="/profile/accounts/additional" />
 }

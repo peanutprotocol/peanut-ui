@@ -41,7 +41,7 @@ const notOffered = (corridor: DepositCorridor): UnavailableCorridor => ({
 
 /**
  * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only accounts the user
- * holds. The rest sit under "Open an account".
+ * holds. The rest sit under "Open new account".
  */
 describe('virtualAccountRows', () => {
     it('lists held accounts apart from the ones the user could open, one-off transfers in neither', () => {

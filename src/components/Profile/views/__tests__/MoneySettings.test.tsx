@@ -1,23 +1,24 @@
 /** @jest-environment jsdom */
 /**
- * Unlock payments — the Unlocked Regions rework.
+ * The Accounts and Payments profile pages — one screen, two lists.
  *
  * Pins the contracts that motivated the rework: a bank-method tap can never
- * route to /card (the old Europe→card hijack), Everywhere leads the list,
- * the residence anchor renders, and restricted residences read Not available.
+ * route to /card (the old Europe→card hijack), the residence anchor leads both
+ * pages, each page lists only its own rows (Pix and ARS on both), and
+ * restricted residences read Not available.
  */
 import React from 'react'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
-import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
+import MoneySettings from '@/components/Profile/views/MoneySettings.view'
 
 // The view reaches for the query client (residence-change invalidation), so
 // the render needs a provider even though every data hook is mocked.
-const render = () =>
+const render = (page: 'accounts' | 'payments' = 'accounts') =>
     rtlRender(
         <QueryClientProvider client={new QueryClient()}>
-            <UnlockPayments />
+            <MoneySettings page={page} />
         </QueryClientProvider>,
         { wrapper: IntlWrapper }
     )
@@ -28,7 +29,7 @@ const mockSetOpenView = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
     // NavHeader mounts the maintenance Banner, which reads the pathname
-    usePathname: () => '/profile/unlock-payments',
+    usePathname: () => '/profile/accounts',
 }))
 jest.mock('nuqs', () => ({
     parseAsString: {},
@@ -209,7 +210,7 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
         ) : null,
 }))
 
-describe('UnlockPayments', () => {
+describe('MoneySettings', () => {
     beforeEach(() => {
         mockDepositEnabled = false
         mockDepositAccounts = {}
@@ -284,20 +285,63 @@ describe('UnlockPayments', () => {
         ).toBeInTheDocument()
     })
 
-    it('leads with the ways-in list, and the Peanut group keeps its always-on row', () => {
-        render()
-        // The currency-first merge (2026-09-18): the accounts list comes before
-        // the separate Peanut group in the DOM, not the old Everywhere-first order.
-        // The user holds no account here, so only the second section renders —
-        // an empty "Virtual accounts" heading would promise details that do
-        // not exist.
-        expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
-        const accountsHeading = screen.getByText('Other ways to move money into Peanut')
-        const peanutHeading = screen.getByText('Peanut')
-        expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
-        // P2P and crypto both carry the always-on chip.
-        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
+    /**
+     * The split (hugo, 2026-09-25): Accounts holds the accounts and the other
+     * ways money moves in and out; Payments holds the ways to spend and the
+     * Peanut rows. Pix and ARS are both, so each shows on both pages.
+     */
+    describe('two pages, one screen', () => {
+        it('Accounts lists the ways money moves in and out, and no spend or Peanut rows', () => {
+            render('accounts')
+            expect(screen.getByText('Accounts')).toBeInTheDocument()
+            // The user holds no account here, so no held section renders — an
+            // empty heading would promise details that do not exist.
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
+            expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
+            for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) expect(screen.getByText(title)).toBeInTheDocument()
+            for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut-to-Peanut payments', 'Crypto']) {
+                expect(screen.queryByText(title)).not.toBeInTheDocument()
+            }
+        })
+
+        it('Payments lists the spend methods and the Peanut rows, and no bank rows', () => {
+            render('payments')
+            expect(screen.getByText('Payments')).toBeInTheDocument()
+            expect(screen.getByText('Spend')).toBeInTheDocument()
+            expect(screen.getByText('Peanut card')).toBeInTheDocument()
+            expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
+            // P2P and crypto both carry the always-on chip.
+            expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
+            expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
+            for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) {
+                expect(screen.queryByText(title)).not.toBeInTheDocument()
+            }
+        })
+
+        it.each(['accounts', 'payments'] as const)('the %s page leads with the residence row', (page) => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
+            render(page)
+            const residence = screen.getByText('Residence')
+            const firstList = screen.getByText(page === 'accounts' ? 'Other ways to move money with Peanut' : 'Spend')
+            expect(residence.compareDocumentPosition(firstList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            fireEvent.click(screen.getByLabelText('Change'))
+            expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+        })
+
+        // Pix: paying a Pix QR or key is spending, sending reais by Pix is
+        // moving money. ARS: QR payments are spending, a bank transfer is not.
+        it('Pix and ARS show on both pages, each as the thing that page is about', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            const { unmount } = render('accounts')
+            expect(screen.getByText('BRL')).toBeInTheDocument()
+            expect(screen.getByText('ARS')).toBeInTheDocument()
+            unmount()
+
+            render('payments')
+            expect(screen.getByText('QR payments')).toBeInTheDocument()
+            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
+            expect(screen.getByText('Pix key payments')).toBeInTheDocument()
+        })
     })
 
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
@@ -317,7 +361,7 @@ describe('UnlockPayments', () => {
     })
 
     it('the card row routes to /card and only the card row does', () => {
-        render()
+        render('payments')
         fireEvent.click(screen.getByText('Peanut card'))
         expect(mockPush).toHaveBeenCalledWith('/card')
     })
@@ -346,10 +390,8 @@ describe('UnlockPayments', () => {
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
         mockRestrictions = { banking: true, card: true }
-        render()
+        const { unmount } = render()
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
-        // Both P2P and crypto are always-on and untouched by a bank/card restriction.
-        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
         fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(
@@ -357,19 +399,24 @@ describe('UnlockPayments', () => {
                 "Bank transfers and card issuing aren't available for residents of your country."
             )
         ).toBeInTheDocument()
+        unmount()
+
+        render('payments')
+        // Both P2P and crypto are always-on and untouched by a bank/card restriction.
+        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
     })
 
     // hugo, 2026-09-24: "always show the rails, tell the user why" — Spend too
     it('a Not available Spend row explains why on tap instead of doing nothing', () => {
         mockRestrictions = { banking: false, card: true }
-        render()
+        render('payments')
         fireEvent.click(screen.getByText('Peanut card'))
         expect(screen.getByText("The Peanut card isn't available for residents of your country.")).toBeInTheDocument()
     })
 
     it('a banking restriction closes QR payments with the country reason', () => {
         mockRestrictions = { banking: true, card: false }
-        render()
+        render('payments')
         fireEvent.click(screen.getByText('QR payments'))
         expect(
             screen.getAllByText("Bank transfers and card issuing aren't available for residents of your country.")
@@ -466,11 +513,11 @@ describe('UnlockPayments', () => {
         it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
             render()
 
-            expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+            expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
             expect(
                 screen.getByText('These also add and withdraw money. They are not accounts in your name.')
             ).toBeInTheDocument()
-            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
             // the word that meant two things is gone from the vocabulary
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -482,12 +529,12 @@ describe('UnlockPayments', () => {
 
             expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
-            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         })
 
         /*
          * A corridor the user could open is not one they hold: it sits under
-         * "Open an account", the list Add money shows too (QA-18), and
+         * "Open new account", the list Add money shows too (QA-18), and
          * the tap goes to the claim step there.
          */
         it('rail and an account they could open: offered under its own heading, never as held', () => {
@@ -497,11 +544,11 @@ describe('UnlockPayments', () => {
             mockDepositCorridors = ['ACH_US']
             render()
 
-            expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
-            expect(screen.getByText('Open an account')).toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
+            expect(screen.getByText('Open new account')).toBeInTheDocument()
             fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
             expect(mockPush).toHaveBeenCalledWith(
-                '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts-and-payments'
+                '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts'
             )
         })
 
@@ -513,11 +560,35 @@ describe('UnlockPayments', () => {
             }
             render()
 
-            expect(screen.getByText('Accounts')).toBeInTheDocument()
+            const held = screen.getByTestId('virtual-accounts')
+            // the heading, the counter and its reason share the section's top row
+            // (hugo, 2026-09-25: the heading stays, beside the counter)
+            const heading = within(held).getByRole('heading', { name: 'Accounts' })
+            const counter = within(held).getByTestId('account-counter')
+            expect(counter).toHaveTextContent('1 of 2 used')
+            expect(heading.parentElement).toBe(counter.parentElement)
+            expect(within(held).getByLabelText('Why a limit?')).toBeInTheDocument()
             // a payer can be handed these details; rail access never says Ready
             expect(screen.getByText('Ready')).toBeInTheDocument()
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
         })
+    })
+
+    // the same fold Add money shows, from the one shared list
+    it('folds the accounts still to open under a held one, as Add money does', () => {
+        mockDepositEnabled = true
+        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', country: 'EU', status: 'enabled' }]
+        mockDepositAccounts = { SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } } }
+        mockDepositCorridors = ['SEPA_EU', 'ACH_US']
+        render()
+
+        expect(screen.getByTestId('open-accounts-toggle')).toHaveTextContent('Open new account')
+        expect(screen.queryByTestId('deposit-account-ACH_US')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('open-accounts-toggle'))
+        fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
+        expect(mockPush).toHaveBeenCalledWith(
+            '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts'
+        )
     })
 
     it('names the deposit and withdrawal caps separately, inside the row drawer', () => {
@@ -536,7 +607,7 @@ describe('UnlockPayments', () => {
     })
 
     it('active payment rows explain the method in a drawer', () => {
-        render()
+        render('payments')
         fireEvent.click(screen.getByText('Peanut-to-Peanut payments'))
 
         const drawer = screen.getByRole('dialog')
@@ -557,11 +628,11 @@ describe('UnlockPayments', () => {
         // under its own heading, and the corridors their verification opens sit
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
-        expect(screen.getByText('Accounts')).toBeInTheDocument()
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+        expect(screen.getByTestId('virtual-accounts')).toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
-            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
+            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts'
         )
         // An active EUR account covers the same corridor as the active "Euro
         // bank transfers" row (2026-09-18 currency-first merge) — the merged
@@ -585,7 +656,7 @@ describe('UnlockPayments', () => {
         })
         render()
 
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
         expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         expect(screen.queryByText('USD')).not.toBeInTheDocument()
     })
@@ -626,12 +697,16 @@ describe('UnlockPayments', () => {
                 availableMonthlyLimit: '2500',
             },
         ]
-        render()
-
-        expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
-        expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
-        expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
-        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
+        for (const page of ['accounts', 'payments'] as const) {
+            const { unmount } = render(page)
+            expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
+            expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
+            expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
+            expect(
+                screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')
+            ).not.toBeInTheDocument()
+            unmount()
+        }
     })
 
     it.each([
@@ -657,13 +732,13 @@ describe('UnlockPayments', () => {
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
-        expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
-        expect(screen.queryByText('Accounts')).not.toBeInTheDocument()
+        expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
+        expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })
 
     it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
-        render()
+        render('payments')
         expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByText('Crypto'))
@@ -763,26 +838,31 @@ describe('UnlockPayments', () => {
             mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
             mockRails = [qrPoolRail]
             mockIsKycApproved = true
-            render()
+            const { unmount } = render()
 
             const bankRow = screen.getByText('BRL')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
-            const qrRow = screen.getByText('QR payments')
-            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
-
             // the row is the way into the onboarding that makes it true
             fireEvent.click(bankRow)
             expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+            unmount()
+
+            render('payments')
+            const qrRow = screen.getByText('QR payments')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
         })
 
         it('a full Manteca account reads Available on both rows', () => {
             mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
             mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
             mockIsKycApproved = true
-            render()
+            const { unmount } = render()
 
             const bankRow = screen.getByText('BRL')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            unmount()
+
+            render('payments')
             const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
         })
@@ -886,11 +966,9 @@ describe('UnlockPayments', () => {
      */
     describe('the Spend section', () => {
         it('names the card and QR payments, and offers QR to a user without it', () => {
-            render()
+            render('payments')
 
-            const spendHeading = screen.getByText('Spend')
-            const bankHeading = screen.getByText('Other ways to move money into Peanut')
-            expect(bankHeading.compareDocumentPosition(spendHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            expect(screen.getByText('Spend')).toBeInTheDocument()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
@@ -914,7 +992,7 @@ describe('UnlockPayments', () => {
             ],
         ])('draws each row with its concept bubble while %s', (_state, rails: unknown[]) => {
             mockRails = rails
-            render()
+            render('payments')
 
             const bubbleOf = (title: string) =>
                 (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
@@ -926,7 +1004,7 @@ describe('UnlockPayments', () => {
 
         it('reads Available once the QR rail is live, and explains itself in the drawer', () => {
             mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
-            render()
+            render('payments')
 
             const qrRow = screen.getByText('QR payments')
             fireEvent.click(qrRow)
@@ -940,7 +1018,7 @@ describe('UnlockPayments', () => {
         // A Brazilian user read "QR payments" as scan-only and paid Pix keys
         // in another app (2026-09-23). The key send is its own row.
         it('names Pix key payments with the key types, and offers them to a user without QR', () => {
-            render()
+            render('payments')
 
             expect(screen.getByText('Brazil. CPF, CNPJ, phone, email or random key.')).toBeInTheDocument()
             fireEvent.click(screen.getByText('Pix key payments'))
@@ -950,7 +1028,7 @@ describe('UnlockPayments', () => {
 
         it('opens the send-to-Pix-key screen once the QR rail is live', () => {
             mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
-            render()
+            render('payments')
 
             const pixKeyRow = screen.getByText('Pix key payments')
             expect(within(pixKeyRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
@@ -963,7 +1041,7 @@ describe('UnlockPayments', () => {
         // capability. The Pix key row must not link them into that gate.
         it('a Bridge-only user never gets a Pix key link', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
-            render()
+            render('payments')
 
             // the QR row still reads Available through the fallback
             const qrRow = screen.getByText('QR payments')
@@ -1079,7 +1157,6 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         expect(rows.slice(-1)).toEqual(['bank-row-ars'])
         // the Bridge rows keep their offer, and so does QR — it needs no account
         expect(badgeFor('EUR').getByText('Unlock')).toBeInTheDocument()
-        expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
 
         fireEvent.click(screen.getByText('ARS'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -1093,6 +1170,14 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         act(() => jest.runAllTimers())
         jest.useRealTimers()
         expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+    })
+
+    // QR needs no account, so it keeps its offer on Payments
+    it('keeps the QR payments offer on Payments', () => {
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        render('payments')
+        expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
     })
 
     it('a verified non-resident who can pay by Pix reads Available on BRL, and the tap opens Pix key sending', () => {

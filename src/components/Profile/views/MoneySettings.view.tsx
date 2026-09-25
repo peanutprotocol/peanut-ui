@@ -85,7 +85,18 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-const UnlockPayments = () => {
+/**
+ * The two profile pages behind the money settings, split 2026-09-25 (hugo):
+ * Accounts lists the accounts and the other ways money moves in and out of
+ * Peanut; Payments lists the ways to spend and the always-on Peanut rows.
+ * Pix and ARS are both, so they show on both: the BRL and ARS bank rows here,
+ * QR and Pix key payments there.
+ *
+ * One screen with two lists, not two screens: the residence row at the top,
+ * the verification notices and every modal and drawer a row opens are the
+ * same on both pages.
+ */
+const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const t = useTranslations('profile.unlockPayments')
     const tRegions = useTranslations('profile.regions')
     const tCommon = useTranslations('common')
@@ -353,7 +364,7 @@ const UnlockPayments = () => {
 
     return (
         <PageStack gap="6" className="pb-10">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
+            <NavHeader title={t(`titles.${page}`)} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
 
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">
@@ -417,41 +428,46 @@ const UnlockPayments = () => {
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
             <PendingVerificationTasks />
 
-            {groups.length === 0 && (
-                <EmptyState
-                    title={tRegions('empty.title')}
-                    description={tRegions('empty.description')}
-                    icon="globe-lock"
-                />
-            )}
-
-            {/* The list Add money shows too: virtual accounts held and to open,
-                then the other ways in. The accounts are read only while their
+            {/* The list Add money shows too: accounts held and to open, then
+                the other ways in. The accounts are read only while their
                 rollout flag is on (`VirtualAccountsHub` owns that fetch). */}
-            {depositAccountsEnabled ? (
-                <VirtualAccountsHub {...hubProps} />
-            ) : (
-                <AccountsHubList claimsEnabled={false} {...hubProps} />
-            )}
+            {page === 'accounts' &&
+                (depositAccountsEnabled ? (
+                    <VirtualAccountsHub {...hubProps} />
+                ) : (
+                    <AccountsHubList claimsEnabled={false} {...hubProps} />
+                ))}
 
-            {/* Spending methods, apart from the ways money moves between a bank
-                and Peanut. */}
-            {spendGroup && (
-                <RowSection
-                    group={spendGroup}
-                    onRowClick={handleRowClick}
-                    onClosedRowClick={closeSpendRow}
-                    isKycDegraded={isKycDegraded}
-                />
-            )}
-            <ClosedRowDrawer
-                closed={closedSpendRow}
-                onClose={() => setClosedSpendRow(null)}
-                onChangeResidence={() => setIsChangeModalOpen(true)}
-            />
+            {page === 'payments' && (
+                <>
+                    {groups.length === 0 && (
+                        <EmptyState
+                            title={tRegions('empty.title')}
+                            description={tRegions('empty.description')}
+                            icon="globe-lock"
+                        />
+                    )}
 
-            {peanutGroup && (
-                <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
+                    {/* Spending methods, apart from the ways money moves between
+                        a bank and Peanut. */}
+                    {spendGroup && (
+                        <RowSection
+                            group={spendGroup}
+                            onRowClick={handleRowClick}
+                            onClosedRowClick={closeSpendRow}
+                            isKycDegraded={isKycDegraded}
+                        />
+                    )}
+                    <ClosedRowDrawer
+                        closed={closedSpendRow}
+                        onClose={() => setClosedSpendRow(null)}
+                        onChangeResidence={() => setIsChangeModalOpen(true)}
+                    />
+
+                    {peanutGroup && (
+                        <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
+                    )}
+                </>
             )}
 
             {showBankRestrictionNote && (
@@ -692,7 +708,7 @@ const UnlockPayments = () => {
     )
 }
 
-export default UnlockPayments
+export default MoneySettings
 
 /** Group label key for a synthetic region name shown in the unlock modal. */
 function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 'northAmerica' | 'southAmerica' {
