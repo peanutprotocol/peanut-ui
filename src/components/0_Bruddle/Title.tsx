@@ -19,7 +19,7 @@ export const knerdTitle = {
     secondLineShift: '0.02em',
 } as const
 
-export const knerdOutlineTransform = `translate(${knerdTitle.outlineOffset.x}px, ${knerdTitle.outlineOffset.y}px) scale(${knerdTitle.outlineScale})`
+const knerdOutlineTransform = `translate(${knerdTitle.outlineOffset.x}px, ${knerdTitle.outlineOffset.y}px) scale(${knerdTitle.outlineScale})`
 
 const wrapperStyle: CSSProperties = {
     letterSpacing: knerdTitle.letterSpacing,

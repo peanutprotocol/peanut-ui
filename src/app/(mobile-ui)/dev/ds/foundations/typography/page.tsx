@@ -61,7 +61,7 @@ export default function TypographyPage() {
             >
                 <DocSection.Content>
                     <div className="rounded-sm bg-action-primary p-4 text-center">
-                        <Title text={'PRESS\nKIT'} className="text-7xl" />
+                        <Title text={'PRESS\nKIT'} className="text-headingLarge" />
                     </div>
                     <p className="text-body-s text-foreground-secondary">
                         Knerd Filled in white under a Knerd Outline copy that sits{' '}
@@ -95,13 +95,13 @@ export default function TypographyPage() {
                         doLabel="Title, size only"
                         doExample={
                             <div className="bg-action-primary p-3 text-center">
-                                <Title text="WORK HERE." className="text-5xl" />
+                                <Title text="WORK HERE." className="text-heading" />
                             </div>
                         }
                         dontLabel="Hand-rolled layers, own tracking"
                         dontExample={
-                            <div className="relative inline-block bg-action-primary p-3 text-5xl whitespace-nowrap">
-                                <p className="relative translate-x-[3px] font-knerd-filled text-white">WORK HERE.</p>
+                            <div className="relative inline-block bg-action-primary p-3 text-heading whitespace-nowrap">
+                                <p className="relative font-knerd-filled text-white">WORK HERE.</p>
                                 <p className="absolute top-3 left-3 font-knerd-outline">WORK HERE.</p>
                             </div>
                         }
@@ -110,8 +110,8 @@ export default function TypographyPage() {
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import Title from '@/components/0_Bruddle/Title'`} />
                     <CodeBlock
-                        label="Hero title (MarketingHero)"
-                        code={`<h1>\n  <Title text={title} className="text-5xl md:text-9xl" />\n</h1>`}
+                        label="Hero title (MarketingHero passes size only, the standing exception in design.md)"
+                        code={`<h1>\n  <Title text={title} className={sizeClasses} />\n</h1>`}
                     />
                     <CodeBlock label="Two hand-placed lines" code={`<Title text={'PRESS\\nKIT'} />`} />
                     <CodeBlock
