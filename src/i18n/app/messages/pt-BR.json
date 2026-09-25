@@ -433,8 +433,8 @@
                 "aboutTitle": "O que desbloqueia",
                 "limitsTitle": "Limites"
             },
-            "qrPayNote": "Escaneie o QR code de uma loja no Brasil ou na Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, telefone, e-mail ou chave aleatória.",
+            "qrPayNote": "Brasil e Argentina",
+            "pixKeyNote": "Chaves Pix do Brasil",
             "pixSendNote": "Envie para qualquer chave Pix"
         },
         "backup": {
@@ -988,7 +988,6 @@
     "send": {
         "linkCard": {
             "title": "Envie com um link",
-            "description": "Não precisa de conta para resgatar em carteira cripto. Banco, Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
         "methods": {
@@ -3547,7 +3546,6 @@
             "requestTitle": "Peça dinheiro",
             "requestDescription": "Não precisa de conta, é só mandar uma DM.",
             "sendTitle": "Envie com um link",
-            "sendDescription": "Qualquer pessoa com o link pode resgatar",
             "perfectForChats": "Perfeito para WhatsApp e Messenger"
         },
         "peanutActionDetailsCard": {
@@ -4048,12 +4046,16 @@
             "otherWaysBody": "Também servem para adicionar e sacar dinheiro. Não são contas no seu nome.",
             "badgeLimitReached": "Limite atingido",
             "notOfferedBody": "Não conseguimos abrir contas em {currency} para você. O suporte pode verificar o motivo.",
+            "notOfferedHereBody": "Não está disponível onde você mora, ou ainda não. Se você se mudou, atualize sua residência. O suporte pode verificar o motivo.",
+            "residenceMissingBody": "As contas em {currency} dependem de onde você mora. Informe sua residência para verificar.",
+            "uncheckedTitle": "Não conseguimos verificar a conta em {currency}",
+            "uncheckedBody": "Tente de novo em instantes.",
             "countriesTitle": "Todos os países",
             "countriesPitch": "Escolha um país",
             "badgeReady": "Pronta",
             "badgeActive": "Ativo",
-            "badgeNotSetUp": "Não configurada",
-            "badgeVerify": "Requer verificação",
+            "badgeSetUp": "Configurar",
+            "badgeVerifyId": "Verificar ID",
             "badgeNotOffered": "Não disponível",
             "badgeRevoked": "Revogada",
             "accountCounter": "{used} de {cap} usadas",

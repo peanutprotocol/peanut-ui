@@ -248,8 +248,8 @@
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
-            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "qrPayNote": "Brasil y Argentina",
+            "pixKeyNote": "Claves Pix de Brasil",
             "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {
@@ -1755,7 +1755,11 @@
             "errorBody": "Tus cuentas están bien. Revisá la conexión y probá de nuevo.",
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
-            "countriesTitle": "Todos los países"
+            "countriesTitle": "Todos los países",
+            "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
+            "uncheckedBody": "Volvé a intentarlo en un momento.",
+            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
+            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",

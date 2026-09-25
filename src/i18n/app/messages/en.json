@@ -433,8 +433,8 @@
                 "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
-            "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
-            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key.",
+            "qrPayNote": "Brazil and Argentina",
+            "pixKeyNote": "Any Pix key in Brazil",
             "pixSendNote": "Send to any Pix key"
         },
         "backup": {
@@ -988,7 +988,6 @@
     "send": {
         "linkCard": {
             "title": "Send with a link",
-            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {
@@ -3547,7 +3546,6 @@
             "requestTitle": "Request money",
             "requestDescription": "No account needed, just send a DM.",
             "sendTitle": "Send with a link",
-            "sendDescription": "Anyone with the link can claim it",
             "perfectForChats": "Perfect for WhatsApp and Messenger"
         },
         "peanutActionDetailsCard": {
@@ -4048,12 +4046,16 @@
             "otherWaysBody": "These also add and withdraw money. They are not accounts in your name.",
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",
+            "notOfferedHereBody": "It is not available where you live, or not yet. If you moved, update your residence. Support can check why.",
+            "residenceMissingBody": "{currency} accounts depend on where you live. Set a residence to check.",
+            "uncheckedTitle": "We could not check the {currency} account",
+            "uncheckedBody": "Try again in a moment.",
             "countriesTitle": "All countries",
             "countriesPitch": "Pick a country",
             "badgeReady": "Ready",
             "badgeActive": "Active",
-            "badgeNotSetUp": "Not set up",
-            "badgeVerify": "Requires verification",
+            "badgeSetUp": "Set up",
+            "badgeVerifyId": "Verify ID",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
             "accountCounter": "{used} of {cap} used",

@@ -470,6 +470,41 @@ const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
 }
 
+/**
+ * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident.
+ * EUR is held and USD can open. The backend's own signals decide the rest
+ * (peanut-api-ts `listDepositCorridors`): GBP is `not-offered`, MXN is in
+ * neither list because its provider preview failed, and COP asks for
+ * verification.
+ */
+const PROFILE_ACCOUNTS_MIX = {
+    'GET /users/me': {
+        capabilities: VA_READY_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [DEPOSIT_ACCOUNT_EUR],
+        claimable: [CLAIMABLE_USD_PREVIEW],
+        unavailable: [
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GBR',
+                currency: 'GBP',
+                reason: 'not-offered',
+            },
+            {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                country: 'COL',
+                currency: 'COP',
+                reason: 'identity-required',
+            },
+        ],
+    },
+}
+
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
 const REQUEST_PAY_EUR = {
@@ -1135,8 +1170,19 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts': {
         route: '/profile/accounts',
-        about: 'Accounts page: one euro account held, the accounts still to open folded into one row.',
-        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+        about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP is not offered where they live, MXN could not be checked (no verdict), COP needs verification.',
+        responses: PROFILE_ACCOUNTS_MIX,
+    },
+    'profile-accounts-no-residence': {
+        route: '/profile/accounts',
+        about: 'The same mix with no residence set: GBP asks for a residence instead.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+            },
+        },
     },
     'profile-accounts-two-held': {
         route: '/profile/accounts',
@@ -1151,11 +1197,12 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-at-limit': {
         route: '/profile/accounts',
-        about: 'Accounts page at the limit: two of two held, no fold, the counter says why.',
+        about: 'Accounts page at the limit: two of two held; the fold stays, and every row in it says the limit is reached.',
         responses: {
-            ...VA_READY_RESPONSE,
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
             'GET /users/deposit-accounts': {
                 depositAccounts: [DEPOSIT_ACCOUNT_EUR, DEPOSIT_ACCOUNT_MXN],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, blockedBy: 'account-limit' }],
                 accountLimit: 2,
             },
         },
