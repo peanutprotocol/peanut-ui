@@ -56,8 +56,10 @@ export function canTopUp(corridor: DepositCorridor, gates: Record<DepositCorrido
  * the user holds, and the ones they could open.
  *
  * A one-off transfer (Argentina, Brazil's Pix) is never a virtual account, so
- * it is not here: it is a bank row. A corridor the backend said nothing about
- * gets no row — a user no Colombian rail exists for is not offered Colombia.
+ * it is not here: it is a bank row. Every other account the user does not
+ * hold gets a row, whether or not a rail exists for it (Hugo, 2026-09-25:
+ * "the other virtual account options should still show"): a row the user
+ * cannot open says why on tap (`closedOpenRow`).
  *
  * A held account always opens: the gate governs opening a new one, not reading
  * one that exists, and revoked details still explain returned payments. An
@@ -67,7 +69,7 @@ export function canTopUp(corridor: DepositCorridor, gates: Record<DepositCorrido
  * as the reads land.
  */
 export function virtualAccountRows(
-    { corridors, accounts, claimable, unavailable, gates }: VirtualAccountsInput,
+    { accounts, claimable, unavailable, gates }: VirtualAccountsInput,
     claimsEnabled: boolean
 ): { held: DepositCorridor[]; open: OpenAccountRow[] } {
     const accountCorridors = DEPOSIT_RAIL_ORDER.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor]))
@@ -75,7 +77,7 @@ export function virtualAccountRows(
     if (!claimsEnabled) return { held, open: [] }
 
     const open = accountCorridors
-        .filter((corridor) => corridors.includes(corridor) && !isHeld(accounts[corridor]))
+        .filter((corridor) => !isHeld(accounts[corridor]))
         .map((corridor) => {
             // With the corridor's own terms: for a corridor the backend offers,
             // those terms decide, and the capability gate alone would call it closed.
@@ -158,6 +160,39 @@ export type ClosedRow =
     | { kind: 'restricted-country' }
     | { kind: 'card-restricted' }
     | { kind: 'verification-down' }
+    /** at the account limit: nothing more opens until support raises it */
+    | { kind: 'account-limit'; limit: number }
+    /** no rail for this corridor where the user lives */
+    | { kind: 'not-offered-residence'; corridor: DepositCorridor }
+    /** no residence stated, so nothing says which accounts apply */
+    | { kind: 'residence-missing'; corridor: DepositCorridor }
+
+/**
+ * Why an account the user does not hold cannot be opened from the list.
+ *
+ * The limit comes first: at the limit nothing opens, whatever else is true.
+ * Then the backend's own answer for the corridor, then the one thing the app
+ * knows without it: a verified user with no rail for the corridor is not
+ * offered it where they live, and a user with no residence has not said
+ * where that is.
+ */
+export function closedOpenRow(
+    row: OpenAccountRow,
+    context: {
+        /** the account limit, where the user has reached it */
+        reachedLimit?: number
+        unavailable?: UnavailableCorridor
+        hasResidence: boolean
+    }
+): ClosedRow {
+    if (context.reachedLimit !== undefined) return { kind: 'account-limit', limit: context.reachedLimit }
+    if (context.unavailable?.reason === 'not-offered') return { kind: 'not-offered', corridor: row.corridor }
+    if (row.view.notice?.kind === 'needs-enrollment')
+        return context.hasResidence
+            ? { kind: 'not-offered-residence', corridor: row.corridor }
+            : { kind: 'residence-missing', corridor: row.corridor }
+    return { kind: 'not-offered', corridor: row.corridor }
+}
 
 /**
  * The bank rows under the virtual accounts. A row goes where an active virtual

@@ -75,6 +75,29 @@ export function ClosedRowDrawer({
                     body: tAccounts('cardNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the limit copy the claim step shows, so the two cannot drift
+            case 'account-limit':
+                return {
+                    title: t('gate.limitTitle', { count: row.limit }),
+                    body: t('gate.limitBody'),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        // English on purpose: it is for the support agent, not the user
+                        act: () => openSupportWithMessage(`Account limit reached (${row.limit})`),
+                    },
+                }
+            case 'not-offered-residence':
+                return {
+                    title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('errors.residenceRestricted'),
+                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
+            case 'residence-missing':
+                return {
+                    title: tAccounts('residence.unknown'),
+                    body: t('list.residenceMissingBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),

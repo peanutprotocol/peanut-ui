@@ -41,6 +41,14 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 let mockDepositCorridors: string[] = []
 let mockDepositClaimable: Record<string, unknown> = {}
+// a gate for every corridor, as the real read returns: EUR and USD ready, the
+// rest with no rail for this user
+const mockGates = () =>
+    jest
+        .requireActual('@/features/deposit-accounts/rails')
+        .corridorRecord((corridor: string) =>
+            corridor === 'SEPA_EU' || corridor === 'ACH_US' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
+        )
 const mockReadDepositAccounts = jest.fn(() => ({
     corridors: mockDepositCorridors,
     accounts: mockDepositAccounts,
@@ -48,7 +56,7 @@ const mockReadDepositAccounts = jest.fn(() => ({
     unavailable: {},
     slotsHeld: Object.keys(mockDepositAccounts).length,
     accountLimit: 2,
-    gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
+    gates: mockGates(),
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -649,7 +657,7 @@ describe('MoneySettings', () => {
             slotsHeld: 0,
             accountLimit: 2,
             accounts: {},
-            gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
+            gates: mockGates(),
             isLoading: true,
             isError: false,
             refetch: jest.fn(),
@@ -719,7 +727,9 @@ describe('MoneySettings', () => {
         // ListGroup positions its direct children: every row after the first
         // drops its top border. Rows behind a wrapper component each kept all
         // four and rendered as separate cards.
-        const rows = ['EUR', 'USD'].map((title) => screen.getByText(title).closest('.border'))
+        // the bank rows, not the accounts to open above them
+        const otherWays = within(screen.getByTestId('other-ways'))
+        const rows = ['EUR', 'USD'].map((title) => otherWays.getByText(title).closest('.border'))
         const group = rows[0]?.parentElement
         expect(rows[1]?.parentElement).toBe(group)
         expect(group?.querySelectorAll(':scope > .border:not(.border-t-0)')).toHaveLength(1)

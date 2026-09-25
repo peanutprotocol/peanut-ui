@@ -307,15 +307,65 @@ describe('the accounts still to open fold once one is held', () => {
     })
 
     // nothing behind the fold can be opened at the limit; the counter says why
-    it('drops the fold at the account limit', () => {
-        list(false, {
+    // Hugo, 2026-09-25: the fold stays at the limit, and every row in it says why
+    it('keeps the fold at the account limit, and every row in it explains the limit', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
             accountLimit: 2,
+            claimable: { ACH_US: offered('ACH_US', 'account-limit') },
+            gates: corridorRecord<GateState>((corridor) =>
+                corridor === 'ACH_US' ? READY : { kind: 'needs-enrollment' }
+            ),
+            onOpen,
         })
 
-        expect(screen.queryByTestId('open-accounts-toggle')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('open-virtual-accounts')).not.toBeInTheDocument()
-        expect(screen.getByTestId('account-counter')).toHaveTextContent('2 of 2 used')
+        unfoldOpenAccounts()
+        for (const corridor of ['FASTER_PAYMENTS_GB', 'ACH_US', 'BANK_TRANSFER_CO'] as const) {
+            expect(inRow(container, corridor).getByText(LIST.badgeLimitReached)).toBeInTheDocument()
+        }
+        // a row the backend offers takes the claim step's own limit screen
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+        // a row with no rail explains the limit in place
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+    })
+
+    it('explains an account with no rail where the user lives, with the way to change it', () => {
+        residenceIso2s = ['PT']
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: corridorRecord<GateState>((corridor) =>
+                corridor === 'SEPA_EU' ? READY : { kind: 'needs-enrollment' }
+            ),
+        })
+
+        unfoldOpenAccounts()
+        expect(inRow(container, 'FASTER_PAYMENTS_GB').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
+        expect(drawer().getByText(messages.depositAccounts.errors.residenceRestricted)).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
+    it('asks for a residence where none is set', () => {
+        residenceIso2s = []
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: corridorRecord<GateState>((corridor) =>
+                corridor === 'SEPA_EU' ? READY : { kind: 'needs-enrollment' }
+            ),
+        })
+
+        unfoldOpenAccounts()
+        fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
+        expect(drawer().getByText('Residence not set')).toBeInTheDocument()
+        expect(
+            drawer().getByText('MXN accounts depend on where you live. Set a residence to check.')
+        ).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
     })
 
     it('folds under a revoked account too, which still sits in the held list', () => {

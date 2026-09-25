@@ -17,6 +17,7 @@ import { useState, type ReactElement, type ReactNode } from 'react'
 import { offersVerification } from '../depositGate'
 import {
     closedBankRow,
+    closedOpenRow,
     corridorMatchesSearch,
     otherWaysRows,
     virtualAccountRows,
@@ -29,6 +30,7 @@ import { canShare } from '../resolveScreen'
 import { SKELETON_PULSE } from '../skeleton'
 import type { DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
@@ -42,9 +44,9 @@ import { CorridorFlag } from './CorridorFlag'
  * Once the user holds an account, the ones they could open fold into one
  * closed row at the foot of the held list, one card with it (Hugo,
  * 2026-09-25): a list of "Not set up" rows under a held account read as a
- * checklist, and working through it runs into the account limit. At the
- * limit the row is gone, since nothing behind it can be opened; the counter
- * beside the heading says why. Each screen decides what a tap does; the rows, their order, their
+ * checklist, and working through it runs into the account limit. It lists
+ * every account the user does not hold; one they cannot open says why on tap,
+ * the limit first (Hugo, 2026-09-25). Each screen decides what a tap does; the rows, their order, their
  * words and the reason behind a row that cannot be used are the same on both.
  * A row is titled by its currency alone; the rail's name is on the screen or
  * drawer behind the tap.
@@ -83,6 +85,7 @@ export function AccountsHubList({
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [closed, setClosed] = useState<ClosedRow | null>(null)
+    const residenceIso2s = useResidenceIso2s()
 
     const isLoading = !!accounts?.isLoading
     const isError = !!accounts?.isError
@@ -144,7 +147,11 @@ export function AccountsHubList({
             return <Badge status="pending" customText={t('list.badgeVerify')} />
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
-        if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
+        // at the limit nothing opens; the tap says so (`closedOpenRow`)
+        if (!openable)
+            return (
+                <Badge status="neutral" customText={t(atLimit ? 'list.badgeLimitReached' : 'list.badgeNotOffered')} />
+            )
         switch (accounts?.claimable?.[corridor]?.blockedBy) {
             // the provider is reviewing the corridor the user asked for
             case 'endorsement-pending':
@@ -259,7 +266,13 @@ export function AccountsHubList({
                     () =>
                         row.openable
                             ? accounts?.onOpen(row.corridor)
-                            : setClosed({ kind: 'not-offered', corridor: row.corridor }),
+                            : setClosed(
+                                  closedOpenRow(row, {
+                                      reachedLimit: atLimit ? accountLimit : undefined,
+                                      unavailable: accounts?.unavailable?.[row.corridor],
+                                      hasResidence: residenceIso2s.length > 0,
+                                  })
+                              ),
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined
                 )
             )}
@@ -268,7 +281,7 @@ export function AccountsHubList({
     const heldRows = shownHeld.map((corridor) =>
         accountRow(corridor, heldBadge(corridor), () => accounts?.onOpen(corridor))
     )
-    const showFold = foldOpen && !atLimit && shownOpen.length > 0
+    const showFold = foldOpen && shownOpen.length > 0
     const accountSkeletons = isLoading
         ? (accounts?.corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor])).length ?? 0)
         : 0

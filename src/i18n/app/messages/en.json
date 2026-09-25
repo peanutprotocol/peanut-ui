@@ -4063,6 +4063,7 @@
             "otherWaysBody": "These also add and withdraw money. They are not accounts in your name.",
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",
+            "residenceMissingBody": "{currency} accounts depend on where you live. Set a residence to check.",
             "countriesTitle": "All countries",
             "countriesPitch": "Pick a country",
             "badgeReady": "Ready",
