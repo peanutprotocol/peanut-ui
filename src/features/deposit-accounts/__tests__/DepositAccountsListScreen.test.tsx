@@ -351,7 +351,7 @@ describe('the accounts still to open fold once one is held', () => {
         for (const corridor of ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB'] as const) {
             expect(inRow(container, corridor).getByText(LIST.badgeLimitReached)).toBeInTheDocument()
             expect(inRow(container, corridor).queryByText('Contact support')).not.toBeInTheDocument()
-            expect(inRow(container, corridor).queryByText(LIST.badgeVerify)).not.toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
         }
         fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
         expect(onOpen).not.toHaveBeenCalled()
@@ -375,7 +375,7 @@ describe('the accounts still to open fold once one is held', () => {
     })
 
     // chip, ui#3479: the gate cannot speak for a corridor the backend gave no verdict on
-    it('reads an unchecked row as Unknown even where the gate offers verification', () => {
+    it('reads an unchecked row as Not available even where the gate offers verification', () => {
         const { container } = list(false, {
             corridors: ['SEPA_EU'],
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
@@ -383,8 +383,8 @@ describe('the accounts still to open fold once one is held', () => {
         })
 
         unfoldOpenAccounts()
-        expect(inRow(container, 'ACH_US').getByText('Unknown')).toBeInTheDocument()
-        expect(inRow(container, 'ACH_US').queryByText(LIST.badgeVerify)).not.toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
     })
 
     // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
@@ -395,7 +395,7 @@ describe('the accounts still to open fold once one is held', () => {
             'BANK_TRANSFER_CO',
             { kind: 'needs-enrollment' } as GateState,
         ],
-    ] as const)('shows %s as unknown, and the tap offers a retry', (_case, corridor, gate) => {
+    ] as const)('shows %s as Not available, and the tap offers a retry', (_case, corridor, gate) => {
         const onRetry = jest.fn()
         const onOpen = jest.fn()
         const { container } = list(false, {
@@ -407,8 +407,8 @@ describe('the accounts still to open fold once one is held', () => {
         })
 
         unfoldOpenAccounts()
-        expect(inRow(container, corridor).getByText('Unknown')).toBeInTheDocument()
-        expect(inRow(container, corridor).queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(inRow(container, corridor).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, corridor).queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
         fireEvent.click(rowOf(container, corridor) as HTMLElement)
         expect(onOpen).not.toHaveBeenCalled()
         const currency = corridor === 'ACH_US' ? 'USD' : 'COP'
@@ -442,11 +442,12 @@ describe('the accounts still to open fold once one is held', () => {
 })
 
 describe('an account the user could open', () => {
-    it('says Not set up where a tap opens it', () => {
+    // hugo, 2026-09-25: an action the user can take now reads "Set up", in the info tone
+    it('says Set up where a tap opens it', () => {
         const onOpen = jest.fn()
         const { container } = list(false, { claimable: { SEPA_EU: offered('SEPA_EU') }, onOpen })
 
-        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeNotSetUp)).toHaveClass('bg-background-badge-helper')
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeSetUp)).toHaveClass('bg-background-badge-info')
         fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
     })
@@ -461,7 +462,7 @@ describe('an account the user could open', () => {
                 onOpen,
             })
 
-            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerify)).toBeInTheDocument()
+            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerifyId)).toBeInTheDocument()
             fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
             expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
         }
@@ -574,7 +575,7 @@ describe('a row the user cannot use', () => {
 
         const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
         expect(within(row).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
-        expect(within(row).queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
         fireEvent.click(row)
         expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'COP'))).toBeInTheDocument()
     })
@@ -647,7 +648,7 @@ describe('the other ways in', () => {
 
         expect(screen.queryByTestId('bank-row-brl')).not.toBeInTheDocument()
         expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
-        expect(screen.queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(screen.queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
         expect(countriesTrigger()).toBeInTheDocument()
     })
 })
@@ -824,7 +825,7 @@ describe('when the accounts cannot be read', () => {
         expect(screen.getByText(LIST.errorTitle)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
         expect(rowOf(container, 'SEPA_EU')).toHaveAttribute('aria-disabled', 'true')
-        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
     })
 })
 

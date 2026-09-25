@@ -142,13 +142,13 @@ export function AccountsHubList({
         // at the limit the cap is the answer for every row, before any other reason
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         // no verdict from the backend: nothing else about the row is known, the gate included
-        if (unchecked) return <Badge status="neutral" customText={tCommon('status.unknown')} />
+        if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         const reason = accounts?.unavailable?.[corridor]?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
         if (reason === 'support-required') return <Badge status="neutral" customText={tCommon('contactSupport')} />
         if (reason === 'identity-required' || (reason === undefined && offersVerification(accounts?.gates[corridor])))
-            return <Badge status="pending" customText={t('list.badgeVerify')} />
+            return <Badge status="pending" customText={t('list.badgeVerifyId')} />
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
@@ -163,7 +163,8 @@ export function AccountsHubList({
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         }
-        return <Badge status="neutral" customText={t('list.badgeNotSetUp')} />
+        // an action the user can take now: the info tone (hugo, 2026-09-25)
+        return <Badge status="processing" customText={t('list.badgeSetUp')} />
     }
 
     /*
