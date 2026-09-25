@@ -27,7 +27,16 @@ jest.mock('@/components/Home/ActivationCTAs', () => ({
 jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
 jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Home/PendingVerificationTasks', () => ({ __esModule: true, default: () => null }))
+// The real component renders `whenEmpty` only when it has no large task card
+// of its own; the marker mirrors that single-surface contract.
+let mockHasTaskCard = false
+jest.mock('@/components/Home/PendingVerificationTasks', () => ({
+    __esModule: true,
+    default: ({ whenEmpty }: { whenEmpty: React.ReactNode }) =>
+        mockHasTaskCard ? <div>verification-task-card</div> : <>{whenEmpty}</>,
+}))
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: [], rails: [] }) }))
+jest.mock('@/utils/bridge-tasks.utils', () => ({ selectHomeTasks: () => ({ documentSlide: undefined }) }))
 jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
 jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
 jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
@@ -48,6 +57,19 @@ const FUNDED: OnboardingState = {
 }
 
 describe('HomePage — never two CTA classes at once', () => {
+    beforeEach(() => {
+        mockHasTaskCard = false
+    })
+
+    it('a due verification task card replaces the checklist', () => {
+        mockHasTaskCard = true
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
+        render(<HomePage />)
+        expect(screen.getByText('verification-task-card')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
     it('before the first payment: the checklist, no carousel', () => {
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
         render(<HomePage />)

@@ -16,6 +16,7 @@ import { getBadgeCatalog, type BadgeUnlockRequirement } from '@/services/badges'
 import { twMerge } from '@/utils/tw'
 import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { BadgeImage } from './BadgeImage'
+import { BadgeMysteryTile } from './BadgeMysteryTile'
 import { buildBadgeCollection, type BadgeView } from './badge.types'
 import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
@@ -141,6 +142,7 @@ export const Badges = () => {
                             </span>
                         </button>
                     ))}
+                    <BadgeMysteryTile />
                 </div>
 
                 <p className="text-center text-body-xs text-foreground-secondary">{t('publicProfileNote')}</p>

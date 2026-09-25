@@ -7,6 +7,8 @@ import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
@@ -22,9 +24,11 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  * tasks) are composed as-is — restyling them belongs to the activation
  * project, not the ds rebuild.
  *
- * one CTA class at a time (hugo, 2026-09-25): until the first payment the
- * slot is the getting-started checklist (ActivationCTAs), after it the
- * carousel. never both.
+ * one CTA surface at a time (hugo, 2026-09-25): a large verification task card
+ * replaces the carousel and the checklist; it is due, so it wins. with no task
+ * card, a user who finished onboarding gets the carousel and everyone else the
+ * getting-started checklist (ActivationCTAs) — never both.
+ * PendingVerificationTasks renders `whenEmpty` only when it shows nothing itself.
  */
 export function HomePage() {
     const {
@@ -40,6 +44,8 @@ export function HomePage() {
         toggleBalanceVisibility,
     } = useHomeFlow()
     useHomeViewAnalytics(isPageLoading)
+    const { nextActions, rails } = useCapabilities()
+    const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
@@ -58,8 +64,17 @@ export function HomePage() {
                 />
                 <div className="flex flex-col gap-2">
                     <EnableAutoBalanceBanner />
-                    <PendingVerificationTasks dismissible />
-                    {isOnboardingComplete ? <HomeCarouselCTA /> : <ActivationCTAs onboarding={onboarding} />}
+                    <PendingVerificationTasks
+                        placement="home"
+                        whenEmptyShowsDocumentRequest={isOnboardingComplete}
+                        whenEmpty={
+                            isOnboardingComplete ? (
+                                <HomeCarouselCTA documentRequest={documentSlide} />
+                            ) : (
+                                <ActivationCTAs onboarding={onboarding} />
+                            )
+                        }
+                    />
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}

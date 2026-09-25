@@ -1166,11 +1166,8 @@
             "cta": "Enviar o pedir dinero"
         },
         "advisory": {
-            "descriptionByDate": "Tu cuenta necesita un documento más antes del {deadline} para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
-            "description": "Tu cuenta necesita un documento más para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
-            "title": "Esto toma un poco más",
-            "completeNow": "Completar ahora",
-            "doLater": "Hacerlo después"
+            "title": "Se necesita un documento más",
+            "descriptionByDate": "Vence el {deadline}. Las transferencias bancarias siguen funcionando hasta entonces. Completalo desde Inicio."
         },
         "progress": {
             "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Podés esperar acá o cerrar esto y te enviaremos una notificación.",

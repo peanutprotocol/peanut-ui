@@ -12,16 +12,21 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
+import {
+    getBankPayout,
+    getOfframpConfigFromAccount,
+    getCountryFromPath,
+    railJurisdictionForBank,
+} from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
-import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
-import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
+import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
@@ -49,7 +54,7 @@ import {
     validateBankOfframpAmount,
 } from './amount-validation'
 import { formatBankAmount } from '@/utils/currency'
-import { WITHDRAW_BANK_STEPS } from './types'
+import { WITHDRAW_BANK_STEPS, type ReviewPayout } from './types'
 import {
     bankReferenceDestinationFields,
     bankReferenceProblem,
@@ -62,7 +67,7 @@ import {
  * Flow hook for the Bridge bank-withdraw review page
  * (/withdraw/[country]/bank): the review → success stepper (named screen ids
  * in the URL), the offramp submission (create → send on-chain → confirm), the
- * capability gates and the KYC/advisory modal state. The amount arrives in the
+ * capability gates and the KYC modal state. The amount arrives in the
  * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
  * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
  * TASK-23054), whose USDC comes from a quote. The selected account lives in
@@ -109,6 +114,8 @@ export function useBridgeOfframpFlow() {
     // renders THIS — `?amount=` stays user-editable after completion, and
     // rendering it would let a URL edit forge the confirmation (Chip round 8).
     const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
+    // What the bank gets for that executed amount, pinned with it for the same reason.
+    const [executedPayout, setExecutedPayout] = useState<ReviewPayout | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
@@ -165,10 +172,11 @@ export function useBridgeOfframpFlow() {
     // than under-enforcing.
     const payoutMinimum = bankPayoutMinimum(accountCurrency)
     const minNeedsRate = !bankCurrency && payoutMinimum > 1
-    // One rate for the amount and the minimum: the quote. Without a typed bank
-    // amount it is fetched for the rate alone, when the minimum needs one.
+    // One rate for the amount, the minimum and the bank amount the review
+    // shows: the quote. Without a typed bank amount it is fetched for the rate
+    // alone, for every account paid in EUR, GBP, MXN or COP.
     const bankQuote = useBridgeOfframpQuote({
-        currency: bankCurrency ?? (minNeedsRate ? accountCurrency : null),
+        currency: bankCurrency ?? accountCurrency,
         destinationAmount: bankCurrency ? destinationAmount : undefined,
         enabled: step === 'review' && !isLoading && !submittedTxHash,
     })
@@ -183,6 +191,22 @@ export function useBridgeOfframpFlow() {
         : minNeedsRate
           ? Number(urlAmount) * quoteRate
           : undefined
+    // What the bank receives, from the same account-type mapping the transfer
+    // uses — never from the account's country (TASK-23054: a UK IBAN showed a
+    // GBP quote while the transfer paid EUR).
+    const payout: ReviewPayout | null = useMemo(() => {
+        if (!bankAccount) return null
+        const { currency, bankConvertsTo } = getBankPayout(bankAccount)
+        // a USD payout converts nothing, so it has no rate and no bank amount
+        const rate = accountCurrency ? bankQuote.quote?.rate : undefined
+        const usdAmount = Number(urlAmount)
+        const amount = bankCurrency
+            ? destinationAmount
+            : rate && usdAmount > 0
+              ? (usdAmount * Number(rate)).toFixed(2)
+              : undefined
+        return { currency, bankConvertsTo, rate, amount, enteredInBankCurrency: !!bankCurrency }
+    }, [bankAccount, accountCurrency, bankCurrency, destinationAmount, urlAmount, bankQuote.quote])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -204,21 +228,11 @@ export function useBridgeOfframpFlow() {
         // success on this page can't mis-fire eea_uplift_completed.
         onManualClose: resetUpliftFunnel,
     })
-    // A ready bank rail can still carry a pending Bridge requirement (the gate's
-    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt before the
-    // withdrawal — the offramp cannot proceed until it's completed.
-    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
-    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
-        advisory,
-        isLoading: sumsubFlow.isLoading,
-        // Route through the self-heal resubmit path (reheal-tagged action) so the
-        // completed submission round-trips to Bridge. start-action mints a plain
-        // token whose webhook completion has no Bridge relay → answers are dropped.
-        onCompleteNow: () => {
-            if (!advisory) return Promise.resolve()
-            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
-        },
-    })
+    // A ready bank rail can still carry a future-dated Bridge requirement (the
+    // gate's `advisory`). The rail works until that date, so the withdrawal never
+    // waits on it: inside the heads-up window the review screen shows a notice, and the verification
+    // starts from the Home and Accounts task cards (PendingVerificationTasks).
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
 
     // close kyc modal when sumsub sdk opens
@@ -495,6 +509,7 @@ export function useBridgeOfframpFlow() {
             // what moved, not what the URL says now.
             setCompletedTxHash(txIdentifier)
             setExecutedAmountUsd(amountUsd)
+            setExecutedPayout(payout)
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: amountUsd,
@@ -521,22 +536,13 @@ export function useBridgeOfframpFlow() {
         }
     }
 
-    // Enforce the mandatory verification pre-empt, then run the offramp. When the
-    // gate isn't `ready` (or there's no pending requirement) this is a no-op and
-    // proceedWithOfframp runs straight away (it handles the not-ready cases).
-    // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
-    // funnel event as it opens.
     // A fresh closure every render, on purpose (Chip review round 4): a
     // useCallback here froze the FIRST render's proceedWithOfframp — its
     // captured `gate`/`balance` never updated (the deps are all stable for
     // the page's lifetime), so a click after capabilities resolved ran the
     // stale `gate.kind === 'loading'` no-op forever. Nothing needs a stable
     // identity: this is a button onClick, not an effect dep.
-    const handleCreateAndInitiateOfframp = () => {
-        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
-        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
-        advisoryIntercept(() => void proceedWithOfframp())
-    }
+    const handleCreateAndInitiateOfframp = () => void proceedWithOfframp()
 
     useEffect(() => {
         fetchUser()
@@ -574,7 +580,10 @@ export function useBridgeOfframpFlow() {
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
+        executedPayout,
         amountToWithdraw,
+        payout,
+        isRateLoading: !!accountCurrency && !bankQuote.quote && bankQuote.isFetching,
         // bank amount typed in its currency (TASK-23054): null on the USD path
         bankAmount: bankCurrency
             ? {
@@ -621,7 +630,7 @@ export function useBridgeOfframpFlow() {
         resetUpliftFunnel,
         showBridgeTos,
         hideTos,
-        advisoryModalProps,
+        advisoryDeadline,
         pendingModal,
     }
 }

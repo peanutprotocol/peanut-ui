@@ -1,5 +1,7 @@
 import { type Account } from '@/interfaces/interfaces'
 import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import { formatBankAmount } from '@/utils/currency'
+import { type ReviewPayout } from './types'
 
 /**
  * Bank currencies the withdrawal amount is typed in (TASK-23054): the Bridge
@@ -37,4 +39,20 @@ export function normalizeBankAmount(value: string | null | undefined): string | 
     if (amount.endsWith('.')) amount = amount.slice(0, -1)
     if (amount.startsWith('.')) amount = `0${amount}`
     return BANK_AMOUNT_PATTERN.test(amount) ? amount : null
+}
+
+/**
+ * The two amounts of a bank withdrawal, in the order the user reads them: the
+ * currency they typed the amount in leads (TASK-23054). The bank amount is "≈"
+ * because the provider converts at settlement; the USD that leaves the balance
+ * is exact. A USD payout, or a bank amount not quoted yet, has one amount.
+ */
+export function payoutAmounts(
+    usdAmount: string,
+    payout: Pick<ReviewPayout, 'currency' | 'amount' | 'enteredInBankCurrency'>
+): { headline: string; secondary?: string } {
+    const usd = formatBankAmount(usdAmount, 'USD')
+    const bank = payout.amount ? `≈ ${formatBankAmount(payout.amount, payout.currency)}` : undefined
+    if (!bank) return { headline: usd }
+    return payout.enteredInBankCurrency ? { headline: bank, secondary: usd } : { headline: usd, secondary: bank }
 }
