@@ -78,7 +78,9 @@ describe('demoRespond — routing', () => {
         const { data } = await body('/badge/catalog')
         const codes = data.badges.map(({ code }: { code: string }) => code)
 
-        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'SURF_UP']))
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'TRON']))
+        // campaign links still award these, but they are not earnable (Hugo, 2026-09-25)
+        expect(codes).not.toContain('SURF_UP')
         expect(codes).not.toEqual(
             expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
         )
