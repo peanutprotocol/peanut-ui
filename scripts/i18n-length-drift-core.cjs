@@ -13,9 +13,11 @@ const LOCALES = ['es-419', 'es-AR', 'pt-BR']
 // from es-419 (same layering as src/i18n/app/messages.ts).
 const PARENT_LOCALE = { 'es-AR': 'es-419' }
 
+// Titles break layouts first, so they get the tighter limit (Hugo, TASK-23054).
 const DEFAULTS = {
-    threshold: 0.3,
-    // Below this, one or two characters already exceed 30%.
+    titleThreshold: 0.5,
+    bodyThreshold: 0.75,
+    // Below this, one or two characters already swing the ratio past a limit.
     minEnChars: 8,
     // English strings shorter than this are headings, buttons or row labels.
     titleMaxChars: 40,
@@ -79,11 +81,11 @@ const allowlistIndex = (allowlist, locale, key) =>
 
 /**
  * Every translated key per locale, with the keys whose visible length differs
- * from English by more than the threshold. A key missing from a locale renders
+ * from English by more than their class threshold (title or body). A key missing from a locale renders
  * English, so it is not compared.
  */
 function measureDrift(root, options = {}) {
-    const { threshold, minEnChars, titleMaxChars } = { ...DEFAULTS, ...options }
+    const { titleThreshold, bodyThreshold, minEnChars, titleMaxChars } = { ...DEFAULTS, ...options }
     const en = readCatalog(root, 'en')
     const allowlist = readAllowlist(root)
     const own = Object.fromEntries(LOCALES.map((l) => [l, readCatalog(root, l)]))
@@ -105,14 +107,14 @@ function measureDrift(root, options = {}) {
             const text = visibleText(msg)
             const chars = charCount(text)
             const drift = (chars - enChars) / enChars
-            if (Math.abs(drift) <= threshold) continue
+            const title = TITLE_KEY_RE.test(key.slice(key.lastIndexOf('.') + 1)) || enChars < titleMaxChars
+            if (Math.abs(drift) <= (title ? titleThreshold : bodyThreshold)) continue
             const allowed = allowlistIndex(allowlist, locale, key)
             if (allowed !== -1) {
                 allowlisted++
                 usedAllowlist.add(allowed)
                 continue
             }
-            const lastSegment = key.slice(key.lastIndexOf('.') + 1)
             // Raw messages for the report: a reader recognises `{name}` faster than a gap.
             flagged.push({
                 key,
@@ -121,7 +123,7 @@ function measureDrift(root, options = {}) {
                 enChars,
                 chars,
                 drift,
-                title: TITLE_KEY_RE.test(lastSegment) || enChars < titleMaxChars,
+                title,
                 inherited,
             })
         }
@@ -131,7 +133,7 @@ function measureDrift(root, options = {}) {
 
     const staleAllowlist = allowlist.filter((_, i) => !usedAllowlist.has(i))
     const missingReason = allowlist.filter((e) => typeof e.reason !== 'string' || !e.reason.trim())
-    return { threshold, locales, staleAllowlist, missingReason }
+    return { titleThreshold, bodyThreshold, locales, staleAllowlist, missingReason }
 }
 
 module.exports = { visibleText, measureDrift, LOCALES, ALLOWLIST_PATH }

@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // i18n length drift (advisory). Flags app messages whose es-419, es-AR or
-// pt-BR copy is more than 30% longer or shorter than English, so layouts hold
-// in every language (Hugo, TASK-23054). Always exits 0.
+// pt-BR copy is much longer or shorter than English, so layouts hold in every
+// language (Hugo, TASK-23054). Titles are flagged past 50%, body copy past 75%
+// (limits at the top of i18n-length-drift-core.cjs). Always exits 0.
 //
 // - Length = characters a reader sees: `{arg}` placeholders and rich-text tags
 //   are dropped, a plural or select keeps its longest branch.
 // - es-AR is compared after its es-419 fallback is applied. Rows es-AR only
 //   inherits are counted but listed under es-419.
-// - English strings under 8 characters are skipped: there, 30% is 1-2 letters.
+// - English strings under 8 characters are skipped: there, one or two letters
+//   swing the ratio past a limit.
 // - "Titles" are keys ending in title/heading/label/cta, plus any English
 //   string under 40 characters. They are listed first.
 // - Intentional exceptions go in scripts/i18n-length-drift-allowlist.json as
@@ -54,9 +56,9 @@ const table = (rows) => [
 const lines = [
     '## i18n length drift',
     '',
-    `Advisory, never fails. Flags keys whose visible length differs from English by more than ${Math.round(
-        result.threshold * 100
-    )}%. Intentional exceptions: \`${ALLOWLIST_PATH}\`. Rules: header of \`scripts/i18n-length-drift.mjs\`.`,
+    `Advisory, never fails. Flags keys whose visible length differs from English by more than ` +
+        `${Math.round(result.titleThreshold * 100)}% (titles) or ${Math.round(result.bodyThreshold * 100)}% (body copy). ` +
+        `Intentional exceptions: \`${ALLOWLIST_PATH}\`. Rules: header of \`scripts/i18n-length-drift.mjs\`.`,
     '',
     '| locale | compared | flagged (inherited) | titles | longer | shorter | allowlisted |',
     '|---|--:|--:|--:|--:|--:|--:|',
