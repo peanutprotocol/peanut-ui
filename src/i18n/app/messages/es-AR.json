@@ -784,6 +784,7 @@
             "merchantNotAvailable": "No podemos completar pagos con QR a este comercio en este momento. Probá con otro método de pago o con otro comercio.",
             "merchantNotAvailableTrySmaller": "No podemos completar pagos con QR de este monto a este comercio en este momento. Probá con un monto menor, otro método de pago u otro comercio.",
             "kycRequired": "Terminá de verificar tu identidad para pagar con QR.",
+            "senderRejected": "No pudimos confirmar el documento de tu cuenta para este pago. Contactá a soporte.",
             "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contactá a soporte",
             "confirmTransaction": "Confirmá la transacción.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
