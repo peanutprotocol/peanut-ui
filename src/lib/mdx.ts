@@ -45,11 +45,11 @@ function remarkStripLeadingH1() {
 export async function renderContent(
     source: string,
     locale: Locale = DEFAULT_LOCALE,
-    options?: { stripLeadingH1?: boolean }
+    options?: { stripLeadingH1?: boolean; components?: ReturnType<typeof createMdxComponents> }
 ) {
     return compileMDX<Record<string, unknown>>({
         source,
-        components: createMdxComponents(locale),
+        components: options?.components ?? createMdxComponents(locale),
         options: {
             mdxOptions: {
                 format: 'mdx',

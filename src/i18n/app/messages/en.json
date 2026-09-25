@@ -3116,13 +3116,13 @@
             "items": {
                 "id": {
                     "label": "ID",
-                    "title": "A government ID that has not expired",
+                    "title": "Valid photo ID",
                     "body": "Passport, national ID, residence permit, or most driver's licenses. Take live photos with your camera; screenshots and scans are not accepted."
                 },
                 "selfie": {
                     "label": "Selfie",
                     "title": "Selfie",
-                    "body": "A short selfie in the app. Good light helps."
+                    "body": "Take a selfie in the app. Good light helps."
                 },
                 "taxId": {
                     "label": "Tax ID",
@@ -3138,15 +3138,15 @@
                 },
                 "proofOfAddress": {
                     "label": "Address",
-                    "title": "Proof of address, if available",
+                    "title": "Recent proof",
                     "body": "A utility bill, bank statement, or official letter from the last 3 months showing your name and address. Not everyone is asked for it, and there is no way to add it later."
                 }
             },
             "howLongLabel": "How long",
             "howLong": {
-                "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
-                "hosted": "About 5 minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."
+                "hosted": "Verification usually takes a few minutes if you have all the documents in hand."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
             "startCta": "I have these, start",

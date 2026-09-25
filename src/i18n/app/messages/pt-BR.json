@@ -3116,13 +3116,13 @@
             "items": {
                 "id": {
                     "label": "Documento",
-                    "title": "Um documento de identidade válido",
+                    "title": "Documento válido com foto",
                     "body": "Passaporte, documento nacional, autorização de residência ou a maioria das carteiras de motorista. Tire fotos ao vivo com a câmera; capturas de tela e digitalizações não são aceitas."
                 },
                 "selfie": {
                     "label": "Selfie",
                     "title": "Selfie",
-                    "body": "Uma selfie rápida no app. Boa iluminação ajuda."
+                    "body": "Tire uma selfie no app. Boa iluminação ajuda."
                 },
                 "taxId": {
                     "label": "ID fiscal",
@@ -3138,15 +3138,15 @@
                 },
                 "proofOfAddress": {
                     "label": "Endereço",
-                    "title": "Comprovante de residência, se tiver",
+                    "title": "Comprovante recente",
                     "body": "Uma conta de consumo, um extrato bancário ou uma carta oficial dos últimos 3 meses com seu nome e seu endereço. Nem todo mundo precisa enviar, e depois não dá para adicionar."
                 }
             },
             "howLongLabel": "Quanto tempo leva",
             "howLong": {
-                "standard": "Menos de 2 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
+                "standard": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
                 "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "hosted": "Cerca de 5 minutos com seus documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
+                "hosted": "A verificação costuma levar alguns minutos se você tiver todos os documentos em mãos."
             },
             "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
             "startCta": "Tenho tudo, começar",

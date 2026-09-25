@@ -1390,12 +1390,12 @@
             },
             "items": {
                 "id": {
-                    "title": "Un documento de identidad vigente",
+                    "title": "Documento vigente con foto",
                     "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Tomá fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
                 },
                 "selfie": {
                     "title": "Selfie",
-                    "body": "Una selfie corta en la app. Con buena luz es más fácil."
+                    "body": "Sacate una selfie en la app. La buena luz ayuda."
                 },
                 "taxId": {
                     "title": "ID fiscal",
@@ -1408,15 +1408,15 @@
                     "body": "Declaraciones regulatorias que estamos obligados a pedir."
                 },
                 "proofOfAddress": {
-                    "title": "Un comprobante de domicilio, si tenés uno",
+                    "title": "Comprobante reciente",
                     "body": "Una factura de servicios, un resumen bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }
             },
             "howLongLabel": "Cuánto tarda",
             "howLong": {
-                "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "Unos 5 minutos si tenés tus documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
+                "hosted": "La verificación suele tardar unos minutos si tenés todos los documentos a mano."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
