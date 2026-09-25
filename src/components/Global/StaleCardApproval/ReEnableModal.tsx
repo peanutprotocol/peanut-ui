@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
@@ -82,13 +82,10 @@ export default function StaleCardApprovalReEnableModal() {
                   disabled: isGranting,
                   onClick: () => void onReEnable(),
               },
-              {
-                  text: t('staleCardApprovalModal.notNowCta'),
-                  variant: 'secondary',
-                  disabled: isGranting,
-                  onClick: close,
-              },
           ]
+    const tertiaryCta: ActionModalTertiaryCta | undefined = succeeded
+        ? undefined
+        : { text: t('staleCardApprovalModal.notNowCta'), disabled: isGranting, onClick: close }
 
     return (
         <ActionModal
@@ -103,6 +100,7 @@ export default function StaleCardApprovalReEnableModal() {
                     : (errorMessage ?? t('staleCardApprovalModal.description'))
             }
             ctas={ctas}
+            tertiaryCta={tertiaryCta}
         />
     )
 }

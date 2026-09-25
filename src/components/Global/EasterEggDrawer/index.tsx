@@ -81,7 +81,7 @@ const EasterEggDrawer = ({ visible, onClose, countryCode }: EasterEggDrawerProps
                             className="h-auto w-full"
                             priority
                         />
-                        <Button variant="secondary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {tCommon('gotIt')}
                         </Button>
                     </div>

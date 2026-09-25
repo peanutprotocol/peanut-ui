@@ -58,13 +58,8 @@ export default function AdvisoryPreemptModal({
                     shadowSize: '4',
                     disabled: isLoading,
                 },
-                {
-                    text: t('advisory.doLater'),
-                    onClick: onDoLater,
-                    variant: 'secondary',
-                    disabled: isLoading,
-                },
             ]}
+            tertiaryCta={{ text: t('advisory.doLater'), onClick: onDoLater, disabled: isLoading }}
         />
     )
 }

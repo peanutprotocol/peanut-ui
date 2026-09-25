@@ -91,13 +91,8 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     className: 'w-full',
                     shadowSize: '4',
                 },
-                {
-                    text: t('provideEmail.notNow'),
-                    onClick: onSkip,
-                    variant: 'secondary' as const,
-                    className: 'w-full',
-                },
             ]}
+            tertiaryCta={{ text: t('provideEmail.notNow'), onClick: onSkip }}
             content={
                 <div className="w-full pt-2 text-left">
                     <ProfileEditField

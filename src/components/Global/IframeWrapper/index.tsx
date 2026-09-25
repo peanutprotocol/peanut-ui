@@ -122,13 +122,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
-                    {
-                        text: t('iframeWrapper.cancel'),
-                        onClick: () => setIsHelpModalOpen(false),
-                        variant: 'secondary' as ButtonVariant,
-                        className: 'w-full',
-                    },
                 ],
+                tertiaryCta: { text: t('iframeWrapper.cancel'), onClick: () => setIsHelpModalOpen(false) },
             }
         }
 
@@ -147,13 +142,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
-                {
-                    text: t('iframeWrapper.continueVerifying'),
-                    onClick: () => setIsHelpModalOpen(false),
-                    variant: 'secondary' as ButtonVariant,
-                    className: 'w-full',
-                },
             ],
+            tertiaryCta: { text: t('iframeWrapper.continueVerifying'), onClick: () => setIsHelpModalOpen(false) },
         }
     }, [modalVariant, copied, src, router, t])
 
@@ -256,6 +246,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 modalClassName="!z-[10001] pointer-events-auto"
                 preventClose={true}
                 ctas={modalDetails.ctas}
+                tertiaryCta={modalDetails.tertiaryCta}
             />
         </Modal>
     )

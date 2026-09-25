@@ -1,5 +1,6 @@
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
@@ -11,6 +12,19 @@ export interface ActionModalButtonProps extends ButtonProps {
     text: string
     iconPosition?: 'left' | 'right'
     children?: React.ReactNode
+}
+
+/** The tertiary action: an underlined LinkButton under the ctas. Every
+ *  dismiss or defer action (cancel, not now, do this later, skip, keep, close)
+ *  goes here, never into `ctas` as a secondary or ghost Button — design.md
+ *  "dismiss and defer actions", ruled 2026-09-25, hugo. */
+export interface ActionModalTertiaryCta {
+    text: string
+    onClick?: () => void
+    /** Renders a link instead of a button. */
+    href?: string
+    disabled?: boolean
+    'data-testid'?: string
 }
 
 export interface ActionModalCheckboxProps {
@@ -44,6 +58,7 @@ export interface ActionModalProps {
     iconContainerClassName?: string
     isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
     ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
     preventClose?: boolean
@@ -81,6 +96,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     iconContainerClassName: customIconContainerClassName,
     isLoadingIcon = false,
     ctas,
+    tertiaryCta,
     ctaClassName,
     checkbox,
     preventClose,
@@ -270,6 +286,20 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+                {/* XL/24 above: the LinkButton hit area reaches 14px above its
+                    text and the primary's shadow takes 4px, so less overlaps. */}
+                {tertiaryCta && (
+                    <div className="mt-6 flex w-full justify-center">
+                        <LinkButton
+                            onClick={tertiaryCta.onClick}
+                            href={tertiaryCta.href}
+                            disabled={tertiaryCta.disabled}
+                            data-testid={tertiaryCta['data-testid']}
+                        >
+                            {tertiaryCta.text}
+                        </LinkButton>
                     </div>
                 )}
                 {/* An action footer is a row and gets the XL/24 above it. A

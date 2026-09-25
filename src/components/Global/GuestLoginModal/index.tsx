@@ -1,4 +1,3 @@
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -37,11 +36,7 @@ const GuestLoginModal = () => {
                     },
                 },
             ]}
-            footer={
-                <LinkButton href="/setup" onClick={closeModal}>
-                    {t('guestLoginModal.noWallet')}
-                </LinkButton>
-            }
+            tertiaryCta={{ text: t('guestLoginModal.noWallet'), href: '/setup', onClick: closeModal }}
         />
     )
 }
