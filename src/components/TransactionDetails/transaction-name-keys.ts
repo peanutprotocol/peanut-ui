@@ -65,12 +65,14 @@ export type TransactionNameKey = (typeof TRANSACTION_NAME_KEYS)[keyof typeof TRA
  * escape getTitle produced compounds like "Sending to Send didn't complete"
  * (reaper fail copy) and "Received from Refund from Starbucks" (refunds).
  * `name.request` is here so an unresolved open request reads "Request", not
- * "Request is requesting".
+ * "Request is requesting", and `name.cardPayment` so a card spend with no
+ * merchant reads "Card payment", not "Paid to card payment".
  */
 export const SELF_DESCRIBING_NAME_KEYS: ReadonlySet<TransactionNameKey> = new Set<TransactionNameKey>([
     ...Object.values(REAPER_FAIL_KEYS),
     REAPER_FAIL_FALLBACK_KEY,
     TRANSACTION_NAME_KEYS.failedQrPayment,
+    TRANSACTION_NAME_KEYS.cardPayment,
     TRANSACTION_NAME_KEYS.refundFrom,
     TRANSACTION_NAME_KEYS.cardRefund,
     TRANSACTION_NAME_KEYS.refund,
@@ -85,7 +87,6 @@ export const SELF_DESCRIBING_NAME_KEYS: ReadonlySet<TransactionNameKey> = new Se
  */
 export const IN_SENTENCE_NAME_KEYS = {
     [TRANSACTION_NAME_KEYS.merchant]: 'nameInSentence.merchant',
-    [TRANSACTION_NAME_KEYS.cardPayment]: 'nameInSentence.cardPayment',
     [TRANSACTION_NAME_KEYS.depositSource]: 'nameInSentence.depositSource',
     [TRANSACTION_NAME_KEYS.externalWallet]: 'nameInSentence.externalWallet',
     [TRANSACTION_NAME_KEYS.externalAccount]: 'nameInSentence.externalAccount',
