@@ -30,6 +30,7 @@ import { type FC, useContext, useMemo, useState, useTransition } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { isUsableSavedAccount } from '@/utils/bridge-accounts.utils'
 
 interface WithdrawMethodViewProps {
     pageTitle: string
@@ -93,12 +94,13 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
         const bankAccounts =
             user?.accounts.filter(
                 (acc) =>
-                    acc.type === AccountType.IBAN ||
-                    acc.type === AccountType.US ||
-                    acc.type === AccountType.CLABE ||
-                    acc.type === AccountType.GB ||
-                    acc.type === AccountType.CO_BANK_TRANSFER ||
-                    acc.type === AccountType.MANTECA
+                    (acc.type === AccountType.IBAN ||
+                        acc.type === AccountType.US ||
+                        acc.type === AccountType.CLABE ||
+                        acc.type === AccountType.GB ||
+                        acc.type === AccountType.CO_BANK_TRANSFER ||
+                        acc.type === AccountType.MANTECA) &&
+                    isUsableSavedAccount(acc)
             ) ?? []
         return bankAccounts as unknown as Account[]
     }, [user])
