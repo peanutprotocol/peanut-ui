@@ -31,7 +31,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
-import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA } from '@/utils/home-carousel.utils'
+import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA, showVerifyCTA } from '@/utils/home-carousel.utils'
 
 export type CarouselCTA = {
     id: string
@@ -276,8 +276,9 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Card-eligible users use the card verification flow instead of bank onboarding.
-        if (!hasKycApproval && !isInFlight && isCardEligible === false) {
+        // Same QR-pay gate as the QR slide above: no "unlock" ask where the ID
+        // check can never open QR pay (region refused, provider blocked).
+        if (showVerifyCTA({ qrGateState: qrGate.kycGateState, hasKycApproval, isInFlight, isCardEligible })) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
