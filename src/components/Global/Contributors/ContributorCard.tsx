@@ -53,12 +53,13 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                             name={contributor.username ?? ''}
                             size={'s'}
                             inlineStyle={{
+                                // an address is the crypto concept (coins on blue)
                                 backgroundColor: isEvmAddress
-                                    ? 'var(--color-background-icon-bubble-yellow)'
+                                    ? 'var(--color-background-icon-bubble-blue)'
                                     : colors.lightShade,
                             }}
                             textColor={isEvmAddress ? 'var(--color-foreground-primary)' : colors.darkShade}
-                            icon={isEvmAddress ? 'wallet-outline' : undefined}
+                            icon={isEvmAddress ? 'coins' : undefined}
                         />
                     )}
 

@@ -1,6 +1,5 @@
-import { type IconName } from '@/components/Global/Icons/Icon'
-import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { conceptBubbleFor, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { type StatusType } from '@/components/Global/Badges/Badge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
@@ -11,20 +10,12 @@ import React from 'react'
 import { isAddress } from 'viem'
 
 /**
- * link rows (claim links and request links) show the LINK'S STATE, not a fixed
- * icon — the bubble IS the status. bank rows (flags) and person rows (avatars)
- * are out of scope and keep their own treatment. a status with no ruled bubble
- * falls back to the row's previous icon.
+ * every concept bubble on an activity row (the list and the receipt head both
+ * render through here) is icon = concept, color = state: the concept's own
+ * color once done, yellow while pending, red when failed, gray when cancelled
+ * or refunded (STATE_BUBBLE_COLORS, TASK-22761). flags, merchant logos and
+ * person avatars keep their own image and carry no state color.
  */
-export const LINK_STATE_BUBBLES: Partial<Record<StatusType, { icon: IconName; color: IconBubbleColor }>> = {
-    pending: { icon: 'clock', color: 'gray' },
-    processing: { icon: 'clock', color: 'gray' },
-    completed: { icon: 'check', color: 'green' },
-    cancelled: { icon: 'ban', color: 'gray' },
-    refunded: { icon: 'ban', color: 'gray' },
-    failed: { icon: 'alert', color: 'red' },
-}
-
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize
     initials?: string
@@ -59,8 +50,8 @@ interface TransactionAvatarBadgeProps {
      */
     isPeer?: boolean
     /**
-     * The row's transaction status. Read on link rows only, where it picks the
-     * bubble (LINK_STATE_BUBBLES). Omit and those rows keep their fixed icon.
+     * The row's transaction status. Colors every concept bubble
+     * (STATE_BUBBLE_COLORS); flags and avatars ignore it.
      */
     status?: StatusType
 }
@@ -81,43 +72,29 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     isPeer,
     status,
 }) => {
-    let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
     let displayLogoUrl: string | undefined = undefined
     let calculatedBgColor = AVATAR_WALLET_BG
-    let iconFillColor = AVATAR_TEXT_DARK
     let textColor = AVATAR_TEXT_DARK
-    let logoFallback: { icon: IconName; bgColor?: string; iconFillColor?: string } | undefined = undefined
+    let logoFallback: React.ReactNode = undefined
 
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
 
     const bubbleSize = ({ xs: 'xs', s: 's', m: 'm', l: 'm', xl: 'l' } as const)[size]
 
-    // Claim links and request links are the link rows: every one of them shows
-    // the link's own state. A request always qualifies — with a link it is a
-    // request link, without one it is the counterparty-less request row.
-    const isLinkRow =
-        transactionType === 'request' ||
-        ((transactionType === 'send' || transactionType === 'receive') && isLinkTransaction)
-    const stateBubble = isLinkRow && status ? LINK_STATE_BUBBLES[status] : undefined
-    if (stateBubble) {
-        return <IconBubble icon={stateBubble.icon} size={bubbleSize} color={stateBubble.color} />
-    }
+    // a row that shows a product concept rather than a person or a flag takes
+    // that concept's icon, the same one the Send, Add and Withdraw lists use,
+    // colored by the row's state
+    const conceptBubble = (concept: Concept) => <IconBubble {...conceptBubbleFor(concept, status)} size={bubbleSize} />
 
     // An unfulfilled request has no counterparty — its display name is the
     // literal "Request", which used to render as an "RE" initials avatar and
-    // read like a contact. Per designer QA it is an IconBubble with the
-    // transaction-type icon (arrow-down-left, same as the row's action icon).
-    // This is now the fallback for a row whose status has no ruled bubble; a
-    // statused row took the state branch above.
+    // read like a contact. It is the request link concept; with no status it
+    // is still waiting to be paid, so it reads as pending.
     if (transactionType === 'request' && !isLinkTransaction) {
-        return <IconBubble icon="arrow-down-left" size={bubbleSize} color="green" />
+        return <IconBubble {...conceptBubbleFor('requestLink', status ?? 'pending')} size={bubbleSize} />
     }
-
-    // a row that shows a product concept rather than a person or a flag takes
-    // that concept's bubble, the same one the Send, Add and Withdraw lists use
-    const conceptBubble = (concept: Concept) => <IconBubble {...CONCEPT_ICONS[concept]} size={bubbleSize} />
 
     // determine Icon, background, and colors based on type
     switch (transactionType) {
@@ -138,12 +115,8 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             calculatedBgColor = AVATAR_WALLET_BG
             // If the flag asset 404s (obscure IBAN prefix that circle-flags
             // doesn't ship, or a mapping/asset drift like the EUR → 'eu'
-            // case), swap to the bank concept's icon and bubble color.
-            logoFallback = {
-                icon: CONCEPT_ICONS.bank.icon,
-                bgColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.bank.color})`,
-                iconFillColor: AVATAR_TEXT_DARK,
-            }
+            // case), swap to the bank concept's bubble.
+            logoFallback = conceptBubble('bank')
             break
         }
         case 'card_pay':
@@ -157,7 +130,6 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'request':
         case 'receive':
             if (isLinkTransaction) {
-                // a link row whose status has no ruled state bubble
                 return conceptBubble(transactionType === 'request' ? 'requestLink' : 'sendLink')
             } else if (!isValidUser) {
                 // an address, not a person: a crypto send or receive
@@ -169,36 +141,27 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 const colors = getColorForUsername(userName)
                 calculatedBgColor = colors.lightShade
                 textColor = colors.darkShade
-                displayIconName = undefined
+                break
             } else if (displayInitials) {
                 // The one branch with a person behind it, so it shows who they
                 // are: their picked avatar, or the letter sticker drawn from
                 // the name this row already displays (TASK-22625). `decorative`
                 // because that name is on screen right next to it.
                 return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
-            } else {
-                // fallback for send/request if no initials and not link/address
-                displayIconName = 'wallet-outline'
-                calculatedBgColor = AVATAR_WALLET_BG
-                iconFillColor = AVATAR_TEXT_DARK
             }
-            break
+            // no name and not a link: an external wallet, the crypto concept
+            return conceptBubble('crypto')
         default:
-            displayIconName = 'wallet-outline'
-            calculatedBgColor = AVATAR_WALLET_BG
-            iconFillColor = AVATAR_TEXT_DARK
-            break
+            return conceptBubble('crypto')
     }
 
     return (
         <AvatarWithBadge
             name={userName}
-            icon={displayIconName}
             logo={displayLogoUrl}
             size={size}
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}
-            iconFillColor={iconFillColor}
             fallback={logoFallback}
         />
     )

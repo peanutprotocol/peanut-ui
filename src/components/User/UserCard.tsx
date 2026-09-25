@@ -89,10 +89,10 @@ const UserCard = ({
                     <UserAvatar name={username} avatarKey={avatarKey} size={size} decorative />
                 ) : (
                     <AvatarWithBadge
-                        icon="wallet-outline"
+                        // an address is the crypto concept (coins on blue)
+                        icon="coins"
                         inlineStyle={{
-                            // drift fix: was an off-token gold hex — snapped to the DS yellow
-                            backgroundColor: 'var(--color-background-icon-bubble-yellow)',
+                            backgroundColor: 'var(--color-background-icon-bubble-blue)',
                             color: AVATAR_TEXT_DARK,
                         }}
                         size={size}

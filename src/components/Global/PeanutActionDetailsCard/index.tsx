@@ -3,6 +3,8 @@ import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { avatarSrc, letterAvatarSrc } from '@/components/Avatar/avatar.utils'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
@@ -139,8 +141,9 @@ export default function PeanutActionDetailsCard({
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
             return 'bank'
+        // an external address or wallet is the crypto concept
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
-            return 'wallet-outline'
+            return CONCEPT_ICONS.crypto.icon
         return undefined
     }, [viewType, transactionType, recipientType])
 
@@ -154,7 +157,7 @@ export default function PeanutActionDetailsCard({
             transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
-            return 'var(--color-background-icon-bubble-yellow)'
+            return 'var(--color-background-icon-bubble-blue)'
         return getColorForUsername(recipientName).lightShade
     }
 
@@ -200,16 +203,8 @@ export default function PeanutActionDetailsCard({
         if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
             return undefined
         const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
-        return (
-            <AvatarWithBadge
-                size="m"
-                logo={imgSrc}
-                icon="bank"
-                inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}
-                iconFillColor={AVATAR_TEXT_DARK}
-                fallback={{ icon: 'bank', bgColor: 'var(--color-background-icon-bubble-blue)' }}
-            />
-        )
+        const bankBubble = <IconBubble {...CONCEPT_ICONS.bank} size="m" />
+        return imgSrc ? <AvatarWithBadge size="m" logo={imgSrc} fallback={bankBubble} /> : bankBubble
     }
 
     return (

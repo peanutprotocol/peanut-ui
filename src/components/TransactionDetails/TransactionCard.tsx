@@ -280,7 +280,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : isPerkRewardEntry ? (
-        <PerkIcon size="extra-small" />
+        <PerkIcon size="s" />
     ) : avatarUrl ? (
         <div className={'relative flex size-8 items-center justify-center rounded-full'}>
             <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />

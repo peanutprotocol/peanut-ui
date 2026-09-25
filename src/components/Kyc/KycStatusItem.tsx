@@ -32,7 +32,7 @@ export const KycStatusItem = ({
     className?: HTMLAttributes<HTMLDivElement>['className']
 }) => {
     const t = useTranslations('kyc')
-    const { status } = useIdentityVerification()
+    const { status, isRegionRestricted } = useIdentityVerification()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     // keep drawer component mounted when SDK flow is active (so SumsubKycModals persists
     // even after the drawer visually closes)
@@ -72,7 +72,12 @@ export const KycStatusItem = ({
                     setIsDrawerOpen(true)
                 }}
                 className={className}
-                leading={<KYCStatusIcon />}
+                leading={
+                    <KYCStatusIcon
+                        status={status === 'verified' ? 'completed' : status === 'failed' ? 'failed' : 'pending'}
+                        regionRestricted={isRegionRestricted}
+                    />
+                }
                 title={t('identityVerification')}
                 body={
                     <div className="flex items-center gap-2">

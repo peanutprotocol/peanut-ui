@@ -145,8 +145,8 @@ describe('TransactionCard — clickable counterparty name', () => {
 
 // TASK-21887: a received request is inbound money (the viewer created the
 // request), so the row must carry the "+" — it used to render a negative amount.
-// TASK-22452 moved the leading bubble off a fixed direction arrow onto the
-// link's own state, so the arrow it used to draw is now the state glyph.
+// TASK-22452 moved the leading bubble off a fixed direction arrow; TASK-22761
+// made it the request link concept colored by state.
 describe('TransactionCard — received request renders as inbound', () => {
     function requestTx(status: IconStatusType = 'pending'): TransactionDetails {
         const tx = eligibleTx()
@@ -178,16 +178,17 @@ describe('TransactionCard — received request renders as inbound', () => {
         expect(screen.getByText('+$10')).toBeInTheDocument()
     })
 
-    // the state→bubble map (TASK-22452). one case per ruled row, so a changed
-    // glyph or colour fails here rather than in a screenshot.
+    // icon = concept, color = state (TASK-22761): a request keeps the link
+    // glyph and only the bubble color follows its state. one case per state,
+    // so a changed glyph or colour fails here rather than in a screenshot.
     it.each([
-        ['pending', 'lucide-clock', 'bg-background-icon-bubble-gray'],
-        ['processing', 'lucide-clock', 'bg-background-icon-bubble-gray'],
-        ['completed', 'lucide-check', 'bg-background-icon-bubble-green'],
-        ['cancelled', 'lucide-ban', 'bg-background-icon-bubble-gray'],
-        ['refunded', 'lucide-ban', 'bg-background-icon-bubble-gray'],
-        ['failed', 'lucide-triangle-alert', 'bg-background-icon-bubble-red'],
-    ] as const)('a %s link row shows the %s bubble', (status, iconClass, bgClass) => {
+        ['pending', 'lucide-link', 'bg-background-icon-bubble-yellow'],
+        ['processing', 'lucide-link', 'bg-background-icon-bubble-yellow'],
+        ['completed', 'lucide-link', 'bg-background-icon-bubble-blue'],
+        ['cancelled', 'lucide-link', 'bg-background-icon-bubble-gray'],
+        ['refunded', 'lucide-link', 'bg-background-icon-bubble-gray'],
+        ['failed', 'lucide-link', 'bg-background-icon-bubble-red'],
+    ] as const)('a %s request row shows the %s glyph on the %s bubble', (status, iconClass, bgClass) => {
         const { container } = renderRequest(status)
 
         const icon = container.querySelector(`svg.${iconClass}`)

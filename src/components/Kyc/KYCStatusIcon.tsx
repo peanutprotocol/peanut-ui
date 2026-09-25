@@ -1,6 +1,12 @@
 import { IconBubble } from '../0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '../0_Bruddle/conceptIcons'
+import { conceptBubbleFor } from '../0_Bruddle/conceptIcons'
+import { type StatusType } from '../Global/Badges/Badge'
 
-export const KYCStatusIcon = () => {
-    return <IconBubble {...CONCEPT_ICONS.verification} size="s" />
-}
+/**
+ * The verification concept, colored by state: blue once verified, yellow while
+ * processing or waiting on the user, red when failed, gray when the region is
+ * restricted (TASK-22761).
+ */
+export const KYCStatusIcon = ({ status, regionRestricted }: { status?: StatusType; regionRestricted?: boolean }) => (
+    <IconBubble {...conceptBubbleFor('verification', regionRestricted ? 'cancelled' : status)} size="s" />
+)
