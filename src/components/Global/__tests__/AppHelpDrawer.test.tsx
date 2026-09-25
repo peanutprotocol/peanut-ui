@@ -20,7 +20,7 @@ const documents = Object.fromEntries(
     ])
 ) as AppHelpDocuments
 
-function renderLink(locale: string, href: string) {
+function renderLink(locale: 'en' | 'es-419' | 'es-AR' | 'pt-BR', href: string) {
     render(
         <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
             <AppHelpProvider documents={documents}>
@@ -43,7 +43,7 @@ describe('app help drawers', () => {
         ['es-419', 'es-419'],
         ['es-AR', 'es-ar'],
         ['pt-BR', 'pt-br'],
-    ])('uses the %s article', (locale, expected) => {
+    ] as const)('uses the %s article', (locale, expected) => {
         renderLink(locale, '/en/help/verification')
         fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
         expect(screen.getByRole('dialog')).toHaveTextContent(`verification article ${expected}`)
