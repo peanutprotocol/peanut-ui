@@ -107,7 +107,6 @@
             }
         },
         "gettingStarted": {
-            "title": "Começar",
             "createAccount": "Criar conta",
             "createAccountDone": "Usuário pronto",
             "addMoney": "Adicionar dinheiro",
@@ -118,14 +117,17 @@
             "verifyIdentity": "Verificar identidade",
             "verifyIdentityNote": "Verificação única",
             "inReview": "Em análise",
-            "firstPaymentCardNote": "Pague com QR ou cartão",
+            "firstPaymentCardNote": "Peça o cartão ou use QR",
             "firstPaymentQrNote": "Pagar um código QR",
             "firstPaymentCardOnlyNote": "Peça o cartão Peanut",
             "verifyIdentityDone": "Identidade verificada",
             "addMoneyDone": "Dinheiro recebido",
             "firstPaymentHeldCardNote": "Pague com o cartão",
-            "firstPaymentHeldCardQrNote": "Pague com QR ou cartão",
-            "hide": "Ocultar"
+            "firstPaymentHeldCardQrNote": "Pague com cartão ou QR",
+            "hide": "Ocultar",
+            "welcomeTitle": "Boas-vindas ao Peanut",
+            "welcomeBody": "{count, plural, =3 {Três} =4 {Quatro} other {#}} passos rápidos para pagar, enviar e receber dinheiro.",
+            "progress": "{done} de {total} concluídos"
         },
         "autoBalance": {
             "title": "Termine de configurar o cartão",
