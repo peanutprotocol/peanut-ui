@@ -226,6 +226,17 @@ describe('AvatarPicker', () => {
         expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
     })
 
+    // QA-42: a 2px border on the chosen tile pushed its content 1px; the second
+    // signal is an inset ring now, which takes no layout
+    it('marks the chosen tile with an inset ring, keeping the 1px border every tile has', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        const [chosen, other] = tiles()
+        expect(chosen).toHaveClass('border', 'bg-action-primary', 'inset-ring', 'inset-ring-border-default')
+        expect(chosen).not.toHaveClass('border-2')
+        expect(other).not.toHaveClass('inset-ring')
+    })
+
     // slot 1 is the user's OWN letter; someone wearing another one is not
     // claiming an initial, so no tile claims to be it either
     it('leaves nothing checked when the pick is a letter that is not the initial', () => {

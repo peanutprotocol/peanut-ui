@@ -990,6 +990,9 @@
     "withdraw": {
         "reviewUpdatedQuote": "Revisá la cotización actualizada para continuar.",
         "chooseWithdrawingMethod": "Elegí el método de retiro",
+        "currencyList": {
+            "otherCountriesPitch": "Elegí un país"
+        },
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección"
@@ -1771,7 +1774,7 @@
         "list": {
             "accountCounter": "{used} de {cap} usadas",
             "errorBody": "Tus cuentas están bien. Revisá la conexión y probá de nuevo.",
-            "countriesPitch": "Elegí el país de tu banco.",
+            "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
             "countriesTitle": "Todos los países"
         },
