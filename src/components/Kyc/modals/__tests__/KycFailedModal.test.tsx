@@ -27,6 +27,6 @@ describe('KycFailedModal', () => {
 
         expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-        expect(screen.getByText("We couldn't verify your ID")).toBeInTheDocument()
+        expect(screen.getByText('Verification failed')).toBeInTheDocument()
     })
 })

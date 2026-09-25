@@ -60,3 +60,22 @@ it('opens one chooser with requester context and the eligible rails in order', (
         })
     )
 })
+
+it('wraps the row description instead of cutting it', () => {
+    render(
+        <IntlWrapper>
+            <BankTransferChooserDrawer
+                requestId="req-1"
+                rails={[rail('EUR', 'bridge.sepa_eu')]}
+                recipientUsername="hugo"
+                recipientAvatarKey={null}
+                bankRowProps={{ bankPayable: true, remainingUsd: 108 }}
+                onUnavailable={jest.fn()}
+            />
+        </IntlWrapper>
+    )
+
+    const description = screen.getByText("Send from your bank to the requester's account.")
+    expect(description).not.toHaveClass('truncate')
+    expect(description).toHaveClass('whitespace-normal')
+})

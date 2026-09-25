@@ -70,6 +70,7 @@ import {
 } from './qr-payment-telemetry'
 import type { QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
 import type { QrPaymentLock } from '@/services/manteca'
+import { isLockExpired, receiveLock } from '@/utils/price-lock.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -217,7 +218,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         try {
             return {
                 lockCode: paymentLock.code,
-                lockExpiresAt: paymentLock.expireAt,
+                lockExpiresAt: paymentLock.deadline ?? null,
                 requiredUsdcAmount: parseUnits(paymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS),
                 recipient: mantecaDepositRecipient(paymentLock, qrType),
             }
@@ -392,9 +393,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
                 return null
             }
-            return mantecaApi.initiateQrPayment(
-                { qrCode, qrType: qrType ?? undefined, idempotencyKey: scanIdempotencyKey },
-                { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
+            // stamped on arrival: the deadline counts from when the answer landed
+            return receiveLock(
+                await mantecaApi.initiateQrPayment(
+                    { qrCode, qrType: qrType ?? undefined, idempotencyKey: scanIdempotencyKey },
+                    { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
+                )
             )
         },
         enabled:
@@ -608,17 +612,19 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 if (!replacementQuoteKeyRef.current) {
                     replacementQuoteKeyRef.current = `recovery-${++quoteRecoveryAttemptRef.current}`
                 }
-                const fresh = await mantecaApi.initiateQrPayment({
-                    qrCode,
-                    amount: currencyAmount,
-                    qrType: qrType ?? undefined,
-                    idempotencyKey: qrInitIdempotencyKey({
+                const fresh = receiveLock(
+                    await mantecaApi.initiateQrPayment({
                         qrCode,
-                        timestamp,
                         amount: currencyAmount,
-                        replacement: replacementQuoteKeyRef.current,
-                    }),
-                })
+                        qrType: qrType ?? undefined,
+                        idempotencyKey: qrInitIdempotencyKey({
+                            qrCode,
+                            timestamp,
+                            amount: currencyAmount,
+                            replacement: replacementQuoteKeyRef.current,
+                        }),
+                    })
+                )
                 if (quoteRecoveryCancelledRef.current) return
                 setRequoteFailed(false)
                 setErrorMessage('')
@@ -693,14 +699,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
             try {
-                finalPaymentLock = await mantecaApi.initiateQrPayment({
-                    qrCode,
-                    amount: currencyAmount,
-                    qrType: qrType ?? undefined,
-                    // The amount is part of the identity: a different number is
-                    // a genuinely different lock, so it must not replay the last one.
-                    idempotencyKey: qrInitIdempotencyKey({ qrCode, timestamp, amount: currencyAmount }),
-                })
+                finalPaymentLock = receiveLock(
+                    await mantecaApi.initiateQrPayment({
+                        qrCode,
+                        amount: currencyAmount,
+                        qrType: qrType ?? undefined,
+                        // The amount is part of the identity: a different number is
+                        // a genuinely different lock, so it must not replay the last one.
+                        idempotencyKey: qrInitIdempotencyKey({ qrCode, timestamp, amount: currencyAmount }),
+                    })
+                )
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
                 /*
@@ -772,7 +780,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             kind: 'QR_PAY' as const,
             // Lets an internal recovery wait out a Rain cooldown that still
             // fits this lock instead of re-quoting.
-            lockExpiresAt: Date.parse(finalPaymentLock.expireAt) || undefined,
+            lockExpiresAt: finalPaymentLock.deadline,
             // Consumed whatever routing decides: only smart-only can sign
             // it, and after Pay its nonce may be spent either way. A recovery
             // re-sign calls this again, by which time it is already spent.
@@ -795,10 +803,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
          * An expired lock is a neutral re-quote + reconfirm — never a signature
          * and never a submission under terms the user did not see.
          */
-        const quoteExpired = () => {
-            const deadline = Date.parse(finalPaymentLock.expireAt)
-            return Number.isFinite(deadline) && Date.now() >= deadline
-        }
+        const quoteExpired = () => isLockExpired(finalPaymentLock)
         if (quoteExpired()) {
             void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
             return
@@ -922,7 +927,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                             // Same terms, same lock — only the prep and the
                             // signature are fresh, and its own 425 is ours.
                             () => signSpend({ ...signSpendInput(), suppressCooldownEvent: true }),
-                            { lockExpiresAt: Date.parse(finalPaymentLock.expireAt) || undefined }
+                            { lockExpiresAt: finalPaymentLock.deadline }
                         ),
                 }
             )

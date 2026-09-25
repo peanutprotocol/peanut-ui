@@ -41,8 +41,9 @@ export type RecoverSignedSpend = (
     artifact: SignedSpendArtifact,
     resign: () => Promise<SignedSpendArtifact>,
     opts?: {
-        /** Epoch ms the provider quote/lock dies at. A cooldown that cannot be
-         *  waited out inside it hands back to quote review instead. */
+        /** The lock's deadline on this device's clock, in ms (`receiveLock`).
+         *  A cooldown that cannot be waited out inside it hands back to quote
+         *  review instead. */
         lockExpiresAt?: number
     }
 ) => Promise<SignedSpendArtifact | null>

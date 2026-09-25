@@ -21,10 +21,15 @@ import {
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
+import RecipientGetsRow from '@/components/ExchangeRate/RecipientGetsRow'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
+    /** USDC that leaves the balance. */
     amount: string
+    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -45,12 +50,15 @@ interface WithdrawBankReviewViewProps {
     onReferenceChange: (reference: string) => void
     onSubmit: () => void
     onDone: () => void
+    /** Set while the quote's last refresh failed: the amounts stay, submit waits for a fresh quote. */
+    onRetryQuote?: () => void
 }
 
 /** Review step of the Bridge bank withdraw — dumb view, logic in useBridgeOfframpFlow. */
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
+    bankAmount,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -66,6 +74,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onReferenceChange,
     onSubmit,
     onDone,
+    onRetryQuote,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -171,12 +180,22 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                     </>
                 )}
-                <ExchangeRate
-                    accountType={bankAccount.type}
-                    nonEuroCurrency={nonEuroCurrency}
-                    amountToConvert={amount}
-                />
-                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
+                {bankAmount ? (
+                    <>
+                        <PaymentInfoRow
+                            label={tCommon('exchangeRate')}
+                            value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
+                        />
+                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
+                    </>
+                ) : (
+                    <ExchangeRate
+                        accountType={bankAccount.type}
+                        nonEuroCurrency={nonEuroCurrency}
+                        amountToConvert={amount}
+                    />
+                )}
+                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={'$0'} />
             </Card>
 
             {payoutNoteKey && (
@@ -225,6 +244,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
+            {onRetryQuote && !submittedTxHash && <RateUnavailable onRetry={onRetryQuote} />}
             {submittedTxHash ? (
                 // On-chain leg already fired. Even if confirmOfframp failed
                 // we must NOT offer Retry — it would re-run sendMoney() and
@@ -235,10 +255,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             ) : error.showError ? (
                 <Button
-                    // Same guard as the normal submit below: the flow hook
-                    // returns early on a reference problem, so without this
-                    // Retry looks live and does nothing.
-                    disabled={isLoading || !!referenceProblem}
+                    // Same guards as the normal submit below: the flow hook
+                    // returns early on a reference problem or a quote that is
+                    // not current, so without them Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem || !isSubmitReady}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"

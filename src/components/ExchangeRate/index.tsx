@@ -3,8 +3,8 @@ import { AccountType } from '@/interfaces/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
-import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
+import RecipientGetsRow from './RecipientGetsRow'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
     nonEuroCurrency?: string
@@ -81,7 +81,6 @@ const ExchangeRate = ({
             localCurrencyAmount = net.toFixed(2)
         }
     }
-    const currencySymbol = SYMBOLS_BY_CURRENCY_CODE[currency] || currency
 
     return (
         <>
@@ -92,12 +91,7 @@ const ExchangeRate = ({
                 value={displayValue}
             />
             {localCurrencyAmount && (
-                <PaymentInfoRow
-                    loading={isLoadingRate}
-                    label={t('amountYouReceive')}
-                    value={`~ ${currencySymbol}${localCurrencyAmount}`}
-                    moreInfoText={t('approximate')}
-                />
+                <RecipientGetsRow loading={isLoadingRate} amount={localCurrencyAmount} currency={currency} />
             )}
         </>
     )

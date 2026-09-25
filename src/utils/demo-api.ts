@@ -917,6 +917,19 @@ export async function demoRespond(
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    // The withdraw quote depends on its query, which route handlers never see:
+    // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
+    if (method === 'GET' && pathname === '/bridge/offramp/quote') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const destinationAmount = query.get('destinationAmount') ?? undefined
+        return json({
+            destinationCurrency: query.get('destinationCurrency') ?? 'eur',
+            rate: '1',
+            updatedAt: CREATED_AT,
+            ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
     // Capture mode never calls live rates or support sessions.
     if (capture?.offline && method === 'GET') {
         if (pathname === '/tokens/price') {

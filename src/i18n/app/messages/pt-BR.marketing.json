@@ -141,7 +141,7 @@
         },
         "downloadNow": "Baixar agora",
         "smartLink": {
-            "redirecting": "Levando você para a loja…",
+            "redirecting": "Abrindo a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }
     },
@@ -171,7 +171,7 @@
         "hero": {
             "wordmark": "Cartão Peanut",
             "tagline": "Seu dinheiro. Pronto para pagar.",
-            "cta": "Peça seu cartão",
+            "cta": "Pedir cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
             "title": "Go Pink.",
             "pitch": "Um saldo. 150 milhões de lugares para gastar.",

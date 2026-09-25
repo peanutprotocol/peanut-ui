@@ -131,8 +131,11 @@ describe('corridorTopUpHref', () => {
         expect(corridorTopUpHref('SEPA_EU', ['de'])).toBe('/add-money/germany/bank')
     })
 
-    it('still answers for a euro user we know no residence for', () => {
-        expect(corridorTopUpHref('SEPA_EU')).toMatch(/^\/add-money\/[a-z-]+\/bank$/)
+    // TASK-23054: the fallback was the first live member, Andorra
+    it('opens the reference euro country for a user who lives outside the euro area', () => {
+        expect(corridorTopUpHref('SEPA_EU')).toBe('/add-money/germany/bank')
+        expect(corridorTopUpHref('SEPA_EU', ['US'])).toBe('/add-money/germany/bank')
+        expect(corridorTopUpHref('SEPA_EU', ['ES'])).toBe('/add-money/spain/bank')
     })
 
     // Colombia's deposit rail is not live, so there is no transfer to offer and

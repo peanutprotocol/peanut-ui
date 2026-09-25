@@ -11,17 +11,14 @@ interface OnrampConfirmationModalProps {
     visible: boolean
     onClose: () => void
     onConfirm: () => void
-    amount: string
-    currency: string
 }
 
-export const OnrampConfirmationModal = ({
-    visible,
-    onClose,
-    onConfirm,
-    amount,
-    currency,
-}: OnrampConfirmationModalProps) => {
+/**
+ * Shown before a bank top-up is created. A top-up is matched on the deposit
+ * reference only (any amount is accepted), so the reference is the one thing
+ * the user must get right.
+ */
+export const OnrampConfirmationModal = ({ visible, onClose, onConfirm }: OnrampConfirmationModalProps) => {
     const t = useTranslations('addMoney.confirmationModal')
     const tCommon = useTranslations('common')
     return (
@@ -50,13 +47,6 @@ export const OnrampConfirmationModal = ({
 
                         <div className="flex flex-col gap-1">
                             <MiniHeader>{t('youMust')}</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">
-                                {t.rich('sendExactly', {
-                                    currency,
-                                    amount,
-                                    b: (chunks) => <b>{chunks}</b>,
-                                })}
-                            </p>
                             <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
                             <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
                         </div>

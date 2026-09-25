@@ -252,7 +252,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
-        expect(screen.getByText('Send money with a link')).toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
@@ -270,10 +270,10 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.queryByText(/ARS/)).not.toBeInTheDocument()
     })
 
-    test('Shows Peanut username option at top of methods list', () => {
+    test('Shows Peanut user option at top of methods list', () => {
         renderSend()
 
-        const contactsCard = screen.getByTestId('action-card-Peanut username')
+        const contactsCard = screen.getByTestId('action-card-Peanut user')
         expect(contactsCard).toBeInTheDocument()
     })
 
@@ -304,7 +304,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         // Should still render without errors
-        expect(screen.getByTestId('action-card-Peanut username')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Peanut user')).toBeInTheDocument()
     })
 })
 
@@ -316,7 +316,7 @@ describe('GROUP 2: Send by Link', () => {
         renderSend({ view: 'link' })
 
         expect(screen.getByTestId('link-send-flow-manager')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('createLink=true also shows LinkSendFlowManager', () => {
@@ -355,7 +355,7 @@ describe('GROUP 3: Contacts View', () => {
         renderSend({ view: 'contacts' })
 
         expect(screen.getByTestId('contacts-view')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('Back from a cold deep-link into contacts replaces to /send without minting history', () => {
@@ -422,10 +422,10 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Clicking Peanut username navigates to /send?view=contacts', () => {
+    test('Clicking Peanut user navigates to /send?view=contacts', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Peanut username'))
+        fireEvent.click(screen.getByTestId('action-card-Peanut user'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
     })
 

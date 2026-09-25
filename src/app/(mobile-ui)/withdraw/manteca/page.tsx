@@ -29,6 +29,7 @@ import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } 
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -37,6 +38,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
+import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-lock.utils'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
@@ -157,7 +159,7 @@ function MantecaBankWithdrawFlow() {
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
-    const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
+    const [priceLock, setPriceLock] = useState<ReceivedLock<WithdrawPriceLock> | null>(null)
     // Neutral notice shown on review after a controller-rotation re-quote.
     const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
     /** The replacement quote could not be minted: the review control retries the
@@ -222,14 +224,16 @@ function MantecaBankWithdrawFlow() {
     }, [countryPath])
 
     const { isFromSendFlow } = useSendFlowOrigin()
-    const backToWithdraw = useSafeBack('/withdraw?showAll=true')
+    const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
     const onBack = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry
+        ? isVerifiedForCountry(rails, selectedCountry.id, 'withdraw')
+        : false
 
     const {
         code: currencyCode,
@@ -442,7 +446,7 @@ function MantecaBankWithdrawFlow() {
             if (result.data) {
                 // store original amount before overwriting so we can restore on back navigation
                 setOriginalCurrencyAmount(currencyAmount)
-                setPriceLock(result.data)
+                setPriceLock(receiveLock(result.data))
                 // update the displayed fiat amount to the locked amount
                 setCurrencyAmount(result.data.fiatAmount)
                 void stepper.goTo('review')
@@ -521,7 +525,7 @@ function MantecaBankWithdrawFlow() {
             // the user chose are unchanged.
             setRequoteFailed(false)
             setErrorMessage('')
-            setPriceLock(result.data)
+            setPriceLock(receiveLock(result.data))
             setCurrencyAmount(result.data.fiatAmount)
         } catch (error) {
             void captureNetworkTriagedFailure(error, {
@@ -599,7 +603,7 @@ function MantecaBankWithdrawFlow() {
                 kind: 'FIAT_OFFRAMP' as const,
                 // Lets an internal recovery wait out a Rain cooldown that still
                 // fits this price lock instead of re-quoting.
-                lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined,
+                lockExpiresAt: priceLock.deadline,
             })
 
             /*
@@ -608,10 +612,7 @@ function MantecaBankWithdrawFlow() {
              * signed later still. An expired quote is a neutral re-lock +
              * reconfirm — never a signature, never a submission.
              */
-            const quoteExpired = () => {
-                const deadline = Date.parse(priceLock.expiresAt)
-                return Number.isFinite(deadline) && Date.now() >= deadline
-            }
+            const quoteExpired = () => isLockExpired(priceLock)
             if (quoteExpired()) {
                 await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
                 return
@@ -738,7 +739,7 @@ function MantecaBankWithdrawFlow() {
                             // Same terms, same lock — only the prep and the
                             // signature are fresh, and its own 425 is ours.
                             () => signSpend({ ...signSpendInput(), suppressCooldownEvent: true }),
-                            { lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined }
+                            { lockExpiresAt: priceLock.deadline }
                         ),
                 }
             )
@@ -1144,12 +1145,14 @@ function MantecaBankWithdrawFlow() {
                         <h2 className="text-heading-card text-foreground-primary">
                             {t('manteca.enterAccountDetails')}
                         </h2>
-                        <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('manteca.accountDetailsHint', { country: selectedCountry?.id ?? '' })}
+                        </p>
                         <div className="space-y-2">
                             <Field error={fieldError}>
                                 <ValidatedInput
                                     value={destinationAddress}
-                                    placeholder={countryConfig!.accountNumberLabel}
+                                    placeholder={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
                                     onUpdate={(update) => {
                                         // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                         const normalizedValue =
@@ -1258,7 +1261,10 @@ function MantecaBankWithdrawFlow() {
                     </Card>
                     {/* Review Summary */}
                     <Card className="space-y-0 px-4">
-                        <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
+                        <PaymentInfoRow
+                            label={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
+                            value={destinationAddress}
+                        />
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}

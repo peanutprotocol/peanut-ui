@@ -33,7 +33,6 @@ import { useTranslations } from 'next-intl'
 
 interface WithdrawMethodViewProps {
     pageTitle: string
-    mainHeading: string
     /** Leave the flow (back on the first screen). */
     onExit: () => void
     /** A method was chosen and stored in the flow context — advance to the amount step. */
@@ -48,7 +47,7 @@ interface WithdrawMethodViewProps {
  * Withdraw-only: the former dual-flow AddWithdrawRouterView is gone (its
  * `add` branches had no consumer — add-money renders AddWithdrawCountriesList).
  */
-export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mainHeading, onExit, onMethodChosen }) => {
+export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onExit, onMethodChosen }) => {
     const router = useRouter()
     const { user } = useAuth()
     const tGlobal = useTranslations('global')
@@ -73,7 +72,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
-    const [currencyCode] = useQueryState('currencyCode', parseAsString)
+    const [currencyCode, setCurrencyCode] = useQueryState('currencyCode', parseAsString)
     // if currencyCode is present, show all methods
     const showAll = showAllParam || !!currencyCode
 
@@ -87,6 +86,9 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // account" row, or as Send → Bank. Offering Crypto again reads as the app
     // not having registered that tap, and taking it abandons the bank flow.
     const bankRailChosen = isBankFromSend || railParam === 'bank'
+    // The crypto address book belongs to the crypto rail, so it counts only
+    // while crypto is still on offer (QA 2026-09-24: Send → Bank listed it).
+    const offeredAddresses = bankRailChosen ? [] : savedAddresses
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -100,6 +102,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             ) ?? []
         return bankAccounts as unknown as Account[]
     }, [user])
+
+    // What the saved-destinations screen lists once no rail is picked. Only Send →
+    // Bank leaves the address book out, so a Withdraw user whose only saved
+    // destinations are crypto addresses still has that screen to go back to.
+    const hasSavedDestinations = savedAccounts.length > 0 || (!isBankFromSend && savedAddresses.length > 0)
 
     // check if we're coming from request fulfillment or similar flow
     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
@@ -200,6 +207,18 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         openCryptoDestination()
     }
 
+    // The Crypto row on the full method list: saved addresses come first, on the
+    // saved-destinations screen, instead of an empty destination form.
+    const handleListCryptoClick = () => {
+        if (offeredAddresses.length === 0) {
+            handleCryptoTileClick()
+            return
+        }
+        void setShowAll(null)
+        void setCurrencyCode(null)
+        void setRail(null)
+    }
+
     // The saved-accounts vs no-accounts split needs the user to have resolved —
     // rendering the empty-state card off a still-null user flashed the wrong
     // screen for signed-in users. Same for the address book: its rows share the
@@ -212,7 +231,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         )
     }
 
-    if (!showAll && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
+    if (!showAll && hasSavedDestinations) {
         return (
             <>
                 <DestinationEditDrawer destination={editing} onClose={() => setEditing(null)} />
@@ -248,7 +267,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         void setShowAll(true)
                         void setRail('bank')
                     }}
-                    savedAddresses={savedAddresses}
+                    savedAddresses={offeredAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
                     onSavedAddressEdit={(saved) =>
                         setEditing({
@@ -270,7 +289,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                             rename: renameAccount,
                         })
                     }
-                    onCryptoClick={handleCryptoTileClick}
+                    railSections
+                    onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
                 />
             </>
         )
@@ -288,7 +308,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         return
                     }
                     // toggle back to saved accounts when the user navigated to "select new method"
-                    if (showAllParam && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
+                    if (showAllParam && hasSavedDestinations) {
                         void setShowAll(null)
                         // back on the hub the user has picked nothing again
                         void setRail(null)
@@ -299,11 +319,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             />
 
             <WithdrawCurrencyList
-                heading={mainHeading}
                 enforceSupportedCountries={isBankFromSend}
                 initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}
-                onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
+                onCryptoClick={bankRailChosen ? undefined : handleListCryptoClick}
                 pendingPath={tappedCountryPath}
             />
         </div>

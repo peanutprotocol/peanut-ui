@@ -5,6 +5,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -75,7 +76,7 @@ const GettingStartedChecklist = () => {
         const thirdItem: ChecklistItem = cardAvailable
             ? {
                   id: 'get-card',
-                  icon: 'credit-card',
+                  icon: CONCEPT_ICONS.card.icon,
                   label: t('getCard'),
                   sub: t('getCardNote'),
                   done: hasActiveCard,
@@ -99,7 +100,7 @@ const GettingStartedChecklist = () => {
             },
             {
                 id: 'add-money',
-                icon: 'arrow-down',
+                icon: CONCEPT_ICONS.addMoney.icon,
                 // The Add drawer offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
                 // take you straight to. A residence no bank provider onboards

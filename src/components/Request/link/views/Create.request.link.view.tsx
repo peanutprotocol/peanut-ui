@@ -42,7 +42,6 @@ export const CreateRequestLinkView = () => {
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
-        resetRequest,
     } = useCreateRequestLink()
     // The amount field reports its sides through three setters in one pass,
     // `setSecondaryAmount` last. They are collected here and handed on once,
@@ -58,7 +57,6 @@ export const CreateRequestLinkView = () => {
                 currency={currency}
                 bankPayable={bankInstructionsShared}
                 onDone={onDone}
-                onCreateAnother={resetRequest}
             />
         )
     }
@@ -104,6 +102,8 @@ export const CreateRequestLinkView = () => {
                     {...(currency !== 'USD' && {
                         primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
                         secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
+                        // the server stores the USD rounded up to the cent; the line shows that figure
+                        roundSecondaryUp: true,
                     })}
                 />
 

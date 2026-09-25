@@ -1125,6 +1125,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bridge/offramp/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quote the USDC for a withdrawal typed in the destination currency */
+        get: {
+            parameters: {
+                query: {
+                    destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
+                    destinationAmount?: string;
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            destinationAmount?: string;
+                            destinationCurrency: string;
+                            rate: string;
+                            sourceAmount?: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bridge/onramp/create": {
         parameters: {
             query?: never;
@@ -1187,6 +1234,7 @@ export interface paths {
                                 reference?: string;
                                 sortCode?: string;
                             };
+                            flexibleAmount: boolean;
                             transferId: string;
                         };
                     };
@@ -2162,6 +2210,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Fiat the simulated payer sent, when it differs from the quote. Flexible-amount top-ups only. */
+                        depositedAmount?: string;
                         developerFee?: string;
                         exchangeRate?: number;
                         /** @description Either a TransactionIntent.id or a Bridge transfer id. */

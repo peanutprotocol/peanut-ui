@@ -69,15 +69,7 @@ const renderList = (
         onCryptoClick?: () => void
         pendingPath?: string | null
     } = {}
-) =>
-    render(
-        <WithdrawCurrencyList
-            heading="Cash out"
-            onCountryClick={onCountryClick}
-            onCryptoClick={onCryptoClick}
-            {...props}
-        />
-    )
+) => render(<WithdrawCurrencyList onCountryClick={onCountryClick} onCryptoClick={onCryptoClick} {...props} />)
 
 const search = (term: string) =>
     fireEvent.change(screen.getByLabelText('withdraw.currencyList.searchPlaceholder'), { target: { value: term } })

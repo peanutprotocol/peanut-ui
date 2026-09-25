@@ -26,8 +26,8 @@ import {
 /** Fixtures that intend a LIVE quote: the flow now refuses to sign or submit
  *  against an expired lock, so a fixed past date would be a different case. */
 const LIVE_QUOTE_EXPIRY = new Date(Date.now() + 10 * 60_000).toISOString()
-/** An explicitly dead quote, for the expiry scenarios. */
-const DEAD_QUOTE_EXPIRY = new Date(Date.now() - 60_000).toISOString()
+/** The time left the API measured for a live quote; the device deadline counts from it. */
+const LIVE_QUOTE_TTL_MS = 10 * 60_000
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -653,6 +653,7 @@ function applyDefaults() {
         paymentAgainstAmount: '10',
         paymentAgainst: 'USD',
         expireAt: LIVE_QUOTE_EXPIRY,
+        expiresInMs: LIVE_QUOTE_TTL_MS,
         creationTime: '2026-04-16T00:00:00Z',
     })
 
@@ -919,6 +920,7 @@ describe('GROUP 2: Payment Form States', () => {
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...overrides,
         }
@@ -1098,6 +1100,7 @@ describe('GROUP 3: Processing States', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1142,6 +1145,7 @@ describe('GROUP 3: Processing States', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1216,7 +1220,7 @@ describe('GROUP 4: Success States', () => {
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
         expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
         expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
@@ -1230,7 +1234,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1455,7 +1459,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
@@ -1487,7 +1491,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1506,7 +1510,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
@@ -1531,6 +1535,7 @@ describe('GROUP 4: Success States', () => {
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1564,7 +1569,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         // Savings message should appear for Argentina QR3 payments, via the localized catalog
@@ -1583,7 +1588,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.getByText(message)).toBeInTheDocument()
@@ -1595,7 +1600,7 @@ describe('GROUP 4: Success States', () => {
     const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
 
     test.each([
-        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a plain Manteca success (no perk)', {}, /Paid to/],
         ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
     ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
         'invite row renders on %s',
@@ -1636,7 +1641,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
@@ -1680,6 +1685,7 @@ const reconnectLock = {
     paymentAgainstAmount: '1',
     paymentAgainst: 'USD',
     expireAt: LIVE_QUOTE_EXPIRY,
+    expiresInMs: LIVE_QUOTE_TTL_MS,
     creationTime: '2026-04-16T00:00:00Z',
 }
 
@@ -1801,6 +1807,7 @@ describe('GROUP 5: Error States', () => {
             code: 'LOCK-REPLACEMENT',
             paymentPrice: '1250',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
         })
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
@@ -1903,7 +1910,7 @@ describe('GROUP 5: Error States', () => {
      * state: an expired lock must produce a re-quote and ZERO signing/submission.
      */
     test('an already-expired quote re-quotes without signing or submitting', async () => {
-        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expireAt: DEAD_QUOTE_EXPIRY })
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expiresInMs: 0 })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
@@ -1919,11 +1926,33 @@ describe('GROUP 5: Error States', () => {
         expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
     })
 
+    // A phone clock a few minutes fast read Manteca's expireAt as already past and
+    // re-quoted on every tap. The time left our API measured decides (api#1707).
+    test.each([
+        ['a fast device clock, with time left on the lock', { expiresInMs: 120_000 }],
+        ['an API without the time left: no device-side expiry check', { expiresInMs: undefined }],
+    ])('%s: a live lock signs instead of re-quoting', async (_case, ttl) => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...reconnectLock,
+            expireAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+            ...ttl,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
     test('a signature that finishes AFTER the quote dies submits nothing and re-quotes', async () => {
         // The lock is live at tap time and dead by the time signing resolves.
         mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
             ...reconnectLock,
-            expireAt: new Date(Date.now() + 120).toISOString(),
+            expiresInMs: 120,
         })
         mockSignSpend.mockImplementationOnce(
             () => new Promise((resolve) => setTimeout(() => resolve({ strategy: 'smart-only' }), 200))
@@ -1943,7 +1972,7 @@ describe('GROUP 5: Error States', () => {
     test('a REPLACEMENT signed after the quote dies is never submitted', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
             ...reconnectLock,
-            expireAt: new Date(Date.now() + 400).toISOString(),
+            expiresInMs: 400,
         })
         const mixedArtifact = (prep: string, coordinatorAddress: string) =>
             registerSpendArtifactMeta(
@@ -2049,7 +2078,7 @@ describe('GROUP 5: Error States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
         await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
     })
 
@@ -2544,6 +2573,7 @@ describe('GROUP 5: Error States', () => {
             paymentAgainstAmount: '1',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         }
         mockMantecaApi.initiateQrPayment
@@ -2637,6 +2667,7 @@ describe('GROUP: Entity deposit recipient wiring', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...lockExtra,
         })

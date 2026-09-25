@@ -7,9 +7,11 @@ import { Icon } from '../Global/Icons/Icon'
 
 /**
  * Accordion from the figma accordion board (17802:61540), styled over the
- * radix headless base. Items are white cards with a bottom border; hover
+ * radix headless base. Items are white cards with the full Card border
+ * (one bordered accordion on product surfaces, 2026-09-24); hover
  * tints the item, keyboard focus draws the blue ring, disabled items go
- * gray. Compound API: Accordion > Accordion.Item > Accordion.Trigger +
+ * gray in fill and text but keep the black border (qa 2026-09-24).
+ * Compound API: Accordion > Accordion.Item > Accordion.Trigger +
  * Accordion.Content.
  */
 const AccordionRoot = ({ className, ...props }: React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>) => (
@@ -19,7 +21,7 @@ const AccordionRoot = ({ className, ...props }: React.ComponentPropsWithoutRef<t
 const AccordionItem = ({ className, ...props }: React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>) => (
     <AccordionPrimitive.Item
         className={twMerge(
-            'rounded-sm border-b border-border-default bg-background-default transition-colors duration-instant hover:bg-background-disabled data-[disabled]:border-border-subtle data-[disabled]:bg-background-disabled data-[disabled]:hover:bg-background-disabled',
+            'rounded-sm border border-border-default bg-background-default transition-colors duration-instant hover:bg-background-disabled data-[disabled]:bg-background-disabled data-[disabled]:hover:bg-background-disabled',
             className
         )}
         {...props}

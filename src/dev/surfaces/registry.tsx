@@ -374,7 +374,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '39-c-onrampconfirmationmodal': {
         ...SURFACE_META['39-c-onrampconfirmationmodal'],
-        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
+        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} />,
     },
     '40-c-supportednetworksmodal': {
         name: 'SupportedNetworksDrawer',
@@ -765,7 +765,6 @@ export const SURFACES: Record<string, Surface> = {
                     currency="EUR"
                     bankPayable={false}
                     onDone={noop}
-                    onCreateAnother={noop}
                 />
             </AppPageSurface>
         ),

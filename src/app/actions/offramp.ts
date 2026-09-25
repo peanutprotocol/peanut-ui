@@ -1,4 +1,8 @@
-import { type TCreateGuestOfframpRequest, type TCreateOfframpRequest } from '../../services/services.types'
+import {
+    type OfframpQuote,
+    type TCreateGuestOfframpRequest,
+    type TCreateOfframpRequest,
+} from '../../services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 
 export type CreateOfframpSuccessResponse = {
@@ -50,6 +54,29 @@ export async function createOfframp(
             return { error: error.message }
         }
         return { error: 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * Quote a withdrawal typed in the bank currency: the USDC that pays that
+ * amount at the current rate. Without `destinationAmount`, only the rate.
+ */
+export async function getOfframpQuote(
+    destinationCurrency: string,
+    destinationAmount?: string
+): Promise<{ data?: OfframpQuote; error?: string }> {
+    try {
+        const query = new URLSearchParams({ destinationCurrency })
+        if (destinationAmount) query.set('destinationAmount', destinationAmount)
+        const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })
+        const data = await response.json()
+        if (!response.ok) {
+            return { error: data.error || 'Failed to get the offramp quote.' }
+        }
+        return { data }
+    } catch (error) {
+        console.error('Error calling offramp quote API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
     }
 }
 

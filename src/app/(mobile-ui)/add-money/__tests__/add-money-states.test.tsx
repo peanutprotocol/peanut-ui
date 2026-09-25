@@ -352,7 +352,7 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 
 jest.mock('@/utils/currency', () => ({
-    formatCurrencyAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
+    formatBankAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
 }))
 
 jest.mock('@/utils/format.utils', () => ({
@@ -500,7 +500,11 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) =>
         props.visible ? (
-            <div data-testid="initiate-kyc-modal" data-presentation={props.presentation ?? 'modal'}>
+            <div
+                data-testid="initiate-kyc-modal"
+                data-presentation={props.presentation ?? 'modal'}
+                data-nav-title={props.navTitle}
+            >
                 <button data-testid="kyc-verify-button" onClick={props.onVerify}>
                     Verify
                 </button>
@@ -516,10 +520,6 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
     OnrampConfirmationModal: (props: any) =>
         props.visible ? (
             <div data-testid="onramp-confirmation-modal">
-                <span>
-                    Amount: {props.currency}
-                    {props.amount}
-                </span>
                 <button data-testid="confirm-onramp" onClick={props.onConfirm}>
                     Confirm
                 </button>
@@ -1175,7 +1175,7 @@ describe('GROUP 3: Crypto deposit', () => {
 
         // the shared treatment (TASK-22452): mascot loader + titled copy
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.getByText('Processing your deposit')).toBeInTheDocument()
+        expect(screen.getByText('Processing deposit')).toBeInTheDocument()
         expect(screen.getByText(/confirming your deposit/)).toBeInTheDocument()
     })
 
@@ -1315,7 +1315,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setGate('loading')
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
@@ -1334,7 +1334,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setGate('needs-identity')
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
     })
 
     // A provisioning rail has nothing for the user to do; offering "Unlock now"
@@ -1351,7 +1351,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         fireEvent.click(screen.getByText('Continue'))
 
-        await waitFor(() => expect(screen.getByText("We're reviewing your details")).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText("We're reviewing the details")).toBeInTheDocument())
         expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
@@ -1369,13 +1369,23 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         renderWithProviders(<OnrampBankPage />)
 
         expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-presentation', 'page')
-        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
+    })
+
+    // Reached from Add money (the MXN "Unlock" row), so it keeps that title. It
+    // used to borrow "Accounts and payments", a screen the user never opened.
+    test('the verify step keeps the Add money title', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-nav-title', 'Add money')
     })
 
     test('inputAmount step shows amount input and Continue button', () => {
         renderWithProviders(<OnrampBankPage />)
 
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
     })
@@ -1404,7 +1414,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             renderWithProviders(<OnrampBankPage />)
 
             expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
-            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
     )
@@ -1416,7 +1426,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         renderWithProviders(<OnrampBankPage />)
 
         expect(mockRouterReplace).not.toHaveBeenCalled()
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
     })
 
     test('mexico needs-enrollment unlock sends the NA intent', async () => {
@@ -1493,18 +1503,17 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
-        // displayed side of the commit-path pin: the modal must be showing the
-        // amount the user is about to confirm
-        expect(screen.getByTestId('onramp-confirmation-modal')).toHaveTextContent('100')
+        // the modal no longer names an amount: a top-up is matched on the
+        // reference only, so the typed amount is a quote, not a requirement
+        expect(screen.getByTestId('onramp-confirmation-modal')).toBeInTheDocument()
 
         // Click Confirm in modal
         await act(async () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        // submitted side of the pin: createOnramp must receive the same string
-        // the modal displayed — a conversion slipped between display and submit
-        // fails here
+        // createOnramp must receive the typed string unchanged — it becomes the
+        // quote the history row and the details screen show
         expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })
@@ -1555,7 +1564,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         // no doomed transfer attempt; the user sees the bridge-review pending modal
         expect(mockCreateOnramp).not.toHaveBeenCalled()
-        expect(await screen.findByText(/reviewing your details/i)).toBeInTheDocument()
+        expect(await screen.findByText(/reviewing the details/i)).toBeInTheDocument()
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {
@@ -1713,7 +1722,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
             />
         )
 
-        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+        expect(screen.getByText('Amount to add')).toBeInTheDocument()
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
     })

@@ -1,4 +1,4 @@
-import { type IconName } from '@/components/Global/Icons/Icon'
+import { type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { type HomeDrawer } from './useHomeDrawer'
 
 export type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts' | 'shareRequestLink' | 'shareBankDetails'
@@ -15,7 +15,8 @@ export interface DrawerOption {
     /** i18n namespace + key — 'drawers' = home.drawers, 'methods' = addMoney.methods */
     titleKey: ['drawers', HomeDrawerKey] | ['methods', AddMethodKey]
     bodyKey?: ['drawers', HomeDrawerBodyKey] | ['methods', AddMethodBodyKey]
-    icon: IconName
+    /** the row's icon and bubble colour come from the concept map, as on the Send page (SendRouter) */
+    concept: Concept
     href: string
 }
 
@@ -25,7 +26,7 @@ export interface DrawerOption {
 const BANK_ONE_OFF: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
-    icon: 'bank',
+    concept: 'bank',
     href: '/add-money?method=bank',
 }
 
@@ -35,17 +36,16 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'send-friends',
             titleKey: ['drawers', 'sendToFriends'],
             bodyKey: ['drawers', 'sendToFriendsDescription'],
-            // person iconography, not arrows: the home CTAs that open this
-            // drawer are already arrows, so repeating them here said nothing.
-            // friends = several people, own accounts = one person (you).
-            icon: 'users',
+            // friends = several people; the withdraw row below takes the
+            // withdraw concept (arrow up, the mirror of add money's arrow down).
+            concept: 'friends',
             href: '/send',
         },
         {
             key: 'withdraw',
             titleKey: ['drawers', 'withdrawToOwnAccounts'],
             bodyKey: ['drawers', 'withdrawToOwnAccountsDescription'],
-            icon: 'user',
+            concept: 'withdraw',
             href: '/withdraw',
         },
     ],
@@ -58,7 +58,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'crypto',
             titleKey: ['methods', 'crypto'],
             bodyKey: ['methods', 'cryptoDescription'],
-            icon: 'coins',
+            concept: 'crypto',
             href: '/add-money/crypto',
         },
     ],
@@ -71,7 +71,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'share-link',
             titleKey: ['drawers', 'shareRequestLink'],
             bodyKey: ['drawers', 'shareRequestLinkDescription'],
-            icon: 'link',
+            concept: 'requestLink',
             href: '/request',
         },
     ],
@@ -84,7 +84,7 @@ const SHARE_BANK_DETAILS: DrawerOption = {
     key: 'share-bank',
     titleKey: ['drawers', 'shareBankDetails'],
     bodyKey: ['drawers', 'shareBankDetailsDescription'],
-    icon: 'bank',
+    concept: 'bank',
     href: '/add-money?method=bank',
 }
 
@@ -114,7 +114,7 @@ const BANK_STANDING: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
     bodyKey: ['methods', 'bankTransferDescription'],
-    icon: 'bank',
+    concept: 'bank',
     href: '/add-money?method=bank',
 }
 

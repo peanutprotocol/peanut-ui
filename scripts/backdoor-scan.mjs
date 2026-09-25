@@ -349,13 +349,15 @@ async function main() {
 	else if (opts.local) {
 		const baseRef = typeof opts.base === 'string' ? opts.base : 'origin/dev'
 		const mergeBase = git(['merge-base', baseRef, 'HEAD']).trim()
-		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', mergeBase])
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--no-renames', '--unified=0', mergeBase])
 	} else {
 		if (!opts.base) throw new Error('--base <ref> is required (or --local / --diff-file)')
+		// --no-renames: a file renamed into place (notes.txt -> tailwind.config.js)
+		// otherwise shows as a pure rename with no added lines, so nothing is read.
 		// --text: a PR can add `.gitattributes` with `file -diff`, which prints
 		// "Binary files differ" instead of the lines. --no-textconv: nor may it
 		// swap in a filter that rewrites what we read.
-		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--no-renames', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
 	}
 	const lines = addedLines(diff)
 	const allowRef = typeof opts['allow-ref'] === 'string' ? opts['allow-ref'] : typeof opts.base === 'string' ? opts.base : null

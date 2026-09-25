@@ -10,7 +10,7 @@
  * (?step=amount, ?amount=, send marker forwarding) is what's asserted.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -90,6 +90,8 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation, for the real AmountInput
+    formatTokenAmount: (...args: unknown[]) => jest.requireActual('@/utils/general.utils').formatTokenAmount(...args),
     // real implementation: same-origin paths pass, everything else is rejected
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
@@ -99,11 +101,26 @@ jest.mock('@/utils/general.utils', () => ({
 const mockGetCountryFromAccount = jest.fn(
     () => ({ iso2: 'US', path: 'us' }) as { iso2: string; path: string } | undefined
 )
+const mockGetOfframpConfigFromAccount = jest.fn(() => ({ currency: 'usd', paymentRail: 'ach' }))
 jest.mock('@/utils/bridge.utils', () => ({
     getCountryFromAccount: mockGetCountryFromAccount,
+    getOfframpConfigFromAccount: () => mockGetOfframpConfigFromAccount(),
     getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
     railJurisdictionForBank: jest.fn(() => 'US'),
+}))
+
+// bank amount typed in its currency (TASK-23054): the quote rate the amount step converts with
+let mockBankRate: string | null = '0.9'
+// the last refresh failed; the hook keeps the last rate
+let mockBankRateError = false
+jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
+    useBridgeOfframpQuote: ({ currency }: { currency: string | null }) => ({
+        quote: currency && mockBankRate ? { rate: mockBankRate } : null,
+        isFetching: false,
+        isError: !!currency && mockBankRateError,
+        refetch: jest.fn(),
+    }),
 }))
 
 const mockUseGetExchangeRate = jest.fn()
@@ -152,36 +169,47 @@ jest.mock('@/constants/analytics.consts', () => ({
     },
 }))
 
-// Mock complex UI components
+// Mock complex UI components. A test that needs the real field's effects (its
+// per-render reporting to the flow) sets mockUseRealAmountInput.
+let mockUseRealAmountInput = false
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="amount-input">
-            <input
-                data-testid="amount-field"
-                value={props.initialAmount ?? ''}
-                onChange={(e) => {
-                    props.setPrimaryAmount?.(e.target.value)
-                }}
-                disabled={props.disabled}
-            />
-            {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
-            {!!props.balanceFillAmount && (
-                <button
-                    data-testid="use-full-balance"
-                    data-fill={String(props.balanceFillAmount)}
-                    onClick={() => {
-                        // real component floors to cents, then reports both ways
-                        const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
-                        props.onBalanceFilled?.(filled)
-                        props.setPrimaryAmount?.(filled)
+    default: (props: any) => {
+        if (mockUseRealAmountInput) {
+            const RealAmountInput = jest.requireActual('@/components/Global/AmountInput').default
+            return <RealAmountInput {...props} />
+        }
+        return (
+            <div data-testid="amount-input">
+                <input
+                    data-testid="amount-field"
+                    data-symbol={props.primaryDenomination?.symbol}
+                    value={props.initialAmount ?? ''}
+                    onChange={(e) => {
+                        props.setPrimaryAmount?.(e.target.value)
+                        // the real component reports the converted value too
+                        props.setSecondaryAmount?.(String(Number(e.target.value) / props.primaryDenomination.price))
                     }}
-                >
-                    Use full balance
-                </button>
-            )}
-        </div>
-    ),
+                    disabled={props.disabled}
+                />
+                {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
+                {!!props.balanceFillAmount && (
+                    <button
+                        data-testid="use-full-balance"
+                        data-fill={String(props.balanceFillAmount)}
+                        onClick={() => {
+                            // real component floors to cents, then reports both ways
+                            const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
+                            props.onBalanceFilled?.(filled)
+                            props.setPrimaryAmount?.(filled)
+                        }}
+                    >
+                        Use full balance
+                    </button>
+                )}
+            </div>
+        )
+    },
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -235,7 +263,6 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
         return (
             <div data-testid="withdraw-method-view" data-show-all={showAll}>
                 <span data-testid="page-title">{props.pageTitle}</span>
-                <span data-testid="main-heading">{props.mainHeading}</span>
                 <button data-testid="method-view-back" onClick={props.onExit}>
                     Back
                 </button>
@@ -272,8 +299,20 @@ const mockOnUrlUpdate = jest.fn()
 function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
-    return render(
-        <NuqsTestingAdapter searchParams={params} onUrlUpdate={mockOnUrlUpdate}>
+    return render(withdrawTree(params, queryClient))
+}
+
+// hasMemory: a URL write re-renders the page, as it does under Next.js. The
+// adapter then renders again, and its queue reset (it runs on every render)
+// would drop the writes under test.
+function withdrawTree(params: Record<string, string>, queryClient: QueryClient, { hasMemory = false } = {}) {
+    return (
+        <NuqsTestingAdapter
+            searchParams={params}
+            onUrlUpdate={mockOnUrlUpdate}
+            hasMemory={hasMemory}
+            resetUrlUpdateQueueOnMount={!hasMemory}
+        >
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <WithdrawPage />
@@ -327,6 +366,10 @@ beforeEach(() => {
     // the default country resolution here — tests that override it (GROUP 6)
     // then don't leak into later tests regardless of order or early failure.
     mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
+    mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+    mockBankRate = '0.9'
+    mockBankRateError = false
+    mockUseRealAmountInput = false
 })
 
 // ============================================================
@@ -337,15 +380,14 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
+        expect(screen.getByTestId('page-title')).toHaveTextContent('Withdraw')
     })
 
-    test('Method=bank from send flow shows "Send" title and send heading', () => {
+    test('Method=bank from send flow shows the "Send" title', () => {
         renderWithdraw({ method: 'bank' })
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('page-title')).toHaveTextContent('Send')
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to send?')
     })
 
     test('?step=amount with no method in flow memory falls back to the method view (guard)', () => {
@@ -459,6 +501,162 @@ describe('GROUP 2: Amount Input', () => {
         renderWithdraw({ step: 'amount', amount: '42' })
 
         expect(screen.getByTestId('amount-field')).toHaveValue('42')
+    })
+})
+
+// ============================================================
+// GROUP 2b: bank amount typed in EUR, GBP, MXN or COP (TASK-23054)
+// ============================================================
+describe('GROUP 2b: bank amount typed in its currency', () => {
+    beforeEach(() => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: 'germany' } }
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'eur', paymentRail: 'sepa' })
+        mockGetCountryFromAccount.mockReturnValue({ iso2: 'DE', path: 'germany' })
+    })
+
+    test('the field takes the bank amount in EUR', () => {
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
+    })
+
+    test('Continue hands the bank amount to the review, never as ?amount=', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('destinationAmount=90')
+        expect(pushed).not.toMatch(/[?&]amount=/)
+    })
+
+    // Staging, 2026-09-24: EUR 5 showed ≈ USD 5.71 and Continue did nothing. The
+    // real field re-reported the amount on every render of the page, each report
+    // wrote the URL, and in Next.js a URL write restores the router and discards
+    // the navigation still in flight: Continue re-renders the page (setError), so
+    // its push to the review never landed.
+    test('Continue from a typed EUR amount reaches the review: a re-render writes no URL', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        // drop URL updates earlier tests left queued: this adapter does not reset
+        // its queue on render, so they would land in this test
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        const queryClient = createQueryClient()
+        const view = render(withdrawTree(params, queryClient, { hasMemory: true }))
+        const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        await settle()
+        expect(mockOnUrlUpdate.mock.calls.at(-1)?.[0].queryString).toContain('destinationAmount=5')
+        const writesAfterTyping = mockOnUrlUpdate.mock.calls.length
+
+        view.rerender(withdrawTree(params, queryClient, { hasMemory: true }))
+        await settle()
+        expect(mockOnUrlUpdate.mock.calls.length).toBe(writesAfterTyping)
+
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5')
+    })
+
+    test('the checks run on the USD it converts to: 90 EUR at 0.9 is 100 USD, the whole balance', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '91' } })
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('a failed rate refresh keeps the field open with the last rate', () => {
+        mockBankRateError = true
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
+    })
+
+    // One rate for the amount and the minimum: the old second rate call answered
+    // '1' on failure and made the COP minimum $4,000.
+    test('the minimum converts with the same quote rate: £2 at 0.79 is under the £3 minimum', () => {
+        const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+        bridgeUtils.getMinimumAmount.mockImplementation((iso2: string) => (iso2 === 'GB' ? 3 : 1))
+        try {
+            mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'gbp', paymentRail: 'faster_payments' })
+            mockGetCountryFromAccount.mockReturnValue({ iso2: 'GB', path: 'united-kingdom' })
+            mockBankRate = '0.79'
+            renderWithdraw({ step: 'amount' })
+
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+            expect(screen.getByText('Continue')).toBeDisabled()
+
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '4' } })
+            expect(screen.getByText('Continue')).not.toBeDisabled()
+            expect(mockUseGetExchangeRate).not.toHaveBeenCalled()
+        } finally {
+            bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
+        }
+    })
+
+    // The minimum is compared in the currency the user types: exactly 50 MXN
+    // passes. The old check converted it to USD at the quote rate and rounded
+    // up, so 50 MXN at 18.2 needed $3 — 54.60 MXN.
+    test.each([
+        ['mxn', 'spei', 'MX', 'mexico', '18.2', '49.99', '50', 'MX$50'],
+        ['gbp', 'faster_payments', 'GB', 'united-kingdom', '0.79', '2.99', '3', '£3'],
+        ['cop', 'bre_b', 'CO', 'colombia', '3900', '3999.99', '4000', 'Col$4,000'],
+    ])(
+        '%s: the payout minimum at the boundary, in the typed currency',
+        async (currency, paymentRail, iso2, path, rate, below, minimum, shown) => {
+            const minimums: Record<string, number> = { MX: 50, GB: 3, CO: 4000 }
+            const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+            bridgeUtils.getMinimumAmount.mockImplementation((code: string) => minimums[code] ?? 1)
+            try {
+                mockGetOfframpConfigFromAccount.mockReturnValue({ currency, paymentRail })
+                mockGetCountryFromAccount.mockReturnValue({ iso2, path })
+                mockBankRate = rate
+                renderWithdraw({ step: 'amount' })
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: below } })
+                expect(screen.getByText('Continue')).toBeDisabled()
+                await waitFor(() =>
+                    expect(mockSetError).toHaveBeenCalledWith({
+                        showError: true,
+                        errorMessage: `Minimum withdrawal is ${shown}.`,
+                    })
+                )
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: minimum } })
+                expect(screen.getByText('Continue')).not.toBeDisabled()
+            } finally {
+                bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
+            }
+        }
+    )
+
+    test('a mid-typing "90." is handed on as 90', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90.' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+    })
+
+    test('waits for the rate before opening the field', () => {
+        mockBankRate = null
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test('a US account keeps the USD amount', () => {
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', '$')
     })
 })
 

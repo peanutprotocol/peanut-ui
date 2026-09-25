@@ -264,6 +264,13 @@ function hasHandRolledCloseGlyph(text) {
     return text.includes('<button') && /name=["']cancel["']/.test(text)
 }
 
+// a bare Icon or Image in a ListItem leading slot. the slot holds one IconBubble,
+// a flag (CorridorFlag) or a logo helper (DisplayIcon) — design.md, "ListItem
+// leading is one element". a concept (bank, crypto, card…) is its CONCEPT_ICONS
+// bubble. literal slots only: a ternary or a variable passed as leading is not
+// seen, so the count is a floor, not a census.
+const BARE_LIST_LEADING_RE = /\bleading=\{\s*\(?\s*<(?:Icon|Image|img)\b/g
+
 module.exports = {
     SPACING_STEPS,
     NUMERIC_SPACING_RE,
@@ -279,4 +286,5 @@ module.exports = {
     ARBITRARY_FONT_SIZE_RE,
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
+    BARE_LIST_LEADING_RE,
 }

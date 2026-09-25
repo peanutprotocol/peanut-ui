@@ -1,6 +1,7 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
@@ -26,6 +27,7 @@ export default function IconBubblePage() {
                     'The head icon above a modal, drawer or card title (size m)',
                     'The red bubble in a destructive confirm — there is no red Button variant',
                     'Pick the color from the meaning: green success, red error, yellow warning, blue info, gray inactive',
+                    'A product concept (bank, crypto, card, link…) — spread its pair from CONCEPT_ICONS',
                 ]}
                 dontUse={[
                     'A person — use Avatar (AvatarWithBadge); never mix an IconBubble color into it',
@@ -72,6 +74,37 @@ export default function IconBubblePage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Concepts"
+                description="One icon and one color per product concept. Rows, drawers, pickers and activity read the pair from CONCEPT_ICONS; change a concept there, never at a call site."
+            >
+                <DocSection.Content>
+                    <div className="grid grid-cols-3 gap-4">
+                        {(Object.keys(CONCEPT_ICONS) as Concept[]).map((concept) => (
+                            <div key={concept} className="flex flex-col items-center gap-2 text-center">
+                                <IconBubble {...CONCEPT_ICONS[concept]} size="s" />
+                                <code className="text-body-xs text-foreground-secondary">{concept}</code>
+                            </div>
+                        ))}
+                    </div>
+                    <DesignNote type="info">
+                        Flags, chain logos and payment-brand marks (Pix, Mercado Pago) are not concepts: they keep their
+                        own image in the same slot. Status bubbles (a link&apos;s state, a KYC result) come from the
+                        state, not from this map.
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Concept bubble"
+                        code={`import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+
+<ListItem leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />} title="Bank transfer" />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <PropsTable
                 rows={[
                     { name: 'icon', type: 'IconName | ReactNode', default: '(required)' },
@@ -99,7 +132,7 @@ export default function IconBubblePage() {
                     <div className="flex items-center gap-3">
                         <IconBubble icon="check" color="green" />
                         <div className="space-y-1">
-                            <p className="text-body-s text-foreground-secondary">You sent to lucia</p>
+                            <p className="text-body-s text-foreground-secondary">Sent to lucia</p>
                             <p className="text-heading-s">$24.00</p>
                         </div>
                     </div>

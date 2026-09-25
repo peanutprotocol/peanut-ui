@@ -85,7 +85,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -439,14 +439,14 @@ describe('ResidenceStep', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
 
         it('starts on the selector when entering forward with a stored pick', () => {
             mockDirection = 1
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
     })
 

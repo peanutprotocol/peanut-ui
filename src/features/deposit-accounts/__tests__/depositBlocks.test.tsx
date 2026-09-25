@@ -173,7 +173,7 @@ describe('the screen a blocked corridor lands on', () => {
         // names — a genuinely-held account elsewhere — so the cap screen is true.
         const props = flowProps('account-limit', true)
         render(flow(props))
-        expect(screen.getByText('You already have 1 account')).toBeInTheDocument()
+        expect(screen.getByText('1 account already open')).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
         tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
@@ -199,7 +199,7 @@ describe('the screen a blocked corridor lands on', () => {
             const buttons = screen.getAllByRole('button')
             const topUp = screen.getByTestId('corridor-gate-top-up')
             const support = screen.getByTestId('corridor-gate-account-limit')
-            expect(topUp).toHaveTextContent('Send from your own bank')
+            expect(topUp).toHaveTextContent('Add money from a bank')
             // the leading button is first in the DOM, so screen order and tab
             // order say the same thing
             expect(buttons.indexOf(topUp)).toBeLessThan(buttons.indexOf(support))
@@ -279,7 +279,7 @@ describe('the screen a blocked corridor lands on', () => {
 
     it('states the number of accounts the user holds, not a default', () => {
         render(flow({ ...flowProps('account-limit', true), slotsHeld: 3 }))
-        expect(screen.getByText('You already have 3 accounts')).toBeInTheDocument()
+        expect(screen.getByText('3 accounts already open')).toBeInTheDocument()
     })
 
     describe('a review that waits on a verified user', () => {

@@ -77,7 +77,7 @@ describe('GettingStartedChecklist', () => {
         render()
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
         expect(screen.getAllByRole('button')).toHaveLength(2)
-        expect(screen.getByText('Create your account')).toBeInTheDocument()
+        expect(screen.getByText('Create account')).toBeInTheDocument()
         expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('aria-disabled')
         expect(screen.getByTestId('checklist-create-account')).not.toHaveAttribute('role')
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
@@ -187,9 +187,9 @@ describe('GettingStartedChecklist', () => {
 
     it('third slot is the card when eligible, and it routes to /card', () => {
         render()
-        fireEvent.click(screen.getByText('Get your Peanut card'))
+        fireEvent.click(screen.getByText('Get the Peanut Card'))
         expect(mockPush).toHaveBeenCalledWith('/card')
-        expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
+        expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
     })
 
     // The note promises a send to a Peanut user, ENS name or wallet address —
@@ -197,19 +197,19 @@ describe('GettingStartedChecklist', () => {
     it('third slot falls back to first payment when the card is unavailable, routing to /send', () => {
         mockRestrictions = { banking: false, card: true }
         render()
-        expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
+        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
         expect(
             screen.getByText('Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.')
         ).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Make your first payment'))
+        fireEvent.click(screen.getByText('Make the first payment'))
         expect(mockPush).toHaveBeenCalledWith('/send')
     })
 
     it('ineligible card (server says no) also falls back to first payment', () => {
         mockIsEligible = false
         render()
-        expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
+        expect(screen.getByText('Make the first payment')).toBeInTheDocument()
     })
 
     it('unknown eligibility (still loading) never shows the card step', () => {
@@ -217,16 +217,16 @@ describe('GettingStartedChecklist', () => {
         // server may yet deny is not. Undefined must not read as eligible.
         mockIsEligible = undefined
         render()
-        expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        expect(screen.queryByText('Get the Peanut Card')).not.toBeInTheDocument()
+        expect(screen.getByText('Make the first payment')).toBeInTheDocument()
     })
 
     it('keeps the cached card row stable while eligibility is refetching', () => {
         mockIsEligible = true
         mockIsCardInfoFetching = true
         render()
-        expect(screen.getByText('Get your Peanut card')).toBeInTheDocument()
-        expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
+        expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
+        expect(screen.queryByText('Make the first payment')).not.toBeInTheDocument()
     })
 
     it('opens the Home add-money drawer directly', () => {

@@ -1,7 +1,5 @@
 import Image from 'next/image'
 import exclamations from '@/assets/illustrations/exclamations.svg'
-import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
-import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
@@ -60,40 +58,29 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                 </AnimateOnView>
             ))}
 
-            {/* Exclamations */}
+            {/* Only from xl: below that the centred headline column reaches the
+                right edge and the marks sit on the headline and subline. */}
             <Image
                 src={exclamations}
                 alt="Exclamations"
                 width={200}
                 height={300}
-                className="absolute top-1/3 right-72 hidden -translate-y-1/2 transform md:block"
+                className="absolute top-1/3 right-8 hidden -translate-y-1/2 transform xl:block 2xl:right-24"
             />
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
-                <div className="mb-6 md:mb-10">
-                    {/* Mobile version */}
-                    <Image
-                        src={mobileSendInSeconds}
-                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
-                        width={800}
-                        height={200}
-                        className="mx-auto block h-auto w-[90%] md:hidden"
-                    />
-                    {/* Desktop version */}
-                    <Image
-                        src={payZeroFees}
-                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
-                        width={800}
-                        height={200}
-                        className="mx-auto hidden h-auto w-full max-w-lg md:block md:max-w-4xl"
-                    />
-                </div>
+                {/* Was an SVG with the words baked in, so it stayed English on every locale.
+                    Solid black KNERD, not the white Title: white letters vanish into the clouds.
+                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.
+                    KNERD accents reach 1.03em above the baseline, so leading stays at 1.1 or more
+                    (48px at 42px, 88px at 80px); tighter, the Á of EMPEZÁ lands in the line above. */}
+                <h2 className="mb-6 font-knerd-filled text-headingSmall leading-12 text-balance text-foreground-primary md:mb-10 md:text-headingMedium md:leading-22">
+                    {i18n.landingClosingHeadline}
+                </h2>
 
-                <p className="mb-6 hidden font-roboto text-body-m md:mb-8 md:block md:text-heading-l">
-                    {i18n.landingSendTagline1}
-                    <br />
-                    {i18n.landingSendTagline2}
+                <p className="mb-6 hidden font-roboto text-body-m text-balance md:mb-8 md:block md:text-heading-l">
+                    {i18n.landingClosingSubline}
                 </p>
 
                 <SendInSecondsCTA strings={landingStrings(i18n)} />
