@@ -35,7 +35,8 @@ describe('serializeMdxTree', () => {
                         c: [
                             'See ',
                             { t: 'a', p: { href: '/es-419/help/refunds' }, c: ['refunds'] },
-                            ' or ',
+                            ' or',
+                            ' ',
                             { t: 'a', p: { href: 'https://example.com' }, c: ['this'] },
                             '.',
                         ],
