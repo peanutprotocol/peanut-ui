@@ -1,5 +1,5 @@
 import { type User } from '@/interfaces/interfaces'
-import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
+import type { IdentityVerificationStatus } from '@/types/capabilities'
 import { computeDisplaySpendable } from '@/utils/balance.utils'
 
 /**
@@ -18,12 +18,12 @@ export type ActivationStep = 'verify' | 'add_money' | 'first_payment' | 'complet
 export type VerifyRowStatus = 'todo' | 'in_review' | 'done'
 
 /**
- * Which activating spend is open to the user: the card (it can be issued or is
- * held), a QR pay (Pix / Mercado Pago, now or once verified), both, or
- * neither. `pending` while card eligibility is unknown (loading or failed):
- * the row holds its place and the list cannot complete. The first-payment
- * row's presence, copy and tap all follow this one answer. A send is never
- * one: it does not activate.
+ * Which activating spend is open to the user: the card (it can be issued or
+ * is held), a QR pay (the QR-pay KYC gate says it is a path: now, or once
+ * verified or fixed), both, or neither. `pending` while either answer is
+ * unknown (loading, or failed card info): the row holds its place and the
+ * list cannot complete. The first-payment row's presence, copy and tap all follow this
+ * one answer. A send is never one: it does not activate.
  */
 export type FirstPaymentRoute = 'card_qr' | 'card' | 'qr' | 'none' | 'pending'
 
@@ -52,65 +52,15 @@ export function holdsMoney(
 }
 
 /**
- * A Manteca rail that can pay a merchant QR (Pix or Mercado Pago).
- *
- * Keyed on the provider and the `pay` op, never on the channel: Pix is a
- * BANK-channel method that happens to carry `pay` (peanut-api-ts
- * METHOD_CHANNELS — MercadoPago is the only `qr-only` entry), and the QR pool
- * enables its rails one at a time, so a `qr-only` filter silently drops every
- * Brazilian user whose Pix pays but whose MercadoPago row did not enable.
- *
- * `pay` must be present AND enabled — deliberately not `canDo`/`operationStatus`,
- * whose `operations.pay ?? status` fallback would read a bank-only rail's
- * missing `pay` as the rail's enabled status. MANTECA_METHOD_OPERATIONS lists
- * every op a method supports (BANK_TRANSFER_AR is deposit+withdraw only), so on
- * a rail that carries the map an absent `pay` means "no merchant QR". The map
- * is only absent for an unknown method or an older response, where the qr-only
- * channel is pay by construction.
- */
-export function hasQrPayRail(
-    rails: RailCapability[],
-    channelOf: (rail: RailCapability) => string | undefined
-): boolean {
-    return rails.some((rail) => {
-        if (rail.provider !== 'manteca') return false
-        if (rail.operations) return rail.operations.pay === 'enabled'
-        return channelOf(rail) === 'qr-only' && rail.status === 'enabled'
-    })
-}
-
-/** Residences with a QR pay rail (Manteca: Mercado Pago in AR, Pix in BR). */
-const QR_PAY_COUNTRIES = new Set(['AR', 'BR'])
-
-/**
- * The user can pay a QR now, or will once verified. A Manteca rail that
- * carries a `pay` op answers it: any status but `blocked`. With no such rail
- * yet (a new user is enrolled at verification), the residence answers it.
- */
-export function canReachQrPay(
-    rails: RailCapability[],
-    channelOf: (rail: RailCapability) => string | undefined,
-    residenceCountry: string | null | undefined
-): boolean {
-    const payRails = rails.filter(
-        (rail) =>
-            rail.provider === 'manteca' && (rail.operations ? 'pay' in rail.operations : channelOf(rail) === 'qr-only')
-    )
-    if (payRails.length > 0) {
-        return payRails.some((rail) => (rail.operations?.pay ?? rail.status) !== 'blocked')
-    }
-    return !!residenceCountry && QR_PAY_COUNTRIES.has(residenceCountry.toUpperCase())
-}
-
-/**
  * The one eligibility selector behind the first-payment row.
- * `canSpendViaCard` undefined = card eligibility not known yet.
+ * Undefined on either side = not known yet: the route is `pending`.
  */
 export function selectFirstPaymentRoute(input: {
     canSpendViaCard: boolean | undefined
-    canPayQr: boolean
+    /** from the QR-pay KYC gate (qrPayIsAPath); undefined while it loads */
+    canPayQr: boolean | undefined
 }): FirstPaymentRoute {
-    if (input.canSpendViaCard === undefined) return 'pending'
+    if (input.canSpendViaCard === undefined || input.canPayQr === undefined) return 'pending'
     if (input.canSpendViaCard) return input.canPayQr ? 'card_qr' : 'card'
     return input.canPayQr ? 'qr' : 'none'
 }

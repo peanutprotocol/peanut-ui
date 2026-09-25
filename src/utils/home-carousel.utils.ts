@@ -46,11 +46,11 @@ export function hiddenCarouselCTAs(
 }
 
 /**
- * "Pay with QR" is for a user who can pay a QR and has not yet. Never for a
- * residence with no QR rail, and never after a QR pay. `hasMadeQrPayment`
- * undefined means history is still loading: keep it hidden so it does not
- * flash in and out.
+ * "Pay with QR" is for a user who can pay a QR right now (the QR-pay KYC gate
+ * says PROCEED_TO_PAY) and has not yet. Never after a QR pay.
+ * `hasMadeQrPayment` undefined means history is still loading: keep it hidden
+ * so it does not flash in and out.
  */
-export function showQrPayCTA(input: { hasQrRail: boolean; hasMadeQrPayment: boolean | undefined }): boolean {
-    return input.hasQrRail && input.hasMadeQrPayment === false
+export function showQrPayCTA(input: { canPayQrNow: boolean; hasMadeQrPayment: boolean | undefined }): boolean {
+    return input.canPayQrNow && input.hasMadeQrPayment === false
 }

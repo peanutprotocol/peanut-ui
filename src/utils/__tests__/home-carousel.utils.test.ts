@@ -36,19 +36,19 @@ describe('hiddenCarouselCTAs', () => {
 })
 
 describe('showQrPayCTA', () => {
-    it('shows to a user with a QR rail who has not paid a QR', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: false })).toBe(true)
+    it('shows to a user who can pay a QR now and has not paid one', () => {
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: false })).toBe(true)
     })
 
     it('never after a QR pay', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: true })).toBe(false)
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: true })).toBe(false)
     })
 
-    it('never for a residence with no QR rail', () => {
-        expect(showQrPayCTA({ hasQrRail: false, hasMadeQrPayment: false })).toBe(false)
+    it('never while the QR gate says the user cannot pay yet', () => {
+        expect(showQrPayCTA({ canPayQrNow: false, hasMadeQrPayment: false })).toBe(false)
     })
 
     it('not while history is loading, so it does not flash in and out', () => {
-        expect(showQrPayCTA({ hasQrRail: true, hasMadeQrPayment: undefined })).toBe(false)
+        expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: undefined })).toBe(false)
     })
 })

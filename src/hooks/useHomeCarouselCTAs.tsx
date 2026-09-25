@@ -29,7 +29,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { hasQrPayRail } from '@/utils/activation-step.utils'
+import { QrKycState } from '@/constants/kyc.consts'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { useIdentityVerification } from './useIdentityVerification'
 import { hiddenCarouselCTAs, showQrPayCTA } from '@/utils/home-carousel.utils'
 
 export type CarouselCTA = {
@@ -71,7 +73,8 @@ export const useHomeCarouselCTAs = () => {
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails, channelOf } = useCapabilities()
+    const { canDo, rails, bankRails, channelOf, nextActions } = useCapabilities()
+    const { isRegionRestricted } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -199,7 +202,15 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (showQrPayCTA({ hasQrRail: hasQrPayRail(rails, channelOf), hasMadeQrPayment })) {
+        // the same gate the QR pay page reads: the slide shows only when a scan would pay
+        const qrGate = selectQrKycGate({
+            isLoading: false,
+            isRegionRestricted,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
+            nextActions,
+        })
+        if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
@@ -306,6 +317,8 @@ export const useHomeCarouselCTAs = () => {
         cardInfo,
         rails,
         channelOf,
+        nextActions,
+        isRegionRestricted,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,

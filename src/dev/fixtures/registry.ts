@@ -415,6 +415,22 @@ const BLOCKED_BANK_CAPABILITIES = {
     restrictions: [],
 }
 
+/**
+ * QR pay closed for this user: the one case the Home checklist has no payment
+ * row (QR pay is open to every verified user unless the capabilities block it).
+ */
+const QR_PAY_BLOCKED_RAIL = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'blocked',
+    operations: { pay: 'blocked', deposit: 'blocked', withdraw: 'blocked' },
+    reason: { code: 'provider_rejected', userMessage: 'QR payments are not available for this account.' },
+}
+
 /** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
 const MANTECA_AR_CAPABILITIES = {
     rails: [
@@ -1351,14 +1367,13 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-new-user': {
         route: '/home',
         balance: '0',
-        about: 'New user in Brazil, card offered: ID check not started, nothing received, the first payment offers QR or card.',
+        about: 'New user, card offered: ID check not started, nothing received, the first payment offers QR or card (any country).',
         responses: {
             ...NO_TIMELINE_EXTRAS,
             'GET /users/me': {
                 user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
-                residence: { declared: 'BR', verified: null },
             },
         },
     },
@@ -1396,7 +1411,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-verified-unfunded-no-card': {
         route: '/home',
         balance: '0',
-        about: 'Verified, API milestone verified, card not offered for the residence.',
+        about: 'Verified, $0, card not offered for the residence: the first payment is QR only.',
         responses: {
             ...NO_TIMELINE_EXTRAS,
             'GET /card': { isEligible: false, geoProhibited: true },
@@ -1505,10 +1520,30 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'home-qr-blocked-unfunded': {
+        route: '/home',
+        balance: '0',
+        about: 'Verified, $0, no card, QR pay blocked: three rows, Add money next.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+                capabilities: { rails: [QR_PAY_BLOCKED_RAIL], nextActions: [], restrictions: [] },
+            },
+        },
+    },
     'home-funded-no-spend-path': {
         route: '/home',
         balance: '50',
-        about: 'Verified, funded, no card and no QR pay: three rows, all done, so the carousel shows.',
+        about: 'Verified, funded, no card, QR pay blocked: three rows, all done, so the carousel shows.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
             'GET /users/me': {
@@ -1529,6 +1564,7 @@ export const FIXTURES: Record<string, Fixture> = {
                             currency: 'USD',
                             status: 'enabled',
                         },
+                        QR_PAY_BLOCKED_RAIL,
                     ],
                     nextActions: [],
                     restrictions: [],
