@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import esMessages from '@/i18n/app/messages/es-419.json'
@@ -118,6 +118,7 @@ const list = (
         slotsHeld?: number
         accountLimit?: number
         onOpen?: (corridor: DepositCorridor) => void
+        onRetry?: () => void
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
     } = {}
@@ -137,7 +138,7 @@ const list = (
                     isError={opts.isError ?? false}
                     onBack={() => {}}
                     onOpen={opts.onOpen ?? (() => {})}
-                    onRetry={() => {}}
+                    onRetry={opts.onRetry ?? (() => {})}
                 />
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
@@ -307,15 +308,117 @@ describe('the accounts still to open fold once one is held', () => {
     })
 
     // nothing behind the fold can be opened at the limit; the counter says why
-    it('drops the fold at the account limit', () => {
-        list(false, {
+    // Hugo, 2026-09-25: the fold stays at the limit, and every row in it says why
+    it('keeps the fold at the account limit, and every row in it explains the limit', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
             accountLimit: 2,
+            claimable: { ACH_US: offered('ACH_US', 'account-limit') },
+            gates: corridorRecord<GateState>((corridor) =>
+                corridor === 'ACH_US' ? READY : { kind: 'needs-enrollment' }
+            ),
+            onOpen,
         })
 
-        expect(screen.queryByTestId('open-accounts-toggle')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('open-virtual-accounts')).not.toBeInTheDocument()
-        expect(screen.getByTestId('account-counter')).toHaveTextContent('2 of 2 used')
+        unfoldOpenAccounts()
+        for (const corridor of ['FASTER_PAYMENTS_GB', 'ACH_US', 'BANK_TRANSFER_CO'] as const) {
+            expect(inRow(container, corridor).getByText(LIST.badgeLimitReached)).toBeInTheDocument()
+        }
+        // a row the backend offers takes the claim step's own limit screen
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+        // a row with no rail explains the limit in place
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+    })
+
+    // chip, ui#3479: a support or verification block cleared alone would still not open a third account
+    it('puts the cap first at the limit, before a support or verification block', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 2,
+            unavailable: {
+                BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'support-required'),
+                FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'identity-required'),
+            },
+            onOpen,
+        })
+
+        unfoldOpenAccounts()
+        for (const corridor of ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB'] as const) {
+            expect(inRow(container, corridor).getByText(LIST.badgeLimitReached)).toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText('Contact support')).not.toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+        }
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+        expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
+    })
+
+    it('asks for a residence where none is set', () => {
+        residenceIso2s = []
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            unavailable: { SPEI_MX: withheld('SPEI_MX', 'not-offered') },
+        })
+
+        unfoldOpenAccounts()
+        fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
+        expect(drawer().getByText('Residence not set')).toBeInTheDocument()
+        expect(
+            drawer().getByText('MXN accounts depend on where you live. Set a residence to check.')
+        ).toBeInTheDocument()
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
+    // chip, ui#3479: the gate cannot speak for a corridor the backend gave no verdict on
+    it('reads an unchecked row as Not available even where the gate offers verification', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: corridorRecord<GateState>((c) => (c === 'SEPA_EU' ? READY : { kind: 'needs-identity' })),
+        })
+
+        unfoldOpenAccounts()
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+    })
+
+    // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
+    it.each([
+        ['a ready rail with no verdict', 'ACH_US', READY],
+        [
+            'a review corridor with no rail and no verdict',
+            'BANK_TRANSFER_CO',
+            { kind: 'needs-enrollment' } as GateState,
+        ],
+    ] as const)('shows %s as Not available, and the tap offers a retry', (_case, corridor, gate) => {
+        const onRetry = jest.fn()
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: corridorRecord<GateState>((c) => (c === corridor ? gate : READY)),
+            onOpen,
+            onRetry,
+        })
+
+        unfoldOpenAccounts()
+        expect(inRow(container, corridor).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, corridor).queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, corridor) as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+        const currency = corridor === 'ACH_US' ? 'USD' : 'COP'
+        expect(drawer().getByText(`We could not check the ${currency} account`)).toBeInTheDocument()
+        expect(drawer().queryByText(/residence/i)).not.toBeInTheDocument()
+        jest.useFakeTimers()
+        fireEvent.click(drawer().getByRole('button', { name: LIST.errorRetry }))
+        act(() => jest.runAllTimers())
+        jest.useRealTimers()
+        expect(onRetry).toHaveBeenCalled()
     })
 
     it('folds under a revoked account too, which still sits in the held list', () => {
@@ -339,11 +442,12 @@ describe('the accounts still to open fold once one is held', () => {
 })
 
 describe('an account the user could open', () => {
-    it('says Not set up where a tap opens it', () => {
+    // hugo, 2026-09-25: an action the user can take now reads "Set up", in the info tone
+    it('says Set up where a tap opens it', () => {
         const onOpen = jest.fn()
         const { container } = list(false, { claimable: { SEPA_EU: offered('SEPA_EU') }, onOpen })
 
-        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeNotSetUp)).toHaveClass('bg-background-badge-helper')
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeSetUp)).toHaveClass('bg-background-badge-info')
         fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
     })
@@ -358,7 +462,7 @@ describe('an account the user could open', () => {
                 onOpen,
             })
 
-            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerify)).toBeInTheDocument()
+            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerifyId)).toBeInTheDocument()
             fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
             expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
         }
@@ -416,7 +520,8 @@ describe('an account the user could open', () => {
  * says why — never a grey row that does nothing (Kush's COP · Bre-B row).
  */
 describe('a row the user cannot use', () => {
-    it('sorts a withheld account last, reads Not available, and explains itself with a way to support', () => {
+    it('sorts a withheld account last, reads Not available, and explains itself with the way to change the residence', () => {
+        residenceIso2s = ['PT']
         const onOpen = jest.fn()
         const { container } = list(false, {
             unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
@@ -430,16 +535,35 @@ describe('a row the user cannot use', () => {
 
         fireEvent.click(row)
         expect(onOpen).not.toHaveBeenCalled()
-        expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
-        // the body names the currency; no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
-        expect(drawer().queryByText('GBP · Faster Payments')).not.toBeInTheDocument()
+        // the API's not-offered is "their region, or not open yet", and the wire does not say which
+        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
+        expect(drawer().getByText(LIST.notOfferedHereBody)).toBeInTheDocument()
+        // no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
         expect(drawer().queryByText(/Faster Payments/)).not.toBeInTheDocument()
 
+        // support is the primary: it can check which of the two it is
         jest.useFakeTimers()
         fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))
         jest.runAllTimers()
         jest.useRealTimers()
         expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('FASTER_PAYMENTS_GB'))
+    })
+
+    it('offers the residence change as the link under support, for a user who moved', () => {
+        residenceIso2s = ['PT']
+        const { container } = list(false, {
+            unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
+        })
+
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        const link = drawer().getByRole('button', { name: 'Update residence' })
+        expect(link).toHaveClass('underline')
+        jest.useFakeTimers()
+        fireEvent.click(link)
+        jest.runAllTimers()
+        jest.useRealTimers()
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
     // Kush's staging row: a stale rejected Bre-B rail left the gate at blocked-rejection
@@ -451,7 +575,7 @@ describe('a row the user cannot use', () => {
 
         const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
         expect(within(row).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
-        expect(within(row).queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
         fireEvent.click(row)
         expect(drawer().getByText(LIST.notOfferedBody.replace('{currency}', 'COP'))).toBeInTheDocument()
     })
@@ -524,7 +648,7 @@ describe('the other ways in', () => {
 
         expect(screen.queryByTestId('bank-row-brl')).not.toBeInTheDocument()
         expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
-        expect(screen.queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(screen.queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
         expect(countriesTrigger()).toBeInTheDocument()
     })
 })
@@ -701,7 +825,7 @@ describe('when the accounts cannot be read', () => {
         expect(screen.getByText(LIST.errorTitle)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
         expect(rowOf(container, 'SEPA_EU')).toHaveAttribute('aria-disabled', 'true')
-        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeNotSetUp)).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeSetUp)).not.toBeInTheDocument()
     })
 })
 

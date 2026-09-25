@@ -6,7 +6,7 @@ import { useLocale } from 'next-intl'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
-import { useAppHelpDrawer } from '@/components/Global/AppHelpDrawer'
+import { useAppHelpDrawer } from '@/components/Global/AppHelpProvider'
 import { isAppHelpSlug } from '@/components/Global/appHelpTypes'
 import { twMerge } from '@/utils/tw'
 

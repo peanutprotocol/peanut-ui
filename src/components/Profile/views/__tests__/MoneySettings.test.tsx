@@ -41,6 +41,14 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 let mockDepositCorridors: string[] = []
 let mockDepositClaimable: Record<string, unknown> = {}
+// a gate for every corridor, as the real read returns: EUR and USD ready, the
+// rest with no rail for this user
+const mockGates = () =>
+    jest
+        .requireActual('@/features/deposit-accounts/rails')
+        .corridorRecord((corridor: string) =>
+            corridor === 'SEPA_EU' || corridor === 'ACH_US' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
+        )
 const mockReadDepositAccounts = jest.fn(() => ({
     corridors: mockDepositCorridors,
     accounts: mockDepositAccounts,
@@ -48,7 +56,7 @@ const mockReadDepositAccounts = jest.fn(() => ({
     unavailable: {},
     slotsHeld: Object.keys(mockDepositAccounts).length,
     accountLimit: 2,
-    gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
+    gates: mockGates(),
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -339,7 +347,7 @@ describe('MoneySettings', () => {
 
             render('payments')
             expect(screen.getByText('QR payments')).toBeInTheDocument()
-            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
+            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
             expect(screen.getByText('Pix key payments')).toBeInTheDocument()
         })
     })
@@ -649,7 +657,7 @@ describe('MoneySettings', () => {
             slotsHeld: 0,
             accountLimit: 2,
             accounts: {},
-            gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
+            gates: mockGates(),
             isLoading: true,
             isError: false,
             refetch: jest.fn(),
@@ -719,7 +727,9 @@ describe('MoneySettings', () => {
         // ListGroup positions its direct children: every row after the first
         // drops its top border. Rows behind a wrapper component each kept all
         // four and rendered as separate cards.
-        const rows = ['EUR', 'USD'].map((title) => screen.getByText(title).closest('.border'))
+        // the bank rows, not the accounts to open above them
+        const otherWays = within(screen.getByTestId('other-ways'))
+        const rows = ['EUR', 'USD'].map((title) => otherWays.getByText(title).closest('.border'))
         const group = rows[0]?.parentElement
         expect(rows[1]?.parentElement).toBe(group)
         expect(group?.querySelectorAll(':scope > .border:not(.border-t-0)')).toHaveLength(1)
@@ -972,8 +982,8 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
-            // lines at 375px; the description holds it in two
-            expect(screen.getByText("Scan a shop's QR code in Brazil or Argentina.")).toBeInTheDocument()
+            // lines at 375px; the description names it in one (Slava, 2026-09-25)
+            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
 
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
@@ -1017,10 +1027,10 @@ describe('MoneySettings', () => {
 
         // A Brazilian user read "QR payments" as scan-only and paid Pix keys
         // in another app (2026-09-23). The key send is its own row.
-        it('names Pix key payments with the key types, and offers them to a user without QR', () => {
+        it('names Pix key payments with where they pay, and offers them to a user without QR', () => {
             render('payments')
 
-            expect(screen.getByText('Brazil. CPF, CNPJ, phone, email or random key.')).toBeInTheDocument()
+            expect(screen.getByText('Any Pix key in Brazil')).toBeInTheDocument()
             fireEvent.click(screen.getByText('Pix key payments'))
             expect(screen.getByText('unlock-modal-open:Pix key payments')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()

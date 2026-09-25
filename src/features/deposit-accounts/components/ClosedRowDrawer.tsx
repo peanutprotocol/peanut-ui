@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
@@ -28,12 +29,15 @@ export function ClosedRowDrawer({
     closed,
     onClose,
     onChangeResidence,
+    onRetry,
 }: {
     /** the tapped row and why it is closed; null keeps the drawer shut */
     closed: ClosedRow | null
     onClose: () => void
     /** opens the residence change, on this screen or on Accounts and payments */
     onChangeResidence: () => void
+    /** reads the accounts again, for a row the backend could not check */
+    onRetry?: () => void
 }) {
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
@@ -42,7 +46,13 @@ export function ClosedRowDrawer({
 
     const content = closed ? drawerContent(closed) : null
 
-    function drawerContent(row: ClosedRow): { title: string; body: string; cta: { label: string; act?: () => void } } {
+    function drawerContent(row: ClosedRow): {
+        title: string
+        body: string
+        cta: { label: string; act?: () => void }
+        /** a tertiary link under the primary */
+        link?: { label: string; act: () => void }
+    } {
         switch (row.kind) {
             case 'residence': {
                 const base = RESIDENCE_COPY[row.corridor]
@@ -75,6 +85,43 @@ export function ClosedRowDrawer({
                     body: tAccounts('cardNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the limit copy the claim step shows, so the two cannot drift
+            case 'account-limit':
+                return {
+                    title: t('gate.limitTitle', { count: row.limit }),
+                    body: t('gate.limitBody'),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        // English on purpose: it is for the support agent, not the user
+                        act: () => openSupportWithMessage(`Account limit reached (${row.limit})`),
+                    },
+                }
+            // the API cannot tell a region refusal from "not opened yet", so the
+            // drawer names both: support can check, and a move is one tap away
+            case 'not-offered-here':
+                return {
+                    title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('list.notOfferedHereBody'),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        // English on purpose: it is for the support agent, not the user
+                        act: () => openSupportWithMessage(`Account not offered: ${row.corridor}`),
+                    },
+                    link: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
+            case 'residence-missing':
+                return {
+                    title: tAccounts('residence.unknown'),
+                    body: t('list.residenceMissingBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
+            // the provider preview failed: say so, blame nothing, and read again
+            case 'unchecked':
+                return {
+                    title: t('list.uncheckedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('list.uncheckedBody'),
+                    cta: { label: t('list.errorRetry'), act: onRetry },
+                }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),
@@ -94,17 +141,29 @@ export function ClosedRowDrawer({
                             <DrawerTitle>{content.title}</DrawerTitle>
                             <DrawerDescription>{content.body}</DrawerDescription>
                         </DrawerHeader>
-                        <Button
-                            variant="primary"
-                            className="mt-6 w-full"
-                            onClick={() => {
-                                onClose()
-                                // the next sheet opens once this one has slid out
-                                if (content.cta.act) setTimeout(content.cta.act, DRAWER_CLOSE_MS)
-                            }}
-                        >
-                            {content.cta.label}
-                        </Button>
+                        <div className="mt-6 flex w-full flex-col items-center gap-6">
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => {
+                                    onClose()
+                                    // the next sheet opens once this one has slid out
+                                    if (content.cta.act) setTimeout(content.cta.act, DRAWER_CLOSE_MS)
+                                }}
+                            >
+                                {content.cta.label}
+                            </Button>
+                            {content.link && (
+                                <LinkButton
+                                    onClick={() => {
+                                        onClose()
+                                        setTimeout(content.link!.act, DRAWER_CLOSE_MS)
+                                    }}
+                                >
+                                    {content.link.label}
+                                </LinkButton>
+                            )}
+                        </div>
                     </div>
                 )}
             </DrawerContent>
