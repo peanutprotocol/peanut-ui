@@ -90,13 +90,8 @@ export function QrPayKycGateView() {
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
-                    {
-                        text: t('kyc.notNow'),
-                        onClick: onBack,
-                        variant: 'secondary',
-                        className: 'w-full',
-                    },
                 ]}
+                tertiaryCta={{ text: t('kyc.notNow'), onClick: onBack }}
             />
             <SumsubKycModals
                 flow={sumsubFlow}
