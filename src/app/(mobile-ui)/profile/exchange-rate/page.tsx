@@ -7,7 +7,13 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { resolveExchangeCurrencyPair, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import {
+    getExchangeRateWidgetBankCountry,
+    getExchangeRateWidgetRedirectRoute,
+    getExchangeRateWidgetRouteMinimum,
+    type ExchangeRateWidgetMinimumPolicy,
+} from '@/utils/exchangeRateWidget.utils'
+import { useBankWithdrawMinimum } from '@/features/withdraw/useBankWithdrawMinimum'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
@@ -19,7 +25,6 @@ import { useMemo } from 'react'
 
 export default function ExchangeRatePage() {
     const t = useTranslations('exchangeRate')
-    const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile', { replace: true })
     const { spendableBalance, isFetchingSpendableBalance } = useWallet()
@@ -61,8 +66,34 @@ export default function ExchangeRatePage() {
     )
     const goesToAddMoney = destination.startsWith('/add-money')
 
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+    // A Bridge bank withdrawal's floor comes from Bridge's own rate — the same
+    // gate the amount step and the bank submit enforce — never from the
+    // widget's indicative display rate. Queried only for that route.
+    const bankCountry = getExchangeRateWidgetBankCountry(routableFrom, routableTo, formattedBalance)
+    const bankMinimum = useBankWithdrawMinimum(bankCountry ?? '', { enabled: bankCountry !== null })
+    const minimumBlocked = bankCountry !== null && bankMinimum.status !== 'ready' ? bankMinimum.status : undefined
+
+    // The withdraw route's floor; null for add-money routes.
+    const minimumPolicy = useMemo<ExchangeRateWidgetMinimumPolicy>(
+        () => ({
+            resolve: (exchangeRate) =>
+                getExchangeRateWidgetRouteMinimum(
+                    routableFrom,
+                    routableTo,
+                    formattedBalance,
+                    exchangeRate,
+                    bankMinimum.minUsd
+                ),
+            label: (minimum) => t('widget.belowMinimum', { amount: minimum.amount, currency: minimum.currency }),
+            blocked: minimumBlocked,
+        }),
+        [routableFrom, routableTo, formattedBalance, bankMinimum.minUsd, minimumBlocked, t]
+    )
+
+    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string, sourceAmount: number | null) => {
         if (balancePending) return
+        // no usable Bridge rate behind the route's minimum: nothing proceeds
+        if (minimumBlocked) return
         // The widget is rendered below with `restrictToRoutable`, so these
         // arguments are already a resolved, non-colliding pair — resolved
         // again here, through the same function, so the route can never
@@ -73,12 +104,18 @@ export default function ExchangeRatePage() {
             destinationCurrency,
             toSupportedExchangeCurrency
         )
-        const redirectRoute = getExchangeRateWidgetRedirectRoute(
+        let redirectRoute = getExchangeRateWidgetRedirectRoute(
             clampedFrom,
             clampedTo,
             formattedBalance,
             unlockedRegionPaths
         )
+        // A withdrawal starts from USD, so "You send" is the `?amount=` every
+        // /withdraw/* screen reads. Taken from the tap, not this page's URL
+        // copy, which the widget writes only after its debounce (TASK-22294).
+        if (redirectRoute.startsWith('/withdraw') && sourceAmount !== null) {
+            redirectRoute += `${redirectRoute.includes('?') ? '&' : '?'}amount=${sourceAmount}`
+        }
 
         // The CTA drops the user into the add-money / withdraw roots, whose back
         // buttons reset to /home. Tell them where the user actually came from so
@@ -103,14 +140,13 @@ export default function ExchangeRatePage() {
                         ctaDisabled={balancePending}
                         restrictToRoutable
                         shadow={false}
+                        minimumPolicy={minimumPolicy}
                         labels={{
                             youSend: t('widget.youSend'),
                             recipientGets: t('widget.recipientGets'),
                             swapCurrencies: t('widget.swapCurrencies'),
                             rateUnavailable: t('widget.rateUnavailable'),
-                            bankFee: t('widget.bankFee'),
-                            peanutFee: tCommon('peanutFee'),
-                            free: t('widget.free'),
+                            rateNote: t('widget.rateNote'),
                             arrivesHours: t('widget.arrivesHours'),
                             arrivesMinutes: t('widget.arrivesMinutes'),
                             selectCurrency: t('widget.selectCurrency'),

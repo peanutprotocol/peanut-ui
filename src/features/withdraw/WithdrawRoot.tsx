@@ -53,8 +53,10 @@ export default function WithdrawRoot() {
                         ? {
                               currency: bankAmount.currency.toUpperCase(),
                               rate: Number(bankAmount.rate),
-                              initialAmount: bankAmount.destinationAmount,
+                              initialAmount: bankAmount.initialAmount,
+                              initialDenomination: bankAmount.initialDenomination,
                               onAmountChange: bankAmount.onDestinationAmountChange,
+                              onDenominationChange: bankAmount.onDenominationChange,
                           }
                         : undefined
                 }

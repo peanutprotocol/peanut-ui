@@ -28,14 +28,21 @@ interface WithdrawBankReviewViewProps {
     bankAccount: Account
     /** USDC that leaves the balance. */
     amount: string
-    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
-    bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    /**
+     * The quote behind `amount` (TASK-23054): its bank amount and rate.
+     * `isExact` when create pays out exactly this bank amount; otherwise it is an estimate.
+     */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    /** The app replaced the quote on submit; the user checks the new amounts. */
+    quoteNotice?: string | null
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
     isSubmitReady: boolean
     /** On-chain leg already fired — never offer Retry (double-pay). */
     submittedTxHash: string | null
+    /** The send may have gone out (outcome unknown) — never offer Retry; `error` says to check Activity. */
+    sendOutcomeUnknown?: boolean
     error: { showError: boolean; errorMessage: string }
     balanceErrorMessage: string | null
     confirmPendingCopy: string
@@ -59,10 +66,12 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
     bankAmount,
+    quoteNotice,
     fromSendFlow,
     isLoading,
     isSubmitReady,
     submittedTxHash,
+    sendOutcomeUnknown = false,
     error,
     balanceErrorMessage,
     confirmPendingCopy,
@@ -186,7 +195,11 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
                         />
-                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
+                        <RecipientGetsRow
+                            amount={bankAmount.destinationAmount}
+                            currency={bankAmount.currency}
+                            isExact={bankAmount.isExact}
+                        />
                     </>
                 ) : (
                     <ExchangeRate
@@ -195,7 +208,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         amountToConvert={amount}
                     />
                 )}
-                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
+                {bankAccount.type === AccountType.US && (
+                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
+                )}
             </Card>
 
             {payoutNoteKey && (
@@ -236,7 +251,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         value={reference}
                         maxLength={referenceSpec.maxLength}
                         // the transfer is created with the reference; it cannot change after
-                        disabled={isLoading || !!submittedTxHash}
+                        disabled={isLoading || !!submittedTxHash || sendOutcomeUnknown}
                         onChange={(e) => onReferenceChange(e.target.value)}
                         onBlur={() => setReferenceTouched(true)}
                         className="text-body-s"
@@ -244,10 +259,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
-            {onRetryQuote && !submittedTxHash && <RateUnavailable onRetry={onRetryQuote} />}
-            {submittedTxHash ? (
-                // On-chain leg already fired. Even if confirmOfframp failed
-                // we must NOT offer Retry — it would re-run sendMoney() and
+            {onRetryQuote && !submittedTxHash && !sendOutcomeUnknown && <RateUnavailable onRetry={onRetryQuote} />}
+            {submittedTxHash || sendOutcomeUnknown ? (
+                // On-chain leg already fired, or may have. Even if confirmOfframp
+                // failed we must NOT offer Retry — it would re-run sendMoney() and
                 // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
                 // state and a Done button that takes the user home.
                 <Button shadowSize="4" className="w-full" onClick={onDone}>
@@ -287,8 +302,17 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Callout priority="info" title={t('bank.transferProcessing')}>
                     {confirmPendingCopy}
                 </Callout>
+            ) : error.showError ? (
+                <Callout priority="error" data-testid="withdraw-error">
+                    {error.errorMessage}
+                </Callout>
             ) : (
-                error.showError && <Callout priority="error">{error.errorMessage}</Callout>
+                // neutral: the quote moved, the withdrawal did not fail
+                quoteNotice && (
+                    <Callout priority="info" data-testid="quote-updated-notice">
+                        {quoteNotice}
+                    </Callout>
+                )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>

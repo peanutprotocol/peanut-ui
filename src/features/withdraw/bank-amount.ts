@@ -1,12 +1,7 @@
 import { type Account } from '@/interfaces/interfaces'
 import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
-
-/**
- * Bank currencies the withdrawal amount is typed in (TASK-23054): the Bridge
- * payout currencies that convert from USDC. Mirrors QUOTE_CURRENCIES in
- * peanut-api-ts src/bridge/offramp-quote.ts; the quote refuses any other.
- */
-const QUOTED_BANK_CURRENCIES = ['eur', 'gbp', 'mxn', 'cop']
+import { OFFRAMP_QUOTE_CURRENCIES, QUOTE_AMOUNT_PATTERN } from '@/utils/offramp-quote.utils'
+import { parseUsdAmount } from './amount-validation'
 
 /**
  * The currency the account is paid in, when the user types the amount in it
@@ -21,11 +16,24 @@ export function bankAmountCurrency(account: Account | null | undefined): string 
     } catch {
         return null // not a Bridge account
     }
-    return QUOTED_BANK_CURRENCIES.includes(currency) ? currency : null
+    return OFFRAMP_QUOTE_CURRENCIES.includes(currency) ? currency : null
 }
 
-/** The quote API's destinationAmount pattern (GET /bridge/offramp/quote). */
-const BANK_AMOUNT_PATTERN = /^(?=.*[1-9])\d{1,12}(\.\d{1,2})?$/
+/**
+ * A typed USDC amount (`?amount=`, older links) as the quote can price it:
+ * cut to whole cents, never rounded up, because the quote takes 2 decimals.
+ * The review then shows the quote's amount, so the user confirms exactly what
+ * leaves. Null only for an amount the submit refuses anyway: not a plain
+ * decimal, more than the token's 6 decimals, or under one cent.
+ */
+export function quotableSourceAmount(amount: string): string | null {
+    const normalized = parseUsdAmount(amount)
+    if (normalized === null) return null
+    const [whole, fraction = ''] = normalized.split('.')
+    const cents = fraction.slice(0, 2)
+    const quotable = cents ? `${whole}.${cents}` : whole
+    return QUOTE_AMOUNT_PATTERN.test(quotable) ? quotable : null
+}
 
 /**
  * The typed bank amount as the quote API accepts it, or null. The field can
@@ -36,5 +44,5 @@ export function normalizeBankAmount(value: string | null | undefined): string | 
     let amount = (value ?? '').replace(/,/g, '').trim()
     if (amount.endsWith('.')) amount = amount.slice(0, -1)
     if (amount.startsWith('.')) amount = `0${amount}`
-    return BANK_AMOUNT_PATTERN.test(amount) ? amount : null
+    return QUOTE_AMOUNT_PATTERN.test(amount) ? amount : null
 }

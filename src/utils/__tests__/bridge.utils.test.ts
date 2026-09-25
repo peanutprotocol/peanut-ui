@@ -11,7 +11,6 @@ import {
     getPaymentRailDisplayName,
     getMinimumAmount,
     railJurisdictionForBank,
-    reverseBridgeCrossCurrencyFee,
 } from '../bridge.utils'
 
 // Tests track the constant so they remain correct whether the fee is 0
@@ -393,46 +392,6 @@ describe('bridge.utils', () => {
         it('handles zero and negative amounts without surprises', () => {
             expect(applyBridgeCrossCurrencyFee(0, 'EUR', 'USDC')).toBe(0)
             expect(applyBridgeCrossCurrencyFee(-100, 'EUR', 'USDC')).toBeCloseTo(-NET_OF_100, 10)
-        })
-    })
-
-    describe('reverseBridgeCrossCurrencyFee', () => {
-        // Invariant: apply(reverse(net)) ≈ net for any amount & currency pair.
-        // Guards against the classic algebra bug of using `net * (1 + rate)`
-        // instead of `net / (1 - rate)` — those differ by rate² (~0.0025%).
-
-        it('reverse(net) yields exactly the gross input (not net * (1 + rate))', () => {
-            // The canonical sanity check: the naive `net * (1 + rate)` would
-            // under-shoot by rate². Correct inverse `net / (1 - rate)` lands
-            // on the original gross. Holds for any rate including 0.
-            expect(reverseBridgeCrossCurrencyFee(NET_OF_100, 'EUR', 'USDC')).toBeCloseTo(100, 10)
-        })
-
-        it.each([0.01, 1, 100, 999.99, 1_000_000])('apply(reverse(%f)) round-trips for EUR → USDC', (amount) => {
-            const gross = reverseBridgeCrossCurrencyFee(amount, 'EUR', 'USDC')
-            expect(applyBridgeCrossCurrencyFee(gross, 'EUR', 'USDC')).toBeCloseTo(amount, 4)
-        })
-
-        it.each([
-            ['EUR', 'USDC'],
-            ['USDC', 'EUR'],
-            ['GBP', 'USDC'],
-            ['MXN', 'USDC'],
-            ['USDC', 'MXN'],
-        ])('apply(reverse(100)) round-trips for %s → %s', (src, dst) => {
-            const gross = reverseBridgeCrossCurrencyFee(100, src, dst)
-            expect(applyBridgeCrossCurrencyFee(gross, src, dst)).toBeCloseTo(100, 10)
-        })
-
-        it('passes USD pairs through unchanged (no fee to reverse)', () => {
-            expect(reverseBridgeCrossCurrencyFee(100, 'USD', 'USDC')).toBe(100)
-            expect(reverseBridgeCrossCurrencyFee(100, 'USDC', 'USD')).toBe(100)
-            expect(reverseBridgeCrossCurrencyFee(100, 'EUR', 'USD')).toBe(100)
-        })
-
-        it('is case-insensitive', () => {
-            expect(reverseBridgeCrossCurrencyFee(NET_OF_100, 'eur', 'usdc')).toBeCloseTo(100, 10)
-            expect(reverseBridgeCrossCurrencyFee(100, 'Usd', 'Usdc')).toBe(100)
         })
     })
 

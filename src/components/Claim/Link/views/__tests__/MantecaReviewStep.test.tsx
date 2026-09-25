@@ -103,6 +103,16 @@ beforeEach(() => {
     mockWithdraw.mockResolvedValue({ data: { id: 'synthetic-1' } })
 })
 
+// Manteca's conversion cost is inside its rate: the review shows the rate and
+// no separate fee row calling the conversion free.
+test('the review card shows the rate and no sponsored fee row', () => {
+    renderStep()
+
+    expect(screen.getByText('1 USD = 1300 BRL')).toBeInTheDocument()
+    expect(screen.queryByText('Sponsored by Peanut!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Fee')).not.toBeInTheDocument()
+})
+
 describe('MantecaReviewStep — pre-claim entity lookup', () => {
     test('claims the link to the API-served entity deposit address', async () => {
         mockInitiateWithdraw.mockResolvedValue({

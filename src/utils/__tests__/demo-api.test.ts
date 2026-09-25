@@ -335,4 +335,61 @@ describe('demoRespond — withdraw quote (TASK-23054)', () => {
         expect(body.rate).toBe('1')
         expect(body.sourceAmount).toBeUndefined()
     })
+
+    it('answers typed USDC too, with both amounts at the same 1:1 rate', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&sourceAmount=50.12&pricing=fixed_output',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(await res.json()).toMatchObject({ sourceAmount: '50.12', destinationAmount: '50.12' })
+    })
+
+    it('is a Bridge-rate estimate, never a signed quote, even when fixed_output is asked for', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=50&pricing=fixed_output',
+            { method: 'GET' },
+            { offline: true }
+        )
+        const body = await res.json()
+        expect(body.pricing).toBe('bridge_rate')
+        expect(body.quoteId).toBeUndefined()
+        expect(body.expiresAt).toBeUndefined()
+    })
+})
+
+describe('demoRespond — public withdrawal rate (fees v2)', () => {
+    it('offline, answers 503 rather than a canned rate', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/rate?destinationCurrency=eur',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(503)
+    })
+
+    it('in native demo, passes the public rate through to the API, like /fx/rate', async () => {
+        const originalFetch = global.fetch
+        const live = {
+            destinationCurrency: 'eur',
+            rate: '0.8973',
+            updatedAt: '2026-09-24T15:54:16.373Z',
+            pricing: 'fixed_output',
+        }
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(
+                new Response(JSON.stringify(live), { status: 200, headers: { 'content-type': 'application/json' } })
+            )
+        try {
+            const res = await demoRespond('/bridge/offramp/rate?destinationCurrency=eur', { method: 'GET' })
+            expect(await res.json()).toEqual(live)
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${PEANUT_API_URL}/bridge/offramp/rate?destinationCurrency=eur`,
+                expect.objectContaining({ signal: expect.any(AbortSignal) })
+            )
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
 })

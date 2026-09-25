@@ -52,10 +52,19 @@ export default function WithdrawBankPage() {
         return null
     }
 
-    // the USDC for a typed bank amount comes from its quote — nothing to review
-    // before the first one. A later refresh that fails keeps this page, and any
-    // open KYC, terms or confirm step, mounted: the review shows the error inline.
-    if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading && !flow.submittedTxHash) {
+    // a quoted withdrawal's amounts come from its quote — nothing to review
+    // before the first one, or while a replaced quote is on its way. A later
+    // refresh that fails keeps this page, and any open KYC, terms or confirm
+    // step, mounted: the review shows the error inline. A send that went out,
+    // or may have, keeps its held review on screen.
+    if (
+        step === 'review' &&
+        bankAmount &&
+        !bankAmount.quote &&
+        !flow.isLoading &&
+        !flow.submittedTxHash &&
+        !flow.sendOutcomeUnknown
+    ) {
         return (
             <RateGateScreen
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
@@ -86,18 +95,21 @@ export default function WithdrawBankPage() {
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
                     bankAmount={
-                        bankAmount?.quote
+                        bankAmount?.quote?.destinationAmount
                             ? {
                                   currency: bankAmount.currency,
-                                  destinationAmount: bankAmount.destinationAmount,
+                                  destinationAmount: bankAmount.quote.destinationAmount,
                                   rate: bankAmount.quote.rate,
+                                  isExact: bankAmount.isExact,
                               }
                             : undefined
                     }
+                    quoteNotice={bankAmount?.quoteNotice ?? null}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
                     submittedTxHash={flow.submittedTxHash}
+                    sendOutcomeUnknown={flow.sendOutcomeUnknown}
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}

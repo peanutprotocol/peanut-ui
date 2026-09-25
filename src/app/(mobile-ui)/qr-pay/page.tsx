@@ -4,11 +4,12 @@ import { parseAsString, useQueryStates } from 'nuqs'
 import { QrPayPage } from '@/features/payments/flows/qr-pay/QrPayPage'
 
 export default function QRPayPage() {
-    const [{ qrCode: rawQrCode, t: timestamp, type: qrType, pixKey }] = useQueryStates({
+    const [{ qrCode: rawQrCode, t: timestamp, type: qrType, pixKey, amountUsd }, setQuery] = useQueryStates({
         qrCode: parseAsString.withDefault(''),
         t: parseAsString,
         type: parseAsString,
         pixKey: parseAsString,
+        amountUsd: parseAsString,
     })
     // The scanner double-encodes the code into the URL, so one decode remains
     // after the query layer's own.
@@ -23,6 +24,10 @@ export default function QRPayPage() {
             timestamp={timestamp}
             qrType={qrType}
             pixKey={pixKey}
+            amountUsd={amountUsd}
+            // a seed is read once; dropping it from the URL keeps a reload or
+            // a back/forward into this entry from applying it again
+            onAmountUsdConsumed={() => void setQuery({ amountUsd: null }, { history: 'replace' })}
         />
     )
 }

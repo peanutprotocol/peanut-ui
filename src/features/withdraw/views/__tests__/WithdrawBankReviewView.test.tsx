@@ -34,6 +34,8 @@ const Harness = ({
     account = ibanAccount,
     showError = false,
     bankAmount,
+    quoteNotice = null,
+    sendOutcomeUnknown = false,
     onRetryQuote,
     isSubmitReady = true,
 }: {
@@ -41,7 +43,9 @@ const Harness = ({
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
-    bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    quoteNotice?: string | null
+    sendOutcomeUnknown?: boolean
     onRetryQuote?: () => void
     isSubmitReady?: boolean
 }) => {
@@ -52,10 +56,12 @@ const Harness = ({
             bankAccount={account}
             amount="50"
             bankAmount={bankAmount}
+            quoteNotice={quoteNotice}
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady={isSubmitReady}
             submittedTxHash={submittedTxHash}
+            sendOutcomeUnknown={sendOutcomeUnknown}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
             confirmPendingCopy="processing"
@@ -313,14 +319,30 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 })
 
 describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
-    it('shows about what the recipient gets and the rate behind the USDC', () => {
+    it('Bridge-rate quote: shows about what the recipient gets and the rate behind the USDC', () => {
         renderWithIntl(
-            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+            />
         )
         expect(screen.getByText('Recipient gets')).toBeInTheDocument()
         expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
         expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
         expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
+    })
+
+    it('fixed_output quote: shows the exact bank amount, and claims no locked rate', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000.50', rate: '0.8928135', isExact: true }}
+            />
+        )
+        expect(screen.getByText('€2,000.50')).toBeInTheDocument()
+        expect(screen.queryAllByText(/≈/)).toHaveLength(0)
+        expect(screen.getByText('1 USD = 0.8928 EUR')).toBeInTheDocument()
+        expect(screen.queryAllByText(/locked|guaranteed/i)).toHaveLength(0)
     })
 
     it('without one, keeps the exchange-rate rows of a USD amount', () => {
@@ -329,13 +351,53 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         expect(screen.queryByText('Recipient gets')).not.toBeInTheDocument()
     })
 
+    it('after a replaced quote, asks the user to review it — as a notice, not an error', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8923', isExact: true }}
+                quoteNotice="Review the updated quote to continue."
+            />
+        )
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent('Review the updated quote to continue.')
+        expect(submitButton()).toBeEnabled()
+    })
+})
+
+describe('WithdrawBankReviewView — a send whose outcome is unknown', () => {
+    it('offers Done and the status message, never Retry or a new withdrawal', () => {
+        renderWithIntl(<Harness rail="sepa" showError sendOutcomeUnknown />)
+
+        expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /withdraw/i })).not.toBeInTheDocument()
+        expect(screen.getByTestId('withdraw-error')).toHaveTextContent('Something went wrong')
+        // the transfer is bound to its reference: it cannot change now
+        expect(referenceInput()).toBeDisabled()
+    })
+
+    it('never offers a quote Retry either: nothing may start a new quote or transfer', () => {
+        renderWithIntl(
+            <Harness
+                rail="sepa"
+                showError
+                sendOutcomeUnknown
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                onRetryQuote={jest.fn()}
+            />
+        )
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+    })
+})
+
+describe('WithdrawBankReviewView — a Bridge-rate quote whose refresh failed', () => {
     // a failed 30-second refresh: the review, and any step open over it, stays
     it('a failed quote refresh is an inline error with a retry, on the same review', () => {
         const onRetryQuote = jest.fn()
         renderWithIntl(
             <Harness
                 rail="sepa"
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
                 onRetryQuote={onRetryQuote}
             />
         )
@@ -356,12 +418,28 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
                 rail="sepa"
                 showError
                 isSubmitReady={false}
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
                 onRetryQuote={onRetryQuote}
             />
         )
         const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
         expect(submitRetry).toBeDisabled()
         expect(quoteRetry).toBeEnabled()
+    })
+})
+
+describe('Bank conversion fee disclosure', () => {
+    it.each([AccountType.IBAN, AccountType.GB, AccountType.CLABE, AccountType.CO_BANK_TRANSFER])(
+        '%s does not claim a zero fee for a conversion',
+        (type) => {
+            renderWithIntl(<Harness rail="sepa" account={{ ...ibanAccount, type }} />)
+            expect(screen.queryByText('Fee', { exact: true })).not.toBeInTheDocument()
+        }
+    )
+
+    it('keeps the zero-fee row for a USD bank withdrawal', () => {
+        renderWithIntl(<Harness rail="ach" account={{ ...ibanAccount, type: AccountType.US }} />)
+        expect(screen.getByText('Fee', { exact: true })).toBeInTheDocument()
+        expect(screen.getByText('$ 0.00', { exact: true })).toBeInTheDocument()
     })
 })

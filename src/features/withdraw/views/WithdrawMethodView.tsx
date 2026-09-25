@@ -11,11 +11,13 @@ import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
-import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
-import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { mantecaWithdrawUrl, withdrawCountryFormUrl, withdrawCountryRailsUrl } from '@/features/withdraw/routes'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
 import { useRenameAccount } from '@/features/destinations/useRenameAccount'
@@ -72,9 +74,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
     const [methodParam] = useQueryState('method', parseAsString)
+    // A currency picked upstream (exchange-rate widget) pre-filters the
+    // all-methods list; it does not skip the saved accounts (TASK-22294).
     const [currencyCode, setCurrencyCode] = useQueryState('currencyCode', parseAsString)
-    // if currencyCode is present, show all methods
-    const showAll = showAllParam || !!currencyCode
+    const [urlAmount] = useWithdrawAmount()
+    const showAll = showAllParam
 
     // The rail the user already picked, if any. Its own parameter on purpose:
     // `method` is the Send-flow origin marker (useSendFlowOrigin), and reusing it
@@ -157,7 +161,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                 title: 'To Bank',
             })
             startTransition(() => {
-                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null))
+                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null, urlAmount))
             })
             return
         }
@@ -169,20 +173,20 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
         const rail = soleLiveRailForCountry(country.id, 'withdraw')
         if (!rail) {
             startTransition(() => {
-                router.push(withdrawCountryUrl(country.path))
+                // the rail list: the amount and send origin ride on to the rail picked there
+                router.push(withdrawCountryRailsUrl(country.path, isBankFromSend ? methodParam : null, urlAmount))
             })
             return
         }
 
         if (isManteca) {
-            // the manteca flow collects the amount in local currency
+            // The USD amount picked upstream rides along, as on the single-rail
+            // redirect in AddWithdrawCountriesList; the rail's own method= stays.
+            const extra = new URLSearchParams()
+            if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
+            if (urlAmount) extra.set('amount', urlAmount)
             startTransition(() => {
-                router.push(
-                    rewriteMethodPath(
-                        rail.path ?? '',
-                        isBankFromSend && methodParam ? `sendMethod=${methodParam}` : undefined
-                    )
-                )
+                router.push(rewriteMethodPath(rail.path ?? '', extra.toString() || undefined))
             })
             return
         }
@@ -194,7 +198,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
             title: rail.title,
         })
         startTransition(() => {
-            router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
+            router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null, urlAmount))
         })
     }
 
@@ -251,13 +255,34 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
+                            const sendMethod = isBankFromSend ? (methodParam ?? undefined) : undefined
+                            // A Brazil account is a PIX key: it pays over the PIX-key
+                            // route (method=pix → qr-pay), the same one a new Brazil
+                            // destination takes — not the bank offramp, whose $1 floor
+                            // is not the PIX one. The key and the USD amount carry over.
+                            // The country comes from the account (name or ISO code): without
+                            // a countryName, countryPath is the full /withdraw/…/bank path.
+                            // An entry that resolves to no country keeps that old fallback.
+                            const country = getCountryFromAccount(account)
                             router.push(
-                                mantecaWithdrawUrl({
-                                    country: countryPath,
-                                    destination: account.identifier,
-                                    isSavedAccount: 'true',
-                                    sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
-                                })
+                                mantecaWithdrawUrl(
+                                    country?.iso2 === 'BR'
+                                        ? {
+                                              method: 'pix',
+                                              country: country.path,
+                                              destination: account.identifier,
+                                              sendMethod,
+                                              amount: urlAmount || undefined,
+                                          }
+                                        : {
+                                              country: country?.path ?? countryPath,
+                                              destination: account.identifier,
+                                              isSavedAccount: 'true',
+                                              sendMethod,
+                                              // seeds the manteca amount step (useMantecaAmountSeed)
+                                              amount: urlAmount || undefined,
+                                          }
+                                )
                             )
                             return
                         }

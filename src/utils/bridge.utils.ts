@@ -190,9 +190,10 @@ export const getCurrencySymbol = (currency: string): string => {
  *
  * The fee applies only to transfers that cross a currency boundary (i.e.
  * neither side is USD); USD↔USDC is always fee-free. BRIDGE_DEVELOPER_FEE_RATE
- * is currently 0, making this an identity function — it and its call sites are
- * kept for the planned FX-margin re-enable. Mirrors backend
- * `getBridgeDeveloperFeeParams` in peanut-api-ts.
+ * is 0, making this an identity function. Only the onramp display still calls
+ * it. Peanut's offramp FX margin is not applied here: it sits inside the
+ * API's offramp rate and quotes (fees v2), so no client adds it. Mirrors
+ * backend `getBridgeDeveloperFeeParams` in peanut-api-ts.
  *
  * @param amount - Gross amount computed from the raw exchange rate
  * @param srcCurrency - Source currency code (case-insensitive)
@@ -206,32 +207,6 @@ export const applyBridgeCrossCurrencyFee = (amount: number, srcCurrency: string,
         return amount
     }
     return amount * (1 - BRIDGE_DEVELOPER_FEE_RATE)
-}
-
-/**
- * Inverse of {@link applyBridgeCrossCurrencyFee}.
- *
- * Given a net (post-fee) destination amount, return the gross amount that
- * would produce it. Used when the user types a "Recipient Gets" value and
- * we need the pre-fee gross to feed back into rate math. USD pairs pass
- * through unchanged (no fee, so gross === net).
- *
- * Math note: since `apply(gross) = gross * (1 - rate)`, the reverse is
- * `gross = net / (1 - rate)` — NOT `net * (1 + rate)`, which would
- * under-shoot by `rate²` (e.g. reversing 99.5 must yield exactly 100).
- *
- * @param netAmount - Net amount after Bridge dev fee
- * @param srcCurrency - Source currency code (case-insensitive)
- * @param dstCurrency - Destination currency code (case-insensitive)
- * @returns Gross amount before fee, or unchanged amount if either side is USD
- */
-export const reverseBridgeCrossCurrencyFee = (netAmount: number, srcCurrency: string, dstCurrency: string): number => {
-    const src = (srcCurrency ?? '').toLowerCase()
-    const dst = (dstCurrency ?? '').toLowerCase()
-    if (src === 'usd' || dst === 'usd') {
-        return netAmount
-    }
-    return netAmount / (1 - BRIDGE_DEVELOPER_FEE_RATE)
 }
 
 /**

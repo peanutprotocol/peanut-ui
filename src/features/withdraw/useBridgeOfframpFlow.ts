@@ -3,16 +3,22 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { InsufficientSpendableError, isUserCancellation } from '@/hooks/wallet/spendPreflight'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
+import {
+    getOfframpConfigFromAccount,
+    getCountryFromPath,
+    getMinimumAmount,
+    railJurisdictionForBank,
+} from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -38,10 +44,12 @@ import { parseAsString, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
-import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
+import { bankAmountCurrency, normalizeBankAmount, quotableSourceAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
+import { isBridgeQuoteRefusal, isFixedOutputQuote, isFixedOutputQuoteRecent } from '@/utils/offramp-quote.utils'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
+import { validateBankOfframpAmount, bankWithdrawMinNeedsRate } from './amount-validation'
+import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
     bankReferenceDestinationFields,
@@ -58,12 +66,15 @@ import {
  * capability gates and the KYC/advisory modal state. The amount arrives in the
  * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
  * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
- * TASK-23054), whose USDC comes from a quote. The selected account lives in
- * the /withdraw-scoped flow context.
+ * TASK-23054), whose USDC comes from a quote. Such an account is quoted for a
+ * USDC `?amount=` too (older links), so both sides are priced by the API.
+ * The selected account lives in the /withdraw-scoped flow context.
  */
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
+    const tRate = useTranslations('exchangeRate')
+    const tQrPay = useTranslations('qrPay')
     const toFriendlyError = useFriendlyError()
     // Copy shown when the on-chain deposit to the Bridge address succeeded but the
     // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
@@ -91,6 +102,12 @@ export function useBridgeOfframpFlow() {
     // confirmOfframp() call fails, this gates the UI into a "processing" state
     // instead of showing a Retry button that would re-fire sendMoney().
     const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
+    // The send started and then failed in a way that does not prove the
+    // deposit address got nothing (a bundler error after submission, a send
+    // with no transaction id). The funds may already be on their way, so the
+    // screen holds like `submittedTxHash`: no Retry, no new quote or transfer,
+    // only Activity to check. This screen never sends a second time.
+    const [sendOutcomeUnknown, setSendOutcomeUnknown] = useState(false)
     // Execution proof for the success step: set only after confirmOfframp
     // succeeded. The ?step= param is user-editable — without this, a
     // hand-edited ?step=success rendered a success screen for a withdrawal
@@ -132,12 +149,32 @@ export function useBridgeOfframpFlow() {
     })
     const step = stepper.step
 
-    // Bank amount typed in EUR, GBP, MXN or COP (TASK-23054): the USDC that
-    // leaves the balance is the quote's, at the provider's current rate, and
-    // refreshes with the rate until the user confirms. That USDC is what the
-    // offramp sends; the bank amount is an estimate.
-    const accountCurrency = bankAmountCurrency(bankAccount)
-    const bankCurrency = destinationAmount ? accountCurrency : null
+    // Account paid in EUR, GBP, MXN or COP (TASK-23054): the amounts are the
+    // quote's, for the side the user typed — the bank amount, or the USDC on
+    // an older `?amount=` link — and refresh with the rate until the user
+    // confirms. The USDC is what the offramp sends. A `fixed_output` quote
+    // also fixes the bank amount; any other quote leaves it an estimate.
+    // Typed USDC is cut to whole cents for the quote, and the review shows
+    // the quote's amount. Such an account never creates without a quote.
+    const quotedCurrency = bankAmountCurrency(bankAccount)
+    const quotedSourceAmount = quotableSourceAmount(urlAmount)
+    const quoteAmount = !quotedCurrency
+        ? undefined
+        : destinationAmount
+          ? { destinationAmount }
+          : quotedSourceAmount
+            ? { sourceAmount: quotedSourceAmount }
+            : undefined
+    const bankCurrency = quoteAmount ? quotedCurrency : null
+    // Shown after the app dropped a quote on submit and got a new one: the
+    // user confirms the new numbers before anything is sent.
+    const [quoteNotice, setQuoteNotice] = useState<string | null>(null)
+    // The last quote sent to create, the destination it was sent for, and
+    // whether the app then tried to send money to its deposit address. Create
+    // replays that transfer for the same quote while it waits for funds, so
+    // the quote goes out again only as a plain retry of that create: never for
+    // another account or reference, and never after a send was attempted.
+    const sentQuoteRef = useRef<{ quoteId: string; destination: string; sendAttempted: boolean } | null>(null)
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -156,18 +193,31 @@ export function useBridgeOfframpFlow() {
     // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
     const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
-    // One rate for the amount and the minimum: the quote. Without a typed bank
-    // amount it is fetched for the rate alone, when the minimum needs one.
+    // One rate for the amount and the minimum: the quote. Without an amount the
+    // quote can price, it is fetched for the rate alone when the minimum needs one.
+    const quoteCurrency = bankCurrency ?? (minNeedsRate ? quotedCurrency : null)
     const bankQuote = useBridgeOfframpQuote({
-        currency: bankCurrency ?? (minNeedsRate ? accountCurrency : null),
-        destinationAmount: bankCurrency ? destinationAmount : undefined,
-        enabled: step === 'review' && !isLoading && !submittedTxHash,
+        currency: quoteCurrency,
+        amount: bankCurrency ? quoteAmount : undefined,
+        enabled: step === 'review' && !isLoading && !submittedTxHash && !sendOutcomeUnknown,
     })
     const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
     // a quote whose refresh failed stays on screen but is not confirmed
     const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
-    const minUsd = bankWithdrawMinUsd(countryIso2, bankQuote.quote?.rate)
-    const isMinReady = !minNeedsRate || (isQuoteCurrent && parseFloat(bankQuote.quote?.rate ?? '0') > 0)
+    // The shared minimum source (widget, amount step, here), converted with
+    // this quote's rate whenever the account has one, so no other rate is
+    // fetched and none can block it. A signed (fixed_output) quote is what
+    // create executes: its rate sets the USD minimum, and its exact payout must
+    // also meet the rail's local floor. A Bridge-rate quote (collection off)
+    // keeps the estimate and its rate, as before.
+    const bankMinimum = useBankWithdrawMinimum(countryIso2, {
+        quote: quoteCurrency ? { rate: bankQuote.quote?.rate, isError: bankQuote.isError } : undefined,
+    })
+    const minUsd = bankMinimum.minUsd
+    const isMinReady = bankMinimum.status === 'ready'
+    const signedQuote = bankCurrency && bankQuote.quote && isFixedOutputQuote(bankQuote.quote) ? bankQuote.quote : null
+    const payoutBelowRailFloor =
+        !!signedQuote && minNeedsRate && Number(signedQuote.destinationAmount) < getMinimumAmount(countryIso2)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -257,8 +307,8 @@ export function useBridgeOfframpFlow() {
             if (!bankAccount) router.replace(`/withdraw${recoveryQuery}`)
             return
         }
-        // a bank amount is not the USDC yet — that arrives with its quote
-        const hasAmount = bankCurrency ? !!destinationAmount : !!urlAmount || !!destinationAmount
+        // either side is an amount; the other one arrives with its quote
+        const hasAmount = !!urlAmount || !!destinationAmount
         if (!hasAmount) {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
@@ -268,7 +318,7 @@ export function useBridgeOfframpFlow() {
             recovery.set('step', 'form')
             router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
-    }, [bankAccount, router, urlAmount, destinationAmount, bankCurrency, country, step, fromSendFlow])
+    }, [bankAccount, router, urlAmount, destinationAmount, country, step, fromSendFlow])
 
     const destinationDetails = (account: Account) => {
         // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
@@ -286,7 +336,18 @@ export function useBridgeOfframpFlow() {
         }
     }
 
+    // Drop a quote the app will not confirm. The review waits for the next
+    // one and asks the user to check it.
+    const requoteForReview = (quoteId: string) => {
+        bankQuote.discard(quoteId)
+        setError({ showError: false, errorMessage: '' })
+        setQuoteNotice(t('reviewUpdatedQuote'))
+    }
+
     const proceedWithOfframp = async () => {
+        // A send already went out, or may have: never a second one from here.
+        if (submittedTxHash || sendOutcomeUnknown) return
+
         if (gate.kind !== 'ready') {
             // capabilities still loading — silently no-op.
             if (gate.kind === 'loading') return
@@ -310,16 +371,34 @@ export function useBridgeOfframpFlow() {
             return
         }
 
-        // The GB/MX rail minimum converts through the FX rate — the submit is
-        // disabled until it loads; reaching here early is a race, not a user
-        // error: no-op rather than under-enforce.
-        if (!isMinReady) return
+        // The GB/MX rail minimum converts through Bridge's rate — the submit is
+        // disabled until it is usable; reaching here without it is a race or a
+        // failed rate, never a user error: no-op rather than guess a minimum.
+        if (!isMinReady || minUsd === null) return
         // The ToS step calls this directly, past the disabled button: a quote
         // whose refresh failed is never confirmed.
         if (bankCurrency && !isQuoteCurrent) return
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
+
+        // An account paid in EUR, GBP, MXN or COP is only paid through a quote:
+        // an amount the quote cannot take is refused, never sent unquoted.
+        if (quotedCurrency && !bankCurrency) {
+            setError({ showError: true, errorMessage: t('errors.invalidAmount') })
+            return
+        }
+        // The quote on screen is the one this confirmation is for. A quoted
+        // withdrawal with no quote on screen cannot be confirmed.
+        const quote = bankCurrency ? bankQuote.quote : null
+        if (bankCurrency && !quote) return
+        setQuoteNotice(null)
+        // An old quote (a tab left in the background) is replaced before
+        // create would refuse it.
+        if (quote?.quoteId && !isFixedOutputQuoteRecent(bankQuote.receivedAt)) {
+            requoteForReview(quote.quoteId)
+            return
+        }
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
@@ -337,6 +416,12 @@ export function useBridgeOfframpFlow() {
                       ? t('errors.minimumWithdrawal', { amount: `$${minUsd}` })
                       : t('errors.invalidAmount')
             setError({ showError: true, errorMessage })
+            return
+        }
+        // The signed payout itself is under the rail's local floor: the
+        // provider would refuse it, whatever the USD amount says.
+        if (payoutBelowRailFloor) {
+            setError({ showError: true, errorMessage: t('errors.minimumWithdrawal', { amount: `$${minUsd}` }) })
             return
         }
         const amountUsd = amountCheck.normalized
@@ -366,6 +451,11 @@ export function useBridgeOfframpFlow() {
         // the right copy (backend-authored, or the confirm-pending notice), and the
         // catch must not overwrite them with the generic mapper output.
         let errorAlreadyDisplayed = false
+        // Set when sendMoney is called, and when the network proves the send
+        // did nothing (a mined revert). Between the two the outcome is unknown.
+        let sendStarted = false
+        let sendReverted = false
+        let txSubmitted = false
 
         try {
             // Step 1: create the transfer to get deposit instructions
@@ -390,8 +480,31 @@ export function useBridgeOfframpFlow() {
                     externalAccountId: destination.externalAccountId,
                     ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
+                // the server takes both amounts from the quote; `amount` is its sourceAmount
+                ...(quote?.quoteId ? { quoteId: quote.quoteId } : {}),
             }
-            const { data, error } = await createOfframp(createPayload)
+
+            if (quote?.quoteId) {
+                const sentDestination = JSON.stringify(createPayload.destination)
+                const sent = sentQuoteRef.current
+                if (sent?.quoteId === quote.quoteId && (sent.destination !== sentDestination || sent.sendAttempted)) {
+                    requoteForReview(quote.quoteId)
+                    return
+                }
+                sentQuoteRef.current = { quoteId: quote.quoteId, destination: sentDestination, sendAttempted: false }
+            }
+
+            const { data, error, code } = await createOfframp(createPayload)
+
+            if (error && quote?.quoteId && isBridgeQuoteRefusal(code)) {
+                // Create refused this quote before this attempt sent anything. The
+                // quote may still belong to a transfer made earlier (USED), which
+                // this screen never funds again. The new quote can have other
+                // amounts: the user confirms it, and the app never creates or
+                // sends on its own.
+                requoteForReview(quote.quoteId)
+                return
+            }
 
             if (error) {
                 setError({ showError: true, errorMessage: error })
@@ -406,6 +519,10 @@ export function useBridgeOfframpFlow() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
+            if (sentQuoteRef.current && sentQuoteRef.current.quoteId === quote?.quoteId) {
+                sentQuoteRef.current.sendAttempted = true
+            }
+            sendStarted = true
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
                 createPayload.amount,
@@ -413,6 +530,7 @@ export function useBridgeOfframpFlow() {
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
+                sendReverted = true
                 throw new Error('Transaction reverted by the network.')
             }
 
@@ -428,6 +546,7 @@ export function useBridgeOfframpFlow() {
             // any error path (including a confirm timeout) must NOT offer Retry —
             // re-running this handler would call sendMoney() again and double-pay.
             setSubmittedTxHash(txIdentifier)
+            txSubmitted = true
 
             const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
@@ -464,14 +583,29 @@ export function useBridgeOfframpFlow() {
             // Card re-approval dismissed, or the screen left, before the
             // on-chain leg was prepared or signed. The offramp transfer row
             // exists but no funds moved, so this is control flow, not a failed
-            // withdrawal: the user can run it again from the same screen.
-            if (e instanceof SpendRecoveryAbortedError) return
+            // withdrawal: the user can run it again from the same screen, with
+            // the same quote — the transfer still waits for its deposit.
+            if (e instanceof SpendRecoveryAbortedError) {
+                if (sentQuoteRef.current) sentQuoteRef.current.sendAttempted = false
+                return
+            }
 
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
                 error_message: error,
             })
+            // After the send started, only proof that nothing left may offer
+            // Retry: the user dismissed the passkey, the balance check refused
+            // before signing, or the network reverted it. Anything else may
+            // have paid the deposit address — hold and point to Activity.
+            // (A failed confirm is already held through `submittedTxHash`.)
+            const provenNotSent = sendReverted || isUserCancellation(e) || e instanceof InsufficientSpendableError
+            if (sendStarted && !txSubmitted && !provenNotSent) {
+                setSendOutcomeUnknown(true)
+                setError({ showError: true, errorMessage: tQrPay('errors.paymentStatusUnknown') })
+                return
+            }
             if (!errorAlreadyDisplayed) {
                 setError({ showError: true, errorMessage: error })
             }
@@ -534,14 +668,16 @@ export function useBridgeOfframpFlow() {
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
         amountToWithdraw,
-        // bank amount typed in its currency (TASK-23054): null on the USD path
+        // a withdrawal quoted in its bank currency (TASK-23054): null on the USD path
         bankAmount: bankCurrency
             ? {
                   currency: bankCurrency,
-                  destinationAmount,
                   quote: bankQuote.quote,
+                  // amounts create takes as they are; otherwise the bank amount is an estimate
+                  isExact: !!bankQuote.quote && isFixedOutputQuote(bankQuote.quote),
                   quoteFailed: bankQuote.isError,
                   refetchQuote: bankQuote.refetch,
+                  quoteNotice,
               }
             : null,
         bankAccount,
@@ -552,7 +688,13 @@ export function useBridgeOfframpFlow() {
         error,
         isLoading,
         submittedTxHash,
-        balanceErrorMessage,
+        sendOutcomeUnknown,
+        // The view renders this as the blocking notice under the disabled
+        // submit; a failed Bridge rate blocks the same way and must say why.
+        // A bank-currency amount's failed quote already shows its inline retry.
+        balanceErrorMessage:
+            balanceErrorMessage ??
+            (bankMinimum.status === 'unavailable' && !bankCurrency ? tRate('widget.rateUnavailable') : null),
         confirmPendingCopy,
         reference,
         setReference,

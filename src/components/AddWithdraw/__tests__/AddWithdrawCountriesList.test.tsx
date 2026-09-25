@@ -55,6 +55,8 @@ jest.mock('@/components/AddMoney/consts', () => ({
         // hand-editing the URL, which is the hole F9 names
         { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
         { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+        // Pix plus Manteca's bank transfer, both live: the two-rail Brazil of Chip 5311215266
+        { type: 'country', path: 'brazil', id: 'BR', title: 'Brazil', currency: 'brl' },
     ],
     // the corridor table reads this; the real module exports it
     BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
@@ -91,6 +93,28 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     title: 'To Bank',
                     description: 'Withdraw to your bank',
                     icon: 'bank',
+                    isSoon: false,
+                },
+            ],
+        },
+        BR: {
+            add: [],
+            withdraw: [
+                {
+                    id: 'br-pix-withdraw',
+                    title: 'Pix',
+                    description: 'Instant transfers',
+                    icon: 'pix',
+                    path: '/withdraw/manteca?method=pix&country=brazil',
+                    isSoon: false,
+                },
+                // the catalogue's Brazil bank rail is Manteca's, not a Bridge form
+                {
+                    id: 'br-default-bank-withdraw',
+                    title: 'To Bank',
+                    description: 'Withdraw to your bank',
+                    icon: 'bank',
+                    path: '/withdraw/manteca?method=bank-transfer&country=brazil',
                     isSoon: false,
                 },
             ],
@@ -681,6 +705,107 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
 
         await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Chip 5311215266: Brazil has two live rails (Pix and To Bank), so the country
+ * pick lands on this rail list with the Rates & fees USD amount. The amount
+ * must reach whichever rail is picked, and survive Back from the bank form.
+ */
+describe('AddWithdrawCountriesList — a two-rail country keeps the incoming amount', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockUrlUpdate.mockClear()
+        mockParams.country = 'brazil'
+        mockUrlAmount = '5'
+        mockNuqsParams = { step: 'list', amount: '5' }
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockUrlAmount = ''
+        mockNuqsParams = {}
+        mockSearchParams = new URLSearchParams()
+    })
+
+    it('opens the rail list, not the bank form, although an amount is in the URL', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(screen.getByTestId('method-pix')).toBeInTheDocument()
+        expect(screen.getByTestId('method-to bank')).toBeInTheDocument()
+        expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument()
+    })
+
+    it('Pix opens the PIX flow with the amount', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-pix'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&amount=5')
+    })
+
+    it('from Send → Bank, Pix keeps the send origin next to the amount', () => {
+        mockSearchParams = new URLSearchParams('method=bank')
+        mockNuqsParams = { step: 'list', method: 'bank', amount: '5' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-pix'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank&amount=5')
+    })
+
+    it('To Bank (Manteca bank transfer) opens its flow with the amount', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-to bank'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=bank-transfer&country=brazil&amount=5')
+    })
+})
+
+/**
+ * The same hop for a Bridge country with two live rails: its To Bank rail is
+ * the bank form, and the amount waits in the URL for the amount step.
+ */
+describe('AddWithdrawCountriesList — a two-rail Bridge country keeps the incoming amount', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockUrlUpdate.mockClear()
+        mockUrlAmount = '5'
+        mockLiveRails = [
+            { id: 'testland-default-bank-withdraw', title: 'To Bank' },
+            { id: 'testland-cash-withdraw', title: 'Cash' },
+        ]
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+    afterEach(() => {
+        mockUrlAmount = ''
+        mockNuqsParams = {}
+        mockLiveRails = null
+    })
+    const lastUrl = () => mockUrlUpdate.mock.calls.at(-1)?.[0].searchParams as URLSearchParams
+
+    it('To Bank opens the bank form and the amount stays for the amount step', async () => {
+        mockNuqsParams = { step: 'list', amount: '5' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('method-to bank'))
+
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
+        expect(lastUrl().get('step')).toBe('form')
+        expect(lastUrl().get('amount')).toBe('5')
+    })
+
+    it('Back from the bank form returns to the rail list with the amount', async () => {
+        mockNuqsParams = { step: 'form', amount: '5' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+        expect(lastUrl().get('step')).toBe('list')
+        expect(lastUrl().get('amount')).toBe('5')
         expect(mockPush).not.toHaveBeenCalled()
     })
 })

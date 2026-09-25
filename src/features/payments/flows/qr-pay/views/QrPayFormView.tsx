@@ -82,6 +82,11 @@ export function QrPayFormView() {
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
 
+    const savingsInCents = hasCardMarkupComparison(currency.code)
+        ? calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+        : 0
+    const savingsUsd = savingsInCents > 0 ? (savingsInCents / 100).toFixed(2) : null
+
     return (
         <>
             <SumsubKycWrapper
@@ -175,35 +180,27 @@ export function QrPayFormView() {
                         )
                     })()}
 
-                    {/* Information Card */}
+                    {/* Information Card. The provider's conversion cost is in
+                        the rate, so there is no separate fee row. */}
                     <GlobalCard className="px-4">
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
                             moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
+                            hideBottomBorder={!savingsUsd}
                         />
-                        {(() => {
-                            if (!hasCardMarkupComparison(currency.code)) return null
-                            const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
-                            if (savingsInCents <= 0) return null
-                            const savingsUsd = (savingsInCents / 100).toFixed(2)
-                            return (
-                                <PaymentInfoRow
-                                    label={t('info.saveVsCard')}
-                                    value={`~$${savingsUsd}`}
-                                    moreInfoText={
-                                        currency.code.toUpperCase() === 'BRL'
-                                            ? t('info.saveVsCardTooltipBrl')
-                                            : t('info.saveVsCardTooltipArs')
-                                    }
-                                />
-                            )
-                        })()}
-                        <PaymentInfoRow
-                            label={tCommon('peanutFee')}
-                            value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
-                        />
+                        {savingsUsd && (
+                            <PaymentInfoRow
+                                label={t('info.saveVsCard')}
+                                value={`~$${savingsUsd}`}
+                                moreInfoText={
+                                    currency.code.toUpperCase() === 'BRL'
+                                        ? t('info.saveVsCardTooltipBrl')
+                                        : t('info.saveVsCardTooltipArs')
+                                }
+                                hideBottomBorder
+                            />
+                        )}
                     </GlobalCard>
 
                     {/* Send Button */}
