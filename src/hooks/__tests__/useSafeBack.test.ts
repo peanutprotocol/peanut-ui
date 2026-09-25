@@ -99,69 +99,80 @@ describe('useSafeBack', () => {
     })
 })
 
-describe('useReturnTo', () => {
-    let go: jest.SpyInstance
-    beforeEach(() => {
-        window.history.replaceState({}, '', '/')
-        go = jest.spyOn(window.history, 'go').mockImplementation(() => undefined)
+// Real jsdom history: go/back/forward traverse and fire popstate with the
+// entry's state, as a browser does.
+const traverse = (move: () => void) =>
+    act(
+        () =>
+            new Promise<void>((resolve) => {
+                window.addEventListener('popstate', () => resolve(), { once: true })
+                move()
+            })
+    )
+const visit = (...urls: string[]) =>
+    act(() => {
+        for (const url of urls) window.history.pushState({}, '', url)
     })
-    afterEach(() => go.mockRestore())
+
+describe('useReturnTo', () => {
+    beforeEach(() => {
+        window.history.replaceState(null, '', '/')
+        __testing.reset()
+    })
 
     // Profile → Accounts and payments → account details. Pushing the origin
     // made history [.., accounts, details, accounts], and back from accounts
     // (useSafeBack → router.back()) reopened details: a loop.
-    it('rewinds to the origin when it is behind the current entry, never pushes it', () => {
-        act(() => {
-            window.history.pushState({}, '', '/profile')
-            window.history.pushState({}, '', '/profile/accounts-and-payments')
-            window.history.pushState({}, '', '/add-money?method=bank&step=details')
-        })
+    it('rewinds to the origin when it is behind the current entry, never pushes it', async () => {
+        visit('/profile', '/profile/accounts-and-payments', '/add-money?method=bank&step=details')
 
         const { result } = renderHook(() => useReturnTo('/profile/accounts-and-payments'))
-        act(() => result.current())
+        await traverse(() => result.current())
 
-        expect(go).toHaveBeenCalledWith(-1)
+        expect(window.location.pathname).toBe('/profile/accounts-and-payments')
         expect(mockPush).not.toHaveBeenCalled()
         expect(mockReplace).not.toHaveBeenCalled()
     })
 
-    it('rewinds past every page the flow pushed, to the nearest entry on the origin path', () => {
-        act(() => {
-            window.history.pushState({}, '', '/home?drawer=add')
-            window.history.pushState({}, '', '/add-money?method=bank')
-            window.history.pushState({}, '', '/add-money/mexico/bank')
-        })
+    it('rewinds past every page the flow pushed, to the nearest entry on the origin path', async () => {
+        visit('/home?drawer=add', '/add-money?method=bank', '/add-money/mexico/bank')
 
         const { result } = renderHook(() => useReturnTo('/home'))
-        act(() => result.current())
+        await traverse(() => result.current())
 
-        // current: the country page; behind it the hub, then home
-        expect(go).toHaveBeenCalledWith(-2)
-    })
-
-    it('keeps the history mirror in step: the rewind popstate does not pop it twice', () => {
-        act(() => {
-            window.history.pushState({}, '', '/profile')
-            window.history.pushState({}, '', '/withdraw')
-        })
-        const { result } = renderHook(() => useReturnTo('/profile'))
-        act(() => result.current())
-        // the one popstate history.go(-1) fires
-        act(() => window.dispatchEvent(new PopStateEvent('popstate')))
-
-        // '/' is still behind '/profile', so back stays in the app
+        expect(`${window.location.pathname}${window.location.search}`).toBe('/home?drawer=add')
+        // and it knows where it is: '/' is still behind home
         expect(hasInAppHistory()).toBe(true)
     })
 
+    // Chip, ui#3477: counting popstates read browser Forward as another Back,
+    // emptied the mirror, and turned the next rewind into a replace — which
+    // left the original page behind and brought the loop back.
+    it('browser Back then Forward keeps the mirror: header back still rewinds', async () => {
+        visit('/home', '/withdraw', '/withdraw/argentina')
+        await traverse(() => window.history.back())
+        expect(window.location.pathname).toBe('/withdraw')
+        await traverse(() => window.history.forward())
+        expect(window.location.pathname).toBe('/withdraw/argentina')
+
+        const { result } = renderHook(() => useReturnTo('/withdraw'))
+        await traverse(() => result.current())
+
+        expect(window.location.pathname).toBe('/withdraw')
+        expect(mockReplace).not.toHaveBeenCalled()
+
+        const { result: leaveWithdraw } = renderHook(() => useReturnTo('/home'))
+        await traverse(() => leaveWithdraw.current())
+        expect(window.location.pathname).toBe('/home')
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
     it('replaces the current page with the origin when the origin is not in in-app history', () => {
-        act(() => {
-            window.history.pushState({}, '', '/withdraw')
-        })
+        visit('/withdraw')
 
         const { result } = renderHook(() => useReturnTo('/profile/exchange-rate'))
         act(() => result.current())
 
-        expect(go).not.toHaveBeenCalled()
         expect(mockReplace).toHaveBeenCalledWith('/profile/exchange-rate')
         expect(mockPush).not.toHaveBeenCalled()
     })

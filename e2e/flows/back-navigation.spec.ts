@@ -43,7 +43,6 @@ test.describe('back navigation', () => {
         await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
         await page.locator('a[href="/profile"]').first().click({ timeout: 60_000 })
         await page.waitForURL(/\/profile$/)
-        // by href: the page is being split into Accounts and Payments (ui#3461)
         await page.locator('a[href^="/profile/accounts"]').first().click()
         await page.waitForURL(/\/profile\/accounts/)
 
@@ -57,6 +56,32 @@ test.describe('back navigation', () => {
         await navBack(page)
         await page.waitForURL((url) => url.pathname === '/profile')
         // and browser back from profile goes further out, not into the flow
+        await page.goBack()
+        await page.waitForURL(/\/home/)
+        expect(pathOf(page)).toBe('/home')
+    })
+
+    // Chip, ui#3477: the history mirror read browser Forward as another Back,
+    // so the next header back replaced instead of rewinding and left a
+    // duplicate page behind it.
+    test('browser Back then Forward, then header back still leaves cleanly', async ({ page }) => {
+        await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
+        await page.locator('a[href="/profile"]').first().click({ timeout: 60_000 })
+        await page.waitForURL(/\/profile$/)
+        await page.locator('a[href^="/profile/accounts"]').first().click()
+        await page.waitForURL(/\/profile\/accounts/)
+        await page.getByTestId('deposit-account-SEPA_EU').click()
+        await page.waitForURL(/step=details/)
+
+        await page.goBack()
+        await page.waitForURL(/\/profile\/accounts/)
+        await page.goForward()
+        await page.waitForURL(/step=details/)
+
+        await navBack(page)
+        await page.waitForURL(/\/profile\/accounts/)
+        await navBack(page)
+        await page.waitForURL((url) => url.pathname === '/profile')
         await page.goBack()
         await page.waitForURL(/\/home/)
         expect(pathOf(page)).toBe('/home')
