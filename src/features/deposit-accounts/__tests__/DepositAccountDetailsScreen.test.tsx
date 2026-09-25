@@ -197,7 +197,7 @@ describe('the details screen, collapsed and open', () => {
     const secondary = [
         messages.depositAccounts.rules.ownOrBusinessAny.line,
         // a round amount without cents, and no closing period (QA 2026-09-24)
-        'From other people: Under €4,000 per transfer',
+        'Other people: Under €4,000 per transfer',
         messages.depositAccounts.rules.individualCapFamily.line,
         'Minimum: €1',
         messages.depositAccounts.fees.converted,

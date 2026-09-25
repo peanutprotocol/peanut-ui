@@ -24,10 +24,10 @@ import { DepositRuleList } from './DepositRuleList'
  * and the conditions — a bank's rules, not ours — held to one Callout above
  * the CTA rather than stacked into the page.
  *
- * Who may pay in is stated here, behind a closed link toggle, in the same
- * lines the details screen states them in and through the same resolver and
- * `DepositRuleList`: the backend runs it before an account exists and returns
- * the terms as `claimable`. A user who reads
+ * Who may pay in is stated here, behind one closed toggle in the details
+ * screen's card style, in the lines the details screen uses and through the
+ * same resolver and `DepositRuleList`: the backend runs it before an account
+ * exists and returns the terms as `claimable`. A user who reads
  * "anyone can pay you" only AFTER opening the account was deciding blind, and
  * on the corridors where a stranger's payment is sent back that is the one
  * fact they needed first.
@@ -102,7 +102,7 @@ export function ClaimAccountScreen({
                 </ListGroup>
 
                 {rules && (
-                    <Accordion type="single" collapsible variant="link">
+                    <Accordion type="single" collapsible>
                         <Accordion.Item value="who-can-pay">
                             <Accordion.Trigger>{t('claim.whoCanPay')}</Accordion.Trigger>
                             <Accordion.Content className="flex flex-col gap-3">

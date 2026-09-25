@@ -125,7 +125,7 @@ describe('the claim screen when the backend previewed the terms', () => {
         openWhoCanPay()
 
         expect(screen.getByText(ruleText('ownOrBusinessAny'))).toBeInTheDocument()
-        expect(screen.getByText('From other people: Under $4,000 per transfer')).toBeInTheDocument()
+        expect(screen.getByText('Other people: Under $4,000 per transfer')).toBeInTheDocument()
     })
 
     it('states the Colombian terms in the lines the details screen uses', () => {

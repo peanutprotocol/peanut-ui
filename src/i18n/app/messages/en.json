@@ -4071,13 +4071,13 @@
             "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Share once, use for every payment",
-            "benefitBalance": "Arrives as USD in your Peanut balance",
+            "benefitBalance": "Arrives as USD in the Peanut balance",
             "conditionNoReference": "No reference or memo to remember.",
             "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
-            "whoCanPay": "Who can pay you"
+            "whoCanPay": "Who can pay"
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4226,59 +4226,59 @@
                 "why": "Money paid in still lands in your Peanut balance. The name on the account is not your own, so a payroll form that checks the name needs the account holder shown above."
             },
             "anyoneAny": {
-                "line": "From anyone: Any amount",
+                "line": "Anyone: Any amount",
                 "why": "Payments from anyone are accepted in this currency, whatever the amount. Contact support before sending more than US$100,000."
             },
             "ownOrBusinessAny": {
-                "line": "From your own account or a business: Any amount",
+                "line": "Own account or a business: Any amount",
                 "why": "Transfers from your own bank account and payments from a business have no amount limit, so salary and invoices go through unchanged. Contact support before sending more than US$100,000."
             },
             "ownAccount": {
-                "line": "From your own account: Yes",
+                "line": "Own account: Yes",
                 "why": "Transfers from your own bank account are supported. Contact support before sending more than US$100,000."
             },
             "ownAccountMax": {
-                "line": "From your own account: Up to {max}",
+                "line": "Own account: Up to {max}",
                 "why": "Money you send yourself is a top-up, not a payment from someone else. Transfers from your own account are accepted up to {max} in this currency. If a larger transfer of your own comes back, contact support."
             },
             "ownAccountNo": {
-                "line": "From your own account: Not yet",
+                "line": "Own account: Not yet",
                 "why": "Transfers from your own bank account are not accepted in this currency yet. We will say so here the day that changes."
             },
             "businessAny": {
-                "line": "From a business: Any amount",
+                "line": "A business: Any amount",
                 "why": "A payment from a business has no limit. Salary and invoices go through unchanged."
             },
             "businessNotYet": {
-                "line": "From a business: Not yet",
+                "line": "A business: Not yet",
                 "why": "Payments from a business are not available in this currency yet. We will say so here the day that changes."
             },
             "businessUnconfirmed": {
-                "line": "From a business: Not confirmed",
+                "line": "A business: Not confirmed",
                 "why": "Payments from a business are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "individualAny": {
-                "line": "From other people: Any amount",
+                "line": "Other people: Any amount",
                 "why": "Payments from other people are accepted in this currency, so you can hand these details to whoever is paying you."
             },
             "individualCap": {
-                "line": "From other people: Under {cap} per transfer",
+                "line": "Other people: Under {cap} per transfer",
                 "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
             },
             "individualCapFamily": {
-                "line": "From family with the same surname: Any amount",
+                "line": "Family with the same surname: Any amount",
                 "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
             },
             "individualVolume": {
-                "line": "From other people: Up to {limit} in total",
+                "line": "Other people: Up to {limit} in total",
                 "why": "The total other people may pay into this account is capped at {limit}. The period this total covers is not published, so contact support before a large payment. A business can pay any amount."
             },
             "individualNotYet": {
-                "line": "From other people: Not yet",
+                "line": "Other people: Not yet",
                 "why": "Payments from other people are not available on this account yet."
             },
             "individualUnconfirmed": {
-                "line": "From other people: Not confirmed",
+                "line": "Other people: Not confirmed",
                 "why": "Payments from other people are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {
@@ -4294,7 +4294,7 @@
                 "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
             },
             "businessAllowed": {
-                "line": "From a business: Yes",
+                "line": "A business: Yes",
                 "why": "Registered businesses can pay you. The limits shown here still apply."
             },
             "maximum": {

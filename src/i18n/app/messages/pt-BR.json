@@ -4226,59 +4226,59 @@
                 "why": "O dinheiro que entra continua chegando ao seu saldo na Peanut. O nome na conta não é o seu, então um formulário de folha de pagamento que confere o nome precisa do titular mostrado acima."
             },
             "anyoneAny": {
-                "line": "De qualquer pessoa: qualquer valor",
+                "line": "Qualquer pessoa: qualquer valor",
                 "why": "Pagamentos de qualquer pessoa são aceitos nesta moeda, em qualquer valor. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownOrBusinessAny": {
-                "line": "De uma conta própria ou empresa: qualquer valor",
+                "line": "Conta própria ou uma empresa: qualquer valor",
                 "why": "Transferências da sua própria conta bancária e pagamentos de uma empresa não têm limite de valor, então salário e faturas passam sem mudança. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownAccount": {
-                "line": "De uma conta própria: sim",
+                "line": "Conta própria: sim",
                 "why": "Você pode transferir da sua própria conta bancária. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownAccountMax": {
-                "line": "De uma conta própria: até {max}",
+                "line": "Conta própria: até {max}",
                 "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa. São aceitos até {max} da sua própria conta nesta moeda. Se uma transferência maior sua voltar, fale com o suporte."
             },
             "ownAccountNo": {
-                "line": "De uma conta própria: ainda não",
+                "line": "Conta própria: ainda não",
                 "why": "Ainda não são aceitas transferências da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessAny": {
-                "line": "De uma empresa: qualquer valor",
+                "line": "Uma empresa: qualquer valor",
                 "why": "Um pagamento de uma empresa não tem limite. Salário e faturas passam sem mudança."
             },
             "businessNotYet": {
-                "line": "De uma empresa: ainda não",
+                "line": "Uma empresa: ainda não",
                 "why": "Pagamentos de empresas ainda não estão disponíveis nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessUnconfirmed": {
-                "line": "De uma empresa: não confirmado",
+                "line": "Uma empresa: não confirmado",
                 "why": "Pagamentos de empresas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "individualAny": {
-                "line": "De outras pessoas: qualquer valor",
+                "line": "Outras pessoas: qualquer valor",
                 "why": "Pagamentos de outras pessoas são aceitos nesta moeda, então você pode passar estes dados a quem for te pagar."
             },
             "individualCap": {
-                "line": "De outras pessoas: menos de {cap} por transferência",
+                "line": "Outras pessoas: menos de {cap} por transferência",
                 "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
             },
             "individualCapFamily": {
-                "line": "De familiares com o mesmo sobrenome: qualquer valor",
+                "line": "Familiares com o mesmo sobrenome: qualquer valor",
                 "why": "Familiares que compartilham o seu sobrenome podem pagar qualquer valor nesta moeda; os demais têm o limite por pagamento."
             },
             "individualVolume": {
-                "line": "De outras pessoas: até {limit} no total",
+                "line": "Outras pessoas: até {limit} no total",
                 "why": "O total que outras pessoas podem pagar nesta conta tem limite de {limit}. O período que esse total cobre não é publicado, então fale com o suporte antes de um pagamento grande. Uma empresa pode pagar qualquer valor."
             },
             "individualNotYet": {
-                "line": "De outras pessoas: ainda não",
+                "line": "Outras pessoas: ainda não",
                 "why": "Pagamentos de outras pessoas ainda não estão disponíveis nesta conta."
             },
             "individualUnconfirmed": {
-                "line": "De outras pessoas: não confirmado",
+                "line": "Outras pessoas: não confirmado",
                 "why": "Pagamentos de outras pessoas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {
@@ -4294,7 +4294,7 @@
                 "why": "Só é creditada uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
             },
             "businessAllowed": {
-                "line": "De uma empresa: sim",
+                "line": "Uma empresa: sim",
                 "why": "Empresas registradas podem te pagar. Os limites mostrados aqui continuam valendo."
             },
             "maximum": {
