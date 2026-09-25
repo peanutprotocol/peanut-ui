@@ -582,6 +582,23 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('amount=50')
         expect(pushed).not.toContain('destinationAmount')
+        // the amount step's own URL keeps the toggle and the USD, for back and refresh
+        const written = mockOnUrlUpdate.mock.calls.at(-1)?.[0].queryString as string
+        expect(written).toContain('amountCurrency=usd')
+        expect(written).toContain('amount=50')
+    })
+
+    test('back from the review restores the field in USD with the USD typed', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.9'
+        const params = { step: 'amount', amount: '50', amountCurrency: 'usd', destinationAmount: '45' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        expect(screen.getByRole('textbox')).toHaveValue('50')
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?amount=50')
     })
 
     test('the checks run on the USD it converts to: 90 EUR at 0.9 is 100 USD, the whole balance', () => {
