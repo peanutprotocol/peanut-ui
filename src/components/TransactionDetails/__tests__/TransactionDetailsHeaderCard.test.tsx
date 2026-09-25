@@ -194,6 +194,30 @@ describe('TransactionDetailsHeaderCard address counterparties keep the wording',
     })
 })
 
+// TASK-23054: a generic label inside the title is a common noun, so it reads
+// lowercase ("Added from bank account"). Real names keep their casing.
+describe('TransactionDetailsHeaderCard generic names mid-sentence', () => {
+    it.each([
+        ['bank_deposit', 'completed', 'Bank account', 'name.bankAccount', 'Added from bank account'],
+        ['bank_deposit', 'pending', 'Bank account', 'name.bankAccount', 'Adding from bank account'],
+        ['bank_withdraw', 'completed', 'Bank account', 'name.bankAccount', 'Withdrew to bank account'],
+        ['withdraw', 'completed', 'External account', 'name.externalAccount', 'Withdrew to external account'],
+        ['add', 'completed', 'External wallet', 'name.externalWallet', 'Added from external wallet'],
+        ['send', 'completed', 'Recipient', 'name.recipient', 'Sent to recipient'],
+        ['receive', 'completed', 'Sender', 'name.sender', 'Received from sender'],
+        ['receive', 'completed', 'Peanut reward', 'name.peanutReward', 'Received from Peanut reward'],
+        ['qr_payment', 'completed', 'Merchant', 'name.merchant', 'Paid to merchant'],
+    ] as const)('%s %s with %s reads "%s"', (direction, status, userName, nameKey, title) => {
+        renderHeaderCard({ direction, status, userName, nameKey })
+        expect(screen.getByText(title)).toBeInTheDocument()
+    })
+
+    it('keeps the casing of a real counterparty name', () => {
+        renderHeaderCard({ direction: 'withdraw', status: 'completed', userName: 'Banco Galicia' })
+        expect(screen.getByText('Withdrew to Banco Galicia')).toBeInTheDocument()
+    })
+})
+
 // Self-describing labels must render bare — never interpolated into
 // direction wording ("Sending to Send didn't complete").
 describe('TransactionDetailsHeaderCard self-describing labels', () => {

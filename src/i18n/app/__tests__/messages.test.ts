@@ -38,6 +38,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
+    'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
 }
 
 describe('deepMerge fallback', () => {
