@@ -2190,6 +2190,17 @@
             "transaction": "Transação",
             "failedQrPayment": "Tentativa de pagamento com QR falhou"
         },
+        "nameInSentence": {
+            "merchant": "estabelecimento",
+            "depositSource": "origem do depósito",
+            "externalWallet": "carteira externa",
+            "externalAccount": "conta externa",
+            "bankAccount": "conta bancária",
+            "recipient": "destinatário",
+            "sender": "remetente",
+            "peanutReward": "recompensa Peanut",
+            "transaction": "transação"
+        },
         "failReason": {
             "p2pSendTimeout": "O envio não foi concluído",
             "p2pRequestFulfillTimeout": "O pagamento não foi concluído",
