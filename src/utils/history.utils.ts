@@ -128,6 +128,8 @@ export interface HistoryEntryExtraData {
     networkFeeUsd?: number | null
     /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
     payoutFeeUsd?: number | null
+    /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
+    payoutRail?: string | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */
     destinationTxHash?: string

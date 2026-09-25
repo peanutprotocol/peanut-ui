@@ -161,7 +161,8 @@ const WIRE_WITHDRAWAL_ENTRY = {
     userRole: 'SENDER',
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: '938636999398030', type: 'US', isUser: false },
-    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20 },
+    currency: { amount: '80.00', code: 'USD' },
+    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
 }
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the

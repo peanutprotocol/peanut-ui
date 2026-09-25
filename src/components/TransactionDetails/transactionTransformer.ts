@@ -662,6 +662,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         typeof entry.extraData?.payoutFeeUsd === 'number' && entry.extraData.payoutFeeUsd > 0
             ? entry.extraData.payoutFeeUsd
             : undefined
+    const usdBankAmount = (currency: HistoryEntry['currency']) => {
+        const value = currency?.code?.toUpperCase() === 'USD' ? Number(currency.amount) : Number.NaN
+        return Number.isFinite(value) ? value : undefined
+    }
 
     const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
         computeDerivedFields(entry)
@@ -721,8 +725,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // clearly"). The user chose it on the review screen, so the receipt
         // states it and what the bank received.
         fee: payoutFeeUsd,
-        payoutReceivedUsd:
-            payoutFeeUsd !== undefined ? Math.max(Math.round((amount - payoutFeeUsd) * 100) / 100, 0) : undefined,
+        // the backend's own figure (Bridge's final_amount, or its payout helper
+        // before then), never a subtraction here
+        payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
