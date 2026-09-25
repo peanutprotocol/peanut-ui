@@ -55,7 +55,7 @@
         "components/Setup/Views/PasskeySetupHelpDrawer.tsx": 89,
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 525,
         "features/add-money/views/BridgeBankOnrampView.tsx": 518,
-        "features/deposit-accounts/components/ClaimAccountScreen.tsx": 216,
+        "features/deposit-accounts/components/ClaimAccountScreen.tsx": 210,
         "features/deposit-accounts/components/ClosedRowDrawer.tsx": 130,
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 148,
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 212,

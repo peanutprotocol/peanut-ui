@@ -1,13 +1,13 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { corridorNeedsReference } from '../instructionRows'
@@ -20,13 +20,14 @@ import { DepositRuleList } from './DepositRuleList'
  * The claim step — the one screen where the user decides to hold an account.
  *
  * It sells the outcome (a real account, not a lookup) before it asks for the
- * tap: three benefit rows for what the account actually buys them, and the
- * conditions — a bank's rules, not ours — held to one Callout above the
- * CTA rather than stacked into the page.
+ * tap: three one-line benefit rows for what the account actually buys them,
+ * and the conditions — a bank's rules, not ours — held to one Callout above
+ * the CTA rather than stacked into the page.
  *
- * Who may pay in is stated here, in the same three lines the details screen
- * states them in and through the same resolver: the backend runs it before an
- * account exists and returns the terms as `claimable`. A user who reads
+ * Who may pay in is stated here, behind a closed link toggle, in the same
+ * lines the details screen states them in and through the same resolver and
+ * `DepositRuleList`: the backend runs it before an account exists and returns
+ * the terms as `claimable`. A user who reads
  * "anyone can pay you" only AFTER opening the account was deciding blind, and
  * on the corridors where a stranger's payment is sent back that is the one
  * fact they needed first.
@@ -60,7 +61,7 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, arrivalDetail, ruleLines } = useDepositAccountCopy()
+    const { t, arrivalShort, ruleLines } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
@@ -92,7 +93,7 @@ export function ClaimAccountScreen({
                     />
                     <ListItem
                         leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
-                        title={arrivalDetail(rail.corridor)}
+                        title={arrivalShort(rail.corridor)}
                     />
                     <ListItem
                         leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
@@ -101,12 +102,17 @@ export function ClaimAccountScreen({
                 </ListGroup>
 
                 {rules && (
-                    <Section title={t('details.whoCanPay')}>
-                        <DepositRuleList lines={rules} />
-                        {statePending && (
-                            <p className="text-body-xs text-foreground-secondary">{t('claim.statePending')}</p>
-                        )}
-                    </Section>
+                    <Accordion type="single" collapsible variant="link">
+                        <Accordion.Item value="who-can-pay">
+                            <Accordion.Trigger>{t('claim.whoCanPay')}</Accordion.Trigger>
+                            <Accordion.Content className="flex flex-col gap-3">
+                                <DepositRuleList lines={rules} />
+                                {statePending && (
+                                    <p className="text-body-xs text-foreground-secondary">{t('claim.statePending')}</p>
+                                )}
+                            </Accordion.Content>
+                        </Accordion.Item>
+                    </Accordion>
                 )}
             </div>
             {/*

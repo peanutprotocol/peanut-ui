@@ -129,3 +129,13 @@ export const CLAIMABLE_EUR = {
     matching: { sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
     rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
 } satisfies ClaimableCorridor
+
+/** Colombian pesos, resolved in full: a business-only Bre-B corridor with a floor. */
+export const CLAIMABLE_COP = {
+    railId: 'bridge.bank_transfer_co',
+    method: 'BANK_TRANSFER_CO',
+    country: 'COL',
+    currency: 'COP',
+    matching: { sender: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_CO.sender },
+    rules: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_CO.rules,
+} satisfies ClaimableCorridor

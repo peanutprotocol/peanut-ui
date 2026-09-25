@@ -4066,17 +4066,18 @@
             "badgeActionNeeded": "Acción requerida"
         },
         "claim": {
-            "heading": "Datos bancarios en {currency}",
-            "subheading": "Datos bancarios reales que tu empleador, cliente o plataforma ya sabe usar.",
+            "heading": "Recibe pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compártelos con empleadores, clientes o plataformas como Deel.",
             "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
             "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
-            "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
+            "benefitStable": "Se comparten una vez y sirven para cada pago",
+            "benefitBalance": "Llega en USD al saldo de Peanut",
             "conditionNoReference": "Sin referencia ni concepto que recordar.",
             "conditionReference": "Cada transferencia debe incluir la referencia que aparece con tus datos; sin ella no se puede asignar a tu cuenta.",
             "cta": "Abrir cuenta en {currency}",
             "errorTitle": "No pudimos abrir la cuenta",
-            "faqSepaShared": "Una cuenta en euros (SEPA) funciona en toda la eurozona. El IBAN puede emitirse en otro país de la UE."
+            "faqSepaShared": "Una cuenta en euros (SEPA) funciona en toda la eurozona. El IBAN puede emitirse en otro país de la UE.",
+            "whoCanPay": "Quién puede pagar"
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4094,7 +4095,6 @@
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
             "referenceRequired": "Cada transferencia necesita esta referencia.",
-            "whoCanPay": "Quién puede pagar",
             "termsToggle": "Límites y comisiones",
             "residenceCta": "Actualizar residencia",
             "qrPayCta": "Pagar un código QR"
@@ -4141,22 +4141,27 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos.",
+                "arrivalShort": "Suele llegar el mismo día (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
                 "arrivalDetail": "Los Faster Payments suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Faster Payments)",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
                 "arrivalDetail": "ACH llega en uno a tres días hábiles. Una transferencia wire llega el mismo día.",
+                "arrivalShort": "De 1 a 3 días hábiles por ACH, el mismo día por wire",
                 "railName": "ACH o wire"
             },
             "SPEI_MX": {
                 "arrivalDetail": "Las transferencias SPEI suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (SPEI)",
                 "railName": "SPEI"
             },
             "PIX_BR": {
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Necesitas residencia",
                 "residenceRequired": "Solo los residentes legales de Brasil pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
@@ -4164,6 +4169,7 @@
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos",
                 "railName": "Banco o Mercado Pago",
                 "residenceTitle": "Necesitas residencia",
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
@@ -4171,7 +4177,8 @@
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos."
+                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Bre-B)"
             }
         },
         "gate": {
@@ -4219,63 +4226,63 @@
                 "why": "El dinero que entra igual llega a tu saldo de Peanut. El nombre de la cuenta no es el tuyo, así que un formulario de nómina que revise el nombre necesita el titular que se muestra arriba."
             },
             "anyoneAny": {
-                "line": "Cualquier persona: cualquier monto",
+                "line": "De cualquier persona: cualquier monto",
                 "why": "Se aceptan pagos de cualquier persona en esta moneda, por cualquier monto. Contacta a soporte antes de enviar más de US$100.000."
             },
             "ownOrBusinessAny": {
-                "line": "Cuenta propia o empresa: cualquier monto",
+                "line": "De una cuenta propia o una empresa: cualquier monto",
                 "why": "Las transferencias desde tu propia cuenta bancaria y los pagos de una empresa no tienen límite de monto, así que el sueldo y las facturas pasan sin cambios. Contacta a soporte antes de enviar más de US$100.000."
             },
             "ownAccount": {
-                "line": "Cuenta propia: sí",
+                "line": "De una cuenta propia: sí",
                 "why": "Puedes transferir desde tu propia cuenta bancaria. Contacta a soporte antes de enviar más de US$100.000."
             },
             "ownAccountMax": {
-                "line": "Cuenta propia: hasta {max}",
+                "line": "De una cuenta propia: hasta {max}",
                 "why": "El dinero que te envías a ti mismo es una recarga, no un pago de otra persona. Se aceptan hasta {max} desde tu propia cuenta en esta moneda. Si una transferencia tuya más grande se devuelve, escribe a soporte."
             },
             "ownAccountNo": {
-                "line": "Cuenta propia: todavía no",
+                "line": "De una cuenta propia: todavía no",
                 "why": "Todavía no se aceptan transferencias desde tu propia cuenta bancaria en esta moneda. Lo diremos acá el día que cambie."
             },
             "businessAny": {
-                "line": "Empresa: cualquier monto",
+                "line": "De una empresa: cualquier monto",
                 "why": "Un pago de una empresa no tiene límite. El sueldo y las facturas pasan sin cambios."
             },
             "businessNotYet": {
-                "line": "Empresa: todavía no",
+                "line": "De una empresa: todavía no",
                 "why": "Todavía no están disponibles los pagos de empresas en esta moneda. Lo diremos acá el día que cambie."
             },
             "businessUnconfirmed": {
-                "line": "Empresa: sin confirmar",
+                "line": "De una empresa: sin confirmar",
                 "why": "Los pagos de empresas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "individualAny": {
-                "line": "Otras personas: cualquier monto",
+                "line": "De otras personas: cualquier monto",
                 "why": "Se aceptan pagos de otras personas en esta moneda, así que puedes dar estos datos a quien te pague."
             },
             "individualCap": {
-                "line": "Otras personas: menos de {cap} por transferencia",
+                "line": "De otras personas: menos de {cap} por transferencia",
                 "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribe a soporte."
             },
             "individualCapFamily": {
-                "line": "Familiares con el mismo apellido: cualquier monto",
+                "line": "De familiares con el mismo apellido: cualquier monto",
                 "why": "Los familiares que comparten tu apellido pueden pagar cualquier monto en esta moneda; el resto tiene el límite por pago."
             },
             "individualVolume": {
-                "line": "Otras personas: hasta {limit} en total",
+                "line": "De otras personas: hasta {limit} en total",
                 "why": "El total que otras personas pueden pagar a esta cuenta tiene un límite de {limit}. El periodo que cubre ese total no se publica, así que escribe a soporte antes de un pago grande. Una empresa puede pagar cualquier monto."
             },
             "individualNotYet": {
-                "line": "Otras personas: todavía no",
+                "line": "De otras personas: todavía no",
                 "why": "Los pagos de otras personas aún no están disponibles en esta cuenta."
             },
             "individualUnconfirmed": {
-                "line": "Otras personas: sin confirmar",
+                "line": "De otras personas: sin confirmar",
                 "why": "Los pagos de otras personas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "minimum": {
-                "line": "Depósito mínimo: {min}",
+                "line": "Mínimo: {min}",
                 "why": "Los depósitos deben ser de al menos {min}, incluidos los pagos de prueba."
             },
             "stateRestricted": {
@@ -4287,7 +4294,7 @@
                 "why": "Solo se acredita una transferencia que venga de una cuenta a tu nombre. Un pago de cualquier otra persona se devuelve a quien lo envió."
             },
             "businessAllowed": {
-                "line": "Empresa: permitido",
+                "line": "De una empresa: sí",
                 "why": "Las empresas registradas pueden pagarte. Se aplican los límites indicados aquí."
             },
             "maximum": {

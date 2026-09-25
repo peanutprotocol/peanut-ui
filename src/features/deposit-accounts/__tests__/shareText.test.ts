@@ -79,9 +79,9 @@ describe('the shared text is the account fields and the footer', () => {
         })
         // the rules the screen states must not travel with the numbers
         expect(out).not.toContain('From a business')
-        expect(out).not.toContain('From another person')
+        expect(out).not.toContain('From other people')
         expect(out).not.toContain('own account')
-        expect(out).not.toContain('Minimum deposit')
+        expect(out).not.toContain('Minimum:')
     })
 
     it('carries the reference, and says it is required, where the account has one', () => {

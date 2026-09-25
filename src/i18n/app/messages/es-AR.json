@@ -1763,8 +1763,8 @@
             "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
         },
         "claim": {
-            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
+            "heading": "Recibí pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",
