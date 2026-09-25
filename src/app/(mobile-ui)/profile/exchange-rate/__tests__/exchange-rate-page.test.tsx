@@ -6,8 +6,17 @@
  * the bug these tests lock down: every CTA target carries ?returnTo back here.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import { AccountType } from '@/interfaces/interfaces'
+
+// Bridge's execution-side rate — the only network the real minimum gate
+// (useBankWithdrawMinimum → useGetExchangeRate) makes here.
+const mockGetBridgeRate = jest.fn()
+jest.mock('@/app/actions/exchange-rate', () => ({
+    getExchangeRate: (...args: unknown[]) => mockGetBridgeRate(...args),
+}))
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -34,6 +43,7 @@ jest.mock('@/utils/regions.utils', () => ({
 
 const mockGetRedirectRoute = jest.fn()
 jest.mock('@/utils/exchangeRateWidget.utils', () => ({
+    ...jest.requireActual('@/utils/exchangeRateWidget.utils'),
     getExchangeRateWidgetRedirectRoute: (...args: any[]) => mockGetRedirectRoute(...args),
 }))
 
@@ -62,30 +72,52 @@ jest.mock('@/components/Global/NavHeader', () => ({
 // The real widget clamps its own currencies via `restrictToRoutable` — this
 // stub instead forwards whatever the URL currently says, so the CTA-handler
 // tests below exercise the page's own defensive clamp independently of that.
+// It also exposes the minimum policy the page hands it, and taps with the
+// on-screen amount the real widget passes (null when the field is empty).
+const mockMinimumPolicy: { current: any } = { current: null }
+const mockLabels: { current: any } = { current: null }
+const mockCtaAmount: { current: number | null } = { current: null }
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
-    default: ({ ctaAction, ctaLabel, ctaDisabled }: any) => (
-        <button disabled={ctaDisabled} data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
-            {ctaLabel}
-        </button>
-    ),
+    default: ({ ctaAction, ctaLabel, ctaDisabled, minimumPolicy, labels }: any) => {
+        mockMinimumPolicy.current = minimumPolicy
+        mockLabels.current = labels
+        return (
+            <button
+                disabled={ctaDisabled}
+                data-testid="widget-cta"
+                onClick={() => ctaAction(mockPair.from, mockPair.to, mockCtaAmount.current)}
+            >
+                {ctaLabel}
+            </button>
+        )
+    },
 }))
 
 import ExchangeRatePage from '../page'
 
+let queryClient: QueryClient
 const renderPage = (search = '') => {
     window.history.replaceState({}, '', `/profile/exchange-rate${search}`)
     return render(
-        <IntlWrapper>
-            <ExchangeRatePage />
-        </IntlWrapper>
+        <QueryClientProvider client={queryClient}>
+            <IntlWrapper>
+                <ExchangeRatePage />
+            </IntlWrapper>
+        </QueryClientProvider>
     )
 }
 
+afterEach(() => queryClient.clear())
+
 beforeEach(() => {
     jest.clearAllMocks()
+    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
+    mockGetBridgeRate.mockResolvedValue({ error: 'not mocked for this test' })
     mockPair.from = 'USD'
     mockPair.to = 'EUR'
+    mockCtaAmount.current = null
+    mockMinimumPolicy.current = null
     mockUseWallet.mockReturnValue({ spendableBalance: 0n, isFetchingSpendableBalance: false })
     mockUseCapabilities.mockReturnValue({ rails: [] })
     mockGetRedirectRoute.mockReturnValue('/add-money')
@@ -139,6 +171,143 @@ describe('exchange-rate CTA', () => {
 
         fireEvent.click(screen.getByTestId('widget-cta'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?currencyCode=EUR&returnTo=%2Fprofile%2Fexchange-rate')
+    })
+
+    /*
+     * "You send" is the `?amount=` every /withdraw/* screen reads. It comes
+     * from the tap, not this page's URL copy (which the widget writes only
+     * after its debounce), so a just-typed amount travels (TASK-22294).
+     * Add-money routes get none: their typed side is local currency.
+     */
+    it('carries the tapped USD amount into the withdraw route, and not into add-money', () => {
+        mockCtaAmount.current = 100
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=ARS')
+        renderPage('?from=USD&to=ARS&amount=10')
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        const withdrawParams = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test').searchParams
+        expect(withdrawParams.get('amount')).toBe('100')
+        expect(withdrawParams.get('currencyCode')).toBe('ARS')
+        expect(withdrawParams.get('returnTo')).toBe('/profile/exchange-rate?from=USD&to=ARS&amount=10')
+
+        mockRouterPush.mockClear()
+        mockGetRedirectRoute.mockReturnValue('/add-money/argentina')
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
+    })
+
+    it('sends no amount when the field is empty', () => {
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=ARS')
+        renderPage()
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        expect(mockRouterPush.mock.calls[0][0]).not.toContain('amount=')
+    })
+
+    /*
+     * The route's floor reaches the widget as a policy resolved with the
+     * widget's own rate — the same limits the withdraw flows enforce, so the
+     * CTA can say "1 BRL" before the tap instead of the PIX flow refusing the
+     * amount one screen later (TASK-22235, TASK-22297).
+     */
+    it('hands the widget the withdraw route minimum, in the unit that route states it', () => {
+        mockUseWallet.mockReturnValue({ spendableBalance: 5_000_000n, isFetchingSpendableBalance: false })
+        mockPair.to = 'BRL'
+        renderPage()
+
+        expect(mockMinimumPolicy.current).toBeTruthy()
+        const minimum = mockMinimumPolicy.current.resolve(5.2)
+        expect(minimum).toEqual({ amount: 1, currency: 'BRL' })
+        expect(mockMinimumPolicy.current.label(minimum)).toBe('Minimum withdrawal: 1 BRL.')
+    })
+
+    it('resolves no minimum for an add-money route (zero balance)', () => {
+        mockPair.to = 'BRL'
+        renderPage()
+
+        expect(mockMinimumPolicy.current.resolve(5.2)).toBeNull()
+    })
+
+    /*
+     * Chip review 5291270247. The Bridge floor comes from Bridge's own rate
+     * through the shared gate — the one the amount step and bank submit
+     * enforce — never from the widget's indicative display rate.
+     */
+    describe('a Bridge corridor (MXN) floor', () => {
+        beforeEach(() => {
+            mockUseWallet.mockReturnValue({ spendableBalance: 50_000_000n, isFetchingSpendableBalance: false })
+            mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=MXN')
+            mockPair.to = 'MXN'
+        })
+
+        it('display 17, Bridge 16.5: $4, not the display-derived $3', async () => {
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '16.5' } })
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 4, currency: 'USD' })
+            expect(mockGetBridgeRate).toHaveBeenCalledWith(AccountType.CLABE)
+        })
+
+        it('display 17, Bridge 17: $3', async () => {
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '17' } })
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 3, currency: 'USD' })
+        })
+
+        it('Bridge rate failing while a display quote exists: blocked, no floor, and the tap does nothing', async () => {
+            mockGetBridgeRate.mockResolvedValue({ error: 'upstream 500' })
+            mockCtaAmount.current = 100
+            renderPage()
+
+            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBe('unavailable'))
+            expect(mockMinimumPolicy.current.resolve(17)).toBeNull()
+            fireEvent.click(screen.getByTestId('widget-cta'))
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+
+        it('Bridge rate pending: blocked, the tap does nothing', () => {
+            mockGetBridgeRate.mockReturnValue(new Promise(() => {}))
+            mockCtaAmount.current = 100
+            renderPage()
+
+            expect(mockMinimumPolicy.current.blocked).toBe('pending')
+            fireEvent.click(screen.getByTestId('widget-cta'))
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+    })
+
+    it.each([
+        ['EUR (fixed $1 floor)', 'EUR', { amount: 1, currency: 'USD' }],
+        ['BRL (Manteca PIX floor)', 'BRL', { amount: 1, currency: 'BRL' }],
+        ['ARS (Manteca floor)', 'ARS', { amount: 1, currency: 'USD' }],
+    ])('%s: no Bridge rate request, never blocked', (_label, to, minimum) => {
+        mockUseWallet.mockReturnValue({ spendableBalance: 50_000_000n, isFetchingSpendableBalance: false })
+        mockPair.to = to
+        renderPage()
+
+        expect(mockMinimumPolicy.current.blocked).toBeUndefined()
+        expect(mockMinimumPolicy.current.resolve(5.2)).toEqual(minimum)
+        expect(mockGetBridgeRate).not.toHaveBeenCalled()
+    })
+
+    it('a zero-balance (add-money) MXN route makes no Bridge request and is not blocked', () => {
+        mockPair.to = 'MXN'
+        renderPage()
+
+        expect(mockMinimumPolicy.current.blocked).toBeUndefined()
+        expect(mockGetBridgeRate).not.toHaveBeenCalled()
+    })
+
+    // The widget shows no fee rows; the app hands it the translated rate note
+    // and no fee-free label at all (TASK-21104).
+    it('hands the widget the app-catalog rate note and no fee labels', () => {
+        renderPage()
+
+        expect(mockLabels.current.rateNote).toBe(
+            'Estimated rate; may include conversion costs. Review any fees before confirming.'
+        )
+        expect(Object.keys(mockLabels.current)).not.toEqual(expect.arrayContaining(['bankFee', 'free', 'peanutFee']))
     })
 
     /*

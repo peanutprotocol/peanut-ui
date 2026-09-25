@@ -43,6 +43,13 @@ export class FxApiError extends Error {
     }
 }
 
+/** A provider rate string as a usable number: plain positive decimal only — no prefix parsing, no 0, no fallback. */
+export function parsePlainPositiveRate(value: unknown): number | null {
+    if (typeof value !== 'string' || !PLAIN_DECIMAL.test(value)) return null
+    const rate = Number(value)
+    return Number.isFinite(rate) && rate > 0 ? rate : null
+}
+
 function timestamp(value: unknown): number | null {
     if (typeof value !== 'string') return null
     const parsed = Date.parse(value)

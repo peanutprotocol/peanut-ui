@@ -421,9 +421,9 @@
         "addMoneyCta": "Agregar dinero",
         "widget": {
             "youSend": "Vos enviás",
-            "recipientGets": "Recibís"
-        },
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
+            "recipientGets": "Recibís",
+            "rateNote": "Tipo de cambio estimado; puede incluir costos de conversión. Revisá las comisiones antes de confirmar."
+        }
     },
     "setup": {
         "steps": {

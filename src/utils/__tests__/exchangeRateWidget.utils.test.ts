@@ -1,5 +1,16 @@
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import {
+    getExchangeRateWidgetRedirectRoute,
+    getExchangeRateWidgetBankCountry,
+    getExchangeRateWidgetRouteMinimum,
+    toRoutePayloadAmount,
+} from '@/utils/exchangeRateWidget.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { BRIDGE_OFFRAMP_MIN_USD } from '@/features/withdraw/amount-validation'
+import {
+    MIN_MANTECA_QR_PAYMENT_AMOUNT,
+    MIN_MANTECA_WITHDRAW_AMOUNT,
+    MIN_PIX_AMOUNT_BRL,
+} from '@/constants/payment.consts'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 
@@ -14,8 +25,20 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
     describe('web (path segments)', () => {
         beforeEach(() => mockIsCapacitor.mockReturnValue(false))
 
-        it('USD → MXN with balance routes to the withdraw country page', () => {
-            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100)).toBe('/withdraw/mexico')
+        /*
+         * The root method screen, not /withdraw/mexico: the country page
+         * skips the saved accounts the normal entry offers first, so a saved
+         * CBU/CLABE had to be typed again (TASK-22294). The currency rides
+         * along to pre-filter the list behind "Select new method".
+         */
+        it('USD → MXN with balance routes to the withdraw method screen, currency pre-filtered', () => {
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100)).toBe('/withdraw?currencyCode=MXN')
+        })
+
+        it('USD → ARS with balance takes the same door as Send → Bank (saved accounts first)', () => {
+            const route = getExchangeRateWidgetRedirectRoute('USD', 'ARS', 100)
+            expect(route).toBe('/withdraw?currencyCode=ARS')
+            expect(route).not.toContain('/withdraw/argentina')
         })
 
         it('USD → MXN with no balance routes to add-money', () => {
@@ -30,9 +53,9 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
     describe('native (query params — the freeze fix)', () => {
         beforeEach(() => mockIsCapacitor.mockReturnValue(true))
 
-        it('USD → MXN with balance uses ?country= (not the disabled /withdraw/mexico route)', () => {
+        it('USD → MXN with balance stays on the root route (no disabled /withdraw/mexico segment)', () => {
             const route = getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100)
-            expect(route).toBe('/withdraw?country=mexico')
+            expect(route).toBe('/withdraw?currencyCode=MXN')
             expect(route).not.toContain('/withdraw/mexico')
         })
 
@@ -74,12 +97,107 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
         })
 
         it('does not touch the withdraw path (positive balance, already verified)', () => {
-            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100, ['europe'])).toBe('/withdraw/mexico')
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100, ['europe'])).toBe('/withdraw?currencyCode=MXN')
         })
 
         it('native: region-driven add-money still uses ?country=', () => {
             mockIsCapacitor.mockReturnValue(true)
             expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, ['europe'])).toBe('/add-money?country=germany')
         })
+    })
+})
+
+/**
+ * The floor the widget shows is the one the route behind the CTA enforces —
+ * read from the flows' own constants, in the unit that flow states it
+ * (TASK-22235, TASK-22297). `exchangeRate` is destination per 1 USD.
+ */
+describe('getExchangeRateWidgetRouteMinimum', () => {
+    it('is the 1 BRL PIX network minimum for Brazil, not the 0.1 USD provider floor beneath it', () => {
+        // 1 BRL ≈ 0.19 USD at 5.2, above the 0.1 USD floor — the BRL floor binds
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 5.2, null)).toEqual({
+            amount: MIN_PIX_AMOUNT_BRL,
+            currency: 'BRL',
+        })
+    })
+
+    it('names the USD provider floor only if the rate ever put 1 BRL beneath it', () => {
+        // a hypothetical 20 BRL per USD makes 1 BRL = 0.05 USD, so 0.1 USD binds
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 20, null)).toEqual({
+            amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+            currency: 'USD',
+        })
+    })
+
+    it('keeps the BRL floor while no rate has landed', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 50, 0, null)).toEqual({
+            amount: MIN_PIX_AMOUNT_BRL,
+            currency: 'BRL',
+        })
+    })
+
+    it('is the Manteca offramp minimum, in USD, for Argentina', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'ARS', 50, 1350, null)).toEqual({
+            amount: MIN_MANTECA_WITHDRAW_AMOUNT,
+            currency: 'USD',
+        })
+    })
+
+    /*
+     * Chip review 5291270247: the widget derived the Bridge floor from its
+     * display rate (17 → $3) while the withdrawal converts through Bridge's own
+     * rate (16.5 → $4). The Bridge floor is now the gate's, never the display's.
+     */
+    it("takes a Bridge corridor's floor from the gate, not from the display rate", () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, 17, 4)).toEqual({ amount: 4, currency: 'USD' })
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'GBP', 50, 0.5, 4)).toEqual({ amount: 4, currency: 'USD' })
+    })
+
+    it('has no Bridge floor while the gate has none — the caller blocks instead of assuming $1', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, 17, null)).toBeNull()
+    })
+
+    it('is the gate floor for the euro area (fixed $1, no rate)', () => {
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'EUR', 50, 0.86, BRIDGE_OFFRAMP_MIN_USD)).toEqual({
+            amount: 1,
+            currency: 'USD',
+        })
+    })
+
+    it('has no floor for add-money routes: local → USD, or a zero balance', () => {
+        expect(getExchangeRateWidgetRouteMinimum('BRL', 'USD', 50, 0.19, 1)).toBeNull()
+        expect(getExchangeRateWidgetRouteMinimum('USD', 'BRL', 0, 5.2, 1)).toBeNull()
+    })
+})
+
+describe('getExchangeRateWidgetBankCountry', () => {
+    it('names the Bridge country a USD withdrawal lands in', () => {
+        expect(getExchangeRateWidgetBankCountry('USD', 'MXN', 50)).toBe('MX')
+        expect(getExchangeRateWidgetBankCountry('USD', 'GBP', 50)).toBe('GB')
+        expect(getExchangeRateWidgetBankCountry('USD', 'COP', 50)).toBe('CO')
+        expect(getExchangeRateWidgetBankCountry('USD', 'EUR', 50)).toBe('')
+    })
+
+    it('is null for Manteca currencies, USD → USD and add-money routes', () => {
+        expect(getExchangeRateWidgetBankCountry('USD', 'BRL', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'ARS', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'USD', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('MXN', 'USD', 50)).toBeNull()
+        expect(getExchangeRateWidgetBankCountry('USD', 'MXN', 0)).toBeNull()
+    })
+})
+
+/** The USD figure a withdraw route can carry: six decimals, truncated, never rounded up. */
+describe('toRoutePayloadAmount', () => {
+    it('truncates to the token decimals', () => {
+        expect(toRoutePayloadAmount(0.9999999)).toBe(0.999999)
+        expect(toRoutePayloadAmount(1.0000001)).toBe(1)
+        expect(toRoutePayloadAmount(0.995)).toBe(0.995)
+    })
+
+    it('does not lose a cent to floating point on plain amounts', () => {
+        expect(toRoutePayloadAmount(0.29)).toBe(0.29)
+        expect(toRoutePayloadAmount(100)).toBe(100)
+        expect(toRoutePayloadAmount(8.56)).toBe(8.56)
     })
 })

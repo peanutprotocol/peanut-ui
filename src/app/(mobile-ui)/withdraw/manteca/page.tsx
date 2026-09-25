@@ -107,7 +107,12 @@ export default function MantecaWithdrawFlow() {
     // through. All Brazil-PIX entry points funnel here, so this is the single
     // chokepoint that flips the endpoint without touching the AR / bank paths.
     if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
-        return <PixKeySendView destinationParam={searchParams.get('destination')} />
+        return (
+            <PixKeySendView
+                destinationParam={searchParams.get('destination')}
+                amountUsdParam={searchParams.get('amount')}
+            />
+        )
     }
     // Manteca provider outage — block the offramp only for currencies still
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
@@ -1264,10 +1269,6 @@ function MantecaBankWithdrawFlow() {
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
                             moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
-                        />
-                        <PaymentInfoRow
-                            label={tCommon('peanutFee')}
-                            value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />
                     </Card>

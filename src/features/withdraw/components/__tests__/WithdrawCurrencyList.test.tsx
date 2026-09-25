@@ -31,6 +31,15 @@ jest.mock('next/image', () => ({
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="loading" /> }))
+jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({
+    __esModule: true,
+    default: ({ title, description }: { title: string; description?: string }) => (
+        <div data-testid="empty-state">
+            {title}
+            {description}
+        </div>
+    ),
+}))
 
 // CountryList is exercised in its own suite; here it is a stub that surfaces the
 // countries it was given and drives onCountryClick, so we can assert the
@@ -201,6 +210,64 @@ describe('WithdrawCurrencyList — send-to-bank keeps the country gate', () => {
         expect(currencyRows()).toEqual([])
         search('ARS')
         expect(currencyRows()).toEqual([])
+    })
+})
+
+/**
+ * A search no currency row answers used to leave a blank screen over a
+ * collapsed "Other countries" row (TASK-20721). Now it says so with the country
+ * list's own no-results copy — or, when a country does answer, opens that row
+ * so the answer is on screen. Both selector modes: own-account withdraw and
+ * send-to-bank, whose gate drops rows (ARS) a search could otherwise find.
+ */
+describe('WithdrawCurrencyList — a search nothing answers', () => {
+    it.each([
+        ['own-account withdraw', false],
+        ['send-to-bank', true],
+    ])('%s: says no results, with the shared country-list copy', (_label, enforceSupportedCountries) => {
+        renderList({ enforceSupportedCountries })
+        search('zzzz')
+
+        expect(currencyRows()).toEqual([])
+        expect(screen.getByTestId('empty-state')).toHaveTextContent('global.countryList.noResultsTitle')
+        expect(screen.getByTestId('empty-state')).toHaveTextContent('global.countryList.noResultsDescription')
+        // the demoted list has nothing to show either, so it stays closed
+        expect(screen.queryByTestId('country-list-all')).not.toBeInTheDocument()
+    })
+
+    it('send-to-bank: a search for the gated Argentina finds no row, and no result is claimed either', () => {
+        // ARS is not a send-to-bank row, but Argentina IS a country the demoted
+        // list can name — so the list opens on it rather than saying "no results"
+        renderList({ enforceSupportedCountries: true })
+        search('Argentina')
+
+        expect(currencyRows()).toEqual([])
+        expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+        expect(screen.getByTestId('country-list-all')).toHaveAttribute('data-search-term', 'Argentina')
+    })
+
+    it('opens the other countries when only a country answers, and the user can still close it', () => {
+        // India has no live withdraw rail, so no currency row lists it — but
+        // the demoted country list does, and that is where the answer is
+        renderList()
+        search('India')
+
+        expect(currencyRows()).toEqual([])
+        expect(screen.getByTestId('country-list-all')).toBeInTheDocument()
+        expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('withdraw-other-countries-toggle'))
+        expect(screen.queryByTestId('country-list-all')).not.toBeInTheDocument()
+    })
+
+    it('clears the empty state as soon as a row answers again', () => {
+        renderList()
+        search('zzzz')
+        expect(screen.getByTestId('empty-state')).toBeInTheDocument()
+
+        search('eur')
+        expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+        expect(currencyRows()).toEqual(['EUR'])
     })
 })
 

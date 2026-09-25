@@ -144,15 +144,12 @@ const MantecaDepositShareDetails = ({
                     <PaymentInfoRow
                         label={t('manteca.exchangeRate')}
                         value={`1 USD = ${exchangeRate} ${currencySymbol}`}
+                        moreInfoText={tCommon('rateIncludesConversionCost')}
                     />
                     <PaymentInfoRow
                         label={t('manteca.providerFees')}
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
-                    />
-                    <PaymentInfoRow
-                        label={tCommon('peanutFee')}
-                        value={tCommon('sponsoredByPeanut')}
                         hideBottomBorder
                     />
                 </Card>

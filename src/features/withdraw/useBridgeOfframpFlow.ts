@@ -41,7 +41,8 @@ import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAm
 import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
+import { validateBankOfframpAmount, bankWithdrawMinNeedsRate } from './amount-validation'
+import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
 import { WITHDRAW_BANK_STEPS } from './types'
 import {
     bankReferenceDestinationFields,
@@ -64,6 +65,7 @@ import {
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
+    const tRate = useTranslations('exchangeRate')
     const toFriendlyError = useFriendlyError()
     // Copy shown when the on-chain deposit to the Bridge address succeeded but the
     // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
@@ -158,16 +160,22 @@ export function useBridgeOfframpFlow() {
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
     // One rate for the amount and the minimum: the quote. Without a typed bank
     // amount it is fetched for the rate alone, when the minimum needs one.
+    const quoteCurrency = bankCurrency ?? (minNeedsRate ? accountCurrency : null)
     const bankQuote = useBridgeOfframpQuote({
-        currency: bankCurrency ?? (minNeedsRate ? accountCurrency : null),
+        currency: quoteCurrency,
         destinationAmount: bankCurrency ? destinationAmount : undefined,
         enabled: step === 'review' && !isLoading && !submittedTxHash,
     })
     const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
     // a quote whose refresh failed stays on screen but is not confirmed
     const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
-    const minUsd = bankWithdrawMinUsd(countryIso2, bankQuote.quote?.rate)
-    const isMinReady = !minNeedsRate || (isQuoteCurrent && parseFloat(bankQuote.quote?.rate ?? '0') > 0)
+    // The shared minimum source (widget, amount step, here), converted with
+    // this quote's rate whenever the account has one.
+    const bankMinimum = useBankWithdrawMinimum(countryIso2, {
+        quote: quoteCurrency ? { rate: bankQuote.quote?.rate, isError: bankQuote.isError } : undefined,
+    })
+    const minUsd = bankMinimum.minUsd
+    const isMinReady = bankMinimum.status === 'ready'
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -310,10 +318,10 @@ export function useBridgeOfframpFlow() {
             return
         }
 
-        // The GB/MX rail minimum converts through the FX rate — the submit is
-        // disabled until it loads; reaching here early is a race, not a user
-        // error: no-op rather than under-enforce.
-        if (!isMinReady) return
+        // The GB/MX rail minimum converts through Bridge's rate — the submit is
+        // disabled until it is usable; reaching here without it is a race or a
+        // failed rate, never a user error: no-op rather than guess a minimum.
+        if (!isMinReady || minUsd === null) return
         // The ToS step calls this directly, past the disabled button: a quote
         // whose refresh failed is never confirmed.
         if (bankCurrency && !isQuoteCurrent) return
@@ -552,7 +560,12 @@ export function useBridgeOfframpFlow() {
         error,
         isLoading,
         submittedTxHash,
-        balanceErrorMessage,
+        // The view renders this as the blocking notice under the disabled
+        // submit; a failed Bridge rate blocks the same way and must say why.
+        // A bank-currency amount's failed quote already shows its inline retry.
+        balanceErrorMessage:
+            balanceErrorMessage ??
+            (bankMinimum.status === 'unavailable' && !bankCurrency ? tRate('widget.rateUnavailable') : null),
         confirmPendingCopy,
         reference,
         setReference,

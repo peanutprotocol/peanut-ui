@@ -126,7 +126,7 @@ jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
 const mockUseGetExchangeRate = jest.fn()
 jest.mock('@/hooks/useGetExchangeRate', () => ({
     __esModule: true,
-    default: () => mockUseGetExchangeRate(),
+    default: (args: unknown) => mockUseGetExchangeRate(args),
 }))
 
 const mockUseLimitsValidation = jest.fn()
@@ -594,7 +594,8 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
 
             fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '4' } })
             expect(screen.getByText('Continue')).not.toBeDisabled()
-            expect(mockUseGetExchangeRate).not.toHaveBeenCalled()
+            // the shared minimum takes the quote's rate: the sell-rate request never runs
+            expect(mockUseGetExchangeRate).not.toHaveBeenCalledWith(expect.objectContaining({ enabled: true }))
         } finally {
             bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
         }
@@ -860,6 +861,69 @@ describe('GROUP 3: Amount Validation', () => {
                 errorMessage: 'Minimum withdrawal is $1.',
             })
         )
+    })
+
+    /*
+     * Chip review 5291270247: the amount step's MX floor comes from the shared
+     * Bridge-rate gate (useBankWithdrawMinimum), the same one the widget and the
+     * bank submit read. A saved CLABE resolves to MX; 50 MXN at Bridge 16.5 is $4.
+     */
+    describe('a saved CLABE account (MX, 50 MXN floor)', () => {
+        const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+        beforeEach(() => {
+            mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'mexico', title: 'To Bank' }
+            mockWithdrawFlow.selectedBankAccount = { type: 'clabe', identifier: '646180111800000000' }
+            mockGetCountryFromAccount.mockReturnValue({ iso2: 'MX', path: 'mexico' })
+            bridgeUtils.getMinimumAmount.mockImplementation((iso2: string) => (iso2 === 'MX' ? 50 : 1))
+        })
+        afterEach(() => bridgeUtils.getMinimumAmount.mockImplementation(() => 1))
+
+        test('Bridge 16.5: $3.99 is refused with the $4 floor', async () => {
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: '16.5', isError: false })
+            renderWithdraw({ step: 'amount', amount: '3.99' })
+
+            expect(screen.getByText('Continue')).toBeDisabled()
+            await waitFor(() =>
+                expect(mockSetError).toHaveBeenCalledWith({
+                    showError: true,
+                    errorMessage: 'Minimum withdrawal is $4.',
+                })
+            )
+        })
+
+        test('Bridge 16.5: exactly $4 continues to the bank flow', () => {
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: '16.5', isError: false })
+            renderWithdraw({ step: 'amount', amount: '4' })
+
+            fireEvent.click(screen.getByText('Continue'))
+            expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('amount=4'))
+        })
+
+        test('Bridge rate failed: Continue stays disabled and says the rate is unavailable, never a $50 floor', async () => {
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: null, isError: true })
+            renderWithdraw({ step: 'amount', amount: '100' })
+
+            expect(screen.getByText('Continue')).toBeDisabled()
+            await waitFor(() =>
+                expect(mockSetError).toHaveBeenCalledWith({
+                    showError: true,
+                    errorMessage: 'Rate currently unavailable',
+                })
+            )
+            expect(mockSetError).not.toHaveBeenCalledWith(
+                expect.objectContaining({ errorMessage: expect.stringContaining('$50') })
+            )
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+
+        test('Bridge rate pending: Continue stays disabled with no error yet', async () => {
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: null, isError: false })
+            renderWithdraw({ step: 'amount', amount: '100' })
+
+            expect(screen.getByText('Continue')).toBeDisabled()
+            await waitFor(() => expect(mockSetError).toHaveBeenCalledWith({ showError: false, errorMessage: '' }))
+            expect(mockSetError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        })
     })
 
     test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {

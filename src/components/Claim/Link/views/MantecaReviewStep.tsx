@@ -65,15 +65,13 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
             value: destinationAddress,
             allowCopy: true,
         },
+        // Manteca's conversion cost is inside this rate, so there is no
+        // separate fee row to call free.
         {
             key: 'exchangeRate',
             label: t('manteca.exchangeRate'),
             value: price?.sell ? `1 USD = ${price.sell} ${currency}` : 'Unavailable',
-        },
-        {
-            key: 'fee',
-            label: t('fee'),
-            value: tCommon('sponsoredByPeanut'),
+            moreInfoText: tCommon('rateIncludesConversionCost'),
             hideBottomBorder: true,
         },
     ]

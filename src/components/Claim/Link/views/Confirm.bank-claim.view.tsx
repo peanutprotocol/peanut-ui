@@ -100,7 +100,9 @@ export function ConfirmBankClaimView({
                         />
                     )}
                     <ExchangeRate accountType={accountType} nonEuroCurrency={nonEuroCurrency} />
-                    <PaymentInfoRow hideBottomBorder label={t('fee')} value={`$ 0.00`} />
+                    {accountType === AccountType.US && (
+                        <PaymentInfoRow hideBottomBorder label={t('fee')} value={`$ 0.00`} />
+                    )}
                 </Card>
 
                 <div className="space-y-4">
