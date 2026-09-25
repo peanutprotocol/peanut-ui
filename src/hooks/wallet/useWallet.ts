@@ -105,12 +105,17 @@ export const useWallet = () => {
     const { spend: spendBundle } = useSpendBundle()
 
     const sendMoney = useCallback(
-        async (toAddress: Address, amountInUsd: string, options?: { kind?: RainCollateralKind; chargeId?: string }) => {
+        async (
+            toAddress: Address,
+            amountInUsd: string,
+            options?: { kind?: RainCollateralKind; chargeId?: string; fundsIntentId?: string }
+        ) => {
             const result = await sendMoneyMutation.mutateAsync({
                 toAddress,
                 amountInUsd,
                 kind: options?.kind,
                 chargeId: options?.chargeId,
+                fundsIntentId: options?.fundsIntentId,
             })
             // `strategy` lets same-chain callers distinguish "funds left the smart
             // account" (smart-only) from "funds left Rain collateral" (collateral-

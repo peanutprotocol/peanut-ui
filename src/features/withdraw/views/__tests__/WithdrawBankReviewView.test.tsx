@@ -36,6 +36,7 @@ const Harness = ({
     bankAmount,
     onRetryQuote,
     isSubmitReady = true,
+    onAddBankAccountAgain,
 }: {
     rail: string
     submittedTxHash?: string | null
@@ -44,6 +45,7 @@ const Harness = ({
     bankAmount?: { currency: string; destinationAmount: string; rate: string }
     onRetryQuote?: () => void
     isSubmitReady?: boolean
+    onAddBankAccountAgain?: () => void
 }) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
@@ -68,6 +70,7 @@ const Harness = ({
             onSubmit={jest.fn()}
             onDone={jest.fn()}
             onRetryQuote={onRetryQuote}
+            onAddBankAccountAgain={onAddBankAccountAgain}
         />
     )
 }
@@ -185,6 +188,14 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         // Faster Payments is absent from the provider's payout configuration.
         renderWithIntl(<Harness rail="faster_payments" />)
         expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
+    })
+
+    it('a saved account the provider refused offers to add a bank account instead of Retry (TASK-23054)', () => {
+        const onAddBankAccountAgain = jest.fn()
+        renderWithIntl(<Harness rail="sepa" showError onAddBankAccountAgain={onAddBankAccountAgain} />)
+        expect(screen.queryByRole('button', { name: /retry/i })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Add new bank account' }))
+        expect(onAddBankAccountAgain).toHaveBeenCalled()
     })
 
     it('Retry is disabled while the reference breaks the rail limits', () => {

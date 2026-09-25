@@ -296,7 +296,7 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Accounts')).toBeInTheDocument()
             // The user holds no account here, so no held section renders — an
             // empty heading would promise details that do not exist.
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
             expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) expect(screen.getByText(title)).toBeInTheDocument()
             for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut-to-Peanut payments', 'Crypto']) {
@@ -515,9 +515,9 @@ describe('MoneySettings', () => {
 
             expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
             expect(
-                screen.getByText('These also add and withdraw money. They are not virtual accounts in your name.')
+                screen.getByText('These also add and withdraw money. They are not accounts in your name.')
             ).toBeInTheDocument()
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
             // the word that meant two things is gone from the vocabulary
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -529,12 +529,12 @@ describe('MoneySettings', () => {
 
             expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         })
 
         /*
          * A corridor the user could open is not one they hold: it sits under
-         * "Open a virtual account", the list Add money shows too (QA-18), and
+         * "Open an account", the list Add money shows too (QA-18), and
          * the tap goes to the claim step there.
          */
         it('rail and an account they could open: offered under its own heading, never as held', () => {
@@ -544,8 +544,8 @@ describe('MoneySettings', () => {
             mockDepositCorridors = ['ACH_US']
             render()
 
-            expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
-            expect(screen.getByText('Open a virtual account')).toBeInTheDocument()
+            expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
+            expect(screen.getByText('Open an account')).toBeInTheDocument()
             fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
             expect(mockPush).toHaveBeenCalledWith(
                 '/add-money?method=bank&step=claim&corridor=ACH_US&returnTo=%2Fprofile%2Faccounts'
@@ -560,7 +560,7 @@ describe('MoneySettings', () => {
             }
             render()
 
-            expect(screen.getByText('Virtual accounts')).toBeInTheDocument()
+            expect(screen.getByTestId('virtual-accounts')).toBeInTheDocument()
             // a payer can be handed these details; rail access never says Ready
             expect(screen.getByText('Ready')).toBeInTheDocument()
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -575,7 +575,7 @@ describe('MoneySettings', () => {
         mockDepositCorridors = ['SEPA_EU', 'ACH_US']
         render()
 
-        expect(screen.getByTestId('open-accounts-toggle')).toHaveTextContent('Open a virtual account')
+        expect(screen.getByTestId('open-accounts-toggle')).toHaveTextContent('Open an account')
         expect(screen.queryByTestId('deposit-account-ACH_US')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('open-accounts-toggle'))
         fireEvent.click(screen.getByTestId('deposit-account-ACH_US'))
@@ -621,7 +621,7 @@ describe('MoneySettings', () => {
         // under its own heading, and the corridors their verification opens sit
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
-        expect(screen.getByText('Virtual accounts')).toBeInTheDocument()
+        expect(screen.getByTestId('virtual-accounts')).toBeInTheDocument()
         expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR'))
         expect(mockPush).toHaveBeenCalledWith(
@@ -726,7 +726,7 @@ describe('MoneySettings', () => {
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
         expect(screen.getByText('Other ways to move money into Peanut')).toBeInTheDocument()
-        expect(screen.queryByText('Virtual accounts')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         expect(screen.getByText('EUR')).toBeInTheDocument()
     })
 

@@ -257,6 +257,8 @@ export interface Account {
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
+    /** Why the API switched the account off, when it did — see isUsableSavedAccount. */
+    deactivationReason?: string | null
 }
 
 interface userInvites {

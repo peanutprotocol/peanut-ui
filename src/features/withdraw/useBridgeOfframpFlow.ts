@@ -14,6 +14,7 @@ import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
+import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -79,7 +80,9 @@ export function useBridgeOfframpFlow() {
     // funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
     const confirmPendingCopy = t('bank.confirmPending')
 
-    const { selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
+    const { selectedBankAccount: bankAccount, setSelectedBankAccount, error, setError } = useWithdrawFlow()
+    // The provider refused the saved account for good; the review offers to add it again instead of Retry.
+    const [isBankAccountNotUsable, setIsBankAccountNotUsable] = useState(false)
     const [urlAmount] = useWithdrawAmount()
     const [destinationAmountParam] = useWithdrawDestinationAmount()
     // the URL is editable: "90." or ".5" is read the way the quote API accepts
@@ -417,10 +420,21 @@ export function useBridgeOfframpFlow() {
                     ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
             }
-            const { data, error } = await createOfframp(createPayload)
+            const { data, error, code, status } = await createOfframp(createPayload)
 
             if (error) {
-                setError({ showError: true, errorMessage: error })
+                const notUsable = code === API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE
+                if (notUsable) {
+                    setIsBankAccountNotUsable(true)
+                    // the API switched the account off: refetch so the saved list drops it
+                    void fetchUser()
+                }
+                setError({
+                    showError: true,
+                    errorMessage: notUsable
+                        ? toFriendlyError(new ApiError(error, { status: status ?? 409, code }))
+                        : error,
+                })
                 errorAlreadyDisplayed = true
                 throw new Error(error)
             }
@@ -435,7 +449,8 @@ export function useBridgeOfframpFlow() {
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
                 createPayload.amount,
-                { kind: 'FIAT_OFFRAMP' }
+                // Card-balance funding links to this offramp, so Activity shows one withdrawal
+                { kind: 'FIAT_OFFRAMP', fundsIntentId: data.intentId }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
@@ -589,6 +604,15 @@ export function useBridgeOfframpFlow() {
         pointsData,
         onBack,
         handleCreateAndInitiateOfframp,
+        // Clearing the account sends the review back to this country's bank
+        // form with the amount kept (see the redirect effect above).
+        onAddBankAccountAgain: isBankAccountNotUsable
+            ? () => {
+                  setIsBankAccountNotUsable(false)
+                  setError({ showError: false, errorMessage: '' })
+                  setSelectedBankAccount(null)
+              }
+            : undefined,
         // gate + modal surface
         gate,
         sumsubFlow,

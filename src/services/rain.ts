@@ -130,6 +130,9 @@ export interface PrepareRainWithdrawalInput {
      *  completes it on confirm; a follow-up `recordPayment` re-enters the
      *  same trusted-completion path (idempotent). */
     chargeId?: string
+    /** The Bridge offramp intent a collateral-only withdrawal funds. The backend
+     *  links its collateral record to it, so Activity shows one row. */
+    fundsIntentId?: string
 }
 
 export interface PrepareRainWithdrawalResponse {

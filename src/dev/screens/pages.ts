@@ -160,6 +160,6 @@ PAGE_CAPTURES.push(
         name: 'Accounts — open a new account, unfolded',
         route: '/profile/accounts',
         fixture: 'profile-accounts',
-        clicks: ['Open a virtual account'],
+        clicks: ['Open an account'],
     }
 )
