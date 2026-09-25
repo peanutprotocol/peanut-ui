@@ -3121,7 +3121,7 @@
                 },
                 "selfie": {
                     "label": "Selfie",
-                    "title": "Selfie",
+                    "title": "Foto no app",
                     "body": "Tire uma selfie no app. Boa iluminação ajuda."
                 },
                 "taxId": {
@@ -3146,7 +3146,7 @@
             "howLong": {
                 "standard": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
                 "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "hosted": "A verificação costuma levar alguns minutos se você tiver todos os documentos em mãos."
+                "hosted": "O processo de verificação costuma levar alguns minutos se você tiver todos os documentos em mãos."
             },
             "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
             "startCta": "Tenho tudo, começar",

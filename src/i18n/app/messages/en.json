@@ -3121,7 +3121,7 @@
                 },
                 "selfie": {
                     "label": "Selfie",
-                    "title": "Selfie",
+                    "title": "In-app photo",
                     "body": "Take a selfie in the app. Good light helps."
                 },
                 "taxId": {
@@ -3146,7 +3146,7 @@
             "howLong": {
                 "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
-                "hosted": "Verification usually takes a few minutes if you have all the documents in hand."
+                "hosted": "Verification process usually takes a few minutes if you have all the documents in hand."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
             "startCta": "I have these, start",

@@ -1394,7 +1394,7 @@
                     "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Tomá fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
                 },
                 "selfie": {
-                    "title": "Selfie",
+                    "title": "Foto en la app",
                     "body": "Sacate una selfie en la app. La buena luz ayuda."
                 },
                 "taxId": {
@@ -1416,7 +1416,7 @@
             "howLong": {
                 "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "La verificación suele tardar unos minutos si tenés todos los documentos a mano."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
