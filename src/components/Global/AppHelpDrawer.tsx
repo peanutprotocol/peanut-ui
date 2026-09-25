@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { AppHelpDocuments, AppHelpSlug, HelpLocale } from './appHelpTypes'
 
-const AppHelpContext = createContext<((slug: AppHelpSlug) => void) | null>(null)
+const AppHelpContext = createContext<((slug: AppHelpSlug | null) => void) | null>(null)
 
 export const useAppHelpDrawer = () => useContext(AppHelpContext)
 

@@ -3,10 +3,15 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import DocsLink from '../DocsLink'
 import { AppHelpProvider } from '../AppHelpDrawer'
+import { createAppHelpMdxComponents } from '../AppHelpMdx'
 import { APP_HELP_SLUGS, type AppHelpDocuments } from '../appHelpTypes'
 import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false }))
+const mockSetSupportOpen = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockSetSupportOpen }),
+}))
 
 const documents = Object.fromEntries(
     APP_HELP_SLUGS.map((slug) => [
@@ -52,5 +57,61 @@ describe('app help drawers', () => {
     it('leaves the full help center link available', () => {
         renderLink('en', '/en/help')
         expect(screen.getByRole('link', { name: 'Read help' })).toHaveAttribute('href', '/en/help')
+    })
+
+    it('localizes links inside an article to the locale that owns the linked content', () => {
+        const ArticleLink = createAppHelpMdxComponents('es-ar').a
+        const linkedDocuments = {
+            ...documents,
+            verification: {
+                ...documents.verification,
+                'es-ar': {
+                    title: 'verification es-ar',
+                    content: (
+                        <>
+                            <ArticleLink href="/help/refunds">Refunds</ArticleLink>
+                            <ArticleLink href="/help/passkeys">Passkeys</ArticleLink>
+                        </>
+                    ),
+                },
+            },
+        }
+        render(
+            <NextIntlClientProvider locale="es-AR" messages={en} timeZone="UTC">
+                <AppHelpProvider documents={linkedDocuments}>
+                    <DocsLink href="/en/help/verification">Read help</DocsLink>
+                </AppHelpProvider>
+            </NextIntlClientProvider>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
+        expect(screen.getByRole('link', { name: 'Refunds' })).toHaveAttribute('href', '/es-419/help/refunds')
+        fireEvent.click(screen.getByRole('button', { name: 'Passkeys' }))
+        expect(screen.getByRole('dialog')).toHaveTextContent('passkeys article es-ar')
+    })
+
+    it('closes the article and opens in-app support from its localized CTA', () => {
+        mockSetSupportOpen.mockClear()
+        const ArticleCTA = createAppHelpMdxComponents('en').CTA
+        const linkedDocuments = {
+            ...documents,
+            verification: {
+                ...documents.verification,
+                en: {
+                    title: 'verification en',
+                    content: <ArticleCTA href="#chat" text="Chat with Support" />,
+                },
+            },
+        }
+        render(
+            <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+                <AppHelpProvider documents={linkedDocuments}>
+                    <DocsLink href="/en/help/verification">Read help</DocsLink>
+                </AppHelpProvider>
+            </NextIntlClientProvider>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Chat with Support' }))
+        expect(mockSetSupportOpen).toHaveBeenCalledWith(true)
+        expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed')
     })
 })

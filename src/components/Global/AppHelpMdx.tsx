@@ -1,6 +1,8 @@
 import DocsLink from '@/components/Global/DocsLink'
+import AppHelpSupportCTA from '@/components/Global/AppHelpSupportCTA'
 import { createMdxComponents } from '@/components/Marketing/mdx/components'
 import type { Locale } from '@/i18n/types'
+import { resolveContentHref } from '@/lib/content'
 import type { ReactNode } from 'react'
 
 /** Compact article typography for in-app help drawers, using the public article sources. */
@@ -27,7 +29,7 @@ export const createAppHelpMdxComponents = (locale: Locale): ReturnType<typeof cr
     td: ({ children }) => <td className="border border-border-subtle p-2 align-top">{children}</td>,
     a: ({ href = '', children }: { href?: string; children: ReactNode }) =>
         href.startsWith('/') ? (
-            <DocsLink href={href} className="underline underline-offset-2">
+            <DocsLink href={resolveContentHref(href, locale)} className="underline underline-offset-2">
                 {children}
             </DocsLink>
         ) : (
@@ -57,7 +59,8 @@ export const createAppHelpMdxComponents = (locale: Locale): ReturnType<typeof cr
             <div className="text-body-s leading-6">{children}</div>
         </div>
     ),
-    // These are marketing navigation and chat prompts, not part of the article.
-    CTA: () => null,
+    CTA: ({ text, href }: { text?: string; href?: string }) =>
+        href === '#chat' && text ? <AppHelpSupportCTA text={text} /> : null,
+    // Marketing navigation is not part of the in-app article.
     RelatedPages: () => null,
 })

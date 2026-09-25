@@ -46,7 +46,7 @@ export default function DocsLink({ href, className, children, ...rest }: DocsLin
     const isStandalone = usePWAStatus()
     const openHelp = useAppHelpDrawer()
     const localizedHref = localizeDocsHref(href, locale)
-    const helpSlug = href.startsWith('/en/help/') ? href.slice('/en/help/'.length) : null
+    const helpSlug = localizedHref.match(/^\/(?:en|es-419|es-ar|pt-br)\/help\/([^/?#]+)$/)?.[1] ?? null
 
     if (openHelp && helpSlug && isAppHelpSlug(helpSlug)) {
         return (
