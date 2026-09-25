@@ -19,6 +19,9 @@ overrides:
   protobufjs: ^7.5.5
 
 patchedDependencies:
+  '@capacitor/clipboard':
+    hash: 9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85
+    path: patches/@capacitor__clipboard.patch
   '@zerodev/webauthn-key':
     hash: dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28
     path: patches/@zerodev__webauthn-key.patch
@@ -47,7 +50,7 @@ importers:
         version: 8.2.0
       '@capacitor/clipboard':
         specifier: ^8.0.1
-        version: 8.0.1(@capacitor/core@8.2.0)
+        version: 8.0.1(patch_hash=9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85)(@capacitor/core@8.2.0)
       '@capacitor/core':
         specifier: 8.2.0
         version: 8.2.0
@@ -8824,7 +8827,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@capacitor/clipboard@8.0.1(@capacitor/core@8.2.0)':
+  '@capacitor/clipboard@8.0.1(patch_hash=9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85)(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

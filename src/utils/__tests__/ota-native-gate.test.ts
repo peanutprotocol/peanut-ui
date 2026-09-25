@@ -247,3 +247,20 @@ describe('staged floors', () => {
         expect(gate.stagedFloors('b-9')).toBeUndefined()
     })
 })
+
+describe('legacy bridges after a native surface upgrade', () => {
+    it.each([
+        ['1.5.1000-ios', '1.5.0', false],
+        ['1.6.1000-android', '1.6.0', false],
+        ['1.5.1001-ios', '1.7.0', true],
+        ['1.6.1001-android', '1.7.0', true],
+        ['1.7.1-ios', '1.7.0', false],
+        ['1.5.999-ios', '1.7.0', false],
+        ['1.5.1000-android', '1.7.0', false],
+        ['1.6.1000-ios', '1.7.0', false],
+        ['1.5.1000-ios', null, false],
+    ])('classifies %s against the running surface %s', (version, floor, expected) => {
+        const { legacyBridgePredatesSurface } = jest.requireActual('../ota-native-gate')
+        expect(legacyBridgePredatesSurface(version, floor)).toBe(expected)
+    })
+})

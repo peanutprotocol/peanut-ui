@@ -17,11 +17,6 @@ import MeaPushProvisioning
  * app-group mirror in WalletExtensionCardStore — no network), passEntries and
  * the request generation within 20s, and the whole extension within 55MB.
  *
- * TODO(go-live): passEntries needs provisioning credentials (processor cardId
- * + time-based secret) from our backend. That requires an extension-usable
- * auth path — the main app's session token shared via app-group keychain, and
- * a backend decision on step-up for the extension context. Until that lands,
- * entries stay empty and Wallet falls back to sending users into the app.
  */
 @available(iOS 14.0, *)
 class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
@@ -31,27 +26,42 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
 #if canImport(MeaPushProvisioning)
         let card = WalletExtensionCardStore.load()
         let hasConfig = Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil
-        let available = card != nil && hasConfig
-        status.passEntriesAvailable = available
-        status.remotePassEntriesAvailable = available
-        status.requiresAuthentication = true
+        guard let card,
+              hasConfig,
+              WalletExtensionAuth.authorizationToken() != nil else {
+            status.passEntriesAvailable = false
+            status.remotePassEntriesAvailable = false
+            status.requiresAuthentication = false
+            completion(status)
+            return
+        }
+        // These are local PassKit/MeaWallet capability checks and distinguish
+        // an iPhone that can add the card from a paired Watch that can add it
+        // remotely. Do not advertise an entry that loadEntry will immediately
+        // discard, especially after the card was already added everywhere.
+        let canAddLocal = MeaPushProvisioning.canAddSecureElementPass(
+            withPrimaryAccountNumberSuffix: card.last4
+        )
+        let canAddRemote = MeaPushProvisioning.canAddRemoteSecureElementPass(
+            withPrimaryAccountNumberSuffix: card.last4
+        )
+        status.passEntriesAvailable = canAddLocal
+        status.remotePassEntriesAvailable = canAddRemote
+        status.requiresAuthentication = canAddLocal || canAddRemote
 #else
         status.passEntriesAvailable = false
         status.remotePassEntriesAvailable = false
+        status.requiresAuthentication = false
 #endif
         completion(status)
     }
 
     override func passEntries(completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void) {
-        // TODO(go-live): fetch processor details via the shared session, run
-        // MeaPushProvisioning.initializeOemTokenization, and build a
-        // PKIssuerProvisioningExtensionPaymentPassEntry per addable card
-        // (identifier = our card id, art = square-cornered card art without PII).
-        completion([])
+        loadEntry(remote: false, completion: completion)
     }
 
     override func remotePassEntries(completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void) {
-        completion([])
+        loadEntry(remote: true, completion: completion)
     }
 
     override func generateAddPaymentPassRequestForPassEntryWithIdentifier(
@@ -63,11 +73,107 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
         completionHandler completion: @escaping (PKAddPaymentPassRequest?) -> Void
     ) {
 #if canImport(MeaPushProvisioning)
-        // TODO(go-live): complete via MeaPushProvisioning.completeOemTokenization
-        // with the tokenization receipt obtained in passEntries.
-        completion(nil)
+        guard let initialized = WalletProvisioningSession.load(identifier),
+              let receipt = initialized.tokenizationReceipt else {
+            completion(nil)
+            return
+        }
+        let tokenizationData = MppCompleteOemTokenizationData(
+            tokenizationReceipt: receipt,
+            certificates: certificates,
+            nonce: nonce,
+            nonceSignature: nonceSignature
+        )
+        MeaPushProvisioning.completeOemTokenization(tokenizationData) { responseData, _ in
+            guard let responseData,
+                  responseData.isValid() else {
+                WalletProvisioningSession.remove(identifier)
+                completion(nil)
+                return
+            }
+            completion(responseData.addPaymentPassRequest)
+            WalletProvisioningSession.remove(identifier)
+        }
 #else
         completion(nil)
 #endif
     }
+
+#if canImport(MeaPushProvisioning)
+    private func loadEntry(
+        remote: Bool,
+        completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void
+    ) {
+        guard let card = WalletExtensionCardStore.load(),
+              let token = WalletExtensionAuth.authorizationToken(),
+              Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil else {
+            completion([])
+            return
+        }
+
+        WalletExtensionAPI.fetchProvisioningData(
+            cardId: card.cardId,
+            authorizationToken: token
+        ) { provisioningData in
+            guard let provisioningData else {
+                completion([])
+                return
+            }
+            if let replacement = provisioningData.walletAuthorizationToken,
+               let expiresIn = provisioningData.walletAuthorizationExpiresIn,
+               expiresIn > 0 {
+                WalletExtensionAuth.saveAuthorizationToken(replacement, expiresIn: expiresIn)
+            }
+            let cardParams = MppCardDataParameters(
+                cardId: provisioningData.cardId,
+                cardSecret: provisioningData.cardSecret
+            )
+            MeaPushProvisioning.initializeOemTokenization(cardParams) { responseData, _ in
+                guard let responseData,
+                      responseData.isValid(),
+                      let configuration = responseData.addPaymentPassRequestConfiguration else {
+                    completion([])
+                    return
+                }
+
+                if let identifier = responseData.primaryAccountIdentifier, !identifier.isEmpty {
+                    let canAdd = remote
+                        ? MeaPushProvisioning.canAddRemoteSecureElementPass(withPrimaryAccountIdentifier: identifier)
+                        : MeaPushProvisioning.canAddSecureElementPass(withPrimaryAccountIdentifier: identifier)
+                    guard canAdd else {
+                        completion([])
+                        return
+                    }
+                    // Keep the device filter in the request consistent with the
+                    // eligibility check, even if the SDK omitted it from config.
+                    configuration.primaryAccountIdentifier = identifier
+                }
+
+                if let name = provisioningData.cardholderName, !name.isEmpty {
+                    configuration.cardholderName = name
+                }
+                WalletProvisioningSession.store(responseData, for: card.cardId)
+                guard let art = WalletCardArtwork.image.cgImage,
+                      let entry = PKIssuerProvisioningExtensionPaymentPassEntry(
+                          identifier: card.cardId,
+                          title: card.title,
+                          art: art,
+                          addRequestConfiguration: configuration
+                      ) else {
+                    WalletProvisioningSession.remove(card.cardId)
+                    completion([])
+                    return
+                }
+                completion([entry])
+            }
+        }
+    }
+#else
+    private func loadEntry(
+        remote: Bool,
+        completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void
+    ) {
+        completion([])
+    }
+#endif
 }

@@ -215,9 +215,9 @@ and it is fine for it to lag behind what ships.
 > cases. See §9 "App-download QR links do not expand the native surface".
 
 Every update to `main` starts **App Release OTA** for that exact commit. It publishes
-only while that commit is still current `main`. During the OTA-first stage, **App Release Android & iOS** requires manual dispatch;
-a successful OTA does not start a native rebuild. The native follow-up PR enables
-rebuilds for changed native contracts. Manual retries of
+only while that commit is still current `main`. **App Release Android & iOS** also starts on a main push, but builds only when
+the native fingerprint differs from the newest shipped binary. A successful OTA
+does not itself start a native rebuild. Manual retries of
 both workflows use `main`. Neither release builds the `dev` app tree.
 
 1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
@@ -233,14 +233,13 @@ Use the workflow that matches the release:
 
 | | button | what it does |
 |-|--------|--------------|
-| native | **App Release Android & iOS** | manual dispatch on `main` resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| native | **App Release Android & iOS** | a main push with native changes (or manual dispatch on `main`) resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
-Merging reviewed code to `main` starts production OTA for that exact commit. During
-the OTA-first stage, native builds require a separate manual dispatch. To retry
+Merging reviewed code to `main` starts production OTA for that exact commit. The native
+workflow independently checks that commit for native changes before building. To retry
 OTA for the current `main` commit manually, dispatch **App Release OTA** on `main`:
-
 
 ```sh
 gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref main
@@ -726,10 +725,12 @@ record with incomplete metadata fails closed.
   policies above. Public API artifact reads are combined with the same authenticated
   channel-policy interface used by Capgo CLI, since the public channel response omits
   platform flags. Unreadable policies or missing metadata exposure stop publication.
-- **A manually dispatched native release publishes a matching `.0` bootstrap bundle after
-
+- **A native release publishes a matching `.0` bootstrap bundle after
   the native checks pass where a platform's legacy bridge is inactive.** An active
-  bridge retains its compatible 1.5.x or 1.6.x channel. Production OTA
+  bridge retains its compatible 1.5.x or 1.6.x channel. New binaries reject those
+  old bridge bundles using their baked native floor and retain embedded JS. Future
+  OTA delivery for the new generation needs a separate compatible channel
+  transition; see [the staged release plan](RELEASE-SPLIT-2026-09-23.md). Production OTA
   remains automatic from `main`. The native workflow uses the `Production` GitHub environment;
   adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced

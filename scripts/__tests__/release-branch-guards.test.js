@@ -233,18 +233,19 @@ describe('release-ota.yml publishes main source', () => {
 describe('native release source branch', () => {
     const guard = guardOf('release-native.yml')
 
-    it('accepts only manual main dispatches during the OTA-first stage', () => {
+    it('accepts main pushes and manual main dispatches for native changes', () => {
         expect(run(guard, 'main', 'workflow_run').status).toBe(1)
-        expect(run(guard, 'main', 'push').status).toBe(1)
+        expect(run(guard, 'main', 'push').status).toBe(0)
         expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
         expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(1)
         expect(run(guard, 'release/android-kyc', 'workflow_dispatch').status).toBe(1)
     })
 
-    it('does not automatically build native binaries during the OTA-first stage', () => {
+    it('automatically builds only changed native contracts on main', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
         expect(workflow).not.toContain('workflow_run:')
-        expect(workflow).not.toMatch(/\n    push:/)
+        expect(workflow).toMatch(/\n    push:/)
+        expect(workflow.match(/if: needs.resolve.outputs.build_required == 'true'/g)).toHaveLength(2)
         expect(workflow).toContain('workflow_dispatch:')
         expect(workflow).toContain('queue: max')
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
@@ -255,9 +256,8 @@ describe('native release source branch', () => {
         expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
         expect(workflow).not.toContain('channel currentBundle production')
         expect(workflow).not.toContain('--channel production')
-        expect(workflow).toContain(
-            `node scripts/check-native-ota-surface.mjs v${platform === 'ios' ? '1.5.0' : '1.6.0'} --platform ${platform}`
-        )
+        expect(workflow).toContain('New native')
+        expect(workflow).toContain('builds reject legacy bridge bundles and keep their embedded JS.')
     })
 })
 

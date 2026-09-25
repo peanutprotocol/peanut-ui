@@ -4,7 +4,13 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
+import {
+    forgetStagedFloors,
+    isObsoleteLegacyBridge,
+    needsStoreUpdate,
+    rememberStagedFloors,
+    stagedFloors,
+} from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -121,6 +127,13 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
         // getLatest can offer a different version even when its number is lower
         // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
+            // The old lane stays live for existing installs during a native
+            // migration. Keep this binary's newer embedded JS until its own
+            // compatible OTA lane is published.
+            if (isObsoleteLegacyBridge(latest.version)) {
+                removeStoredValue(FAILURE_STREAK_KEY)
+                return 'up-to-date'
+            }
             // Refused before the download, not after: a bundle built for a newer
             // binary must never reach the device's disk or launch cache. Capgo's
             // own floor is the server-side half of this rule and
@@ -490,6 +503,9 @@ async function readStagedBundleImpl(
     if (next?.version && next.id !== current?.bundle?.id) {
         // A prior JS release may have armed next(). Migrate it before any
         // passkey or external app switch can trigger native installation.
+        if (isObsoleteLegacyBridge(next.version)) {
+            return disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id)
+        }
         if (await needsStoreUpdate(next.version, stagedFloors(next.id))) {
             callbacks.onStoreUpdateRequired?.()
             return disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id)
@@ -513,6 +529,12 @@ async function readStagedBundleImpl(
             removeStoredValue(STAGED_BUNDLE_KEY)
             forgetStagedFloors()
         }
+        return null
+    }
+    if (isObsoleteLegacyBridge(staged.version)) {
+        removeStoredValue(STAGED_BUNDLE_KEY)
+        forgetStagedFloors()
+        await CapacitorUpdater.delete({ id: staged.id }).catch(() => undefined)
         return null
     }
     if (!(await needsStoreUpdate(staged.version, stagedFloors(staged.id)))) return staged

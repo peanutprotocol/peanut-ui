@@ -1,0 +1,45 @@
+# OTA first, native build second
+
+The split starts from `dev` commit `18c935832`. The OTA branch also includes
+`dev` through `01e78fc1b` and `main` through `8fccc5607`, including the release
+bridge changes merged by #3367. The OTA branch also copies the nine UI and
+localization commits from #3393. The shipped native baseline is `v1.6.0`
+(`331002ff83e95593e92f12fdf870201f25f1f6d0`).
+
+1. Merge `innolope/release-ota-first-0923` into `main`. It retains the dev web
+   changes and defers Wallet provisioning (#3153) and the Apple Watch follow-up
+   (#3345), including their JavaScript callers and release tooling. Its native
+   fingerprint is identical to v1.6.0. The existing main-push OTA workflow
+   publishes this branch with Android 1.6.0 and iOS 1.5.0 delivery floors.
+2. Wait for that production OTA to finish and verify it on installed apps.
+3. Merge `innolope/release-native-followup-0923` into `main`. It restores both
+   deferred changes and includes the Android Clipboard null guard from #3325.
+   The main-push native workflow detects the changed fingerprint and starts
+   coordinated iOS TestFlight and Android Play internal builds. Manual store
+   review and production promotion remain separate.
+
+Keep the native PR in draft until step 2 is complete. Its review base is the OTA
+branch so the deferred code is visible in isolation; retarget it to `main` after
+the OTA PR merges. Prefer a merge commit for the OTA PR to preserve ancestry;
+if it is squashed, reconcile the native branch with main before retargeting.
+Back-merge the resulting main history into dev after both stages to preserve
+the explicit deferral and restoration history.
+
+The native branch restores the deferred features and applies #3325. Native and
+OTA workflows share the existing production-release concurrency group. The
+first branch disables #3367's automatic native build after OTA; the follow-up
+uses a main push and a changed native fingerprint instead. An OTA from the
+native follow-up is expected to fail its compatibility guard for the old lanes.
+It must not replace the previously verified bridge artifacts.
+
+Both store builds require the existing iOS 1.5.x and Android 1.6.x bridges to be
+active. They leave those channels intact for older installs. New binaries bake
+their new native version into their JS compatibility floors and reject legacy
+bridge downloads or staged bundles, retaining their embedded JS. Publishing
+future OTA updates for the new native generation requires a separate compatible
+channel transition; this PR does not move the legacy channels to the new shell.
+Do not merge the original #3325 directly into the OTA branch.
+
+The Wallet integration retains its entitlement/provisioning-profile gates.
+A successful binary build alone does not establish Apple entitlement approval,
+Wallet/Watch device verification, store review, or production availability.

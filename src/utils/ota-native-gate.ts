@@ -29,6 +29,18 @@ function platformFloor(): string | null {
     return floor && nativeLine(floor) ? floor : null
 }
 
+/** A legacy recovery lane must not replace JS that requires a newer shell. */
+export function legacyBridgePredatesSurface(bundleVersion: string, minimumNativeVersion: string | null): boolean {
+    const bridge = /^1\.(5|6)\.(\d+)-(ios|android)$/.exec(bundleVersion)
+    if (!bridge || Number(bridge[2]) < 1000 || !minimumNativeVersion) return false
+    if ((bridge[1] === '5') !== (bridge[3] === 'ios')) return false
+    return bundleNeedsNewerBinary(minimumNativeVersion, `1.${bridge[1]}.0`)
+}
+
+export function isObsoleteLegacyBridge(bundleVersion: string): boolean {
+    return legacyBridgePredatesSurface(bundleVersion, platformFloor())
+}
+
 /**
  * The floors of the bundle being OFFERED, read off the string Capgo returns with
  * it.

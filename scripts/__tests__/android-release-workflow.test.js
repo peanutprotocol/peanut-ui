@@ -77,9 +77,11 @@ describe('Android replacement release workflow', () => {
         expect(workflow.slice(baselineJob)).toContain('contents: write')
     })
 
-    it('keeps the Android 1.6 bridge active for compatible native builds', () => {
+    it('preserves the Android 1.6 bridge when building a newer native shell', () => {
         expect(workflow).toContain('node scripts/capgo-release-guard.mjs android-bridge-status')
-        expect(workflow).toContain('node scripts/check-native-ota-surface.mjs v1.6.0 --platform android')
+        expect(workflow).not.toContain('node scripts/check-native-ota-surface.mjs v1.6.0 --platform android')
+        expect(workflow).toContain('echo "needs_ota=false"')
+        expect(workflow).toContain('NEXT_PUBLIC_OTA_FLOOR_ANDROID: ${{ steps.version.outputs.name }}')
         expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
     })
 })

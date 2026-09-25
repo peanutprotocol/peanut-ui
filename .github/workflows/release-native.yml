@@ -1,9 +1,12 @@
 name: App Release Android & iOS
 
-# The OTA-first stage only permits an intentional manual store build on main.
-# The follow-up native PR enables automatic native builds for changed contracts. The version is resolved
-# here, not typed, so iOS and Android share the same native version even though existing installs
-# remain on different versions.
+# The single entry point for a store build. Click "Run workflow" on `main`; the
+# version is resolved here, not typed, and both platforms build from that one
+# number so they can never disagree about what a release is called.
+#
+# Main pushes rebuild only when the native fingerprint differs from the newest
+# shipped binary. Web-only pushes stay in the OTA lane. Manual dispatch remains
+# available for an intentional store rebuild even when the native surface matches.
 #
 # The tag is written afterwards, as the record of what shipped. A failed build
 # leaves no tag, so a re-run resolves the same number instead of burning one.
@@ -12,6 +15,8 @@ name: App Release Android & iOS
 # and to Play production stays a manual step in the respective consoles.
 
 on:
+    push:
+        branches: [main]
     workflow_dispatch:
         inputs:
             track:
@@ -46,12 +51,14 @@ jobs:
         environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
+            build_required: ${{ steps.native_change.outputs.required }}
         steps:
             # The app tree in every job must be the exact main commit selected here.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "main" ] || [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
-                      echo "::error::native releases require a manual dispatch on main during the OTA-first stage" >&2
+                  if [ "$GITHUB_REF_NAME" != "main" ] ||
+                     { [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; }; then
+                      echo "::error::native releases require a main push or manual main dispatch" >&2
                       exit 1
                   fi
 
@@ -65,6 +72,34 @@ jobs:
               with:
                   node-version: '22'
 
+            - name: Decide whether a native build is required
+              id: native_change
+              env:
+                  RELEASE_EVENT: ${{ github.event_name }}
+              run: |
+                  if [ "$RELEASE_EVENT" = "workflow_dispatch" ]; then
+                      echo "required=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+                  if [ "$LATEST_MAIN_SHA" != "$GITHUB_SHA" ]; then
+                      echo "::error::main advanced before native release; refusing to build a stale commit" >&2
+                      exit 1
+                  fi
+                  FLOOR="$(node scripts/release-version.mjs newest-native --allow-none)"
+                  if [ -z "$FLOOR" ]; then
+                      echo "required=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  # Importing diff preserves errors as errors; a failed check must
+                  # never be mistaken for permission to release a native binary.
+                  REQUIRED="$(NATIVE_BASE="v$FLOOR" node --input-type=module -e '
+                    import { diff } from "./scripts/native-fingerprint.mjs";
+                    console.log(diff(process.env.NATIVE_BASE, "HEAD").length > 0);
+                  ')"
+                  echo "required=$REQUIRED" >> "$GITHUB_OUTPUT"
+                  echo "Native surface changed: $REQUIRED (baseline v$FLOOR)"
+
             # `native` returns latestBuild + 1 — a number, derived from the tags,
             # with no opinion on whether this commit contains the build it is
             # numbering itself after. Cut from a ref that lags the newest release
@@ -72,6 +107,7 @@ jobs:
             # another store release can undo. The OTA lane makes the same check
             # for the same reason (see release-ota.yml).
             - name: Guard release provenance
+              if: steps.native_change.outputs.required == 'true'
               run: |
                   # Deliberately `newest-native`, not `native-floor`: the floor is
                   # scoped to the CURRENT major, so the first release of a new major
@@ -90,6 +126,7 @@ jobs:
                   echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
             - name: Require compatible legacy OTA lanes before either store upload
+              if: steps.native_change.outputs.required == 'true'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
@@ -99,17 +136,16 @@ jobs:
                       echo '::error::iOS 1.5.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
                       exit 1
                   fi
-                  node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
-                  echo "The iOS 1.5.x bridge remains compatible with this main commit"
+                  echo "Preserving the verified iOS 1.5.x bridge for existing installs"
                   ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
                   if [ "$ANDROID_BRIDGE" != active ]; then
                       echo '::error::Android 1.6.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
                       exit 1
                   fi
-                  node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
-                  echo "The Android 1.6.x bridge remains compatible with this main commit"
+                  echo "Preserving the verified Android 1.6.x bridge for existing installs"
 
             - name: Resolve next build version
+              if: steps.native_change.outputs.required == 'true'
               id: resolve
               run: |
                   VERSION="$(node scripts/release-version.mjs native)"
@@ -120,14 +156,16 @@ jobs:
 
     ios:
         needs: resolve
+        if: needs.resolve.outputs.build_required == 'true'
         uses: ./.github/workflows/ios-release.yml
         secrets: inherit
         with:
             versionName: ${{ needs.resolve.outputs.version }}
-            pushDebug: ${{ inputs.pushDebug }}
+            pushDebug: ${{ inputs.pushDebug || false }}
 
     android:
         needs: resolve
+        if: needs.resolve.outputs.build_required == 'true'
         uses: ./.github/workflows/android-release.yml
         # the called workflow's record-replacement-baseline job writes one
         # annotated tag; a caller must grant what its callee's jobs request or
@@ -137,8 +175,8 @@ jobs:
         secrets: inherit
         with:
             versionName: ${{ needs.resolve.outputs.version }}
-            track: ${{ inputs.track }}
-            pushDebug: ${{ inputs.pushDebug }}
+            track: ${{ inputs.track || 'internal' }}
+            pushDebug: ${{ inputs.pushDebug || false }}
 
     tag:
         needs: [resolve, ios, android]
