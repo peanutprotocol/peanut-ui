@@ -14,10 +14,18 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { validateIban, validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 import {
+    addressCountryAlpha2,
+    addressCountryAlpha3,
+    addressStatesFor,
+    asksAddressCountry,
     bankCorridorFor,
     corridorAcceptsAddressCountry,
+    fixedAddressCountry,
     type BankCorridorField,
 } from '@/components/AddWithdraw/bank-corridors'
+import { CountryCombobox } from '@/components/Common/CountryCombobox'
+import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryFromIban, getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
@@ -34,7 +42,7 @@ import { useOwnAccountIdentity } from '@/hooks/useOwnAccountIdentity'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 export type IBankAccountDetails = {
     /** The saved account's type once one exists ('iban', 'gb', …): it picks the payout currency. */
@@ -54,6 +62,8 @@ export type IBankAccountDetails = {
     city: string
     state: string
     postalCode: string
+    /** The owner's address country, ISO alpha-2, where the form asks for it (the US corridor). */
+    addressCountry?: string
     iban: string
     country: string
     // colombian bank accounts
@@ -104,7 +114,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const isIban = corridor?.accountType === BridgeAccountType.IBAN
         const isUk = corridor?.accountType === BridgeAccountType.GB
         const isUs = corridor?.accountType === BridgeAccountType.US
+        const asksCountry = asksAddressCountry(corridor)
         const { user } = useAuth()
+        const locale = useLocale()
+        // the owner's own country is the likely answer: the residence every gate reads
+        const [residenceIso2] = useResidenceIso2s()
         const t = useTranslations('withdraw.bankForm')
         /** The corridor table names its keys as plain strings. */
         const tKey = (key: string) => t(key as Parameters<typeof t>[0])
@@ -141,6 +155,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit,
             setValue,
             getValues,
+            watch,
             formState: { errors, isValid, isValidating, touchedFields, dirtyFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -156,6 +171,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 city: '',
                 state: '',
                 postalCode: '',
+                addressCountry: asksCountry ? (residenceIso2 ?? '') : '',
                 documentType: '',
                 documentNumber: '',
                 bankCode: '',
@@ -197,12 +213,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 city,
                 postalCode,
             }
-            // A state only belongs to a corridor that has one, and only when it
-            // is one of that corridor's own codes — a Mexican state in a US form
-            // would sit in the select as a value it cannot show.
-            if (state && corridor.states?.some((option) => option.code === state)) fields.state = state
+            // Where the form asks for the country, the address brings its own.
+            const country = asksCountry
+                ? addressCountryAlpha2(ownIdentity.address.countryCode)
+                : fixedAddressCountry(corridor)
+            if (asksCountry && country) fields.addressCountry = country
+            // A state only belongs to a country that has them, and only when it
+            // is one of that country's own codes — a Mexican state in a US
+            // address would sit in the select as a value it cannot show.
+            if (state && addressStatesFor(country).some((option) => option.code === state)) fields.state = state
             return fields
-        }, [corridor, ownIdentity.address, STREET_ADDRESS_MAX_LENGTH])
+        }, [corridor, asksCountry, ownIdentity.address, STREET_ADDRESS_MAX_LENGTH])
 
         const prefillValues = useMemo((): Partial<Record<FieldPath<IBankAccountDetails>, string>> => {
             return {
@@ -252,6 +273,37 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
             writtenByPrefill.current = []
         }, [canPrefill, isOwnAccount, prefillValues, setValue])
+
+        // The residence can arrive after the form mounts; it is only a default,
+        // so it never replaces a country the user or the prefill chose.
+        useEffect(() => {
+            if (!asksCountry || !residenceIso2 || getValues('addressCountry')) return
+            setValue('addressCountry', residenceIso2, { shouldValidate: true })
+        }, [asksCountry, residenceIso2, getValues, setValue])
+
+        // Mexico for a CLABE, the UK for a sort code; null where the form asks
+        const fixedCountry = corridor ? fixedAddressCountry(corridor) : null
+        const addressCountry = watch('addressCountry')
+        const addressStates = useMemo(
+            () => addressStatesFor(asksCountry ? addressCountry : fixedCountry),
+            [asksCountry, addressCountry, fixedCountry]
+        )
+        // A state from another country's list is not an answer here. The list
+        // is read from the form, not the render: a prefill writes the country
+        // and its state together, before this render has seen the country.
+        useEffect(() => {
+            const state = getValues('state')
+            const states = addressStatesFor(asksCountry ? getValues('addressCountry') : fixedCountry)
+            if (state && !states.some((option) => option.code === state)) {
+                setValue('state', '', { shouldValidate: true })
+            }
+        }, [addressCountry, asksCountry, fixedCountry, getValues, setValue])
+
+        const countryOptions = useMemo(
+            // Bridge takes the country as alpha-3, so a country without one cannot be sent
+            () => buildResidenceCountryOptions(locale).filter((option) => addressCountryAlpha3(option.value)),
+            [locale]
+        )
 
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
@@ -358,9 +410,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         address: {
                             street: data.street ?? '',
                             city: data.city ?? '',
-                            state: data.state ?? '',
+                            // no state for a country without them, rather than an empty one
+                            ...(data.state ? { state: data.state } : {}),
                             postalCode: data.postalCode ?? '',
-                            country: resolvedCountryCode,
+                            // the owner's country where the form asks; the account's otherwise
+                            country: asksCountry
+                                ? (addressCountryAlpha3(data.addressCountry) ?? '')
+                                : resolvedCountryCode,
                         },
                     }),
                 }
@@ -757,6 +813,36 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 /* The address belongs to the account owner, so it sits
                                    under the same heading and takes no step of its own. */
                                 <div className="flex flex-col gap-4">
+                                    {asksCountry && (
+                                        // the trigger is an input the combobox owns, so aria-label names it
+                                        <Field
+                                            label={t('countryLabel')}
+                                            error={
+                                                errors.addressCountry && touchedFields.addressCountry
+                                                    ? (errors.addressCountry.message ?? '')
+                                                    : undefined
+                                            }
+                                        >
+                                            <Controller
+                                                name="addressCountry"
+                                                control={control}
+                                                rules={{ required: t('countryRequired') }}
+                                                render={({ field }) => (
+                                                    <CountryCombobox
+                                                        options={countryOptions}
+                                                        value={field.value}
+                                                        aria-label={t('countryLabel')}
+                                                        placeholder={t('countryPlaceholder')}
+                                                        onValueChange={(value) => {
+                                                            markUserEdit()
+                                                            field.onChange(value)
+                                                            field.onBlur()
+                                                        }}
+                                                    />
+                                                )}
+                                            />
+                                        </Field>
+                                    )}
                                     {renderInput(
                                         'street',
                                         t('streetLabel'),
@@ -777,20 +863,26 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                                     {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
 
-                                    {/* Only US/MX carry a state; SEPA/UK addresses have none, so
-                                        a required empty dropdown would wall the form. */}
-                                    {corridor.states && corridor.states.length > 0 && (
+                                    {/* Only a US or Mexican address carries a state here; any
+                                        other has none, so a required empty dropdown would wall the form. */}
+                                    {addressStates.length > 0 && (
                                         <div>
                                             {renderSelect(
                                                 'state',
                                                 t('stateLabel'),
                                                 t('state'),
-                                                corridor.states.map((state) => ({
+                                                addressStates.map((state) => ({
                                                     label: state.name,
                                                     value: state.code,
                                                 })),
                                                 {
-                                                    required: t('stateRequired'),
+                                                    // read at validation time: the list follows the country
+                                                    validate: (value) =>
+                                                        addressStatesFor(
+                                                            asksCountry ? getValues('addressCountry') : fixedCountry
+                                                        ).length === 0 ||
+                                                        !!value ||
+                                                        t('stateRequired'),
                                                 }
                                             )}
                                         </div>
