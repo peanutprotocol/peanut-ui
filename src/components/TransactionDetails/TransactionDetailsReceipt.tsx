@@ -1,5 +1,7 @@
 'use client'
 
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -11,7 +13,6 @@ import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
-import { PerkIcon } from './PerkIcon'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -190,7 +191,7 @@ export const TransactionDetailsReceipt = ({
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
                 <Card position="solo" className="p-4">
                     <div className="flex items-center gap-3">
-                        <PerkIcon size="small" />
+                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
                         <div className="flex flex-col gap-1">
                             <span className="text-body-m-semibold text-foreground-primary">
                                 {t('perkBanner.title')}

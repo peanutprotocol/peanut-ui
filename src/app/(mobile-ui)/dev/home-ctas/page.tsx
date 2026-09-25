@@ -10,7 +10,6 @@ import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import DevPageShell from '../_components/DevPageShell'
 
 /**
@@ -76,10 +75,8 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'invite-friends',
-        label: 'Invite friends (logo variant)',
-        icon: 'invite-heart',
-        logo: STAR_STRAIGHT_ICON,
-        logoSize: 30,
+        label: 'Invite friends (rewards concept)',
+        concept: 'rewards',
         title: 'Invite friends. Earn rewards',
         description: 'Earn rewards every time your friends use Peanut.',
     },

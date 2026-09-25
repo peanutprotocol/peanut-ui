@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render } from '@testing-library/react'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { IconBubble, type IconBubbleColor } from '../IconBubble'
 import { CONCEPT_ICONS, type Concept } from '../conceptIcons'
 
@@ -35,6 +36,12 @@ describe('CONCEPT_ICONS', () => {
         const token = (name: string) => css.match(new RegExp(`--color-${name}:\\s*([^;]+);`))?.[1]
         expect(token('background-brand')).toBeDefined()
         expect(token('background-brand')).toBe(token('action-primary'))
+    })
+
+    // QA 2026-09-25: a Peanut reward drew its star on green in activity
+    test('rewards is the home top-nav star on yellow', () => {
+        expect(CONCEPT_ICONS.rewards.color).toBe('yellow')
+        expect(CONCEPT_ICONS.rewards.icon.props.src).toBe(STAR_STRAIGHT_ICON)
     })
 
     test('gray stays the inactive tone: no concept is gray', () => {

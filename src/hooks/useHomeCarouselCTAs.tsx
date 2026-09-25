@@ -19,7 +19,6 @@ import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -198,9 +197,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'invite-friends',
                 title: t('invite.title'),
                 description: t('invite.description'),
-                icon: 'invite-heart',
-                logo: STAR_STRAIGHT_ICON,
-                logoSize: 30,
+                concept: 'rewards',
                 onClick: () => {
                     router.push('/rewards')
                 },
@@ -252,8 +249,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-background-icon-bubble-yellow',
-                icon: 'gift',
+                concept: 'rewards',
                 onClick: () => {
                     router.push('/rewards')
                 },

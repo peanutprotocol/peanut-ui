@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { PEANUTMAN } from '@/assets/mascot'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
 
@@ -45,7 +46,11 @@ export const CONCEPT_ICONS = {
     },
     friends: { icon: 'users', color: 'yellow' },
     card: { icon: 'credit-card', color: 'yellow' },
-    rewards: { icon: 'trophy', color: 'yellow' },
+    // the star beside Rewards on the home top nav: points, perks and cashback
+    rewards: {
+        icon: <Image src={STAR_STRAIGHT_ICON} alt="" className="h-1/2 w-auto" />,
+        color: 'yellow',
+    },
     badges: { icon: 'achievements', color: 'yellow' },
 } as const satisfies Record<string, { icon: IconName | React.ReactElement; color: IconBubbleColor }>
 

@@ -9,7 +9,8 @@
 //      in `icon` (spread CONCEPT_ICONS, or pass `concept`, instead)
 //   2. an object literal that pairs a literal concept glyph with a color field
 //      (`color`, `iconColor`, `iconContainerClassName`)
-//   3. a hand-rolled `rounded-full` container whose <Icon> is a concept glyph
+//   3. a hand-rolled `rounded-full` container whose <Icon> is a concept glyph,
+//      or a bubble drawing the rewards star (rewards = star on yellow)
 //   4. `CONCEPT_ICONS.x.icon` taken without `CONCEPT_ICONS.x.color`: half a pair
 //
 // A glyph that is not the concept on that surface goes in EXEMPT with a reason.
@@ -24,6 +25,8 @@ const SRC = join(__dirname, '..', '..', '..')
 const GLYPHS = [
     ...new Set(Object.values(CONCEPT_ICONS).flatMap(({ icon }) => (typeof icon === 'string' ? [icon] : []))),
 ]
+// the rewards star is an image, so it has no icon name to match
+const STAR = 'STAR_STRAIGHT_ICON|starStraight\\w*'
 const GLYPH = `(?:${GLYPHS.map((g) => g.replace(/[-]/g, '\\-')).join('|')})`
 
 // `path (relative to src/) :: glyph`, sorted. Each entry needs a reason.
@@ -40,10 +43,6 @@ const EXEMPT = new Map<string, string>([
     [
         'components/Profile/views/ResidenceChangeDrawer.tsx :: globe',
         'residence, not the "other countries" row (design decision pending)',
-    ],
-    [
-        'components/Send/views/Contacts.view.tsx :: trophy',
-        'contacts empty state, not rewards (design decision pending)',
     ],
     [
         'features/deposit-accounts/components/ClaimAccountScreen.tsx :: link',
@@ -69,12 +68,15 @@ const files = sourceFiles(SRC)
 
 const RULES: RegExp[] = [
     // 1. a component that draws a bubble, given a literal concept glyph
-    new RegExp(`<(?:IconBubble|EmptyState|ActionModal)\\b[^>]*?\\bicon=\\{?["'](${GLYPH})["']`, 'g'),
+    new RegExp(`<(?:IconBubble|EmptyState|ActionModal)\\b[^<>]*?\\bicon=\\{?["'](${GLYPH})["']`, 'g'),
     // 2. one object literal pairing a concept glyph with a color
     new RegExp(`\\{[^{}]*\\bicon:\\s*["'](${GLYPH})["'][^{}]*\\b(?:color|iconColor|iconContainerClassName):`, 'g'),
     new RegExp(`\\{[^{}]*\\b(?:color|iconColor|iconContainerClassName):[^{}]*\\bicon:\\s*["'](${GLYPH})["']`, 'g'),
     // 3. a hand-rolled round container around a concept glyph
     new RegExp(`rounded-full[^\\n]*\\n(?:[^\\n]*\\n){0,2}[^\\n]*<Icon\\s+name=["'](${GLYPH})["']`, 'g'),
+    // the rewards star in a bubble of its own instead of CONCEPT_ICONS.rewards
+    new RegExp(`rounded-full[^\\n]*\\n(?:[^\\n]*\\n){0,2}[^\\n]*src=\\{(${STAR})\\b`, 'g'),
+    new RegExp(`<IconBubble\\b[^>]*?\\bicon=\\{<Image[^>]*?src=\\{(${STAR})\\b`, 'g'),
 ]
 
 function violations(path: string): string[] {
@@ -114,10 +116,14 @@ describe('product concept bubbles come from CONCEPT_ICONS', () => {
     // the detector itself: each rule catches the shape it names
     test.each([
         ['<IconBubble icon="qr-code" color="green" />'],
-        ['<EmptyState icon="trophy" title="x" />'],
+        ['<EmptyState icon="coins" title="x" />'],
         ["{ icon: 'bank', color: 'blue' }"],
         ["{ iconContainerClassName: 'bg-action-primary', icon: 'credit-card' }"],
         ['<div className="rounded-full bg-blue-500">\n    <Icon name="link" size={24} />'],
+        [
+            '<div className="rounded-full bg-background-icon-bubble-green">\n    <Image src={STAR_STRAIGHT_ICON} alt="" />',
+        ],
+        ['<IconBubble icon={<Image src={STAR_STRAIGHT_ICON} alt="" />} color="green" />'],
     ])('flags %s', (snippet) => {
         expect(RULES.some((rule) => new RegExp(rule.source).test(snippet))).toBe(true)
     })

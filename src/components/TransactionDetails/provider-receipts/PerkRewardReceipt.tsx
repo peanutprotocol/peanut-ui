@@ -4,7 +4,8 @@ import { type ReactNode, type RefObject } from 'react'
 import { twMerge } from '@/utils/tw'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
 import Badge from '@/components/Global/Badges/Badge'
@@ -42,7 +43,7 @@ export function PerkRewardReceipt({
             {/* head (board composition): centered icon → type line → amount →
                 badge. Completed = base state, no badge (states board). */}
             <div className="flex flex-col items-center gap-3 text-center">
-                <PerkIcon size="medium" />
+                <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
                 <div className="flex w-full flex-col items-center gap-2">
                     <div className="flex w-full flex-col items-center gap-1">
                         <h2 className="text-body-xs text-foreground-secondary">{t('perk.title')}</h2>
