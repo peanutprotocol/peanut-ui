@@ -11,6 +11,22 @@
         android:theme="@style/AppTheme"
         android:networkSecurityConfig="@xml/network_security_config">
 
+        <!-- Launcher entry point. MainActivity stays singleTask for App Links, but
+             as the launcher target that made an icon tap clear every activity above
+             it, killing the native Sumsub SDK mid-flow (TASK-22030). This trampoline
+             makes the icon resume the task like recents does. Same splash theme, so
+             the starting window looks unchanged. -->
+        <activity
+            android:name=".LauncherActivity"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:screenOrientation="portrait"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -20,11 +36,6 @@
             android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
             android:exported="true">
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
 
             <!-- App Links for peanut.me. Scoped to in-app routes via exact path +
                  trailing-slash prefix so web-only siblings (e.g. /send-money-to,
