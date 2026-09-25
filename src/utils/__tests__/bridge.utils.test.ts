@@ -2,6 +2,7 @@ import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import { type Account, AccountType } from '@/interfaces/interfaces'
 import {
     applyBridgeCrossCurrencyFee,
+    getBankPayout,
     getBankRailCountryFromAccount,
     getBridgeRailIdFromAccount,
     getCountryFromAccount,
@@ -525,5 +526,51 @@ describe('bridge.utils', () => {
             expect(railJurisdictionForBank('us')).toBe('US')
             expect(railJurisdictionForBank('pt')).toBe('EU')
         })
+    })
+})
+
+/**
+ * TASK-23054 (Konrad, 2026-09-25): the review quoted GBP for a UK IBAN while the
+ * transfer paid EUR. The payout comes from the account TYPE, exactly as the
+ * transfer's getOfframpConfigFromAccount does; the country only says whether
+ * the bank converts the euros on arrival.
+ */
+describe('getBankPayout — what each saved account class actually receives', () => {
+    const saved = (type: string, countryCode: string) => ({ type, details: { countryCode } })
+
+    it.each([
+        ['euro-area IBAN (DE)', saved('iban', 'DEU'), 'eur', 'sepa', null],
+        ['euro-area IBAN (LT)', saved('iban', 'LTU'), 'eur', 'sepa', null],
+        ['UK IBAN', saved('iban', 'GBR'), 'eur', 'sepa', 'GBP'],
+        ['Polish IBAN', saved('iban', 'POL'), 'eur', 'sepa', 'PLN'],
+        ['Swedish IBAN', saved('iban', 'SWE'), 'eur', 'sepa', 'SEK'],
+        ['Danish IBAN', saved('iban', 'DNK'), 'eur', 'sepa', 'DKK'],
+        ['Czech IBAN', saved('iban', 'CZE'), 'eur', 'sepa', 'CZK'],
+        ['Hungarian IBAN', saved('iban', 'HUN'), 'eur', 'sepa', 'HUF'],
+        ['Norwegian IBAN', saved('iban', 'NOR'), 'eur', 'sepa', 'NOK'],
+        ['Swiss IBAN', saved('iban', 'CHE'), 'eur', 'sepa', 'CHF'],
+        ['Romanian IBAN', saved('iban', 'ROU'), 'eur', 'sepa', 'RON'],
+        ['Icelandic IBAN', saved('iban', 'ISL'), 'eur', 'sepa', 'ISK'],
+        ['UK sort code (gb)', saved('gb', 'GBR'), 'gbp', 'faster_payments', null],
+        ['US ACH', saved('us', 'USA'), 'usd', 'ach', null],
+        ['Mexican CLABE', saved('clabe', 'MEX'), 'mxn', 'spei', null],
+        ['Colombian account', saved('co_bank_transfer', 'COL'), 'cop', 'co_bank_transfer', null],
+        ['Prisma-shaped UK sort code', saved('BANK_GB', 'GBR'), 'gbp', 'faster_payments', null],
+        ['Prisma-shaped UK IBAN', saved('BANK_IBAN', 'GBR'), 'eur', 'sepa', 'GBP'],
+    ])('%s → %s over %s, bank converts to %s', (_, account, currency, paymentRail, bankConvertsTo) => {
+        expect(getBankPayout(account)).toEqual({ currency, paymentRail, bankConvertsTo })
+    })
+
+    it('is the same currency and rail the transfer uses, for every class', () => {
+        for (const type of ['iban', 'gb', 'us', 'clabe', 'co_bank_transfer']) {
+            const account = saved(type, 'GBR')
+            const { currency, paymentRail } = getBankPayout(account)
+            expect({ currency, paymentRail }).toEqual(getOfframpConfigFromAccount(account))
+        }
+    })
+
+    it('refuses a Manteca account (AR, BR): those pay ARS and BRL on their own path', () => {
+        expect(() => getBankPayout(saved(AccountType.MANTECA, 'ARG'))).toThrow(/Manteca/)
+        expect(() => getBankPayout(saved(AccountType.MANTECA, 'BRA'))).toThrow(/Manteca/)
     })
 })

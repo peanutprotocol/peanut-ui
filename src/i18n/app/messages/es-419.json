@@ -716,7 +716,6 @@
         },
         "row": {
             "approximate": "Es un estimado. El tipo de cambio se fija al convertir la transferencia, así que el monto recibido puede variar un poco.",
-            "recipientGets": "El destinatario recibe",
             "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
         }
     },

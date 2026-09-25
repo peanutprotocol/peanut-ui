@@ -598,6 +598,35 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-23054: a UK IBAN is paid EUR over SEPA; a UK sort-code account GBP.
+    // Pick one, type 50 in its currency (or toggle to USD) and continue to the
+    // review. The quote answers 0.8955 per USD, and 55.84 USDC for a typed 50.
+    'withdraw-payout-currency': {
+        route: '/withdraw',
+        about: 'Withdraw to a UK IBAN (paid EUR) or a UK sort-code account (paid GBP): the review currency.',
+        responses: {
+            'GET /users/me': {
+                accounts: [
+                    WALLET_ACCOUNT,
+                    {
+                        ...BANK_ACCOUNTS[0],
+                        id: 'fixture-iban-gb',
+                        identifier: 'GB33BUKB20201555555555',
+                        details: { ...BANK_ACCOUNTS[0].details, countryCode: 'GBR', countryName: 'united-kingdom' },
+                    },
+                    {
+                        ...BANK_ACCOUNTS[0],
+                        id: 'fixture-gb-1',
+                        type: 'gb',
+                        identifier: '55555555',
+                        sortCode: '202015',
+                        details: { ...BANK_ACCOUNTS[0].details, countryCode: 'GBR', countryName: 'united-kingdom' },
+                    },
+                ],
+            },
+            'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
+        },
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',

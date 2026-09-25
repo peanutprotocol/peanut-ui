@@ -68,6 +68,7 @@ let mockCountryId = 'US'
 let mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
 jest.mock('@/utils/bridge.utils', () => ({
     getOfframpConfigFromAccount: () => mockOfframpConfig,
+    getBankPayout: () => ({ ...mockOfframpConfig, bankConvertsTo: null }),
     getCountryFromPath: () =>
         mockCountryId === 'GB'
             ? { id: 'GBR', iso2: 'GB', title: 'United Kingdom' }
@@ -719,6 +720,47 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
 
             expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: sourceAmount }))
         })
+    })
+
+    it('typed in EUR: the review payout leads with the typed bank amount, and success keeps it', async () => {
+        armHappyOfframp()
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        expect(view.result.current.payout).toEqual({
+            currency: 'eur',
+            bankConvertsTo: null,
+            rate: '0.8955',
+            amount: '2000',
+            enteredInBankCurrency: true,
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        // the payout the screen showed is the currency the transfer sent
+        expect(mockCreateOfframp.mock.calls[0][0].destination.currency).toBe(view.result.current.payout?.currency)
+        expect(view.result.current.executedPayout).toMatchObject({ amount: '2000', enteredInBankCurrency: true })
+    })
+
+    it('typed in USD to a EUR account: USDC exact, the bank amount an estimate at the quote rate', async () => {
+        armHappyOfframp()
+        mockQuote = { rate: '0.9' }
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        // the rate is quoted for the account's currency even with no bank amount typed
+        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', destinationAmount: undefined })
+        expect(view.result.current.amountToWithdraw).toBe('50')
+        expect(view.result.current.payout).toMatchObject({
+            currency: 'eur',
+            rate: '0.9',
+            amount: '45.00',
+            enteredInBankCurrency: false,
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).toHaveBeenCalledWith(
+            expect.objectContaining({ amount: '50', destination: expect.objectContaining({ currency: 'eur' }) })
+        )
     })
 
     it('a US account ignores a bank amount: USD pays 1:1 and needs ?amount=', () => {

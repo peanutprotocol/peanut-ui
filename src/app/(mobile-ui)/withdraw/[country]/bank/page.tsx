@@ -17,6 +17,7 @@ import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { payoutAmounts } from '@/features/withdraw/bank-amount'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
@@ -47,9 +48,14 @@ export default function WithdrawBankPage() {
         bankAmount,
     } = flow
 
-    if (!bankAccount) {
+    if (!bankAccount || !flow.payout) {
         return null
     }
+
+    // the success screen shows what executed, never the still-editable URL (Chip round 8)
+    const successAmounts = flow.executedAmountUsd
+        ? payoutAmounts(flow.executedAmountUsd, flow.executedPayout ?? flow.payout)
+        : null
 
     // the USDC for a typed bank amount comes from its quote — nothing to review
     // before the first one. A later refresh that fails keeps this page, and any
@@ -84,15 +90,8 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
-                    bankAmount={
-                        bankAmount?.quote
-                            ? {
-                                  currency: bankAmount.currency,
-                                  destinationAmount: bankAmount.destinationAmount,
-                                  rate: bankAmount.quote.rate,
-                              }
-                            : undefined
-                    }
+                    payout={flow.payout}
+                    isRateLoading={flow.isRateLoading}
                     fromSendFlow={fromSendFlow}
                     verificationDeadline={flow.advisoryDeadline}
                     isLoading={flow.isLoading}
@@ -114,11 +113,12 @@ export default function WithdrawBankPage() {
                 />
             )}
 
-            {step === 'success' && (
+            {step === 'success' && successAmounts && (
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={`$${flow.executedAmountUsd ?? amountToWithdraw}`}
+                    currencyAmount={successAmounts.headline}
+                    secondaryAmount={successAmounts.secondary}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                 />
