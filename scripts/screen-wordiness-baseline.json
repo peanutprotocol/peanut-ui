@@ -50,7 +50,7 @@
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 183,
         "components/Send/link/views/Initial.link.send.view.tsx": 68,
         "components/Send/views/Contacts.view.tsx": 96,
-        "components/Send/views/SendRouter.view.tsx": 90,
+        "components/Send/views/SendRouter.view.tsx": 75,
         "components/Setup/components/PasskeyInfoDrawer.tsx": 68,
         "components/Setup/Views/PasskeySetupHelpDrawer.tsx": 89,
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 525,

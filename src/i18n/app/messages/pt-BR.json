@@ -986,7 +986,6 @@
     "send": {
         "linkCard": {
             "title": "Envie com um link",
-            "description": "Não precisa de conta para resgatar em carteira cripto. Banco, Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
         "methods": {
@@ -3545,7 +3544,6 @@
             "requestTitle": "Peça dinheiro",
             "requestDescription": "Não precisa de conta, é só mandar uma DM.",
             "sendTitle": "Envie com um link",
-            "sendDescription": "Qualquer pessoa com o link pode resgatar",
             "perfectForChats": "Perfeito para WhatsApp e Messenger"
         },
         "peanutActionDetailsCard": {

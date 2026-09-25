@@ -254,6 +254,7 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
         expect(screen.getByText('Send with a link')).toBeInTheDocument()
         expect(screen.getByText('Perfect for WhatsApp and Messenger')).toBeInTheDocument()
+        expect(screen.queryByText(/No account needed for crypto-wallet claims/)).not.toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
