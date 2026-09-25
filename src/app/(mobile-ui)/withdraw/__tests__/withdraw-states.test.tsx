@@ -588,6 +588,19 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         expect(written).toContain('amount=50')
     })
 
+    test('back from the review restores a bank-currency entry in that currency', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.9'
+        const params = { step: 'amount', destinationAmount: '90' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        expect(screen.getByRole('textbox')).toHaveValue('90')
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+    })
+
     test('back from the review restores the field in USD with the USD typed', async () => {
         mockUseRealAmountInput = true
         mockBankRate = '0.9'
