@@ -21,9 +21,9 @@
 //
 // It never executes the code it reads.
 //
-// Originated in mono/scripts/backdoor-scan.mjs and mirrored into peanut-ui and
-// peanut-api-ts. Keep security fixes in sync across copies. CI runs the copy
-// from the PR's BASE branch, so a PR cannot weaken the scan that judges it.
+// Canonical copy: mono/scripts/backdoor-scan.mjs. peanut-ui and peanut-api-ts
+// carry identical copies at scripts/backdoor-scan.mjs; CI runs the copy from
+// the PR's BASE branch, so a PR cannot weaken the scan that judges it.
 //
 // Usage:
 //   node scripts/backdoor-scan.mjs --base origin/dev [--head HEAD] [--jev] [--allow-ref origin/dev]
@@ -38,7 +38,8 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const CODE_FILE = /\.(c|m)?(j|t)sx?$|\.(sh|bash|zsh|ya?ml|json|py)$|(^|\/)(Dockerfile|Makefile)$|(^|\/)\.[a-z]+rc$/i
+// .html/.vue/.svelte/.astro: inline <script> runs in the browser, and in dev.
+const CODE_FILE = /\.(c|m)?(j|t)sx?$|\.(sh|bash|zsh|ya?ml|json|py|html?|vue|svelte|astro)$|(^|\/)(Dockerfile|Makefile)$|(^|\/)\.[a-z]+rc$/i
 
 // Files that run on their own when someone installs, runs `pnpm dev`, builds
 // or opens the repo. The 2025 payload lived in one. Nobody reads these closely,
@@ -52,7 +53,7 @@ const EXEC_CONFIG = [
 	/(^|\/)\.husky\//,
 	/(^|\/)\.vscode\//,
 	/(^|\/)\.devcontainer\//,
-	/(^|\/)(instrumentation|middleware)\.(t|j)s$/,
+	/(^|\/)(instrumentation|instrumentation-client|middleware|proxy)\.(t|j)s$/, // Next.js loads these on its own
 	// decides what git shows as a diff: `-diff` turned a file into "Binary files differ"
 	/(^|\/)\.gitattributes$/,
 ]
@@ -94,6 +95,34 @@ export function execTier(path) {
 }
 
 /**
+ * Git quotes a path it considers unusual: "b/caf\\303\\251.js", with octal
+ * bytes and C escapes. Left quoted, the path matches no rule and every check
+ * on it is skipped, so decode it back to the real name.
+ */
+export function unquotePath(raw) {
+	if (!raw.startsWith('"') || !raw.endsWith('"')) return raw
+	const bytes = []
+	const body = raw.slice(1, -1)
+	const simple = { n: 10, t: 9, r: 13, '"': 34, '\\': 92, a: 7, b: 8, f: 12, v: 11 }
+	for (let i = 0; i < body.length; i += 1) {
+		const ch = body[i]
+		if (ch !== '\\') {
+			bytes.push(...Buffer.from(ch, 'utf8'))
+			continue
+		}
+		const next = body[i + 1]
+		if (/[0-7]/.test(next)) {
+			bytes.push(parseInt(body.slice(i + 1, i + 4), 8))
+			i += 3
+		} else {
+			bytes.push(simple[next] ?? next.charCodeAt(0))
+			i += 1
+		}
+	}
+	return Buffer.from(bytes).toString('utf8')
+}
+
+/**
  * Added lines per file from a unified diff: [{ path, line, text }].
  *
  * Hunk bodies are consumed by their line counts. A header is only read
@@ -112,7 +141,7 @@ export function addedLines(diff) {
 			continue
 		}
 		if (raw.startsWith('+++ ')) {
-			const target = raw.slice(4).trim()
+			const target = unquotePath(raw.slice(4).trim())
 			path = target === '/dev/null' ? null : target.replace(/^b\//, '')
 			continue
 		}
@@ -146,8 +175,10 @@ export function addedLines(diff) {
 export function binaryFiles(diff) {
 	const out = []
 	for (const raw of diff.split('\n')) {
-		const match = raw.match(/^Binary files (?:a\/)?(.+?) and (?:b\/)?(.+?) differ$/)
-		if (match) out.push(match[2] === '/dev/null' ? match[1] : match[2])
+		const match = raw.match(/^Binary files (.+?) and (.+?) differ$/)
+		if (!match) continue
+		const [before, after] = [unquotePath(match[1]).replace(/^a\//, ''), unquotePath(match[2]).replace(/^b\//, '')]
+		out.push(after === '/dev/null' ? before : after)
 	}
 	return out
 }
@@ -318,13 +349,15 @@ async function main() {
 	else if (opts.local) {
 		const baseRef = typeof opts.base === 'string' ? opts.base : 'origin/dev'
 		const mergeBase = git(['merge-base', baseRef, 'HEAD']).trim()
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', mergeBase])
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--no-renames', '--unified=0', mergeBase])
 	} else {
 		if (!opts.base) throw new Error('--base <ref> is required (or --local / --diff-file)')
+		// --no-renames: a file renamed into place (notes.txt -> tailwind.config.js)
+		// otherwise shows as a pure rename with no added lines, so nothing is read.
 		// --text: a PR can add `.gitattributes` with `file -diff`, which prints
 		// "Binary files differ" instead of the lines. --no-textconv: nor may it
 		// swap in a filter that rewrites what we read.
-		diff = git(['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
+		diff = git(['-c', 'core.quotePath=false', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--no-renames', '--unified=0', `${opts.base}...${typeof opts.head === 'string' ? opts.head : 'HEAD'}`])
 	}
 	const lines = addedLines(diff)
 	const allowRef = typeof opts['allow-ref'] === 'string' ? opts['allow-ref'] : typeof opts.base === 'string' ? opts.base : null
