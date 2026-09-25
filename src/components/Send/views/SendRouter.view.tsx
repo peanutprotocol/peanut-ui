@@ -19,6 +19,7 @@ import { useMemo } from 'react'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
+import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
@@ -196,6 +197,7 @@ export const SendRouterView = () => {
                         <IconBubble {...CONCEPT_ICONS.sendLink} size="m" />
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
+                            <ChatAppsLine />
                             <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
                         </div>
                     </div>

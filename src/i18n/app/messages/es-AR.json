@@ -1767,7 +1767,7 @@
     },
     "depositAccounts": {
         "opened": {
-            "heading": "Cuenta virtual en {currency} lista",
+            "heading": "Cuenta en {currency} lista",
             "body": "Tus propios datos bancarios, listos para tu próximo pago.",
             "cta": "Ver datos bancarios"
         },
