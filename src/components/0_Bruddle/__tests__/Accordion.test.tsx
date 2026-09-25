@@ -131,6 +131,24 @@ describe('Accordion', () => {
         expect(screen.queryByRole('heading')).not.toBeInTheDocument()
     })
 
+    // the content clips overflow; a focused input inside a link item lost its
+    // ring on three sides until the content kept a 4px gutter around it
+    test('link variant: the content keeps a gutter for a focus ring inside it', () => {
+        render(
+            <Accordion type="single" collapsible variant="link" defaultValue="second">
+                <Accordion.Item value="second">
+                    <Accordion.Trigger>Have documents from more than one country?</Accordion.Trigger>
+                    <Accordion.Content>
+                        <input aria-label="Second country" />
+                    </Accordion.Content>
+                </Accordion.Item>
+            </Accordion>
+        )
+        const inner = screen.getByRole('textbox', { name: 'Second country' }).parentElement
+        expect(inner).toHaveClass('pt-1', 'pb-3')
+        expect(inner?.parentElement).toHaveClass('overflow-hidden', '-mx-1', 'px-1')
+    })
+
     test('detached variant: the trigger is the card, the content sits below with no border', () => {
         render(
             <Accordion type="single" collapsible variant="detached" defaultValue="countries">
