@@ -57,7 +57,7 @@ export const MASCOT_ASPECT_CLASSES: Record<MascotPose, string> = {
 export const MASCOT_HOLD_FRAMES = 2
 
 /** Playback multiplier applied to the comp frame rate. */
-export const MASCOT_SPEED = 1.3
+export const MASCOT_SPEED = 1.15
 
 /** Random frame offset added to each held step. 0 keeps the stutter perfectly even. */
 export const MASCOT_JITTER_FRAMES: number = 0
