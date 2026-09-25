@@ -4141,7 +4141,7 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos.",
-                "arrivalShort": "Suele llegar el mismo día (SEPA)",
+                "arrivalShort": "Suele llegar el mismo día hábil (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
