@@ -13,13 +13,14 @@ import { HOME_CHECKLIST_CTA_ID, blockedCardCtaId, hideHomeCta } from '@/utils/ho
 // Every mocked value is stable across renders: the hook's effects and
 // callbacks depend on their identity, and fresh objects would loop.
 let mockRegionRestricted = false
+let mockIdentityStatus = 'not_started'
 let mockRails: Array<Record<string, unknown>> = []
 const mockNoActions: never[] = []
 const mockChannelOf = (rail: { channel: string }) => rail.channel
 const mockBankRails = () => []
 const mockCanDo = () => false
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),
+    useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted, status: mockIdentityStatus }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
@@ -79,6 +80,7 @@ const ids = () => {
 beforeEach(() => {
     localStorage.clear()
     mockRegionRestricted = false
+    mockIdentityStatus = 'not_started'
     mockRails = []
 })
 
@@ -99,6 +101,23 @@ describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () 
 
     it('a blocked QR provider → no kyc-prompt', async () => {
         mockRails = [{ id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', status: 'blocked' }]
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
+        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    })
+
+    it('home-provider-rejection: a verified user hides the rejection card → no "Confirm your ID" slide', async () => {
+        // the fixture's shape: Sumsub-verified, one blocked bank rail, no Manteca pool rail
+        mockIdentityStatus = 'verified'
+        mockRails = [{ id: 'bridge.ach_us', provider: 'bridge', channel: 'bank', status: 'blocked' }]
+        hideHomeCta('u1', blockedCardCtaId('verification-issue', 'provider_rejected'))
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
+        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    })
+
+    it('a verified identity is never asked to verify, even with no rail at all', async () => {
+        mockIdentityStatus = 'verified'
         const result = ids()
         await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
         expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')

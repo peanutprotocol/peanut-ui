@@ -32,6 +32,7 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
 import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA, showVerifyCTA } from '@/utils/home-carousel.utils'
+import { verifyRowStatus } from '@/utils/activation-step.utils'
 
 export type CarouselCTA = {
     id: string
@@ -68,8 +69,8 @@ export const useHomeCarouselCTAs = () => {
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails, channelOf, nextActions } = useCapabilities()
-    const { isRegionRestricted } = useIdentityVerification()
+    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { isRegionRestricted, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -153,9 +154,6 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
-        // Rain (card) does NOT count; a card-only user must still see the verify CTA.
-        const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
@@ -278,7 +276,14 @@ export const useHomeCarouselCTAs = () => {
 
         // Same QR-pay gate as the QR slide above: no "unlock" ask where the ID
         // check can never open QR pay (region refused, provider blocked).
-        if (showVerifyCTA({ qrGateState: qrGate.kycGateState, hasKycApproval, isInFlight, isCardEligible })) {
+        if (
+            showVerifyCTA({
+                qrGateState: qrGate.kycGateState,
+                isIdentityVerified: verifyRowStatus(identityStatus) === 'done',
+                isInFlight,
+                isCardEligible,
+            })
+        ) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
@@ -297,7 +302,6 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPushOptedIn,
         canDo,
-        bankRails,
         isInFlight,
         router,
         requestPermission,
@@ -311,6 +315,7 @@ export const useHomeCarouselCTAs = () => {
         channelOf,
         nextActions,
         isRegionRestricted,
+        identityStatus,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
