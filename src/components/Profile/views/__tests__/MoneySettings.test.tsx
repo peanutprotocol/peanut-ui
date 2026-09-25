@@ -993,7 +993,7 @@ describe('MoneySettings', () => {
             ],
         ])('draws each row with its concept bubble while %s', (_state, rails: unknown[]) => {
             mockRails = rails
-            render()
+            render('payments')
 
             const bubbleOf = (title: string) =>
                 (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
