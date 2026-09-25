@@ -40,7 +40,7 @@ declare global {
     }
 
     interface SNSMobileSDKInstance {
-        /** Resolves only once the native screen closes. */
+        /** Resolves only once the native screen closes, and never if Android destroys it. */
         launch(): Promise<SNSMobileSDKResult>
         dismiss(): void
     }
