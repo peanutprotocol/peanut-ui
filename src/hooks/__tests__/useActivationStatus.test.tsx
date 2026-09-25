@@ -32,6 +32,11 @@ jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     useCardSurfaceAccess: () => ({ canSpendPathViaCard: mockCanSpendViaCard }),
 }))
 
+let mockCardInfoLoading = false
+jest.mock('@/hooks/useCardInfo', () => ({
+    useCardInfo: () => ({ isLoading: mockCardInfoLoading }),
+}))
+
 let mockIdentityStatus = 'not_started'
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ status: mockIdentityStatus }),
@@ -61,6 +66,7 @@ beforeEach(() => {
     mockRails = []
     mockOverview = undefined
     mockCanSpendViaCard = false
+    mockCardInfoLoading = false
     mockIdentityStatus = 'not_started'
     ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
 })
@@ -121,6 +127,12 @@ describe('useActivationStatus', () => {
         const { result } = setup({ activationMilestone: 'funded' })
         expect(result.current.isOnboardingComplete).toBe(true)
         expect(result.current.isActivated).toBe(false)
+    })
+
+    it('does not hand over while card eligibility is still loading', () => {
+        mockIdentityStatus = 'verified'
+        mockCardInfoLoading = true
+        expect(setup({ activationMilestone: 'funded' }).result.current.isOnboardingComplete).toBe(false)
     })
 
     it('before the user loads, nothing is complete', () => {

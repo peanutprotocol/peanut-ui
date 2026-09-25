@@ -8,6 +8,7 @@ import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
@@ -46,6 +47,10 @@ export function HomePage() {
     useHomeViewAnalytics(isPageLoading)
     const { nextActions, rails } = useCapabilities()
     const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
+    // a rejected bank rail keeps its card even when every checklist row is done
+    // (no card, no QR rail): support or a fix is still the next thing to do
+    const { hasProviderRejection } = useProviderRejection(onboarding)
+    const showCarousel = isOnboardingComplete && !hasProviderRejection
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
@@ -66,9 +71,9 @@ export function HomePage() {
                     <EnableAutoBalanceBanner />
                     <PendingVerificationTasks
                         placement="home"
-                        whenEmptyShowsDocumentRequest={isOnboardingComplete}
+                        whenEmptyShowsDocumentRequest={showCarousel}
                         whenEmpty={
-                            isOnboardingComplete ? (
+                            showCarousel ? (
                                 <HomeCarouselCTA documentRequest={documentSlide} />
                             ) : (
                                 <ActivationCTAs onboarding={onboarding} />
@@ -78,7 +83,7 @@ export function HomePage() {
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
-                        hideEmptyState={!isOnboardingComplete}
+                        hideEmptyState={!showCarousel}
                     />
                 </div>
             </div>

@@ -37,6 +37,10 @@ jest.mock('@/components/Home/PendingVerificationTasks', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: [], rails: [] }) }))
 jest.mock('@/utils/bridge-tasks.utils', () => ({ selectHomeTasks: () => ({ documentSlide: undefined }) }))
+let mockHasProviderRejection = false
+jest.mock('@/hooks/useProviderRejection', () => ({
+    useProviderRejection: () => ({ hasProviderRejection: mockHasProviderRejection }),
+}))
 jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
 jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
 jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
@@ -59,6 +63,7 @@ const FUNDED: OnboardingState = {
 describe('HomePage — never two CTA classes at once', () => {
     beforeEach(() => {
         mockHasTaskCard = false
+        mockHasProviderRejection = false
     })
 
     it('a due verification task card replaces the checklist', () => {
@@ -86,6 +91,18 @@ describe('HomePage — never two CTA classes at once', () => {
         render(<HomePage />)
         expect(screen.getByText('home-carousel')).toBeInTheDocument()
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+    })
+
+    it('a rejected bank rail keeps its card even when the three rows are done', () => {
+        mockHasProviderRejection = true
+        mockFlow = {
+            isOnboardingComplete: true,
+            isActivated: false,
+            onboarding: { ...FUNDED, firstPaymentRoute: 'none', step: 'completed' },
+        }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })
 
     it('a user with no card and no QR who finished the three rows gets the carousel', () => {

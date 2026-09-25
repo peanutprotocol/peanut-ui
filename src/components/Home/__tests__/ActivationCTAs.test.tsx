@@ -327,6 +327,12 @@ describe('ActivationCTAs — the checklist is the slot until the first payment',
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
+    it('three rows done (no card, no QR) with a rejected bank rail still shows the rejection card', () => {
+        mockRails = [bankRejected]
+        render(<ActivationCTAs onboarding={{ ...FUNDED, firstPaymentRoute: 'none', step: 'completed' }} />)
+        expect(screen.getByText('Complete setup')).toBeInTheDocument()
+    })
+
     it('first payment done without rejection renders nothing', () => {
         const { container } = render(<ActivationCTAs onboarding={COMPLETED} />)
         expect(container.firstChild).toBeNull()

@@ -24,6 +24,7 @@ const base: OnboardingInput = {
     isActivated: false,
     holdsMoney: false,
     firstPaymentRoute: 'card_qr',
+    isRouteSettled: true,
 }
 const resolve = (overrides: Partial<OnboardingInput>) => resolveOnboarding({ ...base, ...overrides })
 
@@ -119,6 +120,10 @@ describe('resolveOnboarding — what completes the checklist', () => {
             firstPaymentDone: false,
             step: 'completed',
         })
+    })
+
+    it('none while card eligibility is still loading: not complete, it may yet become card', () => {
+        expect(resolve({ ...funded, firstPaymentRoute: 'none', isRouteSettled: false }).step).toBe('first_payment')
     })
 
     it('none: not complete while the ID check is open or in review, or before money arrives', () => {

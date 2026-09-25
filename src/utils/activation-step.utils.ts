@@ -96,6 +96,11 @@ export interface OnboardingInput {
     isActivated: boolean
     holdsMoney: boolean
     firstPaymentRoute: FirstPaymentRoute
+    /**
+     * False while card eligibility is still loading and no QR rail decides the
+     * route: `none` may yet become `card`, so the list must not complete on it.
+     */
+    isRouteSettled: boolean
 }
 
 export function resolveOnboarding(input: OnboardingInput): OnboardingState {
@@ -113,7 +118,7 @@ export function resolveOnboarding(input: OnboardingInput): OnboardingState {
     if (firstPaymentDone) step = 'completed'
     else if (verify === 'todo') step = 'verify'
     else if (!addMoneyDone) step = 'add_money'
-    else if (hasPaymentRow) step = 'first_payment'
+    else if (hasPaymentRow || !input.isRouteSettled) step = 'first_payment'
     // no payment row: the list ends at Add money, done once identity is too
     // (an ID check in review is the one open row left)
     else step = verify === 'done' ? 'completed' : 'verify'
