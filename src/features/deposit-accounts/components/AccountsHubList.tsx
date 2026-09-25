@@ -67,9 +67,9 @@ export function AccountsHubList({
     isKycDegraded?: boolean
     /** filters every row; the caller owns the field */
     searchTerm?: string
-    /** rows the caller appends to the other ways (crypto, the countries toggle) */
+    /** rows the caller appends to the other ways (crypto) */
     extraRows?: ReactElement[]
-    /** under the other ways (the open country list) */
+    /** under the other ways (the countries accordion) */
     footer?: ReactNode
 }) {
     const { t, railName } = useDepositAccountCopy()

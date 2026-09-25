@@ -493,6 +493,27 @@ describe('crypto and the countries', () => {
         expect(mockOpenCountry).toHaveBeenCalledWith(expect.objectContaining({ iso2: 'DE', path: 'germany' }))
     })
 
+    it('folds the countries again on a second tap', () => {
+        list(false)
+
+        fireEvent.click(countriesTrigger())
+        fireEvent.click(countriesTrigger())
+        expect(countriesTrigger()).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+    })
+
+    it('opens the countries on a search without the row, and folds them back when the search clears', () => {
+        list(false)
+
+        search('germ')
+        expect(screen.queryByTestId('other-countries-toggle')).not.toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toHaveAttribute('data-search', 'germ')
+
+        search('')
+        expect(countriesTrigger()).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+    })
+
     it('marks a country with nothing behind it unsupported, so the list offers the waitlist', () => {
         mockIsCountrySupported.mockReturnValue(false)
         list(false)

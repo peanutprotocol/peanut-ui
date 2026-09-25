@@ -1,11 +1,11 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { CountryList } from '@/components/Common/CountryList'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchInput'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
@@ -13,7 +13,6 @@ import { useBankRows } from '@/hooks/useBankRows'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { withReturnTo } from '@/utils/return-to.utils'
-import { twMerge } from '@/utils/tw'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -127,25 +126,39 @@ export function DepositAccountsListScreen({
             />
         ) : null
 
-    // A search opens the countries by itself: the field above filters them too.
-    const countriesToggle = term ? null : (
-        <ListItem
-            key="countries"
-            title={t('list.countriesTitle')}
-            body={t('list.countriesPitch')}
-            bodyWrap
-            leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
-            trailing={
-                <Icon
-                    name="chevron-down"
-                    size={20}
-                    className={twMerge('transition-transform duration-moderate', countriesOpen && 'rotate-180')}
-                />
-            }
-            aria-expanded={countriesOpen}
-            onClick={() => setCountriesOpen(!countriesOpen)}
-            data-testid="other-countries-toggle"
+    const countryList = (
+        <CountryList
+            viewMode="add-withdraw"
+            flow="add"
+            // the field above owns the search
+            searchTerm={term}
+            onCountryClick={openCountry}
+            isCountrySupported={isCountrySupported}
         />
+    )
+
+    // A search opens the countries by itself: the field above filters them
+    // too, so the row that opens them steps aside while the user types.
+    const countries = term ? (
+        countryList
+    ) : (
+        <Accordion
+            type="single"
+            collapsible
+            variant="detached"
+            value={countriesOpen ? 'countries' : ''}
+            onValueChange={(value) => setCountriesOpen(!!value)}
+        >
+            <Accordion.Item value="countries">
+                <Accordion.Trigger
+                    leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
+                    title={t('list.countriesTitle')}
+                    body={t('list.countriesPitch')}
+                    data-testid="other-countries-toggle"
+                />
+                <Accordion.Content flush>{countryList}</Accordion.Content>
+            </Accordion.Item>
+        </Accordion>
     )
 
     return (
@@ -180,19 +193,8 @@ export function DepositAccountsListScreen({
                         router.push(withReturnTo('/profile/accounts-and-payments?open=residence', HUB_HREF))
                     }
                     searchTerm={term}
-                    extraRows={[cryptoRow, countriesToggle].filter((row) => row !== null)}
-                    footer={
-                        (countriesOpen || !!term) && (
-                            <CountryList
-                                viewMode="add-withdraw"
-                                flow="add"
-                                // the field above owns the search
-                                searchTerm={term}
-                                onCountryClick={openCountry}
-                                isCountrySupported={isCountrySupported}
-                            />
-                        )
-                    }
+                    extraRows={cryptoRow ? [cryptoRow] : []}
+                    footer={countries}
                 />
             </div>
         </PageStack>

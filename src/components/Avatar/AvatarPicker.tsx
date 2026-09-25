@@ -179,9 +179,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         // Under xs (390px) the sticker is 48px, which with one reserved text line each
                                         // makes the tile about as tall as it is wide. The chosen tile follows the selected-rows
                                         // rule in design.md: action-primary fill, over-color ink on every line, and a second
-                                        // channel besides colour (WCAG 1.4.1), here the 2px border.
+                                        // channel besides colour (WCAG 1.4.1), here a 1px inset ring inside the 1px border:
+                                        // it reads as a 2px edge but takes no layout, so the tile does not shift (QA-42).
+                                        // inset-ring, not ring: globals.css redefines the bare ring utility.
                                         `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'border-2 bg-action-primary'
+                                        checked && 'bg-action-primary inset-ring inset-ring-border-default'
                                     )}
                                 >
                                     {earned && (
