@@ -189,9 +189,7 @@ export function DepositAccountsListScreen({
                     claimsEnabled={claimsEnabled}
                     bankRows={bankRows}
                     onBankRowClick={openTopUp}
-                    onChangeResidence={() =>
-                        router.push(withReturnTo('/profile/accounts-and-payments?open=residence', HUB_HREF))
-                    }
+                    onChangeResidence={() => router.push(withReturnTo('/profile/accounts?open=residence', HUB_HREF))}
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}
                     footer={countries}

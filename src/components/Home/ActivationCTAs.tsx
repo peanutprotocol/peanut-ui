@@ -203,7 +203,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
-                href: '/profile/accounts-and-payments',
+                href: '/profile/accounts',
             },
             deposit: {
                 bubble: CONCEPT_ICONS.addMoney,
@@ -235,7 +235,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     )
 
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
-    // re-upload directly, instead of routing to /profile/accounts-and-payments (which
+    // re-upload directly, instead of routing to /profile/accounts (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
@@ -332,7 +332,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
-                    href: '/profile/accounts-and-payments',
+                    href: '/profile/accounts',
                 }
             }
             // Blocked, but self-fixable by verifying again with a document that

@@ -82,7 +82,7 @@
         "scanQr": "Escanear QR"
     },
     "home": {
-        "rewards": "Recompensas",
+        "rewards": "Pontos",
         "activation": {
             "steps": {
                 "verify": {
@@ -169,7 +169,7 @@
             "holdToUnwrap": "Segure para abrir a recompensa",
             "iosCopy": {
                 "usedPeanut": "<name>{inviteeName}</name> pagou com o Peanut",
-                "holdToUnwrap": "Segure para abrir o cashback"
+                "holdToUnwrap": "Segure para abrir"
             }
         },
         "carousel": {
@@ -208,15 +208,15 @@
             "closeNotificationPrompt": "Fechar aviso de notificações",
             "iosCopy": {
                 "invite": {
-                    "title": "Convide amigos. Ganhe cashback",
-                    "description": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+                    "title": "Convide amigos. Ganhe pontos",
+                    "description": "Ganhe pontos sempre que seus amigos pagarem com o Peanut."
                 },
                 "latamInvite": {
-                    "title": "Ganhe <b>cashback</b> em pagamentos QR",
-                    "description": "Convide amigos para <b>ganhar mais cashback</b>. Quanto mais eles pagam, mais você ganha!"
+                    "title": "Ganhe <b>pontos</b> em pagamentos QR",
+                    "description": "Convide amigos para <b>ganhar mais pontos</b>. Quanto mais eles pagam, mais você ganha!"
                 },
                 "qrPay": {
-                    "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>cashback</b>."
+                    "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>pontos</b>."
                 }
             },
             "card": {
@@ -250,9 +250,6 @@
                 "MXN": "transferências bancárias em pesos mexicanos"
             }
         },
-        "iosCopy": {
-            "rewards": "Cashback"
-        },
         "openProfile": "Abrir perfil",
         "showBalance": "Mostrar saldo",
         "hideBalance": "Ocultar saldo",
@@ -282,7 +279,8 @@
             "yourBadges": "Selos",
             "points": "Pontos",
             "personalDetails": "Editar perfil",
-            "unlockedRegions": "Contas e pagamentos",
+            "accounts": "Contas",
+            "payments": "Pagamentos",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar nome completo",
             "backup": "Backup",
@@ -341,7 +339,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Contas e pagamentos",
+            "titles": {
+                "accounts": "Contas",
+                "payments": "Pagamentos"
+            },
             "residence": {
                 "label": "Residência",
                 "unknown": "Residência não definida",
@@ -548,11 +549,6 @@
             "activityPrivateNote": "A atividade é visível só para você, não é pública.",
             "noInviteTitle": "Sem convite, sem Peanut",
             "requestAction": "Cobrar"
-        },
-        "iosCopy": {
-            "menu": {
-                "points": "Cashback"
-            }
         },
         "update": {
             "title": "Atualização pronta",
@@ -1468,12 +1464,11 @@
         },
         "iosCopy": {
             "success": {
-                "earnedRewardTitle": "Você ganhou cashback!",
-                "earnedHoldToClaim": "Você ganhou ${amount}! Segure para abrir seu cashback.",
-                "holdToClaim": "Você ganhou cashback! Segure para abrir.",
-                "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais cashback.",
-                "inviteFriends": "Convide amigos para ganhar ainda mais cashback.",
-                "claimReward": "Abrir cashback"
+                "earnedRewardTitle": "Você recebeu uma surpresa!",
+                "earnedHoldToClaim": "Você ganhou ${amount}! Segure para abrir.",
+                "holdToClaim": "Você recebeu uma surpresa! Segure para abrir.",
+                "inviteFriends": "Convide amigos para ganhar ainda mais.",
+                "claimReward": "Abrir"
             },
             "claim": {
                 "inviteQrDescription": "Compartilhe onde quiser. Quem escanear pode entrar no Peanut com você."
@@ -2356,20 +2351,20 @@
         "adjustedSuffix": "· Ajustado",
         "iosCopy": {
             "type": {
-                "reward": "Cashback"
+                "reward": "Recebimento"
             },
             "perkBanner": {
-                "title": "Você ganhou cashback!",
-                "capped": "Cashback de ${amount} — limite da campanha atingido!",
-                "received": "Você recebeu ${amount} de cashback!",
-                "generic": "Você recebeu cashback da Peanut!"
+                "title": "Você recebeu uma surpresa!",
+                "capped": "Você recebeu ${amount}. Limite da campanha atingido!",
+                "received": "Você recebeu ${amount}!",
+                "generic": "Você recebeu uma surpresa da Peanut!"
             },
             "perk": {
-                "title": "Cashback Peanut",
-                "subtitle": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+                "title": "Recebido da Peanut",
+                "subtitle": "Ganhe pontos sempre que seus amigos pagarem com o Peanut."
             },
             "actions": {
-                "inviteFriends": "Convide amigos e ganhe mais cashback"
+                "inviteFriends": "Convide amigos e ganhe mais pontos"
             }
         }
     },
@@ -2384,7 +2379,7 @@
         "yesterday": "Ontem"
     },
     "rewards": {
-        "title": "Recompensas",
+        "title": "Pontos",
         "youHave": "Você tem",
         "pendingCallout": "esperando por você. Comece a gastar para resgatar.",
         "noPendingRewards": "Nenhuma recompensa pendente por enquanto.",
@@ -2415,17 +2410,16 @@
             "step4": "Faça qualquer pagamento para resgatar."
         },
         "iosCopy": {
-            "title": "Cashback",
             "invitesTitle": "Rede",
-            "noPendingRewards": "Nenhum cashback pendente por enquanto.",
-            "lifetimeRewards": "Cashback total: {amount}",
-            "earnWhenFriendsUse": "Você ganha cashback sempre que seus amigos pagam com o Peanut!",
-            "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais cashback",
+            "noPendingRewards": "Nada pendente por enquanto.",
+            "lifetimeRewards": "Ganho até agora: {amount}",
+            "earnWhenFriendsUse": "Você ganha pontos sempre que seus amigos pagam com o Peanut!",
+            "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais pontos",
             "howItWorks": {
-                "title": "Como funciona o cashback",
-                "step3": "Seu cashback vai se acumulando no saldo."
+                "title": "Como funciona",
+                "step3": "O que você ganha vai se acumulando no saldo."
             },
-            "lifetimeCaption": "em cashback até agora"
+            "lifetimeCaption": "até agora"
         }
     },
     "invites": {
@@ -3705,7 +3699,7 @@
         "maintenanceBody": "Esta função está temporariamente indisponível enquanto trabalhamos nela. Seu dinheiro está seguro e todo o resto funciona normalmente.",
         "iosCopy": {
             "inviteFriendsModal": {
-                "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
+                "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha pontos."
             }
         },
         "countryCombobox": {
@@ -3909,7 +3903,6 @@
         "earned": "Ganho",
         "rollDie": "Jogar o dado",
         "initialName": "Só {letter}",
-        "initialLine": "Inicial",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "crystal": "Cristal da Arbiverse",
@@ -3994,84 +3987,64 @@
         },
         "cast": {
             "apple": {
-                "name": "Cereja premiada",
-                "line": "Faltam duas para ficar rica"
+                "name": "Cereja premiada"
             },
             "avocado": {
-                "name": "Fatia de melancia",
-                "line": "Dá para onze pessoas"
+                "name": "Fatia de melancia"
             },
             "cactus": {
-                "name": "Pimenta corajosa",
-                "line": "Escolheu a mais picante"
+                "name": "Pimenta corajosa"
             },
             "cloud": {
-                "name": "Nuvem rabugenta",
-                "line": "Reclama, mas vem"
+                "name": "Nuvem rabugenta"
             },
             "cube": {
-                "name": "Dado da sorte",
-                "line": "Resolve todo empate"
+                "name": "Dado da sorte"
             },
             "donut": {
-                "name": "Rosquinha glaceada",
-                "line": "Falta o meio"
+                "name": "Rosquinha glaceada"
             },
             "drop": {
-                "name": "Copo de bubble tea",
-                "line": "Bebe em pleno drama"
+                "name": "Copo de bubble tea"
             },
             "egg": {
-                "name": "Biscoito da sorte",
-                "line": "Vago de propósito"
+                "name": "Biscoito da sorte"
             },
             "fish": {
-                "name": "Baiacu inflado",
-                "line": "Exagera na hora certa"
+                "name": "Baiacu inflado"
             },
             "flower": {
-                "name": "Joaninha da sorte",
-                "line": "Pousa na conta"
+                "name": "Joaninha da sorte"
             },
             "frog": {
-                "name": "Axolote sorridente",
-                "line": "Nunca diz não"
+                "name": "Axolote sorridente"
             },
             "gem": {
-                "name": "Ferradura da sorte",
-                "line": "Pesada, mas dá sorte"
+                "name": "Ferradura da sorte"
             },
             "ghost": {
-                "name": "Gato da sorte",
-                "line": "Sorri para o acaso"
+                "name": "Gato da sorte"
             },
             "heart": {
-                "name": "Capivara serena",
-                "line": "Topa qualquer coisa"
+                "name": "Capivara serena"
             },
             "leaf": {
-                "name": "Pretzel torcido",
-                "line": "Pensa demais no plano"
+                "name": "Pretzel torcido"
             },
             "moon": {
-                "name": "Tigela de ramen",
-                "line": "Cura a ressaca"
+                "name": "Tigela de ramen"
             },
             "mushroom": {
-                "name": "Ouriço espinhoso",
-                "line": "Fofo por baixo"
+                "name": "Ouriço espinhoso"
             },
             "planet": {
-                "name": "Caranguejo de lado",
-                "line": "Desvia da pergunta"
+                "name": "Caranguejo de lado"
             },
             "star": {
-                "name": "Estrela dos desejos",
-                "line": "Realiza metade"
+                "name": "Estrela dos desejos"
             },
             "sun": {
-                "name": "Ganso mandão",
-                "line": "Junta a turma"
+                "name": "Ganso mandão"
             }
         }
     },
@@ -4085,8 +4058,8 @@
         "list": {
             "addTitle": "Adicionar dinheiro",
             "heldTitle": "Contas",
-            "openTitle": "Abrir uma conta",
-            "otherWaysTitle": "Outras formas de mover dinheiro para o Peanut",
+            "openTitle": "Abrir nova conta",
+            "otherWaysTitle": "Outras formas de mover dinheiro com o Peanut",
             "otherWaysBody": "Também servem para adicionar e sacar dinheiro. Não são contas no seu nome.",
             "badgeLimitReached": "Limite atingido",
             "notOfferedBody": "Não conseguimos abrir contas em {currency} para você. O suporte pode verificar o motivo.",

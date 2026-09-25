@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation'
 import type { ComponentProps } from 'react'
 
 /**
- * The shared list with the virtual accounts read, for Accounts and payments.
+ * The shared list with the accounts read, for the Accounts page.
  *
  * Mounted only while the accounts rollout flag is on, so `useDepositAccounts`
- * never fires otherwise (pinned by `UnlockPayments.test.tsx`: "does not query
+ * never fires otherwise (pinned by `MoneySettings.test.tsx`: "does not query
  * bank accounts while their rollout flag is off"). A tap opens the account's
  * details, or the way to open it, in the Add money flow, and back returns here.
  */
@@ -41,7 +41,7 @@ export default function VirtualAccountsHub(
                     router.push(
                         withReturnTo(
                             `/add-money?method=bank&step=${isHeld(accounts[corridor]) ? 'details' : 'claim'}&corridor=${corridor}`,
-                            '/profile/accounts-and-payments'
+                            '/profile/accounts'
                         )
                     ),
             }}
