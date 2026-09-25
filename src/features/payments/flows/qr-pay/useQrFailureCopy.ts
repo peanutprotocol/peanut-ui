@@ -54,6 +54,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             offline: t('errors.connectionLost'),
             'auth-missing': t('errors.authError'),
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
+            rejected: t('errors.initiateUnexpected'),
         }),
         [t, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
     )

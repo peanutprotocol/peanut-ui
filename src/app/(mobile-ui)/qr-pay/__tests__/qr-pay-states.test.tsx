@@ -2467,7 +2467,8 @@ describe('GROUP 5: Error States', () => {
 
     // A refused sender id is a support case, not a KYC prompt: the user is
     // verified, so "finish verifying your identity" would send them in circles.
-    it('routes a refused sender id on its wire code, shows the support copy, and does not retry', async () => {
+    it('routes a refused sender id on its wire code, offers support, and does not retry', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
         mockMantecaApi.initiateQrPayment.mockRejectedValue(
             Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
                 name: 'ApiError',
@@ -2482,9 +2483,49 @@ describe('GROUP 5: Error States', () => {
             expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
         })
         expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // The copy's only instruction is "contact support", so the card must offer it.
+        expect(screen.getByText('Having trouble?')).toBeInTheDocument()
 
-        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        // Past the 3 s retry backoff: still one POST.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        jest.useRealTimers()
+    })
+
+    // The same refusal after the user typed an amount on an open-amount QR: the
+    // re-init call site, which classifies at the call rather than through the
+    // scan query.
+    it('a refused sender id at the re-init call site shows the support copy and blocks Pay', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: '' }).mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // Deterministic, and only support can change the outcome: no Sentry
+        // event, and a different amount is no way out, so Pay stays blocked.
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
     }, 20_000)
 
     /*

@@ -58,6 +58,7 @@ import {
     classifyScanOutcome,
     isNonRetryableQrInitError,
     QR_INIT_CODE,
+    SUPPORT_ACTIONABLE_FAILURES,
 } from './init-error-classifier'
 import { useQrFailureCopy } from './useQrFailureCopy'
 import { useQrPayKycGate } from './useQrPayKycGate'
@@ -462,6 +463,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         () => entryGuardError ?? (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
         [entryGuardError, scanOutcome, scanFailureCopy]
     )
+    // The generic init card has no support entry; these refusals need one.
+    const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
@@ -486,6 +489,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
             } else if (scanOutcome.reason === QR_INIT_CODE.EXPIRED) {
                 posthog.capture(ANALYTICS_EVENTS.QR_MERCHANT_CHARGE_EXPIRED_SHOWN, { qr_type: qrType })
+            } else if (scanOutcome.reason === QR_INIT_CODE.SENDER_REJECTED) {
+                // A support case, not a transport failure: nothing else records it.
+                posthog.capture(ANALYTICS_EVENTS.QR_SENDER_REJECTED_SHOWN, { qr_type: qrType })
             }
         }
     }, [
@@ -718,8 +724,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                  * headroom. Routing that to "unexpected error" threw away the
                  * one screen that could tell them to try a smaller amount.
                  */
-                telemetry.stage('lock_ready', { outcome: 'failed' })
                 const deterministic = classifyQrInitError(error, 'amount-entry')
+                telemetry.stage('lock_ready', {
+                    outcome: 'failed',
+                    ...(deterministic ? { failureCode: deterministic.code } : {}),
+                })
                 if (deterministic) {
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
@@ -1193,6 +1202,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         isSuccess,
         errorMessage,
         errorInitiatingPayment,
+        initErrorNeedsSupport,
         isBlockingError,
         balanceErrorMessage,
         // controller-rotation quote handoff
