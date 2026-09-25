@@ -1,7 +1,7 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -30,7 +30,9 @@ import { payoutAmounts } from '@/features/withdraw/bank-amount'
 export default function WithdrawBankPage() {
     const locale = useLocale()
     const tNav = useTranslations('navigation')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const flow = useBridgeOfframpFlow()
     const bankRegionIntent = useBankRegionIntent()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -79,7 +81,7 @@ export default function WithdrawBankPage() {
                 onPrev={() => {
                     if (step === 'success') {
                         // the flow provider is /withdraw-scoped — navigation IS the reset
-                        router.replace('/home')
+                        leaveToHome()
                     } else {
                         flow.onBack()
                     }
@@ -107,7 +109,7 @@ export default function WithdrawBankPage() {
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
-                    onDone={() => router.replace('/home')}
+                    onDone={leaveToHome}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                     onAddBankAccountAgain={flow.onAddBankAccountAgain}
                 />

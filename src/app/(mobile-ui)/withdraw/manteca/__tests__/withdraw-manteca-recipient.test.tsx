@@ -46,7 +46,7 @@ jest.mock('@/hooks/wallet/spendPreflight', () => ({
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: null }),
 }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (e: unknown) => ({ kind: 'message', message: String(e) }),
 }))

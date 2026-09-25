@@ -23,7 +23,11 @@ jest.mock('next/navigation', () => ({
 // The flow's outermost exit (used by the amount step and now the CVU details
 // screen). A shared spy makes "the settled screen left the flow" observable.
 const mockSafeBack = jest.fn()
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockSafeBack }))
+const mockReturnTo = jest.fn()
+jest.mock('@/hooks/useSafeBack', () => ({
+    useSafeBack: () => mockSafeBack,
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
+}))
 
 // nuqs — a plain object store, so `step` transitions are observable
 const queryState: Record<string, any> = {}
@@ -109,7 +113,7 @@ describe('MantecaAddMoney — BRL/PIX exits', () => {
 
         fireEvent.click(screen.getByText('child-done'))
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockReturnTo).toHaveBeenCalledWith('/home')
         expect(setQueryState).not.toHaveBeenCalledWith({ step: 'inputAmount' })
     })
 

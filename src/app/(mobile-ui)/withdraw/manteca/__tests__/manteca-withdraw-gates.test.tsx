@@ -282,6 +282,7 @@ jest.mock('@/hooks/useSafeBack', () => ({
         mockSafeBackFallbacks.push(fallbackUrl)
         return jest.fn()
     },
+    useReturnTo: () => jest.fn(),
 }))
 jest.mock('@/constants/countryCurrencyMapping', () => ({
     getFlagUrl: () => '/flag.png',

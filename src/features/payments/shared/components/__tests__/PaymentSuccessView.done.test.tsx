@@ -4,8 +4,9 @@
  * the flow the user had just completed (QA-09, TASK-23054).
  */
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { __testing } from '@/hooks/useSafeBack'
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
     TransactionDetailsDrawer: () => null,
@@ -83,14 +84,36 @@ jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: 
 beforeEach(() => {
     mockPush.mockClear()
     mockReplace.mockClear()
+    window.history.replaceState(null, '', '/')
+    __testing.reset()
 })
 
 describe('PaymentSuccessView done', () => {
-    it.each(['SEND', 'REQUEST', 'DEPOSIT'] as const)('%s: back to home replaces, never pushes', (type) => {
-        render(<PaymentSuccessView type={type} amount="5" />)
-        fireEvent.click(screen.getByText('success.backToHome'))
+    it.each(['SEND', 'REQUEST', 'DEPOSIT'] as const)(
+        '%s: back to home replaces when home is not in history, never pushes',
+        (type) => {
+            render(<PaymentSuccessView type={type} amount="5" />)
+            fireEvent.click(screen.getByText('success.backToHome'))
 
-        expect(mockReplace).toHaveBeenCalledWith('/home')
+            expect(mockReplace).toHaveBeenCalledWith('/home')
+            expect(mockPush).not.toHaveBeenCalled()
+        }
+    )
+
+    it('with the flow in history, rewinds past all of it to home', async () => {
+        window.history.pushState({}, '', '/home')
+        window.history.pushState({}, '', '/send')
+        window.history.pushState({}, '', '/send/alice')
+        render(<PaymentSuccessView type="SEND" amount="5" />)
+
+        const popped = new Promise<void>((resolve) =>
+            window.addEventListener('popstate', () => resolve(), { once: true })
+        )
+        fireEvent.click(screen.getByText('success.backToHome'))
+        await act(() => popped)
+
+        expect(window.location.pathname).toBe('/home')
+        expect(mockReplace).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
     })
 

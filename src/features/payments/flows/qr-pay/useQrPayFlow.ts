@@ -12,13 +12,12 @@ import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { isAddress, parseUnits } from 'viem'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { mantecaApi } from '@/services/manteca'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -107,7 +106,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
     // /home pop the user back into a stale error / KYC screen. Replace instead of push.
     const onBack = useSafeBack('/home', { replace: true })
@@ -529,12 +530,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             const elapsed = Date.now() - hiddenAt
             hiddenAt = null
             if (elapsed > STALE_THRESHOLD_MS) {
-                router.replace('/home')
+                leaveToHome()
             }
         }
         document.addEventListener('visibilitychange', onVisibility)
         return () => document.removeEventListener('visibilitychange', onVisibility)
-    }, [router])
+    }, [leaveToHome])
 
     /*
      * Editing the amount clears the last init error. A cap or Pix-minimum

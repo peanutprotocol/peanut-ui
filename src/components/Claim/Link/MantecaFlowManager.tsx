@@ -13,7 +13,7 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -33,7 +33,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const t = useTranslations('claim')
     const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const [destinationAddress, setDestinationAddress] = useState('')
     // Lives here, not in the review step: Back to DETAILS unmounts that step,
     // and the claimed hash (plus the in-flight guard) must outlive it so the
@@ -110,7 +112,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
         if (currentStep === MercadoPagoStep.SUCCESS) {
             return (
-                <Button variant="primary" shadowSize="4" className="w-full" onClick={() => router.replace('/home')}>
+                <Button variant="primary" shadowSize="4" className="w-full" onClick={leaveToHome}>
                     {t('backToHome')}
                 </Button>
             )
@@ -129,7 +131,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             return
         }
         if (currentStep === MercadoPagoStep.SUCCESS) {
-            router.replace('/home')
+            leaveToHome()
             return
         }
     }

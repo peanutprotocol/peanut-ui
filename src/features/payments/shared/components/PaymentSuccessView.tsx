@@ -37,6 +37,7 @@ import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
@@ -273,12 +274,14 @@ const PaymentSuccessView = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])
 
+    // Rewinds to the destination past every entry the flow pushed, or replaces
+    // this page with it. A push kept the finished flow under home, so back from
+    // home reopened the request or send just completed (QA-09); a replace
+    // still kept the flow's earlier entries.
+    const leaveFlow = useReturnTo(!!authUser?.user.userId ? redirectTo : '/setup')
     const handleDone = () => {
-        // Replace, never push: a pushed /home keeps the finished flow under it,
-        // so back from home reopened the request or send the user had just
-        // completed (QA-09). Navigate before onComplete, which may reset state
-        // and unmount this view first.
-        router.replace(!!authUser?.user.userId ? redirectTo : '/setup')
+        // navigate before onComplete, which may reset state and unmount this view first
+        leaveFlow()
         onComplete?.()
     }
 
