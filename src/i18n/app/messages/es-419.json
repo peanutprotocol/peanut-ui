@@ -82,7 +82,7 @@
         "scanQr": "Escanear QR"
     },
     "home": {
-        "rewards": "Recompensas",
+        "rewards": "Puntos",
         "activation": {
             "addEmail": {
                 "title": "Agregar email",
@@ -147,7 +147,7 @@
             "holdToUnwrap": "Mantén presionado para abrir la recompensa",
             "iosCopy": {
                 "usedPeanut": "<name>{inviteeName}</name> pagó con Peanut",
-                "holdToUnwrap": "Mantén presionado para abrir el cashback"
+                "holdToUnwrap": "Mantén presionado para abrir"
             }
         },
         "carousel": {
@@ -186,15 +186,15 @@
             "closeNotificationPrompt": "Cerrar aviso de notificaciones",
             "iosCopy": {
                 "invite": {
-                    "title": "Invita amigos. Gana cashback",
-                    "description": "Gana cashback cada vez que tus amigos pagan con Peanut."
+                    "title": "Invita amigos. Gana puntos",
+                    "description": "Gana puntos cada vez que tus amigos pagan con Peanut."
                 },
                 "latamInvite": {
-                    "title": "Gana <b>cashback</b> en pagos QR",
-                    "description": "Invita amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganas!"
+                    "title": "Gana <b>puntos</b> en pagos QR",
+                    "description": "Invita amigos para <b>ganar más puntos</b>. ¡Cuanto más pagan, más ganas!"
                 },
                 "qrPay": {
-                    "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>cashback</b>."
+                    "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>puntos</b>."
                 }
             },
             "card": {
@@ -228,9 +228,6 @@
                 "MXN": "transferencias bancarias en pesos mexicanos"
             }
         },
-        "iosCopy": {
-            "rewards": "Cashback"
-        },
         "openProfile": "Abrir perfil",
         "showBalance": "Mostrar saldo",
         "hideBalance": "Ocultar saldo",
@@ -260,7 +257,8 @@
             "yourBadges": "Insignias",
             "points": "Puntos",
             "personalDetails": "Editar perfil",
-            "unlockedRegions": "Cuentas y pagos",
+            "accounts": "Cuentas",
+            "payments": "Pagos",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar nombre completo",
             "backup": "Respaldo",
@@ -319,7 +317,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Cuentas y pagos",
+            "titles": {
+                "accounts": "Cuentas",
+                "payments": "Pagos"
+            },
             "residence": {
                 "label": "Residencia",
                 "unknown": "Residencia sin definir",
@@ -526,11 +527,6 @@
             "activityPrivateNote": "La actividad solo es visible para ti, no es pública.",
             "noInviteTitle": "Sin invitación no hay Peanut",
             "requestAction": "Solicitar"
-        },
-        "iosCopy": {
-            "menu": {
-                "points": "Cashback"
-            }
         },
         "update": {
             "title": "Actualización lista",
@@ -1446,12 +1442,11 @@
         },
         "iosCopy": {
             "success": {
-                "earnedRewardTitle": "¡Ganaste cashback!",
-                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantén presionado para abrir tu cashback.",
-                "holdToClaim": "¡Ganaste cashback! Mantén presionado para abrirlo.",
-                "earnedInviteFriends": "¡Ganaste ${amount}! Invita amigos para ganar aún más cashback.",
-                "inviteFriends": "Invita amigos para ganar aún más cashback.",
-                "claimReward": "Abrir cashback"
+                "earnedRewardTitle": "¡Recibiste una sorpresa!",
+                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantén presionado para abrir.",
+                "holdToClaim": "¡Recibiste una sorpresa! Mantén presionado para abrirla.",
+                "inviteFriends": "Invita amigos para ganar aún más.",
+                "claimReward": "Abrir"
             },
             "claim": {
                 "inviteQrDescription": "Compártelo donde sea. Cualquiera que lo escanee puede unirse a Peanut contigo."
@@ -2334,20 +2329,20 @@
         "adjustedSuffix": "· Ajustado",
         "iosCopy": {
             "type": {
-                "reward": "Cashback"
+                "reward": "Recepción"
             },
             "perkBanner": {
-                "title": "¡Ganaste cashback!",
-                "capped": "Cashback de ${amount} — ¡se alcanzó el límite de la campaña!",
-                "received": "¡Recibiste ${amount} de cashback!",
-                "generic": "¡Recibiste cashback de Peanut!"
+                "title": "¡Recibiste una sorpresa!",
+                "capped": "Recibiste ${amount}. ¡Se alcanzó el límite de la campaña!",
+                "received": "¡Recibiste ${amount}!",
+                "generic": "¡Recibiste una sorpresa de Peanut!"
             },
             "perk": {
-                "title": "Cashback Peanut",
-                "subtitle": "Gana cashback cada vez que tus amigos pagan con Peanut."
+                "title": "Recibido de Peanut",
+                "subtitle": "Gana puntos cada vez que tus amigos pagan con Peanut."
             },
             "actions": {
-                "inviteFriends": "Invita amigos y gana más cashback"
+                "inviteFriends": "Invita amigos y gana más puntos"
             }
         }
     },
@@ -2362,7 +2357,7 @@
         "yesterday": "Ayer"
     },
     "rewards": {
-        "title": "Recompensas",
+        "title": "Puntos",
         "youHave": "Tienes",
         "pendingCallout": "esperándote. Empieza a gastar para reclamarlo.",
         "noPendingRewards": "No tienes recompensas pendientes por ahora.",
@@ -2393,17 +2388,17 @@
             "step4": "Haz cualquier pago para reclamarlo."
         },
         "iosCopy": {
-            "title": "Cashback",
             "invitesTitle": "Red",
-            "noPendingRewards": "No tienes cashback pendiente por ahora.",
-            "lifetimeRewards": "Cashback total: {amount}",
-            "earnWhenFriendsUse": "¡Ganas cashback cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más cashback",
+            "noPendingRewards": "Nada pendiente por ahora.",
+            "lifetimeRewards": "Ganado hasta ahora: {amount}",
+            "earnWhenFriendsUse": "¡Ganas puntos cada vez que tus amigos pagan con Peanut!",
+            "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más puntos",
             "howItWorks": {
-                "title": "Cómo funciona el cashback",
-                "step3": "Tu cashback se acumula en tu saldo."
+                "title": "Cómo funciona",
+                "step3": "Tus ganancias se acumulan en tu saldo.",
+                "step4": "Haz cualquier pago para reclamarlas."
             },
-            "lifetimeCaption": "en cashback hasta ahora"
+            "lifetimeCaption": "hasta ahora"
         }
     },
     "invites": {
@@ -3098,13 +3093,13 @@
             "items": {
                 "id": {
                     "label": "Documento",
-                    "title": "Un documento de identidad vigente",
+                    "title": "Documento vigente con foto",
                     "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Toma fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
                 },
                 "selfie": {
                     "label": "Selfie",
-                    "title": "Selfie",
-                    "body": "Una selfie corta en la app. Con buena luz es más fácil."
+                    "title": "Foto en la app",
+                    "body": "Tómate una selfie en la app. La buena luz ayuda."
                 },
                 "taxId": {
                     "label": "ID fiscal",
@@ -3120,15 +3115,15 @@
                 },
                 "proofOfAddress": {
                     "label": "Dirección",
-                    "title": "Un comprobante de domicilio, si tienes uno",
+                    "title": "Comprobante reciente",
                     "body": "Una factura de servicios, un estado de cuenta bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }
             },
             "howLongLabel": "Cuánto tarda",
             "howLong": {
-                "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "Unos 5 minutos si tienes tus documentos a la mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tienes todos los documentos a la mano."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
@@ -3683,7 +3678,7 @@
         "maintenanceBody": "Esta función no está disponible temporalmente mientras trabajamos en ella. Tus fondos están seguros y todo lo demás funciona con normalidad.",
         "iosCopy": {
             "inviteFriendsModal": {
-                "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas cashback."
+                "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas puntos."
             }
         },
         "countryCombobox": {
@@ -3887,7 +3882,6 @@
         "earned": "Ganado",
         "rollDie": "Tirar el dado",
         "initialName": "Solo {letter}",
-        "initialLine": "Inicial",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
                 "crystal": "Cristal de Arbiverse",
@@ -3972,84 +3966,64 @@
         },
         "cast": {
             "apple": {
-                "name": "Cereza ganadora",
-                "line": "A dos de ser rica"
+                "name": "Cereza ganadora"
             },
             "avocado": {
-                "name": "Rebanada de sandía",
-                "line": "Alcanza para once personas"
+                "name": "Rebanada de sandía"
             },
             "cactus": {
-                "name": "Chile valiente",
-                "line": "Eligió el picante"
+                "name": "Chile valiente"
             },
             "cloud": {
-                "name": "Nube gruñona",
-                "line": "Se queja, pero viene"
+                "name": "Nube gruñona"
             },
             "cube": {
-                "name": "Dado de la suerte",
-                "line": "Resuelve todo empate"
+                "name": "Dado de la suerte"
             },
             "donut": {
-                "name": "Dona glaseada",
-                "line": "Le falta el centro"
+                "name": "Dona glaseada"
             },
             "drop": {
-                "name": "Té de burbujas",
-                "line": "Sorbe en pleno drama"
+                "name": "Té de burbujas"
             },
             "egg": {
-                "name": "Galleta de la fortuna",
-                "line": "Ambigua a propósito"
+                "name": "Galleta de la fortuna"
             },
             "fish": {
-                "name": "Pez globo inflado",
-                "line": "Exagera a pedido"
+                "name": "Pez globo inflado"
             },
             "flower": {
-                "name": "Catarina de la suerte",
-                "line": "Se posa en la cuenta"
+                "name": "Catarina de la suerte"
             },
             "frog": {
-                "name": "Ajolote sonriente",
-                "line": "Nunca dice que no"
+                "name": "Ajolote sonriente"
             },
             "gem": {
-                "name": "Herradura de la suerte",
-                "line": "Pesada pero con suerte"
+                "name": "Herradura de la suerte"
             },
             "ghost": {
-                "name": "Gato de la suerte",
-                "line": "Le sonríe al azar"
+                "name": "Gato de la suerte"
             },
             "heart": {
-                "name": "Capibara serena",
-                "line": "Todo le parece bien"
+                "name": "Capibara serena"
             },
             "leaf": {
-                "name": "Pretzel retorcido",
-                "line": "Le da mil vueltas al plan"
+                "name": "Pretzel retorcido"
             },
             "moon": {
-                "name": "Tazón de ramen",
-                "line": "Cura la resaca"
+                "name": "Tazón de ramen"
             },
             "mushroom": {
-                "name": "Erizo espinoso",
-                "line": "Blandito por dentro"
+                "name": "Erizo espinoso"
             },
             "planet": {
-                "name": "Cangrejo de costado",
-                "line": "Esquiva la pregunta"
+                "name": "Cangrejo de costado"
             },
             "star": {
-                "name": "Estrella de los deseos",
-                "line": "Cumple la mitad"
+                "name": "Estrella de los deseos"
             },
             "sun": {
-                "name": "Ganso mandón",
-                "line": "Arrea al grupo"
+                "name": "Ganso mandón"
             }
         }
     },
@@ -4063,8 +4037,8 @@
         "list": {
             "addTitle": "Agregar dinero",
             "heldTitle": "Cuentas",
-            "openTitle": "Abrir una cuenta",
-            "otherWaysTitle": "Otras formas de mover dinero a Peanut",
+            "openTitle": "Abrir cuenta nueva",
+            "otherWaysTitle": "Otras formas de mover dinero con Peanut",
             "otherWaysBody": "También sirven para agregar y retirar dinero. No son cuentas a tu nombre.",
             "badgeLimitReached": "Límite alcanzado",
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",

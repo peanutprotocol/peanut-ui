@@ -147,7 +147,7 @@ describe('PendingVerificationTasks', () => {
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts-and-payments/additional')
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
     })
 
     describe('future-dated document request (Bridge advisory sumsub step)', () => {

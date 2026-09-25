@@ -181,7 +181,7 @@ export function RewardsPage() {
                     </div>
                 </Card>
 
-                {/* iOS presents the programme as cashback (see useAppTranslations);
+                {/* iOS presents the programme in points (see useAppTranslations);
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">

@@ -152,7 +152,9 @@ export function useWithdrawRootFlow() {
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
     // The field can toggle to USD. A USD amount the user typed is handed on as
     // USD, exact, and the review leads with it; only a bank amount is re-quoted.
-    const [isBankFieldInUsd, setIsBankFieldInUsd] = useState(false)
+    // The URL keeps the toggle and the USD, so back and refresh restore both.
+    const [amountCurrencyParam, setAmountCurrencyParam] = useQueryState('amountCurrency', parseAsString)
+    const isBankFieldInUsd = !!bankCurrency && amountCurrencyParam === 'usd'
 
     // The USD floor under every bank payout. No amount-step minimum for crypto:
     // same-chain (Arbitrum) withdrawals are direct transfers with no floor,
@@ -265,13 +267,16 @@ export function useWithdrawRootFlow() {
             // shareable mid-flow) — nuqs throttles the actual history writes.
             // For a bank-currency amount the USD is only derived; the bank amount is stored.
             if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
+            // the field re-reports an unchanged USD when the rate refreshes; an
+            // unchanged URL write can discard Continue's navigation (see below)
+            else if (isBankFieldInUsd && newValue !== urlAmount) void setUrlAmount(newValue === '' ? null : newValue)
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency]
+        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, isBankFieldInUsd, urlAmount]
     )
 
     const handleDestinationAmountChange = useCallback(
@@ -400,6 +405,7 @@ export function useWithdrawRootFlow() {
         setRawTokenAmount('')
         void setUrlAmount(null)
         void setDestinationAmount(null)
+        void setAmountCurrencyParam(null)
         filledFromBalanceRef.current = null
         setIsMaxWithdrawal(false)
         if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
@@ -418,6 +424,7 @@ export function useWithdrawRootFlow() {
         setSelectedBankAccount,
         setUrlAmount,
         setDestinationAmount,
+        setAmountCurrencyParam,
         setIsMaxWithdrawal,
         stepper,
     ])
@@ -475,7 +482,11 @@ export function useWithdrawRootFlow() {
                   refetchRate: bankRate.refetch,
                   destinationAmount,
                   onDestinationAmountChange: handleDestinationAmountChange,
-                  onDenominationChange: (symbol: string) => setIsBankFieldInUsd(symbol.toUpperCase() === 'USD'),
+                  isInUsd: isBankFieldInUsd,
+                  onDenominationChange: (symbol: string) => {
+                      const next = symbol.toUpperCase() === 'USD' ? 'usd' : null
+                      if (next !== amountCurrencyParam) void setAmountCurrencyParam(next)
+                  },
               }
             : null,
         handleAmountChange,

@@ -1,5 +1,6 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -32,13 +33,18 @@ import { ClosedRowDrawer } from './ClosedRowDrawer'
 import { CorridorFlag } from './CorridorFlag'
 
 /**
- * The one list of ways money gets into Peanut, shared by Add money and
- * Accounts and payments (Hugo, 2026-09-24: Add money is a subset of Accounts
- * and payments, with one copy and one design).
+ * The one list of ways money gets into Peanut, shared by Add money and the
+ * profile Accounts page (Hugo, 2026-09-24: Add money is a subset of Accounts,
+ * with one copy and one design).
  *
- * Three sections: the virtual accounts the user holds, the ones they could
- * open, and the other ways — bank rails and, on Add money, crypto and the
- * countries. Each screen decides what a tap does; the rows, their order, their
+ * Three sections: the accounts the user holds, the ones they could open, and
+ * the other ways — bank rails and, on Add money, crypto and the countries.
+ * Once the user holds an account, the ones they could open fold into one
+ * closed row at the foot of the held list, one card with it (Hugo,
+ * 2026-09-25): a list of "Not set up" rows under a held account read as a
+ * checklist, and working through it runs into the account limit. At the
+ * limit the row is gone, since nothing behind it can be opened; the counter
+ * beside the heading says why. Each screen decides what a tap does; the rows, their order, their
  * words and the reason behind a row that cannot be used are the same on both.
  * A row is titled by its currency alone; the rail's name is on the screen or
  * drawer behind the tap.
@@ -86,6 +92,9 @@ export function AccountsHubList({
     const { held, open } = accounts ? virtualAccountRows(accounts, claimsEnabled) : { held: [], open: [] }
     const shownHeld = held.filter((corridor) => matches(corridor, railName(corridor)))
     const shownOpen = open.filter((row) => matches(row.corridor, railName(row.corridor)))
+    // A search shows every match, so the fold steps aside while the user types
+    // (the countries row on Add money does the same).
+    const searching = !!searchTerm.trim()
 
     // An active virtual account covers its currency, so the bank row for it goes.
     const activeCurrencies = new Set(
@@ -166,6 +175,9 @@ export function AccountsHubList({
         (blockedByLimit ? slotsHeld : slotsHeld < DEFAULT_ACCOUNT_LIMIT ? DEFAULT_ACCOUNT_LIMIT : undefined)
     // more accounts than the limit, after support lowered it: the count stands alone
     const overCap = accountLimit !== undefined && slotsHeld > accountLimit
+    const atLimit = accountLimit !== undefined && slotsHeld >= accountLimit
+    // the fold sits under the held rows; a search lists every match instead
+    const foldOpen = held.length > 0 && !searching
     const counter =
         claimsEnabled && !isError && accountLimit !== undefined ? (
             <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
@@ -191,9 +203,15 @@ export function AccountsHubList({
             />
         ))
 
-    const accountRow = (corridor: DepositCorridor, badge: ReactNode, onClick: () => void) => (
+    const accountRow = (
+        corridor: DepositCorridor,
+        badge: ReactNode,
+        onClick: () => void,
+        position?: 'middle' | 'bottom'
+    ) => (
         <ListItem
             key={corridor}
+            position={position}
             leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
             title={DEPOSIT_RAILS[corridor].currency}
             trailing={badge}
@@ -229,6 +247,28 @@ export function AccountsHubList({
     // Until the accounts are read, the bank rows cannot be deduped against them,
     // so they wait behind skeletons with the accounts.
     const otherWays = [...(isLoading ? skeletonRows(bankRows.length) : shownBankRows.map(bankRow)), ...extraRows]
+    // In the fold the rows sit inside the item's own border, under the line
+    // the content draws below the trigger: no row brings a top border of its
+    // own, so no two borders meet.
+    const openRows = (inFold: boolean) => (
+        <ListGroup>
+            {shownOpen.map((row, index) =>
+                accountRow(
+                    row.corridor,
+                    openBadge(row),
+                    () =>
+                        row.openable
+                            ? accounts?.onOpen(row.corridor)
+                            : setClosed({ kind: 'not-offered', corridor: row.corridor }),
+                    inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined
+                )
+            )}
+        </ListGroup>
+    )
+    const heldRows = shownHeld.map((corridor) =>
+        accountRow(corridor, heldBadge(corridor), () => accounts?.onOpen(corridor))
+    )
+    const showFold = foldOpen && !atLimit && shownOpen.length > 0
     const accountSkeletons = isLoading
         ? (accounts?.corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor])).length ?? 0)
         : 0
@@ -251,25 +291,32 @@ export function AccountsHubList({
 
             {!isLoading && shownHeld.length > 0 && (
                 <Section title={t('list.heldTitle')} trailing={counter} data-testid="virtual-accounts">
-                    <ListGroup>
-                        {shownHeld.map((corridor) =>
-                            accountRow(corridor, heldBadge(corridor), () => accounts?.onOpen(corridor))
-                        )}
-                    </ListGroup>
+                    {showFold ? (
+                        // one card: the held rows, then the fold as its last item
+                        <Accordion type="single" collapsible>
+                            <ListGroup>
+                                {heldRows}
+                                <Accordion.Item value="open" data-testid="open-accounts-item">
+                                    <Accordion.Trigger
+                                        leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                        title={t('list.openTitle')}
+                                        data-testid="open-accounts-toggle"
+                                    />
+                                    <Accordion.Content flush data-testid="open-virtual-accounts">
+                                        {openRows(true)}
+                                    </Accordion.Content>
+                                </Accordion.Item>
+                            </ListGroup>
+                        </Accordion>
+                    ) : (
+                        <ListGroup>{heldRows}</ListGroup>
+                    )}
                 </Section>
             )}
 
-            {!isLoading && shownOpen.length > 0 && (
+            {!isLoading && !foldOpen && shownOpen.length > 0 && (
                 <Section title={t('list.openTitle')} data-testid="open-virtual-accounts">
-                    <ListGroup>
-                        {shownOpen.map((row) =>
-                            accountRow(row.corridor, openBadge(row), () =>
-                                row.openable
-                                    ? accounts?.onOpen(row.corridor)
-                                    : setClosed({ kind: 'not-offered', corridor: row.corridor })
-                            )
-                        )}
-                    </ListGroup>
+                    {openRows(false)}
                 </Section>
             )}
 

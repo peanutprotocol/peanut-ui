@@ -43,7 +43,7 @@
         "perk": {
             "holdToUnwrap": "Mantené presionado para abrir la recompensa",
             "iosCopy": {
-                "holdToUnwrap": "Mantené presionado para abrir el cashback"
+                "holdToUnwrap": "Mantené presionado para abrir"
             }
         },
         "carousel": {
@@ -78,15 +78,15 @@
             },
             "iosCopy": {
                 "invite": {
-                    "title": "Invitá amigos. Ganá cashback",
-                    "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                    "title": "Invitá amigos. Ganá puntos",
+                    "description": "Ganá puntos cada vez que tus amigos pagan con Peanut."
                 },
                 "latamInvite": {
-                    "title": "Ganá <b>cashback</b> en pagos QR",
-                    "description": "Invitá amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganás!"
+                    "title": "Ganá <b>puntos</b> en pagos QR",
+                    "description": "Invitá amigos para <b>ganar más puntos</b>. ¡Cuanto más pagan, más ganás!"
                 },
                 "qrPay": {
-                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
+                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>puntos</b>."
                 }
             },
             "card": {
@@ -106,7 +106,8 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Cuentas y pagos",
+            "accounts": "Cuentas",
+            "payments": "Pagos",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -138,7 +139,10 @@
             }
         },
         "unlockPayments": {
-            "title": "Cuentas y pagos",
+            "titles": {
+                "accounts": "Cuentas",
+                "payments": "Pagos"
+            },
             "residence": {
                 "label": "Residencia",
                 "unknown": "Residencia sin definir",
@@ -778,10 +782,9 @@
         },
         "iosCopy": {
             "success": {
-                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir tu cashback.",
-                "holdToClaim": "¡Ganaste cashback! Mantené presionado para abrirlo.",
-                "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más cashback.",
-                "inviteFriends": "Invitá amigos para ganar aún más cashback."
+                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir.",
+                "holdToClaim": "¡Recibiste una sorpresa! Mantené presionado para abrirla.",
+                "inviteFriends": "Invitá amigos para ganar aún más."
             },
             "claim": {
                 "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
@@ -1069,10 +1072,10 @@
         },
         "iosCopy": {
             "perk": {
-                "subtitle": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                "subtitle": "Ganá puntos cada vez que tus amigos pagan con Peanut."
             },
             "actions": {
-                "inviteFriends": "Invitá amigos y ganá más cashback"
+                "inviteFriends": "Invitá amigos y ganá más puntos"
             }
         }
     },
@@ -1093,10 +1096,11 @@
             "step4": "Hacé cualquier pago para reclamarlo."
         },
         "iosCopy": {
-            "noPendingRewards": "No tenés cashback pendiente por ahora.",
-            "earnWhenFriendsUse": "¡Ganás cashback cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más cashback",
-            "howItWorks": {}
+            "earnWhenFriendsUse": "¡Ganás puntos cada vez que tus amigos pagan con Peanut!",
+            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más puntos",
+            "howItWorks": {
+                "step4": "Hacé cualquier pago para reclamarlas."
+            }
         }
     },
     "invites": {
@@ -1363,12 +1367,12 @@
             },
             "items": {
                 "id": {
-                    "title": "Un documento de identidad vigente",
+                    "title": "Documento vigente con foto",
                     "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Tomá fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
                 },
                 "selfie": {
-                    "title": "Selfie",
-                    "body": "Una selfie corta en la app. Con buena luz es más fácil."
+                    "title": "Foto en la app",
+                    "body": "Sacate una selfie en la app. La buena luz ayuda."
                 },
                 "taxId": {
                     "title": "ID fiscal",
@@ -1381,15 +1385,15 @@
                     "body": "Declaraciones regulatorias que estamos obligados a pedir."
                 },
                 "proofOfAddress": {
-                    "title": "Un comprobante de domicilio, si tenés uno",
+                    "title": "Comprobante reciente",
                     "body": "Una factura de servicios, un resumen bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }
             },
             "howLongLabel": "Cuánto tarda",
             "howLong": {
-                "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "Unos 5 minutos si tenés tus documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
@@ -1603,7 +1607,7 @@
         },
         "iosCopy": {
             "inviteFriendsModal": {
-                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
+                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás puntos."
             }
         },
         "countryCombobox": {

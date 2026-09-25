@@ -77,16 +77,12 @@ describe('avatar catalog', () => {
         expect(avatarSrc(undefined)).toBeNull()
     })
 
-    // every basic tile prints a name and a line, so a slug the API adds before
-    // the copy lands would show as a bare capitalised slug with no line
-    it('names and lines every basic in the cast catalog', () => {
-        const cast: Record<string, { name: string; line: string }> = en.avatar.cast
+    // every basic tile prints a name, so a slug the API adds before the copy
+    // lands would show as a bare capitalised slug
+    it('names every basic in the cast catalog', () => {
+        const cast: Record<string, { name: string }> = en.avatar.cast
         for (const slug of badgeAssets.avatars.basics) {
-            expect({ slug, named: !!cast[slug]?.name, lined: !!cast[slug]?.line }).toEqual({
-                slug,
-                named: true,
-                lined: true,
-            })
+            expect({ slug, named: !!cast[slug]?.name }).toEqual({ slug, named: true })
         }
     })
 })

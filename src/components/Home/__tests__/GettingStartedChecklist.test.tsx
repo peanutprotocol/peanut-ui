@@ -98,7 +98,7 @@ describe('GettingStartedChecklist', () => {
     it('verify opens the ID check screen', () => {
         render()
         fireEvent.click(screen.getByText('Verify identity'))
-        expect(mockPush).toHaveBeenCalledWith('/profile/accounts-and-payments')
+        expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
     })
 
     it('Add money is tappable before verify and opens the Add drawer', () => {

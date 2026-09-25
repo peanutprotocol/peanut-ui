@@ -389,7 +389,7 @@ describe('ActivationCTAs — a restart-eligible block starts a fresh ID check, n
     it('offers the restart copy instead of "Verification issue"', () => {
         render(<ActivationCTAs onboarding={VERIFIED} />)
 
-        // Title and CTA share the string, as they do in UnlockPayments.
+        // Title and CTA share the string, as they do on the Accounts page.
         expect(screen.getByRole('button', { name: 'Verify with a different document' })).toBeInTheDocument()
         // ...and the description is the localized reason for THIS code, which
         // already tells the user QR still works — the point of the whole change.

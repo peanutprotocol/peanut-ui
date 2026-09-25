@@ -6,6 +6,8 @@ import { useLocale } from 'next-intl'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
+import { useAppHelpDrawer } from '@/components/Global/AppHelpDrawer'
+import { isAppHelpSlug } from '@/components/Global/appHelpTypes'
 
 interface DocsLinkProps {
     /** App-relative path to web-only content, e.g. `/en/help/transaction-limits`, `/terms`. */
@@ -42,7 +44,17 @@ export function localizeDocsHref(href: string, appLocale: string): string {
 export default function DocsLink({ href, className, children, ...rest }: DocsLinkProps) {
     const locale = useLocale()
     const isStandalone = usePWAStatus()
+    const openHelp = useAppHelpDrawer()
     const localizedHref = localizeDocsHref(href, locale)
+    const helpSlug = localizedHref.match(/^\/(?:en|es-419|es-ar|pt-br)\/help\/([^/?#]+)$/)?.[1] ?? null
+
+    if (openHelp && helpSlug && isAppHelpSlug(helpSlug)) {
+        return (
+            <button type="button" className={className} onClick={() => openHelp(helpSlug)} {...rest}>
+                {children}
+            </button>
+        )
+    }
 
     if (isStandalone && !isCapacitor()) {
         return (

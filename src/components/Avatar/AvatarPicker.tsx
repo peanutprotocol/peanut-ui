@@ -6,7 +6,6 @@ import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import Badge from '@/components/Global/Badges/Badge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -32,7 +31,6 @@ const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1
  */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
-    const badgeCopy = useBadgeCopy()
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
     const [preferBadge, setPreferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
@@ -42,7 +40,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badgeCopy(badge.code, badge.name).name]))
     const unlocked = badgeAvatarKeys(held)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.
@@ -123,16 +120,15 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const isChecked = (key: string | null) => (key === null ? pick === null || pick === initialKey : key === pick)
     const focusIndex = Math.max(0, hand.findIndex(isChecked))
 
-    const describe = (key: string | null): { name: string; line: string } => {
-        if (!key) return { name: t('initialName', { letter: first.toUpperCase() }), line: t('initialLine') }
+    const nameOf = (key: string | null): string => {
+        if (!key) return t('initialName', { letter: first.toUpperCase() })
         const [kind, code, slug] = key.split('.')
         if (kind === 'badge') {
             const nameKey = `badge.${code}.${slug}` as Parameters<typeof t>[0]
-            return { name: t.has(nameKey) ? t(nameKey) : capitalise(slug), line: badgeName[code] ?? code }
+            return t.has(nameKey) ? t(nameKey) : capitalise(slug)
         }
         const nameKey = `cast.${code}.name` as Parameters<typeof t>[0]
-        const lineKey = `cast.${code}.line` as Parameters<typeof t>[0]
-        return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }
+        return t.has(nameKey) ? t(nameKey) : capitalise(code)
     }
 
     // Consume the badge hint so later opens can deal any unlocked art.
@@ -155,7 +151,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                             const initial = key === null
                             const checked = isChecked(key)
                             const earned = !!key?.startsWith('badge.')
-                            const { name, line } = describe(key)
+                            const name = nameOf(key)
                             return (
                                 <button
                                     key={key ?? 'initial'}
@@ -192,25 +188,15 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         size="l"
                                         className="aspect-square h-auto w-3/5"
                                     />
-                                    {/* One line reserved and no clamp: in a 91px tile a translated name can
-                                        take three lines (pt-BR "Cartão do primeiro swipe"). It grows the rows,
-                                        so nothing is cut. */}
+                                    {/* Two lines reserved for every name, so a roll that deals only one-line
+                                        names keeps the rows as tall as one with a wrapped name (TASK-23054). */}
                                     <span
                                         className={twMerge(
-                                            'mt-1 min-h-4 text-label-m',
+                                            'mt-1 min-h-8 text-label-m',
                                             checked && 'text-foreground-over-color-primary'
                                         )}
                                     >
                                         {name}
-                                    </span>
-                                    {/* grey on pink is 2.95:1, so the chosen tile's line takes the over-color ink */}
-                                    <span
-                                        className={twMerge(
-                                            'min-h-4 text-body-xs text-foreground-secondary',
-                                            checked && 'text-foreground-over-color-primary'
-                                        )}
-                                    >
-                                        {line}
                                     </span>
                                 </button>
                             )

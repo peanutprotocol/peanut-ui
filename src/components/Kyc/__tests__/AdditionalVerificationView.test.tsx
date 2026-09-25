@@ -93,7 +93,7 @@ describe('AdditionalVerificationView', () => {
             configurable: true,
             value: {
                 get href() {
-                    return 'http://localhost/profile/accounts-and-payments/additional'
+                    return 'http://localhost/profile/accounts/additional'
                 },
                 set href(value: string) {
                     mockAssignHref(value)
@@ -113,8 +113,10 @@ describe('AdditionalVerificationView', () => {
 
         expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent(/start again from the first step/i)
         const checklist = screen.getByTestId('kyc-prep-checklist')
-        expect(checklist).toHaveTextContent(/government id/i)
-        expect(checklist).toHaveTextContent(/proof of address/i)
+        expect(checklist).toHaveTextContent(/valid photo id/i)
+        expect(checklist).toHaveTextContent(/recent proof/i)
+        expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent(/usually takes a few minutes/i)
+        expect(checklist).not.toHaveTextContent(/how long|1 to 3 business days|5 minutes/i)
         expect(mockStartHosted).not.toHaveBeenCalled()
         expect(mockWindowOpen).not.toHaveBeenCalled()
     })
@@ -125,7 +127,7 @@ describe('AdditionalVerificationView', () => {
         const checklist = screen.getByTestId('kyc-prep-checklist')
         const warning = screen.getByTestId('kyc-prep-single-session')
         const items = [...checklist.children]
-        expect(items.indexOf(warning)).toBeGreaterThan(items.findIndex((el) => /government id/i.test(el.textContent!)))
+        expect(items.indexOf(warning)).toBeGreaterThan(items.findIndex((el) => /valid photo id/i.test(el.textContent!)))
     })
 
     it('reserves a tab IN the click, then navigates it — never an iframe', async () => {
@@ -294,7 +296,7 @@ describe('AdditionalVerificationView', () => {
         expect(screen.getByTestId('hosted-task-native-instead')).toHaveTextContent(/upload the document in the app/i)
         expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /go to profile/i }))
-        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/accounts-and-payments')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/accounts')
     })
 
     it('coming back holds the CTA while the provider is asked, and the task clearing ends it', async () => {

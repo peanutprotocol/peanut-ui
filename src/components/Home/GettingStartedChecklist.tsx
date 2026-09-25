@@ -38,7 +38,7 @@ interface ChecklistItem {
 }
 
 /** where the ID check starts, and where its status lives while in review */
-const VERIFY_HREF = '/profile/accounts-and-payments'
+const VERIFY_HREF = '/profile/accounts'
 
 const FIRST_PAYMENT_BUBBLE = {
     card_qr: CONCEPT_ICONS.qrPay,
