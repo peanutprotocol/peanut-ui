@@ -40,6 +40,8 @@ interface WithdrawAmountViewProps {
         /** Destination units per 1 USD, fees included. */
         rate: number
         initialAmount: string
+        /** 'USD' when the user had toggled the field to USD; `initialAmount` is then the USD. */
+        initialDenomination: string
         onAmountChange: (value: string) => void
         /** The field's currency toggle: 'USD' when the user types the USD amount instead. */
         onDenominationChange: (symbol: string) => void
@@ -81,6 +83,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 {bankAmount ? (
                     <AmountInput
                         initialAmount={bankAmount.initialAmount}
+                        initialDenomination={bankAmount.initialDenomination}
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
                         setCurrentDenomination={bankAmount.onDenominationChange}
