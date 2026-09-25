@@ -235,6 +235,7 @@ export function getLimitsWarningCardProps({
     }
 
     // add check limits link
+    // DEPRECATED (TASK-23085): the /limits page is unmaintained; delete it and point limit links at Profile → Accounts / Payments / Card.
     items.push({
         text: LIMITS_COPY.CHECK_LIMITS,
         isLink: true,
