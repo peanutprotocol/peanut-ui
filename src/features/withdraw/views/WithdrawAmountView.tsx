@@ -43,6 +43,8 @@ interface WithdrawAmountViewProps {
         /** 'USD' when a USD amount was carried in: the field opens on USD, toggleable. */
         initialDenomination?: string
         onAmountChange: (value: string) => void
+        /** The unit the field shows ('USD' or the bank currency), on open and on every switch. */
+        onDenominationChange?: (symbol: string) => void
     }
 }
 
@@ -82,6 +84,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                     <AmountInput
                         initialAmount={bankAmount.initialAmount}
                         initialDenomination={bankAmount.initialDenomination}
+                        setCurrentDenomination={bankAmount.onDenominationChange}
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
