@@ -8,6 +8,8 @@ jest.mock('next/font/local', () => ({
 }))
 jest.mock('next/script', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('../ClientProviders', () => ({ ClientProviders: jest.fn() }))
+// This spec imports only metadata; MDX compilation is a server runtime concern.
+jest.mock('@/components/Global/appHelpDocuments.server', () => ({ loadAppHelpDocuments: jest.fn() }))
 jest.mock('../../styles/globals.css', () => ({}))
 jest.mock('@/constants/general.consts', () => ({
     BASE_URL: 'https://peanut.me',
