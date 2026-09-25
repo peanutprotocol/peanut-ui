@@ -4064,6 +4064,7 @@
             "otherWaysBody": "También sirven para agregar y retirar dinero. No son cuentas a tu nombre.",
             "badgeLimitReached": "Límite alcanzado",
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "No está disponible donde vives, o todavía no. Si te mudaste, actualiza tu residencia. Soporte puede revisar por qué.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Vuelve a intentarlo en un momento.",

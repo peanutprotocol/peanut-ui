@@ -358,22 +358,6 @@ describe('the accounts still to open fold once one is held', () => {
         expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
     })
 
-    // the API sends `not-offered` for a corridor it does not offer this user (region, or no rail)
-    it('explains a not-offered account by where the user lives, with the way to change it', () => {
-        residenceIso2s = ['PT']
-        const { container } = list(false, {
-            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
-            unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
-        })
-
-        unfoldOpenAccounts()
-        expect(inRow(container, 'FASTER_PAYMENTS_GB').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
-        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
-        expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
-        expect(drawer().getByText(messages.depositAccounts.errors.residenceRestricted)).toBeInTheDocument()
-        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
-    })
-
     it('asks for a residence where none is set', () => {
         residenceIso2s = []
         const { container } = list(false, {
@@ -388,6 +372,19 @@ describe('the accounts still to open fold once one is held', () => {
             drawer().getByText('MXN accounts depend on where you live. Set a residence to check.')
         ).toBeInTheDocument()
         expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
+    // chip, ui#3479: the gate cannot speak for a corridor the backend gave no verdict on
+    it('reads an unchecked row as Unknown even where the gate offers verification', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: corridorRecord<GateState>((c) => (c === 'SEPA_EU' ? READY : { kind: 'needs-identity' })),
+        })
+
+        unfoldOpenAccounts()
+        expect(inRow(container, 'ACH_US').getByText('Unknown')).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').queryByText(LIST.badgeVerify)).not.toBeInTheDocument()
     })
 
     // chip, ui#3479: no verdict from the backend is unknown, never "Not set up" and never residence
@@ -537,16 +534,35 @@ describe('a row the user cannot use', () => {
 
         fireEvent.click(row)
         expect(onOpen).not.toHaveBeenCalled()
-        // the API's not-offered is "their region, or not open yet": the residence is what the user can change
+        // the API's not-offered is "their region, or not open yet", and the wire does not say which
         expect(drawer().getByText('We cannot open a GBP account')).toBeInTheDocument()
-        // the body names the currency; no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
+        expect(drawer().getByText(LIST.notOfferedHereBody)).toBeInTheDocument()
+        // no "GBP · Faster Payments" caption under the button (Hugo QA 2026-09-25)
         expect(drawer().queryByText(/Faster Payments/)).not.toBeInTheDocument()
 
+        // support is the primary: it can check which of the two it is
         jest.useFakeTimers()
-        fireEvent.click(drawer().getByRole('button', { name: 'Update residence' }))
+        fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))
+        jest.runAllTimers()
+        jest.useRealTimers()
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('FASTER_PAYMENTS_GB'))
+    })
+
+    it('offers the residence change as the link under support, for a user who moved', () => {
+        residenceIso2s = ['PT']
+        const { container } = list(false, {
+            unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered') },
+        })
+
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        const link = drawer().getByRole('button', { name: 'Update residence' })
+        expect(link).toHaveClass('underline')
+        jest.useFakeTimers()
+        fireEvent.click(link)
         jest.runAllTimers()
         jest.useRealTimers()
         expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
     // Kush's staging row: a stale rejected Bre-B rail left the gate at blocked-rejection

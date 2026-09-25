@@ -1781,7 +1781,8 @@
             "countriesTitle": "Todos los países",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
-            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo."
+            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
+            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",

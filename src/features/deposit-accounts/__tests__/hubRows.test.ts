@@ -164,7 +164,7 @@ describe('closedOpenRow', () => {
         const { open } = virtualAccountRows(input({ unavailable: { FASTER_PAYMENTS_GB: unavailable } }), true)
         const row = open.find((r) => r.corridor === 'FASTER_PAYMENTS_GB')!
         expect(closedOpenRow(row, { unavailable, hasResidence: true })).toEqual({
-            kind: 'not-offered-residence',
+            kind: 'not-offered-here',
             corridor: 'FASTER_PAYMENTS_GB',
         })
         expect(closedOpenRow(row, { unavailable, hasResidence: false })).toEqual({

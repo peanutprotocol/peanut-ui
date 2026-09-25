@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
@@ -45,7 +46,13 @@ export function ClosedRowDrawer({
 
     const content = closed ? drawerContent(closed) : null
 
-    function drawerContent(row: ClosedRow): { title: string; body: string; cta: { label: string; act?: () => void } } {
+    function drawerContent(row: ClosedRow): {
+        title: string
+        body: string
+        cta: { label: string; act?: () => void }
+        /** a tertiary link under the primary */
+        link?: { label: string; act: () => void }
+    } {
         switch (row.kind) {
             case 'residence': {
                 const base = RESIDENCE_COPY[row.corridor]
@@ -89,11 +96,18 @@ export function ClosedRowDrawer({
                         act: () => openSupportWithMessage(`Account limit reached (${row.limit})`),
                     },
                 }
-            case 'not-offered-residence':
+            // the API cannot tell a region refusal from "not opened yet", so the
+            // drawer names both: support can check, and a move is one tap away
+            case 'not-offered-here':
                 return {
                     title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
-                    body: t('errors.residenceRestricted'),
-                    cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                    body: t('list.notOfferedHereBody'),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        // English on purpose: it is for the support agent, not the user
+                        act: () => openSupportWithMessage(`Account not offered: ${row.corridor}`),
+                    },
+                    link: { label: t('details.residenceCta'), act: onChangeResidence },
                 }
             case 'residence-missing':
                 return {
@@ -127,17 +141,29 @@ export function ClosedRowDrawer({
                             <DrawerTitle>{content.title}</DrawerTitle>
                             <DrawerDescription>{content.body}</DrawerDescription>
                         </DrawerHeader>
-                        <Button
-                            variant="primary"
-                            className="mt-6 w-full"
-                            onClick={() => {
-                                onClose()
-                                // the next sheet opens once this one has slid out
-                                if (content.cta.act) setTimeout(content.cta.act, DRAWER_CLOSE_MS)
-                            }}
-                        >
-                            {content.cta.label}
-                        </Button>
+                        <div className="mt-6 flex w-full flex-col items-center gap-6">
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => {
+                                    onClose()
+                                    // the next sheet opens once this one has slid out
+                                    if (content.cta.act) setTimeout(content.cta.act, DRAWER_CLOSE_MS)
+                                }}
+                            >
+                                {content.cta.label}
+                            </Button>
+                            {content.link && (
+                                <LinkButton
+                                    onClick={() => {
+                                        onClose()
+                                        setTimeout(content.link!.act, DRAWER_CLOSE_MS)
+                                    }}
+                                >
+                                    {content.link.label}
+                                </LinkButton>
+                            )}
+                        </div>
                     </div>
                 )}
             </DrawerContent>

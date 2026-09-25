@@ -176,8 +176,12 @@ export type ClosedRow =
     | { kind: 'account-limit'; limit: number }
     /** the backend could not say whether this account opens (its preview failed) */
     | { kind: 'unchecked'; corridor: DepositCorridor }
-    /** the backend does not offer this corridor to this user, whose residence is known */
-    | { kind: 'not-offered-residence'; corridor: DepositCorridor }
+    /**
+     * the backend does not offer this corridor to this user, whose residence is
+     * known. Its `not-offered` is a region refusal or "not opened yet", and the
+     * wire does not say which, so the drawer names both.
+     */
+    | { kind: 'not-offered-here'; corridor: DepositCorridor }
     /** the backend does not offer it, and the user has not said where they live */
     | { kind: 'residence-missing'; corridor: DepositCorridor }
 
@@ -189,8 +193,9 @@ export type ClosedRow =
  * - no verdict at all (the corridor is in neither list): its provider preview
  *   failed, so the row says only that it could not be checked;
  * - `not-offered`: the API's word for "their region, or not open yet"
- *   (peanut-api-ts `unavailableReason`). The residence is what the user can
- *   change, so the row says so, or asks for one where none is set.
+ *   (peanut-api-ts `unavailableReason`), with nothing on the wire to tell the
+ *   two apart. With a residence the row names both and offers support; with
+ *   none it asks for one, the step that has to come first either way.
  */
 export function closedOpenRow(
     row: OpenAccountRow,
@@ -205,7 +210,7 @@ export function closedOpenRow(
     if (row.unchecked) return { kind: 'unchecked', corridor: row.corridor }
     if (context.unavailable?.reason === 'not-offered')
         return context.hasResidence
-            ? { kind: 'not-offered-residence', corridor: row.corridor }
+            ? { kind: 'not-offered-here', corridor: row.corridor }
             : { kind: 'residence-missing', corridor: row.corridor }
     return { kind: 'not-offered', corridor: row.corridor }
 }
