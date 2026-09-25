@@ -55,6 +55,7 @@ export default function WithdrawRoot() {
                               rate: Number(bankAmount.rate),
                               initialAmount: bankAmount.destinationAmount,
                               onAmountChange: bankAmount.onDestinationAmountChange,
+                              onDenominationChange: bankAmount.onDenominationChange,
                           }
                         : undefined
                 }

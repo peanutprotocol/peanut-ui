@@ -8,7 +8,6 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
-import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
@@ -21,7 +20,8 @@ import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCurrencyConfig, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { nextDepositStep, isVerifiableGate } from '@/utils/capability-gate'
-import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
+import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { formatAmount } from '@/utils/general.utils'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useLocale, useTranslations } from 'next-intl'
@@ -135,23 +135,11 @@ export function useBridgeBankFlow() {
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
     const pendingModal = useWaitingOnProviderModal(gate)
-    // A ready bank rail can still carry a pending Bridge requirement (the gate's
-    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt at the
-    // proceed step — the deposit cannot continue until it's completed.
-    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
-    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
-        advisory,
-        isLoading: sumsubFlow.isLoading,
-        // Route through the self-heal resubmit path (reheal-tagged action) so the
-        // completed submission round-trips to Bridge. start-action mints a plain
-        // token whose webhook completion has no Bridge relay → answers are dropped.
-        // note: eea_uplift_started is fired at modal-open (handleAmountContinue),
-        // not here, so abandoners are captured too.
-        onCompleteNow: () => {
-            if (!advisory) return Promise.resolve()
-            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
-        },
-    })
+    // A ready bank rail can still carry a future-dated Bridge requirement (the
+    // gate's `advisory`). The rail works until that date, so the deposit never
+    // waits on it: inside the heads-up window the screen shows a notice, and the verification starts
+    // from the Home and Accounts task cards (PendingVerificationTasks).
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -309,22 +297,12 @@ export function useBridgeBankFlow() {
             return
         }
 
-        // ready — enforce the mandatory verification pre-empt. The proceed body
-        // (record the amount-entered event, open the confirmation modal) only
-        // runs once there's no pending requirement; while one exists the modal
-        // blocks and this never fires, so the event can't double-count.
-        // upcoming (future-dated) eea uplift opens the advisory modal here — fire
-        // the funnel event as it opens.
-        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
-        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
-        advisoryIntercept(() => {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
-                amount_usd: usdEquivalent,
-                method_type: 'bank',
-                country: selectedCountryPath,
-            })
-            setShowWarningModal(true)
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+            amount_usd: usdEquivalent,
+            method_type: 'bank',
+            country: selectedCountryPath,
         })
+        setShowWarningModal(true)
     }
 
     const handleWarningConfirm = async () => {
@@ -402,7 +380,7 @@ export function useBridgeBankFlow() {
         sumsubFlow,
         handleVerify,
         pendingModal,
-        advisoryModalProps,
+        advisoryDeadline,
         showBridgeTos,
         hideTos,
         setIsSupportModalOpen,

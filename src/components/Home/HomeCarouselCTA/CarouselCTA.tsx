@@ -23,7 +23,8 @@ interface CarouselCTAProps {
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
-    onClose: () => void
+    /** omit for a slide that cannot be dismissed: no close button renders */
+    onClose?: () => void
     onClick?: () => void | Promise<void>
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
@@ -49,7 +50,7 @@ const CarouselCTA = ({
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
-        onClose()
+        onClose?.()
     }
 
     const handleClick = async () => {
@@ -83,18 +84,20 @@ const CarouselCTA = ({
             onClick={handleClick}
             className="embla__slide relative flex flex-row items-center justify-around px-2 py-2 md:py-3"
         >
-            <button
-                type="button"
-                aria-label={getAriaLabel()}
-                onClick={handleClose}
-                className={twMerge(
-                    CAROUSEL_CLOSE_BUTTON_POSITION,
-                    // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
-                    'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
-                )}
-            >
-                <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
-            </button>
+            {onClose && (
+                <button
+                    type="button"
+                    aria-label={getAriaLabel()}
+                    onClick={handleClose}
+                    className={twMerge(
+                        CAROUSEL_CLOSE_BUTTON_POSITION,
+                        // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
+                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
+                    )}
+                >
+                    <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
+                </button>
+            )}
 
             {/* Icon container */}
             {concept ? (

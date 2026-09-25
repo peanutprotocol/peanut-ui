@@ -2,14 +2,15 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-import ExchangeRate from '@/components/ExchangeRate'
-import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { AccountType, type Account } from '@/interfaces/interfaces'
+import { type ReviewPayout } from '@/features/withdraw/types'
+import { payoutAmounts } from '@/features/withdraw/bank-amount'
 import { formatIban } from '@/utils/general.utils'
 import { type FC, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
@@ -21,16 +22,19 @@ import {
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
-import RecipientGetsRow from '@/components/ExchangeRate/RecipientGetsRow'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
     /** USDC that leaves the balance. */
     amount: string
-    /** Bank amount typed in its currency (TASK-23054), and the quote rate behind `amount`. */
-    bankAmount?: { currency: string; destinationAmount: string; rate: string }
+    /** What the bank receives: currency from the account type, bank amount and rate from the quote. */
+    payout: ReviewPayout
+    /** true while the first rate for a converting payout loads. */
+    isRateLoading: boolean
     fromSendFlow: boolean
+    /** ISO date a future-dated verification becomes due; shows a non-blocking heads-up. */
+    verificationDeadline?: string
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
     isSubmitReady: boolean
@@ -60,8 +64,10 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
-    bankAmount,
+    payout,
+    isRateLoading,
     fromSendFlow,
+    verificationDeadline,
     isLoading,
     isSubmitReady,
     submittedTxHash,
@@ -84,21 +90,19 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tRate = useTranslations('exchangeRate.row')
 
-    // ONE country drives this screen: the account's own, read off the IBAN.
-    // The country picked upstream is not the same thing — a Portugal resident
-    // with a Lithuanian IBAN who picked Poland got a Lithuanian flag beside a
-    // zloty conversion quote — and since the euro area became one destination
-    // there is often no picked country at all (QA round 3, W1).
+    // The flag is the account's own country, read off the IBAN, not the one
+    // picked upstream (QA round 3, W1). The country never picks the currency:
+    // that is `payout`, from the account type, because a UK IBAN is paid EUR.
     const accountCountryCode = (
         ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount?.details?.countryCode ?? ''] ??
         bankAccount?.details?.countryCode ??
         ''
     ).toLowerCase()
 
-    const nonEuroCurrency = countryCurrencyMappings.find(
-        (currency) => currency.flagCode.toLowerCase() === accountCountryCode
-    )?.currencyCode
+    const { headline, secondary } = payoutAmounts(amount, payout)
+    const convertsCurrency = payout.currency.toLowerCase() !== 'usd'
 
     const referenceErrorText = (problem: BankReferenceProblem) => {
         if (!referenceSpec) return undefined
@@ -106,9 +110,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
         if (problem === 'tooLong') return t('bank.referenceTooLong', { max: referenceSpec.maxLength })
         return t(`bank.${referenceSpec.invalidCharsKey}`)
     }
-
-    // non-eur sepa countries that are currently experiencing issues
-    const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
 
     const getBicAndRoutingNumber = () => {
         if (bankAccount.type === AccountType.US) {
@@ -130,16 +131,20 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 recipientType={'BANK_ACCOUNT'}
                 recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
                 amount={amount}
+                amountDisplay={headline}
+                secondaryAmount={secondary}
                 tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                 isFromSendFlow={fromSendFlow}
             />
 
-            {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
-            {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
+            {/* An IBAN outside the euro area (UK, Poland, Sweden…) is paid EUR; its bank converts. */}
+            {payout.bankConvertsTo && (
                 <Callout priority="info" title={t('bank.eurTitle')}>
                     {t('bank.eurDescription')}
                 </Callout>
             )}
+
+            {verificationDeadline && <VerificationDeadlineNotice effectiveDate={verificationDeadline} />}
 
             <Card className="rounded-sm">
                 {/* The holder is whoever the account was saved under — often not
@@ -183,19 +188,16 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                     </>
                 )}
-                {bankAmount ? (
-                    <>
-                        <PaymentInfoRow
-                            label={tCommon('exchangeRate')}
-                            value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
-                        />
-                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
-                    </>
-                ) : (
-                    <ExchangeRate
-                        accountType={bankAccount.type}
-                        nonEuroCurrency={nonEuroCurrency}
-                        amountToConvert={amount}
+                {convertsCurrency && (
+                    <PaymentInfoRow
+                        loading={isRateLoading}
+                        label={tCommon('exchangeRate')}
+                        value={
+                            payout.rate
+                                ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                : '-'
+                        }
+                        moreInfoText={tRate('approximate')}
                     />
                 )}
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={'$0'} />

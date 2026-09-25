@@ -42,6 +42,7 @@ import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-loc
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
+import { formatBankAmount } from '@/utils/currency'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -131,6 +132,8 @@ function MantecaBankWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
+    // The amount field can toggle to USD; the review and success lead with the currency typed.
+    const [isAmountTypedInUsd, setIsAmountTypedInUsd] = useState(false)
     // store original currency amount before price lock to restore on back navigation
     const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -916,6 +919,15 @@ function MantecaBankWithdrawFlow() {
         return <Loading variant="mascot" />
     }
 
+    // Locked, both amounts are exact: fiat = USD × locked price, no fee. Before
+    // the lock, the amount the user did not type is an estimate.
+    const estimate = priceLock ? '' : '≈ '
+    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
+        priceLock?.fiatAmount ?? currencyAmount,
+        { maxDecimals: 2 }
+    )}`
+    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(usdAmount ?? '0', 'USD')}`
+
     if (step === 'success') {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
@@ -930,12 +942,13 @@ function MantecaBankWithdrawFlow() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.youJustWithdrew')}
                             </h1>
+                            {/* exact: the order ran at the locked price, fiat = USD × price */}
                             <div className="text-heading-s text-foreground-primary">
-                                {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                                {isAmountTypedInUsd ? usdLine : localLine}
                             </div>
-                            <div className="text-heading-card text-foreground-primary">
-                                ≈ ${formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                            </div>
+                            <p className="text-body-s text-foreground-secondary">
+                                {isAmountTypedInUsd ? localLine : usdLine}
+                            </p>
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.toDestination', { destination: destinationAddress })}
                             </h1>
@@ -1095,6 +1108,7 @@ function MantecaBankWithdrawFlow() {
                                 price: 1,
                                 decimals: 2,
                             }}
+                            setCurrentDenomination={(symbol) => setIsAmountTypedInUsd(symbol.toUpperCase() === 'USD')}
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                             // the amount field is in the local currency while the balance row is
                             // usd, so the fill converts with currencyPrice.sell — the same
@@ -1244,14 +1258,11 @@ function MantecaBankWithdrawFlow() {
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-heading-s text-foreground-primary">
-                                    {currencyCode}{' '}
-                                    {formatNumberForDisplay(priceLock?.fiatAmount ?? currencyAmount, {
-                                        maxDecimals: 2,
-                                    })}
+                                    {isAmountTypedInUsd ? usdLine : localLine}
                                 </p>
-                                <div className="text-heading-card text-foreground-primary">
-                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                                </div>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {isAmountTypedInUsd ? localLine : usdLine}
+                                </p>
                             </div>
                         </div>
                     </Card>

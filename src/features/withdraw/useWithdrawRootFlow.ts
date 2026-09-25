@@ -150,6 +150,9 @@ export function useWithdrawRootFlow() {
     // balance and limit checks below run on what will actually leave.
     const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
     const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
+    // The field can toggle to USD. A USD amount the user typed is handed on as
+    // USD, exact, and the review leads with it; only a bank amount is re-quoted.
+    const [isBankFieldInUsd, setIsBankFieldInUsd] = useState(false)
 
     // The USD floor under every bank payout. No amount-step minimum for crypto:
     // same-chain (Arbitrum) withdrawals are direct transfers with no floor,
@@ -305,7 +308,7 @@ export function useWithdrawRootFlow() {
             for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value)
             if (isFromSendFlow && methodParam && !params.has('method')) params.set('method', methodParam)
             // a bank-currency amount is handed on as typed; the review quotes its USDC
-            if (bankCurrency) {
+            if (bankCurrency && !isBankFieldInUsd) {
                 if (destinationAmount) params.set('destinationAmount', destinationAmount)
             } else if (rawTokenAmount) {
                 params.set('amount', rawTokenAmount)
@@ -313,7 +316,7 @@ export function useWithdrawRootFlow() {
             const qs = params.toString()
             return qs ? `?${qs}` : ''
         },
-        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount]
+        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount, isBankFieldInUsd]
     )
 
     const handleAmountContinue = useCallback(() => {
@@ -472,6 +475,7 @@ export function useWithdrawRootFlow() {
                   refetchRate: bankRate.refetch,
                   destinationAmount,
                   onDestinationAmountChange: handleDestinationAmountChange,
+                  onDenominationChange: (symbol: string) => setIsBankFieldInUsd(symbol.toUpperCase() === 'USD'),
               }
             : null,
         handleAmountChange,
