@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { AppHelpDocuments, AppHelpSlug, HelpLocale } from './appHelpTypes'
 
 const AppHelpContext = createContext<((slug: AppHelpSlug | null) => void) | null>(null)
@@ -23,15 +24,20 @@ export function AppHelpProvider({ children, documents }: { children: ReactNode; 
             <Drawer open={active !== null} onOpenChange={(open) => !open && setActive(null)} hideBottomNav>
                 <DrawerContent>
                     <div className="sticky top-0 z-10 bg-white pb-2">
-                        <DrawerHeader className="relative p-0 text-left sm:text-left">
-                            <DrawerTitle className="pr-16">{document?.title}</DrawerTitle>
-                            <button
-                                type="button"
-                                onClick={() => setActive(null)}
-                                className="absolute top-0 right-0 text-body-s underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                            >
-                                {tCommon('close')}
-                            </button>
+                        <DrawerHeader className="flex flex-row items-start justify-between gap-2 p-0 text-left">
+                            <DrawerTitle className="text-heading-s text-foreground-primary">
+                                {document?.title}
+                            </DrawerTitle>
+                            <DrawerClose asChild>
+                                <Button
+                                    variant="ghost"
+                                    shape="square"
+                                    size="small"
+                                    icon="cancel"
+                                    aria-label={tCommon('close')}
+                                    className="w-10 shrink-0"
+                                />
+                            </DrawerClose>
                         </DrawerHeader>
                     </div>
                     <article className="pb-6" aria-label={document?.title}>

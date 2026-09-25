@@ -59,6 +59,16 @@ describe('app help drawers', () => {
         expect(screen.getByRole('link', { name: 'Read help' })).toHaveAttribute('href', '/en/help')
     })
 
+    it('uses a prominent h2 and an accessible icon to close the article', () => {
+        renderLink('en', '/en/help/verification')
+        fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
+        expect(screen.getByRole('heading', { level: 2, name: 'verification en' })).toHaveClass('text-heading-s')
+        const close = screen.getByRole('button', { name: 'Close' })
+        expect(close).not.toHaveTextContent('Close')
+        fireEvent.click(close)
+        expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed')
+    })
+
     it('localizes links inside an article to the locale that owns the linked content', () => {
         const ArticleLink = createAppHelpMdxComponents('es-ar').a
         const linkedDocuments = {
