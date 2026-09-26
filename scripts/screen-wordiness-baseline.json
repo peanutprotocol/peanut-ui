@@ -44,7 +44,7 @@
         "components/Kyc/modals/KycProcessingModal.tsx": 71,
         "components/Migration/MigrationDownloadModal.tsx": 71,
         "components/Profile/views/About.view.tsx": 243,
-        "components/Profile/views/MoneySettings.view.tsx": 675,
+        "components/Profile/views/MoneySettings.view.tsx": 677,
         "components/Profile/views/ProfileEdit.view.tsx": 293,
         "components/Profile/views/ResidenceChangeDrawer.tsx": 86,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 179,
@@ -56,9 +56,9 @@
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 527,
         "features/add-money/views/BridgeBankOnrampView.tsx": 518,
         "features/deposit-accounts/components/ClaimAccountScreen.tsx": 206,
-        "features/deposit-accounts/components/ClosedRowDrawer.tsx": 130,
+        "features/deposit-accounts/components/ClosedRowDrawer.tsx": 151,
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 148,
-        "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 212,
+        "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 214,
         "features/limits/views/LimitsPageView.tsx": 91,
         "features/limits/views/MantecaLimitsView.tsx": 105,
         "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 127,
@@ -72,7 +72,7 @@
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 543,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
-        "features/withdraw/views/WithdrawBankReviewView.tsx": 214,
+        "features/withdraw/views/WithdrawBankReviewView.tsx": 210,
         "features/withdraw/views/WithdrawMethodView.tsx": 105
     }
 }

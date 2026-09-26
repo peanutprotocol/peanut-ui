@@ -4067,7 +4067,7 @@
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",
             "notOfferedHereBody": "No está disponible donde vives, o todavía no. Si te mudaste, actualiza tu residencia. Soporte puede revisar por qué.",
             "residenceRestrictedBody": "Las cuentas en {currency} no están disponibles para residentes de tu país.",
-            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti. Planeamos abrir más adelante.",
+            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Vuelve a intentarlo en un momento.",
