@@ -58,7 +58,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 // back to the generic string instead.
                 const isClientError = response.status >= 400 && response.status < 500
                 const body = isClientError ? await response.json().catch(() => null) : null
-                throw new Error(body?.error || body?.message || GENERIC_ONRAMP_ERROR)
+                throw new Error(body?.userMessage || body?.error || body?.message || GENERIC_ONRAMP_ERROR)
             }
 
             const onrampData: IOnrampData = await response.json()

@@ -118,7 +118,7 @@ export function apiErrorStatus(error: unknown): number | undefined {
 }
 
 /** Builds an ApiError from a failed Response, best-effort parsing the body for
- *  the backend's `message`/`code`. Never throws. */
+ *  the backend's `userMessage`/`message`/`code`. Never throws. */
 export async function apiErrorFromResponse(response: Response, fallbackMessage: string): Promise<ApiError> {
     let message = fallbackMessage
     let code: string | undefined
@@ -126,12 +126,16 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
     try {
         const body = await response.text()
         const parsed = JSON.parse(body) as {
+            userMessage?: unknown
             message?: unknown
             error?: unknown
             code?: unknown
             retryAfterSec?: unknown
         }
-        if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+        // `userMessage` is the copy written for users (the residence refusals,
+        // api#1738), so it wins over the developer-facing fields.
+        if (typeof parsed.userMessage === 'string' && parsed.userMessage) message = parsed.userMessage
+        else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
         else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
         if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
         // Older submit routes put the wire discriminant in `error`.

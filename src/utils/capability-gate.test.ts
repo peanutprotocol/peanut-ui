@@ -4,6 +4,7 @@ import {
     selectMantecaCapNudge,
     getGateUserMessage,
     getKycModalVariant,
+    resolveKycModalVariant,
     isTerminalRailRejection,
     type CapabilityState,
     type GateState,
@@ -1077,5 +1078,23 @@ describe('isTerminalRailRejection', () => {
 
     test.each(['enabled', 'pending', 'requires-info'] as const)('a %s rail is never terminal', (status) => {
         expect(isTerminalRailRejection(bankRail({ status }), byKey([]))).toBe(false)
+    })
+})
+
+// api#1738: the residence refusals. UK copy stays UK-only.
+describe('resolveKycModalVariant — residence refusals', () => {
+    const blocked = (code: string): GateState =>
+        ({ kind: 'blocked-rejection', userMessage: 'x', reason: { code } }) as unknown as GateState
+
+    test('uk_resident_blocked opens the UK screen', () => {
+        expect(resolveKycModalVariant(blocked('uk_resident_blocked'))).toBe('region-unavailable')
+    })
+
+    test('residence_bank_restricted opens the country-neutral bank-unavailable screen, never the UK one', () => {
+        expect(resolveKycModalVariant(blocked('residence_bank_restricted'))).toBe('bank-unavailable')
+    })
+
+    test('any other blocked rail keeps the contact-support ending', () => {
+        expect(resolveKycModalVariant(blocked('verification_blocked'))).toBe('blocked')
     })
 })

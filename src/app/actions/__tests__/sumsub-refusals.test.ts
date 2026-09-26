@@ -290,3 +290,24 @@ describe('startKycAction — durable session contract', () => {
         expect((await startKycAction('manteca-kyc-action:BR')).code).toBe('invalid_response')
     })
 })
+
+// api#1738: resubmit refuses a residence the bank rails are closed to with a
+// 403 carrying `code` + `userMessage`. It is permanent, and never read as prose.
+describe('residence refusals (code field)', () => {
+    it.each(['residence_bank_restricted', 'uk_resident_blocked'])(
+        '%s on resubmit is terminal and keeps the user message',
+        async (code) => {
+            respondWith(403, {
+                error: 'Bank transfers are not available for your current or pending residence.',
+                code,
+                userMessage: 'Bank transfers are not available for your current or pending residence.',
+            })
+
+            const result = await initiateSelfHealResubmission('BRIDGE')
+
+            expect(result.code).toBe(code)
+            expect(isTerminalActionCode(result.code)).toBe(true)
+            expect(result.error).toMatch(/not available for your current or pending residence/)
+        }
+    )
+})

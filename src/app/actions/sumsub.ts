@@ -20,6 +20,11 @@ export type SumsubActionErrorCode =
     | 'target_country_required'
     | 'unsupported_target_country'
     | 'manteca_us_nationality_restricted'
+    // The residence rule closing the bank rails (api#1738). The backend sends
+    // these in `code`, beside a `userMessage`; the client localizes them from
+    // the capability reason catalog (identity.reasons).
+    | 'uk_resident_blocked'
+    | 'residence_bank_restricted'
     | 'initiate_failed'
     | 'restart_failed'
     | 'residence_change_failed'
@@ -39,6 +44,8 @@ const TERMINAL_ACTION_CODES = new Set<string>([
     'target_country_required',
     'unsupported_target_country',
     'manteca_us_nationality_restricted',
+    'uk_resident_blocked',
+    'residence_bank_restricted',
 ])
 
 /** True when the result is a refusal no retry can change. */
@@ -51,13 +58,13 @@ export const isTerminalActionCode = (code?: SumsubActionErrorCode): boolean => !
  * is never shown to the user: rendering it verbatim is the raw-code outcome
  * this whole path exists to remove.
  */
-const terminalCodeOf = (responseJson: { error?: string }): SumsubActionErrorCode | undefined =>
-    typeof responseJson.error === 'string' && TERMINAL_ACTION_CODES.has(responseJson.error)
-        ? (responseJson.error as SumsubActionErrorCode)
-        : undefined
+const terminalCodeOf = (responseJson: { error?: string; code?: string }): SumsubActionErrorCode | undefined =>
+    [responseJson.code, responseJson.error].find(
+        (value): value is SumsubActionErrorCode => typeof value === 'string' && TERMINAL_ACTION_CODES.has(value)
+    )
 
 const backendOrFallback = (
-    responseJson: { userMessage?: string; error?: string },
+    responseJson: { userMessage?: string; error?: string; code?: string },
     fallback: string,
     code: SumsubActionErrorCode,
     status: number
