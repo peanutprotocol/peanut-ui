@@ -105,7 +105,10 @@ export function AccountsHubList({
             .filter((corridor) => accounts?.accounts[corridor]?.status === 'active')
             .map((corridor) => DEPOSIT_RAILS[corridor].currency)
     )
-    const shownBankRows = otherWaysRows(bankRows, activeCurrencies).filter(
+    // A currency listed to open, with the backend's answer, carries its one
+    // status there; an unchecked row knows nothing, so its bank row stays.
+    const answeredOpen = new Set(open.filter((row) => !row.unchecked).map((row) => row.corridor))
+    const shownBankRows = otherWaysRows(bankRows, activeCurrencies, answeredOpen).filter(
         (row) => !row.corridor || matches(row.corridor, tRows(`rows.${row.labelKey}`))
     )
 
@@ -143,7 +146,8 @@ export function AccountsHubList({
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         // no verdict from the backend: nothing else about the row is known, the gate included
         if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
-        const reason = accounts?.unavailable?.[corridor]?.reason
+        const withheld = accounts?.unavailable?.[corridor]
+        const reason = withheld?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
         if (reason === 'support-required') return <Badge status="neutral" customText={tCommon('contactSupport')} />
@@ -151,6 +155,14 @@ export function AccountsHubList({
             return <Badge status="pending" customText={t('list.badgeVerifyId')} />
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
+        switch (withheld?.cause) {
+            // the user's own review waits on them; the tap starts what clears it
+            case 'review-action':
+                return <Badge status="pending" customText={t('list.badgeActionNeeded')} />
+            // the review is under way: a wait, like the corridor reviews below
+            case 'review-pending':
+                return <Badge status="pending" />
+        }
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         switch (accounts?.claimable?.[corridor]?.blockedBy) {
             // the provider is reviewing the corridor the user asked for

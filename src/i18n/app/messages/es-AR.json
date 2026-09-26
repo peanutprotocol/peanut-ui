@@ -1760,7 +1760,8 @@
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
-            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué."
+            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué.",
+            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos. Planeamos abrir más adelante."
         },
         "claim": {
             "heading": "Recibí pagos en {currency}",

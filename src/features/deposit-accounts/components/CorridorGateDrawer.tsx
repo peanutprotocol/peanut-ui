@@ -21,6 +21,7 @@ const TITLES = {
     'pending-review': 'gate.reviewTitle',
     'finish-review': 'gate.finishReviewTitle',
     'finish-review-support': 'gate.finishReviewTitle',
+    'provider-review': 'gate.finishReviewTitle',
 } as const
 
 const BODIES = {
@@ -39,6 +40,7 @@ const BODIES = {
     'pending-review': 'gate.reviewBody',
     'finish-review': 'gate.finishReviewBody',
     'finish-review-support': 'gate.finishReviewSupportBody',
+    'provider-review': 'gate.providerReviewBody',
 } as const
 
 const LABELS = {
@@ -53,6 +55,7 @@ const LABELS = {
     'pending-review': 'gate.reviewCta',
     'finish-review': 'gate.finishReviewCta',
     'finish-review-support': 'gate.supportCta',
+    'provider-review': 'gate.finishReviewCta',
 } as const
 
 /** the picture each reason gets; the default says "closed to you", which a wait is not */
@@ -62,6 +65,7 @@ const ICONS = {
     'account-limit': 'peanut-support',
     'finish-review': 'user-id',
     'finish-review-support': 'peanut-support',
+    'provider-review': 'user-id',
 } as const
 
 /** Reasons with nothing to press: the button closes the drawer, and the drawer updates by itself. */

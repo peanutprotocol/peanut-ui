@@ -28,6 +28,12 @@ type DepositGateAction =
     | 'finish-review'
     /** the same block, where the app has no way to start the hosted check: a person does */
     | 'finish-review-support'
+    /**
+     * A verified user whose own review for this corridor waits on them
+     * (backend `cause: 'review-action'`). The capability gate's action clears
+     * it, but its words are the identity ones, which are false here.
+     */
+    | 'provider-review'
     | 'none'
 
 /** The reasons the BACKEND gives, beside the ones the capability gate gives. */

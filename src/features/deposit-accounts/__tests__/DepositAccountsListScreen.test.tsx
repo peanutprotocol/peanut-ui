@@ -145,12 +145,17 @@ const list = (
     )
 
 /** a corridor the backend withholds from this user, and why */
-const withheld = (corridor: DepositCorridor, reason: UnavailableCorridor['reason']): UnavailableCorridor => ({
+const withheld = (
+    corridor: DepositCorridor,
+    reason: UnavailableCorridor['reason'],
+    cause?: UnavailableCorridor['cause']
+): UnavailableCorridor => ({
     railId: `bridge.${corridor.toLowerCase()}`,
     method: corridor,
     country: 'CO',
     currency: 'COP',
     reason,
+    ...(cause ? { cause } : {}),
 })
 
 /** a corridor the backend offers this user, with the block it carries, if any */
@@ -516,6 +521,79 @@ describe('an account the user could open', () => {
 })
 
 /*
+ * TASK-23054 (C11, C12): the backend names what stands behind a withheld
+ * corridor, and each cause gets its own words and its own next step.
+ */
+describe('a withheld account with the cause the backend names', () => {
+    it('sends a review that waits on the user to the claim step, badged as an action', () => {
+        residenceIso2s = []
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'not-offered', 'review-action') },
+            onOpen,
+        })
+
+        const row = rowOf(container, 'SEPA_EU') as HTMLElement
+        expect(within(row).getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        fireEvent.click(row)
+        // never "set a residence" while their own review is the cause
+        expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
+        expect(screen.queryByTestId('closed-row-drawer')).not.toBeInTheDocument()
+    })
+
+    it('shows a review under way as a wait, not as "not available"', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { SPEI_MX: withheld('SPEI_MX', 'not-offered', 'review-pending') },
+            onOpen,
+        })
+
+        const row = rowOf(container, 'SPEI_MX') as HTMLElement
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
+    })
+
+    it('sends a closed review to support', () => {
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'support-required', 'review-closed') },
+        })
+
+        expect(
+            within(rowOf(container, 'ACH_US') as HTMLElement).getByText(messages.common.contactSupport)
+        ).toBeInTheDocument()
+    })
+
+    it('says a restricted residence plainly, with no support and no "or not yet"', () => {
+        residenceIso2s = ['CN']
+        const { container } = list(false, {
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'not-offered', 'residence-restricted') },
+        })
+
+        const row = rowOf(container, 'SEPA_EU') as HTMLElement
+        expect(within(row).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        fireEvent.click(row)
+        expect(drawer().getByText(LIST.residenceRestrictedBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
+        expect(drawer().queryByText(LIST.notOfferedHereBody)).not.toBeInTheDocument()
+        expect(drawer().queryByRole('button', { name: messages.common.contactSupport })).not.toBeInTheDocument()
+        // a user who moved can still say so
+        expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
+    })
+
+    it('says a corridor is not open yet without asking for a residence', () => {
+        residenceIso2s = []
+        const { container } = list(false, {
+            unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered', 'not-open') },
+        })
+
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText(LIST.notOpenBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
+        expect(drawer().queryByText(LIST.residenceMissingBody.replace('{currency}', 'GBP'))).not.toBeInTheDocument()
+        expect(drawer().queryByRole('button', { name: 'Update residence' })).not.toBeInTheDocument()
+    })
+})
+
+/*
  * QA-20/46: a rail the user cannot use stays visible, sorts last, and a tap
  * says why — never a grey row that does nothing (Kush's COP · Bre-B row).
  */
@@ -607,7 +685,8 @@ describe('a row the user cannot use', () => {
         mockBankInput = { ...mockBankInput, restrictions: { banking: true, card: false } }
         list(false)
 
-        fireEvent.click(bankRow('usd'))
+        // a one-off transfer row: the account currencies say it on their own rows
+        fireEvent.click(bankRow('brl'))
         expect(drawer().getByText(messages.profile.unlockPayments.bankNotAvailableNote)).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
@@ -626,7 +705,9 @@ describe('the other ways in', () => {
         expect(section.getByRole('heading', { name: LIST.otherWaysTitle })).toBeInTheDocument()
         expect(section.getByText(LIST.otherWaysBody)).toBeInTheDocument()
         expect(within(bankRow('brl')).getByText('Available')).toBeInTheDocument()
-        expect(within(bankRow('usd')).getByText('Unlock')).toBeInTheDocument()
+        // C16: USD is listed to open above, with its own status; a second USD
+        // row down here could only say it again in other words
+        expect(screen.queryByTestId('bank-row-usd')).not.toBeInTheDocument()
     })
 
     it('opens the transfer the user sends themselves, with the way back to this screen', () => {

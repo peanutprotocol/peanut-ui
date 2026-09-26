@@ -268,3 +268,43 @@ describe('the gate drawer', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 })
+
+/*
+ * TASK-23054 (C11): a verified user whose own review for the corridor waits on
+ * them used to read "Verify identity first". The gate's action is the right
+ * one; only its words were about another step.
+ */
+describe('a corridor held by the user own review', () => {
+    const fixable: GateState = { kind: 'fixable-rejection', userMessage: null, actionKey: 'bridge-hosted' }
+    const reviewProps = (cause?: 'review-action') => ({
+        ...flowProps({ gate: fixable, withTerms: false }),
+        unavailable: {
+            ...emptyCorridorRecord(),
+            [CORRIDOR]: {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'not-offered' as const,
+                ...(cause ? { cause } : {}),
+            },
+        },
+    })
+
+    it('names the extra check, not identity, and starts the gate action that clears it', () => {
+        const props = reviewProps('review-action')
+        renderFlow(props)
+
+        expect(drawer()).toHaveTextContent(GATE.finishReviewTitle.replace('{currency}', 'EUR'))
+        expect(drawer()).toHaveTextContent(GATE.providerReviewBody.replace('{currency}', 'EUR'))
+        expect(drawer()).not.toHaveTextContent(GATE.verifyTitle)
+
+        tapGateButton(screen.getByTestId('corridor-gate-provider-review'))
+        return waitFor(() => expect(props.onResolveGate).toHaveBeenCalledWith(fixable, CORRIDOR))
+    })
+
+    it('keeps the identity words for an API that sends no cause', () => {
+        renderFlow(reviewProps())
+        expect(drawer()).toHaveTextContent(GATE.verifyTitle)
+    })
+})

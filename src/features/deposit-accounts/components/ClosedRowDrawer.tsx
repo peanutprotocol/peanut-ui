@@ -109,6 +109,22 @@ export function ClosedRowDrawer({
                     },
                     link: { label: t('details.residenceCta'), act: onChangeResidence },
                 }
+            // a residence rule, not something support can change: the one fix is
+            // a move, and the residence row is where that is said
+            case 'residence-restricted':
+                return {
+                    title: t('gate.blockedTitle', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    body: t('list.residenceRestrictedBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    cta: { label: tCommon('gotIt') },
+                    link: { label: t('details.residenceCta'), act: onChangeResidence },
+                }
+            // nothing about the user, so nothing for them or support to do
+            case 'not-open':
+                return {
+                    title: t('gate.notYetTitle'),
+                    body: t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    cta: { label: tCommon('gotIt') },
+                }
             case 'residence-missing':
                 return {
                     title: tAccounts('residence.unknown'),
