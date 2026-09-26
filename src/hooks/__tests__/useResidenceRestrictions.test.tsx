@@ -29,7 +29,14 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
 describe('deriveResidenceRestrictions', () => {
     it.each([
         ['RU', { banking: true, card: true }],
-        ['HK', { banking: true, card: true }],
+        // Bridge- and Rain-prohibited, so both halves (api#1738)
+        ['VE', { banking: true, card: true }],
+        ['IQ', { banking: true, card: true }],
+        // a document rule only, so in no tier (TASK-23054 R1)
+        ['HK', { banking: false, card: false }],
+        // Bridge-prohibited; the card still works
+        ['AF', { banking: true, card: false }],
+        ['CD', { banking: true, card: false }],
         ['KP', { banking: true, card: true }],
         ['IN', { banking: false, card: true }],
         ['JP', { banking: true, card: false }],

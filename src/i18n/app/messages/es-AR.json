@@ -1437,6 +1437,7 @@
             "manteca_action_correction_required": "Corregí la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
         }
     },

@@ -43,7 +43,7 @@ export async function createGuestClaimExternalAccount(
 
         if (!response.ok) {
             return {
-                error: data.error || 'Failed to create external account.',
+                error: data.userMessage || data.error || 'Failed to create external account.',
                 code: data.code,
                 status: response.status,
             }
