@@ -207,7 +207,7 @@
                 "since": "Verificación en revisión",
                 "body": "No necesitás hacer nada. Te vamos a avisar en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
-                "messageUs": "Escribinos y lo perseguimos"
+                "messageUs": "Escribinos y lo revisamos"
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
@@ -1395,7 +1395,7 @@
             "howLong": {
                 "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",

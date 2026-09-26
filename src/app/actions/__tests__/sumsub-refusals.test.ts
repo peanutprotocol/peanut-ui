@@ -14,6 +14,7 @@
 
 import {
     initiateSumsubKyc,
+    initiateSelfHealResubmission,
     startKycAction,
     isTerminalActionCode,
     restartIdentityVerification,
@@ -72,6 +73,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(result.error).toMatch(/try again shortly/i)
         // a transient failure must NOT be classified terminal
         expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('never shows a 4xx developer string; userMessage still wins', async () => {
+        respondWith(404, { error: 'No provider rejection found' })
+        const result = await initiateSelfHealResubmission('BRIDGE')
+        expect(result.error).not.toMatch(/no provider rejection found/i)
+        expect(result.code).toBe('resubmit_failed')
+
+        respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
+        expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
@@ -217,7 +228,8 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         const result = await startResidenceChangeVerification('PT')
 
-        expect(result.error).toMatch(/save a new residence/i)
+        // a 4xx `error` is not user copy: the localized fallback shows instead
+        expect(result.code).toBe('residence_change_failed')
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
     })

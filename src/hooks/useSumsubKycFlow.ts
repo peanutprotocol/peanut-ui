@@ -147,7 +147,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setShowWrapper(false)
                 setIsVerificationProgressModalOpen(false)
                 setIsTerminalError(true)
-                setError(t('railsUnavailableError'))
+                // SUBMISSION_EXHAUSTED is our side giving up on the submission:
+                // support can finish it. Every other reason (a rejected ID, a
+                // rejected questionnaire, the provider refusing) is a decision.
+                setError(
+                    t(
+                        session.reasonCode === 'SUBMISSION_EXHAUSTED'
+                            ? 'sessionBlockedSubmissionError'
+                            : 'sessionBlockedDecisionError'
+                    )
+                )
             } else if (session.state === 'READY') {
                 setShowWrapper(false)
                 setIsVerificationProgressModalOpen(true)

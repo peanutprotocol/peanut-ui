@@ -52,6 +52,7 @@ jest.mock('@/config/underMaintenance.config', () => {
 })
 const mockHeal = jest.fn()
 const mockRestartIdentity = jest.fn()
+const mockInitiateKyc = jest.fn()
 const mockOpenSupport = jest.fn()
 const mockPush = jest.fn()
 const mockSetIsQRScannerOpen = jest.fn()
@@ -79,8 +80,10 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
 let mockRegionRestricted = false
+let mockIdentityReason: { code: string; userMessage: string } | undefined
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
+        identity: { status: 'not_started', reason: mockIdentityReason },
         isProcessing: false,
         needsAction: false,
         isRegionRestricted: mockRegionRestricted,
@@ -94,7 +97,24 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 // interrupt cards, so the checklist itself is a marker (own suite covers it).
 jest.mock('@/components/Home/GettingStartedChecklist', () => ({
     __esModule: true,
-    default: () => <div>getting-started-checklist</div>,
+    default: ({
+        onStartIdentityCheck,
+        onStartQrIdentityCheck,
+    }: {
+        onStartIdentityCheck?: () => void
+        onStartQrIdentityCheck?: () => void
+    }) => (
+        <div>
+            getting-started-checklist
+            {/* not buttons: the slot suites assert the checklist brings no big-card button */}
+            <span onClick={onStartIdentityCheck}>start-identity-check</span>
+            <span onClick={onStartQrIdentityCheck}>start-qr-identity-check</span>
+        </div>
+    ),
+}))
+jest.mock('@/components/Kyc/InitiateKycModal', () => ({
+    InitiateKycModal: ({ visible, onVerify }: { visible: boolean; onVerify: () => void }) =>
+        visible ? <button onClick={onVerify}>initiate-kyc-modal</button> : null,
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
@@ -114,6 +134,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleFixableRejection: mockHeal,
         handleRestartIdentity: mockRestartIdentity,
+        handleInitiateKyc: mockInitiateKyc,
+        showWrapper: false,
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
@@ -151,19 +173,69 @@ beforeEach(() => {
     mockDisableCardPromotion = false
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
+    mockIdentityReason = undefined
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
-    it('a fully restricted residence hides the checklist entirely', () => {
+    it('a fully restricted residence keeps the checklist: QR pay is open to every verified user', () => {
         mockResidenceRestrictions = { banking: true, card: true }
-        const { container } = render(<ActivationCTAs onboarding={NEW_USER} />)
-        expect(container.firstChild).toBeNull()
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
     it('a partial restriction keeps the checklist', () => {
         mockResidenceRestrictions = { banking: false, card: true }
         render(<ActivationCTAs onboarding={NEW_USER} />)
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+    })
+})
+
+describe('ActivationCTAs — the Verify row starts the ID check in place', () => {
+    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', () => {
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        expect(mockInitiateKyc).toHaveBeenCalledWith()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('the QR ID check starts the verification QR pay uses', () => {
+        mockResidenceRestrictions = { banking: true, card: true }
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-qr-identity-check'))
+        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM')
+    })
+})
+
+describe('ActivationCTAs — an ID check that ended on a final decision', () => {
+    const FAILED: OnboardingState = { ...NEW_USER, verify: 'failed', firstPaymentRoute: 'none' }
+
+    it('replaces the checklist with the verification-issue card', () => {
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(screen.getByText('Verification issue')).toBeInTheDocument()
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+    })
+
+    it('its button opens support with the context, never a new ID check', () => {
+        mockIdentityReason = { code: 'identity_rejected', userMessage: 'Your verification was not approved.' }
+        render(<ActivationCTAs onboarding={FAILED} />)
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('Your verification was not approved.'))
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('can be hidden under its own key', () => {
+        const onHide = jest.fn()
+        render(<ActivationCTAs onboarding={FAILED} onHideBlockedCard={onHide} />)
+        fireEvent.click(screen.getByText('Hide'))
+        expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:identity_failed')
+    })
+
+    it('the region card still outranks it', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(screen.getByText("We can't verify IDs from this country")).toBeInTheDocument()
     })
 })
 

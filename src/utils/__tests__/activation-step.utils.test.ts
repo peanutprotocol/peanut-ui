@@ -9,23 +9,37 @@
  */
 import {
     type OnboardingInput,
+    type VerifyRowInput,
+    canAlreadyTransact,
     canHideChecklist,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
+    verifyRowStatus,
 } from '@/utils/activation-step.utils'
+import type { RailCapability } from '@/types/capabilities'
 
 const USDC = (usd: number) => BigInt(Math.round(usd * 1e6))
 
 const base: OnboardingInput = {
-    identityStatus: 'not_started',
+    identity: { status: 'not_started' },
     milestone: 'registered',
     isActivated: false,
     holdsMoney: false,
     firstPaymentRoute: 'card_qr',
     cardHeld: false,
 }
-const resolve = (overrides: Partial<OnboardingInput>) => resolveOnboarding({ ...base, ...overrides })
+type Overrides = Partial<Omit<OnboardingInput, 'identity'>> & {
+    /** shorthand for identity.status */
+    identityStatus?: VerifyRowInput['status']
+    identity?: Partial<VerifyRowInput>
+}
+const resolve = ({ identityStatus, identity, ...overrides }: Overrides) =>
+    resolveOnboarding({
+        ...base,
+        ...overrides,
+        identity: { ...base.identity, ...(identityStatus ? { status: identityStatus } : {}), ...identity },
+    })
 
 describe('holdsMoney', () => {
     it('is false with nothing in the wallet and no card balance', () => {
@@ -65,8 +79,40 @@ describe('resolveOnboarding — every state on the page', () => {
         expect(state.step).toBe('add_money')
     })
 
-    it('ID check needs action: back to to-do, verify is next', () => {
-        expect(resolve({ identityStatus: 'action_required' }).step).toBe('verify')
+    it('ID check needs action: its own state, verify is next', () => {
+        expect(resolve({ identityStatus: 'action_required' })).toMatchObject({
+            verify: 'action_required',
+            step: 'verify',
+        })
+    })
+
+    it('ID check failed on a final decision: failed, never to-do, and it cannot be hidden', () => {
+        const state = resolve({ identity: { status: 'failed', isTerminalFailure: true } })
+        expect(state).toMatchObject({ verify: 'failed', step: 'verify' })
+        expect(canHideChecklist(state)).toBe(false)
+    })
+
+    it('a FINAL rejection stored as action_required is failed too (the hook folds it into isTerminalFailure)', () => {
+        expect(resolve({ identity: { status: 'action_required', isTerminalFailure: true } }).verify).toBe('failed')
+    })
+
+    it('region refused: failed (the region card replaces the list)', () => {
+        expect(resolve({ identity: { status: 'failed', isRegionRestricted: true } }).verify).toBe('failed')
+    })
+
+    it('a retryable failure (the check itself errored) needs action, not a dead end', () => {
+        expect(resolve({ identity: { status: 'failed', isTerminalFailure: false } }).verify).toBe('action_required')
+    })
+
+    it('already moving money on an enabled rail without the ID check: verify counts as done', () => {
+        for (const status of ['not_started', 'action_required', 'failed'] as const) {
+            expect(
+                resolve({ identity: { status, canTransact: true, isTerminalFailure: status === 'failed' } }).verify
+            ).toBe('done')
+        }
+        const state = resolve({ identity: { status: 'not_started', canTransact: true }, milestone: 'funded' })
+        expect(state.step).toBe('first_payment')
+        expect(canHideChecklist(state)).toBe(true)
     })
 
     it('verified, $0: add money is next', () => {
@@ -184,5 +230,27 @@ describe('canHideChecklist — only once the payment row is the one left', () =>
         expect(canHideChecklist(resolve({ ...funded, isActivated: true }))).toBe(false)
         expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'none' }))).toBe(false)
         expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'pending' }))).toBe(false)
+    })
+})
+
+describe('verifyRowStatus — identity only, as the carousel reads it', () => {
+    it('is done only on a verified identity when nothing else is known', () => {
+        expect(verifyRowStatus({ status: 'verified' })).toBe('done')
+        expect(verifyRowStatus({ status: 'not_started' })).toBe('todo')
+        expect(verifyRowStatus({ status: 'processing' })).toBe('in_review')
+        expect(verifyRowStatus({ status: 'action_required' })).toBe('action_required')
+    })
+})
+
+describe('canAlreadyTransact', () => {
+    const rail = (status: RailCapability['status']) => ({ status }) as RailCapability
+
+    it('any enabled rail, or the API activation', () => {
+        expect(canAlreadyTransact([rail('enabled')], false)).toBe(true)
+        expect(canAlreadyTransact([], true)).toBe(true)
+    })
+
+    it('not on pending, requires-info or blocked rails alone', () => {
+        expect(canAlreadyTransact([rail('pending'), rail('requires-info'), rail('blocked')], false)).toBe(false)
     })
 })

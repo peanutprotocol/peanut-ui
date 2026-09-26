@@ -9,15 +9,17 @@ describe('hosted KYC preparation copy', () => {
         expect(prep.items.selfie.title).not.toBe(prep.items.selfie.label)
         expect(prep.items.selfie.body.toLowerCase()).not.toMatch(/short selfie|selfie corta|selfie rápida/)
         expect(prep.howLong.standard).not.toMatch(/\d+\s*(minutes|minutos)/)
-        expect(prep.howLong.hosted).not.toMatch(/\d/)
-        expect(prep.howLong.hosted).not.toMatch(/business days|días hábiles|dias úteis/)
+        // no number of minutes (ui#3465), but the reviewer caveat stays: a
+        // hosted check a person reviews takes days, not minutes
+        expect(prep.howLong.hosted).not.toMatch(/\d+\s*(minutes|minutos)/)
+        expect(prep.howLong.hosted).toMatch(/1 (to|a) 3 (business days|días hábiles|dias úteis)/)
         expect(prep.howLong.hosted.length).toBeGreaterThan(40)
     })
 
     it('uses the requested English duration sentence', async () => {
         const prep = (await loadMessages('en')).kyc.prep
         expect(prep.howLong.hosted).toBe(
-            'Verification process usually takes a few minutes if you have all the documents in hand.'
+            'Verification process usually takes a few minutes if you have all the documents in hand. If a reviewer has to look at it, 1 to 3 business days.'
         )
     })
 
