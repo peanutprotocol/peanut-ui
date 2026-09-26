@@ -7,6 +7,7 @@ import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { type ReviewPayout } from '@/features/withdraw/types'
@@ -26,6 +27,13 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import { formatBankAmount } from '@/utils/currency'
 import { UsdPayoutSpeedChoice } from '@/features/withdraw/components/UsdPayoutSpeedChoice'
 import { type UsdPayoutSpeed, type UsdPayoutSpeedOption } from '@/features/withdraw/usd-payout-speed'
+
+/** What the Arrives row says for each USD speed. */
+const USD_ARRIVAL_KEY = {
+    ach: 'speedAchBody',
+    ach_same_day: 'speedSameDayHelper',
+    wire: 'speedWireBody',
+} as const satisfies Record<UsdPayoutSpeed, string>
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
@@ -167,75 +175,89 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 />
             )}
 
-            <Card className="rounded-sm">
-                {/* The holder is whoever the account was saved under — often not
-                    the user (a parent, a partner). When no name was stored, leave
-                    the row out: the user's own name here would be a wrong claim. */}
-                {bankAccount?.details?.accountOwnerName && (
-                    <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
-                )}
-                {bankAccount?.type === AccountType.IBAN ? (
-                    <>
-                        <PaymentInfoRow
-                            label={t('bank.iban')}
-                            value={
-                                bankAccount?.identifier
-                                    ? formatIban(bankAccount.identifier)
-                                    : '' /* fallback to empty string to avoid runtime error */
-                            }
-                        />
-                        {/* The form no longer asks for a BIC, so a new euro
-                            account has none. Show the row only for the saved
-                            accounts that still carry one — an empty "N/A" row
-                            tells the user nothing. */}
-                        {bankAccount.bic && (
-                            <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
-                        )}
-                    </>
-                ) : bankAccount?.type === AccountType.CLABE ? (
-                    <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
-                ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
-                    // A Colombian account is named by its number alone; the bank
-                    // code is not shown back to the user.
-                    <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                ) : bankAccount?.type === AccountType.GB ? (
-                    <>
-                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                        <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
-                    </>
-                ) : (
-                    <>
-                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                        <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
-                    </>
-                )}
-                {convertsCurrency && (
-                    <PaymentInfoRow
-                        loading={isRateLoading}
-                        label={tCommon('exchangeRate')}
+            {usdSpeed ? (
+                // A USD payout uses DataRow (design.md "receipt / detail card"). The
+                // fee is the chosen speed's, from the backend's fee table, and the
+                // bank receives the amount less it. Other currencies keep their
+                // PaymentInfoRow card until they are moved as a whole.
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                    {bankAccount?.details?.accountOwnerName && (
+                        <DataRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                    )}
+                    <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                    <DataRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
+                    <DataRow label={t('bank.arrives')} value={t(`bank.${USD_ARRIVAL_KEY[usdSpeed.selected]}`)} />
+                    <DataRow
+                        label={t('bank.fee')}
                         value={
-                            payout.rate
-                                ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
-                                : '-'
+                            Number(usdSpeed.feeUsd) > 0
+                                ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD')
+                                : t('bank.speedFree')
                         }
-                        moreInfoText={tRate('approximate')}
                     />
-                )}
-                {/* A USD payout's fee is the chosen speed's, from the backend's fee
-                    table, and the bank receives the amount less it. */}
-                <PaymentInfoRow
-                    hideBottomBorder={!usdSpeed}
-                    label={t('bank.fee')}
-                    value={usdSpeed ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD') : '$0'}
-                />
-                {usdSpeed && (
-                    <PaymentInfoRow
-                        hideBottomBorder
+                    <DataRow
                         label={t('bank.bankReceives')}
                         value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
                     />
-                )}
-            </Card>
+                </Card>
+            ) : (
+                <Card className="rounded-sm">
+                    {/* The holder is whoever the account was saved under — often not
+                        the user (a parent, a partner). When no name was stored, leave
+                        the row out: the user's own name here would be a wrong claim. */}
+                    {bankAccount?.details?.accountOwnerName && (
+                        <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                    )}
+                    {bankAccount?.type === AccountType.IBAN ? (
+                        <>
+                            <PaymentInfoRow
+                                label={t('bank.iban')}
+                                value={
+                                    bankAccount?.identifier
+                                        ? formatIban(bankAccount.identifier)
+                                        : '' /* fallback to empty string to avoid runtime error */
+                                }
+                            />
+                            {/* The form no longer asks for a BIC, so a new euro
+                                account has none. Show the row only for the saved
+                                accounts that still carry one — an empty "N/A" row
+                                tells the user nothing. */}
+                            {bankAccount.bic && (
+                                <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
+                            )}
+                        </>
+                    ) : bankAccount?.type === AccountType.CLABE ? (
+                        <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
+                    ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
+                        // A Colombian account is named by its number alone; the bank
+                        // code is not shown back to the user.
+                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                    ) : bankAccount?.type === AccountType.GB ? (
+                        <>
+                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
+                        </>
+                    ) : (
+                        <>
+                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
+                        </>
+                    )}
+                    {convertsCurrency && (
+                        <PaymentInfoRow
+                            loading={isRateLoading}
+                            label={tCommon('exchangeRate')}
+                            value={
+                                payout.rate
+                                    ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                    : '-'
+                            }
+                            moreInfoText={tRate('approximate')}
+                        />
+                    )}
+                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                </Card>
+            )}
 
             {payoutNoteKey && (
                 <p className="text-body-xs text-foreground-secondary">

@@ -855,7 +855,7 @@ describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire
         expect(sent()).not.toHaveProperty('developerFee')
     })
 
-    it('same day (the ticked box, ?speed=ach_same_day) sends ach_same_day, free, with the ACH reference field', async () => {
+    it('same day (the toggle on, ?speed=ach_same_day) sends ach_same_day, free, with the ACH reference field', async () => {
         const view = await submit({ amount: '50', step: 'review', speed: 'ach_same_day' }, 'RENT SEP')
 
         expect(view.result.current.usdSpeed).toMatchObject({ feeUsd: '0.00', receivedUsd: '50.00' })
@@ -877,6 +877,21 @@ describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire
             view.result.current.usdSpeed!.onSelect('wire')
         })
         expect(view.result.current.usdSpeed).toMatchObject({ selected: 'wire', feeUsd: '20.00' })
+    })
+
+    it.each([
+        ['ach_same_day' as const, 'the same-day toggle'],
+        ['wire' as const, 'the wire tab'],
+    ])('the speed picked on the review (%s, %s) is the rail the transfer is created on', async (speed, _control) => {
+        armHappyOfframp()
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect(speed)
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(sent().destination).toMatchObject({ paymentRail: speed })
     })
 
     it('a wire goes out on the wire rail with its memo, and the review shows the fee and the net', async () => {
