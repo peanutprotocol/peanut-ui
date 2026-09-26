@@ -5,6 +5,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useTranslations } from 'next-intl'
 import { DRAWER_CLOSE_MS } from '../drawer'
 import type { ClosedRow } from '../hubRows'
@@ -43,6 +44,7 @@ export function ClosedRowDrawer({
     const tCommon = useTranslations('common')
     const tAccounts = useTranslations('profile.unlockPayments')
     const { openSupportWithMessage } = useModalsContext()
+    const restrictions = useResidenceRestrictions()
 
     const content = closed ? drawerContent(closed) : null
 
@@ -73,10 +75,12 @@ export function ClosedRowDrawer({
                         act: () => openSupportWithMessage(`Account not offered: ${row.corridor}`),
                     },
                 }
+            // names card issuing only where the residence closes the card too:
+            // a banking-only residence keeps its card (the Accounts note, ui#3506)
             case 'restricted-country':
                 return {
                     title: t('list.badgeNotOffered'),
-                    body: tAccounts('bankNotAvailableNote'),
+                    body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
             case 'card-restricted':

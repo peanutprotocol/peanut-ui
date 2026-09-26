@@ -57,6 +57,7 @@
         "features/add-money/views/BridgeBankOnrampView.tsx": 518,
         "features/deposit-accounts/components/ClaimAccountScreen.tsx": 206,
         "features/deposit-accounts/components/ClosedRowDrawer.tsx": 151,
+        "features/deposit-accounts/components/CorridorGateDrawer.tsx": 98,
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 148,
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 214,
         "features/limits/views/LimitsPageView.tsx": 91,

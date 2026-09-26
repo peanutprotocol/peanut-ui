@@ -74,6 +74,9 @@ jest.mock('@/hooks/useBankRows', () => ({
     }),
 }))
 
+// the drawer names card issuing from the same restrictions the rows read
+jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockBankInput.restrictions }))
+
 beforeEach(() => {
     jest.clearAllMocks()
     depositAccountsEnabled = true
@@ -682,14 +685,24 @@ describe('a row the user cannot use', () => {
         expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
     })
 
-    it('says bank transfers are closed where the country of residence closes them all', () => {
-        mockBankInput = { ...mockBankInput, restrictions: { banking: true, card: false } }
+    it('says bank transfers and the card are closed where the country of residence closes both', () => {
+        mockBankInput = { ...mockBankInput, restrictions: { banking: true, card: true } }
         list(false)
 
         // a one-off transfer row: the account currencies say it on their own rows
         fireEvent.click(bankRow('brl'))
         expect(drawer().getByText(messages.profile.unlockPayments.bankNotAvailableNote)).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    // C42: a banking-only resident (JP, DZ, TN, BI, GW) keeps a working card
+    it('names only bank transfers where the residence closes banking and not the card', () => {
+        mockBankInput = { ...mockBankInput, restrictions: { banking: true, card: false } }
+        list(false)
+
+        fireEvent.click(bankRow('brl'))
+        expect(drawer().getByText(messages.profile.unlockPayments.bankOnlyNotAvailableNote)).toBeInTheDocument()
+        expect(drawer().queryByText(messages.profile.unlockPayments.bankNotAvailableNote)).not.toBeInTheDocument()
     })
 })
 
