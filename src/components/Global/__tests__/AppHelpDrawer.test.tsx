@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import DocsLink from '../DocsLink'
+import { getCachedAppHelpArticle, loadAppHelpArticle } from '../appHelpArticle'
 import { AppHelpProvider } from '../AppHelpProvider'
 import { APP_HELP_SLUGS, appHelpPagePath, type AppHelpArticle, type AppHelpNode } from '../appHelpTypes'
 import en from '@/i18n/app/messages/en.json'
@@ -55,6 +56,20 @@ beforeEach(() => {
 // Articles loaded in one test stay cached for the session, so each test uses
 // its own slug and locale pair where the fetch calls matter.
 describe('app help drawers', () => {
+    it('reuses background work on click and renders the prefetched article without another request', async () => {
+        serve('privacy', 'pt-br')
+        const background = loadAppHelpArticle('privacy', 'pt-br', 'low')
+        expect(loadAppHelpArticle('privacy', 'pt-br')).toBe(background)
+        await background
+        await import('../AppHelpDrawer') // the idle preloader also warms the drawer chunk
+        expect(getCachedAppHelpArticle('privacy', 'pt-br')?.title).toBe('privacy pt-br')
+        expect(fetchMock).toHaveBeenCalledWith('/app-help/pt-br/privacy.json', { priority: 'low' })
+        renderLink('pt-BR', '/privacy')
+        openHelp()
+        expect(await screen.findByText('privacy article pt-br')).toBeInTheDocument()
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
     it('fetches nothing until a help link is opened', () => {
         renderLink('en', '/en/help/verification')
         expect(screen.getByRole('button', { name: 'Read help' })).toBeInTheDocument()
@@ -169,11 +184,25 @@ describe('app help drawers', () => {
         serve('passkeys', 'es-419', [
             { t: 'a', p: { href: '/es-419/help/refunds' }, c: ['Refunds'] },
             { t: 'a', p: { href: '/es-419/help/account-recovery' }, c: ['Recovery'] },
+            { t: 'a', p: { href: 'https://peanut.me/en/card-esign' }, c: ['Electronic consent'] },
+            { t: 'a', p: { href: 'https://example.com/en/terms' }, c: ['External terms'] },
         ])
         serve('account-recovery', 'es-419')
+        serve('card-esign', 'es-419')
         renderLink('es-419', '/en/help/passkeys')
         openHelp()
         expect(await screen.findByRole('link', { name: 'Refunds' })).toHaveAttribute('href', '/es-419/help/refunds')
+        expect(screen.getByRole('link', { name: 'External terms' })).toHaveAttribute(
+            'href',
+            'https://example.com/en/terms'
+        )
+        expect(screen.getByRole('button', { name: 'Electronic consent' })).not.toHaveAttribute('href')
+        fireEvent.click(screen.getByRole('button', { name: 'Electronic consent' }))
+        expect(await screen.findByText('card-esign article es-419')).toBeInTheDocument()
+        // Return to the cached source article and follow its relative help link.
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
+        await screen.findByRole('button', { name: 'Recovery' })
         fireEvent.click(screen.getByRole('button', { name: 'Recovery' }))
         expect(await screen.findByText('account-recovery article es-419')).toBeInTheDocument()
     })

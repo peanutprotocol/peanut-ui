@@ -30,8 +30,12 @@ const APP_HELP_COMPONENTS: Record<string, ComponentType<Props>> = {
     td: ({ children }) => <td className="border border-border-subtle p-2 align-top">{children}</td>,
     // Internal hrefs arrive already resolved for the article's locale (see appHelpArticle.server).
     a: ({ href, children }) =>
-        typeof href === 'string' && href.startsWith('/') ? (
-            <DocsLink href={href} className="underline underline-offset-2" openInDrawer>
+        typeof href === 'string' && (href.startsWith('/') || href.startsWith('https://peanut.me/')) ? (
+            <DocsLink
+                href={href.replace(/^https:\/\/peanut\.me/, '')}
+                className="underline underline-offset-2"
+                openInDrawer
+            >
                 {children}
             </DocsLink>
         ) : (
