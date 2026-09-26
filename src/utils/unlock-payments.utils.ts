@@ -226,7 +226,13 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
         // the residence row above is the way to state one. A rail that already
         // works stays a fact: the user opened it while they lived there.
         const residenceGated = residenceCloses(spec.corridor, gatingResidences, railChip === 'active')
-        const chip: UnlockChip = restrictions.banking || residenceGated ? 'notAvailable' : railChip
+        // The banking restriction withdraws OFFERS (useResidenceRestrictions:
+        // it "can only ever remove offers"). A rail that already moves money
+        // is not an offer, so it stays Available, as it does past the
+        // residence gate (all-users replay W3: VE residents with working ARS
+        // rails, once VE is banking-restricted).
+        const bankingClosed = restrictions.banking && railChip !== 'active'
+        const chip: UnlockChip = bankingClosed || residenceGated ? 'notAvailable' : railChip
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,

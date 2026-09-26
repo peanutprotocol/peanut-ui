@@ -214,6 +214,23 @@ describe('buildBankRows', () => {
  * screen, 2026-09-22).
  */
 describe('buildBankRows — residence decides the Manteca rows', () => {
+    // all-users replay W3: a banking restriction withdraws offers, never a working rail
+    it('a banking-restricted residence keeps a working ARS rail Available and closes the rest', () => {
+        const rows = bank({
+            residenceIso2: 'VE',
+            restrictions: { banking: true, card: false },
+            bankChips: { ...UNLOCK_ALL, ars: 'active' },
+        })
+        const ars = rows.find((r) => r.labelKey === 'ars')!
+        expect(ars.chip).toBe('active')
+        expect(ars.unavailableBecause).toBeUndefined()
+        for (const key of ['brl', 'usd', 'mxn', 'sepa']) {
+            expect(rows.find((r) => r.labelKey === key)).toEqual(
+                expect.objectContaining({ chip: 'notAvailable', unavailableBecause: 'restricted-country' })
+            )
+        }
+    })
+
     const latamRows = (input?: Partial<BankRowsInput>) =>
         rowsOf(bank(input), 'brl', 'ars').map((r) => [r.id, r.chip, r.regionPath])
 
