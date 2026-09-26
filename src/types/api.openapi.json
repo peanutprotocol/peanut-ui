@@ -20213,6 +20213,40 @@
                                         "unavailable": {
                                             "items": {
                                                 "properties": {
+                                                    "cause": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "review-action"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-pending"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-closed"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "residence-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "not-open"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
                                                     "country": {
                                                         "type": "string"
                                                     },

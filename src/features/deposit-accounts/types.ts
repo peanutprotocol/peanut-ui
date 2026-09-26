@@ -88,6 +88,14 @@ export type UnavailableCorridor = NonNullable<DepositAccountsResponse['unavailab
 export type UnavailableReason = UnavailableCorridor['reason']
 
 /**
+ * What stands behind `reason`, where the backend says: the user's own review
+ * (`review-action`, `review-pending`, `review-closed`), a restricted residence,
+ * or a corridor not open to them yet. Absent on an API that predates it, and
+ * when identity decides the corridor.
+ */
+export type UnavailableCause = NonNullable<UnavailableCorridor['cause']>
+
+/**
  * What the rule resolver needs to state a corridor's terms: the sender policy
  * always, and the holder name only where an account exists to have one. One
  * parameter type for both callers, so the claim step and the details screen
