@@ -130,8 +130,9 @@ export const receiptStatusDate = (transaction: {
 export const isSameReceiptMinute = (a: Date, b: Date): boolean =>
     Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000)
 
-// SEPA structured-remittance fields arrive with a "/ROC/" (reference of the
-// originator customer) tag, and banks fill an empty one with "NOT PROVIDED".
+// SEPA structured-remittance fields arrive as "/ROC/<originator reference>//<remittance>":
+// banks fill an empty originator reference with "NOT PROVIDED", and the text the
+// payer typed (Santander, 26 Sep: "/ROC/NOT PROVIDED//testtttt") follows the "//".
 const SENDER_NOTE_TAG = /^\/ROC\//i
 const SENDER_NOTE_PLACEHOLDER = /^NOT\s*PROVIDED$/i
 
@@ -142,9 +143,13 @@ const SENDER_NOTE_PLACEHOLDER = /^NOT\s*PROVIDED$/i
  * as plain text only.
  */
 export const senderNoteText = (raw: string | null | undefined): string | undefined => {
-    const text = (raw ?? '').trim().replace(SENDER_NOTE_TAG, '').trim()
-    if (!text || SENDER_NOTE_PLACEHOLDER.test(text)) return undefined
-    return text
+    const text = (raw ?? '').trim()
+    // Only the first "//" is the delimiter; the payer's own text may contain more (a URL).
+    const body = text.replace(SENDER_NOTE_TAG, '')
+    const cut = body.indexOf('//')
+    const parts = SENDER_NOTE_TAG.test(text) && cut >= 0 ? [body.slice(0, cut), body.slice(cut + 2)] : [body]
+    const written = parts.map((part) => part.trim()).filter((part) => part && !SENDER_NOTE_PLACEHOLDER.test(part))
+    return written.length > 0 ? written.join(' · ') : undefined
 }
 
 /** Which label a bank-account row carries. Callers map it to display text —
