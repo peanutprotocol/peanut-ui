@@ -7,12 +7,13 @@ import {
     type BankRowsInput,
     type BuildUnlockGroupsInput,
 } from '@/utils/unlock-payments.utils'
+import { QrKycState } from '@/constants/kyc.consts'
 
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
 
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
     bankChips: UNLOCK_ALL,
-    canPayQr: false,
+    qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
     restrictions: { banking: false, card: false },
     card: 'get',
     ...over,
@@ -66,7 +67,7 @@ describe('buildUnlockGroups', () => {
     })
 
     it('QR payments read Available on the pay capability alone, with no bank access', () => {
-        const payOnly = buildUnlockGroups(base({ canPayQr: true }))
+        const payOnly = buildUnlockGroups(base({ qrPay: QrKycState.PROCEED_TO_PAY }))
         expect(group(payOnly, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'active' }))
         // the bank row is a separate permission and stays an offer
         expect(rowsOf(bank({ residenceIso2: 'BR' }), 'brl')[0]).toEqual(
@@ -87,7 +88,9 @@ describe('buildUnlockGroups', () => {
     // their residence, so a banking restriction never closes it.
     it('a banking restriction leaves QR payments to the QR answer', () => {
         const restricted = { restrictions: { banking: true, card: true } }
-        expect(group(buildUnlockGroups(base({ ...restricted, canPayQr: true })), 'spend').rows[1].chip).toBe('active')
+        expect(
+            group(buildUnlockGroups(base({ ...restricted, qrPay: QrKycState.PROCEED_TO_PAY })), 'spend').rows[1].chip
+        ).toBe('active')
         const offer = group(buildUnlockGroups(base(restricted)), 'spend').rows[1]
         expect(offer).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
     })
@@ -333,10 +336,28 @@ describe('gatingResidenceIso2s', () => {
  * Adding reais by Pix is for Brazilian residents; sending to any Pix key is not
  * (hugo, 2026-09-24, QA-12). Accounts and payments lets the BRL row say so.
  */
+// Chip on ui#3506: a refusal a new verification cannot lift is never an Unlock offer
+describe('qrPayChip', () => {
+    it.each([QrKycState.REGION_RESTRICTED, QrKycState.PROVIDER_REJECTION_BLOCKED])(
+        '%s reads Attention on QR payments and on the Pix send, whatever the bank rail says',
+        (state) => {
+            const qr = group(
+                buildUnlockGroups(base({ qrPay: state, bankChips: { ...UNLOCK_ALL, brl: 'active' } })),
+                'spend'
+            ).rows[1]
+            expect(qr.chip).toBe('attention')
+            const closed = withPixSend(bank({ residenceIso2: 'PT' }), { qrPay: state, brlChip: 'unlock' })
+            expect(closed.find((r) => r.labelKey === 'brl')).toEqual(
+                expect.objectContaining({ chip: 'attention', note: 'pixSendNote', regionPath: 'latam' })
+            )
+        }
+    )
+})
+
 describe('withPixSend', () => {
     const brl = (rows: ReturnType<typeof buildBankRows>) => rows.find((row) => row.labelKey === 'brl')!
-    const canSend = { canPay: true, brlChip: 'unlock' } as const
-    const cannotSend = { canPay: false, brlChip: 'unlock' } as const
+    const canSend = { qrPay: QrKycState.PROCEED_TO_PAY, brlChip: 'unlock' } as const
+    const cannotSend = { qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION, brlChip: 'unlock' } as const
 
     it('a non-resident who can pay a Pix key reads Available, and the tap opens Pix key sending', () => {
         const rows = withPixSend(bank({ residenceIso2: 'PT' }), canSend)
@@ -362,7 +383,10 @@ describe('withPixSend', () => {
     })
 
     it('a Manteca verification in flight reads as the BRL corridor does', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), { canPay: false, brlChip: 'processing' })
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), {
+            qrPay: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
+            brlChip: 'processing',
+        })
         expect(brl(rows).chip).toBe('processing')
     })
 
@@ -381,9 +405,25 @@ describe('withPixSend', () => {
         expect(rows.find((r) => r.labelKey === 'usd')?.chip).toBe('notAvailable')
     })
 
-    it('leaves a resident and every other row alone', () => {
+    // hugo, 2026-09-26: any verified user may send to any Pix key, residents included
+    it.each(['unlock', 'processing', 'attention'] as const)(
+        'a resident who can pay, with a bank rail at %s, gets the Pix send and keeps the rail status',
+        (brlChip) => {
+            const resident = bank({ residenceIso2: 'BR', bankChips: { ...UNLOCK_ALL, brl: brlChip } })
+            const row = brl(withPixSend(resident, { ...canSend, brlChip }))
+            expect(row).toEqual(
+                expect.objectContaining({ chip: 'active', note: 'pixSendNote', bankChip: brlChip, regionPath: 'latam' })
+            )
+            // the tap opens the drawer (send + rail status), not a navigation
+            expect(row.href).toBeUndefined()
+        }
+    )
+
+    it('leaves a resident with a working rail, a resident who cannot pay, and every other row alone', () => {
+        const working = bank({ residenceIso2: 'BR', bankChips: { ...UNLOCK_ALL, brl: 'active' } })
+        expect(withPixSend(working, { ...canSend, brlChip: 'active' })).toEqual(working)
         const resident = bank({ residenceIso2: 'BR' })
-        expect(withPixSend(resident, canSend)).toEqual(resident)
+        expect(withPixSend(resident, cannotSend)).toEqual(resident)
         const ars = withPixSend(bank({ residenceIso2: 'PT' }), canSend).find((r) => r.labelKey === 'ars')
         expect(ars?.chip).toBe('notAvailable')
     })

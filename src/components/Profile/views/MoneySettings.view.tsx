@@ -148,14 +148,14 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // that also counted a legacy Bridge-only cohort with no Manteca rail:
     // /qr-pay sends that cohort to verification, so the row promised a
     // payment the scan then refused.
-    const canPayQrNow =
-        selectQrKycGate({
-            isLoading: isLoadingCapabilities,
-            isRegionRestricted,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: railsForProvider('manteca'),
-            nextActions,
-        }).kycGateState === QrKycState.PROCEED_TO_PAY
+    const qrPay = selectQrKycGate({
+        isLoading: isLoadingCapabilities,
+        isRegionRestricted,
+        canPayManteca: canDo('pay', { provider: 'manteca' }),
+        mantecaRails: railsForProvider('manteca'),
+        nextActions,
+    }).kycGateState
+    const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 
     const groups = useMemo(
         () =>
@@ -164,20 +164,20 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw.
-                canPayQr: canPayQrNow,
+                qrPay,
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
             }),
-        [bankChips, canPayQrNow, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [bankChips, qrPay, restrictions, hasActiveCard, cardInfo?.geoProhibited]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
     const accountBankRows = useMemo(
-        () => withPixSend(bankRows, { canPay: canPayQrNow, brlChip: bankChips.brl }),
-        [bankRows, canPayQrNow, bankChips.brl]
+        () => withPixSend(bankRows, { qrPay, brlChip: bankChips.brl }),
+        [bankRows, qrPay, bankChips.brl]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
@@ -388,6 +388,8 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // `withPixSend` makes of it outside Brazil (that row navigates instead).
     // Its holder may still send to a Pix key, on the same capability.
     const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow
+    // the user's own BRL rail behind a row that leads with the Pix key send
+    const detailsBankRail = detailsRow?.bankChip ? { ...detailsRow, chip: detailsRow.bankChip } : null
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -714,10 +716,25 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                 use, with a green check to read as a capability. */}
                             <Section title={t('detailsDrawer.aboutTitle')}>
                                 <ListGroup>
-                                    <ListItem
-                                        leading={<IconBubble icon="check" size="s" color="green" />}
-                                        title={t(`details.${detailsRow.labelKey}`)}
-                                    />
+                                    {detailsBankRail ? (
+                                        // The row leads with the Pix key send; the user's own
+                                        // bank rail keeps its status here, and its flow.
+                                        <ListItem
+                                            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            trailing={rowStatusBadge(detailsBankRail, t)}
+                                            chevron={isRowTappable(detailsBankRail, isKycDegraded)}
+                                            onClick={() => {
+                                                setDetailsRow(null)
+                                                handleRowClick(detailsBankRail)
+                                            }}
+                                        />
+                                    ) : (
+                                        <ListItem
+                                            leading={<IconBubble icon="check" size="s" color="green" />}
+                                            title={t(`details.${detailsRow.labelKey}`)}
+                                        />
+                                    )}
                                 </ListGroup>
                             </Section>
 
@@ -765,6 +782,8 @@ function rowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
         return (
             <IconStack
                 icons={row.flags.map(getFlagUrl)}
+                // decorative: the row's own line names both countries
+                alt=""
                 iconClassName={flagSize}
                 imageClassName={`${flagSize} object-cover`}
             />

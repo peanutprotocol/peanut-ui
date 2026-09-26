@@ -14,6 +14,7 @@ import { gatingResidenceIso2s, residenceCloses } from '@/features/deposit-accoun
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
+import { QrKycState } from '@/constants/kyc.consts'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
@@ -59,6 +60,12 @@ export interface UnlockRow {
     flags?: readonly string[]
     /** bank rows: the ISO code the accounts page shows as the row title (2026-09-24) */
     currency?: string
+    /**
+     * a BRL row that leads with the Pix key send over the user's own bank rail
+     * (`withPixSend`): that rail's status, which the row's drawer still shows
+     * and opens
+     */
+    bankChip?: Exclude<BankRegionChip, 'active'>
     /** bank rows: the deposit corridor the row adds money through */
     corridor?: DepositCorridor
     /** why a `notAvailable` bank row is closed: the residence country, or the rail's own country rule */
@@ -91,15 +98,26 @@ export interface BankRowsInput {
 }
 
 export interface BuildUnlockGroupsInput extends Pick<BankRowsInput, 'bankChips' | 'restrictions'> {
-    /**
-     * whether a scan would pay today: the QR-pay gate's PROCEED_TO_PAY
-     * (`selectQrKycGate`), the one answer /qr-pay and Home read too
-     */
-    canPayQr: boolean
+    /** the QR-pay gate's answer (`selectQrKycGate`), the one /qr-pay and Home read too */
+    qrPay: QrKycState
     card: 'active' | 'get' | 'notAvailable'
 }
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', concept: 'card' } as const
+
+/**
+ * The status of a row that pays through the QR rail (QR payments, the Pix key
+ * send), from the QR-pay gate. Available only when a payment would go through.
+ * A refusal that a new verification cannot lift (a refused identity region, a
+ * provider block) reads Attention, never an Unlock that could only end in that
+ * refusal; the tap still opens the modal that explains it. Every other state
+ * keeps the LATAM offer chip (`offer`, the BRL corridor's own).
+ */
+export function qrPayChip(qrPay: QrKycState, offer: BankRegionChip): UnlockChip {
+    if (qrPay === QrKycState.PROCEED_TO_PAY) return 'active'
+    if (qrPay === QrKycState.REGION_RESTRICTED || qrPay === QrKycState.PROVIDER_REJECTION_BLOCKED) return 'attention'
+    return offer === 'active' ? 'unlock' : offer
+}
 
 /**
  * The bank corridors, in catalog order within their group.
@@ -235,7 +253,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
 }
 
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
-    const { bankChips, canPayQr, restrictions, card } = input
+    const { bankChips, qrPay, restrictions, card } = input
 
     const cardChip: UnlockChip =
         restrictions.card || card === 'notAvailable' ? 'notAvailable' : card === 'active' ? 'active' : 'unlock'
@@ -256,9 +274,8 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     // Brazil leads because Pix is the bigger corridor of the two.
     // A banking restriction does not close it: QR pays through the pool rails,
     // open to every verified user whatever their residence (hugo, 2026-09-26;
-    // audit C29). Only the QR answer decides Available: a working bank rail
-    // alone is an offer here, as it is for the Pix key send (`withPixSend`).
-    const qrChip: UnlockChip = canPayQr ? 'active' : bankChips.brl === 'active' ? 'unlock' : bankChips.brl
+    // audit C29). Only the QR answer decides it (`qrPayChip`).
+    const qrChip = qrPayChip(qrPay, bankChips.brl)
     const qrRow: UnlockRow = {
         id: 'qr-pay',
         labelKey: 'qrPay',
@@ -303,8 +320,8 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
 export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
 
 /**
- * The bank rows as Accounts lists them: a closed BRL row speaks for sending to
- * a Pix key instead.
+ * The bank rows as Accounts lists them: a BRL row the user cannot move reais
+ * through speaks for sending to a Pix key instead.
  *
  * Adding reais by Pix is for Brazilian residents (a CPF), and not for a
  * residence where bank transfers are restricted, but every verified user can
@@ -313,23 +330,32 @@ export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazi
  * key send's status and tap target, with a note that says it is for sending.
  * Add money keeps the closed row: adding is the only thing that screen offers.
  *
+ * A Brazilian resident's own rail that cannot move money yet (Unlock,
+ * Processing, Attention) works the same way once they can pay (hugo,
+ * 2026-09-26: Manteca lets any verified user send to any Pix key). The row
+ * says Available for the send, and keeps the rail's status in `bankChip` for
+ * its drawer, where the rail's own flow still opens. A working rail stays the
+ * bank row; its drawer carries the send.
+ *
  * Sending to a Pix key rides the QR-payment rail (the method=pix delegation in
  * /withdraw/manteca hands off to /qr-pay), so it reads Available only on the
- * answer /qr-pay itself gives (`selectQrKycGate`). Everyone else gets the
- * LATAM unlock offer.
+ * answer /qr-pay itself gives (`selectQrKycGate`), through `qrPayChip`.
  */
 export function withPixSend(
     rows: readonly UnlockRow[],
     pixSend: {
-        /** the QR-pay gate says a payment would go through: the /qr-pay answer */
-        canPay: boolean
+        /** the QR-pay gate's answer: the one /qr-pay gives */
+        qrPay: QrKycState
         /** the BRL corridor's chip before the row was closed */
         brlChip: BankRegionChip
     }
 ): UnlockRow[] {
-    const chip: UnlockChip = pixSend.canPay ? 'active' : pixSend.brlChip === 'active' ? 'unlock' : pixSend.brlChip
+    const chip = qrPayChip(pixSend.qrPay, pixSend.brlChip)
     return rows.map((row) => {
-        if (row.labelKey !== 'brl' || row.chip !== 'notAvailable') return row
+        if (row.labelKey !== 'brl' || row.chip === 'active' || row.chip === 'alwaysOn') return row
+        if (row.chip !== 'notAvailable') {
+            return chip === 'active' ? { ...row, chip, note: 'pixSendNote', bankChip: row.chip } : row
+        }
         const { unavailableBecause: _closed, ...open } = row
         return {
             ...open,
