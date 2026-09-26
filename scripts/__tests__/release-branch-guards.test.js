@@ -325,6 +325,14 @@ describe('native release source branch', () => {
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
     })
 
+    // Under workflow_run `inputs` is empty, and an empty value for a callee's
+    // boolean input silently stops GitHub from creating the job (runs #16-#23).
+    it('passes real booleans to the store workflows under workflow_run', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        expect(workflow).not.toContain('pushDebug: ${{ inputs.pushDebug }}')
+        expect(workflow.match(/pushDebug: \$\{\{ inputs.pushDebug == true \}\}/g)).toHaveLength(2)
+    })
+
     it.each(['ios', 'android'])('keeps the %s legacy lane during store builds', (platform) => {
         const workflow = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
         expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
