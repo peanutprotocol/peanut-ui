@@ -141,6 +141,10 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: () => null,
 }))
+const mockStartQrCheck = jest.fn()
+jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
+    useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
+}))
 
 import ActivationCTAs from '../ActivationCTAs'
 import type { OnboardingState } from '@/utils/activation-step.utils'
@@ -200,11 +204,12 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it('the QR ID check starts the verification QR pay uses', () => {
+    it('the QR ID check is the shared one (useQrIdentityCheck)', () => {
         mockResidenceRestrictions = { banking: true, card: true }
         render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-qr-identity-check'))
-        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM')
+        expect(mockStartQrCheck).toHaveBeenCalled()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 })
 

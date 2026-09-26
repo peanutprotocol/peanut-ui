@@ -9,9 +9,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useHomeCarouselCTAs } from '@/hooks/useHomeCarouselCTAs'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
-import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { QR_IDENTITY_CHECK_INTENT } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 
 /**
  * `documentRequest`: a future-dated document request before its final week
@@ -21,10 +19,8 @@ import { QR_IDENTITY_CHECK_INTENT } from '@/features/payments/flows/qr-pay/qrKyc
  */
 const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) => {
     // the "Unlock QR payments" slide starts the QR ID check in place
-    const qrIdentityCheck = useMultiPhaseKycFlow({})
-    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs({
-        onStartQrIdentityCheck: () => void qrIdentityCheck.handleInitiateKyc(QR_IDENTITY_CHECK_INTENT),
-    })
+    const qrIdentityCheck = useQrIdentityCheck()
+    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs({ onStartQrIdentityCheck: qrIdentityCheck.start })
     const documentFlow = useDocumentRequestFlow()
     const t = useTranslations('home.pendingTasks')
     const format = useFormatter()
@@ -48,7 +44,7 @@ const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) 
     const modals = (
         <>
             {documentFlow.modals}
-            <SumsubKycModals flow={qrIdentityCheck} />
+            {qrIdentityCheck.modals}
         </>
     )
 

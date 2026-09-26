@@ -12,11 +12,10 @@ jest.mock('@/hooks/useHomeCarouselCTAs', () => ({
         return { carouselCTAs: mockCTAs, dismissCTA: mockDismissCTA }
     },
 }))
-const mockHandleInitiateKyc = jest.fn()
-jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleInitiateKyc: mockHandleInitiateKyc }),
+const mockStartQrCheck = jest.fn()
+jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
+    useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
 }))
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 const mockStart = jest.fn()
 let mockFlow: { start: jest.Mock; startedTaskKey: string | null; isLoading: boolean; error: string | null }
 jest.mock('@/hooks/useDocumentRequestFlow', () => ({
@@ -86,6 +85,6 @@ describe('HomeCarouselCTA — the "Unlock QR payments" slide', () => {
         mockFlow = { start: mockStart, startedTaskKey: null, isLoading: false, error: null }
         render(<HomeCarouselCTA />)
         mockHookOptions.onStartQrIdentityCheck?.()
-        expect(mockHandleInitiateKyc).toHaveBeenCalledWith('LATAM')
+        expect(mockStartQrCheck).toHaveBeenCalled()
     })
 })

@@ -23,7 +23,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { QR_IDENTITY_CHECK_INTENT } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -88,6 +88,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
+    const qrIdentityCheck = useQrIdentityCheck()
 
     // The checklist's Verify row opens the same start modal the bank and
     // deposit gates use: its outage, region and residence checks run here too.
@@ -215,7 +216,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
                     onboarding={onboarding}
                     onHide={onHideChecklist}
                     onStartIdentityCheck={() => setShowInitiateKyc(true)}
-                    onStartQrIdentityCheck={() => void kycFlow.handleInitiateKyc(QR_IDENTITY_CHECK_INTENT)}
+                    onStartQrIdentityCheck={qrIdentityCheck.start}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}
@@ -231,6 +232,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
                     error={kycFlow.error}
                 />
                 <SumsubKycModals flow={kycFlow} />
+                {qrIdentityCheck.modals}
             </>
         )
 
