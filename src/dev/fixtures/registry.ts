@@ -483,6 +483,81 @@ const BRIDGE_CO_CAPABILITIES = {
     restrictions: [],
 }
 
+/**
+ * A verified user whose own payment-partner review holds three corridors, as
+ * the capability resolver answers each rail (TASK-23054, C11): EUR waits on
+ * the user, USD is under review, MXN was rejected. GBP has no rail at all.
+ */
+const REVIEW_CAUSE_CAPABILITIES = {
+    rails: [
+        {
+            ...BRIDGE_BANK_RAILS[1],
+            status: 'requires-info',
+            blockingActions: ['bridge-hosted'],
+            reason: { code: 'proof_of_address', userMessage: 'We need a proof of address to finish the check.' },
+            resolved: {
+                status: 'fixable',
+                blocking: {
+                    code: 'proof_of_address',
+                    userMessage: 'We need a proof of address to finish the check.',
+                    selfHealable: true,
+                },
+                nextAction: { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'unlock-bridge' },
+            },
+        },
+        { ...BRIDGE_BANK_RAILS[0], status: 'pending', resolved: { status: 'pending' } },
+        {
+            ...BRIDGE_BANK_RAILS[3],
+            status: 'blocked',
+            reason: { code: 'provider_rejected', userMessage: 'We could not finish this check.' },
+            resolved: {
+                status: 'blocked',
+                blocking: {
+                    code: 'provider_rejected',
+                    userMessage: 'We could not finish this check.',
+                    selfHealable: false,
+                    selfHealKind: 'contact-support',
+                },
+            },
+        },
+    ],
+    nextActions: [{ key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'unlock-bridge', currency: 'EUR' }],
+    restrictions: [],
+}
+
+const withheldCorridor = (
+    method: string,
+    country: string,
+    currency: string,
+    reason: string,
+    cause: string
+): Record<string, string> => ({
+    railId: `bridge.${method.toLowerCase()}`,
+    method,
+    country,
+    currency,
+    reason,
+    cause,
+})
+
+const REVIEW_CAUSE_RESPONSE = {
+    'GET /users/me': {
+        capabilities: REVIEW_CAUSE_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [CLAIMABLE_COP],
+        unavailable: [
+            withheldCorridor('SEPA_EU', 'EU', 'EUR', 'not-offered', 'review-action'),
+            withheldCorridor('ACH_US', 'US', 'USD', 'not-offered', 'review-pending'),
+            withheldCorridor('SPEI_MX', 'MX', 'MXN', 'support-required', 'review-closed'),
+            withheldCorridor('FASTER_PAYMENTS_GB', 'GB', 'GBP', 'not-offered', 'not-open'),
+        ],
+    },
+}
+
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
@@ -1296,6 +1371,39 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/profile/accounts',
         about: 'Accounts page with no account held: every account to open listed, nothing folded.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
+    'profile-accounts-review-causes': {
+        route: '/profile/accounts',
+        about: 'A verified user whose own review holds EUR (action), USD (under review) and MXN (support); GBP is not open yet. No residence on file, and nothing asks for one.',
+        responses: REVIEW_CAUSE_RESPONSE,
+    },
+    'profile-accounts-residence-restricted': {
+        route: '/profile/accounts',
+        about: 'A resident of a country barred from banking: every account says so, with no support and no "or not yet".',
+        responses: {
+            'GET /users/me': {
+                capabilities: VA_READY_CAPABILITIES,
+                depositAccounts: { enabled: true },
+                residence: { declared: 'CN', verified: 'CN', pending: null, declaredSecond: null },
+                residenceRestrictions: { banking: true, card: true },
+            },
+            'GET /users/deposit-accounts': {
+                depositAccounts: [],
+                claimable: [],
+                unavailable: [
+                    withheldCorridor('ACH_US', 'US', 'USD', 'not-offered', 'residence-restricted'),
+                    withheldCorridor('SEPA_EU', 'EU', 'EUR', 'not-offered', 'residence-restricted'),
+                    withheldCorridor('FASTER_PAYMENTS_GB', 'GB', 'GBP', 'not-offered', 'residence-restricted'),
+                    withheldCorridor('SPEI_MX', 'MX', 'MXN', 'not-offered', 'residence-restricted'),
+                    withheldCorridor('BANK_TRANSFER_CO', 'CO', 'COP', 'not-offered', 'residence-restricted'),
+                ],
+            },
+        },
+    },
+    'get-paid-review-action': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
+        about: 'The EUR row of a user whose own review waits on them: the extra check, never "Verify identity first".',
+        responses: REVIEW_CAUSE_RESPONSE,
     },
     'profile-payments': {
         route: '/profile/payments',
