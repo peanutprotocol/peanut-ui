@@ -720,7 +720,13 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                 {rowLeading(detailsRow, 'm')}
                                 <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                     <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
-                                    <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
+                                    {/* A send-led BRL row opens on the send; its bank rail
+                                        and that rail's status stay below. */}
+                                    <DrawerDescription>
+                                        {detailsRow.bankChip
+                                            ? t('valueProp.pixSend')
+                                            : t(`valueProp.${detailsRow.labelKey}`)}
+                                    </DrawerDescription>
                                 </DrawerHeader>
                             </div>
 

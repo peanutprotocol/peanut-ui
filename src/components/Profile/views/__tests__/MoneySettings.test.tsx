@@ -1237,6 +1237,9 @@ describe('MoneySettings', () => {
             expect(row.getByText('Send to any Pix key')).toBeInTheDocument()
 
             const drawer = openBrlDrawer()
+            // the hero opens on the send (Chip on ui#3506), not on moving reais by bank
+            expect(drawer.getByText('Send reais to any Pix key in Brazil.')).toBeInTheDocument()
+            expect(drawer.queryByText('Move reais between your bank and Peanut.')).not.toBeInTheDocument()
             expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                 'href',
                 '/withdraw/manteca?method=pix&country=brazil'
@@ -1256,6 +1259,8 @@ describe('MoneySettings', () => {
             const drawer = openBrlDrawer()
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
             expect(drawer.queryByText('Send to any Pix key')).not.toBeInTheDocument()
+            // a bank-led row keeps the bank hero
+            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
         })
 
         it('outside Brazil the row itself is the Pix send, and opens no drawer', () => {
