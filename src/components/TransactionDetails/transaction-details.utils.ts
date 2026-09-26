@@ -144,7 +144,10 @@ const SENDER_NOTE_PLACEHOLDER = /^NOT\s*PROVIDED$/i
  */
 export const senderNoteText = (raw: string | null | undefined): string | undefined => {
     const text = (raw ?? '').trim()
-    const parts = SENDER_NOTE_TAG.test(text) ? text.replace(SENDER_NOTE_TAG, '').split('//') : [text]
+    // Only the first "//" is the delimiter; the payer's own text may contain more (a URL).
+    const body = text.replace(SENDER_NOTE_TAG, '')
+    const cut = body.indexOf('//')
+    const parts = SENDER_NOTE_TAG.test(text) && cut >= 0 ? [body.slice(0, cut), body.slice(cut + 2)] : [body]
     const written = parts.map((part) => part.trim()).filter((part) => part && !SENDER_NOTE_PLACEHOLDER.test(part))
     return written.length > 0 ? written.join(' · ') : undefined
 }
