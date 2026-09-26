@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import type { RainCooldownEventDetail } from '@/services/rain'
-import { useCooldownRemaining } from '@/hooks/useCooldownRemaining'
+import { publishCooldownEndsAt, useCooldownRemaining } from '@/hooks/useCooldownRemaining'
 
 /**
  * Global UI state for the Rain withdrawal-signature cooldown.
@@ -39,9 +39,9 @@ const COOLDOWN_TOAST_ID = 'rain-cooldown'
 
 /** Toast inner content — its own component so it ticks every second
  *  without re-animating the parent toast (id-de-dupe keeps the toast stable). */
-const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
+const CooldownPillContent = () => {
     const t = useTranslations('global')
-    const remaining = useCooldownRemaining(endsAt)
+    const remaining = useCooldownRemaining()
     return (
         <div className="flex items-center gap-2">
             <Icon name="clock" className="h-4 w-4 text-foreground-primary" />
@@ -94,9 +94,14 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         toast({
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
-            content: <CooldownPillContent endsAt={cooldownEndsAt} />,
+            content: <CooldownPillContent />,
         })
     }, [cooldownEndsAt, toast, dismiss])
+
+    // the pill and the error read the deadline from the shared clock, not from
+    // the toast's props, so a retry that extends it updates both
+    useEffect(() => publishCooldownEndsAt(cooldownEndsAt), [cooldownEndsAt])
+    useEffect(() => () => publishCooldownEndsAt(null), [])
 
     // Clear the cooldown end-time once it actually elapses so the toast is
     // dismissed via the effect above. One scheduled timeout per cooldown.
@@ -123,12 +128,6 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
     )
 
     return <RainCooldownContext.Provider value={value}>{children}</RainCooldownContext.Provider>
-}
-
-/** Null outside the provider (marketing routes, isolated tests) instead of
- *  throwing, so error copy can render anywhere. */
-export function useRainCooldownEndsAt(): number | null {
-    return useContext(RainCooldownContext)?.cooldownEndsAt ?? null
 }
 
 export function useRainCooldown(): RainCooldownContextType {

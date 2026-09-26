@@ -44,6 +44,23 @@ describe('CooldownErrorText', () => {
         expect(screen.getByText(/Card cool-down · 0:13/)).toBeInTheDocument()
     })
 
+    it('moves the pill and the error together when a retry extends the cooldown', async () => {
+        render(<CooldownErrorText message={COOLDOWN_MESSAGE} />, { wrapper })
+        act(() => fireCooldown(20))
+        expect(await screen.findByText(/Card cool-down · 0:20/)).toBeInTheDocument()
+
+        act(() => fireCooldown(120))
+        expect(screen.getByText(/Card cool-down · 2:00/)).toBeInTheDocument()
+        expect(screen.getByText('A previous card withdrawal is still active. Try again in 2:00.')).toBeInTheDocument()
+
+        // one shared clock: every tick lands on both surfaces at once
+        act(() => {
+            jest.advanceTimersByTime(1_000)
+        })
+        expect(screen.getByText(/Card cool-down · 1:59/)).toBeInTheDocument()
+        expect(screen.getByText('A previous card withdrawal is still active. Try again in 1:59.')).toBeInTheDocument()
+    })
+
     it('says the user can retry once the cooldown ends', () => {
         render(<CooldownErrorText message={COOLDOWN_MESSAGE} />, { wrapper })
         act(() => fireCooldown(5))
