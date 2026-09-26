@@ -205,6 +205,8 @@ function calleeText(call) {
     return ts.isIdentifier(c) ? c.text : null
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /**
  * Key alternatives for a translator call's first argument. A template literal
  * becomes a pattern; a ternary or `??` yields each side.
@@ -215,9 +217,8 @@ function keyAlternatives(node) {
     const s = stringOf(node)
     if (s !== null) return [{ literal: s }]
     if (ts.isTemplateExpression(node)) {
-        const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        let re = esc(node.head.text)
-        for (const span of node.templateSpans) re += '[^.]+' + esc(span.literal.text)
+        let re = escapeRegExp(node.head.text)
+        for (const span of node.templateSpans) re += '[^.]+' + escapeRegExp(span.literal.text)
         return [{ pattern: re }]
     }
     if (ts.isConditionalExpression(node)) return [...keyAlternatives(node.whenTrue), ...keyAlternatives(node.whenFalse)]
@@ -381,7 +382,7 @@ function resolveKeyUse(ctx, use) {
             // an unknown-namespace key that ends several catalog paths is ambiguous
             if (use.ns === undefined && candidates.length > 1) candidates = []
         } else {
-            const prefix = use.ns === undefined ? '(?:.+\\.)?' : use.ns ? `${use.ns.replace(/\./g, '\\.')}\\.` : ''
+            const prefix = use.ns === undefined ? '(?:.+\\.)?' : use.ns ? `${escapeRegExp(use.ns)}\\.` : ''
             const re = new RegExp(`^${prefix}${alt.pattern}$`)
             candidates = ctx.catalogKeys.filter((k) => re.test(k))
         }
