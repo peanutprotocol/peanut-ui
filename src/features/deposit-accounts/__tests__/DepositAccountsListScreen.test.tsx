@@ -549,6 +549,7 @@ describe('a withheld account with the cause the backend names', () => {
         })
 
         const row = rowOf(container, 'SPEI_MX') as HTMLElement
+        expect(within(row).getByText(LIST.badgeUnderReview)).toBeInTheDocument()
         expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
         fireEvent.click(row)
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')

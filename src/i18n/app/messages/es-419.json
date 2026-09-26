@@ -4086,7 +4086,8 @@
             "errorTitle": "No pudimos cargar las cuentas",
             "errorBody": "Tus cuentas están bien. Revisa la conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
-            "badgeActionNeeded": "Acción requerida"
+            "badgeActionNeeded": "Acción requerida",
+            "badgeUnderReview": "En revisión"
         },
         "claim": {
             "heading": "Recibe pagos en {currency}",

@@ -4086,7 +4086,8 @@
             "errorTitle": "We could not load the accounts",
             "errorBody": "Your accounts are fine. Check the connection and try again.",
             "errorRetry": "Try again",
-            "badgeActionNeeded": "Action needed"
+            "badgeActionNeeded": "Action needed",
+            "badgeUnderReview": "Under review"
         },
         "claim": {
             "heading": "Get paid in {currency}",

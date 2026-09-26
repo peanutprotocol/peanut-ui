@@ -4086,7 +4086,8 @@
             "errorTitle": "Não conseguimos carregar as contas",
             "errorBody": "Suas contas estão bem. Verifique a conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
-            "badgeActionNeeded": "Ação necessária"
+            "badgeActionNeeded": "Ação necessária",
+            "badgeUnderReview": "Em análise"
         },
         "claim": {
             "heading": "Receba pagamentos em {currency}",

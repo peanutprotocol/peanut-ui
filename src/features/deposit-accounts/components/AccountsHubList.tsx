@@ -159,9 +159,9 @@ export function AccountsHubList({
             // the user's own review waits on them; the tap starts what clears it
             case 'review-action':
                 return <Badge status="pending" customText={t('list.badgeActionNeeded')} />
-            // the review is under way: a wait, like the corridor reviews below
+            // a reviewer acts next (design.md, "rows the user cannot act on")
             case 'review-pending':
-                return <Badge status="pending" />
+                return <Badge status="pending" customText={t('list.badgeUnderReview')} />
         }
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         switch (accounts?.claimable?.[corridor]?.blockedBy) {
