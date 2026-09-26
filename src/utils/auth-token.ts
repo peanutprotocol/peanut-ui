@@ -127,9 +127,7 @@ async function hydrateFromPreferences(): Promise<void> {
         const { Preferences } = await getPreferences()
         const { value } = await Preferences.get({ key: JWT_STORAGE_KEY })
         // a login that raced hydration is fresher than the stored value
-        if (value && nativeToken === null) {
-            nativeToken = value
-        }
+        if (value && nativeToken === null) nativeToken = value
     } catch {
         // plugin missing (older binary running OTA'd JS) — those builds still
         // authenticate via the CapacitorHttp cookie jar, so this is benign.
@@ -152,9 +150,7 @@ async function hydrateFromPreferences(): Promise<void> {
         const { CapacitorCookies } = await import('@capacitor/core')
         const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
         const cookieToken = cookies?.[JWT_COOKIE_KEY]
-        if (cookieToken) {
-            nativeToken = cookieToken
-        }
+        if (cookieToken) nativeToken = cookieToken
     } catch {}
 }
 
@@ -413,10 +409,7 @@ export function clearAuthToken(): Promise<void> {
         const jarClear = import('@capacitor/core')
             .then(({ CapacitorCookies }) => CapacitorCookies.clearCookies({ url: PEANUT_API_URL }))
             .catch(() => {})
-        const walletClear = import('./push-provisioning')
-            .then(({ clearWalletSession }) => clearWalletSession())
-            .catch(() => {})
-        nativeClear = Promise.all([prefsClear, jarClear, guardedDelete(), walletClear]).then(() => undefined)
+        nativeClear = Promise.all([prefsClear, jarClear, guardedDelete()]).then(() => undefined)
     }
     // always clear cookie too in case it was set by backend Set-Cookie header
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })

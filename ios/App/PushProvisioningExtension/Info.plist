@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>PeanutWalletKeychainAccessGroup</key>
-	<string>$(AppIdentifierPrefix)group.me.peanut.wallet</string>
 	<key>CFBundleDisplayName</key>
 	<string>Peanut Card</string>
 	<key>CFBundleName</key>

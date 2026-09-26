@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
@@ -9,7 +9,6 @@ import {
     addCardToWallet,
     getPushProvisioningAvailability,
     PUSH_PROVISIONING_FLAG,
-    syncWalletAuthorizationToken,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
 
@@ -29,20 +28,16 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
     const [nativeAvailable, setNativeAvailable] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
-    const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
-    const availabilityScopeRef = useRef(availabilityScope)
-    availabilityScopeRef.current = availabilityScope
 
     useEffect(() => {
         let cancelled = false
-        const iosNative = isIOSNative()
         // iOS only for now. Google requires its own supplied, localized "Add to
         // Google Wallet" button on any control that starts push provisioning, and
         // that asset ships with issuer onboarding — which is also the gate this
         // path waits on. Until then Android keeps the manual carousel rather than
         // starting the flow from a button Google has not sanctioned. The native
         // Android path underneath is complete; re-enable it with the asset.
-        if (!flagOn || !iosNative) {
+        if (!flagOn || !isIOSNative()) {
             setNativeAvailable(false)
             return
         }
@@ -52,20 +47,15 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         return () => {
             cancelled = true
         }
-    }, [flagOn, card.id, card.last4])
+    }, [flagOn, card.last4])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
-        const scopeAtStart = availabilityScope
         const wallet = isIOSNative() ? 'apple' : 'google'
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_TAPPED, { wallet })
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
-            if (data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
-                await syncWalletAuthorizationToken(data.walletAuthorizationToken, data.walletAuthorizationExpiresIn)
-            }
             const result = await addCardToWallet({
-                peanutCardId: card.id,
                 cardId: data.cardId,
                 cardSecret: data.cardSecret,
                 cardholderName: data.cardholderName,
@@ -80,21 +70,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                       : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
                 { wallet, error: result.error }
             )
-            if (result.added) {
-                // The iPhone may now have the card while a paired Watch can still
-                // take it. Recheck both devices instead of hiding the native row.
-                // An availability failure must not turn a successful add into a
-                // reported provisioning failure.
-                const { available, alreadyInWallet } = await getPushProvisioningAvailability(card.last4).catch(() => ({
-                    available: false,
-                    alreadyInWallet: false,
-                }))
-                if (availabilityScopeRef.current === scopeAtStart && flagOn) {
-                    setNativeAvailable(available && !alreadyInWallet)
-                }
-            } else if (result.alreadyInWallet) {
-                setNativeAvailable(false)
-            }
+            if (result.added || result.alreadyInWallet) setNativeAvailable(false)
             return result
         } catch (e) {
             // Step-up cancel/timeout or the provisioning-data fetch failing
@@ -105,7 +81,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         } finally {
             setIsAdding(false)
         }
-    }, [availabilityScope, card.id, card.last4, flagOn])
+    }, [card.id])
 
     return { nativeAvailable, isAdding, addToWallet }
 }

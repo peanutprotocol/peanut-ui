@@ -240,9 +240,6 @@ export interface RainProvisioningDataResponse {
     last4: string
     network: string
     cardholderName?: string
-    /** Revocable, wallet-scoped credential for Apple Wallet's direct launch. */
-    walletAuthorizationToken?: string
-    walletAuthorizationExpiresIn?: number
     billingAddress: {
         line1: string
         line2?: string
@@ -251,11 +248,6 @@ export interface RainProvisioningDataResponse {
         postalCode: string
         countryCode: string
     }
-}
-
-export interface RainProvisioningAuthorizationResponse {
-    walletAuthorizationToken: string
-    walletAuthorizationExpiresIn: number
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
@@ -431,8 +423,6 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
-    /** Use an already-cached proof without opening a new ceremony. */
-    stepUpToken?: string
     /**
      * Suppress the GLOBAL cooldown explainer for a 425 (the typed
      * `RainCooldownError` and its telemetry are unchanged). Only the internal
@@ -451,7 +441,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
-    if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
+    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
 
     const response = await apiFetch(opts.path, {
         method: opts.method,
@@ -873,23 +863,6 @@ export const rainApi = {
             path: `/rain/cards/${cardId}/provisioning-data`,
             body: { wallet },
             stepUp: true,
-            rateLimitSensitive: true,
-            noStore: true,
-        })
-    },
-
-    /** Mint the card-scoped Wallet credential without returning card secrets. */
-    getProvisioningAuthorization: async (
-        cardId: string,
-        wallet: 'apple' | 'google',
-        options?: { stepUpToken?: string }
-    ): Promise<RainProvisioningAuthorizationResponse> => {
-        return rainRequest<RainProvisioningAuthorizationResponse>({
-            method: 'POST',
-            path: `/rain/cards/${cardId}/provisioning-authorization`,
-            body: { wallet },
-            stepUp: true,
-            stepUpToken: options?.stepUpToken,
             rateLimitSensitive: true,
             noStore: true,
         })
