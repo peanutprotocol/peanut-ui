@@ -166,13 +166,15 @@ jobs:
                   echo "## ${{ steps.guard.outputs.prerelease == 'true' && 'Dev pre-release' || 'Release' }} $VERSION" >> "$GITHUB_STEP_SUMMARY"
                   echo "- **Commit:** ${GITHUB_SHA:0:7} ($GITHUB_REF_NAME)" >> "$GITHUB_STEP_SUMMARY"
 
+    # workflow_run has no `inputs`, and an empty value for a callee's boolean
+    # input stops GitHub from creating the job at all, with no error shown.
     ios:
         needs: resolve
         uses: ./.github/workflows/ios-release.yml
         secrets: inherit
         with:
             versionName: ${{ needs.resolve.outputs.version }}
-            pushDebug: ${{ inputs.pushDebug }}
+            pushDebug: ${{ inputs.pushDebug == true }}
             prerelease: ${{ needs.resolve.outputs.prerelease == 'true' }}
 
     android:
@@ -187,7 +189,7 @@ jobs:
         with:
             versionName: ${{ needs.resolve.outputs.version }}
             track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}
-            pushDebug: ${{ inputs.pushDebug }}
+            pushDebug: ${{ inputs.pushDebug == true }}
             prerelease: ${{ needs.resolve.outputs.prerelease == 'true' }}
 
     tag:
