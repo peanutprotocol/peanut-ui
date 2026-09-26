@@ -183,13 +183,10 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
-The About screen shows the native version for the built-in bundle. For production OTAs,
-the workflow bakes in the public release number and About appends `-i` or `-a` for the
-platform. For example, the release after `ota-1.6.8` appears as `1.6.9-i` on iOS and
-`1.6.9-a` on Android. Capgo currently needs separate internal compatibility IDs in the
-`1.5.1000+-ios` and `1.6.1000+-android` lanes to reach older native clients. Its
-dashboard shows those raw IDs. The platform build identifier (`versionCode` /
-`CFBundleVersion`) remains separate support metadata.
+The About screen shows this three-part version of the code currently running: the native
+version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
+build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
+it is not appended as a fourth dotted segment because it is not a comparable release.
 
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
@@ -234,25 +231,8 @@ Use the workflow that matches the release:
 | | button | what it does |
 |-|--------|--------------|
 | native | **App Release Android & iOS** | successful `main` push OTA resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
-| native pre-release | **App Release Android & iOS**, dispatched on `dev` | builds the current `dev` tip under the next `<major>.<build+1>.0` → TestFlight + Play `internal` only; no `v*` tag, no production OTA read or write, so the next `main` release resolves the same version |
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
-
-To put native changes that `main` does not have yet in testers' hands, dispatch the same
-workflow on `dev`:
-
-```sh
-gh workflow run release-native.yml --repo peanutprotocol/peanut-ui --ref dev -f track=internal
-```
-
-It refuses a dispatch once `dev` has moved past the dispatched commit, and it skips the
-legacy-bridge preflight, reporting a mismatch as a warning instead. The build bakes
-`NEXT_PUBLIC_NATIVE_PRERELEASE=true`, which turns off the OTA check and the beta-updates
-switch: production serves `main` JS for the older native surfaces, and staging bundles
-sort below the unreleased native version, so neither lane can safely update it. Testers
-run the dev JS the binary was built with; dispatch again for newer dev. iOS build numbers are wall-clock seconds (the Play
-`versionCode` scheme), so a later `main` upload of the same version still sorts above a
-pre-release. Promote only `main` releases to the stores.
 
 Merging reviewed code to `main` starts production OTA for that exact commit. A successful
 OTA then starts the native TestFlight and Play internal build for the same commit. To retry
