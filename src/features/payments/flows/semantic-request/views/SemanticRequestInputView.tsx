@@ -17,6 +17,7 @@ import { useEffect, useContext, useMemo } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -221,7 +222,11 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
+                    {error.showError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={error.errorMessage} />
+                        </Callout>
+                    )}
                 </div>
 
                 {/* action list for non-logged in users */}
