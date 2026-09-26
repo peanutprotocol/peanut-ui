@@ -109,11 +109,13 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 }))
 let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
 let mockRegionRestricted = false
+let mockTerminalFailure = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
         identity: mockIdentity,
         isProcessing: mockIdentity.status === 'processing',
         isRegionRestricted: mockRegionRestricted,
+        isTerminalFailure: mockTerminalFailure,
     }),
 }))
 jest.mock('@/components/Kyc/modals/KycRegionRestrictedModal', () => ({
@@ -181,7 +183,10 @@ jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
         visible ? <div>processing-modal-open:{pendingSince ?? 'fresh'}</div> : null,
 }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
-jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
+jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
+    KycFailedModal: ({ visible, isTerminal }: { visible: boolean; isTerminal?: boolean }) =>
+        visible ? <div>failed-modal-open:{isTerminal ? 'terminal' : 'retry'}</div> : null,
+}))
 jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
     __esModule: true,
     default: ({
@@ -235,6 +240,7 @@ describe('MoneySettings', () => {
         mockUser = null
         mockIdentity = { status: 'not_started' }
         mockRegionRestricted = false
+        mockTerminalFailure = false
         mockKycDegraded = false
         mockFlowError = null
         mockFlowCooldown = null
@@ -515,6 +521,29 @@ describe('MoneySettings', () => {
         const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
         expect(brl.getByText('Attention')).toBeInTheDocument()
         expect(brl.queryByText('Unlock')).not.toBeInTheDocument()
+    })
+
+    // ui#3508 funnel capture: a FINAL rejection read "Send to any Pix key · Unlock"
+    it('a finally rejected identity reads Attention on QR and the Pix send, and the tap explains the decision', () => {
+        mockTerminalFailure = true
+        mockIdentity = { status: 'failed' }
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        const { unmount } = render('payments')
+        const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
+        expect(qrRow.getByText('Attention')).toBeInTheDocument()
+        expect(qrRow.queryByText('Unlock')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('QR payments'))
+        expect(screen.getByText('failed-modal-open:terminal')).toBeInTheDocument()
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        unmount()
+
+        render()
+        const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+        expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
+        expect(brl.getByText('Attention')).toBeInTheDocument()
+        expect(brl.queryByText('Unlock')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(screen.getByText('failed-modal-open:terminal')).toBeInTheDocument()
     })
 
     // Audit C53: the legacy Bridge-only cohort has no Manteca pay rail, so

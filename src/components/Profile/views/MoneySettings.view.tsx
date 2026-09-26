@@ -121,7 +121,12 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         nextActions,
         isLoading: isLoadingCapabilities,
     } = useCapabilities()
-    const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
+    const {
+        identity,
+        isProcessing: isIdentityInReview,
+        isRegionRestricted,
+        isTerminalFailure: isIdentityFinallyRejected,
+    } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
     const queryClient = useQueryClient()
@@ -151,6 +156,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const qrPay = selectQrKycGate({
         isLoading: isLoadingCapabilities,
         isRegionRestricted,
+        isTerminalFailure: isIdentityFinallyRejected,
         canPayManteca: canDo('pay', { provider: 'manteca' }),
         mantecaRails: railsForProvider('manteca'),
         nextActions,
@@ -233,7 +239,14 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
-    const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
+    // A finally rejected identity cannot pass a new check, so an unlock tap
+    // explains the decision instead of starting one (the region refusal has
+    // its own screen below). The rows read Attention for it (`qrPayChip`).
+    const baseModalVariant = !selectedRegion
+        ? null
+        : isIdentityFinallyRejected
+          ? ('rejected' as const)
+          : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
     // Only support can unblock a terminally rejected rail. This surface holds
     // none of the Sumsub reject fields the modal reads, so it always offered
     // "Try again" — a retry that cannot succeed, on the one screen of three
@@ -575,7 +588,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 rejectLabels={null}
                 rejectType={null}
                 failureCount={undefined}
-                isTerminal={clickedRailIsTerminal}
+                isTerminal={clickedRailIsTerminal || isIdentityFinallyRejected}
             />
 
             <ActionModal
