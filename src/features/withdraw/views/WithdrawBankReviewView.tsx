@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
@@ -353,7 +354,11 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     {confirmPendingCopy}
                 </Callout>
             ) : (
-                error.showError && <Callout priority="error">{error.errorMessage}</Callout>
+                error.showError && (
+                    <Callout priority="error">
+                        <CooldownErrorText message={error.errorMessage} />
+                    </Callout>
+                )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>

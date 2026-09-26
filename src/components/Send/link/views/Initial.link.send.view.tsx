@@ -3,6 +3,7 @@
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -317,7 +318,7 @@ const LinkSendInitialView = () => {
                 )}
                 {isFlowError && (
                     <Callout priority="error" data-testid="error-alert">
-                        {errorState.errorMessage}
+                        <CooldownErrorText message={errorState.errorMessage} />
                     </Callout>
                 )}
             </div>

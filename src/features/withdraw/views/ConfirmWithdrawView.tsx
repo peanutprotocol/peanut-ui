@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -296,7 +297,11 @@ export default function ConfirmWithdrawView({
                 {belowMinimumMessage && !insufficientBalance && !error && (
                     <Callout priority="error">{belowMinimumMessage}</Callout>
                 )}
-                {error && <Callout priority="error">{error}</Callout>}
+                {error && (
+                    <Callout priority="error">
+                        <CooldownErrorText message={error} />
+                    </Callout>
+                )}
             </div>
         </div>
     )
