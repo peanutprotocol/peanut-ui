@@ -230,15 +230,86 @@ describe('release-ota.yml publishes main source', () => {
     })
 })
 
+function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'internal' } = {}) {
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
+    const output = path.join(dir, 'output')
+    const script = `
+        git() {
+            if [ "$1" = "ls-remote" ]; then printf '%s\\trefs/heads/dev\\n' "$DEV_TIP"; else command git "$@"; fi
+        }
+        ${guard}
+    `
+    const result = spawnSync('bash', ['-eu', '-c', script], {
+        env: {
+            ...process.env,
+            GITHUB_REF_NAME: branch,
+            GITHUB_REF_TYPE: 'branch',
+            GITHUB_EVENT_NAME: event,
+            GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+            GITHUB_SHA: 'a'.repeat(40),
+            GITHUB_OUTPUT: output,
+            OTA_SOURCE_SHA: 'a'.repeat(40),
+            DEV_TIP: devTip,
+            TRACK: track,
+        },
+        encoding: 'utf8',
+    })
+    const outputs = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { ...result, outputs }
+}
+
 describe('native release source branch', () => {
     const guard = guardOf('release-native.yml')
 
     it('accepts only manual main dispatches during the OTA-first stage', () => {
-        expect(run(guard, 'main', 'workflow_run').status).toBe(1)
-        expect(run(guard, 'main', 'push').status).toBe(1)
-        expect(run(guard, 'main', 'workflow_dispatch').status).toBe(0)
-        expect(run(guard, 'dev', 'workflow_dispatch').status).toBe(1)
-        expect(run(guard, 'release/android-kyc', 'workflow_dispatch').status).toBe(1)
+        const dispatch = runNative(guard, 'main', 'workflow_dispatch')
+        expect(dispatch.status).toBe(0)
+        expect(dispatch.outputs).toBe('prerelease=false\n')
+        expect(runNative(guard, 'main', 'workflow_run').status).toBe(1)
+        expect(runNative(guard, 'main', 'push').status).toBe(1)
+    })
+
+    it('pre-releases a dev dispatch only at the current dev tip', () => {
+        const result = runNative(guard, 'dev', 'workflow_dispatch')
+        expect(result.status).toBe(0)
+        expect(result.outputs).toBe('prerelease=true\n')
+
+        const stale = runNative(guard, 'dev', 'workflow_dispatch', { devTip: 'b'.repeat(40) })
+        expect(stale.status).toBe(1)
+        expect(stale.stderr).toContain('dev advanced after dispatch')
+    })
+
+    it('keeps dev pre-releases on Play internal', () => {
+        const result = runNative(guard, 'dev', 'workflow_dispatch', { track: 'production' })
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('Play internal')
+    })
+
+    it.each([
+        ['dev', 'workflow_run'],
+        ['release/android-kyc', 'workflow_dispatch'],
+        ['feature/kyc', 'workflow_dispatch'],
+    ])('refuses %s on %s', (branch, event) => {
+        const result = runNative(guard, branch, event)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('::error::')
+    })
+
+    it('never tags or touches production OTA from a dev pre-release', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        expect(workflow).toMatch(
+            /tag:\n\s+needs: \[resolve, ios, android\]\n\s+if: needs.resolve.outputs.prerelease != 'true'/
+        )
+        expect(workflow.match(/prerelease: \$\{\{ needs.resolve.outputs.prerelease == 'true' \}\}/g)).toHaveLength(2)
+        for (const platform of ['ios', 'android']) {
+            const callee = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
+            expect(callee).toContain('PRERELEASE: ${{ inputs.prerelease == true }}')
+            expect(callee).toContain('echo "NEXT_PUBLIC_NATIVE_PRERELEASE=true"')
+            expect(callee).toContain(
+                'if [ "$PRERELEASE" = true ]; then\n                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"'
+            )
+        }
     })
 
     it('does not automatically build native binaries during the OTA-first stage', () => {

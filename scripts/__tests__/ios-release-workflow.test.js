@@ -16,4 +16,12 @@ describe('iOS release workflow', () => {
             "steps.ota_floor.outputs.needs_ota == 'true' && github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'"
         )
     })
+
+    // Both the main and dev lanes call this workflow, and run_number is the caller's
+    // counter, so it cannot order uploads of one version across them.
+    it('numbers builds by wall clock, not the caller run number', () => {
+        expect(workflowSource).not.toContain('github.run_number')
+        expect(workflowSource).toContain('IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"')
+        expect(workflowSource).toContain('CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"')
+    })
 })
