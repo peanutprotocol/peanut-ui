@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import {
     initiateSumsubKyc,
     getVerificationSession,
@@ -104,15 +105,22 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
 
-    // Localize a failed action result: known codes map onto catalog copy,
-    // codeless results keep the backend's display-ready prose.
+    // Localize a failed action result: known codes map onto catalog copy (a
+    // residence refusal onto its capability reason line), codeless results
+    // keep the backend's display-ready prose.
     const actionErrorMessage = useCallback(
-        (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
-            (result.code && result.code in ACTION_ERROR_KEYS
-                ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
-                : result.error) ?? null,
-        [t]
+        (result: { error?: string; code?: SumsubActionErrorCode }): string | null => {
+            const reasonKey = reasonCodeKey(result.code)
+            if (reasonKey) return tIdentity(reasonKey)
+            return (
+                (result.code && result.code in ACTION_ERROR_KEYS
+                    ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
+                    : result.error) ?? null
+            )
+        },
+        [t, tIdentity]
     )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -436,7 +444,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (isTerminalActionCode(response.code)) {
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
-                    setError(response.error || t('errorInitiateFailed'))
+                    setError(actionErrorMessage(response) || t('errorInitiateFailed'))
                     return false
                 }
 

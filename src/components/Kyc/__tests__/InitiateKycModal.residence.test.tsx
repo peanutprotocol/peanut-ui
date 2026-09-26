@@ -88,6 +88,15 @@ describe('InitiateKycModal — residence check', () => {
         expect(screen.getByRole('heading', { name: 'Not available in this country' })).toBeInTheDocument()
     })
 
+    // api#1738: a rail refused for a (possibly pending) residence the device
+    // restriction read cannot see still ends on the neutral screen
+    it('shows the country-neutral screen for a residence_bank_restricted rail, without the UK copy', () => {
+        renderModal({ variant: 'bank-unavailable' })
+        expect(screen.getByText('Not available in this country')).toBeInTheDocument()
+        expect(screen.queryByText('Not available for UK residents')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
+    })
+
     it('yields to the document-jurisdiction screen', () => {
         mockRestrictions = { banking: true, card: true }
         mockIsRegionRestricted = true

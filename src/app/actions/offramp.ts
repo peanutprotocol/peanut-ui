@@ -48,7 +48,7 @@ export async function createOfframp(
 
         if (!response.ok) {
             return {
-                error: data.error || 'Failed to create off-ramp transfer.',
+                error: data.userMessage || data.error || 'Failed to create off-ramp transfer.',
                 code: data.code,
                 status: response.status,
             }
@@ -149,7 +149,7 @@ export async function createOfframpForGuest(
 
         if (!response.ok) {
             return {
-                error: data.error || 'Failed to create off-ramp transfer for guest.',
+                error: data.userMessage || data.error || 'Failed to create off-ramp transfer for guest.',
                 code: data.code,
                 status: response.status,
             }
@@ -197,7 +197,7 @@ export async function confirmOfframp(
 
         if (!response.ok) {
             const data = await response.json()
-            return { error: data.error || 'Failed to confirm off-ramp transfer.' }
+            return { error: data.userMessage || data.error || 'Failed to confirm off-ramp transfer.' }
         }
 
         return { data: { success: true } }

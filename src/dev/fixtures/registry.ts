@@ -1407,8 +1407,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-payments': {
         route: '/profile/payments',
-        about: 'Payments page: residence, the card, QR and Pix key payments, then the Peanut rows.',
+        about: 'Payments page: residence, the card and QR payments, then the Peanut rows.',
         responses: VA_READY_RESPONSE,
+    },
+    'profile-accounts-br-resident': {
+        route: '/profile/accounts',
+        about: 'Accounts page, a Brazilian resident: BRL is their bank rail, and its drawer sends to a Pix key.',
+        responses: {
+            'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+        },
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',

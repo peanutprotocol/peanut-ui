@@ -169,8 +169,7 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR",
-                "pixKey": "Pagos con clave Pix"
+                "qrPay": "Pagos QR"
             },
             "chips": {
                 "active": "Disponible",
@@ -181,6 +180,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueá este método de pago",
@@ -229,8 +229,7 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
-                "pixKey": "Pagá cualquier clave Pix en Brasil."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
@@ -241,15 +240,13 @@
                 "usd": "Mové dólares entre tu banco y Peanut.",
                 "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guardá y mové euros sin un banco local.",
-                "qrPay": "Escaneá y pagá donde vivís.",
-                "pixKey": "Pagá cualquier clave Pix, sin QR."
+                "qrPay": "Escaneá y pagá donde vivís."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
             "qrPayNote": "Brasil y Argentina",
-            "pixKeyNote": "Claves Pix de Brasil",
             "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {
@@ -1437,6 +1434,7 @@
             "manteca_action_correction_required": "Corregí la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
         }
     },
