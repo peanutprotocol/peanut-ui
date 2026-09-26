@@ -353,8 +353,7 @@
                 "usd": "USD · Bank transfer",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments",
-                "pixKey": "Pix key payments"
+                "qrPay": "QR payments"
             },
             "chips": {
                 "active": "Available",
@@ -365,6 +364,7 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "bankOnlyNotAvailableNote": "Bank transfers aren't available for residents of your country.",
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
             "unlockModal": {
                 "title": "Unlock {method}",
@@ -415,8 +415,7 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
-                "pixKey": "Pay any Pix key in Brazil."
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
@@ -427,15 +426,13 @@
                 "usd": "Move dollars between your bank and Peanut.",
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
-                "qrPay": "Scan and pay where you live.",
-                "pixKey": "Pay any Pix key, no QR needed."
+                "qrPay": "Scan and pay where you live."
             },
             "detailsDrawer": {
                 "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
             "qrPayNote": "Brazil and Argentina",
-            "pixKeyNote": "Any Pix key in Brazil",
             "pixSendNote": "Send to any Pix key"
         },
         "backup": {

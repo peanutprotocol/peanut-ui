@@ -11,10 +11,13 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import IconStack from '@/components/Global/IconStack'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -29,8 +32,9 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
-import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { QrKycState } from '@/constants/kyc.consts'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
@@ -52,6 +56,7 @@ import { useAuth } from '@/context/authContext'
 import {
     BANK_ROW_COUNTRIES,
     buildUnlockGroups,
+    PIX_SEND_HREF,
     withPixSend,
     type BankRowKey,
     type UnlockGroup,
@@ -89,8 +94,8 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
  * The two profile pages behind the money settings, split 2026-09-25 (hugo):
  * Accounts lists the accounts and the other ways money moves in and out of
  * Peanut; Payments lists the ways to spend and the always-on Peanut rows.
- * Pix and ARS are both, so they show on both: the BRL and ARS bank rows here,
- * QR and Pix key payments there.
+ * Pix and ARS are both, so they show on both: the BRL and ARS bank rows on
+ * Accounts (BRL also sends to any Pix key), QR payments on Payments.
  *
  * One screen with two lists, not two screens: the residence row at the top,
  * the verification notices and every modal and drawer a row opens are the
@@ -107,8 +112,21 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const [openView, setOpenView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, nextActionsForRail, canDo } = useCapabilities()
-    const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
+    const {
+        rails,
+        isKycApproved,
+        nextActionsForRail,
+        canDo,
+        railsForProvider,
+        nextActions,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
+    const {
+        identity,
+        isProcessing: isIdentityInReview,
+        isRegionRestricted,
+        isTerminalFailure: isIdentityFinallyRejected,
+    } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
     const queryClient = useQueryClient()
@@ -116,7 +134,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { setIsSupportModalOpen } = useModalsContext()
 
-    const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
 
@@ -130,6 +147,21 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         secondResidenceIso2,
     } = useBankRows()
     const hasActiveCard = !!findActiveCard(overview)
+    // Would a QR payment go through today? The gate /qr-pay itself enforces
+    // and Home reads (`selectQrKycGate`), so the QR row, the Pix key send and
+    // those screens give one answer (audit C53). It replaces a second path
+    // that also counted a legacy Bridge-only cohort with no Manteca rail:
+    // /qr-pay sends that cohort to verification, so the row promised a
+    // payment the scan then refused.
+    const qrPay = selectQrKycGate({
+        isLoading: isLoadingCapabilities,
+        isRegionRestricted,
+        isTerminalFailure: isIdentityFinallyRejected,
+        canPayManteca: canDo('pay', { provider: 'manteca' }),
+        mantecaRails: railsForProvider('manteca'),
+        nextActions,
+    }).kycGateState
+    const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 
     const groups = useMemo(
         () =>
@@ -137,27 +169,22 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 bankChips,
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
-                // deposit or withdraw. `unlockedRegions` still covers the
-                // legacy Bridge-only cohort, who pay by QR with no Manteca
-                // rail at all.
-                canPayQr:
-                    canDo('pay', { provider: 'manteca' }) ||
-                    unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
-                // the /qr-pay gate itself (useQrPayKycGate), so the Pix key row
-                // never links a user that screen would turn back
-                canPayPixKey: canDo('pay', { provider: 'manteca' }),
+                // deposit or withdraw.
+                qrPay,
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
             }),
-        [bankChips, canDo, unlockedRegions, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [bankChips, qrPay, restrictions, hasActiveCard, cardInfo?.geoProhibited]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
-    const pixKeyRow = spendGroup?.rows.find((row) => row.id === 'pix-key')
-    const accountBankRows = useMemo(() => withPixSend(bankRows, pixKeyRow), [bankRows, pixKeyRow])
+    const accountBankRows = useMemo(
+        () => withPixSend(bankRows, { qrPay, brlChip: bankChips.brl }),
+        [bankRows, qrPay, bankChips.brl]
+    )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
     const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
@@ -212,7 +239,14 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
-    const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
+    // A finally rejected identity cannot pass a new check, so an unlock tap
+    // explains the decision instead of starting one (the region refusal has
+    // its own screen below). The rows read Attention for it (`qrPayChip`).
+    const baseModalVariant = !selectedRegion
+        ? null
+        : isIdentityFinallyRejected
+          ? ('rejected' as const)
+          : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
     // Only support can unblock a terminally rejected rail. This surface holds
     // none of the Sumsub reject fields the modal reads, so it always offered
     // "Try again" — a retry that cannot succeed, on the one screen of three
@@ -343,8 +377,10 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     // No card-only note: a card-restricted user already reads "Not available"
     // on the card row itself (unlock-payments.utils), so the footer line only
-    // repeated it. The banking note stays — it covers card issuing too. A bank
-    // row withheld for residence alone explains itself in the list's drawer.
+    // repeated it. The banking note stays, and names card issuing only for a
+    // residence that restricts both: a banking-only residence keeps its card
+    // (audit C42). A bank row withheld for residence alone explains itself in
+    // the list's drawer.
     const showBankRestrictionNote = restrictions.banking
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
@@ -361,6 +397,12 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
     const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
+    // A BRL row that opens this drawer is a bank rail, not the Pix send
+    // `withPixSend` makes of it outside Brazil (that row navigates instead).
+    // Its holder may still send to a Pix key, on the same capability.
+    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow
+    // the user's own BRL rail behind a row that leads with the Pix key send
+    const detailsBankRail = detailsRow?.bankChip ? { ...detailsRow, chip: detailsRow.bankChip } : null
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -471,7 +513,9 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             )}
 
             {showBankRestrictionNote && (
-                <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
+                <p className="text-body-xs text-foreground-secondary">
+                    {t(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote')}
+                </p>
             )}
 
             {/* Region-restricted users get the one honest region screen instead
@@ -544,7 +588,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 rejectLabels={null}
                 rejectType={null}
                 failureCount={undefined}
-                isTerminal={clickedRailIsTerminal}
+                isTerminal={clickedRailIsTerminal || isIdentityFinallyRejected}
             />
 
             <ActionModal
@@ -685,10 +729,25 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                 use, with a green check to read as a capability. */}
                             <Section title={t('detailsDrawer.aboutTitle')}>
                                 <ListGroup>
-                                    <ListItem
-                                        leading={<IconBubble icon="check" size="s" color="green" />}
-                                        title={t(`details.${detailsRow.labelKey}`)}
-                                    />
+                                    {detailsBankRail ? (
+                                        // The row leads with the Pix key send; the user's own
+                                        // bank rail keeps its status here, and its flow.
+                                        <ListItem
+                                            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            trailing={rowStatusBadge(detailsBankRail, t)}
+                                            chevron={isRowTappable(detailsBankRail, isKycDegraded)}
+                                            onClick={() => {
+                                                setDetailsRow(null)
+                                                handleRowClick(detailsBankRail)
+                                            }}
+                                        />
+                                    ) : (
+                                        <ListItem
+                                            leading={<IconBubble icon="check" size="s" color="green" />}
+                                            title={t(`details.${detailsRow.labelKey}`)}
+                                        />
+                                    )}
                                 </ListGroup>
                             </Section>
 
@@ -697,6 +756,13 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                 <Section title={t('detailsDrawer.limitsTitle')}>
                                     <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
                                 </Section>
+                            )}
+
+                            {/* The words the BRL row carries outside Brazil. */}
+                            {showPixSend && (
+                                <Button variant="primary" className="w-full" href={PIX_SEND_HREF}>
+                                    {t('pixSendNote')}
+                                </Button>
                             )}
                         </div>
                     )}
@@ -719,12 +785,32 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
 
 /**
  * Every row leads with its concept's bubble (CONCEPT_ICONS), whatever its
- * status: the badge carries the status, so QR payments look the same here as
- * in the bottom nav, activity and receipts.
+ * status: the badge carries the status. The QR row leads with the flags of the
+ * countries it pays in instead, overlapped like the send-link card's chat
+ * apps (TASK-23054, hugo), at the width of the bubble it replaces.
  */
 function rowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    if (row.flags) {
+        const flagSize = FLAG_STACK_SIZES[size]
+        return (
+            <IconStack
+                icons={row.flags.map(getFlagUrl)}
+                // decorative: the row's own line names both countries
+                alt=""
+                iconClassName={flagSize}
+                imageClassName={`${flagSize} object-cover`}
+            />
+        )
+    }
     return <IconBubble {...CONCEPT_ICONS[row.concept]} size={size} />
 }
+
+// IconStack overlaps its icons by 8px: two 20px flags span the 32px of the s
+// bubble they replace in the list, two 32px flags lead the details drawer.
+const FLAG_STACK_SIZES = {
+    s: 'size-5 min-h-5 max-h-5 min-w-5 max-w-5',
+    m: 'size-8 min-h-8 max-h-8 min-w-8 max-w-8',
+} as const
 
 const RowSection = ({
     group,
@@ -755,10 +841,10 @@ const RowSection = ({
                             disabled={row.chip === 'notAvailable' && !closed}
                             leading={rowLeading(row)}
                             title={t(`rows.${row.labelKey}`)}
-                            // QR payments and Pix keys are the rows people do
-                            // not recognise by name, so each carries its
-                            // explainer under the title — where each pays, in
-                            // one line at 375px (Slava, 2026-09-25).
+                            // QR payments is the row people do not recognise
+                            // by name, so it carries its explainer under the
+                            // title — where it pays, in one line at 375px
+                            // (Slava, 2026-09-25).
                             body={row.note && t(row.note)}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
