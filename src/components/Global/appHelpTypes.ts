@@ -1,4 +1,4 @@
-export const APP_HELP_SLUGS = [
+const HELP_ARTICLE_SLUGS = [
     'verification',
     'account-recovery',
     'transaction-limits',
@@ -7,6 +7,17 @@ export const APP_HELP_SLUGS = [
     'passkeys',
     'security-disclosure',
 ] as const
+export const APP_LEGAL_SLUGS = [
+    'terms',
+    'privacy',
+    'card-terms-us',
+    'card-terms-international',
+    'card-esign',
+    'card-privacy',
+    'card-prohibited-activities',
+] as const
+
+export const APP_HELP_SLUGS = [...HELP_ARTICLE_SLUGS, ...APP_LEGAL_SLUGS] as const
 export type AppHelpSlug = (typeof APP_HELP_SLUGS)[number]
 
 export const HELP_LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
@@ -42,5 +53,17 @@ export const toHelpLocale = (appLocale: string): HelpLocale => {
  */
 export const appHelpArticlePath = (slug: AppHelpSlug, locale: HelpLocale) => `/app-help/${locale}/${slug}.json`
 
-/** The public help page for an article, opened when the drawer cannot load it. */
-export const appHelpPagePath = (slug: AppHelpSlug, locale: HelpLocale) => `/${locale}/help/${slug}`
+export const appHelpContentType = (slug: AppHelpSlug): 'help' | 'legal' =>
+    APP_LEGAL_SLUGS.some((legal) => legal === slug) ? 'legal' : 'help'
+
+/** The public source page, opened when the drawer cannot load the document. */
+export const appHelpPagePath = (slug: AppHelpSlug, locale: HelpLocale) =>
+    appHelpContentType(slug) === 'legal' ? `/${locale}/${slug}` : `/${locale}/help/${slug}`
+
+/** Legal documents opt in so consent modals retain their existing navigation. */
+export function appHelpSlugForHref(href: string, includeLegal = false): AppHelpSlug | null {
+    const help = href.match(/^\/(?:en|es-419|es-ar|pt-br)\/help\/([^/?#]+)$/)?.[1]
+    if (help && isAppHelpSlug(help) && appHelpContentType(help) === 'help') return help
+    const legal = href.match(/^\/(?:(?:en|es-419|es-ar|pt-br)\/)?([^/?#]+)$/)?.[1]
+    return includeLegal && legal && isAppHelpSlug(legal) && appHelpContentType(legal) === 'legal' ? legal : null
+}

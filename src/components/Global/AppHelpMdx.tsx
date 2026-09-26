@@ -31,7 +31,7 @@ const APP_HELP_COMPONENTS: Record<string, ComponentType<Props>> = {
     // Internal hrefs arrive already resolved for the article's locale (see appHelpArticle.server).
     a: ({ href, children }) =>
         typeof href === 'string' && href.startsWith('/') ? (
-            <DocsLink href={href} className="underline underline-offset-2">
+            <DocsLink href={href} className="underline underline-offset-2" openInDrawer>
                 {children}
             </DocsLink>
         ) : (

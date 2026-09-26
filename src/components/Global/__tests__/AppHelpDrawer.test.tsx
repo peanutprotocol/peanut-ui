@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import DocsLink from '../DocsLink'
 import { AppHelpProvider } from '../AppHelpProvider'
-import { APP_HELP_SLUGS, type AppHelpArticle, type AppHelpNode } from '../appHelpTypes'
+import { APP_HELP_SLUGS, appHelpPagePath, type AppHelpArticle, type AppHelpNode } from '../appHelpTypes'
 import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false }))
@@ -35,7 +35,9 @@ function renderLink(locale: 'en' | 'es-419' | 'es-AR' | 'pt-BR', href: string) {
     render(
         <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
             <AppHelpProvider>
-                <DocsLink href={href}>Read help</DocsLink>
+                <DocsLink href={href} openInDrawer>
+                    Read help
+                </DocsLink>
             </AppHelpProvider>
         </NextIntlClientProvider>
     )
@@ -59,10 +61,22 @@ describe('app help drawers', () => {
         expect(fetchMock).not.toHaveBeenCalled()
     })
 
+    it('uses the legal public route when a policy cannot load', async () => {
+        const openSpy = jest.spyOn(window, 'open').mockReturnValue({ opener: null } as unknown as Window)
+        renderLink('es-AR', '/card-privacy')
+        openHelp()
+        await waitFor(() => expect(openSpy).toHaveBeenCalledWith('/es-ar/card-privacy', '_blank'))
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+            '/app-help/es-ar/card-privacy.json',
+            '/app-help/en/card-privacy.json',
+        ])
+        openSpy.mockRestore()
+    })
+
     it.each(APP_HELP_SLUGS)('opens the %s article on its own, without navigation', async (slug) => {
         APP_HELP_SLUGS.forEach((each) => serve(each, 'en'))
         const pathname = window.location.pathname
-        renderLink('en', `/en/help/${slug}`)
+        renderLink('en', appHelpPagePath(slug, 'en'))
         openHelp()
         expect(await screen.findByText(`${slug} article en`)).toBeInTheDocument()
         expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/en/${slug}.json`])
@@ -124,6 +138,15 @@ describe('app help drawers', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
         expect(await screen.findByText('request-money article es-ar')).toBeInTheDocument()
         openSpy.mockRestore()
+    })
+
+    it.each(['es-419', 'es-AR', 'pt-BR'] as const)('loads legal documents in %s', async (locale) => {
+        const contentLocale = locale.toLowerCase()
+        serve('terms', contentLocale)
+        renderLink(locale, '/terms')
+        openHelp()
+        expect(await screen.findByText(`terms article ${contentLocale}`)).toBeInTheDocument()
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/${contentLocale}/terms.json`])
     })
 
     it('leaves the full help center link available', () => {

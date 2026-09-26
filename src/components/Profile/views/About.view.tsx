@@ -103,7 +103,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 {/* whole row is the link: DocsLink keeps the locale + in-app
                     browser routing, ListItem carries the DS row anatomy */}
                 {LEGAL_POLICIES.map((doc, index) => (
-                    <DocsLink key={doc.href} href={doc.href} className="block">
+                    <DocsLink key={doc.href} href={doc.href} className="block" openInDrawer>
                         <ListItem
                             title={t(`policies.${doc.key}`)}
                             chevron
