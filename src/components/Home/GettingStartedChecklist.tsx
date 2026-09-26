@@ -18,6 +18,7 @@ import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import { type OnboardingState, canHideChecklist } from '@/utils/activation-step.utils'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -35,13 +36,22 @@ interface ChecklistItem {
     done: boolean
     /** open but nothing to do yet (ID check in review): "In review" on the subtitle line */
     inReview?: boolean
+    /** the ID check needs something from the user: "Action needed" on the subtitle line */
+    needsAction?: boolean
     /** the row holds its place while its content is unknown (card eligibility loading) */
     pending?: boolean
     onTap?: () => void
 }
 
-/** where the ID check starts, and where its status lives while in review */
-const VERIFY_HREF = '/profile/accounts'
+/**
+ * The Verify row starts the ID check itself, by what the residence allows
+ * (Slava via Hugo, 2026-09-26: never the Accounts list): the shared start
+ * modal for most people (`onStartIdentityCheck`), the card for a residence
+ * where bank rails are closed but the card is not, and the QR ID check where
+ * both are closed, since QR pay is open to every verified user
+ * (`onStartQrIdentityCheck`).
+ */
+const CARD_HREF = '/card'
 
 const FIRST_PAYMENT_BUBBLE = {
     card_qr: CONCEPT_ICONS.qrPay,
@@ -83,14 +93,31 @@ const SubtitleSkeleton = () => (
  * check. Every row has the same ListItem border (Hugo, 2026-09-25): the next
  * step shows only by its order and its chevron.
  */
-const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: OnboardingState; onHide?: () => void }) => {
+const GettingStartedChecklist = ({
+    onboarding,
+    onHide,
+    onStartIdentityCheck,
+    onStartQrIdentityCheck,
+}: {
+    onboarding: OnboardingState
+    onHide?: () => void
+    /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
+    onStartIdentityCheck?: () => void
+    /** starts the QR ID check (ActivationCTAs owns the flow and its modals) */
+    onStartQrIdentityCheck?: () => void
+}) => {
     const t = useTranslations('home.gettingStarted')
+    const tKyc = useTranslations('kyc')
     const router = useRouter()
     const [, setHomeDrawer] = useHomeDrawer()
     const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const [isChooserOpen, setIsChooserOpen] = useState(false)
+    // the identity status drawer: what the check needs, and its one fix
+    const [isStatusDrawerOpen, setIsStatusDrawerOpen] = useState(false)
+    // keeps the drawer mounted while the verification it started runs
+    const [keepStatusDrawerMounted, setKeepStatusDrawerMounted] = useState(false)
 
     const { verify, addMoneyDone, firstPaymentDone, firstPaymentRoute } = onboarding
 
@@ -116,10 +143,33 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
                         ? t('verifyIdentityDone')
                         : verify === 'in_review'
                           ? t('inReview')
-                          : t('verifyIdentityNote'),
+                          : verify === 'action_required'
+                            ? tKyc('actionNeeded')
+                            : verify === 'failed'
+                              ? tKyc('statusFailed')
+                              : t('verifyIdentityNote'),
                 done: verify === 'done',
                 inReview: verify === 'in_review',
-                onTap: tap('verify-identity', () => router.push(VERIFY_HREF)),
+                needsAction: verify === 'action_required',
+                // a final decision has no step for the user (Home shows the
+                // support card instead of this list)
+                onTap:
+                    verify === 'failed'
+                        ? undefined
+                        : tap('verify-identity', () => {
+                              if (verify === 'action_required' || verify === 'in_review') {
+                                  // the check's own status: its fix (resubmit, or
+                                  // the email collision's way out), or "in review"
+                                  setIsStatusDrawerOpen(true)
+                              } else if (!restrictions.banking) {
+                                  onStartIdentityCheck?.()
+                              } else if (!restrictions.card) {
+                                  // bank rails are closed here; the card is the door
+                                  router.push(CARD_HREF)
+                              } else {
+                                  onStartQrIdentityCheck?.()
+                              }
+                          }),
             },
             {
                 id: 'add-money',
@@ -170,10 +220,14 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
         firstPaymentDone,
         firstPaymentRoute,
         restrictions.banking,
+        restrictions.card,
+        onStartIdentityCheck,
+        onStartQrIdentityCheck,
         router,
         setHomeDrawer,
         setIsQRScannerOpen,
         t,
+        tKyc,
         verify,
     ])
 
@@ -247,6 +301,8 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
                                     <Badge status="completed" type="icon" />
                                 ) : item.inReview ? (
                                     <Badge status="processing" type="icon" />
+                                ) : item.needsAction ? (
+                                    <Badge status="pending" type="icon" />
                                 ) : undefined
                             }
                             chevron={tappable}
@@ -270,6 +326,13 @@ const GettingStartedChecklist = ({ onboarding, onHide }: { onboarding: Onboardin
                 >
                     {t('hide')}
                 </LinkButton>
+            )}
+            {(isStatusDrawerOpen || keepStatusDrawerMounted) && (
+                <KycStatusDrawer
+                    isOpen={isStatusDrawerOpen}
+                    onClose={() => setIsStatusDrawerOpen(false)}
+                    onKeepMounted={setKeepStatusDrawerMounted}
+                />
             )}
             {firstPaymentRoute === 'card_qr' && (
                 <FirstPaymentChooser open={isChooserOpen} onClose={() => setIsChooserOpen(false)} />

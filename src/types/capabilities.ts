@@ -231,6 +231,13 @@ export interface IdentityVerification {
     canRetry?: boolean
     /** normalized rejection labels for specific guidance (action_required / failed). */
     rejectLabels?: string[]
+    /**
+     * The provider's rejection tier, when the API sends it. `FINAL` is a
+     * decision even while `status` is action_required (a completed follow-up
+     * level can be stored that way); `RETRY` means a resubmit can pass.
+     * Absent on an older API: the labels decide (isTerminalRejection).
+     */
+    rejectType?: 'RETRY' | 'FINAL'
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
     /** Set by the API only for an uploaded identity check awaiting a decision. */

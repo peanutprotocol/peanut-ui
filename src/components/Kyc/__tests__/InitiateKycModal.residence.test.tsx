@@ -49,14 +49,14 @@ describe('InitiateKycModal — residence check', () => {
 
     it('offers the unlock when banking is available', () => {
         renderModal()
-        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
     })
 
     it('replaces the unlock offer when the residence rules out bank rails', () => {
         mockRestrictions = { banking: true, card: false }
         renderModal()
         expect(screen.getByText('Not available in this country')).toBeInTheDocument()
-        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
     })
 
     it('leaves no path into the SDK for a restricted residence', () => {

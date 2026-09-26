@@ -1753,11 +1753,9 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-card-info-failed': {
         route: '/home',
         balance: '40',
-        about: 'Verified and funded, but card eligibility failed to load: the payment row holds its place.',
+        about: 'Verified and funded, but card eligibility failed to load: the payment row falls back to the QR answer.',
         fails: ['GET /card'],
-        // the held row is the subject: its pulse placeholder is this state, not a page loading
-        isLoadingState: true,
-        waitFor: '[data-testid="checklist-first-payment"] .animate-pulse',
+        waitFor: '[data-testid="checklist-first-payment"]',
         responses: {
             'GET /users/me': {
                 user: {
@@ -1925,6 +1923,148 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': {
                 user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
                 identityVerification: { status: 'failed', reason: { code: 'identity_region_restricted' } },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'home-identity-final-rejected': {
+        route: '/home',
+        balance: '0',
+        about: 'ID check ended on a final decision (not region), no rail works: the verification-issue card replaces the checklist.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: {
+                    status: 'failed',
+                    canRetry: false,
+                    rejectLabels: ['FORGERY'],
+                    reviewedAt: '2026-09-20T10:00:00Z',
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'home-identity-action-required': {
+        route: '/home',
+        balance: '0',
+        about: 'ID check needs a new document: the Verify row says Action needed and opens the status drawer with Resubmit.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: {
+                    status: 'action_required',
+                    actionMessage: 'We need a bit more to verify your identity. Please resubmit your documents.',
+                    rejectLabels: ['BAD_PROOF_OF_IDENTITY'],
+                    rejectType: 'RETRY',
+                },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+            },
+        },
+    },
+    'home-transacting-without-id-check': {
+        route: '/home',
+        balance: '20',
+        about: 'Moves money on a bank rail a partner verified before the one ID check: the Verify row counts as done.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'not_started' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'enabled',
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-card-application-rejected': {
+        route: '/home',
+        balance: '40',
+        about: 'Verified, funded, card application rejected: the payment row offers QR only, not the card.',
+        responses: {
+            'GET /rain/cards': { status: { hasApplication: true, railStatus: 'REJECTED' }, cards: [], balance: null },
+            'GET /users/me': {
+                user: {
+                    activationMilestone: 'funded',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'rain.card_rain',
+                            provider: 'rain',
+                            method: 'CARD_RAIN',
+                            channel: 'card',
+                            country: 'GLOBAL',
+                            currency: 'USD',
+                            status: 'blocked',
+                            operations: { pay: 'blocked' },
+                            reason: { code: 'card_rejected', userMessage: 'The card issuer declined the application.' },
+                        },
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+    'home-banking-restricted-resident': {
+        route: '/home',
+        balance: '0',
+        about: 'Unverified, residence closed to bank rails but open to the card: the Verify row opens /card.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                residence: { declared: 'JP', verified: null, pending: null, declaredSecond: null },
+                residenceRestrictions: { banking: true, card: false },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'home-fully-restricted-resident': {
+        route: '/home',
+        balance: '0',
+        about: 'Unverified, residence closed to bank rails and the card: the checklist shows, and Verify starts the QR ID check.',
+        responses: {
+            ...NO_TIMELINE_EXTRAS,
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                residence: { declared: 'CN', verified: null, pending: null, declaredSecond: null },
+                residenceRestrictions: { banking: true, card: true },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
             },
         },

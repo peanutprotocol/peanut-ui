@@ -25,6 +25,7 @@ const gate = (overrides: Partial<Parameters<typeof selectQrKycGate>[0]> = {}) =>
     selectQrKycGate({
         isLoading: false,
         isRegionRestricted: false,
+        isTerminalFailure: false,
         canPayManteca: false,
         mantecaRails: [],
         nextActions: [],
@@ -38,6 +39,20 @@ describe('selectQrKycGate', () => {
 
     it('an enabled pay op → PROCEED_TO_PAY', () => {
         expect(gate({ canPayManteca: true, mantecaRails: [pix()] })).toBe(QrKycState.PROCEED_TO_PAY)
+    })
+
+    it('an ID check that ended on a final decision, no enabled rail → PROVIDER_REJECTION_BLOCKED, not "Unlock now"', () => {
+        expect(gate({ isTerminalFailure: true })).toBe(QrKycState.PROVIDER_REJECTION_BLOCKED)
+        expect(gate({ isTerminalFailure: true, mantecaRails: [pix({ status: 'pending' })] })).toBe(
+            QrKycState.PROVIDER_REJECTION_BLOCKED
+        )
+        expect(qrPayIsAPath(gate({ isTerminalFailure: true }))).toBe(false)
+    })
+
+    it('a final decision does not take away a pool rail that already pays', () => {
+        expect(gate({ isTerminalFailure: true, canPayManteca: true, mantecaRails: [pix()] })).toBe(
+            QrKycState.PROCEED_TO_PAY
+        )
     })
 
     it('a new user with no Manteca rail (any country) → REQUIRES_IDENTITY_VERIFICATION', () => {
