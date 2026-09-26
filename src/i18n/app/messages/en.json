@@ -426,7 +426,8 @@
                 "usd": "Move dollars between your bank and Peanut.",
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
-                "qrPay": "Scan and pay where you live."
+                "qrPay": "Scan and pay where you live.",
+                "pixSend": "Send reais to any Pix key in Brazil."
             },
             "detailsDrawer": {
                 "aboutTitle": "What it unlocks",

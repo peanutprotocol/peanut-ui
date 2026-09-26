@@ -240,7 +240,8 @@
                 "usd": "Mové dólares entre tu banco y Peanut.",
                 "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guardá y mové euros sin un banco local.",
-                "qrPay": "Escaneá y pagá donde vivís."
+                "qrPay": "Escaneá y pagá donde vivís.",
+                "pixSend": "Enviá reales a cualquier clave Pix de Brasil."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué desbloquea",
