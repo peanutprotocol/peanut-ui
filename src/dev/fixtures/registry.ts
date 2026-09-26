@@ -1299,7 +1299,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-payments': {
         route: '/profile/payments',
-        about: 'Payments page: residence, the card, QR and Pix key payments, then the Peanut rows.',
+        about: 'Payments page: residence, the card and QR payments, then the Peanut rows.',
         responses: VA_READY_RESPONSE,
     },
     'get-paid-empty': {

@@ -348,7 +348,6 @@ describe('MoneySettings', () => {
             render('payments')
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
-            expect(screen.getByText('Pix key payments')).toBeInTheDocument()
         })
     })
 
@@ -1006,10 +1005,24 @@ describe('MoneySettings', () => {
 
             const bubbleOf = (title: string) =>
                 (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
-            expect(bubbleOf('QR payments')).toHaveClass('bg-background-brand')
-            expect(bubbleOf('Pix key payments')).toHaveClass('bg-background-icon-bubble-blue')
             expect(bubbleOf('Peanut card')).toHaveClass('bg-background-icon-bubble-yellow')
             expect(bubbleOf('Crypto')).toHaveClass('bg-background-icon-bubble-blue')
+        })
+
+        // TASK-23054 (hugo): the QR row leads with the flags of the two
+        // countries it pays in, overlapped, instead of the QR bubble; the
+        // title and the "Brazil and Argentina" line stay.
+        it('leads QR payments with the Brazilian and Argentine flags, and lists no Pix key row', () => {
+            render('payments')
+
+            const qrRow = screen.getByText('QR payments').closest('.border') as HTMLElement
+            const flags = Array.from(qrRow.querySelectorAll('img'), (img) => img.getAttribute('src'))
+            expect(flags).toEqual(['/flags/br.svg', '/flags/ar.svg'])
+            expect(qrRow.querySelector('.bg-background-brand')).toBeNull()
+            expect(within(qrRow).getByText('Brazil and Argentina')).toBeInTheDocument()
+
+            expect(screen.queryByText('Pix key payments')).not.toBeInTheDocument()
+            expect(screen.queryByText('Any Pix key in Brazil')).not.toBeInTheDocument()
         })
 
         it('reads Available once the QR rail is live, and explains itself in the drawer', () => {
@@ -1023,43 +1036,6 @@ describe('MoneySettings', () => {
                 within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
             ).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
-        })
-
-        // A Brazilian user read "QR payments" as scan-only and paid Pix keys
-        // in another app (2026-09-23). The key send is its own row.
-        it('names Pix key payments with where they pay, and offers them to a user without QR', () => {
-            render('payments')
-
-            expect(screen.getByText('Any Pix key in Brazil')).toBeInTheDocument()
-            fireEvent.click(screen.getByText('Pix key payments'))
-            expect(screen.getByText('unlock-modal-open:Pix key payments')).toBeInTheDocument()
-            expect(mockPush).not.toHaveBeenCalled()
-        })
-
-        it('opens the send-to-Pix-key screen once the QR rail is live', () => {
-            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
-            render('payments')
-
-            const pixKeyRow = screen.getByText('Pix key payments')
-            expect(within(pixKeyRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
-            fireEvent.click(pixKeyRow)
-            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
-        })
-
-        // Chip review on ui#3400: a Bridge-only user reads QR payments through
-        // the legacy region fallback, but /qr-pay gates on the Manteca pay
-        // capability. The Pix key row must not link them into that gate.
-        it('a Bridge-only user never gets a Pix key link', () => {
-            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
-            render('payments')
-
-            // the QR row still reads Available through the fallback
-            const qrRow = screen.getByText('QR payments')
-            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
-            const pixKeyRow = screen.getByText('Pix key payments')
-            expect(within(pixKeyRow.closest('.border') as HTMLElement).queryByText('Available')).not.toBeInTheDocument()
-            fireEvent.click(pixKeyRow)
-            expect(mockPush).not.toHaveBeenCalled()
         })
 
         it('the bank list never mentions QR any more', () => {
@@ -1209,6 +1185,24 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
         fireEvent.click(screen.getByText('BRL'))
         expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+    })
+
+    // Chip review on ui#3400, kept when the Pix key row left Payments
+    // (TASK-23054): the Bridge-only cohort pays by QR through the region
+    // fallback, but /qr-pay gates on the Manteca pay capability, so the BRL
+    // row must not link them into key entry.
+    it('a Bridge-only non-resident gets the Pix offer on BRL, never a link', () => {
+        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+        render()
+
+        expect(badgeFor('BRL').queryByText('Available')).not.toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Send to any Pix key')).toBeInTheDocument()
+        // this describe has no beforeEach of its own, so earlier taps would still count
+        mockPush.mockClear()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockPush).not.toHaveBeenCalled()
     })
 
     it('a Brazilian rail that already works stays Available after a move', () => {

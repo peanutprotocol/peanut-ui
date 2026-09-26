@@ -353,8 +353,7 @@
                 "usd": "USD · Transferência bancária",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferência bancária",
-                "qrPay": "Pagamentos QR",
-                "pixKey": "Pagamentos por chave Pix"
+                "qrPay": "Pagamentos QR"
             },
             "chips": {
                 "active": "Disponível",
@@ -415,8 +414,7 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
-                "pixKey": "Pague qualquer chave Pix no Brasil."
+                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR."
             },
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
@@ -427,15 +425,13 @@
                 "usd": "Movimente dólares entre seu banco e o Peanut.",
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
-                "qrPay": "Escaneie e pague onde você mora.",
-                "pixKey": "Pague qualquer chave Pix, sem QR code."
+                "qrPay": "Escaneie e pague onde você mora."
             },
             "detailsDrawer": {
                 "aboutTitle": "O que desbloqueia",
                 "limitsTitle": "Limites"
             },
             "qrPayNote": "Brasil e Argentina",
-            "pixKeyNote": "Chaves Pix do Brasil",
             "pixSendNote": "Envie para qualquer chave Pix"
         },
         "backup": {

@@ -11,6 +11,8 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { useBankRows } from '@/hooks/useBankRows'
 import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import IconStack from '@/components/Global/IconStack'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -89,8 +91,8 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
  * The two profile pages behind the money settings, split 2026-09-25 (hugo):
  * Accounts lists the accounts and the other ways money moves in and out of
  * Peanut; Payments lists the ways to spend and the always-on Peanut rows.
- * Pix and ARS are both, so they show on both: the BRL and ARS bank rows here,
- * QR and Pix key payments there.
+ * Pix and ARS are both, so they show on both: the BRL and ARS bank rows on
+ * Accounts (BRL also sends to any Pix key), QR payments on Payments.
  *
  * One screen with two lists, not two screens: the residence row at the top,
  * the verification notices and every modal and drawer a row opens are the
@@ -130,6 +132,8 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         secondResidenceIso2,
     } = useBankRows()
     const hasActiveCard = !!findActiveCard(overview)
+    // The Manteca `pay` capability: the gate /qr-pay itself enforces (useQrPayKycGate).
+    const canPayManteca = canDo('pay', { provider: 'manteca' })
 
     const groups = useMemo(
         () =>
@@ -141,23 +145,22 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 // legacy Bridge-only cohort, who pay by QR with no Manteca
                 // rail at all.
                 canPayQr:
-                    canDo('pay', { provider: 'manteca' }) ||
+                    canPayManteca ||
                     unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
-                // the /qr-pay gate itself (useQrPayKycGate), so the Pix key row
-                // never links a user that screen would turn back
-                canPayPixKey: canDo('pay', { provider: 'manteca' }),
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
             }),
-        [bankChips, canDo, unlockedRegions, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [bankChips, canPayManteca, unlockedRegions, restrictions, hasActiveCard, cardInfo?.geoProhibited]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
-    const pixKeyRow = spendGroup?.rows.find((row) => row.id === 'pix-key')
-    const accountBankRows = useMemo(() => withPixSend(bankRows, pixKeyRow), [bankRows, pixKeyRow])
+    const accountBankRows = useMemo(
+        () => withPixSend(bankRows, { canPay: canPayManteca, brlChip: bankChips.brl }),
+        [bankRows, canPayManteca, bankChips.brl]
+    )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
     const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
@@ -719,12 +722,30 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
 
 /**
  * Every row leads with its concept's bubble (CONCEPT_ICONS), whatever its
- * status: the badge carries the status, so QR payments look the same here as
- * in the bottom nav, activity and receipts.
+ * status: the badge carries the status. The QR row leads with the flags of the
+ * countries it pays in instead, overlapped like the send-link card's chat
+ * apps (TASK-23054, hugo), at the width of the bubble it replaces.
  */
 function rowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    if (row.flags) {
+        const flagSize = FLAG_STACK_SIZES[size]
+        return (
+            <IconStack
+                icons={row.flags.map(getFlagUrl)}
+                iconClassName={flagSize}
+                imageClassName={`${flagSize} object-cover`}
+            />
+        )
+    }
     return <IconBubble {...CONCEPT_ICONS[row.concept]} size={size} />
 }
+
+// IconStack overlaps its icons by 8px: two 20px flags span the 32px of the s
+// bubble they replace in the list, two 32px flags lead the details drawer.
+const FLAG_STACK_SIZES = {
+    s: 'size-5 min-h-5 max-h-5 min-w-5 max-w-5',
+    m: 'size-8 min-h-8 max-h-8 min-w-8 max-w-8',
+} as const
 
 const RowSection = ({
     group,
@@ -755,10 +776,10 @@ const RowSection = ({
                             disabled={row.chip === 'notAvailable' && !closed}
                             leading={rowLeading(row)}
                             title={t(`rows.${row.labelKey}`)}
-                            // QR payments and Pix keys are the rows people do
-                            // not recognise by name, so each carries its
-                            // explainer under the title — where each pays, in
-                            // one line at 375px (Slava, 2026-09-25).
+                            // QR payments is the row people do not recognise
+                            // by name, so it carries its explainer under the
+                            // title — where it pays, in one line at 375px
+                            // (Slava, 2026-09-25).
                             body={row.note && t(row.note)}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}

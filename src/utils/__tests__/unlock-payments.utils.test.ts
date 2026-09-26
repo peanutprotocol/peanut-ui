@@ -13,7 +13,6 @@ const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock',
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
     bankChips: UNLOCK_ALL,
     canPayQr: false,
-    canPayPixKey: false,
     restrictions: { banking: false, card: false },
     card: 'get',
     ...over,
@@ -48,37 +47,22 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('the spending methods are their own group: the card, QR payments, then Pix keys', () => {
+    // TASK-23054: sending to a Pix key is the BRL row on Accounts (`withPixSend`), not a Spend row
+    it('the spending methods are their own group: the card, then QR payments', () => {
         const groups = buildUnlockGroups(base())
         expect(groups[1].id).toBe('spend')
         expect(groups[1].rows.map((r) => [r.id, r.chip])).toEqual([
             ['card', 'unlock'],
             ['qr-pay', 'unlock'],
-            ['pix-key', 'unlock'],
         ])
+    })
+
+    it('QR payments name the countries they pay in as flags, Brazil first', () => {
+        expect(group(buildUnlockGroups(base()), 'spend').rows[1].flags).toEqual(['BR', 'AR'])
     })
 
     it('holds only the two lead groups: the bank rows are their own shared list', () => {
         expect(buildUnlockGroups(base()).map((g) => g.id)).toEqual(['everywhere', 'spend'])
-    })
-
-    it('Pix keys read the Manteca pay capability: a link to the key screen once held, else the LATAM offer', () => {
-        const payOnly = buildUnlockGroups(base({ canPayQr: true, canPayPixKey: true }))
-        expect(group(payOnly, 'spend').rows[2]).toEqual(
-            expect.objectContaining({ chip: 'active', href: '/withdraw/manteca?method=pix&country=brazil' })
-        )
-
-        const without = buildUnlockGroups(base())
-        expect(group(without, 'spend').rows[2]).toEqual(
-            expect.objectContaining({ chip: 'unlock', regionPath: 'latam' })
-        )
-        expect(group(without, 'spend').rows[2].href).toBeUndefined()
-
-        const restricted = buildUnlockGroups(
-            base({ canPayQr: true, canPayPixKey: true, restrictions: { banking: true, card: false } })
-        )
-        expect(group(restricted, 'spend').rows[2]).toEqual(expect.objectContaining({ chip: 'notAvailable' }))
-        expect(group(restricted, 'spend').rows[2].href).toBeUndefined()
     })
 
     it('QR payments read Available on the pay capability alone, with no bank access', () => {
@@ -97,17 +81,6 @@ describe('buildUnlockGroups', () => {
         // QR reads the Brazilian corridor: Pix is the bigger of the two.
         const pending = buildUnlockGroups(base({ bankChips: { ...UNLOCK_ALL, brl: 'processing' } }))
         expect(group(pending, 'spend').rows[1].chip).toBe('processing')
-    })
-
-    // Chip review on ui#3400: the legacy Bridge-only cohort pays by QR through
-    // the region fallback, but /qr-pay gates on the Manteca pay capability, so
-    // a key link would end in a verification prompt.
-    it('a Bridge-only QR user keeps the QR row but gets the Pix key unlock offer, not a link', () => {
-        const groups = buildUnlockGroups(base({ canPayQr: true, canPayPixKey: false }))
-        expect(group(groups, 'spend').rows[1]).toEqual(expect.objectContaining({ id: 'qr-pay', chip: 'active' }))
-        const pixKey = group(groups, 'spend').rows[2]
-        expect(pixKey).toEqual(expect.objectContaining({ id: 'pix-key', chip: 'unlock', regionPath: 'latam' }))
-        expect(pixKey.href).toBeUndefined()
     })
 
     it('a banking restriction takes QR payments away with the bank rows', () => {
@@ -353,14 +326,12 @@ describe('gatingResidenceIso2s', () => {
  * (hugo, 2026-09-24, QA-12). Accounts and payments lets the BRL row say so.
  */
 describe('withPixSend', () => {
-    const pixKey = (chip: 'active' | 'unlock') =>
-        buildUnlockGroups(base({ canPayQr: chip === 'active', canPayPixKey: chip === 'active' }))
-            .find((g) => g.id === 'spend')!
-            .rows.find((row) => row.id === 'pix-key')!
     const brl = (rows: ReturnType<typeof buildBankRows>) => rows.find((row) => row.labelKey === 'brl')!
+    const canSend = { canPay: true, brlChip: 'unlock' } as const
+    const cannotSend = { canPay: false, brlChip: 'unlock' } as const
 
     it('a non-resident who can pay a Pix key reads Available, and the tap opens Pix key sending', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('active'))
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), canSend)
         expect(brl(rows)).toEqual(
             expect.objectContaining({
                 chip: 'active',
@@ -369,19 +340,30 @@ describe('withPixSend', () => {
             })
         )
         expect(brl(rows).unavailableBecause).toBeUndefined()
+        expect(brl(rows).regionPath).toBeUndefined()
     })
 
-    it('a non-resident who cannot pay yet gets the Pix key offer', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('unlock'))
+    // Chip review on ui#3400: the legacy Bridge-only cohort pays by QR through
+    // the region fallback, but /qr-pay gates on the Manteca pay capability, so
+    // a key link would end in a verification prompt. The view passes that
+    // capability alone, never the QR row's fallback.
+    it('a non-resident who cannot pay yet gets the LATAM offer, never a link', () => {
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), cannotSend)
         expect(brl(rows)).toEqual(expect.objectContaining({ chip: 'unlock', note: 'pixSendNote', regionPath: 'latam' }))
+        expect(brl(rows).href).toBeUndefined()
+    })
+
+    it('a Manteca verification in flight reads as the BRL corridor does', () => {
+        const rows = withPixSend(bank({ residenceIso2: 'PT' }), { canPay: false, brlChip: 'processing' })
+        expect(brl(rows).chip).toBe('processing')
     })
 
     it('leaves a resident, a banking restriction and every other row alone', () => {
         const resident = bank({ residenceIso2: 'BR' })
-        expect(withPixSend(resident, pixKey('active'))).toEqual(resident)
+        expect(withPixSend(resident, canSend)).toEqual(resident)
         const restricted = bank({ residenceIso2: 'PT', restrictions: { banking: true, card: false } })
-        expect(withPixSend(restricted, pixKey('active'))).toEqual(restricted)
-        const ars = withPixSend(bank({ residenceIso2: 'PT' }), pixKey('active')).find((r) => r.labelKey === 'ars')
+        expect(withPixSend(restricted, canSend)).toEqual(restricted)
+        const ars = withPixSend(bank({ residenceIso2: 'PT' }), canSend).find((r) => r.labelKey === 'ars')
         expect(ars?.chip).toBe('notAvailable')
     })
 })
