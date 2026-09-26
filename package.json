@@ -256,6 +256,7 @@
             "protobufjs": "^7.5.5"
         },
         "patchedDependencies": {
+            "@capacitor/clipboard": "patches/@capacitor__clipboard.patch",
             "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }
     },
