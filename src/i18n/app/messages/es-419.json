@@ -392,7 +392,7 @@
                 "since": "Verificación en revisión",
                 "body": "No necesitas hacer nada. Te avisaremos en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
-                "messageUs": "Escríbenos y lo perseguimos"
+                "messageUs": "Escríbenos y lo revisamos"
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
@@ -1353,7 +1353,7 @@
         "kyc": {
             "unlockTitle": "Desbloquea los pagos con QR",
             "unlockDescription": "Confirma tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
-            "unlockCta": "Desbloquear ahora",
+            "unlockCta": "Verificar identidad",
             "inProgressTitle": "Ya casi",
             "inProgressDescription": "Estamos confirmando tu identidad. Retoma donde quedaste y estarás pagando en un momento.",
             "notNow": "Ahora no",
@@ -2741,6 +2741,8 @@
         "continueVerification": "Continuar verificación",
         "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región. Te avisaremos apenas se habiliten.",
         "railsUnavailableError": "Tu identidad está verificada, pero no podemos configurar los pagos para tu región en este momento. Contacta con soporte y lo resolvemos.",
+        "sessionBlockedSubmissionError": "No pudimos terminar de configurar estos pagos. El problema es nuestro: contacta con soporte y lo terminamos.",
+        "sessionBlockedDecisionError": "No podemos configurar estos pagos para esta cuenta. Contacta con soporte si crees que es un error.",
         "unexpectedError": "Ocurrió un error inesperado",
         "processingStatusValue": "Estamos revisando tus documentos. Esto suele tomar de 5 a 10 min.",
         "errorSdkUnavailable": "La verificación no está disponible. Actualiza la app.",
@@ -2771,7 +2773,7 @@
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
             "descriptionDefault": "Confirma tu identidad para desbloquear los pagos.",
             "ctaUploadDocument": "Subir documento",
-            "ctaUnlockNow": "Desbloquear ahora",
+            "ctaUnlockNow": "Verificar identidad",
             "ctaWithdrawFunds": "Retirar fondos"
         },
         "regionRestricted": {
@@ -3147,7 +3149,7 @@
             "howLong": {
                 "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "El proceso de verificación suele tardar unos minutos si tienes todos los documentos a la mano."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tienes todos los documentos a la mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",

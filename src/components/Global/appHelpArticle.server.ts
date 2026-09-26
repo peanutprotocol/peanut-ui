@@ -1,13 +1,20 @@
 import { createMdxComponents } from '@/components/Marketing/mdx/components'
 import { helpArticleTitle, readPageContentLocalized, resolveContentHref } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
-import { APP_HELP_SLUGS, HELP_LOCALES, type AppHelpArticle, type AppHelpSlug, type HelpLocale } from './appHelpTypes'
+import {
+    APP_HELP_SLUGS,
+    HELP_LOCALES,
+    appHelpContentType,
+    type AppHelpArticle,
+    type AppHelpSlug,
+    type HelpLocale,
+} from './appHelpTypes'
 import { serializeMdxTree } from './serializeMdxTree'
 
 type Frontmatter = { title: string }
 
 const readSource = (slug: AppHelpSlug, locale: HelpLocale) =>
-    readPageContentLocalized<Frontmatter>('help', slug, locale)
+    readPageContentLocalized<Frontmatter>(appHelpContentType(slug), slug, locale)
 
 /** Every article with a published source, after the content locale fallback. */
 export function listAppHelpArticles(): Array<{ slug: AppHelpSlug; locale: HelpLocale }> {
@@ -36,7 +43,10 @@ export async function loadAppHelpArticle(slug: AppHelpSlug, locale: HelpLocale):
                 return [name, standIn]
             })
     )
-    const { content } = await renderContent(source.body, locale, { components })
+    const { content } = await renderContent(source.body, locale, {
+        components,
+        stripLeadingH1: appHelpContentType(slug) === 'legal',
+    })
 
     return {
         title: helpArticleTitle(source.frontmatter.title),

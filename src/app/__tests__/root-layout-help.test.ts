@@ -29,7 +29,9 @@ describe('help articles stay out of every page', () => {
         ]) {
             const imports = staticImports(source(file))
             expect(
-                imports.filter((specifier) => /AppHelp(Drawer|Mdx)$|appHelpArticle\.server$/.test(specifier))
+                imports.filter((specifier) =>
+                    /AppHelp(Drawer|Mdx)$|appHelpArticle\.server$|appHelpPreload$|useAboutHelpPreload$/.test(specifier)
+                )
             ).toEqual([])
         }
     })

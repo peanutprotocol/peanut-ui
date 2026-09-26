@@ -116,7 +116,10 @@ describe('AdditionalVerificationView', () => {
         expect(checklist).toHaveTextContent(/valid photo id/i)
         expect(checklist).toHaveTextContent(/recent proof/i)
         expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent(/usually takes a few minutes/i)
-        expect(checklist).not.toHaveTextContent(/how long|1 to 3 business days|5 minutes/i)
+        // the duration lives in the callout, with the reviewer caveat Hugo
+        // asked back (FEEDBACK #55): a reviewed check takes days, not minutes
+        expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent(/1 to 3 business days/i)
+        expect(checklist).not.toHaveTextContent(/how long|5 minutes/i)
         expect(mockStartHosted).not.toHaveBeenCalled()
         expect(mockWindowOpen).not.toHaveBeenCalled()
     })

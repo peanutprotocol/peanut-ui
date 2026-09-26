@@ -24,10 +24,17 @@ const NEW_USER: OnboardingState = {
 }
 
 const mockOnHide = jest.fn()
+const mockStartIdentityCheck = jest.fn()
+const mockStartQrIdentityCheck = jest.fn()
 const render = (onboarding: Partial<OnboardingState> = {}) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
-            <GettingStartedChecklist onboarding={{ ...NEW_USER, ...onboarding }} onHide={mockOnHide} />
+            <GettingStartedChecklist
+                onboarding={{ ...NEW_USER, ...onboarding }}
+                onHide={mockOnHide}
+                onStartIdentityCheck={mockStartIdentityCheck}
+                onStartQrIdentityCheck={mockStartQrIdentityCheck}
+            />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
     )
@@ -63,6 +70,11 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: () => <span data-testid="mascot" />,
+}))
+
+// the identity status drawer is its own component; here it is a marker that says whether it is open
+jest.mock('@/components/Kyc/KycStatusDrawer', () => ({
+    KycStatusDrawer: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>identity-status-drawer</div> : null),
 }))
 
 // the chooser is its own component; here it is a marker that says whether it is open
@@ -105,10 +117,62 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('One-time ID check')).not.toBeInTheDocument()
     })
 
-    it('verify opens the ID check screen', () => {
-        render()
-        fireEvent.click(screen.getByText('Verify identity'))
-        expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
+    describe('the Verify row, per state (never the Accounts list)', () => {
+        it('not started: starts the ID check in place', () => {
+            render()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(mockStartIdentityCheck).toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('not started, bank rails closed but the card open: the card', () => {
+            mockRestrictions = { banking: true, card: false }
+            render()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(mockPush).toHaveBeenCalledWith('/card')
+            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
+        })
+
+        it('not started, bank rails and the card closed: the QR ID check', () => {
+            mockRestrictions = { banking: true, card: true }
+            render()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(mockStartQrIdentityCheck).toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('in review: "In review", the tap shows the status and starts nothing', () => {
+            render({ verify: 'in_review', step: 'add_money' })
+            expect(screen.getByText('In review')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(screen.getByText('identity-status-drawer')).toBeInTheDocument()
+            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('action needed: says so, and the tap opens the fix (the status drawer with resubmit)', () => {
+            render({ verify: 'action_required' })
+            expect(screen.getByText('Action needed')).toBeInTheDocument()
+            expect(screen.queryByText('One-time ID check')).not.toBeInTheDocument()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(screen.getByText('identity-status-drawer')).toBeInTheDocument()
+            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('failed: not tappable (Home shows the support card instead of the list)', () => {
+            render({ verify: 'failed' })
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
+            expect(screen.queryByText('identity-status-drawer')).not.toBeInTheDocument()
+        })
+
+        it('done: "ID verified", not tappable', () => {
+            render({ verify: 'done', step: 'add_money' })
+            expect(screen.getByText('ID verified')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('Verify identity'))
+            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
+        })
     })
 
     it('Add money is tappable before verify and opens the Add drawer', () => {

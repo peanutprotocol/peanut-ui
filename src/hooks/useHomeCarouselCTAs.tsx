@@ -52,7 +52,16 @@ export type CarouselCTA = {
     iconSize?: number
 }
 
-export const useHomeCarouselCTAs = () => {
+export const useHomeCarouselCTAs = ({
+    onStartQrIdentityCheck,
+}: {
+    /** starts the QR ID check; the carousel component owns the flow and its modals */
+    onStartQrIdentityCheck?: () => void
+} = {}) => {
+    // read through a ref: the flow object is new every render, and the slides
+    // must not regenerate on each one
+    const startQrIdentityCheckRef = useRef(onStartQrIdentityCheck)
+    startQrIdentityCheckRef.current = onStartQrIdentityCheck
     const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
@@ -70,7 +79,7 @@ export const useHomeCarouselCTAs = () => {
     const toast = useToast()
     const router = useRouter()
     const { canDo, rails, channelOf, nextActions } = useCapabilities()
-    const { isRegionRestricted, status: identityStatus } = useIdentityVerification()
+    const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -195,6 +204,7 @@ export const useHomeCarouselCTAs = () => {
         const qrGate = selectQrKycGate({
             isLoading: false,
             isRegionRestricted,
+            isTerminalFailure,
             canPayManteca: canDo('pay', { provider: 'manteca' }),
             mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
             nextActions,
@@ -279,7 +289,9 @@ export const useHomeCarouselCTAs = () => {
         if (
             showVerifyCTA({
                 qrGateState: qrGate.kycGateState,
-                isIdentityVerified: verifyRowStatus(identityStatus) === 'done',
+                // identity itself, not an enabled rail: a user moving money on a
+                // bank partner's own check still needs this one for QR pay
+                isIdentityVerified: verifyRowStatus({ status: identityStatus }) === 'done',
                 isInFlight,
                 isCardEligible,
             })
@@ -290,8 +302,10 @@ export const useHomeCarouselCTAs = () => {
                 description: <span>{t.rich('kyc.description', { b })}</span>,
                 concept: 'qrPay',
                 iconSize: 16,
+                // the QR ID check itself: the accounts list no longer shows QR,
+                // and Payments shows it closed to a banking-restricted residence
                 onClick: () => {
-                    router.push('/profile/accounts')
+                    startQrIdentityCheckRef.current?.()
                 },
             })
         }
@@ -315,6 +329,7 @@ export const useHomeCarouselCTAs = () => {
         channelOf,
         nextActions,
         isRegionRestricted,
+        isTerminalFailure,
         identityStatus,
         isActivated,
         hasMadeQrPayment,

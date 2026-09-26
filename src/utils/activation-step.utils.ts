@@ -1,5 +1,5 @@
 import { type User } from '@/interfaces/interfaces'
-import type { IdentityVerificationStatus } from '@/types/capabilities'
+import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
 import { computeDisplaySpendable } from '@/utils/balance.utils'
 
 /**
@@ -14,8 +14,17 @@ import { computeDisplaySpendable } from '@/utils/balance.utils'
  */
 export type ActivationStep = 'verify' | 'add_money' | 'first_payment' | 'completed'
 
-/** Verify identity row: `in_review` is open but has nothing for the user to do. */
-export type VerifyRowStatus = 'todo' | 'in_review' | 'done'
+/**
+ * Verify identity row:
+ * - `todo`: never started; the tap starts the ID check
+ * - `in_review`: open, nothing for the user to do
+ * - `action_required`: the check needs something from the user (a new photo,
+ *   an email collision); the tap opens the identity status with its fix
+ * - `failed`: a final decision. The row cannot finish, so Home shows the
+ *   blocked card with contact support instead of the checklist
+ * - `done`: verified, or already moving money on an enabled rail
+ */
+export type VerifyRowStatus = 'todo' | 'in_review' | 'action_required' | 'failed' | 'done'
 
 /**
  * Which activating spend is open to the user: the card (it can be issued or
@@ -67,14 +76,38 @@ export function selectFirstPaymentRoute(input: {
     return input.canPayQr ? 'qr' : 'none'
 }
 
-export function verifyRowStatus(identityStatus: IdentityVerificationStatus | undefined): VerifyRowStatus {
-    if (identityStatus === 'verified') return 'done'
-    if (identityStatus === 'processing') return 'in_review'
+/**
+ * A user who can already move money: any enabled rail (bank, QR or an active
+ * card), or the API says they activated. Home stops treating them as mid-setup:
+ * their Verify row counts as done and a rejected extra rail is not a blocker.
+ * Legacy users verified by a bank partner before the one ID check have enabled
+ * rails and no approved ID check.
+ */
+export function canAlreadyTransact(rails: readonly RailCapability[], isActivated: boolean): boolean {
+    return isActivated || rails.some((rail) => rail.status === 'enabled')
+}
+
+export interface VerifyRowInput {
+    status: IdentityVerificationStatus | undefined
+    /** useIdentityVerification: a final decision (not region), incl. a FINAL action_required */
+    isTerminalFailure?: boolean
+    /** useIdentityVerification: the document's country is refused */
+    isRegionRestricted?: boolean
+    /** canAlreadyTransact: the user already moves money on an enabled rail */
+    canTransact?: boolean
+}
+
+export function verifyRowStatus(input: VerifyRowInput): VerifyRowStatus {
+    if (input.status === 'verified' || input.canTransact) return 'done'
+    if (input.status === 'processing') return 'in_review'
+    if (input.isTerminalFailure || input.isRegionRestricted) return 'failed'
+    // a retryable failure (the check itself errored) has a fix, like action_required
+    if (input.status === 'action_required' || input.status === 'failed') return 'action_required'
     return 'todo'
 }
 
 export interface OnboardingInput {
-    identityStatus: IdentityVerificationStatus | undefined
+    identity: VerifyRowInput
     milestone: User['activationMilestone'] | null | undefined
     /** API: first card spend or QR pay (Lexicon v2 activation) */
     isActivated: boolean
@@ -84,7 +117,7 @@ export interface OnboardingInput {
 }
 
 export function resolveOnboarding(input: OnboardingInput): OnboardingState {
-    const verify = verifyRowStatus(input.identityStatus)
+    const verify = verifyRowStatus(input.identity)
     // "Add money" is done on any money received (the API milestone needs a
     // posted money-in credit) or on any money held right now — a raw transfer
     // the ledger has not booked yet, or card collateral.
@@ -96,7 +129,8 @@ export function resolveOnboarding(input: OnboardingInput): OnboardingState {
     const hasPaymentRow = input.firstPaymentRoute !== 'none'
     let step: ActivationStep
     if (firstPaymentDone) step = 'completed'
-    else if (verify === 'todo') step = 'verify'
+    // a failed check stays on `verify`: Home shows the blocked card, not the list
+    else if (verify === 'todo' || verify === 'action_required' || verify === 'failed') step = 'verify'
     else if (!addMoneyDone) step = 'add_money'
     else if (hasPaymentRow) step = 'first_payment'
     // no payment row: the list ends at Add money, done once identity is too

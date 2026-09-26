@@ -10,6 +10,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import {
     type OnboardingState,
+    canAlreadyTransact,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
@@ -42,26 +43,30 @@ interface ActivationStatus {
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
-    const { canDo, railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { canDo, rails, railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
     const { overview } = useRainCardOverview()
-    const { canSpendPathViaCard, hasCardRelationship } = useCardSurfaceAccess()
-    const { cardInfo } = useCardInfo()
-    const { status: identityStatus, isRegionRestricted } = useIdentityVerification()
+    const { canSpendPathViaCard, holdsCardOrApplication } = useCardSurfaceAccess()
+    const { cardInfo, error: cardInfoError } = useCardInfo()
+    const { status: identityStatus, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
 
     const isLoading = !user || isFetchingBalance
 
     const derived = useMemo(() => {
         const isActivated = user?.user?.isActivated ?? false
         // Card eligibility is known once card info answered, or when a held card
-        // settles it. Loading or a failed request is unknown, never "no card".
+        // settles it. Loading is unknown, never "no card": the row holds its
+        // place so the arm does not flash. A failed request (retries spent)
+        // settles as no card, so the row falls back to the QR answer instead
+        // of a placeholder that never resolves.
         // The Home card-prompt kill switch mutes every card arm; the QR path stands.
         const canSpendViaCard = underMaintenanceConfig.disableCardPromotion
             ? false
-            : canSpendPathViaCard || (cardInfo !== undefined ? false : undefined)
+            : canSpendPathViaCard || (cardInfo !== undefined || cardInfoError ? false : undefined)
         // QR asks the same gate the QR pay page uses, so the two never disagree.
         const qrGate = selectQrKycGate({
             isLoading: isLoadingCapabilities || !user,
             isRegionRestricted,
+            isTerminalFailure,
             canPayManteca: canDo('pay', { provider: 'manteca' }),
             mantecaRails: railsForProvider('manteca'),
             nextActions,
@@ -71,12 +76,17 @@ export function useActivationStatus(): ActivationStatus {
             canPayQr: qrPayIsAPath(qrGate.kycGateState),
         })
         const onboarding = resolveOnboarding({
-            identityStatus: user?.user ? identityStatus : undefined,
+            identity: {
+                status: user?.user ? identityStatus : undefined,
+                isTerminalFailure,
+                isRegionRestricted,
+                canTransact: canAlreadyTransact(rails, isActivated),
+            },
             milestone: user?.user?.activationMilestone,
             isActivated,
             holdsMoney: holdsMoney(balance, overview?.balance),
             firstPaymentRoute,
-            cardHeld: hasCardRelationship,
+            cardHeld: holdsCardOrApplication,
         })
         return {
             isActivated,
@@ -88,11 +98,14 @@ export function useActivationStatus(): ActivationStatus {
         user,
         identityStatus,
         isRegionRestricted,
+        isTerminalFailure,
         balance,
         overview?.balance,
         canSpendPathViaCard,
-        hasCardRelationship,
+        holdsCardOrApplication,
         cardInfo,
+        cardInfoError,
+        rails,
         isLoadingCapabilities,
         canDo,
         railsForProvider,

@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
 import AppHelpArticleBody from './AppHelpMdx'
-import { loadAppHelpArticle } from './appHelpArticle'
+import { getCachedAppHelpArticle, loadAppHelpArticle } from './appHelpArticle'
 import type { AppHelpArticle, AppHelpSlug, HelpLocale } from './appHelpTypes'
 
 type AppHelpDrawerProps = {
@@ -22,7 +22,7 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
     const tCommon = useTranslations('common')
     const key = `${locale}/${slug}`
     const [loaded, setLoaded] = useState<{ key: string; article: AppHelpArticle } | null>(null)
-    const article = loaded?.key === key ? loaded.article : null
+    const article = loaded?.key === key ? loaded.article : getCachedAppHelpArticle(slug, locale)
 
     // Load only while open: closing drops a pending result, so a late failure cannot
     // open the help page after the reader dismissed the drawer. Reopening retries.

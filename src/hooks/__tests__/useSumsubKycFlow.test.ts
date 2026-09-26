@@ -1292,6 +1292,22 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         expect(result.current.error).toBeTruthy()
         expect(result.current.showWrapper).toBe(false)
     })
+    it.each([
+        ['SUBMISSION_EXHAUSTED', /on our side/i],
+        ['IDENTITY_REJECTED', /think this is a mistake/i],
+        ['ACTION_REJECTED', /think this is a mistake/i],
+        ['PROVIDER_REJECTED', /think this is a mistake/i],
+    ] as const)('a blocked session (%s) says whose move it is, not "your ID is verified"', async (reasonCode, key) => {
+        mockStartAction.mockResolvedValue({
+            data: { levelName: 'manteca-kyc', session: { ...session, state: 'BLOCKED', reasonCode } },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.error).toMatch(key)
+        expect(result.current.error).not.toMatch(/your ID is verified/i)
+    })
     it.each(['BLOCKED', 'SUBMISSION_PENDING', 'READY'] as const)(
         'clears stale %s state when re-entry resumes collection',
         async (state) => {

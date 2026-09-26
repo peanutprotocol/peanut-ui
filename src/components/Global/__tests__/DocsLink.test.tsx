@@ -50,6 +50,13 @@ describe('DocsLink', () => {
         expect(mockOpenExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/\/en\/help\/passkeys$/))
     })
 
+    it('keeps legal links in consent prompts as navigation unless opted into a drawer', () => {
+        mockOpenHelp = jest.fn()
+        render(<DocsLink href="/terms">Terms</DocsLink>, { wrapper: IntlWrapper })
+        expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms')
+        expect(mockOpenHelp).not.toHaveBeenCalled()
+    })
+
     describe('in-app help article', () => {
         const renderRow = () =>
             render(
