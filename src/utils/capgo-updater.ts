@@ -4,6 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { isNativePrerelease } from '@/utils/native-prerelease'
 import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
@@ -56,7 +57,7 @@ export async function initCapgoUpdater(callbacks: OtaUpdateCallbacks = {}): Prom
     // and bundle download don't contend with app startup (notifyAppReady above
     // stays immediate — it must land within appReadyTimeout).
     let updateCheckTimer: ReturnType<typeof setTimeout> | undefined
-    if (!isDemoMode()) {
+    if (!isDemoMode() && !isNativePrerelease()) {
         updateCheckTimer = setTimeout(() => void queueUpdateCheck(callbacks), UPDATE_CHECK_DELAY_MS)
     }
 
