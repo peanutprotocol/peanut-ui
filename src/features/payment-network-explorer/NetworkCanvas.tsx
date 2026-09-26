@@ -16,6 +16,7 @@ import {
 } from './selectors'
 import type { ExplorerNode, ExplorerRelationship, P2PEdgeType } from './types'
 import { useReducedMotion } from './useReducedMotion'
+import { Card } from '@/components/0_Bruddle/Card'
 
 type PaymentForceGraphProps = ForceGraphProps<GraphNodeProjection, GraphLinkProjection> & {
     ref?: Ref<ForceGraphMethods<GraphNodeProjection, GraphLinkProjection>>
@@ -227,19 +228,16 @@ export default function NetworkCanvas({
     return (
         <section
             ref={containerRef}
-            className="relative h-full min-h-0 overflow-hidden bg-[#f7f4ef]"
+            className="relative h-full min-h-0 overflow-hidden bg-background-page"
             aria-label="Payment network graph"
             data-focus-camera-applied={focusNodeId ? String(focusCameraApplied) : undefined}
             data-reduced-motion={String(reducedMotion)}
             data-graph-layout-ready={String(layoutReady)}
         >
             <p className="sr-only">Use the relationship table for keyboard navigation and exact connection details.</p>
-            <div className="pointer-events-none absolute top-3 left-3 z-10 flex flex-wrap gap-2 text-[10px] font-semibold">
+            <Card className="pointer-events-none absolute top-3 left-3 z-10 flex-row flex-wrap gap-2 p-2 text-label-m">
                 {presentTypes.map((type) => (
-                    <span
-                        key={type}
-                        className="inline-flex items-center gap-1 rounded-full border border-n-1 bg-white px-2 py-1"
-                    >
+                    <span key={type} className="inline-flex items-center gap-1">
                         <span
                             className="size-2 rounded-full"
                             style={{ backgroundColor: TYPE_COLOR[type] }}
@@ -248,15 +246,15 @@ export default function NetworkCanvas({
                         {EDGE_TYPE_LABELS[type]}
                     </span>
                 ))}
-            </div>
+            </Card>
             {denseGraph && visibleRelationshipIds ? (
-                <div className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border border-n-1 bg-white px-2 py-1 text-[10px] font-semibold">
+                <Card className="absolute top-3 right-3 z-10 flex-row items-center gap-1 p-2 text-label-m">
                     <span>Overview · {visibleRelationshipIds.size.toLocaleString()} links</span>
                     <InfoTooltip label="dense graph overview">
                         The overview emphasizes the strongest connections. Zoom in or select a node to reveal more; all{' '}
                         {relationships.length.toLocaleString()} relationships remain available in the table.
                     </InfoTooltip>
-                </div>
+                </Card>
             ) : null}
             <ForceGraph2D
                 ref={setGraphInstance}

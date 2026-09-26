@@ -1,5 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -17,15 +19,14 @@ import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { PeanutCheering } from '@/assets/mascot'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Loading from '@/components/Global/Loading'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { API_ERROR_CODES } from '@/services/api-error'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
@@ -48,6 +49,9 @@ export const SuccessClaimLinkView = ({
     const [claimConfirmed, setClaimConfirmed] = useState(false)
     const { user: authUser, fetchUser } = useAuth()
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
     const { triggerHaptic } = useAppHaptic()
@@ -162,7 +166,7 @@ export const SuccessClaimLinkView = ({
                     shadowSize="4"
                     onClick={() => {
                         if (!isBankClaim) fetchUser()
-                        router.push('/home')
+                        leaveToHome()
                     }}
                     className="w-full"
                 >
@@ -188,28 +192,24 @@ export const SuccessClaimLinkView = ({
     // claim money that has not moved.
     if (!isClaimed && !claimFailure) {
         return (
-            <div className="flex min-h-inherit flex-col justify-between gap-8">
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
-                </div>
-                <div className="relative z-10 my-auto flex h-full flex-col justify-center">
+            <PageStack>
+                <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                <PageStack.Center className="gap-4">
                     <Loading variant="mascot" message={tCommon('status.processing')} />
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (claimFailure) {
         const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
         return (
-            <div className="flex min-h-inherit flex-col justify-between gap-8">
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
-                </div>
-                <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
-                    <Notification priority="error" data-testid="error-alert">
+            <PageStack>
+                <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                <PageStack.Center className="gap-4">
+                    <Callout priority="error" data-testid="error-alert">
                         {toFriendlyError({ code: claimFailure.code })}
-                    </Notification>
+                    </Callout>
                     {isRetryable && (
                         <Button
                             shadowSize="4"
@@ -224,32 +224,36 @@ export const SuccessClaimLinkView = ({
                             {tCommon('tryAgain')}
                         </Button>
                     )}
-                    <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
-                        {t('backToHome')}
-                    </Button>
-                </div>
-            </div>
+                    {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
+                    {isRetryable ? (
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
+                        </div>
+                    ) : (
+                        <Button shadowSize="4" className="w-full" onClick={leaveToHome}>
+                            {t('backToHome')}
+                        </Button>
+                    )}
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <SoundPlayer sound="success" />
             <NavHeader
                 icon="cancel"
                 title={navHeaderTitle}
                 onPrev={() => {
-                    router.push('/home')
+                    leaveToHome()
                 }}
             />
-            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
-                <Image
-                    src={PeanutCheering.src}
-                    unoptimized
+            <PageStack.Center className="relative z-10 gap-4">
+                <PeanutMascot
+                    pose="cheering"
                     alt={t('success.peanutMascotAlt')}
-                    width={240}
-                    height={240}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
@@ -258,7 +262,7 @@ export const SuccessClaimLinkView = ({
                         {t('success.devconnectReturnHint')}
                     </p>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

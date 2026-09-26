@@ -210,6 +210,20 @@ describe('useSpendBundle — draft back-out boundaries', () => {
         expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
+    // TASK-23054: a card-balance bank withdrawal names the offramp it funds, so
+    // the backend links its collateral record and Activity shows one row.
+    it('collateral-only passes the funded offramp intent to /prepare', async () => {
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.spend(spendInput({ kind: 'FIAT_OFFRAMP', fundsIntentId: 'offramp-intent-1' }))
+        })
+        expect(mockPrepareWithdrawal.mock.calls[0][0]).toMatchObject({
+            recipientAddress: RECIPIENT,
+            directTransfer: true,
+            fundsIntentId: 'offramp-intent-1',
+        })
+    })
+
     describe('mixed path — the broadcast boundary sits INSIDE the userop helper', () => {
         beforeEach(() => {
             mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })
@@ -230,6 +244,15 @@ describe('useSpendBundle — draft back-out boundaries', () => {
                 await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
             })
             expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+        })
+
+        it('never sends the funded offramp intent: the sweep pays the wallet, not the offramp', async () => {
+            mockHandleSendUserOpEncoded.mockRejectedValueOnce(new Error('bundler 502'))
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput({ fundsIntentId: 'offramp-intent-1' }))).rejects.toThrow()
+            })
+            expect(mockPrepareWithdrawal.mock.calls[0][0]).not.toHaveProperty('fundsIntentId')
         })
 
         it('a post-broadcast bundler failure is execution-ambiguous — no cancel fires', async () => {

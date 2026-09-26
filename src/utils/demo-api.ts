@@ -11,6 +11,8 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -48,6 +50,8 @@ type DemoRequestBody = {
     reference?: string
     dismissActivationCelebration?: boolean
     username?: string
+    /** card apply (demo): true submits, false/absent asks for terms */
+    termsAccepted?: boolean
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
@@ -118,6 +122,47 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
+// Mirror GET /badge/catalog: only badges a user can earn today.
+// Registry metric metadata alone is not an unlock path.
+const DEMO_BADGE_CATALOG = [
+    {
+        code: 'CARD_FIRST_SWIPE',
+        name: 'First Swipe',
+        description: 'You put your card to work.',
+        publicDescription: 'They put their card to work.',
+        iconUrl: '/badges/happy_card.svg',
+        unlock: { kind: 'card_purchase' },
+        earnable: true,
+    },
+    {
+        code: 'CARD_SPENT_1K',
+        name: '$1K Club',
+        description: '$1K swiped.',
+        publicDescription: '$1K swiped.',
+        iconUrl: '/badges/money_stack.svg',
+        unlock: { kind: 'card_spend', targetUsd: 1000 },
+        earnable: true,
+    },
+    {
+        code: 'ENS',
+        name: 'Name Dropper',
+        description: 'You paid at a name. Or got paid at yours.',
+        publicDescription: 'They moved money with an ENS name.',
+        iconUrl: '/badges/ens.svg',
+        unlock: { kind: 'ens_payment' },
+        earnable: true,
+    },
+    {
+        code: 'TRON',
+        name: 'Tron Native',
+        description: 'Found on Tron. Where the dollars actually move.',
+        publicDescription: 'Found on Tron. Where the dollars actually move.',
+        iconUrl: '/badges/tron.svg',
+        unlock: { kind: 'campaign' },
+        earnable: true,
+    },
+]
+
 const demoRequest = (uuid: string, options?: RequestInit) => {
     const body = parseBody(options)
     const tokenAmount = String(body.tokenAmount ?? body.requestProps?.tokenAmount ?? body.local_price?.amount ?? '0')
@@ -135,6 +180,9 @@ const demoRequest = (uuid: string, options?: RequestInit) => {
         attachmentUrl: null,
         createdAt: CREATED_AT,
         updatedAt: CREATED_AT,
+        paidAt: null,
+        receivedAmount: null,
+        bankInstructionsShared: false,
         charges: [],
         history: [],
         recipientAccount: {
@@ -366,8 +414,42 @@ const stampDemoActivationCelebrated = (): void => {
 // demo state: a pick made through the picker must survive the next
 // GET /users/me or the tile snaps back. Fixtures still override on top.
 let demoAvatarKey: string | null = null
+// demo state: applying for the card flips the overview to a PENDING
+// application so the entry screen advances like the real flow
+let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
+
+/**
+ * The euro account the demo user holds, shaped like sandbox output with
+ * documentation coordinates instead of real ones.
+ *
+ * Sandbox opens the account in the user's own name, so `nameOnAccount` is
+ * `user` and the holder is the demo user. Who may pay in, and on what terms,
+ * is NOT written here: it comes from the one fixture table that mirrors the
+ * backend's rail rules, so demo and the design harness cannot disagree about
+ * what a euro account promises.
+ */
+const DEMO_DEPOSIT_ACCOUNT_EUR = {
+    id: 'demo-deposit-account-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+    instructions: {
+        accountHolderName: 'Demo User',
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: 'Demo User',
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
+        paymentRails: ['sepa'],
+    },
+} satisfies DepositAccount
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
@@ -386,6 +468,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             }
         },
     },
+    // The bank form asks for this the moment it opens with "this account is
+    // mine" ticked, so every fixture that mounts the form needs an answer or
+    // the capture harness fails on an unmapped route. An empty body is the
+    // route's own "nothing to prefill" answer: the form asks for the address,
+    // which is what the form fixtures exist to show. A fixture that wants the
+    // prefilled form overrides this key with a synthetic address.
+    { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -399,7 +488,34 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    {
+        method: 'POST',
+        pattern: '/users/username/check',
+        handler: ({ options }) => {
+            const username = String(parseBody(options).username ?? '').toLowerCase()
+            const found =
+                username === DEMO_USER.user.username || DEMO_CONTACTS.some((contact) => contact.username === username)
+            return { found }
+        },
+    },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
+    // Standing deposit accounts. The baseline user holds the EUR one and
+    // nothing else, so the list shows one held corridor and the rest open to
+    // claim — the state most users are in. Fixtures override this to reach the
+    // others.
+    {
+        method: 'GET',
+        pattern: '/users/deposit-accounts',
+        // The dollar corridor is the one the demo user can still open, so it
+        // comes back with the terms it would carry. Held corridors are never
+        // in `claimable` — their terms are confirmed and travel on the account.
+        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR], claimable: [CLAIMABLE_USD_PREVIEW] }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/deposit-accounts',
+        handler: () => ({ depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR }),
+    },
     {
         method: 'GET',
         pattern: '/users/username/:username',
@@ -471,11 +587,29 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: ({ params, options }) => demoRequest(params.uuid, options),
     },
     { method: 'DELETE', pattern: '/requests/:uuid', handler: ({ params }) => demoRequest(params.uuid) },
+    // What is left to pay on each rail. A demo request is in dollars and shares
+    // no bank details, so the Peanut rail alone answers, with no figure: the
+    // demo request is open-amount. A fixture overrides this where it needs rails.
+    {
+        method: 'GET',
+        pattern: '/requests/:uuid/pay-amounts',
+        handler: () => ({
+            requestCurrency: 'USD',
+            requestAmount: null,
+            remainingAmount: null,
+            rails: [{ kind: 'peanut_balance', payerAmount: { amount: null, currency: 'USD', isEstimate: false } }],
+        }),
+    },
 
     // send links
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'POST', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'PATCH', pattern: '/send-links/claim/:txHash/associate-user', handler: () => ({}) },
+    {
+        method: 'GET',
+        pattern: '/send-links/:pubKey/status',
+        handler: ({ params }) => ({ ...demoSendLink(params.pubKey), status: 'CLAIMED' }),
+    },
     { method: 'GET', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 
@@ -680,6 +814,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/points/invites',
         handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
     },
+    { method: 'GET', pattern: '/badge/catalog', handler: () => ({ badges: DEMO_BADGE_CATALOG }) },
 
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
@@ -689,29 +824,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/card',
-        handler: () => ({
-            hasPurchased: false,
-            hasCardAccess: false,
-            isEligible: false,
-            eligibilityReason: 'demo',
-            price: 50,
-            currentTier: 1,
-            slotsRemaining: 100,
-            recentPurchases: 0,
-        }),
-    },
-    {
-        method: 'POST',
-        pattern: '/card/purchase',
-        handler: () => ({
-            chargeUuid: 'demo-charge',
-            paymentUrl: '',
-            price: 50,
-            recipientAddress: DEMO_ADDRESS,
-            chainId: CHAIN_ID,
-            tokenAmount: '50',
-            tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-        }),
+        handler: () => ({ isEligible: true, geoProhibited: false }),
     },
     // useRainCardOverview polls this for every logged-in user; the fallback {}
     // has no `status`/`cards` and crashes consumers that deref them
@@ -719,7 +832,33 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/rain/cards',
-        handler: () => ({ status: { hasApplication: false }, balance: null, cards: [] }),
+        handler: () =>
+            demoCardApplied
+                ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
+                : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // per-card limits read — without this the card-limit fixture (and any
+    // demo/capture render of /card/limit) 404s into the error state.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/:cardId/limits',
+        handler: () => ({ limits: [{ amount: 50000, frequency: 'perAuthorization' }] }),
+    },
+    // Demo apply mirrors the real two-step contract: first call asks for
+    // terms, the accepting call submits and the overview flips to PENDING —
+    // without this, Get your card fell through to the {} fallback and the
+    // entry screen never advanced.
+    {
+        method: 'POST',
+        pattern: '/rain/cards',
+        handler: ({ options }) => {
+            const body = parseBody(options)
+            if (body.termsAccepted === true) {
+                demoCardApplied = true
+                return { status: 'pending' }
+            }
+            return { status: 'terms-required', isUsResident: false, termsVersion: 'demo' }
+        },
     },
 
     // rhino (crypto deposit / cross-chain) — return a believable deposit address
@@ -766,13 +905,47 @@ function defaultShape(pathname: string): unknown {
     return LIST_HINTS.test(last) ? [] : {}
 }
 
-export async function demoRespond(path: string, options?: RequestInit): Promise<Response> {
+export async function demoRespond(
+    path: string,
+    options?: RequestInit,
+    capture?: { offline: boolean; strict?: boolean }
+): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    // The withdraw quote depends on its query, which route handlers never see:
+    // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
+    if (method === 'GET' && pathname === '/bridge/offramp/quote') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const destinationAmount = query.get('destinationAmount') ?? undefined
+        return json({
+            destinationCurrency: query.get('destinationCurrency') ?? 'eur',
+            rate: '1',
+            updatedAt: CREATED_AT,
+            ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
+    // Capture mode never calls live rates or support sessions.
+    if (capture?.offline && method === 'GET') {
+        if (pathname === '/tokens/price') {
+            const query = new URL(path, 'http://capture.invalid').searchParams
+            return json({
+                chainId: query.get('chainId') ?? CHAIN_ID,
+                address: query.get('address') ?? PEANUT_WALLET_TOKEN,
+                name: 'Synthetic USD Coin',
+                symbol: 'USDC',
+                price: 1,
+            })
+        }
+        if (pathname === '/users/consent/status') return json({ documents: [], needsReConsent: false })
+        if (pathname === '/user/crisp-token')
+            return json({ userId: 'demo-user', crispTokenId: 'synthetic-screen-session' })
+    }
+
     // Live-rate passthrough to the real backend (best-effort).
     let passthroughFailed = false
-    if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+    if (!capture?.offline && method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
@@ -817,5 +990,6 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
     if (process.env.NODE_ENV !== 'production') {
         console.debug('[demo-api] unmocked', method, pathname)
     }
+    if (capture?.strict) throw new Error(`Unmapped capture API: ${method} ${pathname}`)
     return json(defaultShape(pathname))
 }

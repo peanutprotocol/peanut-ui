@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -25,25 +25,34 @@ interface HeroProps {
 export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
     return (
         <>
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-24">
+            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-4xl">
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack text-black uppercase md:text-[4.5rem]">
+                    {/* break-words + hyphens: one long word ("COMMUNICATIONS",
+                        "INSTANTANEAMENTE") must wrap, not clip, at 320px
+                        (TASK-22366 sweep) */}
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words hyphens-auto text-foreground-primary uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-black uppercase md:mt-8 md:text-[2rem]">
+                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]">
                             {subtitle}
                         </p>
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            <Link
+                            {/* white-on-pink CTA: secondary is the closest board
+                                variant, and the two overrides keep it looking
+                                exactly as it does today — the unconditional
+                                white bg cancels secondary's press-to-pink, and the
+                                hover shadow cancels secondary's hover flatten. */}
+                            <Button
+                                variant="secondary"
                                 href={ctaHref}
-                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-white px-8 font-extrabold hover:bg-white/90 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
+                                className="inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 hover:shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]"
                             >
                                 {cta}
-                            </Link>
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -51,7 +60,7 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
             <MarqueeComp
                 message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
                 imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-secondary-1"
+                backgroundColor="bg-action-secondary"
             />
             {/* Spacer ensures consistent gap between Hero block and prose content */}
             <div className="h-10 md:h-14" />

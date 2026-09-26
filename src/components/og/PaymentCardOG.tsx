@@ -1,4 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
+import { knerdTitle } from '@/components/0_Bruddle/Title'
 
 function usernamePxWidth(name: string) {
     const charPx = 0.6 * 80 // ≈48 px per glyph
@@ -162,7 +163,7 @@ export function PaymentCardOG({
                             style={{
                                 fontFamily: 'Knerd Filled',
                                 color: '#fff',
-                                letterSpacing: '-0.08em',
+                                letterSpacing: knerdTitle.letterSpacing,
                             }}
                         >
                             {link.token && link.token.toLowerCase() !== 'usdc'
@@ -175,14 +176,14 @@ export function PaymentCardOG({
                             aria-hidden="true"
                             style={{
                                 position: 'absolute',
-                                top: 3, // positive offset → outline shows down-right
-                                left: 3,
+                                top: knerdTitle.outlineOffset.y,
+                                left: knerdTitle.outlineOffset.x,
                                 fontFamily: 'Knerd Outline',
                                 color: '#000',
                                 pointerEvents: 'none', // just in case
                                 transformOrigin: 'top left',
-                                transform: 'scaleX(1.01) scaleY(1.01)',
-                                letterSpacing: '-0.08em',
+                                transform: `scale(${knerdTitle.outlineScale})`,
+                                letterSpacing: knerdTitle.letterSpacing,
                             }}
                         >
                             {link.token && link.token.toLowerCase() !== 'usdc'

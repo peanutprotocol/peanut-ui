@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 /**
- * Setup chrome: the back chevron must inherit currentColor (the stroke button
+ * Setup chrome: the back chevron must inherit currentColor (the nav circle button
  * inverts on hover/active, and a hard-coded black stroke vanished into it).
  */
 import React from 'react'
@@ -8,12 +8,10 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { SetupWrapper } from '../SetupWrapper'
 
-jest.mock('@/hooks/useBravePWAInstallState', () => ({ useBravePWAInstallState: () => ({ isBrave: false }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/utils/capacitor', () => ({ ...jest.requireActual('@/utils/capacitor'), isCapacitor: () => false }))
 jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Setup/Views/InstallPWA', () => ({ __esModule: true, default: () => null }))
 jest.mock('framer-motion', () => ({
     useReducedMotion: () => true,
     motion: {

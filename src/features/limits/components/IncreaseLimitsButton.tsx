@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useLimits } from '@/hooks/useLimits'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
@@ -40,11 +41,7 @@ export default function IncreaseLimitsButton() {
     }, [isEligibleForSelfService, actionFlow.handleInitiate, openSupportWithMessage])
 
     if (actionFlow.isComplete) {
-        return (
-            <div className="rounded-sm border border-border-default bg-background-badge-success p-4 text-center text-body-s">
-                {t('submitted')}
-            </div>
-        )
+        return <Callout priority="success">{t('submitted')}</Callout>
     }
 
     return (

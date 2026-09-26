@@ -82,6 +82,14 @@ describe('ClientProviders provider order', () => {
         expect(chain.indexOf('(dynamic)')).toBeGreaterThan(chain.indexOf('OtaUpdateProvider'))
     })
 
+    it.each(['/home', '/pay/example'])('makes help drawers available to app routes at %s', (path) => {
+        expect(chainFor(path)).toContain('AppHelpProvider')
+    })
+
+    it('leaves help drawers off marketing routes', () => {
+        expect(chainFor('/')).not.toContain('AppHelpProvider')
+    })
+
     it('mounts the marketing intl provider outside ContextProvider on the landing page', () => {
         const chain = chainFor('/')
         const intl = chain.indexOf('MarketingIntlProvider')

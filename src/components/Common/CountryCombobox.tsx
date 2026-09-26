@@ -155,7 +155,7 @@ export const CountryCombobox = ({
                 />
                 {open && query ? (
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         // mousedown would blur the input and close the list before the click lands
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
@@ -172,7 +172,7 @@ export const CountryCombobox = ({
                     </Button>
                 ) : onClear && selected ? (
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={onClear}
                         className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"
@@ -199,7 +199,7 @@ export const CountryCombobox = ({
                     id={listId}
                     role="listbox"
                     aria-label={ariaLabel ?? placeholder}
-                    className="notranslate mt-1 max-h-60 w-full overflow-y-auto rounded-sm border border-border-default bg-background-default p-1 shadow-lg"
+                    className="notranslate mt-1 max-h-60 w-full overflow-y-auto rounded-sm border border-border-default bg-background-default p-1 shadow-4"
                     // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
                     // so scrolling this list at page top reads as a pull. Same guard as Global/Drawer.
                     onTouchMove={(event) => event.stopPropagation()}
@@ -222,7 +222,8 @@ export const CountryCombobox = ({
                                 onMouseMove={() => setActiveIndex(index)}
                                 className={twMerge(
                                     'flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l transition-colors select-none',
-                                    index === activeIndex && 'bg-gray-200',
+                                    // same fill as ListItem's pressed state (and BaseSelect's hover)
+                                    index === activeIndex && 'bg-background-disabled',
                                     isSelected && 'bg-action-primary text-foreground-inverse'
                                 )}
                             >

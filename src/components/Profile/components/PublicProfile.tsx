@@ -4,7 +4,6 @@ import HandThumbsUpV2 from '@/assets/illustrations/hand-thumbs-up-v2.svg'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
@@ -24,7 +23,7 @@ import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useRequestContact } from '@/hooks/useRequestContact'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -48,6 +47,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
+    // Keyed by the username it was loaded for: the [...recipient] route reuses
+    // this component instance across profiles, and an effect-time reset still
+    // lets one render paint the previous owner's avatar beside the new name.
+    const [loadedAvatar, setLoadedAvatar] = useState<{ username: string; avatarKey: string | null } | null>(null)
+    const avatarKey = loadedAvatar?.username === username ? loadedAvatar.avatarKey : null
     const router = useRouter()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
@@ -133,20 +137,27 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
     // One element, two doors — the guest card and the Request-gate modal.
     const joinCtaButton = (
-        <Button variant="purple" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
+        <Button variant="primary" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
             {t('joinCta')}
         </Button>
     )
 
     useEffect(() => {
+        // Ignore a response the next navigation has already superseded.
+        let superseded = false
         usersApi.getByUsername(username).then((apiUser) => {
+            if (superseded) return
             if (apiUser?.fullName) setFullName(apiUser.fullName)
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
             setIsKycVerified(apiUser?.isVerified ?? false)
             setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
+            setLoadedAvatar({ username, avatarKey: apiUser?.avatarKey ?? null })
         })
+        return () => {
+            superseded = true
+        }
     }, [username])
 
     // interaction-status is the complete "sent money before" source (covers send-link
@@ -159,11 +170,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const displayName = showFullName && fullName ? fullName : username
 
     return (
-        <div className="space-y-4 flex h-full w-full flex-col bg-background">
+        <div className="flex min-h-inherit w-full flex-col gap-8">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
-                    <div className="flex items-center gap-2 md:hidden">
+                    <div className="flex items-center gap-2">
                         <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
                         <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
@@ -181,6 +192,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     isVerified={isKycVerified}
                     className="mb-6"
                     haveSentMoneyToUser={haveSentMoneyToUser}
+                    avatarKey={avatarKey}
                 />
 
                 {/* Action Buttons */}
@@ -188,12 +200,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div className="flex items-center justify-normal gap-4">
                         <Button
                             onClick={handleSend}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
-                            className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
+                            icon="arrow-up-right"
+                            className="w-1/2"
                         >
-                            <Icon name="arrow-up-right" size={20} fill="black" />
-                            <span className="font-bold">{tNav('send')}</span>
+                            {tNav('send')}
                         </Button>
 
                         <Button
@@ -209,16 +221,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                     setShowInviteModal(true)
                                 }
                             }}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
-                            className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
+                            icon="arrow-down-left"
+                            className="w-1/2"
                         >
-                            <Icon name="arrow-down-left" size={20} fill="black" />
                             {/* Not navigation.request: that labels the user's OWN
                                 Request flow, and es-419 renders it "Recibir" —
                                 receiving, which is not what this button does to
                                 someone else's profile. */}
-                            <span className="font-bold">{t('requestAction')}</span>
+                            {t('requestAction')}
                         </Button>
                     </div>
                 )}
@@ -228,11 +240,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     !isSelfProfile &&
                     !requestContact.isLoading &&
                     (!requestContact.data || requestContact.isError) && (
-                        <Notification priority="helper">
+                        <Callout priority="helper">
                             {tRequest(
                                 requestContact.isError ? 'errors.contactsUnavailable' : 'errors.moneyContactsOnly'
                             )}
-                        </Notification>
+                        </Callout>
                     )}
 
                 {/* badges row */}
@@ -240,54 +252,23 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
-                    <div className="flex flex-col items-center">
-                        <Card position="single" className="space-y-2 p-4 text-center">
-                            {isLoggedIn ? (
-                                <>
-                                    <h2 className="text-heading-card text-foreground-primary">{t('allSetTitle')}</h2>
-                                    <p className="mx-auto max-w-[55%] text-body-s">{t('allSetDescription')}</p>
-                                </>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Image
-                                                src={HandThumbsUpV2.src}
-                                                alt={t('joinPeanutAlt')}
-                                                width={20}
-                                                height={20}
-                                            />
-                                            <h2 className="text-heading-card text-foreground-primary">
-                                                {t('joinPeanut')}
-                                            </h2>
-                                            <Image
-                                                src={HandThumbsUpV2.src}
-                                                className="scale-x-[-1] transform"
-                                                alt={t('joinPeanutAlt')}
-                                                width={20}
-                                                height={20}
-                                            />
-                                        </div>
-                                        <p>{t('invitedLine', { username })}</p>
-                                    </div>
-                                    {joinCtaButton}
-                                </div>
-                            )}
-                        </Card>
-                        {/* <div
-                            className="absolute top-0 left-0 flex w-full -translate-y-[15%] justify-center"
-                        >
-                            <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
+                    <Card position="solo" className="flex flex-col gap-4 p-4 text-center">
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-center gap-2">
+                                <Image src={HandThumbsUpV2.src} alt={t('joinPeanutAlt')} width={20} height={20} />
+                                <h2 className="text-heading-card text-foreground-primary">{t('joinPeanut')}</h2>
                                 <Image
-                                    src={chillPeanutAnim.src}
-                                    alt="Peanut Mascot"
-                                    width={120}
-                                    height={120}
-                                    className="h-auto w-auto"
+                                    src={HandThumbsUpV2.src}
+                                    className="scale-x-[-1] transform"
+                                    alt={t('joinPeanutAlt')}
+                                    width={20}
+                                    height={20}
                                 />
                             </div>
-                        </div> */}
-                    </div>
+                            <p>{t('invitedLine', { username })}</p>
+                        </div>
+                        {joinCtaButton}
+                    </Card>
                 )}
 
                 {/* Show history to logged in users  */}
@@ -295,11 +276,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-sm bg-background-disabled/25 px-3 py-2">
-                                <p className="text-center text-body-s text-foreground-secondary">
-                                    {t('activityPrivateNote')}
-                                </p>
-                            </div>
+                            <p className="mt-3 mb-1 text-center text-body-s text-foreground-secondary">
+                                {t('activityPrivateNote')}
+                            </p>
                         )}
                     </div>
                 )}
@@ -317,7 +296,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 >
                     <DrawerContent>
                         <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
-                            <IconBubble icon="user" className="bg-action-primary" />
+                            <IconBubble icon="user" color="yellow" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
                                 <DrawerDescription>

@@ -100,7 +100,7 @@ function Slider({
                         // after: pseudo-element extends the 16px thumb to a 44px hit area
                         // outline-none poisons --tw-outline-style, so the ring needs an
                         // explicit focus-visible:outline-solid to paint (globals.css convention)
-                        'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-action-focus focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50'
+                        'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50'
                     )}
                 >
                     {/* Vertical snap tick - only visible when at a snap point */}

@@ -1,28 +1,42 @@
 import type { ReactNode } from 'react'
-import { Card } from '@/components/0_Bruddle/Card'
-import { PROSE_WIDTH } from './constants'
+import { Callout as DsCallout } from '@/components/0_Bruddle/Callout'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { PROSE_WIDTH } from '../constants'
+
+type CalloutType = 'info' | 'tip' | 'warning'
 
 interface CalloutProps {
-    type?: 'info' | 'tip' | 'warning'
+    type?: CalloutType
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
     children: ReactNode
 }
 
-const STYLES: Record<string, { bg: string; border: string; label: string }> = {
-    info: { bg: 'bg-primary-3/20', border: 'border-primary-3', label: 'Info' },
-    tip: { bg: 'bg-green-200', border: 'border-green-400', label: 'Tip' },
-    warning: { bg: 'bg-yellow-200', border: 'border-yellow-400', label: 'Important' },
-}
+const PRIORITIES = {
+    info: 'info',
+    tip: 'success',
+    warning: 'attention',
+} as const
 
-/** Highlighted callout box for tips, warnings, or important info. */
-export function Callout({ type = 'info', children }: CalloutProps) {
-    const style = STYLES[type] ?? STYLES.info
+/**
+ * Highlighted callout for tips, warnings, or important info — the MDX
+ * author-facing wrapper over the DS Callout banner. It used to be a hand-rolled tinted box with its own
+ * purple/green/yellow fills and a left rail; the tone belongs to the component.
+ */
+export function Callout({ type = 'info', locale = DEFAULT_LOCALE, children }: CalloutProps) {
+    const t = getTranslations(locale)
+    const labels: Record<CalloutType, string> = {
+        info: t.calloutInfo,
+        tip: t.calloutTip,
+        warning: t.calloutImportant,
+    }
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
-            <Card className={`${style.bg} border-l-4 ${style.border} my-8 p-5`}>
-                <p className="mb-1 text-xs font-bold tracking-wide text-n-1/40 uppercase">{style.label}</p>
-                <div className="text-sm leading-relaxed text-grey-1">{children}</div>
-            </Card>
+        <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
+            <DsCallout priority={PRIORITIES[type] ?? 'info'} title={labels[type] ?? labels.info}>
+                {children}
+            </DsCallout>
         </div>
     )
 }

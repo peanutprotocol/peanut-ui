@@ -8,7 +8,7 @@
  */
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { usePullToRefresh } from '../usePullToRefresh'
+import { usePullToRefresh, useShouldPullToRefresh } from '../usePullToRefresh'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => true) }))
 jest.mock('@/utils/haptics', () => ({
@@ -22,6 +22,21 @@ import { impactHaptic, notifyHaptic } from '@/utils/haptics'
 // jsdom implements no Web Animations API — record calls so the spinner/check
 // flourishes can be asserted without them throwing.
 const animateCalls: { element: Element; keyframes: unknown }[] = []
+
+// jsdom's CSSOM drops var() values outright, so the token backgrounds the hook
+// assigns would read back as ''. store the raw assignment to keep it assertable.
+const rawBackground = new WeakMap<CSSStyleDeclaration, string>()
+beforeAll(() => {
+    Object.defineProperty(CSSStyleDeclaration.prototype, 'background', {
+        configurable: true,
+        set(value: string) {
+            rawBackground.set(this, value)
+        },
+        get() {
+            return rawBackground.get(this) ?? ''
+        },
+    })
+})
 
 let queryClient: QueryClient
 
@@ -57,10 +72,12 @@ beforeEach(() => {
         return { cancel: jest.fn() } as unknown as Animation
     }) as unknown as Element['animate']
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    // the layout's scroll container — the element that gets the settle fade
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0, writable: true })
+    // The layout's scroll container must stay visually stable during refresh.
     const content = document.createElement('div')
     content.id = 'scrollable-content'
     document.body.appendChild(content)
+    window.scrollY = 0
     ;(isCapacitor as jest.Mock).mockReturnValue(true)
     jest.clearAllMocks()
 })
@@ -112,20 +129,20 @@ describe('usePullToRefresh', () => {
         })
 
         expect(iconHtml()).toContain('M5 13l4 4L19 7') // checkmark
-        expect(indicator()?.style.background).toBe('rgb(152, 233, 171)')
+        expect(indicator()?.style.background).toBe('var(--color-background-badge-success)')
         expect(notifyHaptic).toHaveBeenCalledWith('success')
 
-        // the refreshed content fades back in — the "it reloaded" signal on a
-        // screen that never blinks
+        // Completion feedback belongs to the indicator: fading the entire
+        // page makes a successful refresh look like a WebView flash.
         const content = document.querySelector('#scrollable-content')
-        expect(animateCalls.some((call) => call.element === content)).toBe(true)
+        expect(animateCalls.some((call) => call.element === content)).toBe(false)
 
         // ...then the indicator retracts and resets to the arrow
         act(() => {
             jest.advanceTimersByTime(550 + 220)
         })
         expect(iconHtml()).toContain('M12 5v14')
-        expect(indicator()?.style.background).toBe('rgb(255, 255, 255)')
+        expect(indicator()?.style.background).toBe('var(--color-background-default)')
     })
 
     it('reloads the page instead of invalidating on web', () => {
@@ -161,6 +178,37 @@ describe('usePullToRefresh', () => {
         expect(impactHaptic).not.toHaveBeenCalled()
     })
 
+    it('does not turn an upward scroll followed by a reversal into a refresh', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+
+        touch('touchstart', 100)
+        touch('touchmove', 50)
+        touch('touchmove', 300)
+        touch('touchend', 300)
+
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(invalidate).not.toHaveBeenCalled()
+        expect(impactHaptic).not.toHaveBeenCalled()
+    })
+
+    it.each(['move', 'release'])('cancels a pull when the app scrolls before the next %s', (phase) => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() }), { wrapper })
+
+        pullPastThreshold()
+        document.querySelector('#scrollable-content')!.scrollTop = 30
+        if (phase === 'move') {
+            touch('touchmove', 220)
+            // Once canceled, reaching the top again must not re-arm this gesture.
+            document.querySelector('#scrollable-content')!.scrollTop = 0
+        }
+        touch('touchend', 220)
+
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(invalidate).not.toHaveBeenCalled()
+    })
+
     it('ignores touches that start on an open vaul drawer', () => {
         const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
         renderHook(() => usePullToRefresh(), { wrapper })
@@ -185,6 +233,34 @@ describe('usePullToRefresh', () => {
         expect(invalidateQueries).not.toHaveBeenCalled()
         expect(impactHaptic).not.toHaveBeenCalled()
         sheet.remove()
+    })
+})
+
+describe('useShouldPullToRefresh', () => {
+    it('requires both the document and the app content to be at the top', () => {
+        const { result } = renderHook(() => useShouldPullToRefresh())
+        expect(result.current()).toBe(true)
+
+        window.scrollY = 30
+        expect(result.current()).toBe(false)
+        window.scrollY = 0
+        document.querySelector('#scrollable-content')!.scrollTop = 30
+        expect(result.current()).toBe(false)
+    })
+
+    it('checks the current scroll container after the layout remounts', () => {
+        const { result } = renderHook(() => useShouldPullToRefresh())
+        expect(result.current()).toBe(true)
+
+        document.querySelector('#scrollable-content')!.remove()
+        const replacement = document.createElement('div')
+        replacement.id = 'scrollable-content'
+        replacement.scrollTop = 30
+        document.body.appendChild(replacement)
+
+        expect(result.current()).toBe(false)
+        replacement.scrollTop = 0
+        expect(result.current()).toBe(true)
     })
 })
 

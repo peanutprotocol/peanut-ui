@@ -25,6 +25,7 @@ export interface ExchangeRateWidgetLabels {
     free: string
     arrivesHours: string
     arrivesMinutes: string
+    selectCurrency: string
 }
 
 // English defaults keep marketing callers (landing page, MDX) unchanged;
@@ -39,6 +40,7 @@ const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
     free: 'Free!',
     arrivesHours: 'Should arrive in hours.',
     arrivesMinutes: 'Should arrive in minutes.',
+    selectCurrency: 'Select currency',
 }
 
 interface IExchangeRateWidgetProps {
@@ -267,10 +269,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         >
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
-                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
                         </div>
                     ) : (
                         <input
@@ -296,6 +298,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                     <CurrencySelect
                         selectedCurrency={sourceCurrency}
                         setSelectedCurrency={setSourceCurrency}
+                        label={l.selectCurrency}
                         // excludeCurrencies={[destinationCurrency]}
                         trigger={
                             <button className="flex w-20 items-center gap-2">
@@ -324,10 +327,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.recipientGets}</h2>
-                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
                         </div>
                     ) : (
                         <input
@@ -359,6 +362,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                     <CurrencySelect
                         selectedCurrency={destinationCurrency}
                         setSelectedCurrency={setDestinationCurrency}
+                        label={l.selectCurrency}
                         trigger={
                             <button className="flex w-20 items-center gap-2">
                                 <Image
@@ -376,17 +380,20 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 </div>
             </div>
 
-            <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
-                {showLoading ? (
-                    <div className="mx-auto h-4 w-28 animate-pulse rounded-full bg-foreground-primary/10" />
-                ) : isError ? (
-                    <span>{l.rateUnavailable}</span>
-                ) : (
-                    <>
-                        1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
-                    </>
-                )}
-            </div>
+            {showLoading ? (
+                // one skeleton pill sized like the loaded pill — no tint-on-tint
+                <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
+            ) : (
+                <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
+                    {isError ? (
+                        <span>{l.rateUnavailable}</span>
+                    ) : (
+                        <>
+                            1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                        </>
+                    )}
+                </div>
+            )}
 
             {hasAmount && (
                 <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">

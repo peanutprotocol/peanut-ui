@@ -7,32 +7,40 @@
  * shows popular networks (arb, base, op, eth) and tokens (usdc, usdt, native).
  *
  * used by: withdraw, claim, and req_pay flows
+ *
+ * SHAPE (kush ruling 2026-09-21): the trigger is a real `ListItem` with a
+ * chevron; the drawer holds the search field ABOVE a CONTENTLESS `Tabs` row, so
+ * switching a network tab cannot unmount the field, and the token list is a
+ * sibling beneath both — one grouped card, not N solo cards in a gap stack.
  */
 
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import React, { type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from '@/utils/tw'
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 
-import { Button } from '@/components/0_Bruddle/Button'
-import Divider from '@/components/0_Bruddle/Divider'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { Section } from '@/components/0_Bruddle/Section'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
+import DisplayIcon from '@/components/Global/DisplayIcon'
+import { SearchInput } from '@/components/SearchInput'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_SYMBOL,
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_NAME,
+    PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IToken, type IUserBalance } from '@/interfaces/interfaces'
-import { areEvmAddressesEqual, isNativeCurrency, getChainName } from '@/utils/general.utils'
+import { areEvmAddressesEqual, getChainName, isNativeCurrency } from '@/utils/general.utils'
 import { NATIVE_TOKEN_PROXY_ADDRESS } from '@/utils/token.utils'
+import { Drawer, DrawerContent } from '../Drawer'
 import EmptyState from '../EmptyStates/EmptyState'
-import { Icon, type IconName } from '../Icons/Icon'
-import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
-import ScrollableList from './Components/ScrollableList'
-import { SearchInput } from '@/components/SearchInput'
 import TokenListItem from './Components/TokenListItem'
 import {
     RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN,
@@ -40,39 +48,17 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
-import { useChainRollout } from '@/hooks/useChainRollout'
-import { Drawer, DrawerContent } from '../Drawer'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // USDC logo for the hardcoded USDC-on-Arbitrum fallback (when the token list
 // hasn't loaded — e.g. demo mode — and cross-chain is disabled).
 const USDC_ARBITRUM_LOGO = 'https://assets.coingecko.com/coins/images/33000/thumb/usdc.png?1700119918'
 
-interface SectionProps {
-    title: string
-    children: ReactNode
-    className?: string
-    icon?: IconName
-    titleClassName?: string
-}
-
-const Section: React.FC<SectionProps> = ({ title, icon, children, className, titleClassName }) => (
-    <div className={twMerge('space-y-2', className)}>
-        <div className="flex items-center gap-2">
-            {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={twMerge('text-body-m-semibold text-foreground-primary', titleClassName)}>{title}</h2>
-        </div>
-        {children}
-    </div>
-)
-
 interface NewTokenSelectorProps {
-    classNameButton?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
     disabled?: boolean
 }
 
-const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
+const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', disabled }) => {
     const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
     const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
@@ -82,7 +68,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const isCrossChainDisabled = isXchainWithdrawDisabled || isXchainSendDisabled
 
     // When cross-chain withdraw is live, restrict destinations to what Rhino
-    // actually supports — the Squid-era selector lists chains/tokens Rhino
+    // actually supports — the static catalog lists chains/tokens Rhino
     // rejects (e.g. USDC on Scroll → "SCROLL is disabled"). See
     // RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN.
     const restrictToRhino = viewType === 'withdraw' && !isXchainWithdrawDisabled
@@ -92,15 +78,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         []
     )
 
-    // state to track content height
-    const contentRef = useRef<HTMLDivElement>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [showNetworkList, setShowNetworkList] = useState(false)
     const [networkSearchValue, setNetworkSearchValue] = useState('')
 
-    // state for image loading errors
-    const [buttonImageError, setButtonImageError] = useState(false)
     const {
         supportedChainsAndTokens,
         setSelectedTokenAddress,
@@ -115,7 +97,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         setIsDrawerOpen(false)
         setTimeout(() => setSearchValue(''), 200)
     }, [])
-
     // handles token selection
     const handleTokenSelect = useCallback(
         (balance: IUserBalance) => {
@@ -153,29 +134,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         )
     }, [selectedChainID, supportedChainsAndTokens])
 
-    const peanutWalletTokenDetails = useMemo(() => {
-        if (!supportedChainsAndTokens) return null
-
-        const chainInfo = supportedChainsAndTokens[PEANUT_WALLET_CHAIN.id]
-        if (!chainInfo) return null
-
-        const token = chainInfo.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
-        if (!token) return null
-        // Balance for this specific token is not relevant for its display in the "Free transaction token" section
-        return {
-            symbol: token.symbol,
-            chainName: chainInfo.networkName,
-            logoURI: token.logoURI,
-            chainLogoURI: chainInfo.chainIconURI,
-            balance: null,
-        }
-    }, [supportedChainsAndTokens])
-
-    // button display variables - derive from selected token/chain
-    let buttonSymbol: string | undefined = undefined
-    let buttonChainName: string | undefined = undefined
-    let buttonLogoURI: string | undefined = undefined
-    let buttonChainLogoURI: string | undefined = peanutWalletTokenDetails?.chainLogoURI
+    // trigger display variables - derive from selected token/chain
+    let triggerSymbol: string | undefined = undefined
+    let triggerChainName: string | undefined = undefined
+    let triggerLogoURI: string | undefined = undefined
 
     if (selectedTokenAddress && selectedChainID) {
         const chainInfo = supportedChainsAndTokens[selectedChainID]
@@ -191,10 +153,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             (t) => areEvmAddressesEqual(t.address, selectedTokenAddress) || t.address === selectedTokenAddress
         )
         if (tokenDetails && chainInfo) {
-            buttonSymbol = tokenDetails.symbol
-            buttonLogoURI = tokenDetails.logoURI
-            buttonChainName = chainInfo.networkName || `Chain ${selectedChainID}`
-            buttonChainLogoURI = chainInfo.chainIconURI
+            triggerSymbol = tokenDetails.symbol
+            triggerLogoURI = tokenDetails.logoURI
+            triggerChainName = chainInfo.networkName || `Chain ${selectedChainID}`
         }
     }
 
@@ -203,20 +164,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // list — the destination needs no wallet connection or balance reads, and
     // several deliverable chains (Avalanche, Linea, Ink, …) are intentionally
     // not source chains. Names/icons come from supportedChainsAndTokens.
-    // Per-chain rollout flags (PostHog) gate the newly-added withdraw
-    // destinations on prod so marketing can launch chains one by one.
-    const isChainRolledOut = useChainRollout()
     const allowedChainIds = useMemo(
         () =>
             new Set(
                 restrictToRhino
-                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN).filter(isChainRolledOut)
+                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN)
                     : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
             ),
-        [restrictToRhino, isChainRolledOut]
+        [restrictToRhino]
     )
 
-    const popularChainsForButtons = useMemo(() => {
+    const popularChainsForTabs = useMemo(() => {
         if (!supportedChainsAndTokens) return []
         return TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((popularNetwork) => {
             const chain = supportedChainsAndTokens[popularNetwork.chainId]
@@ -234,7 +192,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     }, [supportedChainsAndTokens, restrictToRhino])
 
     // build list of popular tokens (usdc, usdt, native) for display
-    const popularTokensList = useMemo(() => {
+    const tokensToDisplay = useMemo(() => {
         // USDC on Arbitrum — the always-available token. Uses the loaded token
         // metadata when present, else a hardcoded entry so the selector is never
         // empty (e.g. demo mode, or the token list failing to load).
@@ -293,9 +251,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             })
         }
 
-        const buildTokensForChainArray = (chainIds: string[], filterSymbol?: string): IUserBalance[] => {
+        const buildTokensForChainArray = (chainIds: string[], search?: string): IUserBalance[] => {
             const tokens: IUserBalance[] = []
             if (!supportedChainsAndTokens) return tokens
+            // SUBSTRING, not exact match: "usd" has to find USDC and USDT. An
+            // address still matches whole — a partial address is noise.
+            const query = search?.trim().toLowerCase()
 
             chainIds.forEach((chainId) => {
                 const chainData = supportedChainsAndTokens[chainId]
@@ -304,11 +265,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                         // withdraw: drop tokens Rhino can't deliver on this chain
                         // (e.g. native POL/xDAI, any token on a disabled chain).
                         if (restrictToRhino && !isRhinoSupported(chainId, token.symbol)) return
-                        if (filterSymbol) {
+                        if (query) {
                             if (
-                                token.symbol.toUpperCase() === filterSymbol.toUpperCase() ||
-                                token.address.toLowerCase() === filterSymbol.toLowerCase() ||
-                                token.name?.toLowerCase() === filterSymbol.toLowerCase()
+                                token.symbol?.toLowerCase().includes(query) ||
+                                token.name?.toLowerCase().includes(query) ||
+                                token.address.toLowerCase() === query
                             ) {
                                 tokens.push(createPopularTokenEntry(token, chainId))
                             }
@@ -353,7 +314,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             ? // specific chain selected: show popular (USDC, USDT, Native) for that chain
               buildTokensForChainArray([selectedChainID])
             : // default: popular tokens on popular chains
-              buildTokensForChainArray(popularChainsForButtons.map((pc) => pc.chainId))
+              buildTokensForChainArray(popularChainsForTabs.map((pc) => pc.chainId))
 
         // never leave the selector empty — USDC on Arbitrum is always usable
         return result.length > 0 ? result : [usdcArbitrumEntry()]
@@ -361,241 +322,312 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         searchValue,
         selectedChainID,
         supportedChainsAndTokens,
-        popularChainsForButtons,
+        popularChainsForTabs,
         isCrossChainDisabled,
         restrictToRhino,
         isRhinoSupported,
         allowedChainIds,
     ])
 
-    // filter popular tokens by search
-    const filteredPopularTokensToDisplay = useMemo(() => {
-        if (!searchValue) return popularTokensList
-
-        const lowerSearchValue = searchValue.toLowerCase()
-        return popularTokensList.filter((token) => {
-            const hasSymbol = !!token.symbol
-            const symbolMatch = hasSymbol && token.symbol.toLowerCase().includes(lowerSearchValue)
-            const nameMatch = token.name?.toLowerCase().includes(lowerSearchValue) ?? false
-            const addressMatch = token.address?.toLowerCase().includes(lowerSearchValue) ?? false
-            return hasSymbol && (symbolMatch || nameMatch || addressMatch)
-        })
-    }, [popularTokensList, searchValue])
-
-    const popularTokensListTitle = useMemo(() => {
+    const tokenListTitle = useMemo(() => {
+        if (isCrossChainDisabled) return t('tokenSelector.availableToken')
         if (searchValue) return t('tokenSelector.searchResults')
         if (selectedChainID && selectedNetworkName)
             return t('tokenSelector.popularTokensOnChain', { chainName: selectedNetworkName })
         return t('tokenSelector.popularTokens')
-    }, [searchValue, selectedChainID, selectedNetworkName, t])
+    }, [isCrossChainDisabled, searchValue, selectedChainID, selectedNetworkName, t])
 
-    const handleClearSelectedToken = useCallback(() => {
-        setSelectedChainID('')
-    }, [setSelectedChainID])
+    // the network tabs (user ruling: Tabs over the tile grid, flagged for
+    // the board). '' keeps its meaning — All shows popular tokens across the
+    // popular chains. selecting a tab does NOT clear the picked token, same as
+    // the old tiles; only the More-networks list path clears it. a chain picked
+    // from that list may not be popular, so it gets its own tab, keeping the
+    // selection visible. No tab carries `content`: the list below is a sibling,
+    // so a tab switch never unmounts the search field above it.
+    const activeNetworkTab = selectedChainID || 'all'
+    const handleNetworkTabChange = useCallback(
+        (value: string) => setSelectedChainID(value === 'all' ? '' : value),
+        [setSelectedChainID]
+    )
 
-    const clearChainSelection = () => {
-        return (
-            <div className="absolute -top-4 right-0">
-                <Button
-                    variant="transparent"
-                    aria-label={t('tokenSelector.clearNetworkSelection')}
-                    className="relative h-fit w-fit p-0 after:absolute after:-inset-3"
-                    onClick={handleClearSelectedToken}
-                >
-                    <div className="flex size-6 items-center justify-center">
-                        <Icon name="cancel" className="h-4 w-4" />
-                    </div>
-                </Button>
-            </div>
+    const chainTabLabel = (name: string, iconURI?: string) => (
+        <span className="flex items-center gap-1">
+            {iconURI && <DisplayIcon iconUrl={iconURI} altText={name} fallbackName={name} sizeClass="h-4 w-4" />}
+            {name}
+        </span>
+    )
+    const isPopularSelected = popularChainsForTabs.some((chain) => chain.chainId === selectedChainID)
+
+    // RESPONSIVE TRIM (kush, 2026-09-21: "only keep entries that can fit based
+    // on device/parent-container width"). At 375px the full row — All plus four
+    // popular chains, each an icon beside a name — ran past the right edge: the
+    // last label was cut mid-word and the track's rounded right end was sliced
+    // flat. The row now keeps only what fits. Nothing becomes unreachable: the
+    // "More networks" list covers every chain in `allowedChainIds`, which is a
+    // superset of these four.
+    //
+    // It drops ONE tab and measures again, instead of adding up label widths.
+    // The browser is the only thing that knows how wide a translated label with
+    // an icon really is, and a width table would have to be re-derived per
+    // locale — the repo has an i18n overflow gate because of exactly that.
+    //
+    // Two tabs are never dropped: `All`, the default state, and the selected
+    // chain, whose tab is the only thing that shows what is selected. If even
+    // those two overflow, the row keeps the scroll it already had — clipping
+    // and wrapping are both worse.
+    //
+    // `popularChainsForTabs` stays the full list everywhere else: dropping a
+    // TAB must not change which tokens `All` shows.
+    const [tabsRow, setTabsRow] = useState<HTMLDivElement | null>(null)
+    // one state, because the two halves are one fact: `dropped` is only an
+    // answer to the `width` it was measured against. A bare counter could not
+    // be reset on a resize — setting it to 0 when it is already 0 changes
+    // nothing, React bails out, and a row that had nothing to drop at 430px
+    // stayed overflowing after a shrink to 320px (measured).
+    const [fit, setFit] = useState({ width: 0, dropped: 0 })
+    const droppedTabCount = fit.dropped
+    const droppableTabCount = popularChainsForTabs.length - (isPopularSelected ? 1 : 0)
+
+    const visiblePopularChains = useMemo(() => {
+        if (droppedTabCount <= 0) return popularChainsForTabs
+        const kept = new Set(popularChainsForTabs.map((chain) => chain.chainId))
+        let toDrop = droppedTabCount
+        // from the right — the leftmost chains are the most used ones
+        for (let i = popularChainsForTabs.length - 1; i >= 0 && toDrop > 0; i--) {
+            const { chainId } = popularChainsForTabs[i]
+            if (chainId === selectedChainID) continue
+            kept.delete(chainId)
+            toDrop--
+        }
+        return popularChainsForTabs.filter((chain) => kept.has(chain.chainId))
+    }, [popularChainsForTabs, droppedTabCount, selectedChainID])
+
+    // A REF CALLBACK, not a mount effect. The row is handed to the drawer as
+    // `children` and mounted in the DRAWER's own commit — this component does
+    // not re-render then, so none of its effects run and an effect-only
+    // measurement never sees the row at all. Measured before this was a ref
+    // callback: at 375px the row stayed untrimmed and clipped until some
+    // unrelated render happened ~800ms later. A ref callback does fire in the
+    // commit that attaches the element, and before the browser paints. It only
+    // publishes the node — all measuring lives in the one effect below, so a
+    // row can never be judged twice and dropped twice for one overflow.
+    // Detaching resets the count, so each open re-decides from the full row.
+    const attachTabsRow = useCallback((node: HTMLDivElement | null) => {
+        setTabsRow(node)
+        if (!node) setFit({ width: 0, dropped: 0 })
+    }, [])
+
+    // the tablist IS the Tabs primitive's scroll box — the track's border sits
+    // on a wrapper around it (so the active chip can weld over that border),
+    // but the tablist is still the element whose overflow decides the clip. Its
+    // `clientWidth` now includes the 1px weld gutter on each side; `scrollWidth`
+    // is measured against the same box, so the comparison below is unchanged.
+    const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]') ?? null
+
+    // Every drop re-renders this component, so the next pass runs here until
+    // the row fits. A LAYOUT effect with no dependency list: each intermediate
+    // row is measured and replaced before the browser paints, so the row is
+    // never seen full and then collapsing, and any other cause of a width
+    // change is caught without a dependency list that has to name them all.
+    useLayoutEffect(() => {
+        if (!tabsScrollBox) return
+        const width = tabsScrollBox.clientWidth
+        // a different box than the one the current answer was measured against
+        // — ask again from the full row
+        if (width !== fit.width) {
+            setFit({ width, dropped: 0 })
+            return
+        }
+        if (fit.dropped >= droppableTabCount) return
+        // The triggers are `shrink-0`, so they never squeeze to fit: they
+        // overflow the tablist's own box and its `scrollWidth` reads their
+        // full demand. That is what keeps one measurement honest for both
+        // jobs — the trim here, and the scroll the row falls back to once
+        // there is nothing left to drop.
+        // the +1 absorbs sub-pixel rounding, which would drop a tab that fits
+        if (tabsScrollBox.scrollWidth > width + 1) setFit({ width, dropped: fit.dropped + 1 })
+    })
+
+    // The row's box changes with no render of this component behind it — the
+    // viewport rotates, a desktop window narrows. The observer turns that into
+    // a render, which the effect above then acts on. It watches the SCROLL BOX
+    // and not the tablist: the tablist's width is what the trim itself moves,
+    // so watching that would feed back on itself. A same-width notice returns
+    // the identical state object, so React bails out and the first, harmless
+    // notice on observe costs no render.
+    useEffect(() => {
+        if (!tabsScrollBox || typeof ResizeObserver === 'undefined') return
+        const observer = new ResizeObserver(() => {
+            const width = tabsScrollBox.clientWidth
+            setFit((current) => (current.width === width ? current : { width, dropped: 0 }))
+        })
+        observer.observe(tabsScrollBox)
+        return () => observer.disconnect()
+    }, [tabsScrollBox])
+
+    const networkTabs = [
+        { value: 'all', label: t('tokenSelector.allNetworks') },
+        ...visiblePopularChains.map((chain) => ({
+            value: chain.chainId,
+            label: chainTabLabel(chain.name, chain.iconURI),
+        })),
+        ...(selectedChainID && !isPopularSelected
+            ? [{ value: selectedChainID, label: chainTabLabel(selectedNetworkName ?? selectedChainID) }]
+            : []),
+    ]
+
+    const tokenList =
+        tokensToDisplay.length > 0 ? (
+            <ListGroup role="listbox" aria-label={t('tokenSelector.selectAToken')}>
+                {tokensToDisplay.map((token) => (
+                    <TokenListItem
+                        key={`${token.address}_${String(token.chainId)}`}
+                        balance={token}
+                        onClick={() => handleTokenSelect(token)}
+                        isSelected={
+                            selectedTokenAddress?.toLowerCase() === token.address.toLowerCase() &&
+                            selectedChainID === String(token.chainId)
+                        }
+                    />
+                ))}
+            </ListGroup>
+        ) : searchValue ? (
+            <EmptyState
+                title={t('tokenSelector.noMatchingTokensTitle')}
+                icon="search"
+                description={t('tokenSelector.noMatchingTokensDescription')}
+            />
+        ) : (
+            <EmptyState title={t('tokenSelector.noPopularTokensTitle')} icon="star" />
         )
-    }
+
+    const tokenBrowser = (
+        <div className="flex flex-col gap-4">
+            {isCrossChainDisabled ? (
+                <Callout priority="attention">{t('tokenSelector.crossChainUnavailable')}</Callout>
+            ) : (
+                <>
+                    {/* the search field lives OUTSIDE the tab row, so switching a
+                        network tab can never unmount it */}
+                    <div className="sticky -top-1 z-10 bg-background-default py-3">
+                        <SearchInput
+                            value={searchValue}
+                            onChange={setSearchValue}
+                            onClear={() => setSearchValue('')}
+                            placeholder={t('tokenSelector.searchTokenPlaceholder')}
+                        />
+                    </div>
+
+                    {/* sponsored fees are a fact worth noticing, not grey fine
+                        print — and it sits outside the sticky bar so only the
+                        search field follows the scroll */}
+                    <Callout priority="info">{t('tokenSelector.sponsoredHint')}</Callout>
+
+                    <Section
+                        title={t('tokenSelector.selectANetwork')}
+                        trailing={
+                            // the wrapper reserves the link's full 44px hit area
+                            // (its ::after reaches 14px past the text row) without
+                            // stretching the title row
+                            <div className="flex min-h-11 shrink-0 items-center">
+                                <LinkButton onClick={handleSearchNetwork}>
+                                    {t('tokenSelector.moreNetworksTitle')}
+                                </LinkButton>
+                            </div>
+                        }
+                    >
+                        {/* the ref anchor the responsive trim measures through */}
+                        <div ref={attachTabsRow}>
+                            <Tabs
+                                aria-label={t('tokenSelector.selectANetwork')}
+                                value={activeNetworkTab}
+                                onValueChange={handleNetworkTabChange}
+                                tabs={networkTabs}
+                                // the tab COUNT here is decided at runtime by
+                                // the trim above, so a content-width track
+                                // would end wherever the tabs happen to end
+                                // and leave a ragged gap to the container edge.
+                                // `stretch` gives every chip an equal share of
+                                // the row, the same row add-money's network
+                                // type switch renders (kush, 2026-09-22,
+                                // superseding the `track` pick of 2026-09-21:
+                                // at the widths this row really gets, `track`
+                                // scattered three chips across a full-width
+                                // pill instead of filling it). The trim still
+                                // converges — `shrink-0` keeps every chip at
+                                // its content width when the equal share is
+                                // too small, so `scrollWidth` still reports
+                                // the overflow the loop measures.
+                                fullWidth="stretch"
+                            />
+                        </div>
+                    </Section>
+                </>
+            )}
+
+            <Section title={tokenListTitle}>{tokenList}</Section>
+        </div>
+    )
+
+    // no-fees hint for withdraw/claim when using the default token. ListItem has
+    // a title and a body line and no third — flagged, kept as a helper line
+    // under the row (form-field helper anatomy: Body/XS, secondary).
+    const showNoFeesHint =
+        (viewType === 'withdraw' || viewType === 'claim') &&
+        selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+        selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
 
     return (
-        <>
-            <Button
-                variant="stroke"
+        <div className="flex flex-col gap-1">
+            <ListItem
+                position="solo"
+                data-testid="token-selector-trigger"
                 onClick={openDrawer}
-                className={twMerge(
-                    // boxy like Card (rounded-sm), not the default button pill
-                    'flex min-h-16 w-full items-center justify-between rounded-sm bg-background-default p-4 hover:bg-background-default hover:text-foreground-primary',
-                    classNameButton
-                )}
-                shadowSize="4"
                 disabled={disabled}
-            >
-                <div className="flex flex-grow items-center justify-between gap-3 overflow-hidden">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        <div className="relative flex-shrink-0">
-                            {buttonLogoURI && !buttonImageError ? (
-                                <Image
-                                    src={buttonLogoURI}
-                                    alt={`${buttonSymbol} logo`}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
-                                    onError={() => setButtonImageError(true)}
-                                />
-                            ) : (
-                                <Icon name="plus" size={24} />
-                            )}
-                            {buttonChainLogoURI && buttonLogoURI && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-gray-600">
-                                    <Image
-                                        src={buttonChainLogoURI}
-                                        alt={`Chain logo`}
-                                        width={16}
-                                        height={16}
-                                        className="rounded-full"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex flex-col items-start overflow-hidden">
-                            <span className="truncate text-body-m-semibold text-foreground-primary">
-                                {buttonSymbol || t('tokenSelector.selectAToken')}
-                                {buttonChainName && (
-                                    <span className="ml-1 text-body-s text-foreground-secondary">
-                                        {t.rich('tokenSelector.onChain', {
-                                            chainName: buttonChainName,
-                                            c: (chunks) => <span className="capitalize">{chunks}</span>,
-                                        })}
-                                    </span>
-                                )}
-                            </span>
-                            {/* no fees hint for withdraw/claim when using default token */}
-                            {(viewType === 'withdraw' || viewType === 'claim') &&
-                                selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
-                                selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-body-xs text-foreground-secondary">
-                                        {t('tokenSelector.noFeesWithToken')}
-                                    </span>
-                                )}
-                        </div>
-                    </div>
-                    <Icon name="chevron-up" size={24} className="flex-shrink-0 rotate-90 text-foreground-primary" />
-                </div>
-            </Button>
+                chevron
+                leading={
+                    triggerLogoURI ? (
+                        <DisplayIcon
+                            iconUrl={triggerLogoURI}
+                            altText={`${triggerSymbol} logo`}
+                            fallbackName={triggerSymbol ?? ''}
+                            sizeClass="size-6"
+                        />
+                    ) : (
+                        // nothing picked yet: the leading slot takes an IconBubble,
+                        // which is in the board's leading vocabulary — a bare Icon is not
+                        <IconBubble icon="plus" size="xs" color="gray" />
+                    )
+                }
+                title={triggerSymbol || t('tokenSelector.selectAToken')}
+                truncate={!!triggerSymbol}
+                body={triggerChainName}
+            />
+            {showNoFeesHint && (
+                <span className="text-body-xs text-foreground-secondary">{t('tokenSelector.noFeesWithToken')}</span>
+            )}
 
-            <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
+            {/* the boolean is honoured: a drag/Escape/outside-click dismiss must
+                run the same close path as the row tap */}
+            <Drawer open={isDrawerOpen} onOpenChange={(open) => (open ? setIsDrawerOpen(true) : closeDrawer())}>
                 <DrawerContent accessibleTitle={t('tokenSelector.drawerTitle')} className="py-4">
-                    <div ref={contentRef} className="mx-auto md:max-w-2xl">
-                        {showNetworkList ? (
-                            <NetworkListView
-                                chains={supportedChainsAndTokens}
-                                onSelectChain={handleChainSelectFromList}
-                                onBack={() => setShowNetworkList(false)}
-                                searchValue={networkSearchValue}
-                                setSearchValue={setNetworkSearchValue}
-                                selectedChainID={selectedChainID}
-                                allowedChainIds={allowedChainIds}
-                                comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
-                            />
-                        ) : (
-                            <div className="relative space-y-4 flex flex-col">
-                                {/* Info banner when cross-chain is disabled */}
-                                {isCrossChainDisabled && (
-                                    <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
-                                        <span>{t('tokenSelector.crossChainUnavailable')}</span>
-                                    </div>
-                                )}
-
-                                {/* Popular chains section - hidden when cross-chain is disabled */}
-                                {!isCrossChainDisabled && (
-                                    <>
-                                        <Section title={t('tokenSelector.selectANetwork')}>
-                                            <div className="flex flex-col gap-4">
-                                                <div className="space-x-2 flex items-stretch justify-between">
-                                                    {popularChainsForButtons.map((chain) => (
-                                                        <NetworkButton
-                                                            key={chain.chainId}
-                                                            chainName={chain.name}
-                                                            chainIconURI={chain.iconURI}
-                                                            onClick={() => {
-                                                                if (selectedChainID === chain.chainId) {
-                                                                    setSelectedChainID('') // clear selection if already selected
-                                                                } else {
-                                                                    setSelectedChainID(chain.chainId) //otherwise, select it
-                                                                }
-                                                            }}
-                                                            isSelected={chain.chainId === selectedChainID}
-                                                        />
-                                                    ))}
-                                                    <NetworkButton
-                                                        chainName="Search"
-                                                        isSearch={true}
-                                                        onClick={handleSearchNetwork}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </Section>
-                                        <Divider className="p-0" dividerClassname="border-border-subtle" />
-                                    </>
-                                )}
-
-                                {/* Hide search when cross-chain functionality is disabled (withdraw or send) - only one option available */}
-                                {!isCrossChainDisabled && (
-                                    <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
-                                        <SearchInput
-                                            value={searchValue}
-                                            onChange={setSearchValue}
-                                            onClear={() => setSearchValue('')}
-                                            placeholder={t('tokenSelector.searchTokenPlaceholder')}
-                                        />
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-body-xs text-foreground-secondary">
-                                                {t('tokenSelector.sponsoredHint')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Popular tokens section */}
-                                <Section
-                                    title={
-                                        isCrossChainDisabled
-                                            ? t('tokenSelector.availableToken')
-                                            : popularTokensListTitle
-                                    }
-                                    icon={searchValue ? 'search' : 'star'}
-                                    titleClassName="text-foreground-secondary font-medium"
-                                    className="relative space-y-4"
-                                >
-                                    {selectedNetworkName && !isCrossChainDisabled && clearChainSelection()}
-                                    <ScrollableList>
-                                        {filteredPopularTokensToDisplay.length > 0 ? (
-                                            filteredPopularTokensToDisplay.map((token) => {
-                                                const isSelected =
-                                                    selectedTokenAddress?.toLowerCase() ===
-                                                        token.address.toLowerCase() &&
-                                                    selectedChainID === String(token.chainId)
-
-                                                return (
-                                                    <TokenListItem
-                                                        key={`${token.address}_${String(token.chainId)}_popular`}
-                                                        balance={token}
-                                                        onClick={() => handleTokenSelect(token)}
-                                                        isSelected={isSelected}
-                                                        isPopularToken={true}
-                                                    />
-                                                )
-                                            })
-                                        ) : searchValue ? (
-                                            <EmptyState
-                                                title={t('tokenSelector.noMatchingTokensTitle')}
-                                                icon="search"
-                                                description={t('tokenSelector.noMatchingTokensDescription')}
-                                            />
-                                        ) : (
-                                            <EmptyState title={t('tokenSelector.noPopularTokensTitle')} icon="star" />
-                                        )}
-                                    </ScrollableList>
-                                </Section>
-                            </div>
-                        )}
-                    </div>
+                    {showNetworkList ? (
+                        <NetworkListView
+                            chains={supportedChainsAndTokens}
+                            onSelectChain={handleChainSelectFromList}
+                            onBack={() => setShowNetworkList(false)}
+                            searchValue={networkSearchValue}
+                            setSearchValue={setNetworkSearchValue}
+                            selectedChainID={selectedChainID}
+                            allowedChainIds={allowedChainIds}
+                            comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                        />
+                    ) : (
+                        tokenBrowser
+                    )}
                 </DrawerContent>
             </Drawer>
-        </>
+        </div>
     )
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * PasskeySetupHelpModal — the four reworks, as real renders.
+ * PasskeySetupHelpDrawer — the four reworks, as real renders.
  *
  * Harness-only: these live under src/dev/surfaces so the options can be
  * photographed with the real DS components and the real catalog strings before
@@ -13,8 +13,9 @@
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { Accordion } from '@/components/0_Bruddle/Accordion'
 
@@ -39,11 +40,9 @@ function Shell({ children, footer }: { children: React.ReactNode; footer?: React
         <ActionModal
             visible
             onClose={() => {}}
-            icon="alert"
-            iconContainerClassName="bg-action-secondary"
+            tone="attention"
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
-            modalPanelClassName="max-w-md mx-8"
             content={children}
             footer={
                 footer ?? (
@@ -56,7 +55,7 @@ function Shell({ children, footer }: { children: React.ReactNode; footer?: React
     )
 }
 
-/** A — numbered list for the fixes, one Notification for the one real warning. */
+/** A — numbered list for the fixes, one Callout for the one real warning. */
 export function PasskeyHelpA() {
     const { t, description, steps, warning } = useHelpCopy()
     const tCommon = useTranslations('common')
@@ -77,13 +76,13 @@ export function PasskeyHelpA() {
                     <h2 className={MINI}>{t('tryTheseFixes')}</h2>
                     <NumberedList items={steps} />
                 </div>
-                <Notification priority="attention">{warning}</Notification>
+                <Callout priority="attention">{warning}</Callout>
             </div>
         </Shell>
     )
 }
 
-/** B — minimal bullets, no Notification; the caveat folded into the copy. */
+/** B — minimal bullets, no Callout; the caveat folded into the copy. */
 export function PasskeyHelpB() {
     const { t, description, steps, warning } = useHelpCopy()
     return (
@@ -94,33 +93,21 @@ export function PasskeyHelpB() {
                 </p>
                 <div className="flex flex-col gap-2">
                     <h2 className={MINI}>{t('tryTheseFixes')}</h2>
-                    <ul className="flex flex-col gap-2">
-                        {steps.map((step) => (
-                            <li key={step} className="flex items-start gap-2 text-body-s text-foreground-primary">
-                                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground-primary" />
-                                <span>{step}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    <BulletList items={steps} />
                 </div>
             </div>
         </Shell>
     )
 }
 
-/** C — one Notification carrying the heading, the fixes and the caveat. */
+/** C — one Callout carrying the heading, the fixes and the caveat. */
 export function PasskeyHelpC() {
     const { t, description, steps, warning } = useHelpCopy()
     return (
         <Shell>
             <div className="flex w-full flex-col gap-4 text-left">
                 <p className="text-body-s text-foreground-secondary">{description}</p>
-                <Notification
-                    priority="info"
-                    className="w-full"
-                    title={t('tryTheseFixes')}
-                    items={[...steps, warning]}
-                />
+                <Callout priority="info" className="w-full" title={t('tryTheseFixes')} items={[...steps, warning]} />
             </div>
         </Shell>
     )

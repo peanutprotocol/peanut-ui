@@ -39,7 +39,7 @@
             "mexico": "Mexico",
             "descriptions": {
                 "argentina": "Only Mercado Pago QR payments",
-                "brazil": "Only PIX QR payments"
+                "brazil": "Only Pix QR and Pix key payments"
             }
         },
         "tryDifferentCountry": "Please try a different country.",
@@ -56,7 +56,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed",
+        "slideToProceed": "Slide to proceed",
         "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
@@ -106,6 +106,7 @@
         "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
+        "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
         "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
@@ -117,6 +118,7 @@
         "userOpReverted": "This payment could not be completed. Please try again."
     },
     "migration": {
+        "downloadPeanut": "Download Peanut",
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
             "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
@@ -140,7 +142,7 @@
         },
         "downloadNow": "Download now",
         "smartLink": {
-            "redirecting": "Taking you to the store…",
+            "redirecting": "Opening the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }
     },
@@ -168,91 +170,83 @@
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "shhhhh.",
-            "tagline": "The peanut card is out. For you. Maybe.",
-            "body": "A card accepted at over 150 million Visa-accepting merchants. We're letting beta users in slowly — <counter></counter> a week. If you've got the right badge, you skip the line entirely.",
-            "onlyCount": "only {count}",
-            "tryTheDoor": "TRY THE DOOR",
-            "orJoinWaitlist": "or join the waitlist →",
-            "disclaimer": "Verification required for all cardholders. No monthly or annual fees. Standard fees and limits apply per the cardholder terms. Beta programme.",
-            "joinError": "Couldn't join the waitlist — try the door again."
-        },
-        "waitlist": {
-            "joined": "✓ You're on the waitlist",
-            "joinedWithPosition": "✓ You're on the waitlist · #{position}",
-            "holler": "We'll holler when your turn comes up."
-        },
-        "marquee": {
-            "iykyk": "IYKYK",
-            "wordTravels": "WORD TRAVELS",
-            "closedBeta": "CLOSED BETA",
-            "shhhh": "SHHHH",
-            "peanutClub": "PEANUT CLUB"
+            "wordmark": "Peanut Card",
+            "tagline": "Your money. Ready to spend.",
+            "cta": "Get card",
+            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms.",
+            "title": "Go Pink.",
+            "pitch": "One balance. 150 million places to spend it.",
+            "lead": "A virtual Visa card that spends your Peanut balance. Online, and in store with Apple Pay or Google Pay where supported."
         },
         "whatItDoes": {
             "titleLine1": "It's a card.",
             "titleLine2": "That's the whole trick.",
-            "body": "Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.",
+            "body": "Top up the way you already move money: bank transfer, exchange withdrawal, or stablecoins. Then spend it wherever Visa is accepted.",
             "statMerchants": "Visa-accepting merchants",
             "statBalance": "balance",
-            "statCard": "card",
-            "statMiddlemen": "middlemen"
+            "statMonthlyFees": "monthly fees",
+            "statAnnualFees": "annual fees"
         },
         "whoItsFor": {
-            "title": "If you live in more than one country, this is for you.",
-            "body": "We built peanut for people who don't fit. Digital nomads who get bounced by every neobank's verification the moment they cross a border. Expats who pay 4% on every transaction home. Cross-border users who earn in one currency and spend in another."
-        },
-        "howToGetIn": {
-            "title": "How to get in.",
-            "subtitle": "Cred check. Badge skips the queue.",
-            "badgeTitle": "Got a badge.",
-            "badgeBody": "You skip the line. We're whitelisting holders of:",
-            "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
-            "badgeShowMore": "+{count} more →",
-            "badgeShowLess": "show less",
-            "noBadgeTitle": "No badge.",
-            "noBadgeBody": "Join the waitlist. We let people in 50 a week.",
-            "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
+            "title": "Built for money that doesn't stay put.",
+            "body": "Nomads, expats, remote workers, frequent travellers. One balance, spendable wherever Visa is accepted."
         },
         "notForYou": {
             "title": "Probably not for you.",
             "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
-            "body2": "If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card was built for you."
+            "body2": "If your money lives elsewhere, across borders, in dollars, in more than one place, the Peanut Card was built for you."
+        },
+        "howToApply": {
+            "title": "How to get it.",
+            "signInTitle": "Sign in.",
+            "signInBody": "Or create your account. Takes a minute.",
+            "verifyTitle": "Verify.",
+            "verifyBody": "One identity check, plus the cardholder terms.",
+            "spendTitle": "Spend.",
+            "spendBody": "Approved? Add money and pay."
+        },
+        "marquee": {
+            "peanutCard": "PEANUT CARD",
+            "contactless": "CONTACTLESS",
+            "available": "GET YOUR CARD",
+            "online": "ONLINE PAYMENTS",
+            "noMonthlyFee": "NO MONTHLY FEE"
         },
         "faq": {
             "title": "FAQ.",
             "q1": {
-                "question": "WHAT'S THE PEANUT CARD?",
-                "answer": "A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted."
+                "question": "What is Peanut Card?",
+                "answer": "Peanut Card is a virtual Visa card for spending your Peanut balance online and through supported mobile wallets."
             },
             "q2": {
-                "question": "WHERE DOES IT WORK?",
-                "answer": "Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs."
+                "question": "Where can I pay?",
+                "answer": "Use your card at Visa-accepting online merchants and for contactless payments with Apple Pay or Google Pay where supported."
             },
             "q3": {
-                "question": "IS MY MONEY SAFE?",
-                "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
+                "question": "How is the card funded?",
+                "answer": "Card spending uses USDC held in a dedicated smart contract. Funds from your Peanut wallet can be added to your card balance."
             },
             "q5": {
-                "question": "HOW LONG IS THE WAITLIST?",
-                "answer": "We're letting in about 50 people a week during closed beta. Order matters. Badges skip the line entirely."
+                "question": "How do I get a card?",
+                "answer": "Sign in, complete verification, and accept the cardholder terms. Your application is subject to approval."
             },
             "q6": {
-                "question": "CAN I USE IT WHERE I LIVE?",
-                "answer": "It's a Visa card — accepted wherever Visa is accepted, in shops, online and at ATMs. Sign in and try the door to see what's next for your account."
+                "question": "Do I need to deposit before applying?",
+                "answer": "No. You can apply before adding money. Add funds once your card is ready to make payments."
             },
             "q7": {
-                "question": "ANY FEES?",
-                "answer": "No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms."
+                "question": "Are there fees?",
+                "answer": "No monthly or annual fees. Standard transaction fees and limits apply under the cardholder terms."
             },
             "q8": {
-                "question": "WHY \"SHHHHH\"?",
-                "answer": "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels."
+                "question": "Is a physical card available?",
+                "answer": "Peanut Card is virtual. You can register your interest in a physical card from the app."
             }
         },
         "ready": {
-            "title": "ready?",
-            "subtitle": "Try the door."
+            "title": "Ready?",
+            "subtitle": "Sign in, verify, spend.",
+            "disclaimer": "Subject to eligibility. Identity verification required."
         }
     }
 }

@@ -26,6 +26,8 @@ export const MAX_RAW_BADGE_CAMPAIGN_LENGTH = 64
  * Deferred install payloads queued before the utm path retired (TASK-21226)
  * can still carry 68-character `utm:`-prefixed identities; keep accepting
  * that wire bound so in-flight queues settle instead of being rejected.
+ * Remove the `utm:` allowance after 2026-10-01; no queued payload can outlive
+ * that date.
  */
 export const MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH = MAX_RAW_BADGE_CAMPAIGN_LENGTH + 'utm:'.length
 

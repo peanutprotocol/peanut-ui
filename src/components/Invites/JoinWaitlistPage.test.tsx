@@ -58,10 +58,6 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 jest.mock('@/utils/format.utils', () => ({ isValidEmail: () => true }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
-jest.mock('@/assets/mascot', () => ({
-    PeanutWavingHello: { src: '/waving.svg' },
-    PeanutPointing: { src: '/pointing.svg' },
-}))
 jest.mock('./InvitesPageLayout', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -119,6 +115,7 @@ describe('JoinWaitlistPage invite onboarding boundary', () => {
                 success: true,
                 attributionResolved: false,
                 onboardingResolved: false,
+                // retired offramp wire fields on purpose: the page reads only the claim outcome (TASK-21226)
                 legacyAcquisition: {
                     campaignTag: 'offramp',
                     fallback: 'normal_app',

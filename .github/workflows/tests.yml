@@ -32,11 +32,18 @@ permissions:
     contents: read
 
 jobs:
+    # Runs first; every job below waits for it (backdoor-scan.yml).
+    backdoor-scan:
+        uses: ./.github/workflows/backdoor-scan.yml
+        secrets:
+            TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
     # lives in its own blocking job below.)
     format:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -72,6 +79,30 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
+    # The screen-library suite covers capture validation, publication provenance,
+    # storage credentials, shared pointer ordering, and the Worker's public
+    # allowlist. Keep it isolated from the app test jobs because it needs no
+    # submodules or secrets.
+    screen-tests:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  version: 10.30.1
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+            - run: pnpm screens:test
+
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
     # styles, stock text sizes, non-DS classes in views, useSearchParams files)
@@ -93,6 +124,7 @@ jobs:
     # than the AST baseline, so leaning on it here would fail the ratchet on
     # every PR with a misleading message.
     ds-lint:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             # no submodules/token: the count script only reads src/**/*.ts(x)
@@ -114,10 +146,41 @@ jobs:
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
 
+    # Screen wordiness ratchet (founders daily 2026-09-23). Counts the English
+    # copy each screen can show (scripts/screen-wordiness.md) and prints the
+    # heaviest screens to the job summary on every run. Fails when a screen
+    # grows past its baseline entry, or a new screen goes over the budget.
+    # Advisory: not in ci-success.needs, so a red run flags copy growth
+    # without blocking a merge (Hugo, 2026-09-24).
+    # Same posture as ds-lint: the script parses with `typescript`, so it
+    # installs without running scripts or a pnpmfile, and needs no build.
+    screen-wordiness:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules: the script reads src/**/*.tsx and the app catalog
+            # in src/i18n, neither of which lives in a submodule.
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+
+            - name: Screen wordiness budget
+              run: node scripts/screen-wordiness.mjs --check
+
     # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
     # feat/design-system, so this gates the PR via ci-success.needs. Warnings
     # do not fail the job; add a warn floor only if the team decides one.
     eslint:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -142,6 +205,7 @@ jobs:
     # Typecheck job. Independent of unit tests so type errors surface in
     # parallel.
     typecheck:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -178,6 +242,7 @@ jobs:
     # ios-release, android-release) only reach it after merge, on a push to
     # dev, so without this the first red build is a release.
     native-export:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -219,6 +284,9 @@ jobs:
                   ENVEOF
 
             - name: Build the static export
+              env:
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: node scripts/native-build.js
 
             - name: Verify export output
@@ -239,6 +307,7 @@ jobs:
     # render-snapshot skip. Provision a contents:read token for peanut-api-ts
     # and the check goes live with no other change.
     be-baseline:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         permissions: {}
         steps:
@@ -348,6 +417,7 @@ jobs:
     # a docs-only, workflow-only or test-only PR skips the capture with no
     # checkout and no install.
     ds-shots-filter:
+        needs: backdoor-scan
         name: ds-shots-filter
         # A fork PR gets a read-only GITHUB_TOKEN and no SUBMODULE_TOKEN, so
         # neither the submodule checkout nor the comment can work. Skip it.
@@ -376,7 +446,7 @@ jobs:
                   # e2e/flows/ and the regression config are here because the
                   # behaviour specs run inside ds-shots — without them a PR
                   # touching only those files would skip the job that runs them.
-                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression|overflow)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
                   # Inside the set above but never on camera. src/content is the
                   # blog and SEO submodule, and no fixture renders those pages.
                   DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
@@ -411,11 +481,12 @@ jobs:
     #     keep one comment up to date.
     ds-shots:
         name: ds-shots
-        needs: [ds-shots-filter]
+        needs: [backdoor-scan, ds-shots-filter]
         # `always()` because ds-shots-filter never runs on a push, and a skipped
-        # `needs` would otherwise skip this job too.
+        # `needs` would otherwise skip this job too. `always()` would also run
+        # it after a failed backdoor-scan, so that result is checked by hand.
         if: >-
-            always() &&
+            always() && needs.backdoor-scan.result == 'success' &&
             ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
             || needs.ds-shots-filter.outputs.render == 'true')
         runs-on: ubuntu-latest
@@ -507,6 +578,15 @@ jobs:
             # source hash, restore-keys falls back to the newest cache for the
             # same lockfile and build configuration. Do not restore Webpack caches
             # across configuration changes; stale module hashes can crash the build.
+            # The version suffix is the kill switch for a poisoned entry.
+            # v3 invalidated a dev-scoped v2 entry that reproducibly crashed
+            # Webpack's WasmHash on PR builds before screenshot capture; v4
+            # invalidates a v3 entry that went the same way on 2026-09-17
+            # (`TypeError: Cannot read properties of undefined (reading
+            # 'length')` in WasmHash._updateWithBuffer, ~60s into Build, on
+            # every PR that restored it — ui#3227 and ui#3232 crashed
+            # identically off the same key). Bump the version again the next
+            # time PRs start failing in Build with a WasmHash stack.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending
@@ -516,9 +596,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -532,6 +612,10 @@ jobs:
                   # /dev page the regression specs drive. Locally .env sets
                   # it; CI has no .env, so set it here.
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Match the screen-library build: restored Webpack hashes crash WasmHash.
+                  SCREEN_CAPTURE_BUILD: '1'
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -545,7 +629,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
@@ -685,6 +769,18 @@ jobs:
             - name: Run regression specs
               run: pnpm test:e2e:regression
 
+            # i18n overflow gate (TASK-22366): renders the fixture set, the
+            # localized landing routes and the setup screens in es-419 at
+            # 320px and fails when translated copy is clipped. Absolute DOM
+            # check, no baseline — so it runs the same way on push and PR.
+            # Advisory the same way this whole job is (not in
+            # ci-success.needs); give it its own blocking job after a week of
+            # PRs with zero false positives.
+            # Failure screenshots land in e2e/__results__/, which the
+            # failure upload below already ships.
+            - name: i18n overflow gate
+              run: pnpm test:i18n-overflow:run
+
             # The page snapshot in error-context.md is the only way to see
             # WHAT rendered on the runner when a spec dies in CI but passes
             # locally. Without this upload the failure is undebuggable.
@@ -696,6 +792,107 @@ jobs:
                   path: e2e/__results__/
                   retention-days: 7
 
+    # The required subset of the regression suite: one spec, the button press
+    # physics. It reads computed style out of a real browser, so it is the only
+    # check that sees which state wins in the cascade — the class-name unit
+    # tests cannot, and this contract has broken twice.
+    #
+    # ds-shots runs the same spec but is advisory by design (see its comment
+    # above), so nothing gated it. This job does, and it stays lean: build,
+    # the gated specs, no screenshots and no diff machinery.
+    #
+    # The drawer shadow-clip sweep (TASK-23054) is gated here too: a clipped
+    # CTA shadow is only visible in real layout, and it shipped twice.
+    press-contract:
+        needs: backdoor-scan
+        name: press-contract
+        runs-on: ubuntu-latest
+        # Build ~4m + two specs. A hang past this is a bug, not a slow day.
+        timeout-minutes: 25
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+            - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: npx playwright install --with-deps chromium
+
+            # The cache holds browsers, not the apt packages they link
+            # against, so system deps still need installing on a cache hit.
+            # Same apt-stall hardening as ds-shots (2026-08-19, PR #2755):
+            # this job gates ci-success, so a transient Azure-mirror stall
+            # must retry, not block merges.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+
+            # The regression config starts `next start`, so the build has to
+            # run first. NEXT_PUBLIC_VERCEL_ENV and NEXT_PUBLIC_BASE_URL are
+            # inlined at build time — without them /dev routes notFound() and
+            # the page gate redirects to /setup.
+            - name: Build
+              env:
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+
+            - name: Run the press-physics spec
+              run: npx playwright test e2e/flows/button-press-physics.spec.ts --config=playwright.regression.config.ts
+
+            - name: Run the drawer shadow-clip spec
+              run: npx playwright test e2e/flows/drawer-shadow-clip.spec.ts --config=playwright.regression.config.ts
+
+            - name: Upload results on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: press-contract-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
     # Coverage + test-summary aggregator. Mirrors the pattern from
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
     report:
@@ -703,8 +900,8 @@ jobs:
         # Wait for format + typecheck too — the report header says "all
         # green", which would lie if only unit results were considered
         # (per CR feedback on PR #1908).
-        needs: [format, typecheck, unit]
-        if: always()
+        needs: [backdoor-scan, format, typecheck, unit]
+        if: always() && needs.backdoor-scan.result == 'success'
         permissions:
             contents: read
             pull-requests: write
@@ -881,6 +1078,7 @@ jobs:
     # the team roster, and GitHub org/repo access management keeps it current.
     # The per-user permission endpoint works with the default GITHUB_TOKEN.
     human-authors:
+        needs: backdoor-scan
         name: human-authors
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
@@ -1011,7 +1209,20 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
+        needs:
+            [
+                backdoor-scan,
+                format,
+                screen-tests,
+                ds-lint,
+                eslint,
+                typecheck,
+                native-export,
+                unit,
+                press-contract,
+                report,
+                human-authors,
+            ]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -1020,11 +1231,13 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
+                      echo "  press-contract: ${{ needs['press-contract'].result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

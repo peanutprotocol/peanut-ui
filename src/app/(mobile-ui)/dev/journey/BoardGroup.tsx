@@ -1,6 +1,7 @@
 'use client'
 
 import { twMerge } from '@/utils/tw'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 
 /**
  * One channel band inside a funnel column. Each band carries its own tint so
@@ -14,7 +15,7 @@ export default function BoardGroup({
     tint,
     children,
 }: {
-    icon: string
+    icon: IconName
     label: string
     count: number
     tint: string
@@ -22,12 +23,12 @@ export default function BoardGroup({
 }) {
     return (
         <section className={twMerge('border-t border-border-default', tint)}>
-            <header className="flex items-center gap-1.5 px-2.5 py-1.5">
-                <span aria-hidden>{icon}</span>
-                <span className="text-[10px] font-bold tracking-wide text-foreground-primary uppercase">{label}</span>
-                <span className="text-[10px] font-bold text-foreground-secondary">{count}</span>
+            <header className="flex items-center gap-1 px-3 py-2">
+                <Icon name={icon} size={16} />
+                <span className="text-label-m text-foreground-primary">{label}</span>
+                <span className="text-label-m text-foreground-secondary">{count}</span>
             </header>
-            <div className="flex flex-col gap-1.5 px-2 pb-2">{children}</div>
+            <div className="flex flex-col gap-2 px-2 pb-2">{children}</div>
         </section>
     )
 }

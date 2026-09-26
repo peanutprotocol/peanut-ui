@@ -3,7 +3,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
@@ -15,16 +15,19 @@ type ValidatedInputProps = {
     value: string
     placeholder?: string
     debounceTime?: number
+    validationNonce?: number
     validate: (value: string) => Promise<boolean>
     shouldValidate?: (value: string) => boolean
     onUpdate: (update: InputUpdate) => void
     className?: string
     autoComplete?: string
     name?: string
+    'aria-label'?: string
     infoText?: string
     formatDisplayValue?: (value: string) => string
     isSetupFlow?: boolean
     isInputChanging?: boolean
+    validationIsNeutral?: boolean
     smartPasteKind?: PasteFieldKind
 }
 
@@ -38,19 +41,23 @@ const ValidatedInput = ({
     placeholder = '',
     value,
     debounceTime = 750,
+    validationNonce = 0,
     onUpdate,
     validate,
     shouldValidate,
     className,
     autoComplete,
     name,
+    'aria-label': ariaLabel,
     infoText,
     formatDisplayValue,
     isSetupFlow = false,
     isInputChanging = false,
+    validationIsNeutral = false,
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
+    const reduceMotion = useReducedMotion()
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
@@ -152,7 +159,7 @@ const ValidatedInput = ({
         return () => {
             isStale = true
         }
-    }, [debouncedValue])
+    }, [debouncedValue, validationNonce])
 
     // Update currentValueRef when value changes
     useEffect(() => {
@@ -177,10 +184,11 @@ const ValidatedInput = ({
                     // pass layout classes at most (input board has no valid state).
                     // The composed box owns the focus border so it encloses both
                     // the text field and the trailing clear (×) affordance.
-                    // Pointer focus is pink; InputModalityProvider applies the
-                    // shared 3px blue ring for keyboard focus.
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary',
-                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
+                    // The shared 3px blue ring replaces the border on every focus.
+                    'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
+                    value && !isValidating && !isValid && !validationIsNeutral && debouncedValue === value
+                        ? 'border-border-error'
+                        : '',
                     className
                 )}
                 data-input-container="true"
@@ -219,6 +227,7 @@ const ValidatedInput = ({
                         autoCorrect="off"
                         autoCapitalize="off"
                         name={name}
+                        aria-label={ariaLabel}
                         translate="no"
                         style={{
                             WebkitTapHighlightColor: 'transparent',
@@ -237,7 +246,7 @@ const ValidatedInput = ({
                                 <div className="flex h-full w-12 items-center justify-center">
                                     <Loading />
                                 </div>
-                            ) : !!isSetupFlow && !isValid && !isInputChanging ? (
+                            ) : !!isSetupFlow && !isValid && !isInputChanging && !validationIsNeutral ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
                                     <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>
@@ -253,7 +262,7 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 active:opacity-60 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
                                     data-input-clear="true"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
@@ -266,10 +275,14 @@ const ValidatedInput = ({
             <AnimatePresence initial={false}>
                 {smartPasteKind && suggestion && !value && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0, marginTop: 0 }}
                         animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
-                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        {...(reduceMotion
+                            ? {}
+                            : {
+                                  initial: { height: 0, opacity: 0, marginTop: 0 },
+                                  exit: { height: 0, opacity: 0, marginTop: 0 },
+                                  transition: { duration: 0.25, ease: 'easeOut' },
+                              })}
                         className="overflow-hidden"
                     >
                         <button

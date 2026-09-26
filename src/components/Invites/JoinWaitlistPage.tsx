@@ -2,15 +2,13 @@
 
 import { useAuth } from '@/context/authContext'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from '@/utils/tw'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Loading from '../Global/Loading'
@@ -292,18 +290,13 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser, user, router])
 
-    const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
+    const stepPose = step === 'jail' ? 'pointing' : 'waving-hello'
 
     if (isAutoAccepting) return <Loading variant="mascot" coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
-            <div
-                className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
-                    'flex flex-col items-end justify-center gap-6 pt-8'
-                )}
-            >
+        <InvitesPageLayout pose={stepPose} showRagdoll={step === 'jail'}>
+            <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
@@ -315,7 +308,6 @@ const JoinWaitlistPage = () => {
                             <div className="flex flex-col gap-1">
                                 <BaseInput
                                     type="email"
-                                    variant="sm"
                                     aria-label={t('emailLabel')}
                                     placeholder={t('emailPlaceholder')}
                                     value={emailValue}
@@ -326,7 +318,6 @@ const JoinWaitlistPage = () => {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
                                     }}
-                                    className="h-12"
                                 />
                                 {emailError && <FieldError>{emailError}</FieldError>}
                             </div>
@@ -341,7 +332,7 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <LinkButton onClick={handleSkipEmail} className="self-center">
+                                <LinkButton onClick={handleSkipEmail} className="mt-2 self-center">
                                     {tCommon('skipForNow')}
                                 </LinkButton>
                             )}
@@ -358,7 +349,7 @@ const JoinWaitlistPage = () => {
                                 {tNotifications('enable')}
                             </Button>
 
-                            <LinkButton onClick={() => setStep('jail')} className="self-center">
+                            <LinkButton onClick={() => setStep('jail')} className="mt-2 self-center">
                                 {tNotifications('notNow')}
                             </LinkButton>
                         </div>
@@ -395,7 +386,8 @@ const JoinWaitlistPage = () => {
                                     />
 
                                     <Button
-                                        className="h-12 w-4/12"
+                                        size="large"
+                                        className="w-4/12"
                                         loading={isAccepting}
                                         shadowSize="4"
                                         onClick={handleAcceptInvite}
@@ -410,7 +402,7 @@ const JoinWaitlistPage = () => {
                                 )}
                             </div>
 
-                            {error && <Notification priority="error">{error}</Notification>}
+                            {error && <Callout priority="error">{error}</Callout>}
 
                             <LinkButton onClick={handleLogout} className="self-center">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}

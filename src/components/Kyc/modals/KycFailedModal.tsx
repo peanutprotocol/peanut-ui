@@ -15,6 +15,12 @@ interface KycFailedModalProps {
     rejectLabels?: string[] | null
     rejectType?: 'RETRY' | 'FINAL' | null
     failureCount?: number
+    /**
+     * The caller already knows the rejection is terminal. Set it where the
+     * three fields above are not available — a capability rail states
+     * terminality through its verdict, not through Sumsub reject labels.
+     */
+    isTerminal?: boolean
 }
 
 // shown when user clicks a locked region while their kyc is rejected
@@ -26,14 +32,15 @@ export const KycFailedModal = ({
     rejectLabels,
     rejectType,
     failureCount,
+    isTerminal: forcedTerminal = false,
 }: KycFailedModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
 
     const isTerminal = useMemo(
-        () => isTerminalRejection({ rejectType, failureCount, rejectLabels }),
-        [rejectType, failureCount, rejectLabels]
+        () => forcedTerminal || isTerminalRejection({ rejectType, failureCount, rejectLabels }),
+        [forcedTerminal, rejectType, failureCount, rejectLabels]
     )
 
     return (
@@ -48,7 +55,7 @@ export const KycFailedModal = ({
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="alert" color="yellow" />
+                        <IconBubble icon="alert" color="red" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{isTerminal ? t('failedTitleTerminal') : t('failedTitleRetry')}</DrawerTitle>
                             {!isTerminal && <DrawerDescription>{t('failedDescriptionRetry')}</DrawerDescription>}

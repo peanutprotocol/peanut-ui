@@ -10,6 +10,8 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CardPage() {
     return (
@@ -20,14 +22,26 @@ export default function CardPage() {
                 status="production"
             />
 
+            <WhenToUse
+                use={[
+                    'A standalone block on a screen — icon bubble, title, body, CTA',
+                    'A summary surface that holds one result or one number',
+                    'Set the padding yourself — a bare Card has none (p-4 inside blocks, p-6 for the board CTA card)',
+                    'Add shadowSize to lift the card; leave it off for a flat block',
+                ]}
+                dontUse={[
+                    'Stacked list rows — use ListItem inside a ListGroup',
+                    'Rows inside the card — use DataRow; a ListItem there doubles the borders',
+                    'A no-data state — use EmptyState',
+                    'An inline status or error message — use Callout',
+                ]}
+            />
+
             <Playground
                 name="Card"
                 importPath={`import { Card } from '@/components/0_Bruddle/Card'`}
                 defaults={{ shadowSize: '4' }}
-                controls={[
-                    { type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] },
-                    { type: 'select', prop: 'color', label: 'color', options: ['primary', 'secondary'] },
-                ]}
+                controls={[{ type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] }]}
                 render={(props) => (
                     <Card {...props} className="w-full max-w-xs p-4">
                         <Card.Header>
@@ -42,7 +56,6 @@ export default function CardPage() {
                 codeTemplate={(props) => {
                     const parts = ['<Card']
                     if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
-                    if (props.color && props.color !== 'primary') parts.push(`color="${props.color}"`)
                     parts.push('className="p-4">')
                     return (
                         parts.join(' ') +
@@ -56,7 +69,6 @@ export default function CardPage() {
             <PropsTable
                 rows={[
                     { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
-                    { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
                     { name: 'className', type: 'string', default: '(none)' },
                 ]}
             />
@@ -127,7 +139,7 @@ export default function CardPage() {
                                     </Card.Description>
                                 </div>
                             </div>
-                            <Button variant="purple" className="w-full">
+                            <Button variant="primary" className="w-full">
                                 Verify now
                             </Button>
                         </Card>
@@ -142,10 +154,10 @@ export default function CardPage() {
                                 </div>
                             </div>
                             <div className="flex w-full flex-col gap-3">
-                                <Button variant="purple" className="w-full">
+                                <Button variant="primary" className="w-full">
                                     Path 1
                                 </Button>
-                                <Button variant="stroke" className="w-full">
+                                <Button variant="secondary" className="w-full">
                                     Path 2
                                 </Button>
                             </div>
@@ -174,11 +186,58 @@ export default function CardPage() {
       <Card.Description>Use bank accounts…</Card.Description>
     </div>
   </div>
-  <Button variant="purple" className="w-full">Verify now</Button>
+  <Button variant="primary" className="w-full">Verify now</Button>
 </Card>`}
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Payment success — summary row"
+                    path="src/features/payments/shared/components/PaymentSuccessView.tsx"
+                    description="No shadow, row layout: green check bubble beside the amount and recipient."
+                    code={`<Card className="flex items-center gap-3 p-4">
+  <div className="flex items-center gap-3">
+    <IconBubble icon="check" color="green" />
+  </div>
+  <div className="space-y-1">
+    <h1 className="text-body-s text-foreground-secondary">{getTitle()}</h1>
+    ...
+  </div>
+</Card>`}
+                >
+                    <Card className="flex items-center gap-3 p-4">
+                        <div className="flex items-center gap-3">
+                            <IconBubble icon="check" color="green" />
+                        </div>
+                        <div className="space-y-1">
+                            <h1 className="text-body-s text-foreground-secondary">Sent to lucia</h1>
+                            <p className="text-heading-s">$24.00</p>
+                        </div>
+                    </Card>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Rewards — invite earnings"
+                    path="src/app/(mobile-ui)/rewards/invites/page.tsx"
+                    description="Centered column card holding one number — the lifetime USD earned from invites."
+                    code={`<Card className="flex flex-col items-center justify-center gap-2 p-4">
+  <h2 className="text-center text-body-m text-foreground-primary">
+    {t('friendsEarnedYou')}
+  </h2>
+  <span className="text-heading-m text-foreground-primary">
+    \${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
+  </span>
+</Card>`}
+                >
+                    <Card className="flex flex-col items-center justify-center gap-2 p-4">
+                        <h2 className="text-center text-body-m text-foreground-primary">Your friends earned you</h2>
+                        <span className="text-heading-m text-foreground-primary">$18.50</span>
+                        <span className="text-body-s text-foreground-secondary">1,850 points</span>
+                    </Card>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

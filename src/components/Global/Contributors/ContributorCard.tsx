@@ -3,6 +3,7 @@ import { type Payment } from '@/services/services.types'
 import Card from '../Card'
 import { type CardPosition } from '../Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { getColorForUsername } from '@/utils/color.utils'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { formatTokenAmount } from '@/utils/general.utils'
@@ -10,6 +11,7 @@ import { isAddress } from 'viem'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
 import { profileUrl } from '@/utils/native-routes'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export type Contributor = {
     uuid: string
@@ -19,6 +21,8 @@ export type Contributor = {
     fulfillmentPayment: Payment | null
     isUserVerified: boolean
     isPeanutUser: boolean
+    /** Picked profile avatar of a Peanut contributor; null for a raw address. */
+    avatarKey?: string | null
 }
 
 const ContributorCard = ({ contributor, position }: { contributor: Contributor; position: CardPosition }) => {
@@ -38,17 +42,27 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     }}
                     className={twMerge('flex items-center gap-2', contributor.isPeanutUser && 'cursor-pointer')}
                 >
-                    <AvatarWithBadge
-                        name={contributor.username ?? ''}
-                        size={'extra-small'}
-                        inlineStyle={{
-                            backgroundColor: isEvmAddress
-                                ? 'var(--color-background-icon-bubble-yellow)'
-                                : colors.lightShade,
-                        }}
-                        textColor={isEvmAddress ? 'var(--color-foreground-primary)' : colors.darkShade}
-                        icon={isEvmAddress ? 'wallet-outline' : undefined}
-                    />
+                    {contributor.isPeanutUser ? (
+                        <UserAvatar
+                            name={contributor.username ?? ''}
+                            avatarKey={contributor.avatarKey}
+                            size="s"
+                            decorative
+                        />
+                    ) : (
+                        <AvatarWithBadge
+                            name={contributor.username ?? ''}
+                            size={'s'}
+                            inlineStyle={{
+                                // an address is the crypto concept (coins on blue)
+                                backgroundColor: isEvmAddress
+                                    ? `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`
+                                    : colors.lightShade,
+                            }}
+                            textColor={isEvmAddress ? 'var(--color-foreground-primary)' : colors.darkShade}
+                            icon={isEvmAddress ? CONCEPT_ICONS.crypto.icon : undefined}
+                        />
+                    )}
 
                     <VerifiedUserLabel
                         username={contributor.username ?? ''}

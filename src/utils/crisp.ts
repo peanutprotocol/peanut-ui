@@ -196,17 +196,17 @@ export function resetCrispSession(crispInstance: CrispInstance): void {
  * Attempts to reset currently mounted proxy iframes via postMessage,
  * and sets a sessionStorage flag for proxy pages that aren't currently mounted.
  */
-export function resetCrispProxySessions(): void {
+export async function resetCrispProxySessions(): Promise<void> {
     if (typeof window === 'undefined') return
 
-    // in capacitor, reset via native plugin — only if it was ever configured
-    // this session (i.e. support was opened); nothing to reset otherwise
+    // The native SDK can restore a device-local session after a cold process
+    // start, before this JavaScript runtime has configured Crisp. Configure and
+    // reset unconditionally so an email/token rotation cannot inherit that
+    // session. Let failures propagate: callers must keep the new identity gated
+    // until the old native binding has definitely been cleared.
     if (isCapacitor()) {
-        if (nativeCrispReady) {
-            nativeCrispReady
-                .then(({ CapacitorCrisp }) => CapacitorCrisp.reset())
-                .catch((err) => console.debug('[Crisp] native reset failed:', err))
-        }
+        const { CapacitorCrisp } = await ensureNativeCrispConfigured()
+        await CapacitorCrisp.reset()
         return
     }
 

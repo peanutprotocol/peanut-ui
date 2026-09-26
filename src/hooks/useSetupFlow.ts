@@ -1,7 +1,6 @@
 'use client'
 
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { setupSteps as masterSetupSteps } from '@/components/Setup/Setup.consts'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -11,6 +10,13 @@ import { useCallback, useMemo } from 'react'
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
  * that skips the invite gate (see determineInitialStep). */
 export const SETUP_SCREEN_PARAM = 'screen'
+
+/*
+ * The cursor a clean /setup URL means, pinned to a screen the runtime filter
+ * never removes. Do not derive this from steps[0]: that value can move as a
+ * filtered list arrives and leave the cursor outside the active flow.
+ */
+export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
 
 /**
  * The setup flow's cursor: a named screen id in the URL (?screen=signup),
@@ -31,7 +37,8 @@ export const SETUP_SCREEN_PARAM = 'screen'
  * bounces back, so a history pop cannot re-enter the forms.
  */
 export const useSetupFlow = () => {
-    const { steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } = useSetupFlowContext()
+    const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
+        useSetupFlowContext()
 
     const screenIds = useMemo<ScreenId[]>(
         // before the layout populates the filtered list, accept every master
@@ -39,8 +46,8 @@ export const useSetupFlow = () => {
         // effect rewrite a valid ?screen= away before the steps arrive.
         // Nothing renders during that window (the page's entry determination
         // is still loading).
-        () => (steps.length > 0 ? steps.map((s) => s.screenId) : masterSetupSteps.map((s) => s.screenId)),
-        [steps]
+        () => (steps.length > 0 ? steps.map((s) => s.screenId) : [...masterScreenIds]),
+        [masterScreenIds, steps]
     )
 
     // The point of no return lives in the flow context, armed by the PAGE
@@ -61,6 +68,7 @@ export const useSetupFlow = () => {
 
     const stepper = useFlowStepper<ScreenId>({
         steps: screenIds,
+        defaultStep: SETUP_DEFAULT_SCREEN,
         urlKey: SETUP_SCREEN_PARAM,
         history: isNativeBridge() ? 'replace' : 'push',
         guards,

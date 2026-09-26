@@ -1,9 +1,8 @@
-import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import { PeanutPointingDown } from '@/assets/mascot'
-import { PROSE_WIDTH } from './constants'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { PROSE_WIDTH } from '../constants'
 
 interface CTAProps {
     text: string
@@ -16,54 +15,50 @@ interface CTAProps {
 /**
  * MDX call-to-action.
  *
- * - primary: standalone purple button within prose column (default)
+ * - primary: standalone primary button within prose column (default)
  * - secondary: subtle inline text link with arrow — for mid-content CTAs
  * - card: bordered card with button + subtitle — for final/end-of-page CTAs
  *
  * Special: href="#chat" opens Crisp chat via click interceptor (no navigation).
+ * The interceptor matches on the anchor's href, so every variant has to render
+ * a real anchor — Button link mode and LinkButton both do.
  */
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
+    // a hash is not a route: keep next/link from treating "#chat" as one
+    const plainAnchor = href.startsWith('#')
+
     if (variant === 'secondary') {
-        const linkClass =
-            'inline-flex items-center gap-1 font-semibold text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1'
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-4 md:px-4`}>
-                {href.startsWith('#') ? (
-                    <a href={href} className={linkClass}>
-                        {text} <span aria-hidden="true">&rarr;</span>
-                    </a>
-                ) : (
-                    <Link href={href} className={linkClass}>
-                        {text} <span aria-hidden="true">&rarr;</span>
-                    </Link>
-                )}
+                <LinkButton href={href} icon>
+                    {text}
+                </LinkButton>
             </div>
         )
     }
 
     if (variant === 'card') {
+        // the mascot hangs 96/112px above the card, so the wrapper reserves that
+        // much top room — without it the card lands on the paragraph above
         return (
-            <div className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
+            <div className={`mx-auto ${PROSE_WIDTH} px-6 pt-24 pb-10 md:px-4 md:pt-28 md:pb-14`}>
                 <div className="relative">
-                    <Image
-                        src={PeanutPointingDown}
+                    <PeanutMascot
+                        pose="pointing-down"
                         alt="Peanut mascot"
-                        width={200}
-                        height={200}
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
-                        unoptimized
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
-                        <a href={href}>
-                            <Button
-                                shadowSize="4"
-                                variant="purple"
-                                className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                            >
-                                {text}
-                            </Button>
-                        </a>
-                        {subtitle && <p className="mt-3 text-sm text-grey-1">{subtitle}</p>}
+                        <Button
+                            href={href}
+                            plainAnchor={plainAnchor}
+                            shadowSize="4"
+                            variant="primary"
+                            className="w-full justify-center px-8 sm:w-auto md:px-12"
+                        >
+                            {text}
+                        </Button>
+                        {subtitle && <p className="mt-3 text-body-s text-foreground-secondary">{subtitle}</p>}
                     </Card>
                 </div>
             </div>
@@ -71,16 +66,16 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     }
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 text-center md:px-4 md:py-12`}>
-            <a href={href}>
-                <Button
-                    shadowSize="4"
-                    variant="purple"
-                    className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                >
-                    {text}
-                </Button>
-            </a>
+        <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 md:px-4 md:py-12`}>
+            <Button
+                href={href}
+                plainAnchor={plainAnchor}
+                shadowSize="4"
+                variant="primary"
+                className="mx-auto w-full justify-center px-8 sm:w-auto md:px-12"
+            >
+                {text}
+            </Button>
         </div>
     )
 }

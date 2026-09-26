@@ -1,5 +1,6 @@
 'use client'
 
+import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import DocsLink from '@/components/Global/DocsLink'
@@ -21,6 +22,7 @@ const TAPS_TO_REVEAL_BETA = 5
 const TAP_WINDOW_MS = 2_000
 
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
+    useAboutHelpPreload()
     const t = useTranslations('profile.about')
     const onBack = useSafeBack('/profile', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback
@@ -44,20 +46,20 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     }, [betaRevealed])
 
     /**
-     * The tap is what earns PEANUT_TEAM, and the badge is what the switch reads
-     * as permission to join. Claim and refetch BEFORE revealing: the card asks
-     * the user object for the badge, so revealing first would show a disabled
-     * toggle and an "ask for access" line for a round trip, on the very gesture
-     * that just granted it.
-     *
-     * The toast fires first so the gesture is acknowledged immediately, and a
-     * failed claim still reveals the card — the off switch has to stay
-     * reachable for a device already on beta, whatever the network did.
+     * The tap records PEANUT_TEAM for support/diagnostics, but the badge is not
+     * the channel access boundary. Reveal the card immediately so a slow or
+     * unavailable profile request cannot produce a visible-but-dead switch;
+     * Capgo decides whether the device may actually join staging.
      */
-    const revealBetaCard = async () => {
+    const revealBetaCard = () => {
         toast.info(t('beta.revealed'))
-        if (await claimPeanutTeamBadge()) await fetchUser()
         setBetaRevealed(true)
+        void claimPeanutTeamBadge().then((claimed) => {
+            if (claimed)
+                void Promise.resolve()
+                    .then(() => fetchUser())
+                    .catch(() => undefined)
+        })
     }
 
     // The fifth tap always answers: the card renders nothing on the web, and a
@@ -92,7 +94,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                     <ListItem
                         title={t('rate')}
                         chevron
-                        position="single"
+                        position="solo"
                         onClick={() => void openStoreReviewPage(store)}
                     />
                 </div>
@@ -103,7 +105,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 {/* whole row is the link: DocsLink keeps the locale + in-app
                     browser routing, ListItem carries the DS row anatomy */}
                 {LEGAL_POLICIES.map((doc, index) => (
-                    <DocsLink key={doc.href} href={doc.href} className="block">
+                    <DocsLink key={doc.href} href={doc.href} className="block" openInDrawer>
                         <ListItem
                             title={t(`policies.${doc.key}`)}
                             chevron

@@ -1,27 +1,29 @@
 {
-    "rawHex": 8,
-    "rawHexFiles": 5,
-    "inlineStyle": 21,
+    "rawHex": 4,
+    "rawHexFiles": 3,
+    "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 11,
+    "dsTextScale": 1178,
+    "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 44,
-    "nuqsFiles": 25,
+    "useSearchParamsFiles": 35,
+    "nuqsFiles": 44,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 298,
-    "fontWeightOnTypeToken": 45,
-    "offScaleSpacing": 188,
-    "iconOffScale": 68,
-    "offScaleRadius": 37,
-    "rawDuration": 6,
-    "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 44,
-    "arbitraryFontSize": 110,
-    "rawErrorText": 25,
-    "handRolledCloseGlyphFiles": 9,
+    "classNameSitesInPages": 117,
+    "fontWeightOnTypeToken": 29,
+    "offScaleSpacing": 89,
+    "iconOffScale": 44,
+    "offScaleRadius": 16,
+    "rawDuration": 1,
+    "retypedCardLiteral": 13,
+    "hoverNoActiveFiles": 21,
+    "arbitraryFontSize": 20,
+    "rawErrorText": 14,
+    "handRolledCloseGlyphFiles": 7,
+    "bareListLeading": 18,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -62,6 +64,51 @@
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
             "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["inlineStyle 21 -> 22"],
+            "reason": "HoldToClaimButton clipped-white label: dynamic clipPath percent must be inline (same pattern as QrPaySuccessView), TASK-22452"
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["classNameSitesInPages 127 -> 129"],
+            "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["rawErrorText 15 -> 16"],
+            "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["useSearchParamsFiles 34 -> 35", "hoverNoActiveFiles 32 -> 33"],
+            "reason": "useSearchParamsFiles: ArticleLocaleNav sanctioned verbatim query passthrough (re-recorded after merge took dev's baseline); hoverNoActiveFiles: the type port moved hand-rolled active:translate into the Button component — files keep a hover: override while press state is component-supplied, a text-scan false positive"
+        },
+        {
+            "date": "2026-09-17",
+            "metrics": ["inlineStyle 22 -> 23"],
+            "reason": "BottomNav press feedback squashes toward the pressed tab; the transform origin is a measured pixel value, not expressible as a class (root UI nit, 2026-09-17)"
+        },
+        {
+            "date": "2026-09-21",
+            "metrics": ["inlineStyle 23 -> 22"],
+            "reason": "the whole-bar squash is reverted (kush ruling, TASK-22817) — press feedback lives on the tapped icon only, so the measured transform-origin inline style is gone"
+        },
+        {
+            "date": "2026-09-22",
+            "metrics": ["offScaleSpacing 81 -> 85"],
+            "reason": "tabs chip weld: the 1px -m-px/p-px gutter on the tab list is border-overlay geometry (must equal the 1px track border so the active chip can paint over it, bottom-nav model), not box rhythm — the same category the counter already exempts for inset/top/left offsets. 2 sites in Tabs.tsx + their 2 test assertions."
+        },
+        {
+            "date": "2026-09-22",
+            "metrics": ["offScaleSpacing 85 -> 87", "hoverNoActiveFiles 20 -> 21"],
+            "reason": "merge of origin/dev + the careers CTA rebuild. offScaleSpacing 85 -> 87: the Ready? section's pt-24/md:pt-28 is the mascot's overhang reservation, the same geometry-tied-to-what-it-overlaps category the counter already exempts for inset offsets — the mascot is 128/160px tall and the padding is what lets it peek from behind the card, not box rhythm. hoverNoActiveFiles 20 -> 21: arrives with origin/dev (UnsupportedBrowserModal/useCopyLinkActions.ts, added in the ButtonVariant collapse), not with this branch; 21 is still below dev's own baseline of 22, which this branch had ratcheted to 20."
+        },
+        {
+            "date": "2026-09-25",
+            "metrics": ["offScaleSpacing 87 -> 89"],
+            "reason": "one product accordion (TASK-23071): flush Accordion.Content inside a bordered item carries -mx-px -mb-px so the country list's own card borders sit on the item border instead of reading as a card inside a card. border-overlay geometry, the same category as the tabs chip weld, not box rhythm. 2 sites in 0_Bruddle/Accordion.tsx."
         }
     ]
 }

@@ -1,4 +1,4 @@
-import { render as rtlRender, screen } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { KycActionRequired } from '../KycActionRequired'
 
@@ -35,5 +35,42 @@ describe('KycActionRequired — real reject-label copy', () => {
         expect(screen.getByText(/already linked to another Peanut account/i)).toBeInTheDocument()
         expect(screen.getByText(/sign in to that account/i)).toBeInTheDocument()
         expect(screen.queryByText(/resubmit your documents/i)).not.toBeInTheDocument()
+    })
+})
+
+describe('KycActionRequired — an email collision', () => {
+    const renderCollision = () => {
+        const handlers = { onResume: jest.fn(), onContactSupport: jest.fn(), onLogOut: jest.fn() }
+        render(
+            <KycActionRequired
+                {...handlers}
+                actionMessage="We need a bit more to verify your identity. Please resubmit your documents."
+                rejectLabels={['DUPLICATE_EMAIL']}
+                isEmailCollision
+            />
+        )
+        return handlers
+    }
+
+    it('offers the ways out its copy names, never "Resubmit"', () => {
+        renderCollision()
+        expect(screen.getByText(/already linked to another Peanut account/i)).toBeInTheDocument()
+        expect(screen.queryByText(/re-submit verification/i)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
+    })
+
+    it('Contact support and Log out do what they say, and nothing starts a new ID check', () => {
+        const handlers = renderCollision()
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
+        expect(handlers.onContactSupport).toHaveBeenCalled()
+        expect(handlers.onLogOut).toHaveBeenCalled()
+        expect(handlers.onResume).not.toHaveBeenCalled()
+    })
+
+    it('any other action_required keeps Resubmit', () => {
+        render(<KycActionRequired onResume={jest.fn()} rejectLabels={['BAD_PROOF_OF_IDENTITY']} />)
+        expect(screen.getByRole('button', { name: /re-submit verification/i })).toBeInTheDocument()
     })
 })

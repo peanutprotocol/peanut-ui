@@ -1,10 +1,12 @@
 'use client'
 
-import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
+    IN_SENTENCE_NAME_KEYS,
     SELF_DESCRIBING_NAME_KEYS,
     TRANSACTION_NAME_KEYS,
     translateTransactionName,
@@ -23,7 +25,10 @@ import { twMerge } from '@/utils/tw'
 import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
+import type { TransactionDetails } from './transactionTransformer'
+
 interface TransactionDetailsHeaderCardProps {
+    actionLabelKey?: TransactionDetails['actionLabelKey']
     direction: TransactionDirection
     userName: string
     /** Catalog key when `userName` is an FE-generated label — localized here;
@@ -41,6 +46,15 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    /** Rain-enriched merchant brand logo for a card spend. Shown when there is
+     *  no `avatarUrl`; the generic card badge is the fallback. */
+    merchantLogo?: string | null
+    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+     *  `avatarUrl` still wins — it identifies the payee more precisely. */
+    avatarKey?: string | null
+    /** `false` for a row whose name is system copy (a reaper-failed transfer),
+     *  so the avatar slot does not draw a face for a failure message. */
+    isPeer?: boolean
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
@@ -48,6 +62,8 @@ interface TransactionDetailsHeaderCardProps {
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
+    /** one line under the status badge, e.g. why a deposit was returned */
+    statusNote?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -58,7 +74,10 @@ const getTitle = (
     userName: string,
     isLinkTransaction?: boolean,
     status?: StatusType,
-    nameKey?: TransactionNameKey
+    nameKey?: TransactionNameKey,
+    /** The name as it reads inside a sentence: the lowercase form of a
+     *  generic label, otherwise the same as `userName`. */
+    inSentenceName: string = userName
 ): React.ReactNode => {
     let titleText = userName
 
@@ -86,6 +105,7 @@ const getTitle = (
         // whose `identifier` arrives as a userId) so the header never renders
         // a 36-char string.
         const displayName = printableUserHandle(userName)
+        const sentenceName = printableUserHandle(inSentenceName)
 
         // check if this is a test transaction (setup confirmation)
         // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
@@ -103,7 +123,7 @@ const getTitle = (
                     // from outflow. Non-completed (pending / cancelled /
                     // failed) reads "Sending to".
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
@@ -114,18 +134,18 @@ const getTitle = (
                 if (nameKey === TRANSACTION_NAME_KEYS.receivedViaLink) {
                     titleText = t('title.receivedViaLink')
                 } else {
-                    titleText = t('title.receivedFrom', { name: displayName })
+                    titleText = t('title.receivedFrom', { name: sentenceName })
                 }
                 break
             case 'request_sent':
                 titleText = t(status === 'completed' ? 'title.requestedFrom' : 'title.requestingFrom', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'withdraw':
             case 'bank_withdraw':
                 titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'bank_claim':
@@ -137,17 +157,17 @@ const getTitle = (
                     titleText = t('enjoyPeanut')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
             case 'claim_external':
                 if (status === 'completed') {
-                    titleText = t('title.claimedTo', { name: displayName })
+                    titleText = t('title.claimedTo', { name: sentenceName })
                 } else if (status === 'failed') {
-                    titleText = t('title.claimTo', { name: displayName })
+                    titleText = t('title.claimTo', { name: sentenceName })
                 } else {
-                    titleText = t('title.claimingTo', { name: displayName })
+                    titleText = t('title.claimingTo', { name: sentenceName })
                 }
                 break
             case 'qr_payment':
@@ -156,13 +176,13 @@ const getTitle = (
                     // direction words: "Payment to {merchant}" (board 17490:115877).
                     // The self-contained "Failed QR payment attempt" label is
                     // handled by the self-describing escape at the top.
-                    titleText = t('title.paymentTo', { name: displayName })
+                    titleText = t('title.paymentTo', { name: sentenceName })
                 } else {
                     // Board 17490:115877 (Activity/CardPayment pending drawer):
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', { name: displayName })
+                    titleText = t('title.paidTo', { name: sentenceName })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -170,7 +190,7 @@ const getTitle = (
                 // money, worded like a send (PR #2813 review: direction must
                 // be readable from the receipt words, not the sign alone).
                 titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             default:
@@ -200,6 +220,7 @@ const amountStateClasses = (status?: StatusType, isOpenRequest?: boolean) => {
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
+    actionLabelKey,
     nameKey,
     nameParams,
     amountDisplay,
@@ -210,6 +231,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    merchantLogo,
+    avatarKey,
+    isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
@@ -217,6 +241,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     showFullName,
     fullName,
     countryCode,
+    statusNote,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -229,11 +254,20 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // instead of a shortened 0x. No ENS → getTitle shortens the raw address.
     const { primaryName } = usePrimaryNameServer(isAddress(userName) ? userName : undefined)
     const resolvedUserName = normalizeEnsName(primaryName) ?? localizedUserName
+    const inSentenceKey =
+        nameKey && nameKey in IN_SENTENCE_NAME_KEYS
+            ? IN_SENTENCE_NAME_KEYS[nameKey as keyof typeof IN_SENTENCE_NAME_KEYS]
+            : undefined
+    const inSentenceName = inSentenceKey ? t(inSentenceKey) : resolvedUserName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
+    // The sticker's letter follows the handle instead (same rule as the feed
+    // row), so the receipt and the profile agree. An address counterparty draws
+    // no letter from `userName`, so the display name is the fallback.
+    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -246,11 +280,27 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // treatment entirely — no pending badge, no greyed amount (PR #2813
     // review; states board shows requests in the base state).
     const isOpenRequest = isOpenRequestDisplay({ direction, isRequestPotLink: isRequestPotTransaction })
-    const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
+    const isPendingFamily =
+        !!status && status !== 'custom' && status !== 'neutral' && PENDING_AMOUNT_STATUSES.has(status)
     const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
+    const genericBadge = (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={nameForAvatar}
+            avatarName={avatarNameForAvatar}
+            avatarKey={avatarKey}
+            isPeer={isPeer}
+            isLinkTransaction={isLinkTransaction}
+            transactionType={typeForAvatar}
+            status={status}
+            size="m"
+            countryCode={countryCode}
+        />
+    )
+
     return (
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
                 <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
@@ -284,43 +334,40 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 height={160}
                             />
                         </div>
+                    ) : merchantLogo ? (
+                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="md" />
                     ) : (
-                        <TransactionAvatarBadge
-                            initials={initials}
-                            userName={nameForAvatar}
-                            isLinkTransaction={isLinkTransaction}
-                            transactionType={typeForAvatar}
-                            context="header"
-                            size="small"
-                            countryCode={countryCode}
-                        />
+                        genericBadge
                     )}
                 </div>
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-s text-foreground-secondary">
+                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (
                             <VerifiedUserLabel
                                 username={userName}
                                 name={
-                                    isRequestPotTransaction
-                                        ? // The pot rollup row only ever renders for the request's
-                                          // owner — the generic "Request" label reads as their own
-                                          // ask: "You requested". Named pots keep their name.
-                                          nameKey === TRANSACTION_NAME_KEYS.request
-                                            ? t('title.youRequested')
-                                            : localizedUserName
-                                        : (getTitle(
-                                              t,
-                                              direction,
-                                              resolvedUserName,
-                                              isLinkTransaction,
-                                              status,
-                                              nameKey
-                                          ) as string)
+                                    actionLabelKey
+                                        ? t(actionLabelKey)
+                                        : isRequestPotTransaction
+                                          ? // The pot rollup row only ever renders for the request's
+                                            // owner — the generic "Request" label reads as their own
+                                            // ask: "Requested". Named pots keep their name.
+                                            nameKey === TRANSACTION_NAME_KEYS.request
+                                              ? t('title.youRequested')
+                                              : localizedUserName
+                                          : (getTitle(
+                                                t,
+                                                direction,
+                                                resolvedUserName,
+                                                isLinkTransaction,
+                                                status,
+                                                nameKey,
+                                                inSentenceName
+                                            ) as string)
                                 }
                                 isVerified={isVerified}
                                 className="flex items-center justify-center gap-1"
@@ -333,7 +380,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     {!isTest && (
                         <h1
                             className={twMerge(
-                                'text-heading-l text-foreground-primary',
+                                'text-heading-m text-foreground-primary',
                                 amountStateClasses(status, isOpenRequest)
                             )}
                         >
@@ -342,7 +389,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <StatusBadge status={status!} size="medium" />}
+                {showBadge &&
+                    (actionLabelKey === 'type.returnedToSender' ? (
+                        // A bank deposit sent back to the payer is a fact with no
+                        // success tone, so `neutral`, in the heading's word.
+                        <Badge status="neutral" size="medium" customText={t('returnedStatus')} />
+                    ) : (
+                        <Badge status={status!} size="medium" />
+                    ))}
+                {statusNote && <p className="text-body-s text-foreground-secondary">{statusNote}</p>}
             </div>
         </div>
     )

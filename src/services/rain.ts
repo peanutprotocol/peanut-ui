@@ -130,6 +130,9 @@ export interface PrepareRainWithdrawalInput {
      *  completes it on confirm; a follow-up `recordPayment` re-enters the
      *  same trusted-completion path (idempotent). */
     chargeId?: string
+    /** The Bridge offramp intent a collateral-only withdrawal funds. The backend
+     *  links its collateral record to it, so Activity shows one row. */
+    fundsIntentId?: string
 }
 
 export interface PrepareRainWithdrawalResponse {
@@ -389,6 +392,12 @@ export type ApplyForCardResponse =
           // Residence country is on Rain's prohibited-issuance list —
           // terminal. Render the geo-blocked screen; no retry, no support CTA.
           status: 'geo-blocked'
+          message: string
+      }
+    | {
+          // Approved residence is eligible, but a restricted residence change
+          // is still pending. Recoverable by reviewing/cancelling that request.
+          status: 'pending-residence-blocked'
           message: string
       }
     | {
@@ -718,18 +727,29 @@ export const rainApi = {
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }
-        return rainRequest<ApplyForCardResponse>({
-            method: 'POST',
-            path: '/rain/cards',
-            body,
-            // The first-time-application path runs 7 sequential Sumsub calls, a
-            // deliberate 2.5s readiness sleep, the Rain createApplication call,
-            // and an optional inline issueCard — routinely 7-13s. The default
-            // 10s fetch timeout clips that tail, aborting client-side while the
-            // backend completes (user sees a false failure on a card that was
-            // actually submitted). Give this one call generous headroom.
-            timeoutMs: 60_000,
-        })
+        try {
+            return await rainRequest<ApplyForCardResponse>({
+                method: 'POST',
+                path: '/rain/cards',
+                body,
+                // The first-time-application path runs 7 sequential Sumsub calls, a
+                // deliberate 2.5s readiness sleep, the Rain createApplication call,
+                // and an optional inline issueCard — routinely 7-13s. The default
+                // 10s fetch timeout clips that tail, aborting client-side while the
+                // backend completes (user sees a false failure on a card that was
+                // actually submitted). Give this one call generous headroom.
+                timeoutMs: 60_000,
+            })
+        } catch (e) {
+            // Residence denials are HTTP 403s, so normalize both stable codes
+            // into the success union. Keep a prohibited ACTIVE residence
+            // terminal while routing a prohibited PENDING change to its
+            // recoverable residence-management screen.
+            if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
+                return { status: e.code, message: e.message }
+            }
+            throw e
+        }
     },
 
     /**

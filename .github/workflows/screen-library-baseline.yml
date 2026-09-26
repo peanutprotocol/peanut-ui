@@ -1,0 +1,157 @@
+name: Screen library baseline
+
+on:
+    # Refresh after main updates. The capture itself is
+    # pinned to the current dev revision so PRs targeting dev compare against
+    # the same integration branch they will merge into.
+    push:
+        branches: [main]
+    # The manual trigger is useful after enabling the workflow or after an
+    # artifact-retention gap.
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    actions: read
+
+concurrency:
+    group: screen-library-baseline-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    revision:
+        runs-on: ubuntu-24.04
+        outputs:
+            sha: ${{ steps.dev.outputs.sha }}
+        steps:
+            - name: Resolve immutable dev revision
+              id: dev
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: echo "sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/dev" --jq .object.sha)" >> "$GITHUB_OUTPUT"
+    capture:
+        needs: revision
+        name: capture (${{ matrix.locale }}, ${{ matrix.profile.name }})
+        runs-on: ubuntu-24.04
+        timeout-minutes: 60
+        strategy:
+            fail-fast: false
+            matrix:
+                locale: [en, es-419, es-AR, pt-BR]
+                # Keep the original artifact names for the default profile: the
+                # PR publisher resolves those exact baseline artifacts.
+                profile:
+                    - { name: '393x852', artifact_suffix: '' }
+                    - { name: '440x956', artifact_suffix: '-440x956' }
+                    - { name: '360x800', artifact_suffix: '-360x800' }
+                    - { name: '320x712', artifact_suffix: '-320x712' }
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revision.outputs.sha }}
+                  path: harness
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revision.outputs.sha }}
+                  path: target
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Install capture tools
+              working-directory: harness
+              run: pnpm install --frozen-lockfile
+            - name: Install pinned browser
+              working-directory: harness
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Build and capture full dev catalogue
+              working-directory: harness
+              env:
+                  TARGET_SHA: ${{ needs.revision.outputs.sha }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue --locale=${{ matrix.locale }} --profile=${{ matrix.profile.name }}
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  # The triggering run SHA is the main-branch commit; the
+                  # artifact name binds the capture to the dev SHA checked out
+                  # above so the trusted publisher can select it exactly.
+                  name: screen-library-baseline-${{ needs.revision.outputs.sha }}-${{ matrix.locale }}${{ matrix.profile.artifact_suffix }}-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 7
+    publish-viewports:
+        needs: [revision, capture]
+        # Incomplete captures remain browsable with their gaps marked. A
+        # missing artifact still fails the publisher's all-profile preflight.
+        # Recovery for a failed capture: use "Re-run all jobs". "Re-run failed
+        # jobs" increments run_attempt only for failed legs, leaving successful
+        # artifacts under the older attempt and failing the matrix preflight.
+        if: always() && needs.revision.result == 'success' && github.repository == 'peanutprotocol/peanut-ui'
+        environment: screen-library-deploy
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revision.outputs.sha }}
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              with:
+                  github-token: ${{ github.token }}
+                  run-id: ${{ github.run_id }}
+                  pattern: screen-library-baseline-*
+                  merge-multiple: false
+                  path: incoming
+            - name: Verify and publish additional viewport libraries
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+                  REPOSITORY: ${{ github.repository }}
+                  RUN_ID: ${{ github.run_id }}
+                  RUN_ATTEMPT: ${{ github.run_attempt }}
+                  TRIGGER_SHA: ${{ github.sha }}
+                  EXPECTED_DEV_SHA: ${{ needs.revision.outputs.sha }}
+              run: node scripts/screens/publish-baseline-viewports.mjs
+
+    index:
+        needs: [revision, publish-viewports]
+        environment: screen-library-deploy
+        runs-on: ubuntu-24.04
+        concurrency:
+            group: screen-library-index
+            queue: max
+            cancel-in-progress: false
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revision.outputs.sha }}
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - name: Refresh shared library indexes
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/rebuild-index.mjs

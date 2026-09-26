@@ -1,5 +1,6 @@
 'use client'
 
+import { Card } from '@/components/0_Bruddle/Card'
 import BoardGroup from './BoardGroup'
 import EmailCard from './EmailCard'
 import PushCard from './PushCard'
@@ -7,7 +8,7 @@ import SurfaceCard from './SurfaceCard'
 import { FUNNEL_STATES, IN_APP_SURFACES } from './journeyData'
 import type { JourneySpec, JourneyViewMode } from './journeyTypes'
 
-const EMPTY_NOTE = 'text-[11px] italic leading-snug text-foreground-secondary'
+const EMPTY_NOTE = 'text-body-xs italic leading-snug text-foreground-secondary'
 
 /**
  * The column-per-funnel-state board: in-app surfaces (static catalog from
@@ -32,7 +33,7 @@ export default function JourneyBoard({
 
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-[11px] text-foreground-secondary">
+            <p className="text-body-xs text-foreground-secondary">
                 {FUNNEL_STATES.length} funnel states, left to right — scroll sideways to reach the last one →
             </p>
 
@@ -48,20 +49,22 @@ export default function JourneyBoard({
                             const pushCount = spec && state.includesPushReminder ? spec.pushReminders.length : 0
 
                             return (
-                                <div
-                                    key={state.id}
-                                    className="flex w-80 shrink-0 flex-col overflow-hidden rounded-sm border border-border-default bg-white"
-                                >
-                                    <header className="bg-white p-3">
+                                <Card key={state.id} className="w-80 shrink-0 overflow-hidden">
+                                    <header className="bg-background-default p-3">
                                         <div className="text-label-l">
                                             {i + 1}. {state.label}
                                         </div>
-                                        <p className="mt-0.5 text-[11px] leading-snug text-foreground-secondary">
+                                        <p className="mt-0.5 text-body-xs leading-snug text-foreground-secondary">
                                             {state.description}
                                         </p>
                                     </header>
 
-                                    <BoardGroup icon="🏠" label="in-app" count={surfaces.length} tint="bg-white">
+                                    <BoardGroup
+                                        icon="home"
+                                        label="in-app"
+                                        count={surfaces.length}
+                                        tint="bg-background-default"
+                                    >
                                         {surfaces.map((surface) => (
                                             <SurfaceCard key={surface.id} surface={surface} showDev={showDev} />
                                         ))}
@@ -70,11 +73,16 @@ export default function JourneyBoard({
                                         )}
                                     </BoardGroup>
 
-                                    <BoardGroup icon="✉️" label="emails" count={emailCount} tint="bg-purple-200/50">
+                                    <BoardGroup
+                                        icon="docs"
+                                        label="emails"
+                                        count={emailCount}
+                                        tint="bg-background-badge-accent/20"
+                                    >
                                         {specError && <p className={EMPTY_NOTE}>{specError}</p>}
                                         {spec && state.includesWelcome && (
                                             <>
-                                                <p className="text-[10px] leading-snug text-foreground-secondary italic">
+                                                <p className="text-body-xs leading-snug text-foreground-secondary italic">
                                                     On signup (immediate):
                                                 </p>
                                                 <EmailCard
@@ -86,11 +94,12 @@ export default function JourneyBoard({
                                             </>
                                         )}
                                         {stages.map((stage) => (
-                                            <div key={stage.stage} className="flex flex-col gap-1.5">
+                                            <div key={stage.stage} className="flex flex-col gap-2">
                                                 {showDev && (
-                                                    <p className="text-[10px] leading-snug text-foreground-secondary italic">
-                                                        stage <span className="font-mono font-bold">{stage.stage}</span>{' '}
-                                                        — {stage.predicate}
+                                                    <p className="text-body-xs leading-snug text-foreground-secondary italic">
+                                                        stage{' '}
+                                                        <span className="font-mono text-label-m">{stage.stage}</span> —{' '}
+                                                        {stage.predicate}
                                                     </p>
                                                 )}
                                                 {stage.steps.map((step) => (
@@ -111,7 +120,12 @@ export default function JourneyBoard({
                                         )}
                                     </BoardGroup>
 
-                                    <BoardGroup icon="📳" label="push" count={pushCount} tint="bg-action-secondary/20">
+                                    <BoardGroup
+                                        icon="bell"
+                                        label="push"
+                                        count={pushCount}
+                                        tint="bg-action-secondary/20"
+                                    >
                                         {specError && <p className={EMPTY_NOTE}>{specError}</p>}
                                         {spec &&
                                             (state.includesPushReminder ? (
@@ -122,27 +136,24 @@ export default function JourneyBoard({
                                                 <p className={EMPTY_NOTE}>No push in this state.</p>
                                             ))}
                                     </BoardGroup>
-                                </div>
+                                </Card>
                             )
                         })}
 
                         {unmappedStages.length > 0 && (
-                            <div className="w-80 shrink-0 rounded-sm border border-border-default bg-action-secondary/40 p-3">
+                            <Card className="w-80 shrink-0 bg-action-secondary/40 p-3">
                                 <div className="text-label-l">Unmapped spec stages</div>
-                                <p className="mt-1 text-[11px] leading-snug text-foreground-secondary">
+                                <p className="mt-1 text-body-xs leading-snug text-foreground-secondary">
                                     The API spec reports stages this board doesn&apos;t map to a column yet
                                     {showDev ? ' — update FUNNEL_STATES.specStages in journeyData.ts:' : ':'}
                                 </p>
-                                <p className="mt-1 font-mono text-[11px]">
+                                <p className="mt-1 font-mono text-body-xs">
                                     {unmappedStages.map((s) => s.stage).join(', ')}
                                 </p>
-                            </div>
+                            </Card>
                         )}
                     </div>
                 </div>
-
-                {/* Scroll affordance: the last column is otherwise silently cut off. */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent" />
             </div>
         </div>
     )

@@ -188,8 +188,8 @@ export function localeReady(): Promise<AppLocale> {
         resolution = resolveStartupLocale()
             .then((resolved) => {
                 // A locale derived from the browser language was never stored, so a
-                // full document load (a PWA relaunch at start_url) re-derived it and
-                // the proxy saw no cookie. An explicit choice made meanwhile wins.
+                // full document load re-derived it and the proxy saw no cookie.
+                // An explicit choice made meanwhile wins.
                 if (!explicitlyChosen) writeLocale(resolved)
                 return resolved
             })

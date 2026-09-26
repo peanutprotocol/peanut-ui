@@ -1,8 +1,7 @@
 /**
- * Restart-to-apply contract: the pending bundle survives a reload (seeded from
- * the plugin queue, not only from this launch's check), a store-only update is
+ * Restart-to-apply contract: the downloaded bundle survives a reload, a store-only update is
  * surfaced as such, and a rejected set() never strands the user on the old
- * bundle — it re-stages, reloads under the re-staged id, and failing that closes
+ * bundle — it re-stages, sets the re-staged id, and failing that closes
  * the app (Android) or asks for a manual restart (iOS). An apply that never
  * reaches the plugin at all (offline re-stage, rejected reload) must NOT restart
  * anything: it clears the watchdog and the pending-apply marker and comes back
@@ -21,6 +20,7 @@ const mockUpdater = {
     reload: jest.fn().mockResolvedValue(undefined),
     current: jest.fn().mockResolvedValue({ bundle: { id: 'builtin' } }),
     getNextBundle: jest.fn(),
+    list: jest.fn(),
     getPluginVersion: jest.fn(),
     getFailedUpdate: jest.fn().mockResolvedValue(null),
     delete: jest.fn().mockResolvedValue(undefined),
@@ -76,6 +76,10 @@ beforeEach(() => {
     mockUpdater.set.mockReset().mockReturnValue(new Promise(() => {}))
     mockUpdater.reload.mockClear()
     mockUpdater.getNextBundle.mockResolvedValue(null)
+    mockUpdater.list.mockReset().mockResolvedValue({ bundles: [STAGED] })
+    mockUpdater.next.mockReset().mockImplementation(async ({ id }: { id: string }) => {
+        mockUpdater.getNextBundle.mockResolvedValue(id === STAGED.id ? STAGED : { id, version: '1.0.0' })
+    })
     mockUpdater.getLatest.mockReset().mockRejectedValue(new Error('no_new_version_available'))
     mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin' } })
     // A binary whose plugin restarts in place without deadlocking, so the
@@ -244,7 +248,7 @@ describe('Android binaries whose plugin deadlocks on an in-place restart', () =>
     // Capgo < 8.46.0 runs set() inline on Capacitor's single plugin thread and
     // blocks it waiting for notifyAppReady(), which is queued behind it there —
     // the page reloads onto a blank screen for 30 s and the bundle is rolled
-    // back. Those binaries must quit instead; next() already staged the bundle.
+    // back. Those binaries arm next() only just before an explicit exit.
     beforeEach(() => {
         mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.45.9' })
     })
@@ -255,18 +259,21 @@ describe('Android binaries whose plugin deadlocks on an in-place restart', () =>
             await result.current.applyNow()
         })
         expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-2' })
         expect(mockExitApp).toHaveBeenCalled()
         expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-2')
         expect(result.current.applyState).toBe('manual-restart')
     })
 
-    it('leaves the close-and-reopen instruction up when the exit fails', async () => {
+    it('disarms the bundle and leaves the action retriable when exit fails', async () => {
         mockExitApp.mockRejectedValueOnce(new Error('exitApp unavailable'))
         const { result } = await withStagedBundle()
         await act(async () => {
             await result.current.applyNow()
         })
-        expect(result.current.applyState).toBe('manual-restart')
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
+        expect(result.current.applyState).toBe('failed')
     })
 
     it('arms no watchdog, so a user who never reopens is not exited twice', async () => {
@@ -302,15 +309,16 @@ describe('Android binaries whose plugin deadlocks on an in-place restart', () =>
     })
 })
 
-it('re-stages and reloads when set() rejects, then closes the app on Android', async () => {
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+it('re-stages and sets the new bundle when set() rejects, then closes the app on Android', async () => {
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     withRestageableBundle()
     const { result } = await withStagedBundle()
     await act(async () => {
         await result.current.applyNow()
     })
     expect(mockUpdater.getLatest).toHaveBeenCalled()
-    expect(mockUpdater.reload).toHaveBeenCalled()
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-3' })
+    expect(mockUpdater.reload).not.toHaveBeenCalled()
     expect(mockExitApp).not.toHaveBeenCalled()
     await act(async () => {
         await jest.advanceTimersByTimeAsync(3_000)
@@ -324,7 +332,7 @@ it('falls back to the manual-restart instruction when the Android exit fails', a
     // 'applying' forever: the modal hides its close button, disables both CTAs and
     // blocks dismissal, so the user had no way out and no instruction.
     mockExitApp.mockRejectedValueOnce(new Error('exitApp unavailable'))
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     withRestageableBundle()
     const { result } = await withStagedBundle()
     await act(async () => {
@@ -339,7 +347,7 @@ it('falls back to the manual-restart instruction when the Android exit fails', a
 
 it('asks for a manual restart on iOS when the reload never happened', async () => {
     platform.android = false
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     withRestageableBundle()
     const { result } = await withStagedBundle()
     await act(async () => {
@@ -372,14 +380,14 @@ it('escalates a restart that left the old bundle running', async () => {
 })
 
 it('retargets the marker to the re-staged bundle, so the recovered launch reads as a success', async () => {
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     withRestageableBundle()
     const { result } = await withStagedBundle()
     await act(async () => {
         await result.current.applyNow()
     })
-    expect(mockUpdater.reload).toHaveBeenCalled()
-    // reload() applies b-3, not the b-2 that set() rejected
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-3' })
+    // The second set() applies b-3, not the b-2 that set() rejected.
     expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-3')
 
     mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3' } })
@@ -393,7 +401,7 @@ it('drops the marker while the recovery re-stage is in flight, so a kill is not 
     // lost. While the re-download runs, the rejected id was never handed to the
     // plugin, so a process death here must not surface an error-level failure
     // for a bundle nothing tried to activate.
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     let markerDuringRestage: string | null | undefined
     mockUpdater.getLatest.mockReset().mockImplementation(async () => {
         markerDuringRestage = window.localStorage.getItem('capgoPendingApply')
@@ -406,14 +414,14 @@ it('drops the marker while the recovery re-stage is in flight, so a kill is not 
         await result.current.applyNow()
     })
 
-    expect(mockUpdater.reload).toHaveBeenCalled()
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-3' })
     expect(markerDuringRestage).toBeNull()
-    // and it is back, pointed at the bundle reload() actually applies
+    // and it is back, pointed at the bundle set() actually applies
     expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-3')
 })
 
 it('does not exit while the fallback re-download is still running after set() rejects', async () => {
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html')).mockResolvedValueOnce(undefined)
     let finishDownload!: () => void
     mockUpdater.getLatest.mockReset().mockReturnValue(
         new Promise((resolve) => {
@@ -437,10 +445,10 @@ it('does not exit while the fallback re-download is still running after set() re
         finishDownload()
         await Promise.resolve()
     })
-    await waitFor(() => expect(mockUpdater.reload).toHaveBeenCalled())
+    await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-3' }))
     expect(mockExitApp).not.toHaveBeenCalled()
 
-    // reload() issued and the page is still here: now the fallback applies
+    // set() issued and the page is still here: now the fallback applies
     await act(async () => {
         await jest.advanceTimersByTimeAsync(3_000)
     })
@@ -518,14 +526,15 @@ it('reports no failed apply when the marker retarget cannot be written', async (
         if (value === 'b-3') throw new Error('QuotaExceededError')
         write.call(this, key, value)
     })
-    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    mockUpdater.set.mockRejectedValueOnce(new Error('no index.html'))
     withRestageableBundle()
     const { result } = await withStagedBundle()
 
     await act(async () => {
         await result.current.applyNow()
     })
-    expect(mockUpdater.reload).toHaveBeenCalled()
+    expect(mockUpdater.set).not.toHaveBeenCalledWith({ id: 'b-3' })
+    expect(result.current.applyState).toBe('failed')
     expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
 
     mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3' } })
@@ -537,7 +546,7 @@ it('reports no failed apply when the marker retarget cannot be written', async (
 })
 
 describe('an apply that never reaches the plugin', () => {
-    // reload() would restart the app onto the bundle it is already running, and
+    // set() must not restart the app onto the bundle it is already running, and
     // the watchdog would then exit it (Android) or tell the user to close it
     // (iOS) for an update that was never staged.
     it.each([
@@ -563,10 +572,11 @@ describe('an apply that never reaches the plugin', () => {
         expect(result.current.applyState).toBe('failed')
     })
 
-    it('abandons the apply when reload() itself rejects', async () => {
-        mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    it('abandons the apply when the second set() rejects', async () => {
+        mockUpdater.set
+            .mockRejectedValueOnce(new Error('no index.html'))
+            .mockRejectedValueOnce(new Error('set refused'))
         withRestageableBundle()
-        mockUpdater.reload.mockRejectedValue(new Error('reload refused'))
         const { result } = await withStagedBundle()
 
         await act(async () => {
@@ -581,10 +591,11 @@ describe('an apply that never reaches the plugin', () => {
 
     // The re-stage mints a new id; a retry that still held the dead one would
     // hand set() exactly the id it just rejected.
-    it('adopts the re-staged bundle when the reload fails after a successful re-stage', async () => {
-        mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    it('keeps the re-staged bundle available when the second set() fails', async () => {
+        mockUpdater.set
+            .mockRejectedValueOnce(new Error('no index.html'))
+            .mockRejectedValueOnce(new Error('set refused'))
         withRestageableBundle()
-        mockUpdater.reload.mockRejectedValue(new Error('reload refused'))
         const { result } = await withStagedBundle()
 
         await act(async () => {

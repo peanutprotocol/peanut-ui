@@ -1,6 +1,7 @@
 'use client'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Image from 'next/image'
 import { twMerge } from '@/utils/tw'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
@@ -36,15 +37,15 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 const isCurrentMethodCountry = method.type === 'country'
 
                 if (isSingleOverall) {
-                    determinedPosition = 'single'
+                    determinedPosition = 'solo'
                 } else if (isFirstOverall) {
-                    determinedPosition = isCryptoAtSlot0 && isAllMethodsView ? 'single' : 'first'
+                    determinedPosition = isCryptoAtSlot0 && isAllMethodsView ? 'solo' : 'top'
                 } else if (isCryptoAtSlot0 && isCurrentMethodCountry && index === 1 && isAllMethodsView) {
                     // if crypto card is at methods[0], and this is the country card at methods[1],
                     // treat this country card as 'first' in its own group.
-                    determinedPosition = 'first'
+                    determinedPosition = 'top'
                 } else if (isLastOverall) {
-                    determinedPosition = 'last'
+                    determinedPosition = 'bottom'
                 } else {
                     determinedPosition = 'middle'
                 }
@@ -67,18 +68,9 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                         body={<div className="text-body-xs">{method.description || method.currency}</div>}
                         leading={
                             method.type === 'crypto' ? (
-                                <AvatarWithBadge
-                                    icon="wallet-outline"
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                />
+                                <IconBubble {...CONCEPT_ICONS.crypto} size="s" />
                             ) : method.id === 'bank-transfer-add' ? (
-                                <AvatarWithBadge
-                                    icon="bank"
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                    inlineStyle={{ color: 'black' }}
-                                />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="s" />
                             ) : method.type === 'country' ? (
                                 <Image
                                     src={getFlagUrl(countryCodeForFlag)}
@@ -89,11 +81,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                     loading="lazy"
                                 />
                             ) : (
-                                <AvatarWithBadge
-                                    name={method.title}
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="s" />
                             )
                         }
                         onClick={() => onItemClick(method)}

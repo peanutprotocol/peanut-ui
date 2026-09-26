@@ -17,8 +17,8 @@ export interface PaymentMethod {
 export const ACTION_METHODS: PaymentMethod[] = [
     {
         id: 'bank',
-        title: 'Bank',
-        description: 'EUR, USD, MXN, ARS & more',
+        title: 'Bank transfer',
+        description: 'EUR, USD, MXN, ARS and more',
         icons: [getFlagUrl('ar'), getFlagUrl('de'), getFlagUrl('us')],
         soon: false,
     },
@@ -38,8 +38,8 @@ export const ACTION_METHODS: PaymentMethod[] = [
     },
     {
         id: 'exchange-or-wallet',
-        title: 'Exchange or Wallet',
-        description: 'Binance, Metamask and more',
+        title: 'Crypto',
+        description: 'Binance, MetaMask and more',
         icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
         soon: false,
     },
@@ -55,8 +55,8 @@ export const DEVCONNECT_CLAIM_METHODS: PaymentMethod[] = [
     },
     {
         id: 'exchange-or-wallet',
-        title: 'Exchange or Wallet',
-        description: 'Binance, Metamask and more',
+        title: 'Crypto',
+        description: 'Binance, MetaMask and more',
         icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
         soon: false,
     },

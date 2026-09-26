@@ -2,15 +2,18 @@ import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
+import Loading from '../Loading'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CameraPermissionModal from './CameraPermissionModal'
+import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
@@ -65,6 +68,10 @@ export interface QRScannerProps {
     onScan: QRScanHandler
     onClose?: () => void
     isOpen?: boolean
+    /** Reports the camera-permission-denied recovery state, so the host can
+     *  clear anything it floats above the scanner (the my-QR peek sits at
+     *  z-60 and would cover the z-50 recovery sheet). */
+    onPermissionDenied?: (denied: boolean) => void
 }
 
 // ============================================================================
@@ -101,21 +108,22 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
         <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
-            {/* ds icon-button recipe: 40px circle + 20px icon */}
+            {/* ds icon-button recipe: the nav circle, inverted for the camera
+                feed — white ring and glyph at rest, pink fill on press */}
             <Button
-                variant="transparent-light"
-                className="mx-auto flex size-10 items-center justify-center border-white p-0"
+                variant="ghost"
+                className={`${NAV_CIRCLE_BUTTON_CLASSES} mx-auto justify-center border-white fill-white text-white`}
                 onClick={onClose}
             >
-                <Icon name="cancel" size={20} fill="white" />
+                <Icon name="cancel" size={20} />
             </Button>
             <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
-                variant="transparent-light"
-                className="mx-auto flex size-10 items-center justify-center border-white p-0"
+                variant="ghost"
+                className={`${NAV_CIRCLE_BUTTON_CLASSES} mx-auto justify-center border-white fill-white text-white`}
                 onClick={onToggleCamera}
             >
-                <Icon name="camera-flip" fill="white" size={20} />
+                <Icon name="camera-flip" size={20} />
             </Button>
         </div>
     )
@@ -137,17 +145,17 @@ function PasteActions({
     const t = useTranslations('global')
     return (
         <>
-            <button
-                onClick={onPaste}
-                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
-            >
+            {/* stays white: the link sits on the live camera feed, where the
+                secondary gray of the stock chrome would not read */}
+            <LinkButton onClick={onPaste} className="mx-auto mt-4 flex text-white hover:text-white active:text-white">
                 <Icon name="paste" fill="white" height={16} width={16} />
-                <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
-            </button>
+                {t('qrScanner.clickToPaste')}
+            </LinkButton>
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
                     <span className="text-label-l">{printableAddress(detectedAddress)}</span>
@@ -155,7 +163,8 @@ function PasteActions({
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
                     <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
@@ -287,9 +296,14 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    useEffect(() => {
+        onPermissionDenied?.(isPermissionDenied)
+        return () => onPermissionDenied?.(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity is the host's concern
+    }, [isPermissionDenied])
     const t = useTranslations('global')
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
@@ -302,7 +316,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
      * raises the "Allow Paste" alert, which raced the camera permission dialog
      * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
      * runs here, and the actual read happens on the chip tap (a real gesture).
-     * Web/PWA: no pre-read at all; "Click to paste" remains.
+     * Web: no pre-read at all; "Click to paste" remains.
      */
     useEffect(() => {
         if (!isScanning) {
@@ -389,7 +403,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                <CameraPermissionDrawer visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions
@@ -412,7 +426,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     />
                     {!isCameraReady && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
-                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            <Loading className="size-8 text-white" />
                             <span className="text-body-s text-white/80">{t('qrScanner.startingCamera')}</span>
                         </div>
                     )}

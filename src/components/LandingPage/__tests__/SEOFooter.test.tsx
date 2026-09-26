@@ -30,3 +30,40 @@ describe('SEOFooter locale ownership', () => {
         expect(hrefs).toContain('/es-ar/compare/peanut-vs-wise')
     })
 })
+
+describe('SEOFooter labels', () => {
+    const linkTexts = (container: HTMLElement) =>
+        [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) => link.textContent)
+
+    it('keeps the English Learn More labels on en', () => {
+        const texts = linkTexts(render(<SEOFooter locale="en" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Help Center', 'Fees and Pricing', 'Verification Guide']))
+    })
+
+    it('translates the Learn More labels instead of showing manifest names', () => {
+        const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Central de Ajuda', 'Taxas e preços', 'Guia de verificação']))
+        expect(texts).not.toContain('Supported Networks')
+        expect(texts).not.toContain('Send Money to Family')
+    })
+
+    it('names the send-money countries in the page language', () => {
+        const texts = linkTexts(render(<SEOFooter locale="es-419" />).container)
+        expect(texts).toEqual(expect.arrayContaining(['Enviar a Brasil', 'Enviar desde Reino Unido']))
+        expect(texts).not.toContain('Enviar a Brazil')
+        expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from UK')
+    })
+
+    it('gives pt-BR send-from links the article the country takes', () => {
+        const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
+        expect(texts).toEqual(
+            expect.arrayContaining([
+                'Enviar da França',
+                'Enviar do Reino Unido',
+                'Enviar dos Estados Unidos',
+                'Enviar de Portugal',
+            ])
+        )
+        expect(texts).not.toContain('Enviar de França')
+    })
+})

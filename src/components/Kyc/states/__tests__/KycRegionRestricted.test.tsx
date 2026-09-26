@@ -185,8 +185,8 @@ describe('InitiateKycModal — region-restricted short-circuit', () => {
         const onVerify = jest.fn()
         renderWithIntl(<InitiateKycModal visible onClose={jest.fn()} onVerify={onVerify} variant="default" />)
 
-        expect(screen.getByText('Unlock your account')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Unlock now'))
+        expect(screen.getByText('Unlock account')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Verify identity'))
         expect(onVerify).toHaveBeenCalledTimes(1)
     })
 })

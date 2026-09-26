@@ -27,6 +27,7 @@
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
+import { LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -156,9 +157,14 @@ function isPublished(content: string): boolean {
 function discoverRoutes(): Set<string> {
     const routes = new Set<string>()
 
-    // Static pages
-    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh']) {
+    // Static pages + the locale-neutral app routes the resolver passes
+    // through bare (shared with generate-valid-links.ts so a link the
+    // generator advertises can't fail validation here — /card did).
+    for (const p of ['/', '/privacy', '/terms']) {
         routes.add(p)
+    }
+    for (const r of LOCALE_NEUTRAL_APP_ROUTES) {
+        routes.add(`/${r}`)
     }
 
     // App routes (mobile-ui)
@@ -167,7 +173,10 @@ function discoverRoutes(): Set<string> {
         '/profile/backup',
         '/profile/edit',
         '/profile/exchange-rate',
-        '/profile/identity-verification',
+        '/profile/accounts',
+        '/profile/payments',
+        // retired 2026-09-25; the route still redirects to /profile/accounts
+        '/profile/accounts-and-payments',
         '/home',
         '/send',
         '/request',

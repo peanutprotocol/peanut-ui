@@ -1,7 +1,8 @@
 'use client'
 
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import IndicatorDot from '@/components/Global/IndicatorDot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -10,41 +11,46 @@ import { twMerge } from '@/utils/tw'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 
 interface CarouselCTAProps {
-    icon: IconName
+    icon?: IconName
+    /** a product concept's CTA draws its CONCEPT_ICONS bubble in place of icon + iconContainerClassName */
+    concept?: Concept
     title: string | React.ReactNode
     description: string | React.ReactNode
     logo?: StaticImageData
     logoSize?: number
-    onClose: () => void
+    mascotPose?: MascotPose
+    /** omit for a slide that cannot be dismissed: no close button renders */
+    onClose?: () => void
     onClick?: () => void | Promise<void>
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
-    // Perk claim indicator - shows pink dot instead of X close button
-    isPerkClaim?: boolean
 }
 
 const CarouselCTA = ({
     title,
     description,
     icon,
+    concept,
     onClose,
     onClick,
     logo,
+    mascotPose,
     iconContainerClassName,
     secondaryIcon,
     iconSize = 22,
     logoSize = 36,
-    isPerkClaim,
 }: CarouselCTAProps) => {
     const t = useTranslations('home.carousel')
     const { triggerHaptic } = useAppHaptic()
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
-        onClose()
+        onClose?.()
     }
 
     const handleClick = async () => {
@@ -78,12 +84,7 @@ const CarouselCTA = ({
             onClick={handleClick}
             className="embla__slide relative flex flex-row items-center justify-around px-2 py-2 md:py-3"
         >
-            {/* Close button or pink dot indicator for perk claims */}
-            {isPerkClaim ? (
-                <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label={t('claimablePerk')}>
-                    <IndicatorDot />
-                </div>
-            ) : (
+            {onClose && (
                 <button
                     type="button"
                     aria-label={getAriaLabel()}
@@ -99,34 +100,45 @@ const CarouselCTA = ({
             )}
 
             {/* Icon container */}
-            <div
-                className={twMerge(
-                    'relative flex size-8 items-center justify-center rounded-full',
-                    logo ? 'bg-transparent' : 'bg-action-primary',
-                    iconContainerClassName
-                )}
-            >
-                {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
-                {!logo && <Icon name={icon} size={iconSize} />}
-                {logo && (
-                    <Image
-                        src={logo}
-                        alt={typeof title === 'string' ? title : 'logo'}
-                        width={logoSize}
-                        height={logoSize}
-                    />
-                )}
-                {secondaryIcon && (
-                    <Image
-                        src={secondaryIcon}
-                        alt="secondary icon"
-                        height={64}
-                        width={64}
-                        quality={100}
-                        className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
-                    />
-                )}
-            </div>
+            {concept ? (
+                <IconBubble {...CONCEPT_ICONS[concept]} size="s" />
+            ) : (
+                <div
+                    className={twMerge(
+                        'relative flex size-8 items-center justify-center rounded-full',
+                        logo || mascotPose ? 'bg-transparent' : 'bg-action-primary',
+                        iconContainerClassName
+                    )}
+                >
+                    {/* Artwork takes precedence over the fallback icon. */}
+                    {!logo && !mascotPose && icon && <Icon name={icon} size={iconSize} />}
+                    {mascotPose && (
+                        <PeanutMascot
+                            pose={mascotPose}
+                            alt={typeof title === 'string' ? title : undefined}
+                            className="size-full"
+                        />
+                    )}
+                    {logo && (
+                        <Image
+                            src={logo}
+                            alt={typeof title === 'string' ? title : 'logo'}
+                            width={logoSize}
+                            height={logoSize}
+                        />
+                    )}
+                    {secondaryIcon && (
+                        <Image
+                            src={secondaryIcon}
+                            alt="secondary icon"
+                            height={64}
+                            width={64}
+                            quality={100}
+                            className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
+                        />
+                    )}
+                </div>
+            )}
 
             {/* Content */}
             <div className="flex w-[80%] flex-col">

@@ -80,14 +80,14 @@ describe('twMerge (DS-configured)', () => {
 
     // The other direction of the same bug: nothing is dropped, the caller's
     // override is silently ignored because stock tailwind-merge does not know
-    // `rounded-round` is a radius, so both classes survive and css order wins.
+    // `rounded-card` is a radius, so both classes survive and css order wins.
     describe('custom radius tokens', () => {
         test('a caller radius overrides a component radius, both ways', () => {
-            expect(twMerge('rounded-round rounded-sm')).toBe('rounded-sm')
-            expect(twMerge('rounded-sm rounded-round')).toBe('rounded-round')
-            expect(twMerge('rounded-round rounded-full')).toBe('rounded-full')
+            expect(twMerge('rounded-card rounded-sm')).toBe('rounded-sm')
+            expect(twMerge('rounded-sm rounded-card')).toBe('rounded-card')
+            expect(twMerge('rounded-card rounded-full')).toBe('rounded-full')
             // proves the test would have caught the original behaviour
-            expect(stockTwMerge('rounded-round rounded-sm')).toBe('rounded-round rounded-sm')
+            expect(stockTwMerge('rounded-card rounded-sm')).toBe('rounded-card rounded-sm')
         })
 
         test('every --radius-* token in globals.css merges as a radius', () => {
@@ -100,12 +100,12 @@ describe('twMerge (DS-configured)', () => {
 
         // side-specific radii still win over the shorthand, as in stock
         test('keeps the corner-specific radii working', () => {
-            expect(twMerge('rounded-round rounded-t-sm')).toBe('rounded-round rounded-t-sm')
-            expect(twMerge('rounded-t-sm rounded-round')).toBe('rounded-round')
+            expect(twMerge('rounded-card rounded-t-sm')).toBe('rounded-card rounded-t-sm')
+            expect(twMerge('rounded-t-sm rounded-card')).toBe('rounded-card')
             // side-specific DS tokens merge within their own side group (F-16)
-            expect(twMerge('rounded-t-round rounded-t-sm')).toBe('rounded-t-sm')
-            expect(twMerge('rounded-t-sm rounded-t-round')).toBe('rounded-t-round')
-            expect(twMerge('rounded-br-round rounded-br-sm')).toBe('rounded-br-sm')
+            expect(twMerge('rounded-t-card rounded-t-sm')).toBe('rounded-t-sm')
+            expect(twMerge('rounded-t-sm rounded-t-card')).toBe('rounded-t-card')
+            expect(twMerge('rounded-br-card rounded-br-sm')).toBe('rounded-br-sm')
         })
     })
 
@@ -181,12 +181,12 @@ describe('twMerge (DS-configured)', () => {
     })
 
     // the brutalist offset shadows (.shadow-2, @utility shadow-4, the
-    // primary/secondary scale) looked like unknown classes to stock
-    // tailwind-merge, so shadow-none could not remove them.
+    // primary scale) looked like unknown classes to stock tailwind-merge, so
+    // shadow-none could not remove them.
     describe('custom shadow tokens', () => {
         test('custom shadows conflict with stock shadows and shadow-none', () => {
             expect(twMerge('shadow-4 shadow-none')).toBe('shadow-none')
-            expect(twMerge('shadow-primary-4 shadow-lg')).toBe('shadow-lg')
+            expect(twMerge('shadow-primary-6 shadow-lg')).toBe('shadow-lg')
             expect(twMerge('shadow-2 shadow-4')).toBe('shadow-4')
             // a shadow colour is a different channel and still composes
             expect(twMerge('shadow-red-500 shadow-4')).toBe('shadow-red-500 shadow-4')
@@ -196,38 +196,9 @@ describe('twMerge (DS-configured)', () => {
         test('every custom shadow-* class in globals.css merges as a shadow', () => {
             // the offset shadows are css classes/utilities, not @theme vars
             const tokens = cssTokens(/^\s*(?:\.|@utility )shadow-([a-zA-Z0-9-]+)\s*\{/gm)
-            expect(tokens.length).toBeGreaterThan(6)
+            expect(tokens.length).toBeGreaterThan(3)
             const unmerged = tokens.filter((t) => twMerge(`shadow-${t} shadow-none`) !== 'shadow-none')
             expect(unmerged).toEqual([])
-        })
-    })
-
-    // component classes with tailwind-shaped names: the colour groups ate them
-    // (text-link lost to text-grey-1, bg-peanut-repeat-normal to bg-white).
-    // each now owns its group, so colours compose instead of deleting them.
-    describe('component classes with tailwind-shaped names', () => {
-        test('a text colour no longer deletes text-link', () => {
-            expect(twMerge('text-link text-grey-1')).toBe('text-link text-grey-1')
-            expect(twMerge('text-link text-body-m')).toBe('text-link text-body-m')
-            expect(stockTwMerge('text-link text-grey-1')).toBe('text-grey-1')
-        })
-
-        test('a text colour no longer deletes text-link-decoration', () => {
-            expect(twMerge('text-link-decoration text-foreground-secondary')).toBe(
-                'text-link-decoration text-foreground-secondary'
-            )
-            expect(stockTwMerge('text-link-decoration text-foreground-secondary')).toBe('text-foreground-secondary')
-        })
-
-        test('a border colour no longer deletes border-rounded', () => {
-            expect(twMerge('border-rounded border-red-500')).toBe('border-rounded border-red-500')
-            expect(stockTwMerge('border-rounded border-red-500')).toBe('border-red-500')
-        })
-
-        test('bg colours compose with the peanut patterns, which conflict among themselves', () => {
-            expect(twMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-peanut-repeat-normal bg-white')
-            expect(twMerge('bg-peanut-repeat-normal bg-peanut-repeat-large')).toBe('bg-peanut-repeat-large')
-            expect(stockTwMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-white')
         })
     })
 })

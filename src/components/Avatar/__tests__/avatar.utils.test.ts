@@ -1,8 +1,16 @@
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
 import en from '@/i18n/app/messages/en.json'
-import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, dealHand, letterAvatarSrc } from '../avatar.utils'
+import {
+    avatarPool,
+    avatarSrc,
+    badgeAvatarKeys,
+    basicAvatarKeys,
+    dealHand,
+    HAND_SIZE,
+    letterAvatarSrc,
+} from '../avatar.utils'
 
 describe('avatar catalog', () => {
     // the manifest is the API's contract: every slug it names must be real art
@@ -69,16 +77,12 @@ describe('avatar catalog', () => {
         expect(avatarSrc(undefined)).toBeNull()
     })
 
-    // every basic tile prints a name and a line, so a slug the API adds before
-    // the copy lands would show as a bare capitalised slug with no line
-    it('names and lines every basic in the cast catalog', () => {
-        const cast: Record<string, { name: string; line: string }> = en.avatar.cast
+    // every basic tile prints a name, so a slug the API adds before the copy
+    // lands would show as a bare capitalised slug
+    it('names every basic in the cast catalog', () => {
+        const cast: Record<string, { name: string }> = en.avatar.cast
         for (const slug of badgeAssets.avatars.basics) {
-            expect({ slug, named: !!cast[slug]?.name, lined: !!cast[slug]?.line }).toEqual({
-                slug,
-                named: true,
-                lined: true,
-            })
+            expect({ slug, named: !!cast[slug]?.name }).toEqual({ slug, named: true })
         }
     })
 })
@@ -88,11 +92,13 @@ describe('dealHand', () => {
     const unlocked = badgeAvatarKeys(['BUG_WHISPERER'])
     const isBadge = (key: string | null) => !!key?.startsWith('badge.')
 
+    // one 3x3 screen: the initial, seven dealt, the die (TASK-23054)
     it('deals the initial first, then seven distinct keys from the pool', () => {
         const hand = dealHand(null, unlocked, { random: seeded(1) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(1 + HAND_SIZE)
+        expect(HAND_SIZE).toBe(7)
         expect(hand[0]).toBeNull()
-        expect(new Set(hand).size).toBe(8)
+        expect(new Set(hand).size).toBe(1 + HAND_SIZE)
         for (const key of hand.slice(1)) expect(avatarPool(['BUG_WHISPERER'])).toContain(key)
     })
 
@@ -107,22 +113,22 @@ describe('dealHand', () => {
 
     it('does not deal a pick this manifest does not know', () => {
         const hand = dealHand('basic.peanut', unlocked, { random: seeded(7) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(1 + HAND_SIZE)
         expect(hand).not.toContain('basic.peanut')
     })
 
-    // slot 1 draws the initial itself, so a letter in slots 2-8 would be the
+    // slot 1 draws the initial itself, so a letter in the dealt slots would be the
     // same sticker twice, with both tiles checked
     it('does not deal a letter pick', () => {
         const hand = dealHand('letter.k', unlocked, { random: seeded(8) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(1 + HAND_SIZE)
         expect(hand).not.toContain('letter.k')
         expect(hand.map(avatarSrc)).not.toContain('/avatars/letter/k.webp')
     })
 
     it('deals only basics to a user with no badges', () => {
         const hand = dealHand(null, [], { random: seeded(3) })
-        expect(hand).toHaveLength(8)
+        expect(hand).toHaveLength(1 + HAND_SIZE)
         expect(hand.slice(1).every((key) => key?.startsWith('basic.'))).toBe(true)
     })
 
@@ -144,8 +150,8 @@ describe('dealHand', () => {
             const art = dealHand('basic.sun', twice, { random: seeded(seed) })
                 .slice(1)
                 .map(avatarSrc)
-            expect(art).toHaveLength(7)
-            expect(new Set(art).size).toBe(7)
+            expect(art).toHaveLength(HAND_SIZE)
+            expect(new Set(art).size).toBe(HAND_SIZE)
             expect(art).not.toContain(null)
         }
     })
@@ -158,5 +164,37 @@ describe('dealHand', () => {
         expect(rolled).not.toEqual(hand)
         expect(rolled).toContain('basic.sun')
         expect(rolled[0]).toBeNull()
+    })
+})
+
+// TASK-22677: every sticker is a 176x176 WebP, so one slot draws every pick at
+// one size. mono/skills/badges-recraft export-avatar.mjs writes that canvas
+// and refuses strip-shaped art; this keeps a hand-dropped file honest.
+describe('avatar artwork geometry', () => {
+    const STICKER_SIDE = 176
+    // RIFF container: 'VP8 ' lossy, 'VP8L' lossless, 'VP8X' extended (alpha)
+    const webpSize = (webp: Buffer) => {
+        if (webp.toString('ascii', 0, 4) !== 'RIFF' || webp.toString('ascii', 8, 12) !== 'WEBP') return null
+        const chunk = webp.toString('ascii', 12, 16)
+        if (chunk === 'VP8X') return { width: 1 + webp.readUIntLE(24, 3), height: 1 + webp.readUIntLE(27, 3) }
+        if (chunk === 'VP8L') {
+            const bits = webp.readUInt32LE(21)
+            return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >>> 14) & 0x3fff) }
+        }
+        return { width: webp.readUInt16LE(26) & 0x3fff, height: webp.readUInt16LE(28) & 0x3fff }
+    }
+
+    it('ships every sticker on a 176x176 canvas', () => {
+        const paths = [
+            ...'abcdefghijklmnopqrstuvwxyz'.split('').map((letter) => `/avatars/letter/${letter}.webp`),
+            ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),
+            ...Object.entries(badgeAssets.avatars.badges).flatMap(([code, slugs]) =>
+                slugs.map((slug) => `/avatars/badge/${code}/${slug}.webp`)
+            ),
+        ]
+        for (const path of paths) {
+            const size = webpSize(readFileSync(join(process.cwd(), 'public', path)))
+            expect({ path, size }).toEqual({ path, size: { width: STICKER_SIDE, height: STICKER_SIDE } })
+        }
     })
 })

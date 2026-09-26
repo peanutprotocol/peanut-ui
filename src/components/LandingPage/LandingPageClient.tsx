@@ -19,6 +19,7 @@ import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
+import type { MarqueeChip } from '@/lib/landingContent'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
 // JSON) into whatever chunk imports it, and it renders far below the fold.
@@ -30,7 +31,7 @@ type LandingPageClientProps = {
     heroConfig: {
         primaryCta: CTAButton
     }
-    marqueeMessages: string[]
+    marqueeMessages: MarqueeChip[]
     strings: LandingStrings
     contentHrefs: LandingContentHrefs
     // Server-rendered slots
@@ -61,18 +62,17 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
-    // the strip under the door fold speaks /shhhhh's vocabulary, not the
-    // product one every other strip repeats
+    // Card features under the homepage card offer.
     const tDoorMarquee = useTranslations('shhhhh.marquee')
-    // Kill switch: the door fold and the closed-beta strip under it are one
-    // promise, so they go dark together.
+    // The card offer and its feature strip share one maintenance switch.
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
     // Only the words with a real article behind them become links; the rest
-    // stay plain text. Words come from the content system's marquee list, so an
-    // edit there just drops out of this map and renders unlinked.
+    // stay plain text. Words come from the content system's marquee list and are
+    // matched by their English id, so translated chips keep their links and an
+    // edit to the en list just drops out of this map and renders unlinked.
     const marqueeProps = useMemo(() => {
         const hrefs: Record<string, string> = {
             'No transfer fees': contentHrefs.pricing,
@@ -87,7 +87,7 @@ export function LandingPageClient({
         }
         return {
             visible: true,
-            message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
+            message: marqueeMessages.map(({ id, label }) => (hrefs[id] ? { label, href: hrefs[id] } : label)),
         }
     }, [contentHrefs, marqueeMessages])
 
@@ -96,11 +96,11 @@ export function LandingPageClient({
             visible: true,
             // the whole strip is the door: every word goes to /shhhhh
             message: [
-                tDoorMarquee('iykyk'),
-                tDoorMarquee('wordTravels'),
-                tDoorMarquee('closedBeta'),
-                tDoorMarquee('shhhh'),
-                tDoorMarquee('peanutClub'),
+                tDoorMarquee('peanutCard'),
+                tDoorMarquee('contactless'),
+                tDoorMarquee('available'),
+                tDoorMarquee('online'),
+                tDoorMarquee('noMonthlyFee'),
             ].map((label) => ({ label, href: '/shhhhh' })),
         }),
         [tDoorMarquee]

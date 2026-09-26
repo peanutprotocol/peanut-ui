@@ -1,133 +1,92 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useFormatter, useTranslations } from 'next-intl'
 import Carousel from '@/components/Global/Carousel'
 import CarouselCTA from './CarouselCTA'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { useHomeCarouselCTAs, type CarouselCTA as CarouselCTAType } from '@/hooks/useHomeCarouselCTAs'
-import { perksApi, type PendingPerk } from '@/services/perks'
-import { useAuth } from '@/context/authContext'
-import { useWebSocket } from '@/hooks/useWebSocket'
-import { extractInviteeName } from '@/utils/general.utils'
-import PerkClaimModal from '../PerkClaimModal'
-import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { useHomeCarouselCTAs } from '@/hooks/useHomeCarouselCTAs'
+import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
+import type { NextAction } from '@/types/capabilities'
+import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 
-const HomeCarouselCTA = () => {
-    const t = useTranslations('home.carousel')
-    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs()
-    const { user } = useAuth()
-    const queryClient = useQueryClient()
+/**
+ * `documentRequest`: a future-dated document request before its final week
+ * (selectHomeTasks). It leads the carousel as a small item and has no close
+ * button, so a carousel dismissal can never hide it before its due
+ * date; in the final week Home moves it to the large task card instead.
+ */
+const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) => {
+    // the "Unlock QR payments" slide starts the QR ID check in place
+    const qrIdentityCheck = useQrIdentityCheck()
+    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs({ onStartQrIdentityCheck: qrIdentityCheck.start })
+    const documentFlow = useDocumentRequestFlow()
+    const t = useTranslations('home.pendingTasks')
+    const format = useFormatter()
+    const toast = useToast()
 
-    // Perk claim modal state
-    const [selectedPerk, setSelectedPerk] = useState<PendingPerk | null>(null)
-    const [claimedPerkIds, setClaimedPerkIds] = useState<Set<string>>(new Set())
-
+    // The slide has no room for an inline error, so a failed start is a toast:
+    // never a tap that does nothing.
+    const startError = documentFlow.error
     useEffect(() => {
-        setClaimedPerkIds(new Set())
-    }, [user?.user.userId])
+        if (startError) toast.error(startError)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
+    }, [startError])
 
-    // Fetch pending perks
-    const { data: pendingPerksData } = useQuery({
-        queryKey: ['pendingPerks', user?.user.userId],
-        queryFn: () => perksApi.getPendingPerks(),
-        enabled: !!user?.user.userId,
-    })
+    const due = documentRequest?.effectiveDate ? new Date(documentRequest.effectiveDate) : null
+    const deadline =
+        due && !Number.isNaN(due.getTime())
+            ? // date-only string: format in UTC, or Americas time zones show the day before
+              format.dateTime(due, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+            : null
 
-    // Listen for real-time perk notifications via WebSocket
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        onPendingPerk: useCallback(() => {
-            queryClient.invalidateQueries({ queryKey: ['pendingPerks'] })
-        }, [queryClient]),
-    })
+    const modals = (
+        <>
+            {documentFlow.modals}
+            {qrIdentityCheck.modals}
+        </>
+    )
 
-    // Only show card waitlist perks on home carousel.
-    // Referral rewards and surprise moments are claimed inline after QR payment, not from home.
-    const claimablePerks = useMemo(() => {
-        return (
-            pendingPerksData?.perks?.filter((p) => !claimedPerkIds.has(p.id) && p.name?.includes('Card Pioneer')) || []
-        )
-    }, [pendingPerksData?.perks, claimedPerkIds])
-
-    // convert perks to carousel CTAs (these come first!)
-    const perkCTAs: CarouselCTAType[] = useMemo(() => {
-        return claimablePerks.map((perk) => {
-            const inviteeName = extractInviteeName(perk.reason)
-            const description = inviteeName ? (
-                <p>{t.rich('usedPeanutTapToClaim', { inviteeName, name: (chunks) => <b>{chunks}</b> })}</p>
-            ) : (
-                <p>{t('tapToClaim')}</p>
-            )
-
-            return {
-                id: `perk-${perk.id}`,
-                title: <p>{t.rich('rewardReady', { amount: perk.amountUsd, b: (chunks) => <b>{chunks}</b> })}</p>,
-                description,
-                icon: 'gift' as IconName,
-                iconContainerClassName: 'bg-action-primary',
-                onClick: () => setSelectedPerk(perk),
-                isPerkClaim: true,
-                iconSize: 16,
-            }
-        })
-    }, [claimablePerks, t])
-
-    // Combine perk CTAs (first) with regular CTAs
-    const allCTAs = useMemo(() => {
-        return [...perkCTAs, ...carouselCTAs]
-    }, [perkCTAs, carouselCTAs])
-
-    const handlePerkClaimed = useCallback((perkId: string) => {
-        setClaimedPerkIds((prev) => new Set(prev).add(perkId))
-    }, [])
-
-    const handleModalClose = useCallback(() => {
-        setSelectedPerk(null)
-    }, [])
-
-    // reward claimed and our modal gone: a friend joined, money landed, and
-    // nothing of ours is on screen. Lives here rather than in PerkClaimModal,
-    // which unmounts with `selectedPerk` and would take the pending ask with it.
-    useAppReviewNudge(user?.user.userId, 'reward_claimed', claimedPerkIds.size > 0 && !selectedPerk)
-
-    // don't render carousel if there are no CTAs
-    if (!allCTAs.length) return null
+    if (carouselCTAs.length === 0 && !documentRequest) return modals
 
     return (
         <>
             <Carousel>
-                {allCTAs.map((cta) => (
+                {documentRequest && (
+                    <CarouselCTA
+                        key={`document-request:${documentRequest.key}`}
+                        title={t('documentTitle')}
+                        description={deadline ? t('documentDueBy', { deadline }) : t('documentDescription')}
+                        concept="verification"
+                        onClick={() => {
+                            if (!documentFlow.isLoading) documentFlow.start(documentRequest)
+                        }}
+                        iconSize={16}
+                    />
+                )}
+                {carouselCTAs.map((cta) => (
                     <CarouselCTA
                         key={cta.id}
                         title={cta.title}
                         description={cta.description}
-                        icon={cta.icon as IconName}
+                        icon={cta.icon as IconName | undefined}
+                        concept={cta.concept}
                         onClose={() => {
                             cta.onClose?.()
                             dismissCTA(cta.id)
                         }}
                         onClick={cta.onClick}
                         logo={cta.logo}
+                        mascotPose={cta.mascotPose}
                         iconContainerClassName={cta.iconContainerClassName}
                         secondaryIcon={cta.secondaryIcon}
                         iconSize={16}
                         logoSize={cta.logoSize}
-                        isPerkClaim={cta.isPerkClaim}
                     />
                 ))}
             </Carousel>
-
-            {/* Perk Claim Modal */}
-            {selectedPerk && (
-                <PerkClaimModal
-                    perk={selectedPerk}
-                    visible={!!selectedPerk}
-                    onClose={handleModalClose}
-                    onClaimed={handlePerkClaimed}
-                />
-            )}
+            {modals}
         </>
     )
 }

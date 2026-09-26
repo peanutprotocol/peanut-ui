@@ -85,7 +85,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -114,8 +114,18 @@ describe('ResidenceStep', () => {
         // persisted after signup — collapsing must clear the stored pick.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        const toggle = screen.getByRole('button', { name: /Have documents from more than one country/ })
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        fireEvent.click(toggle)
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
+    })
+
+    it('opening the selector clears nothing', () => {
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: /Have documents from more than one country/ }))
+        expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
     it('shows the per-country availability comparison with the truth-first guidance', () => {
@@ -214,12 +224,11 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country), then the card behind BOTH
-        // of its remaining gates. Naming the card without the waitlist is the
-        // regression this guards (2026-09-05 policy change).
+        // behind the ID check (named per country), then the card application
+        // behind verification. The retired virtual-card queue is absent.
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/The Peanut card is also available/)).toBeInTheDocument()
-        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.getByText(/apply for a Peanut Card/)).toBeInTheDocument()
+        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         // Rain §7 bans availability framing keyed to a place — no country here
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -236,7 +245,7 @@ describe('ResidenceStep', () => {
         // the rail clause disappears; the card clause is self-contained, so the
         // same string serves both branches
         expect(screen.getByText(/work right away\./)).toBeInTheDocument()
-        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
@@ -302,7 +311,18 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
     })
 
-    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK', 'MM'])(
+    // TASK-23054 R1: HK was restricted for a Sumsub document rule, which never
+    // decides eligibility; it is in no tier now
+    it('treats Hong Kong as unrestricted', () => {
+        mockSetupState.residenceCountry = 'HK'
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+        expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
+    })
+
+    // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])(
         'shows the generic heads-up for %s before advancing',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
@@ -324,16 +344,25 @@ describe('ResidenceStep', () => {
         ['IN', 'card'],
         ['TR', 'card'],
         ['UA', 'card'],
-        ['VE', 'card'],
         ['VN', 'card'],
         ['IL', 'card'],
-        ['IQ', 'card'],
         ['NP', 'card'],
         ['NI', 'card'],
         ['DZ', 'banking'],
         ['BI', 'banking'],
+        ['GW', 'banking'],
         ['JP', 'banking'],
         ['TN', 'banking'],
+        // Bridge's Prohibited list (api#1738, TASK-23054 R2)
+        ['AF', 'banking'],
+        ['SD', 'banking'],
+        ['LY', 'banking'],
+        ['PS', 'banking'],
+        ['LB', 'banking'],
+        ['YE', 'banking'],
+        ['SO', 'banking'],
+        ['SS', 'banking'],
+        ['CD', 'banking'],
     ])('shows the partial heads-up for %s (%s restriction) and continues on demand', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
@@ -440,14 +469,14 @@ describe('ResidenceStep', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
 
         it('starts on the selector when entering forward with a stored pick', () => {
             mockDirection = 1
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
         })
     })
 

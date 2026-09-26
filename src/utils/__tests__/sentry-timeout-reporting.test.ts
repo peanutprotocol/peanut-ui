@@ -15,6 +15,7 @@ jest.mock('@sentry/nextjs', () => ({
 jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
+    getConnectivityGeneration: jest.fn(() => 0),
     reportNetworkError: jest.fn(),
     hasRecentFailure: jest.fn(() => false),
 }))

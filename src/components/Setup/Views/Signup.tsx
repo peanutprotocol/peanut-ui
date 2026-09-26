@@ -133,7 +133,8 @@ const SignupStep = () => {
                             className="rounded-sm"
                         />
                         <Button
-                            className="h-12 w-4/12"
+                            size="large"
+                            className="w-4/12"
                             loading={isLoading}
                             shadowSize="4"
                             onClick={() => handleNext(async () => isValid)}
@@ -148,7 +149,7 @@ const SignupStep = () => {
                     <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                 </div>
                 <div>
-                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <DocsLink href="/terms" className="underline underline-offset-2">

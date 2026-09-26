@@ -108,6 +108,7 @@ export interface Translations {
     landingPayLocalBody: string
     landingMercadoPagoAria: string
     landingPixAria: string
+    landingPayLocalPhoneAlt: string
 
     // Landing page — security section
     landingSecurityHeading: string
@@ -119,9 +120,9 @@ export interface Translations {
     landingSecurityHelpDesc: string
     landingTalkToSupport: string
 
-    // Landing page — send-in-seconds section
-    landingSendTagline1: string
-    landingSendTagline2: string
+    // Landing page — send-in-seconds section (closing CTA)
+    landingClosingHeadline: string
+    landingClosingSubline: string
 
     // Landing page — hero
     landingHeroTapScan: string
@@ -193,6 +194,7 @@ export interface Translations {
     exchangeFree: string
     exchangeArrivesHours: string
     exchangeArrivesMinutes: string
+    exchangeSelectCurrency: string
 
     // Footer
     footerMadeWithLove: string
@@ -297,10 +299,28 @@ export interface Translations {
     footerSendTo: string // "Send to {name}"
     footerSendFrom: string // "Send from {name}"
     footerPeanutVs: string // "Peanut vs {name}"
+    // Learn More link labels, looked up by footer-manifest slug (SEOFooter)
+    footerLinkPricing: string
+    footerLinkSupportedNetworks: string
+    footerLinkDigitalNomads: string
+    footerLinkFamilies: string
+    footerLinkRemoteWorkers: string
+    footerLinkVerification: string
 
     // Misc
     lastUpdated: string // "Last updated: {date}"
     relatedPages: string // "Related Pages"
+
+    // MDX <CompareSavings> on /compare/* — one whole sentence per render lane,
+    // never fragments: word order differs between these four languages.
+    compareSavingsLive: string // live rate: {base} {localBase} {competitor} {range} {worstCase} {localWorstCase} {date}
+    compareSavingsStatic: string // no rate yet: {date} {competitor} {range} {worstCase} {base}
+    compareSavingsUnverified: string // claim rejected — no fee number: {competitor} {date}
+    compareSavingsSource: string // label on the link to the verified source
+    calloutInfo: string // MDX <Callout type="info"> label
+    calloutTip: string // MDX <Callout type="tip"> label
+    calloutImportant: string // MDX <Callout type="warning"> label
+    clearSearch: string // clear-button label on the marketing search fields
 
     // Content hub
     content: string // "Content" (nav label)

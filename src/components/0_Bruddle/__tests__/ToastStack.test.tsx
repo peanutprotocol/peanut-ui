@@ -1,5 +1,4 @@
 import { screen } from '@testing-library/react'
-// the dismiss aria-label comes from the common catalog via useTranslations
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ToastStack from '../ToastStack'
@@ -49,25 +48,23 @@ describe('ToastStack', () => {
                         ),
                     },
                 ]}
-                dismiss={() => {}}
             />
         )
-        const dismissButton = screen.getByRole('button', { name: 'Close' })
-        // svgs in the pill: the content's clock + the dismiss X — nothing else
-        const svgsOutsideDismiss = Array.from(container.querySelectorAll('svg')).filter(
-            (svg) => !dismissButton.contains(svg)
-        )
-        expect(svgsOutsideDismiss).toHaveLength(1)
+        expect(container.querySelectorAll('svg')).toHaveLength(1)
         expect(screen.getByText(/Card cool-down/)).toBeInTheDocument()
     })
 
+    // TASK-23054 (konrad + hugo): a toast leaves on its own timer, so it carries
+    // no close button. The old × read as a control and did nothing useful.
+    test('a toast renders no close button and still announces itself', () => {
+        render(<ToastStack toasts={[{ id: 1, type: 'success', duration: 2000, message: 'Link copied' }]} />)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.getByRole('status')).toHaveTextContent('Link copied')
+    })
+
     test('plain-message toast keeps the stock priority icon', () => {
-        const { container } = render(<ToastStack toasts={[{ id: 1, message: 'Link copied' }]} dismiss={() => {}} />)
-        const dismissButton = screen.getByRole('button', { name: 'Close' })
-        const svgsOutsideDismiss = Array.from(container.querySelectorAll('svg')).filter(
-            (svg) => !dismissButton.contains(svg)
-        )
-        expect(svgsOutsideDismiss).toHaveLength(1)
+        const { container } = render(<ToastStack toasts={[{ id: 1, message: 'Link copied' }]} />)
+        expect(container.querySelectorAll('svg')).toHaveLength(1)
     })
 
     // chip: the countdown strip going static was only half of it — an 80px
@@ -85,7 +82,6 @@ describe('ToastStack', () => {
             render(
                 <ToastStack
                     toasts={[{ id: 'x', duration: 2000, type: 'success', message: 'Link cancelled successfully!' }]}
-                    dismiss={() => {}}
                 />
             )
 

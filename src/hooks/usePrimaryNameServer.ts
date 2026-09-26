@@ -29,8 +29,8 @@ const CACHE_KEY = 'ens-primary-name-cache'
 
 type NameCache = Record<string, { name: string; ts: number }>
 
-// localstorage warm cache so a fresh page load (mobile reopening the pwa)
-// paints the last-known name immediately instead of flashing the raw
+// localstorage warm cache so a fresh page load paints the last-known name
+// immediately instead of flashing the raw
 // address while the async lookup runs. lookups still revalidate on mount.
 function readNameCache(): NameCache {
     if (typeof window === 'undefined') return {}

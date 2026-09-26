@@ -11,7 +11,7 @@ const CONNECTIVITY_TOAST_ID = 'connectivity'
  * Connectivity state as a persistent toast (ruled 2026-09-03: the offline
  * notice moves off the top-of-shell Banner into the toast surface, like the
  * Rain cooldown pill). Offline = error, degraded ("trouble reaching Peanut")
- * = warning. The toast stays while the state lasts and is dismissed when the
+ * = attention. The toast stays while the state lasts and is dismissed when the
  * connection recovers; a user can also dismiss it manually and it will not
  * nag again until the state changes.
  *
@@ -37,7 +37,7 @@ export function ConnectivityToast() {
         toast({
             id: CONNECTIVITY_TOAST_ID,
             duration: 'persistent',
-            type: isOffline ? 'error' : 'warning',
+            type: isOffline ? 'error' : 'attention',
             message: isOffline
                 ? "No internet connection — some features won't work until you reconnect"
                 : 'Trouble reaching Peanut — check your connection, retrying…',

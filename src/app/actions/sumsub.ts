@@ -1,5 +1,10 @@
-import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
+import {
+    type InitiateSumsubKycResponse,
+    type KYCRegionIntent,
+    type VerificationActionSession,
+} from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import type { paths } from '@/types/api.generated'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -15,8 +20,14 @@ export type SumsubActionErrorCode =
     | 'target_country_required'
     | 'unsupported_target_country'
     | 'manteca_us_nationality_restricted'
+    // The residence rule closing the bank rails (api#1738). The backend sends
+    // these in `code`, beside a `userMessage`; the client localizes them from
+    // the capability reason catalog (identity.reasons).
+    | 'uk_resident_blocked'
+    | 'residence_bank_restricted'
     | 'initiate_failed'
     | 'restart_failed'
+    | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
     | 'invalid_response'
@@ -33,6 +44,8 @@ const TERMINAL_ACTION_CODES = new Set<string>([
     'target_country_required',
     'unsupported_target_country',
     'manteca_us_nationality_restricted',
+    'uk_resident_blocked',
+    'residence_bank_restricted',
 ])
 
 /** True when the result is a refusal no retry can change. */
@@ -40,23 +53,30 @@ export const isTerminalActionCode = (code?: SumsubActionErrorCode): boolean => !
 
 /**
  * The backend's `error` field carries a MACHINE CODE on these routes, while
- * `userMessage` carries the prose — but older routes put prose in `error`. So
- * `error` is only read as a code when it matches one we know, and a recognized
- * code is never shown to the user: rendering it verbatim is the raw-code
- * outcome this whole path exists to remove.
+ * `userMessage` carries the prose — but older routes put developer prose in
+ * `error`. So `error` is only read as a code when it matches one we know, and
+ * is never shown to the user: rendering it verbatim is the raw-code outcome
+ * this whole path exists to remove.
  */
-const terminalCodeOf = (responseJson: { error?: string }): SumsubActionErrorCode | undefined =>
-    typeof responseJson.error === 'string' && TERMINAL_ACTION_CODES.has(responseJson.error)
-        ? (responseJson.error as SumsubActionErrorCode)
-        : undefined
+const terminalCodeOf = (responseJson: { error?: string; code?: string }): SumsubActionErrorCode | undefined =>
+    [responseJson.code, responseJson.error].find(
+        (value): value is SumsubActionErrorCode => typeof value === 'string' && TERMINAL_ACTION_CODES.has(value)
+    )
 
 const backendOrFallback = (
-    responseJson: { userMessage?: string; error?: string },
+    responseJson: { userMessage?: string; error?: string; code?: string },
     fallback: string,
-    code: SumsubActionErrorCode
+    code: SumsubActionErrorCode,
+    status: number
 ): SumsubActionError => {
     const terminal = terminalCodeOf(responseJson)
-    const backendMessage = responseJson.userMessage || (terminal ? undefined : responseJson.error)
+    // `userMessage` is written for users. On a 4xx, `error` is a code or an
+    // English developer string ("No provider rejection found", provider
+    // names): shown verbatim it reached users untranslated and was quoted back
+    // to support, so an unknown 4xx `error` falls to our own copy. Older
+    // routes' 5xx prose ("try again shortly") still passes through.
+    const isClientError = status >= 400 && status < 500
+    const backendMessage = responseJson.userMessage || (terminal || isClientError ? undefined : responseJson.error)
     // A permanent refusal keeps its code so the caller can suppress the retry,
     // AND its message — the two are not in competition.
     if (terminal) return { error: backendMessage || fallback, code: terminal }
@@ -72,16 +92,25 @@ const caughtError = (e: unknown): SumsubActionError =>
 
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
+    /**
+     * The deposit corridor the user is verifying for (a rail method code, e.g.
+     * `BANK_TRANSFER_CO`). The backend reads the level, the rails and the
+     * endorsement from its corridor table; `regionIntent` is the older form.
+     */
+    corridor?: string
     regionIntent?: KYCRegionIntent
     levelName?: string
     crossRegion?: boolean
     targetCountry?: string
+    correctSession?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
+        corridor: params?.corridor,
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
         crossRegion: params?.crossRegion,
         targetCountry: params?.targetCountry,
+        correctSession: params?.correctSession,
     }
 
     try {
@@ -93,7 +122,15 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed')
+            return {
+                ...backendOrFallback(
+                    responseJson,
+                    'Failed to initiate identity verification',
+                    'initiate_failed',
+                    response.status
+                ),
+                ...(responseJson.session ? { data: responseJson as InitiateSumsubKycResponse } : {}),
+            }
         }
 
         return {
@@ -102,6 +139,8 @@ export const initiateSumsubKyc = async (params?: {
                 applicantId: responseJson.applicantId,
                 status: responseJson.status,
                 actionType: responseJson.actionType,
+                session: responseJson.session,
+                workflow: responseJson.workflow,
             },
         }
     } catch (e: unknown) {
@@ -160,7 +199,12 @@ export const restartIdentityVerification = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            const failure = backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
+            const failure = backendOrFallback(
+                responseJson,
+                'Failed to restart identity verification',
+                'restart_failed',
+                response.status
+            )
             if (response.status !== 429) return failure
             const rawRetryAt = responseJson.retryAt
             const retryAfter = response.headers?.get('retry-after')
@@ -196,6 +240,58 @@ export const restartIdentityVerification = async (
     }
 }
 
+export interface ResidenceChangeVerificationResponse {
+    token: string
+    levelName: string
+    applicantId: string
+    targetCountry: string
+}
+
+/**
+ * Resume the pending residence's dedicated Applicant Action. Unlike
+ * restartIdentityVerification this endpoint never resets the approved
+ * applicant's IDENTITY step.
+ */
+export const startResidenceChangeVerification = async (
+    targetCountry: string
+): Promise<{
+    data?: ResidenceChangeVerificationResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    cooldown?: { retryAt?: string }
+}> => {
+    try {
+        const expectedTargetCountry = targetCountry.trim().toUpperCase()
+        if (!/^[A-Z]{2}$/.test(expectedTargetCountry)) {
+            return { error: 'Invalid residence country', code: 'residence_change_failed' }
+        }
+        const response = await serverFetch('/users/residence-change/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetCountry: expectedTargetCountry }),
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            const failure = backendOrFallback(
+                responseJson,
+                'Failed to start residence verification',
+                'residence_change_failed',
+                response.status
+            )
+            const retryAfterSeconds = responseJson.retryAfterSeconds
+            if (typeof retryAfterSeconds !== 'number' || !Number.isFinite(retryAfterSeconds)) return failure
+            const retryAt = new Date(Date.now() + Math.max(0, retryAfterSeconds) * 1000).toISOString()
+            return { ...failure, cooldown: { retryAt } }
+        }
+        if (!responseJson.token || !responseJson.applicantId || responseJson.targetCountry !== expectedTargetCountry) {
+            return { error: 'Invalid response from server', code: 'invalid_response' }
+        }
+        return { data: responseJson }
+    } catch (e: unknown) {
+        return caughtError(e)
+    }
+}
+
 // initiate self-heal document resubmission for a provider-rejected user
 export const initiateSelfHealResubmission = async (
     provider: 'BRIDGE' | 'MANTECA' | 'RAIN',
@@ -212,7 +308,12 @@ export const initiateSelfHealResubmission = async (
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to initiate document resubmission', 'resubmit_failed')
+            return backendOrFallback(
+                responseJson,
+                'Failed to initiate document resubmission',
+                'resubmit_failed',
+                response.status
+            )
         }
 
         if (!responseJson.token || !responseJson.applicantId) {
@@ -253,8 +354,32 @@ export const startHostedVerification = async (
     }
 }
 
+/**
+ * Ask the API to poll the caller's Bridge customer soon (POST
+ * /users/kyc/refresh): it puts the pending KYC row back on the poller's fresh
+ * cadence instead of the hours-long one a months-old row sits in. Called on
+ * the way back from a hosted flow: the user has just done something at the
+ * vendor, and the app should reflect it within a minute, not hours. Best
+ * effort by design — a missing route (an API that predates it), a rate-limit
+ * answer or a network error all read as "not expedited", and the caller falls
+ * back to plain refetching.
+ */
+type KycRefreshResponse = paths['/users/kyc/refresh']['post']['responses'][200]['content']['application/json']
+
+export const refreshKycState = async (): Promise<KycRefreshResponse> => {
+    try {
+        const response = await serverFetch('/users/kyc/refresh', { method: 'POST' })
+        if (!response.ok) return { expedited: false }
+        const responseJson = await response.json()
+        return { expedited: responseJson?.expedited === true }
+    } catch {
+        return { expedited: false }
+    }
+}
+
 export interface StartKycActionResponse {
-    token: string
+    token?: string
+    session?: VerificationActionSession
     levelName: string
     externalActionId?: string
 }
@@ -278,9 +403,14 @@ export const startKycAction = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to start verification', 'start_action_failed')
+            return backendOrFallback(
+                responseJson,
+                'Failed to start verification',
+                'start_action_failed',
+                response.status
+            )
         }
-        if (!responseJson.sumsubAccessToken) {
+        if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return {
@@ -288,9 +418,31 @@ export const startKycAction = async (
                 token: responseJson.sumsubAccessToken,
                 levelName: responseJson.levelName,
                 externalActionId: responseJson.externalActionId,
+                session: responseJson.session,
             },
         }
     } catch (e: unknown) {
         return caughtError(e)
     }
+}
+
+export async function refreshVerificationSession(
+    session: Pick<VerificationActionSession, 'id' | 'generation'>
+): Promise<string> {
+    const response = await serverFetch('/users/identity/session-token', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
+    })
+    const data = await response.json()
+    if (!response.ok || !data.token) throw new Error('Verification session changed. Please reopen verification.')
+    return data.token
+}
+
+export async function getVerificationSession(id: string): Promise<VerificationActionSession | null> {
+    const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
+        method: 'GET',
+        cache: 'no-store',
+    })
+    if (!response.ok) return null
+    return (await response.json()).session ?? null
 }

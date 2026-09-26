@@ -20,7 +20,10 @@ jest.mock('next/navigation', () => ({
     usePathname: () => '/home',
     useSearchParams: () => new URLSearchParams(),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn() },
+}))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn() }))

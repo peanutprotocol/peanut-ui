@@ -9,6 +9,8 @@ import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -35,14 +37,31 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" />
             </IntlWrapper>
         )
-        const link = screen.getByRole('link', { name: 'Download PDF' })
+        const link = screen.getByRole('link', { name: 'Download Receipt (PDF)' })
         // locale rides the URL: it is the CDN cache key, and the only locale
         // signal the native external browser ever gets
         expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+        // the button look comes from Button's link mode; primary = the public
+        // receipt's one primary (TASK-22452)
+        expect(link).toHaveClass('btn', 'btn-primary')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
+    })
+
+    test('uses the current user locale in the PDF URL', () => {
+        render(
+            <NextIntlClientProvider locale="pt-BR" messages={en} timeZone="UTC">
+                <DownloadReceiptPdfLink entryId="entry-localized" kind="OFFRAMP" />
+            </NextIntlClientProvider>
+        )
+
+        expect(screen.getByRole('link', { name: 'Download Receipt (PDF)' })).toHaveAttribute(
+            'href',
+            '/receipt/entry-localized/pdf?kind=OFFRAMP&locale=pt-BR'
+        )
     })
 
     test('capacitor: the click opens the absolute production URL externally', () => {
@@ -52,7 +71,7 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="SEND_LINK" />
             </IntlWrapper>
         )
-        fireEvent.click(screen.getByRole('link', { name: 'Download PDF' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Download Receipt (PDF)' }))
         expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1)
         const opened = mockOpenExternalUrl.mock.calls[0][0] as string
         expect(opened).toMatch(/^https?:\/\//)
@@ -97,8 +116,10 @@ describe('useReceiptViewModel — shouldShowDownloadPdf', () => {
         expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'SEND_LINK' }))).toBe(true)
     })
 
-    test('hides for kinds without a /receipt page, even with the share gate open', () => {
-        expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'DIRECT_TRANSFER' }))).toBe(false)
+    test('shows authenticated PDF actions for every in-app transaction kind', () => {
+        expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'DIRECT_TRANSFER' }))).toBe(true)
+        expect(downloadVisible(tx({ direction: 'card_pay' }, { kind: 'CARD_SPEND_CLEAR' }))).toBe(true)
+        // The standalone public page remains on its established capability-url whitelist.
         expect(downloadVisible(tx({}, { kind: 'DIRECT_TRANSFER' }), true)).toBe(false)
     })
 

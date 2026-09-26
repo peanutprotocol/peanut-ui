@@ -36,10 +36,9 @@ export const ClaimAddressConfirmationModal = ({
                     <p className="font-bold">{t('addressCompatible.line2')}</p>
                 </div>
             }
-            icon="alert"
-            iconContainerClassName="bg-action-secondary"
+            tone="attention"
             footer={
-                <div className="space-y-3 w-full">
+                <div className="flex w-full flex-col gap-6">
                     <SlideToConfirm
                         label={tCommon('slideToProceed')}
                         onConfirm={() => {
@@ -53,19 +52,20 @@ export const ClaimAddressConfirmationModal = ({
                             }
                         }}
                     />
-                    <LinkButton
-                        className="self-center"
-                        onClick={() => {
-                            setShowConfirmationModal(false)
-                            setClaimToExternalWallet(false)
-                        }}
-                    >
-                        {t('addressCompatible.claimToPeanut')}
-                    </LinkButton>
+                    {/* the SlideToConfirm companion is the tertiary link, never a Button */}
+                    <div className="flex justify-center">
+                        <LinkButton
+                            onClick={() => {
+                                setShowConfirmationModal(false)
+                                setClaimToExternalWallet(false)
+                            }}
+                        >
+                            {t('addressCompatible.claimToPeanut')}
+                        </LinkButton>
+                    </div>
                 </div>
             }
             preventClose={false}
-            modalPanelClassName="max-w-md mx-8"
         />
     )
 }

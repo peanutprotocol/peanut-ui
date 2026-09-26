@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { JsonLd } from './JsonLd'
 import { articleSchema, type ArticleMeta } from '@/lib/seo/schemas'
 import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { PROSE_WIDTH } from './constants'
 
 interface ContentPageProps {
     /** Compiled MDX content element */
@@ -42,27 +43,11 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
-                <article className="content-page bg-background select-text">
+                <article className="content-page select-text">
                     {children}
-                    <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4">
-                        <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
-                            {breadcrumbs.map((crumb, i) => (
-                                <li key={crumb.href} className="flex items-center gap-1">
-                                    {i > 0 && <span aria-hidden>/</span>}
-                                    {i < breadcrumbs.length - 1 ? (
-                                        <Link
-                                            href={crumb.href}
-                                            className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
-                                        >
-                                            {crumb.name}
-                                        </Link>
-                                    ) : (
-                                        <span className="font-medium text-n-1">{crumb.name}</span>
-                                    )}
-                                </li>
-                            ))}
-                        </ol>
-                    </nav>
+                    {/* the trail sits at the bottom of the page: the header already
+                        gives the way back, so the crumbs are a footer affordance */}
+                    <Breadcrumb items={breadcrumbs} className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`} />
                 </article>
             </MarketingErrorBoundary>
         </>

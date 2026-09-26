@@ -6,10 +6,9 @@
  * identify as a Peanut user's (live session or an earlier registration) gets
  * the Peanut option alone.
  *
- * On the rails themselves, the GUEST claim-to-bank off-ramp is under
- * maintenance (BE 503s POST /bridge/offramp/create-for-guest): the bank method
- * must render greyed + "Soon!" and be non-interactive when the claim resolves
- * to GuestBankClaim, while UserBankClaim stays fully clickable.
+ * On the rails themselves, a guest whose sender can receive a bank off-ramp
+ * (GuestBankClaim) claims straight to a bank (TASK-22936): the bank method is
+ * live and enters the bank flow, the same as UserBankClaim.
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -106,11 +105,17 @@ jest.mock('@/context/tokenSelector.context', () => ({
 }))
 
 // Return a fixed method set so the test is independent of geolocation.
-const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false }
+const bankMethod = {
+    id: 'bank',
+    title: 'Bank transfer',
+    description: 'EUR, USD, MXN, ARS and more',
+    icons: [],
+    soon: false,
+}
 const walletMethod = {
     id: 'exchange-or-wallet',
-    title: 'Exchange or Wallet',
-    description: 'Binance, Metamask and more',
+    title: 'Crypto',
+    description: 'Binance, MetaMask and more',
     icons: [],
     soon: false,
 }
@@ -151,43 +156,42 @@ describe('SendLinkActionList — who gets the alternate rails', () => {
     test('an unrecognised recipient keeps every rail, so a bank claim needs no account', () => {
         renderList()
 
-        expect(screen.getByText('Bank')).toBeInTheDocument()
-        expect(screen.getByText('Exchange or Wallet')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /create peanut account/i })).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
+        expect(screen.getByText('Crypto')).toBeInTheDocument()
     })
 
     test('a logged-in recipient gets Peanut only', () => {
         renderList({ isLoggedIn: true })
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
-        expect(screen.queryByText('Exchange or Wallet')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
+        expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
     })
 
     test('a logged-out device holding credentials gets Peanut only', () => {
         mockKnownDevice = true
         renderList()
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
     })
 
     test('nothing is offered before recognition resolves, so no rail is shown then withdrawn', () => {
         mockKnownDevice = null
         renderList()
 
-        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bank transfer')).not.toBeInTheDocument()
     })
 })
 
-describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
-    test('GuestBankClaim: bank option is greyed + "Soon!" and non-interactive', () => {
+describe('SendLinkActionList — claim to a bank', () => {
+    test('GuestBankClaim: the bank option is live and enters the bank flow', () => {
         mockClaimType = 'guest-bank-claim'
         renderList()
 
-        // SOON badge present on the bank option
-        expect(screen.getByText('Soon!')).toBeInTheDocument()
+        expect(screen.queryByText('Soon!')).not.toBeInTheDocument()
 
-        // clicking the disabled bank card does not start the bank flow
-        fireEvent.click(screen.getByText('Bank'))
-        expect(mockSetFlowStep).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByText('Bank transfer'))
+        expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
     })
 
     test('UserBankClaim: the non-guest off-ramp stays interactive (no "Soon!")', () => {
@@ -197,7 +201,7 @@ describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
         expect(screen.queryByText('Soon!')).not.toBeInTheDocument()
 
         // clicking the enabled bank card enters the bank flow
-        fireEvent.click(screen.getByText('Bank'))
+        fireEvent.click(screen.getByText('Bank transfer'))
         expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
     })
 })

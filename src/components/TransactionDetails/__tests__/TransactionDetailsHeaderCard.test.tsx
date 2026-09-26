@@ -16,8 +16,18 @@ jest.mock('next/image', () => ({
 
 jest.mock('../TransactionAvatarBadge', () => ({
     __esModule: true,
-    default: ({ countryCode }: { countryCode?: string | null }) => (
-        <span data-testid="transaction-avatar">{countryCode ? 'bank flag' : 'user initials'}</span>
+    default: ({
+        countryCode,
+        avatarKey,
+        status,
+    }: {
+        countryCode?: string | null
+        avatarKey?: string | null
+        status?: string
+    }) => (
+        <span data-testid="transaction-avatar" data-avatar-key={avatarKey ?? ''} data-status={status ?? ''}>
+            {countryCode ? 'bank flag' : 'user initials'}
+        </span>
     ),
 }))
 
@@ -184,6 +194,30 @@ describe('TransactionDetailsHeaderCard address counterparties keep the wording',
     })
 })
 
+// TASK-23054: a generic label inside the title is a common noun, so it reads
+// lowercase ("Added from bank account"). Real names keep their casing.
+describe('TransactionDetailsHeaderCard generic names mid-sentence', () => {
+    it.each([
+        ['bank_deposit', 'completed', 'Bank account', 'name.bankAccount', 'Added from bank account'],
+        ['bank_deposit', 'pending', 'Bank account', 'name.bankAccount', 'Adding from bank account'],
+        ['bank_withdraw', 'completed', 'Bank account', 'name.bankAccount', 'Withdrew to bank account'],
+        ['withdraw', 'completed', 'External account', 'name.externalAccount', 'Withdrew to external account'],
+        ['add', 'completed', 'External wallet', 'name.externalWallet', 'Added from external wallet'],
+        ['send', 'completed', 'Recipient', 'name.recipient', 'Sent to recipient'],
+        ['receive', 'completed', 'Sender', 'name.sender', 'Received from sender'],
+        ['receive', 'completed', 'Peanut reward', 'name.peanutReward', 'Received from Peanut reward'],
+        ['qr_payment', 'completed', 'Merchant', 'name.merchant', 'Paid to merchant'],
+    ] as const)('%s %s with %s reads "%s"', (direction, status, userName, nameKey, title) => {
+        renderHeaderCard({ direction, status, userName, nameKey })
+        expect(screen.getByText(title)).toBeInTheDocument()
+    })
+
+    it('keeps the casing of a real counterparty name', () => {
+        renderHeaderCard({ direction: 'withdraw', status: 'completed', userName: 'Banco Galicia' })
+        expect(screen.getByText('Withdrew to Banco Galicia')).toBeInTheDocument()
+    })
+})
+
 // Self-describing labels must render bare — never interpolated into
 // direction wording ("Sending to Send didn't complete").
 describe('TransactionDetailsHeaderCard self-describing labels', () => {
@@ -210,7 +244,18 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
         expect(screen.queryByText(/Received from/)).not.toBeInTheDocument()
     })
 
-    it("words the user's own open request pot as 'You requested'", () => {
+    it('renders a card spend with no merchant bare, not "Paid to card payment"', () => {
+        renderHeaderCard({
+            direction: 'qr_payment',
+            status: 'completed',
+            userName: 'Card payment',
+            nameKey: 'name.cardPayment',
+        })
+        expect(screen.getByText('Card payment')).toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
+    })
+
+    it("words the user's own open request pot as 'Requested'", () => {
         renderHeaderCard({
             direction: 'request_received',
             status: 'pending',
@@ -218,10 +263,10 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
             nameKey: 'name.request',
             isRequestPotTransaction: true,
         })
-        expect(screen.getByText('You requested')).toBeInTheDocument()
+        expect(screen.getByText('Requested')).toBeInTheDocument()
     })
 
-    it('keeps an unresolved incoming request as bare "Request", never "You requested"', () => {
+    it('keeps an unresolved incoming request as bare "Request", never "Requested"', () => {
         renderHeaderCard({
             direction: 'request_received',
             status: 'pending',
@@ -229,7 +274,56 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
             nameKey: 'name.request',
         })
         expect(screen.getByText('Request')).toBeInTheDocument()
-        expect(screen.queryByText('You requested')).not.toBeInTheDocument()
+        expect(screen.queryByText('Requested')).not.toBeInTheDocument()
         expect(screen.queryByText(/is requesting/)).not.toBeInTheDocument()
     })
+})
+
+// TASK-22625: the receipt head shows the same picked avatar as the feed row.
+describe('TransactionDetailsHeaderCard — counterparty avatar', () => {
+    it('forwards the counterparty pick to the badge', () => {
+        renderHeaderCard({ avatarKey: 'basic.frog' })
+
+        expect(screen.getByTestId('transaction-avatar')).toHaveAttribute('data-avatar-key', 'basic.frog')
+    })
+
+    it('keeps the merchant logo ahead of the sticker', () => {
+        const { container } = renderHeaderCard({ avatarKey: 'basic.frog', avatarUrl: '/merchant-logo.png' })
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/merchant-logo.png')
+        expect(screen.queryByTestId('transaction-avatar')).not.toBeInTheDocument()
+    })
+})
+
+// The receipt head shows the merchant's own brand logo for a card spend,
+// mirroring the feed row. A broken logo URL falls back to the generic badge.
+describe('TransactionDetailsHeaderCard — merchant logo', () => {
+    it('shows the merchant logo when there is no avatar', () => {
+        const { container } = renderHeaderCard({ merchantLogo: 'https://logos.example/bolt.png' })
+
+        expect(container.querySelector('img')).toHaveAttribute('src', 'https://logos.example/bolt.png')
+        expect(screen.queryByTestId('transaction-avatar')).not.toBeInTheDocument()
+    })
+
+    it('falls back to the generic badge when the logo URL fails to load', () => {
+        const { container } = renderHeaderCard({ merchantLogo: 'https://logos.example/broken.png' })
+
+        fireEvent.error(container.querySelector('img')!)
+
+        expect(container.querySelector('img')).toBeNull()
+        expect(screen.getByTestId('transaction-avatar')).toBeInTheDocument()
+    })
+})
+
+// TASK-22452: a link row's bubble is derived from the link's state, so the
+// receipt header has to hand the badge the status it already renders in the
+// badge below. Without it every link row falls back to the fixed pink icon.
+describe('TransactionDetailsHeaderCard avatar status', () => {
+    it.each(['pending', 'completed', 'cancelled', 'refunded', 'failed'] as const)(
+        'passes %s down to the avatar badge',
+        (status) => {
+            renderHeaderCard({ direction: 'send', status, isLinkTransaction: true })
+            expect(screen.getByTestId('transaction-avatar')).toHaveAttribute('data-status', status)
+        }
+    )
 })

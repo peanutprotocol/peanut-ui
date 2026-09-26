@@ -6,6 +6,9 @@
 import { demoRespond } from '@/utils/demo-api'
 import { FIXTURES } from './registry'
 import { ensureActiveFixture } from './active'
+import { setFixtureBalanceUnits } from '@/utils/demo-balance'
+import { parseUnits } from 'viem'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -33,8 +36,10 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
             )
         }
         // Still serve the demo defaults — a wrong name must not hang the screen.
-        return demoRespond(path, options)
+        return demoRespond(path, options, { offline: true })
     }
+
+    if (fixture.balance !== undefined) setFixtureBalanceUnits(parseUnits(fixture.balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
@@ -45,7 +50,7 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
 
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
-    const base = await demoRespond(path, options)
+    const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
     if (override === undefined) return base
 

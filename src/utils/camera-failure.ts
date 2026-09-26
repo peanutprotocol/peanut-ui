@@ -17,8 +17,8 @@ export const CAMERA_ERRORS = {
     NOT_FOUND: 'NotFoundError',
 } as const
 
-// The probe inherits the hang it is diagnosing: an iOS PWA getUserMedia can
-// stall forever after a denial rather than reject. Give up and report nothing
+// The probe inherits the hang it is diagnosing: WebKit getUserMedia can stall
+// after a denial rather than reject. Give up and report nothing
 // rather than hold the error screen back on a promise that may never settle.
 const PROBE_TIMEOUT_MS = 2000
 

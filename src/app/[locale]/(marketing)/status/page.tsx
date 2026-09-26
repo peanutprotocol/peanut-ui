@@ -101,7 +101,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
         // status page whose data lives behind the outage reports the outage as
         // a hiccup.
         return (
-            <div className="bg-background">
+            <div className="bg-background-page">
                 <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
                 <div className="mx-auto w-full max-w-3xl px-6 pb-12">
                     <StatusBanner

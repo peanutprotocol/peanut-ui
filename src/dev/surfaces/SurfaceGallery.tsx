@@ -5,29 +5,38 @@
 import { parseAsString, useQueryState } from 'nuqs'
 import Link from 'next/link'
 import { useEffect } from 'react'
+import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { OPTION_SURFACES, SURFACES, SURFACE_IDS } from '@/dev/surfaces/registry'
 import { useModalsContext } from '@/context/ModalsContext'
 
 function SurfaceHost({ id }: { id: string }) {
     const surface = SURFACES[id]
-    const { setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallModalOpen } = useModalsContext()
+    const { setIsSignInModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
 
     // The context-driven surfaces have no visible prop — the provider holds
     // their open flag, so the harness flips it on mount instead.
     useEffect(() => {
+        if (surface?.modalsContextFlag === 'qrScanner') setIsQRScannerOpen(true)
         if (surface?.modalsContextFlag === 'signIn') setIsSignInModalOpen(true)
         if (surface?.modalsContextFlag === 'support') setIsSupportModalOpen(true)
-        if (surface?.modalsContextFlag === 'iosPwaInstall') setIsIosPwaInstallModalOpen(true)
-    }, [surface, setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallModalOpen])
+    }, [surface, setIsSignInModalOpen, setIsSupportModalOpen, setIsQRScannerOpen])
 
     const option = OPTION_SURFACES[id]
     if (option) return <>{option.render()}</>
-    if (!surface) return <p className="p-4 text-body-s">Unknown surface: {id}</p>
+    if (!surface)
+        return (
+            <Callout priority="error" className="m-4">
+                Unknown surface: {id}
+            </Callout>
+        )
     if (surface.blocked) {
         return (
-            <div className="flex min-h-dvh flex-col justify-center gap-2 p-6 text-left">
-                <p className="text-label-m tracking-wide text-foreground-secondary uppercase">Not capturable</p>
-                <p className="text-body-s text-foreground-primary">{surface.blocked}</p>
+            <div className="p-4">
+                <EmptyState icon="ban" title="Not capturable" description={surface.blocked} />
             </div>
         )
     }
@@ -39,15 +48,22 @@ export default function SurfaceGallery() {
 
     if (!id) {
         return (
-            <ul className="flex flex-col gap-1 p-4">
+            <DevPageShell
+                title="Surface gallery"
+                description="Open a production surface directly for visual review."
+                width="prose"
+            >
                 {SURFACE_IDS.map((surfaceId) => (
-                    <li key={surfaceId}>
-                        <Link className="text-body-s underline" href={`/dev/surfaces?s=${surfaceId}`}>
-                            {surfaceId} — {SURFACES[surfaceId].name}
-                        </Link>
-                    </li>
+                    <Link key={surfaceId} href={`/dev/surfaces?s=${surfaceId}`}>
+                        <ListItem
+                            leading={<IconBubble icon="docs" size="s" color="gray" />}
+                            title={SURFACES[surfaceId].name}
+                            body={surfaceId}
+                            chevron
+                        />
+                    </Link>
                 ))}
-            </ul>
+            </DevPageShell>
         )
     }
 

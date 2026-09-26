@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, type KeyboardEvent, useEffect, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -8,6 +8,10 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { localizedCountryName } from '@/utils/country-name.utils'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { twMerge } from '@/utils/tw'
 
 interface Props {
     /** ISO-2 codes the backend derived from the applicant's own evidence. */
@@ -61,6 +65,21 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
         )
     }
 
+    const focusIndex = Math.max(0, candidates.indexOf(selected ?? ''))
+
+    // WAI-ARIA radio group: an arrow key moves focus and selection together, wrapping at the ends
+    const moveSelection = (event: KeyboardEvent<HTMLDivElement>) => {
+        const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key]
+        if (!step) return
+        const radios = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]'))
+        const index = radios.indexOf(document.activeElement as HTMLElement)
+        if (index < 0) return
+        event.preventDefault()
+        const next = (index + step + radios.length) % radios.length
+        setSelected(candidates[next])
+        radios[next].focus()
+    }
+
     return (
         <PageStack gap="6">
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -70,27 +89,50 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                 <p className="text-foreground-secondary">{t('countryConfirm.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-3">
-                {candidates.map((iso2) => (
-                    <li key={iso2}>
-                        <button
-                            type="button"
+            {/* selected-row rule (design.md): fill + over-colour text + trailing check.
+                ListItem forwards no role or aria state, so the radio semantics ride a
+                wrapper, the same way TokenListItem carries its option semantics. */}
+            <div role="radiogroup" aria-label={t('countryConfirm.title')} onKeyDown={moveSelection}>
+                {candidates.map((iso2, index) => {
+                    const isSelected = selected === iso2
+                    const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
+                    return (
+                        <div
+                            key={iso2}
+                            role="radio"
+                            aria-checked={isSelected}
+                            // roving tabindex: one tab stop, on the picked row (or the first)
+                            tabIndex={index === focusIndex ? 0 : -1}
                             onClick={() => setSelected(iso2)}
-                            aria-pressed={selected === iso2}
-                            className={`w-full rounded-sm border border-border-default p-4 text-left text-label-l ${
-                                selected === iso2 ? 'bg-purple-200' : 'bg-background-default'
-                            }`}
+                            onKeyDown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return
+                                event.preventDefault()
+                                setSelected(iso2)
+                            }}
+                            className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
-                            {localizedCountryName(locale, iso2, iso2)}
-                        </button>
-                    </li>
-                ))}
-            </ul>
+                            <ListItem
+                                position={getCardPosition(index, candidates.length)}
+                                className={twMerge(
+                                    'transition-colors duration-instant active:bg-background-disabled',
+                                    isSelected && 'bg-action-primary'
+                                )}
+                                title={
+                                    <span className={twMerge('block truncate', paint)}>
+                                        {localizedCountryName(locale, iso2, iso2)}
+                                    </span>
+                                }
+                                trailing={isSelected && <Icon name="check" size={20} className={paint} />}
+                            />
+                        </div>
+                    )
+                })}
+            </div>
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
             <Button
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="mt-auto w-full"
                 onClick={handleContinue}

@@ -3,7 +3,7 @@ import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
+import { servesAnonymousReceipt } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState } from '@/utils/history.utils'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
@@ -53,11 +53,9 @@ function writeRenderCache(key: string, bytes: Buffer, ttlMs: number): void {
 const notFound = () => new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
 
 /**
- * GET /receipt/[entryId]/pdf — the receipt page as a downloadable, branded
- * PDF document. Accepts the page's own `kind`/`t` query params and rides the
- * same data path (getHistoryEntry + mapTransactionDataForDrawer), so the PDF
- * can never disagree with the page. Unknown entries and unresolvable legacy
- * `?t=` links 404 — there is no partial document worth downloading.
+ * GET /receipt/[entryId]/pdf — a downloadable, branded receipt document.
+ * Existing public page kinds remain capability URLs; every other activity kind
+ * requires owner/participant authentication enforced by the API.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ entryId: string }> }) {
     const { entryId } = await params
@@ -67,9 +65,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         return notFound()
     }
 
+    // Web can authenticate with its same-origin cookie; native explicitly
+    // forwards the stored bearer through CapacitorHttp. The API remains the
+    // authority for participant access to non-public receipt kinds.
+    const bearerHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('jwt-token')?.value
+    const authorization = bearerHeader ?? (cookieToken ? `Bearer ${cookieToken}` : undefined)
+
     let entry
     try {
-        entry = await getHistoryEntry(entryId, kind)
+        entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         captureException(error)
         return new NextResponse('Failed to load receipt', { status: 502, headers: { 'Cache-Control': 'no-store' } })
@@ -80,13 +85,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const { transactionDetails } = mapTransactionDataForDrawer(entry)
-        // resolveReceiptKind accepts every kind the history strategies know,
-        // which is wider than the set the receipt page serves — and this route
-        // is public and unauthenticated. Gate on the SAME whitelist the page
-        // and the download affordance use, so holding an entry id for an
-        // excluded kind (e.g. a direct transfer, or a legacy ?t= index) cannot
-        // pull a full PDF receipt the product does not publish.
-        if (!hasReceiptPage(transactionDetails)) {
+        // An anonymous request stays on the exact public-page whitelist. A
+        // bearer/cookie request may render a private kind only after the API's
+        // participant check returned the entry above.
+        const isPublicReceipt = servesAnonymousReceipt(transactionDetails)
+        if (!isPublicReceipt && !authorization) {
             return notFound()
         }
         // The PDF bytes vary by locale, so the locale must be part of the
@@ -102,8 +105,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const model = buildReceiptPdfModel(transactionDetails, t, locale)
         const isFinal = isFinalState(entry)
         const cacheKey = `${entryId}|${kind}|${locale}`
-        let pdf = readRenderCache(cacheKey)
-        if (!pdf) {
+        // Authenticated renders may contain participant-only fields and can
+        // differ by viewer. Keep them out of the shared process/CDN cache.
+        let pdf = authorization ? undefined : readRenderCache(cacheKey)
+        if (!pdf && !authorization) {
             let pending = inFlight.get(cacheKey)
             if (!pending) {
                 pending = renderReceiptPdf(model)
@@ -114,6 +119,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             pdf = await pending
             writeRenderCache(cacheKey, pdf, isFinal ? FINAL_TTL_MS : PENDING_TTL_MS)
         }
+        if (!pdf) pdf = await renderReceiptPdf(model)
 
         return new NextResponse(new Uint8Array(pdf), {
             headers: {
@@ -122,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 // saves under a sensible name (the page's anchor adds
                 // `download` to force the save on web).
                 'Content-Disposition': `inline; filename="${model.fileName}"`,
-                'Cache-Control': paramLocale && isFinal ? 'public, s-maxage=3600' : 'no-store',
+                'Cache-Control': !authorization && paramLocale && isFinal ? 'public, s-maxage=3600' : 'no-store',
             },
         })
     } catch (error) {

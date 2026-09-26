@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
 
 const mockGet = jest.fn()
 jest.mock('@/services/sendLinks', () => ({
-    sendLinksApi: { get: mockGet },
+    sendLinksApi: { getClaimStatus: mockGet },
     ESendLinkStatus: {
         creating: 'creating',
         completed: 'completed',

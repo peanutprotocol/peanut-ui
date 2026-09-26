@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
-import { BaseInput } from '@/components/0_Bruddle/BaseInput'
-import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Section } from '@/components/0_Bruddle/Section'
 import { CodeBlock } from './CodeBlock'
 
 export type PlaygroundControl =
@@ -33,27 +35,29 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
     return (
         <div className="space-y-4">
             {/* Preview */}
-            <Card className="border-border-disabled p-6">
-                <div className="mb-3 text-label-m text-foreground-secondary uppercase">Preview</div>
-                <div className="flex items-center justify-center rounded-sm bg-background-disabled py-8">
-                    {render(props)}
-                </div>
-            </Card>
+            <Section title="Preview">
+                <Card className="border-border-disabled p-6">
+                    <div className="flex items-center justify-center rounded-sm bg-background-disabled py-8">
+                        {render(props)}
+                    </div>
+                </Card>
+            </Section>
 
             {/* Controls */}
-            <Card className="border-border-disabled bg-background-page p-4">
-                <div className="mb-3 text-label-m text-foreground-secondary uppercase">Controls</div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {controls.map((control) => (
-                        <ControlField
-                            key={control.prop}
-                            control={control}
-                            value={props[control.prop]}
-                            onChange={(v) => updateProp(control.prop, v)}
-                        />
-                    ))}
-                </div>
-            </Card>
+            <Section title="Controls">
+                <Card className="border-border-disabled bg-background-page p-4">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {controls.map((control) => (
+                            <ControlField
+                                key={control.prop}
+                                control={control}
+                                value={props[control.prop]}
+                                onChange={(v) => updateProp(control.prop, v)}
+                            />
+                        ))}
+                    </div>
+                </Card>
+            </Section>
 
             {/* Generated code */}
             <CodeBlock code={codeTemplate(props)} label="Code" />
@@ -77,8 +81,7 @@ function ControlField({
     switch (control.type) {
         case 'select':
             return (
-                <div>
-                    <label className="mb-1 block text-label-m text-foreground-secondary">{control.label}</label>
+                <Field label={control.label}>
                     <BaseSelect
                         aria-label={control.label}
                         value={value ?? NONE}
@@ -88,22 +91,21 @@ function ControlField({
                             ...control.options.map((o) => ({ label: o, value: o })),
                         ]}
                     />
-                </div>
+                </Field>
             )
         case 'boolean':
             return <Checkbox label={control.label} value={!!value} onChange={(e) => onChange(e.target.checked)} />
         case 'text':
             return (
-                <div>
-                    <label className="mb-1 block text-label-m text-foreground-secondary">{control.label}</label>
+                <Field label={control.label}>
                     <BaseInput
-                        variant="sm"
+                        size="sm"
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || undefined)}
                         placeholder={control.placeholder}
                         aria-label={control.label}
                     />
-                </div>
+                </Field>
             )
     }
 }

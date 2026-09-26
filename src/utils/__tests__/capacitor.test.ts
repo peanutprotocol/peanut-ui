@@ -10,8 +10,9 @@ let getPlatform: typeof import('../capacitor').getPlatform
 const mockGetInfo = jest.fn()
 jest.mock('@capacitor/device', () => ({ Device: { getInfo: () => mockGetInfo() } }))
 const mockBrowserClose = jest.fn()
+const mockBrowserOpen = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined)
 jest.mock('@capacitor/browser', () => ({
-    Browser: { open: jest.fn(() => Promise.resolve()), close: () => mockBrowserClose() },
+    Browser: { open: (options: unknown) => mockBrowserOpen(options), close: () => mockBrowserClose() },
 }))
 
 describe('capacitor utils', () => {
@@ -99,11 +100,9 @@ describe('capacitor utils', () => {
 
         afterEach(() => {
             Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, writable: true })
-            // reset navigator.standalone
             Object.defineProperty(window.navigator, 'standalone', { value: undefined, configurable: true })
         })
 
-        // helper: mock matchMedia for standalone detection
         function mockStandalone(isStandalone: boolean) {
             Object.defineProperty(window, 'matchMedia', {
                 writable: true,
@@ -150,7 +149,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('ios-native')
         })
 
-        it('should return android-pwa when standalone + android UA', () => {
+        it('should return android-pwa for an installed android session during the native migration', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36')
             mockStandalone(true)
@@ -158,7 +157,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('android-pwa')
         })
 
-        it('should return ios-pwa when standalone + iphone UA', () => {
+        it('should return ios-pwa for an installed iphone session during the native migration', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15')
             mockStandalone(true)
@@ -166,7 +165,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('ios-pwa')
         })
 
-        it('should return web as default when no capacitor and not standalone', () => {
+        it('should return web as default when no capacitor', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
             mockStandalone(false)
@@ -348,6 +347,33 @@ describe('legacy android safe-area zeroing', () => {
         const { zeroLegacyAndroidSafeAreaInsets } = require('../capacitor')
         await zeroLegacyAndroidSafeAreaInsets()
         expect(inline()).toEqual(['', '', '', ''])
+    })
+})
+
+describe('openExternalUrl Help Center context', () => {
+    beforeEach(() => {
+        jest.resetModules()
+        mockBrowserOpen.mockClear()
+    })
+
+    afterEach(() => {
+        delete window.Capacitor
+        jest.restoreAllMocks()
+    })
+
+    it.each(['android', 'ios'])('marks Help Center links opened from %s', async (platform) => {
+        window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help')
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
+    })
+
+    it('does not mark normal browser visits', async () => {
+        const open = jest.spyOn(window, 'open').mockReturnValue(window)
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help')
+        expect(open).toHaveBeenCalledWith('https://peanut.me/en/help', '_blank')
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
     })
 })
 
