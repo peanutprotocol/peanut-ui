@@ -2,12 +2,7 @@ package me.peanut.wallet;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.SystemClock;
 import android.provider.Settings;
-import android.view.ViewGroup;
-import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -16,74 +11,11 @@ import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
-import io.sentry.Sentry;
-import io.sentry.SentryLevel;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
-    private static final String RENDERER_RECOVERY_AT = "peanut.rendererRecoveryAt";
-    private static final String RENDERER_RECOVERY_INTENT = "peanut.rendererRecoveryIntent";
-    private RendererRecovery rendererRecovery;
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        rendererRecovery.onResume();
-    }
-
-    @Override
-    public void onPause() {
-        rendererRecovery.onPause();
-        super.onPause();
-    }
-
-    @Override
-    public void onDestroy() {
-        rendererRecovery.onDestroy();
-        super.onDestroy();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putLong(RENDERER_RECOVERY_AT, rendererRecovery.getLastRecoveryAt());
-        // Activity recreation can restore the framework's original launch
-        // Intent rather than the one assigned with setIntent(). Carry ours
-        // explicitly so a consumed link stays consumed across the rebuild.
-        if (rendererRecovery.isPending()) outState.putParcelable(RENDERER_RECOVERY_INTENT, getIntent());
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        // A new deep link received while waiting to rebuild must reach the new
-        // bridge. Ordinary resumes must not replay the original launch link.
-        if (rendererRecovery.isPending()) setIntent(intent);
-        super.onNewIntent(intent);
-    }
-
-    private boolean recoverRenderer(WebView view, RenderProcessGoneDetail detail) {
-        if (!rendererRecovery.onRendererGone(SystemClock.elapsedRealtime())) return false;
-        if (bridge == null) return true;
-
-        Sentry.captureMessage("Android WebView renderer " + (detail.didCrash() ? "crashed" : "was killed"), SentryLevel.WARNING);
-
-        // The dead WebView cannot be reloaded. Tear down its plugins and detach
-        // it, then let a fresh Activity build a fresh Capacitor bridge. Clearing
-        // bridge first prevents resume/detach callbacks from using it again.
-        Bridge deadBridge = bridge;
-        bridge = null;
-        setIntent(new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER));
-        if (view.getParent() instanceof ViewGroup) ((ViewGroup) view.getParent()).removeView(view);
-        try {
-            deadBridge.onDestroy();
-        } finally {
-            view.destroy();
-        }
-        return true;
-    }
 
     /*
      * PushProvisioningPlugin compiles only when the MeaWallet Nexus credentials
@@ -123,17 +55,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            Intent recoveryIntent = savedInstanceState.getParcelable(RENDERER_RECOVERY_INTENT);
-            if (recoveryIntent != null) setIntent(recoveryIntent);
-        }
-        Handler mainHandler = new Handler(Looper.getMainLooper());
-        rendererRecovery = new RendererRecovery(
-                savedInstanceState == null ? -1 : savedInstanceState.getLong(RENDERER_RECOVERY_AT, -1),
-                task -> mainHandler.post(task),
-                () -> {
-                    if (!isFinishing() && !isDestroyed()) recreate();
-                });
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
         registerPushProvisioningPlugin();
@@ -164,19 +85,11 @@ public class MainActivity extends BridgeActivity {
              * Extends BridgeWebViewClient instead of wrapping it in a plain
              * WebViewClient: the wrapper forwarded only shouldInterceptRequest and
              * shouldOverrideUrlLoading, silently dropping the other six callbacks —
-             * including the onPageStarted/Finished notifications Capacitor
-             * plugins rely on. Renderer loss needs explicit recovery below:
-             * Capacitor forwards it to listeners but does not rebuild the view.
+             * most critically onRenderProcessGone (a WebView renderer crash killed
+             * the app instead of recovering) and the onPageStarted/Finished
+             * notifications Capacitor plugins rely on.
              */
             webView.setWebViewClient(new BridgeWebViewClient(bridge) {
-                @Override
-                public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                    // Preserve plugin diagnostics, but do not mistake a listener
-                    // return value for rebuilding our Activity and dead bridge.
-                    super.onRenderProcessGone(view, detail);
-                    return recoverRenderer(view, detail);
-                }
-
                 @Override
                 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                     WebResourceResponse response = super.shouldInterceptRequest(view, request);
