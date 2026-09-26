@@ -25,3 +25,8 @@ export function isFeatureFlagEnabled(flagKey: string, options: FeatureFlagOption
     if (options.nonProdBypass && !IS_PROD_DOMAIN) return true
     return posthog.isFeatureEnabled(flagKey) ?? false
 }
+
+/** PostHog distinguishes an evaluated false from the pre-fetch unknown state. */
+export function areFeatureFlagsLoaded(): boolean {
+    return posthog.featureFlags.hasLoadedFlags
+}

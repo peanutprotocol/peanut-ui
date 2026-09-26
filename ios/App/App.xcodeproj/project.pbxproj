@@ -20,6 +20,17 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */; };
 		7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
+		AA0000000000000000000001 /* WalletExtensionAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000101 /* WalletExtensionAuth.swift */; };
+		AA0000000000000000000002 /* IssuerExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000105 /* IssuerExtensionHandler.swift */; };
+		AA0000000000000000000003 /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
+		AA0000000000000000000004 /* WalletExtensionAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000102 /* WalletExtensionAPI.swift */; };
+		AA0000000000000000000005 /* WalletProvisioningSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000104 /* WalletProvisioningSession.swift */; };
+		AA0000000000000000000006 /* WalletCardArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000103 /* WalletCardArtwork.swift */; };
+		AA0000000000000000000007 /* WalletExtensionAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000101 /* WalletExtensionAuth.swift */; };
+		AA0000000000000000000008 /* IssuerAuthorizationExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000108 /* IssuerAuthorizationExtensionHandler.swift */; };
+		AA0000000000000000000009 /* WalletExtensionAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000101 /* WalletExtensionAuth.swift */; };
+		AA000000000000000000000A /* PushProvisioningExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010B /* PushProvisioningExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA000000000000000000000B /* PushProvisioningExtensionUI.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010C /* PushProvisioningExtensionUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +48,18 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushProvisioningPlugin.swift; sourceTree = "<group>"; };
 		7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletExtensionCardStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000000101 /* WalletExtensionAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletExtensionAuth.swift; sourceTree = "<group>"; };
+		AA0000000000000000000102 /* WalletExtensionAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletExtensionAPI.swift; sourceTree = "<group>"; };
+		AA0000000000000000000103 /* WalletCardArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCardArtwork.swift; sourceTree = "<group>"; };
+		AA0000000000000000000104 /* WalletProvisioningSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletProvisioningSession.swift; sourceTree = "<group>"; };
+		AA0000000000000000000105 /* IssuerExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerExtensionHandler.swift; sourceTree = "<group>"; };
+		AA0000000000000000000106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA0000000000000000000107 /* PushProvisioningExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushProvisioningExtension.entitlements; sourceTree = "<group>"; };
+		AA0000000000000000000108 /* IssuerAuthorizationExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerAuthorizationExtensionHandler.swift; sourceTree = "<group>"; };
+		AA0000000000000000000109 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA000000000000000000010A /* PushProvisioningExtensionUI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushProvisioningExtensionUI.entitlements; sourceTree = "<group>"; };
+		AA000000000000000000010B /* PushProvisioningExtension.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = PushProvisioningExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000010C /* PushProvisioningExtensionUI.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = PushProvisioningExtensionUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +72,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000302 /* PushProvisioningExtensionUI Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -57,6 +94,8 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				AA0000000000000000000201 /* PushProvisioningExtension */,
+				AA0000000000000000000202 /* PushProvisioningExtensionUI */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -77,6 +116,10 @@
 				7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */,
 				7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */,
 				7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */,
+				AA0000000000000000000101 /* WalletExtensionAuth.swift */,
+				AA0000000000000000000102 /* WalletExtensionAPI.swift */,
+				AA0000000000000000000103 /* WalletCardArtwork.swift */,
+				AA0000000000000000000104 /* WalletProvisioningSession.swift */,
 				7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -88,7 +131,72 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		AA0000000000000000000201 /* PushProvisioningExtension */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000105 /* IssuerExtensionHandler.swift */,
+				AA0000000000000000000106 /* Info.plist */,
+				AA0000000000000000000107 /* PushProvisioningExtension.entitlements */,
+			);
+			path = PushProvisioningExtension;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000202 /* PushProvisioningExtensionUI */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000108 /* IssuerAuthorizationExtensionHandler.swift */,
+				AA0000000000000000000109 /* Info.plist */,
+				AA000000000000000000010A /* PushProvisioningExtensionUI.entitlements */,
+			);
+			path = PushProvisioningExtensionUI;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		AA0000000000000000000501 /* Container proxy for PushProvisioningExtension */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000401;
+			remoteInfo = PushProvisioningExtension;
+		};
+		AA0000000000000000000502 /* Container proxy for PushProvisioningExtensionUI */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000402;
+			remoteInfo = PushProvisioningExtensionUI;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AA0000000000000000000601 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AA000000000000000000000A /* PushProvisioningExtension.appex in Embed App Extensions */,
+				AA000000000000000000000B /* PushProvisioningExtensionUI.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA0000000000000000000701 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000401 /* PushProvisioningExtension */;
+			targetProxy = AA0000000000000000000501 /* Container proxy for PushProvisioningExtension */;
+		};
+		AA0000000000000000000702 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000402 /* PushProvisioningExtensionUI */;
+			targetProxy = AA0000000000000000000502 /* Container proxy for PushProvisioningExtensionUI */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXNativeTarget section */
 		504EC3031FED79650016851F /* App */ = {
@@ -99,10 +207,13 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				7A1C0DE7C11B0A4D2E5F3909 /* Bundle MeaWallet config */,
+				AA0000000000000000000601 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AA0000000000000000000701 /* PBXTargetDependency */,
+				AA0000000000000000000702 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -112,6 +223,41 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AA0000000000000000000401 /* PushProvisioningExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000801 /* Build configuration list for PBXNativeTarget "PushProvisioningExtension" */;
+			buildPhases = (
+				AA0000000000000000000901 /* PushProvisioningExtension Sources */,
+				AA0000000000000000000301 /* PushProvisioningExtension Frameworks */,
+				AA0000000000000000000A01 /* PushProvisioningExtension Resources */,
+				AA0000000000000000000B01 /* Bundle MeaWallet config in PushProvisioningExtension */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PushProvisioningExtension;
+			productName = PushProvisioningExtension;
+			productReference = AA000000000000000000010B /* PushProvisioningExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AA0000000000000000000402 /* PushProvisioningExtensionUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000802 /* Build configuration list for PBXNativeTarget "PushProvisioningExtensionUI" */;
+			buildPhases = (
+				AA0000000000000000000902 /* PushProvisioningExtensionUI Sources */,
+				AA0000000000000000000302 /* PushProvisioningExtensionUI Frameworks */,
+				AA0000000000000000000A02 /* PushProvisioningExtensionUI Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PushProvisioningExtensionUI;
+			productName = PushProvisioningExtensionUI;
+			productReference = AA000000000000000000010C /* PushProvisioningExtensionUI.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -126,6 +272,14 @@
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					AA0000000000000000000401 = {
+						CreatedOnToolsVersion = 16.0;
+						ProvisioningStyle = Manual;
+					};
+					AA0000000000000000000402 = {
+						CreatedOnToolsVersion = 16.0;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -147,6 +301,8 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				AA0000000000000000000401 /* PushProvisioningExtension */,
+				AA0000000000000000000402 /* PushProvisioningExtensionUI */,
 			);
 		};
 /* End PBXProject section */
@@ -165,6 +321,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000A01 /* PushProvisioningExtension Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000A02 /* PushProvisioningExtensionUI Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -175,6 +345,21 @@
 			files = ();
 			inputPaths = ();
 			outputPaths = ();
+			name = "Bundle MeaWallet config";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/../../scripts/copy-ios-mea-config.sh\"";
+		};
+		AA0000000000000000000B01 /* Bundle MeaWallet config in PushProvisioningExtension */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
 			name = "Bundle MeaWallet config";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -191,7 +376,30 @@
 				7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */,
+				AA0000000000000000000001 /* WalletExtensionAuth.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000901 /* PushProvisioningExtension Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000002 /* IssuerExtensionHandler.swift in Sources */,
+				AA0000000000000000000003 /* WalletExtensionCardStore.swift in Sources */,
+				AA0000000000000000000004 /* WalletExtensionAPI.swift in Sources */,
+				AA0000000000000000000005 /* WalletProvisioningSession.swift in Sources */,
+				AA0000000000000000000006 /* WalletCardArtwork.swift in Sources */,
+				AA0000000000000000000007 /* WalletExtensionAuth.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000902 /* PushProvisioningExtensionUI Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000008 /* IssuerAuthorizationExtensionHandler.swift in Sources */,
+				AA0000000000000000000009 /* WalletExtensionAuth.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -375,6 +583,104 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000C01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PushProvisioningExtension/PushProvisioningExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PW388G893L;
+				INFOPLIST_FILE = PushProvisioningExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.53;
+				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000C02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PushProvisioningExtension/PushProvisioningExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PW388G893L;
+				INFOPLIST_FILE = PushProvisioningExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.53;
+				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Peanut Wallet Push Provisioning Extension App Store";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AA0000000000000000000C03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PushProvisioningExtensionUI/PushProvisioningExtensionUI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PW388G893L;
+				INFOPLIST_FILE = PushProvisioningExtensionUI/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.53;
+				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtensionUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000C04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PushProvisioningExtensionUI/PushProvisioningExtensionUI.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PW388G893L;
+				INFOPLIST_FILE = PushProvisioningExtensionUI/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.53;
+				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtensionUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Peanut Wallet Push Provisioning Authorization App Store";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -392,6 +698,24 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000801 /* Build configuration list for PBXNativeTarget "PushProvisioningExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000C01 /* Debug */,
+				AA0000000000000000000C02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000802 /* Build configuration list for PBXNativeTarget "PushProvisioningExtensionUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000C03 /* Debug */,
+				AA0000000000000000000C04 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

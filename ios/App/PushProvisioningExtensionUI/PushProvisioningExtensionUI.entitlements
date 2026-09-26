@@ -6,5 +6,11 @@
 	<array>
 		<string>group.me.peanut.wallet</string>
 	</array>
+	<key>com.apple.developer.payment-pass-provisioning</key>
+	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)group.me.peanut.wallet</string>
+	</array>
 </dict>
 </plist>

@@ -214,34 +214,98 @@ if (pkg.includes('IdensicMobileSDK')) {
     // Patch the generated CapApp-SPM Package.swift (cap sync rewrites it, so
     // this runs after every sync — same lifecycle as the SumSub patch above).
     let capPkg = fs.readFileSync(capPkgPath, 'utf8')
-    if (capPkg.includes('MeaPushProvisioning')) {
+    const hasMppTarget = capPkg.includes('name: "MeaPushProvisioning"')
+    const hasMppProduct = capPkg.includes('targets: ["MeaPushProvisioning"]')
+    const hasMppDependency = capPkg.includes('\n                "MeaPushProvisioning"\n')
+
+    if (hasMppTarget && hasMppProduct && hasMppDependency) {
         console.log('[postsync] CapApp-SPM Package.swift already patched for MPP')
-        return
+    } else {
+        // Each anchor is validated on its own — a half-applied patch would leave
+        // the binary target undeclared (or unused), and the Swift plugin would
+        // silently compile its canImport stub instead of failing the build.
+        if (!hasMppTarget) {
+            const afterTarget = capPkg.replace(
+                'targets: [\n',
+                'targets: [\n' +
+                    '        .binaryTarget(\n' +
+                    '            name: "MeaPushProvisioning",\n' +
+                    '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
+                    '        ),\n'
+            )
+            if (afterTarget === capPkg) {
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale'
+                )
+                process.exit(1)
+            }
+            capPkg = afterTarget
+        }
+
+        if (!hasMppProduct) {
+            const afterProduct = capPkg.replace(
+                '            targets: ["CapApp-SPM"])\n    ],',
+                '            targets: ["CapApp-SPM"]),\n' +
+                    '        .library(\n' +
+                    '            name: "MeaPushProvisioning",\n' +
+                    '            targets: ["MeaPushProvisioning"])\n' +
+                    '    ],'
+            )
+            if (afterProduct === capPkg) {
+                console.error('[postsync] ERROR: CapApp-SPM Package.swift products anchor not found — MPP patch stale')
+                process.exit(1)
+            }
+            capPkg = afterProduct
+        }
+
+        if (!hasMppDependency) {
+            const afterDependency = capPkg.replace(
+                '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
+                '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
+                    '                "MeaPushProvisioning"\n'
+            )
+            if (afterDependency === capPkg) {
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale'
+                )
+                process.exit(1)
+            }
+            capPkg = afterDependency
+        }
+
+        fs.writeFileSync(capPkgPath, capPkg)
+        console.log('[postsync] patched CapApp-SPM Package.swift with MeaPushProvisioning binary target + product')
     }
-    // Each anchor is validated on its own — a half-applied patch would leave
-    // the binary target undeclared (or unused), and the Swift plugin would
-    // silently compile its canImport stub instead of failing the build.
-    const afterTarget = capPkg.replace(
-        'targets: [\n',
-        'targets: [\n' +
-            '        .binaryTarget(\n' +
-            '            name: "MeaPushProvisioning",\n' +
-            '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
-            '        ),\n'
-    )
-    if (afterTarget === capPkg) {
-        console.error('[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale')
-        process.exit(1)
+
+    // The Wallet issuer extension is a separate target, so it does not inherit
+    // the app target's SwiftPM product dependency. Add the product only after
+    // the credential-gated xcframework exists; without it the extension builds
+    // its canImport-fenced unavailable stub on developer machines.
+    const pbxProductId = 'AA0000000000000000000D01'
+    const pbxBuildFileId = 'AA0000000000000000000D02'
+    let pbx = fs.readFileSync(pbxprojPath, 'utf8')
+    if (!pbx.includes('MeaPushProvisioning in PushProvisioningExtension Frameworks')) {
+        pbx = pbx.replace(
+            '/* End PBXBuildFile section */',
+            `\t\t${pbxBuildFileId} /* MeaPushProvisioning in PushProvisioningExtension Frameworks */ = {isa = PBXBuildFile; productRef = ${pbxProductId} /* MeaPushProvisioning */; };\n/* End PBXBuildFile section */`
+        )
+        pbx = pbx.replace(
+            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);',
+            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t' +
+                pbxBuildFileId +
+                ' /* MeaPushProvisioning in PushProvisioningExtension Frameworks */,\n\t\t\t);'
+        )
+        pbx = pbx.replace(
+            'name = PushProvisioningExtension;\n\t\t\tproductName = PushProvisioningExtension;',
+            'name = PushProvisioningExtension;\n\t\t\tpackageProductDependencies = (\n\t\t\t\t' +
+                pbxProductId +
+                ' /* MeaPushProvisioning */,\n\t\t\t);\n\t\t\tproductName = PushProvisioningExtension;'
+        )
+        pbx = pbx.replace(
+            '/* End XCSwiftPackageProductDependency section */',
+            `\t\t${pbxProductId} /* MeaPushProvisioning */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;\n\t\t\tproductName = MeaPushProvisioning;\n\t\t};\n/* End XCSwiftPackageProductDependency section */`
+        )
+        fs.writeFileSync(pbxprojPath, pbx)
+        console.log('[postsync] linked MeaPushProvisioning into PushProvisioningExtension')
     }
-    capPkg = afterTarget.replace(
-        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
-        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
-            '                "MeaPushProvisioning"\n'
-    )
-    if (capPkg === afterTarget) {
-        console.error('[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale')
-        process.exit(1)
-    }
-    fs.writeFileSync(capPkgPath, capPkg)
-    console.log('[postsync] patched CapApp-SPM Package.swift with MeaPushProvisioning binary target')
 })()
