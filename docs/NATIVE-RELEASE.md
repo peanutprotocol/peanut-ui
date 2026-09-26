@@ -183,10 +183,13 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
-The About screen shows this three-part version of the code currently running: the native
-version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
-build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
-it is not appended as a fourth dotted segment because it is not a comparable release.
+The About screen shows the native version for the built-in bundle. For production OTAs,
+the workflow bakes in the public release number and About appends `-i` or `-a` for the
+platform. For example, the release after `ota-1.6.8` appears as `1.6.9-i` on iOS and
+`1.6.9-a` on Android. Capgo currently needs separate internal compatibility IDs in the
+`1.5.1000+-ios` and `1.6.1000+-android` lanes to reach older native clients. Its
+dashboard shows those raw IDs. The platform build identifier (`versionCode` /
+`CFBundleVersion`) remains separate support metadata.
 
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file

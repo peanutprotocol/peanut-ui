@@ -247,6 +247,7 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   NEXT_PUBLIC_OTA_FLOOR_ANDROID=${{ steps.ota_floors.outputs.android }}
                   NEXT_PUBLIC_OTA_FLOOR_IOS=${{ steps.ota_floors.outputs.ios }}
+                  NEXT_PUBLIC_OTA_DISPLAY_VERSION=${{ needs.resolve.outputs.version }}
                   EOF
 
             - name: Build native static export
