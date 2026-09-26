@@ -17,6 +17,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -31,8 +32,9 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
-import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { QrKycState } from '@/constants/kyc.consts'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
@@ -54,6 +56,7 @@ import { useAuth } from '@/context/authContext'
 import {
     BANK_ROW_COUNTRIES,
     buildUnlockGroups,
+    PIX_SEND_HREF,
     withPixSend,
     type BankRowKey,
     type UnlockGroup,
@@ -109,7 +112,15 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const [openView, setOpenView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
-    const { rails, isKycApproved, nextActionsForRail, canDo } = useCapabilities()
+    const {
+        rails,
+        isKycApproved,
+        nextActionsForRail,
+        canDo,
+        railsForProvider,
+        nextActions,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
@@ -118,7 +129,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { setIsSupportModalOpen } = useModalsContext()
 
-    const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
 
@@ -132,8 +142,20 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         secondResidenceIso2,
     } = useBankRows()
     const hasActiveCard = !!findActiveCard(overview)
-    // The Manteca `pay` capability: the gate /qr-pay itself enforces (useQrPayKycGate).
-    const canPayManteca = canDo('pay', { provider: 'manteca' })
+    // Would a QR payment go through today? The gate /qr-pay itself enforces
+    // and Home reads (`selectQrKycGate`), so the QR row, the Pix key send and
+    // those screens give one answer (audit C53). It replaces a second path
+    // that also counted a legacy Bridge-only cohort with no Manteca rail:
+    // /qr-pay sends that cohort to verification, so the row promised a
+    // payment the scan then refused.
+    const canPayQrNow =
+        selectQrKycGate({
+            isLoading: isLoadingCapabilities,
+            isRegionRestricted,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: railsForProvider('manteca'),
+            nextActions,
+        }).kycGateState === QrKycState.PROCEED_TO_PAY
 
     const groups = useMemo(
         () =>
@@ -141,25 +163,21 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 bankChips,
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
-                // deposit or withdraw. `unlockedRegions` still covers the
-                // legacy Bridge-only cohort, who pay by QR with no Manteca
-                // rail at all.
-                canPayQr:
-                    canPayManteca ||
-                    unlockedRegions.some((region) => region.path === 'brazil' || region.path === 'argentina'),
+                // deposit or withdraw.
+                canPayQr: canPayQrNow,
                 restrictions,
                 // New applications are public; retain known residence restrictions.
                 card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
             }),
-        [bankChips, canPayManteca, unlockedRegions, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [bankChips, canPayQrNow, restrictions, hasActiveCard, cardInfo?.geoProhibited]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
     const accountBankRows = useMemo(
-        () => withPixSend(bankRows, { canPay: canPayManteca, brlChip: bankChips.brl }),
-        [bankRows, canPayManteca, bankChips.brl]
+        () => withPixSend(bankRows, { canPay: canPayQrNow, brlChip: bankChips.brl }),
+        [bankRows, canPayQrNow, bankChips.brl]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
@@ -346,8 +364,10 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     // No card-only note: a card-restricted user already reads "Not available"
     // on the card row itself (unlock-payments.utils), so the footer line only
-    // repeated it. The banking note stays — it covers card issuing too. A bank
-    // row withheld for residence alone explains itself in the list's drawer.
+    // repeated it. The banking note stays, and names card issuing only for a
+    // residence that restricts both: a banking-only residence keeps its card
+    // (audit C42). A bank row withheld for residence alone explains itself in
+    // the list's drawer.
     const showBankRestrictionNote = restrictions.banking
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
@@ -364,6 +384,10 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
     const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
+    // A BRL row that opens this drawer is a bank rail, not the Pix send
+    // `withPixSend` makes of it outside Brazil (that row navigates instead).
+    // Its holder may still send to a Pix key, on the same capability.
+    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -474,7 +498,9 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             )}
 
             {showBankRestrictionNote && (
-                <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
+                <p className="text-body-xs text-foreground-secondary">
+                    {t(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote')}
+                </p>
             )}
 
             {/* Region-restricted users get the one honest region screen instead
@@ -700,6 +726,13 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                 <Section title={t('detailsDrawer.limitsTitle')}>
                                     <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
                                 </Section>
+                            )}
+
+                            {/* The words the BRL row carries outside Brazil. */}
+                            {showPixSend && (
+                                <Button variant="primary" className="w-full" href={PIX_SEND_HREF}>
+                                    {t('pixSendNote')}
+                                </Button>
                             )}
                         </div>
                     )}

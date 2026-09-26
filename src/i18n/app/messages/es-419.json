@@ -364,6 +364,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "cardNotAvailableNote": "La tarjeta Peanut no está disponible para residentes de tu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",

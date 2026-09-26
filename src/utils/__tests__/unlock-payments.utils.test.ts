@@ -1,4 +1,4 @@
-import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
+import { gatingResidenceIso2s, residenceAllows, residenceCloses } from '@/features/deposit-accounts/residenceGate'
 import {
     buildBankRows,
     withPixSend,
@@ -83,11 +83,19 @@ describe('buildUnlockGroups', () => {
         expect(group(pending, 'spend').rows[1].chip).toBe('processing')
     })
 
-    it('a banking restriction takes QR payments away with the bank rows', () => {
-        const groups = buildUnlockGroups(base({ restrictions: { banking: true, card: false } }))
-        const qr = group(groups, 'spend').rows[1]
-        expect(qr.chip).toBe('notAvailable')
-        expect(qr.regionPath).toBeUndefined()
+    // Audit C29 (hugo, 2026-09-26): QR is open to every verified user whatever
+    // their residence, so a banking restriction never closes it.
+    it('a banking restriction leaves QR payments to the QR answer', () => {
+        const restricted = { restrictions: { banking: true, card: true } }
+        expect(group(buildUnlockGroups(base({ ...restricted, canPayQr: true })), 'spend').rows[1].chip).toBe('active')
+        const offer = group(buildUnlockGroups(base(restricted)), 'spend').rows[1]
+        expect(offer).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
+    })
+
+    // Audit C53: Available comes from the QR gate alone, never from a bank rail
+    it('a working bank rail alone makes QR an offer, not Available', () => {
+        const qr = group(buildUnlockGroups(base({ bankChips: { ...UNLOCK_ALL, brl: 'active' } })), 'spend').rows[1]
+        expect(qr).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
     })
 
     it('the always-on layer survives full restriction, and the card goes', () => {
@@ -358,12 +366,39 @@ describe('withPixSend', () => {
         expect(brl(rows).chip).toBe('processing')
     })
 
-    it('leaves a resident, a banking restriction and every other row alone', () => {
+    // Audit C29: a banking restriction closes adding reais, not sending to a Pix key
+    it('a banking-restricted residence gets the Pix send on BRL too', () => {
+        const restricted = bank({ residenceIso2: 'JP', restrictions: { banking: true, card: false } })
+        const rows = withPixSend(restricted, canSend)
+        expect(brl(rows)).toEqual(
+            expect.objectContaining({
+                chip: 'active',
+                note: 'pixSendNote',
+                href: '/withdraw/manteca?method=pix&country=brazil',
+            })
+        )
+        expect(brl(rows).unavailableBecause).toBeUndefined()
+        expect(rows.find((r) => r.labelKey === 'usd')?.chip).toBe('notAvailable')
+    })
+
+    it('leaves a resident and every other row alone', () => {
         const resident = bank({ residenceIso2: 'BR' })
         expect(withPixSend(resident, canSend)).toEqual(resident)
-        const restricted = bank({ residenceIso2: 'PT', restrictions: { banking: true, card: false } })
-        expect(withPixSend(restricted, canSend)).toEqual(restricted)
         const ars = withPixSend(bank({ residenceIso2: 'PT' }), canSend).find((r) => r.labelKey === 'ars')
         expect(ars?.chip).toBe('notAvailable')
+    })
+})
+
+// Audit C4: the Accounts rows and the Manteca top-up read this one rule
+describe('residenceCloses', () => {
+    it('closes a residence-gated corridor to a non-resident with no working rail', () => {
+        expect(residenceCloses('PIX_BR', ['PT'], false)).toBe(true)
+        expect(residenceCloses('BANK_TRANSFER_AR', ['PT'], false)).toBe(true)
+    })
+
+    it('a rail that already works stays open, and a resident is never closed', () => {
+        expect(residenceCloses('PIX_BR', ['PT'], true)).toBe(false)
+        expect(residenceCloses('PIX_BR', ['BR'], false)).toBe(false)
+        expect(residenceCloses('SEPA_EU', [], false)).toBe(false)
     })
 })

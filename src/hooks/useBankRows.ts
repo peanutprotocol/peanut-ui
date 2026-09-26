@@ -27,15 +27,12 @@ const isEuropeIso2 = (iso2: string | null): boolean =>
     !!iso2 && iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2)
 
 /**
- * The bank rows both money screens list — Add money and Accounts and payments
- * — with the residence they were read against.
- *
- * One hook, so the two screens can never give one currency two statuses.
+ * The chip for one currency's bank corridor, before residence restrictions:
+ * `active` when the user can deposit or withdraw on it today. The bank rows
+ * read it, and so does the Manteca top-up's residence gate (`residenceCloses`).
  */
-export function useBankRows() {
-    const { user } = useAuth()
+export function useBankChipFor(): (key: BankRowKey) => BankRegionChip {
     const { gateFor } = useCapabilities()
-    const restrictions = useResidenceRestrictions()
 
     /**
      * The chip for one currency's bank corridor, read from the rails of that
@@ -67,6 +64,19 @@ export function useBankRows() {
         },
         [gateFor]
     )
+    return bankChipFor
+}
+
+/**
+ * The bank rows both money screens list — Add money and Accounts and payments
+ * — with the residence they were read against.
+ *
+ * One hook, so the two screens can never give one currency two statuses.
+ */
+export function useBankRows() {
+    const { user } = useAuth()
+    const bankChipFor = useBankChipFor()
+    const restrictions = useResidenceRestrictions()
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
