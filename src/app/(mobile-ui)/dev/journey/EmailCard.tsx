@@ -1,8 +1,7 @@
 'use client'
 
-import { twMerge } from '@/utils/tw'
-import DevChip from '../_components/DevChip'
-import { REVIEW_PENDING_CLASS, decisionFlagFor, emailPreviewUrl, examplesForStep, renderId } from './emailReview'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { REVIEW_PENDING_CLASS, decisionFlagFor, examplesForStep, renderId } from './emailReview'
 import StuckBadge from './StuckBadge'
 import type { SpecEmailStep } from './journeyTypes'
 
@@ -32,63 +31,41 @@ export default function EmailCard({
     const decision = decisionFlagFor(step.type)
 
     return (
-        <div
-            data-review-state={pending ? 'pending' : 'reviewed'}
-            data-email-type={step.type}
-            className={twMerge('rounded-sm border border-border-default bg-white', pending && REVIEW_PENDING_CLASS)}
-        >
-            <button
-                type="button"
-                onClick={() => onOpen(step.type, 0)}
-                className="block w-full p-2.5 text-left hover:bg-purple-200/30"
-            >
-                <div className="flex items-start justify-between gap-2">
-                    <div className="text-label-m leading-tight">{step.subject}</div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                        {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
-                        {pending ? (
-                            <DevChip tone="yellow" title="No product verdict recorded for this copy yet.">
-                                needs verdict{examples.length > 1 && ` ${reviewedCount}/${examples.length}`}
-                            </DevChip>
-                        ) : (
-                            <DevChip tone="green" title="Marked reviewed in the preview panel.">
-                                reviewed ✓
-                            </DevChip>
-                        )}
-                    </div>
-                </div>
-                <p className="mt-1 text-[11px] leading-snug text-foreground-secondary">{step.preview}</p>
-                <p className="mt-1 text-[11px] leading-snug">
-                    <span className="rounded-sm bg-action-secondary px-1 font-bold">{step.ctaText}</span>
-                    <span className="text-foreground-secondary"> → {step.ctaPath}</span>
-                </p>
-                {decision && (
-                    <div className="mt-1.5 flex flex-col gap-0.5">
-                        <DevChip tone="pink" className="self-start" title={decision.note}>
-                            {decision.label}
-                        </DevChip>
-                        <p className="text-[10px] leading-snug text-foreground-secondary">{decision.note}</p>
-                    </div>
-                )}
-                {examples.length > 1 && (
-                    <p className="mt-1 text-[10px] leading-snug text-foreground-secondary">
-                        {examples.length} copy variants: {examples.map((example) => example.label).join(' / ')}
+        <ListItem
+            className={pending ? REVIEW_PENDING_CLASS : undefined}
+            onClick={() => onOpen(step.type, 0)}
+            title={step.subject}
+            bodyWrap
+            body={
+                <div className="flex flex-col gap-1">
+                    <p>{step.preview}</p>
+                    <p>
+                        <strong>{step.ctaText}</strong> → {step.ctaPath}
                     </p>
-                )}
-            </button>
-            <div className="flex items-center justify-between gap-2 border-t border-border-default px-2.5 py-1">
-                <span className="truncate font-mono text-[9px] leading-tight text-foreground-secondary">
-                    {showDev ? step.type : 'click to review'}
-                </span>
-                <a
-                    href={emailPreviewUrl(step.type, 0, false)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 text-[9px] font-bold text-black underline"
-                >
-                    raw ↗
-                </a>
-            </div>
-        </div>
+                    {decision && (
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-label-m text-foreground-primary">{decision.label}</span>
+                            <p className="text-body-xs leading-snug">{decision.note}</p>
+                        </div>
+                    )}
+                    {examples.length > 1 && (
+                        <p className="text-body-xs leading-snug">
+                            {examples.length} copy variants: {examples.map((example) => example.label).join(' / ')}
+                        </p>
+                    )}
+                    {showDev && <p className="truncate font-mono text-body-xs">{step.type}</p>}
+                </div>
+            }
+            trailing={
+                <div className="flex flex-col items-end gap-1">
+                    {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
+                    <span className="text-label-m text-foreground-secondary">
+                        {pending
+                            ? `needs verdict${examples.length > 1 ? ` ${reviewedCount}/${examples.length}` : ''}`
+                            : 'reviewed'}
+                    </span>
+                </div>
+            }
+        />
     )
 }

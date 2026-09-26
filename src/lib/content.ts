@@ -175,6 +175,14 @@ function contentOwnerForPath(encodedSegments: string[], locale: Locale): string 
     }
 }
 
+// App-level routes the valid-links list offers to content authors. They have
+// no locale variants — a forced /{locale}/ prefix lands in the [country]
+// catch-all and 404s (`/es-ar/card`), so they must pass through bare.
+// Exported so scripts/generate-valid-links.ts (what content may link) and
+// scripts/verify-content.ts (what links pass validation) stay in sync with
+// this resolver — /card drifted out of the verifier once already.
+export const LOCALE_NEUTRAL_APP_ROUTES = new Set(['card', 'shhhhh', 'careers'])
+
 function contentPathSegments(pathname: string): { segments: string[]; strippedLocale: string | null } {
     const segments = pathname.split('/').filter(Boolean)
     let strippedLocale: string | null = null
@@ -204,6 +212,9 @@ export function resolveContentHref(href: string, locale: Locale): string {
         if (absoluteHref.origin !== PEANUT_PRODUCTION_ORIGIN) return href
 
         const { segments, strippedLocale } = contentPathSegments(absoluteHref.pathname)
+        if (segments.length === 1 && LOCALE_NEUTRAL_APP_ROUTES.has(decodedSegment(segments[0]))) {
+            return `${PEANUT_PRODUCTION_ORIGIN}/${segments[0]}${absoluteHref.search}${absoluteHref.hash}`
+        }
         const owner = contentOwnerForPath(segments, locale)
         const targetLocale = owner ?? (strippedLocale === 'en' ? locale : null)
         if (!targetLocale) return href
@@ -217,6 +228,9 @@ export function resolveContentHref(href: string, locale: Locale): string {
     const pathname = suffixIndex === -1 ? href : href.slice(0, suffixIndex)
     const suffix = suffixIndex === -1 ? '' : href.slice(suffixIndex)
     const { segments } = contentPathSegments(pathname)
+    if (segments.length === 1 && LOCALE_NEUTRAL_APP_ROUTES.has(decodedSegment(segments[0]))) {
+        return `/${segments[0]}${suffix}`
+    }
 
     const owner = contentOwnerForPath(segments, locale)
     const targetLocale = owner ?? locale
@@ -322,6 +336,15 @@ export function readPageContentLocalizedResolved<T = Record<string, unknown>>(
         }
     }
     return null
+}
+
+/**
+ * A help article's title without its site suffix. The frontmatter title is the
+ * browser-tab title, and every locale ends it with its own " | …" suffix
+ * ("Peanut Help", "Ayuda Peanut", "Ajuda Peanut", "Peanut").
+ */
+export function helpArticleTitle(frontmatterTitle: string): string {
+    return frontmatterTitle.replace(/\s*\|[^|]*$/, '')
 }
 
 /** Read page content with locale fallback */

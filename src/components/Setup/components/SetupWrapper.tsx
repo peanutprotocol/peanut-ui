@@ -2,31 +2,20 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
-import InstallPWA from '@/components/Setup/Views/InstallPWA'
-import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
-import { DeviceType } from '@/hooks/useGetDeviceType'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import {
-    Children,
-    type ReactNode,
-    cloneElement,
-    createContext,
-    memo,
-    type ReactElement,
-    useContext,
-    useEffect,
-    useState,
-} from 'react'
+import { type ReactNode, createContext, memo, useContext, useEffect, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 
-const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+const SetupImageContext = createContext<(illustration: SetupIllustration | null) => void>(() => {})
 
 /**
  * Lets a step's sub-view swap the wrapper's illustration for as long as it is
@@ -34,12 +23,12 @@ const SetupImageContext = createContext<(src: string | null) => void>(() => {})
  * selector it shares a step with keeps the neutral greeting. Sub-views are not
  * steps, so they have no step config of their own to carry an image.
  */
-export const useSetupImageOverride = (src: string | null) => {
+export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
     const setImage = useContext(SetupImageContext)
     useEffect(() => {
-        setImage(src)
+        setImage(illustration)
         return () => setImage(null)
-    }, [src, setImage])
+    }, [illustration, setImage])
 }
 
 /**
@@ -50,7 +39,7 @@ interface SetupWrapperProps {
     layoutType: LayoutType
     screenId: ScreenId
     children: ReactNode
-    image?: string
+    image?: SetupIllustration
     imageClassName?: HTMLDivElement['className']
     title?: string
     description?: string
@@ -65,9 +54,6 @@ interface SetupWrapperProps {
     isLoggingOut?: boolean
     step?: number
     direction?: number
-    deferredPrompt?: BeforeInstallPromptEvent | null
-    canInstall?: boolean
-    deviceType?: DeviceType
 }
 
 // define responsive height classes for different layout types
@@ -75,15 +61,15 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     // signup: flexible hero — grows into leftover space but never squeezes the
     // content panel into scrolling on short screens (e.g. iPhone X)
     signup: 'min-h-[35dvh] grow md:grow-0 md:min-h-full',
-    standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
-    'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
 }
 
 // define animated star decorations positions and sizes
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
     'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    // mobile top-[24%], not [10%]: the nav row (Iniciar sesión / skip) owns the
+    // top band and the star sat right under the text (TASK-22366 nit)
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[24%] md:top-[20%] size-10 md:size-14',
     'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
     'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
@@ -108,8 +94,8 @@ const Navigation = memo(function Navigation({
 
     if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
-    // Icons inherit currentColor: the stroke button inverts on hover/active, and
-    // a hard-coded fill vanished into the black background.
+    // Icons inherit currentColor: the circle fills on hover/active, and a
+    // hard-coded fill vanished into the fill colour.
     // The row's containing block is the initial one (no positioned ancestor).
     // Match app navigation at 16px from either horizontal edge and 16px below
     // the safe-area boundary; on web --safe-top is zero.
@@ -118,9 +104,9 @@ const Navigation = memo(function Navigation({
             <div>
                 {showBackButton && (
                     <Button
-                        variant="stroke"
+                        variant="ghost"
                         onClick={onBack}
-                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('goBack')}
                     >
                         <Icon name="chevron-up" size={20} className="-rotate-90" />
@@ -129,7 +115,11 @@ const Navigation = memo(function Navigation({
             </div>
             <div className="flex items-center gap-3">
                 {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
+                    <Button
+                        onClick={onSkip}
+                        variant="ghost"
+                        className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
+                    >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
@@ -137,12 +127,12 @@ const Navigation = memo(function Navigation({
                     <Button
                         onClick={onLogout}
                         loading={isLoggingOut}
-                        variant="stroke"
-                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        variant="ghost"
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        {!isLoggingOut && <Icon name="logout" size={20} />}
+                        <Icon name="logout" size={20} />
                     </Button>
                 )}
             </div>
@@ -166,9 +156,26 @@ const ImageSection = ({
 
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageClass = !!imageClassName
-        ? imageClassName
-        : 'w-full max-w-[80%] max-h-[85%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+    const illustration =
+        'pose' in image ? (
+            <PeanutMascot
+                pose={image.pose}
+                alt={t('illustrationAlt')}
+                className={imageClassName || MASCOT_HERO_CLASS}
+            />
+        ) : (
+            <Image
+                src={image.src}
+                alt={t('illustrationAlt')}
+                width={500}
+                height={500}
+                className={
+                    imageClassName ||
+                    'relative max-h-[85%] w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'
+                }
+                priority
+            />
+        )
 
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
@@ -176,7 +183,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-background-setup-hero px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -193,15 +200,8 @@ const ImageSection = ({
                 ))}
                 {/* animated clouds background */}
                 <CloudsBackground minimal />
-                {/* main illustration image */}
-                <Image
-                    src={image}
-                    alt={t('illustrationAlt')}
-                    width={500}
-                    height={500}
-                    className={imageClass}
-                    priority
-                />
+                {/* main illustration */}
+                {illustration}
             </div>
         )
     }
@@ -209,20 +209,13 @@ const ImageSection = ({
     // standard layout rendering without decorations
     return (
         <div
-            className={classNames(
+            className={twMerge(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-dvh md:w-7/12',
+                'flex w-full flex-row items-center justify-center bg-background-setup-hero md:h-dvh md:w-7/12',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
-            <Image
-                src={image}
-                alt={t('illustrationAlt')}
-                width={500}
-                height={500}
-                className={twMerge(imageClass)}
-                priority
-            />
+            {illustration}
         </div>
     )
 }
@@ -248,15 +241,9 @@ export const SetupWrapper = memo(function SetupWrapper({
     isLoggingOut,
     screenId,
     imageClassName,
-    deferredPrompt,
-    canInstall,
-    deviceType,
     titleClassName,
 }: SetupWrapperProps) {
-    const t = useTranslations('setup.braveInstall')
-    const [imageOverride, setImageOverride] = useState<string | null>(null)
-    const { isBrave } = useBravePWAInstallState()
-    const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+    const [imageOverride, setImageOverride] = useState<SetupIllustration | null>(null)
     const prefersReducedMotion = useReducedMotion()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
@@ -272,20 +259,12 @@ export const SetupWrapper = memo(function SetupWrapper({
     )
     const animatePanelIn = slideUpPanel && !prefersReducedMotion
 
-    const shouldShowBraveInstalledHeaderOnly =
-        (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBrave && showBraveSuccessMessage
-
-    const headingTitle = shouldShowBraveInstalledHeaderOnly ? t('title') : title
-    const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
-
     return (
-        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
-                showSkipButton={
-                    showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
-                }
+                showSkipButton={showSkipButton}
                 showLogoutButton={showLogoutButton}
                 onBack={onBack}
                 onSkip={onSkip}
@@ -309,7 +288,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                        // y-auto, not hidden: es/pt copy wraps one line longer and the
+                        // bottom of the card (recover-account link) clipped at exact
+                        // viewport height (TASK-22366 sweep) — scroll instead of clip
+                        'flex flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
@@ -321,7 +303,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         descriptionInView): the wrapper is height-capped on
                         desktop, so an empty slot would push the content down
                         by up to 12rem. */}
-                    {(headingTitle || headingDescription) && (
+                    {(title || description) && (
                         <div
                             className={twMerge(
                                 'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
@@ -329,7 +311,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 sunsetLanding && 'md:h-auto md:max-h-none'
                             )}
                         >
-                            {headingTitle && (
+                            {title && (
                                 <h1
                                     className={twMerge(
                                         'w-full text-left text-heading-xs leading-tight',
@@ -337,37 +319,24 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         titleClassName
                                     )}
                                 >
-                                    {headingTitle}
+                                    {title}
                                 </h1>
                             )}
-                            {headingDescription && (
+                            {description && (
                                 <p
                                     className={twMerge(
                                         'text-body-m text-foreground-primary',
                                         sunsetLanding && 'md:text-center'
                                     )}
                                 >
-                                    {headingDescription}
+                                    {description}
                                 </p>
                             )}
                         </div>
                     )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
-                        <SetupImageContext.Provider value={setImageOverride}>
-                            {Children.map(children, (child) => {
-                                if ((child as ReactElement).type === InstallPWA) {
-                                    return cloneElement(child as ReactElement, {
-                                        deferredPrompt,
-                                        canInstall,
-                                        deviceType,
-                                        screenId,
-                                        setShowBraveSuccessMessage,
-                                    })
-                                }
-                                return child
-                            })}
-                        </SetupImageContext.Provider>
+                        <SetupImageContext.Provider value={setImageOverride}>{children}</SetupImageContext.Provider>
                     </div>
                 </motion.div>
             </div>

@@ -12,7 +12,14 @@
  * terminal classification and restores a futile retry.
  */
 
-import { initiateSumsubKyc, isTerminalActionCode, restartIdentityVerification } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    startKycAction,
+    isTerminalActionCode,
+    restartIdentityVerification,
+    startResidenceChangeVerification,
+} from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -66,6 +73,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(result.error).toMatch(/try again shortly/i)
         // a transient failure must NOT be classified terminal
         expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('never shows a 4xx developer string; userMessage still wins', async () => {
+        respondWith(404, { error: 'No provider rejection found' })
+        const result = await initiateSelfHealResubmission('BRIDGE')
+        expect(result.error).not.toMatch(/no provider rejection found/i)
+        expect(result.code).toBe('resubmit_failed')
+
+        respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
+        expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
@@ -184,4 +201,92 @@ it('uses Retry-After for infrastructure rate limits', async () => {
         json: async () => ({ error: 'Too many requests' }),
     } as Response)
     expect((await restartIdentityVerification()).cooldown?.retryAt).toBe('2026-09-08T18:57:00.000Z')
+})
+
+describe('startResidenceChangeVerification — wire shape', () => {
+    it('uses the non-destructive residence endpoint and validates the action token', async () => {
+        respondWith(200, {
+            token: 'tok-residence',
+            applicantId: 'app-1',
+            levelName: 'peanut-residence-change',
+            targetCountry: 'PT',
+        })
+
+        const result = await startResidenceChangeVerification('pt')
+
+        expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetCountry: 'PT' }),
+        })
+        expect(result.data?.targetCountry).toBe('PT')
+        expect(result.data?.token).toBe('tok-residence')
+    })
+
+    it('never silently falls back to the identity-reset endpoint', async () => {
+        respondWith(409, { error: 'Save a new residence before starting verification.' })
+
+        const result = await startResidenceChangeVerification('PT')
+
+        // a 4xx `error` is not user copy: the localized fallback shows instead
+        expect(result.code).toBe('residence_change_failed')
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+        expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
+    })
+
+    it('preserves a residence-action retry window from a 409 response', async () => {
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-14T20:00:00.000Z'))
+        try {
+            respondWith(409, {
+                error: 'Wait a few minutes before starting another residence verification.',
+                retryAfterSeconds: 300,
+            })
+
+            const result = await startResidenceChangeVerification('PT')
+
+            expect(result.cooldown).toEqual({ retryAt: '2026-09-14T20:05:00.000Z' })
+        } finally {
+            nowSpy.mockRestore()
+        }
+    })
+})
+
+describe('startKycAction — durable session contract', () => {
+    const session = {
+        id: 'session-1',
+        generation: 3,
+        targetCountry: 'BR',
+        externalActionId: 'manteca-user-attempt-3-BR',
+        state: 'SUBMISSION_PENDING',
+        reasonCode: null,
+        isMultiLevel: false,
+    }
+    it.each(['REVIEW_PENDING', 'SUBMISSION_PENDING', 'PROVIDER_PENDING', 'READY', 'CORRECTION_REQUIRED', 'BLOCKED'])(
+        'keeps a %s response without a token',
+        async (state) => {
+            respondWith(200, {
+                levelName: 'manteca-kyc',
+                externalActionId: session.externalActionId,
+                session: { ...session, state },
+            })
+            const result = await startKycAction('manteca-kyc-action:BR')
+            expect(result.error).toBeUndefined()
+            expect(result.data?.session).toEqual({ ...session, state })
+            expect(result.data?.token).toBeUndefined()
+        }
+    )
+    it('keeps generation ownership when collection returns a token', async () => {
+        respondWith(200, {
+            sumsubAccessToken: 'token',
+            levelName: 'manteca-kyc',
+            session: { ...session, state: 'COLLECTING' },
+        })
+        expect(await startKycAction('manteca-kyc-action:BR')).toMatchObject({
+            data: { token: 'token', session: { id: 'session-1', generation: 3 } },
+        })
+    })
+    it('still rejects a success response with neither a token nor a session', async () => {
+        respondWith(200, { levelName: 'manteca-kyc' })
+        expect((await startKycAction('manteca-kyc-action:BR')).code).toBe('invalid_response')
+    })
 })

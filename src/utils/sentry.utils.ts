@@ -3,7 +3,7 @@ import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
 import { isMutatingMethod } from '../../sentry.utils'
-import { hasRecentFailure, reportNetworkError } from './connectivity'
+import { getConnectivityGeneration, hasRecentFailure, reportNetworkError } from './connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 
 /**
@@ -18,11 +18,21 @@ import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; errorCodes?: string[] }> = [
     // /get-user is the auth-status probe — 401/404 mean stale JWT, expected, not a server bug.
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
+    // Exact username checks are deliberately quota-limited. The service maps
+    // 429 into normal retry-later UI, so it is product state rather than an
+    // incident signal. Keep this endpoint-specific; other /users 429s report.
+    { pattern: /\/users\/username\/check(?:[/?#]|$)/, statuses: [429] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
-    // Expected input validation, surfaced inline to the user — not a server bug.
-    { pattern: /\/invites\/validate/, statuses: [400] },
+    // 409 = a code that resolves to a campaign only, which validateInviteCode
+    // reads as a success (`typedCampaignOnly`). Both are expected outcomes of a
+    // typed code, surfaced inline to the user — not server bugs.
+    { pattern: /\/invites\/validate/, statuses: [400, 409] },
+    // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
+    // quota noise and is not: it is the only alert for the open FX-stampede P2
+    // behind it. It reports until the keyed single-flight fix in no-cache.ts
+    // lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded
@@ -67,6 +77,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
     // The claim-success poller hits this every second until the claim lands.
     { pattern: /\/send-links\/0x[0-9a-fA-F]{40}/, statuses: [404] },
+    // /ens/{name} 404 = the name holds no address record. `resolveEns` handles
+    // it by returning undefined and the UI says so inline, so it is a typed-input
+    // outcome, not a server bug. The name is a PATH segment, so every miss also
+    // opened its own issue carrying the raw value the user typed. The reverse
+    // route is excluded: it answers 200 with `{ name: null }` and never 404s.
+    { pattern: /\/ens\/(?!reverse\/)[^/]+$/, statuses: [404] },
 ]
 
 /**
@@ -86,6 +102,8 @@ const BODY_SENSITIVE_URLS: RegExp[] = [
     /\/verify-password/,
     // Auth — login, signup, password set/reset
     /\/(?:login|signup|register|set-password|reset-password|change-password)/,
+    // The user's own verified postal address — the whole body is the address
+    /\/users\/me\/verified-address(?:[/?]|$)/,
     // KYC — Bridge, Sumsub, Manteca
     /\/kyc\/(?:start|submit|update)/,
     /\/bridge\/customers/,
@@ -468,6 +486,12 @@ export const sanitizeUrl = (url: string) => {
              * username looked up.
              */
             .replace(/\/users\/username\/[^/?]+/gi, '/users/username/{value}')
+            /*
+             * Same for the ENS resolver: the name is a path segment, so a 5xx
+             * or a timeout on the route grouped by whatever the user typed.
+             * `reverse` is a fixed sub-route, not a name.
+             */
+            .replace(/\/ens\/(?!reverse\/)[^/?]+/gi, '/ens/{value}')
             // Replace numeric IDs in query params. Anchored to the end of the
             // value: unanchored, this ate the leading 0 of an 0x-prefixed
             // address and left `{id}xaf88d065`, so every wallet still got its
@@ -530,10 +554,10 @@ const reportNonOkResponse = async (
     // the status falls through and is reported.
     if (skipRule?.errorCodes && bodyCarriesSkippedCode(skipRule.errorCodes, errorContent)) return
 
-    // console.info, not warn — captureConsoleIntegration listens on
-    // ['error','warn'], so a warn here became a SECOND Sentry event for every
-    // non-2xx in the app, grouped by this call site rather than by request.
-    // The explicit captureMessage below is the real report: it fingerprints on
+    // console.info, not error — captureConsoleIntegration listens on error, so
+    // an error here would be a SECOND Sentry event for every non-2xx in the
+    // app, grouped by this call site rather than by request. The explicit
+    // captureMessage below is the real report: it fingerprints on
     // [method, url, status] and carries headers, body and response.
     console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
     const method = options.method || 'GET'
@@ -574,14 +598,46 @@ export type FetchWithSentryOptions = RequestInit & {
     silentTimeout?: boolean
 }
 
+/** What a fetch cancelled by its caller rejects with: the reason the caller gave, or a standard AbortError. */
+const cancelError = (signal: AbortSignal): unknown =>
+    signal.reason ?? Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
 export const fetchWithSentry = async (
     url: string,
     optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
+    const connectivityGeneration = getConnectivityGeneration()
     const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
+    /*
+     * The caller's cancel (React Query aborts a fetch it superseded or no longer
+     * needs). Each leg's own timeout controller also follows it, so a cancel
+     * closes the connection and frees the client. It does not stop the query
+     * on the server, which runs to the end: the API's per-user rate limit is
+     * what bounds a burst. The signal used to be replaced by the timeout
+     * signal, and on 2026-09-24 ~100 superseded history requests piled up and
+     * starved the staging database. A cancel is not a failure, so it is never
+     * retried, never falls back to the OS client, and never reported.
+     */
+    const callerSignal = options.signal ?? undefined
+    if (callerSignal?.aborted) throw cancelError(callerSignal)
+    /*
+     * The OS HTTP client (CapacitorHttp) cannot cancel its request, so a native
+     * leg stops waiting on a cancel instead: the caller is released at once and
+     * the late response is neither returned nor reported. The request itself
+     * still reaches the server; SocketQueryRefresh keeps that to one per event.
+     */
+    const nativeLeg = (legMs: number): Promise<Response> => {
+        const request = nativeHttpRequest(url, options, legMs)
+        if (!callerSignal) return request
+        return new Promise<Response>((resolve, reject) => {
+            const onCancel = () => reject(cancelError(callerSignal))
+            callerSignal.addEventListener('abort', onCancel, { once: true })
+            request.then(resolve, reject).finally(() => callerSignal.removeEventListener('abort', onCancel))
+        })
+    }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
@@ -628,11 +684,12 @@ export const fetchWithSentry = async (
      */
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
-            const response = await nativeHttpRequest(url, options, legTimeoutMs())
+            const response = await nativeLeg(legTimeoutMs())
             await reportNonOkResponse(url, options, response, redactTelemetry)
             return response
         } catch {
-            // OS client failed — the WebView path below is the report of record
+            // OS client failed, or the caller cancelled — the WebView path below
+            // checks the cancel first and is otherwise the report of record
         }
     }
 
@@ -646,21 +703,25 @@ export const fetchWithSentry = async (
              * turning a genuine second chance into pure added latency. Throwing
              * the timeout the pool already earned is the honest outcome.
              */
+            if (callerSignal?.aborted) throw cancelError(callerSignal)
             const legMs = legTimeoutMs()
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
             }
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
+            const cancelLeg = () => controller.abort()
+            callerSignal?.addEventListener('abort', cancelLeg)
             try {
                 return await fetch(url, {
                     ...options,
                     signal: controller.signal,
                 })
             } catch (error) {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
-                    // console.info, not warn: captureConsoleIntegration listens on
-                    // warn, and the retry outcome is reported explicitly below.
+                    // console.info: a retry that succeeds is not a failure, and
+                    // the retry outcome is reported explicitly below.
                     console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
@@ -668,6 +729,7 @@ export const fetchWithSentry = async (
                 throw error
             } finally {
                 clearTimeout(timeoutId)
+                callerSignal?.removeEventListener('abort', cancelLeg)
             }
         }
     }
@@ -679,16 +741,18 @@ export const fetchWithSentry = async (
 
         return response
     } catch (error: unknown) {
+        if (callerSignal?.aborted) throw error
         // WebView fetch rejected. On native, retry once over the OS HTTP client
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
         if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
-                const response = await nativeHttpRequest(url, options, legTimeoutMs())
+                const response = await nativeLeg(legTimeoutMs())
                 await reportNonOkResponse(url, options, response, redactTelemetry)
                 return response
             } catch {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 // fallback failed too — report the original WebView error below
             }
         }
@@ -726,7 +790,7 @@ export const fetchWithSentry = async (
          * a distinct user-visible event rather than a poll repeating itself.
          */
         const repeatFailure = !isMutatingMethod(method) && hasRecentFailure(endpoint)
-        reportNetworkError(endpoint)
+        reportNetworkError(endpoint, connectivityGeneration)
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.

@@ -2,7 +2,10 @@
 // unless a real deep link actually navigated — this is the only place that
 // happens, so it needs its own coverage (the pure payload logic is tested in
 // deferred-link.test.ts).
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { focusManager } from '@tanstack/react-query'
+import { useConnectivity } from '../useConnectivity'
+import { __resetConnectivityForTests, getConnectivityGeneration, reportNetworkError } from '@/utils/connectivity'
 import { useNativeAppLinks } from '../useNativeAppLinks'
 import { applyDeferredPayload, parseDeferredPayload, restoreDeferredContext } from '@/utils/deferred-link'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
@@ -21,6 +24,13 @@ jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
+
+const mockQueuePendingBadgeCampaigns = jest.fn()
+jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
+    queuePendingBadgeCampaigns: (...args: unknown[]) => mockQueuePendingBadgeCampaigns(...args),
+}))
+jest.mock('@/utils/invite-stash', () => ({ stashInvite: jest.fn() }))
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
@@ -64,6 +74,7 @@ const mockApplyDeferredPayload = applyDeferredPayload as jest.MockedFunction<typ
 
 beforeEach(() => {
     jest.clearAllMocks()
+    __resetConnectivityForTests()
     launchUrl = undefined
     // Module state + the launch-url guard outlive a test: without these resets
     // an earlier test's navigation suppresses the next test's launch dispatch.
@@ -250,6 +261,18 @@ describe('notification unread refresh', () => {
 })
 
 describe('launch-url replay guard', () => {
+    it('queues an invite badge campaign before routing into native setup', async () => {
+        launchUrl = 'https://peanut.me/invite?code=alice&badge_campaign=bug_whisperer'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() =>
+            expect(push).toHaveBeenCalledWith('/setup?step=signup&code=alice&badge_campaign=bug_whisperer')
+        )
+        expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+        expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer'], 30)
+    })
+
     it('stamps the launch url even when RootRedirect already routed it, so a webview reload cannot replay it', async () => {
         launchUrl = 'https://peanut.me/claim?i=abc'
         // RootRedirect recovered the same URL from location on the full-document load
@@ -379,5 +402,47 @@ describe('deep-link telemetry redaction', () => {
 
         await waitFor(() => expect(capture).toHaveBeenCalled())
         expect(JSON.stringify(capture.mock.calls)).not.toContain('aB3xK9mQ2pL7vN4z')
+    })
+})
+
+describe('native resume connectivity', () => {
+    it('drops suspended failures before focus refetches, without a visibilitychange event', async () => {
+        const { result } = renderHook(() => {
+            useNativeAppLinks()
+            return useConnectivity()
+        })
+        await waitFor(() => expect(App.addListener).toHaveBeenCalledWith('appStateChange', expect.any(Function)))
+        const onStateChange = (App.addListener as jest.Mock).mock.calls.find(([event]) => event === 'appStateChange')[1]
+        const oldGeneration = getConnectivityGeneration()
+        act(() => {
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        expect(result.current.show).toBe(true)
+
+        act(() => onStateChange({ isActive: false }))
+        expect(result.current.show).toBe(false)
+        const unsubscribe = focusManager.subscribe(() => {
+            if (focusManager.isFocused()) {
+                reportNetworkError('/fresh-a', getConnectivityGeneration())
+                reportNetworkError('/fresh-b', getConnectivityGeneration())
+            }
+        })
+        act(() => {
+            onStateChange({ isActive: true })
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        unsubscribe()
+        // New requests still diagnose a real outage immediately after returning.
+        expect(result.current.isApiUnreachable).toBe(true)
+
+        act(() => {
+            onStateChange({ isActive: false })
+            onStateChange({ isActive: true })
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        expect(result.current.show).toBe(false)
     })
 })

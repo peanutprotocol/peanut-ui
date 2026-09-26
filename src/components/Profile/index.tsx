@@ -1,37 +1,53 @@
 'use client'
 
+import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
-import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
-import OtaUpdateModal from './components/OtaUpdateModal'
-import StoreUpdateModal from './components/StoreUpdateModal'
-import { IOS_APP_STORE_LISTING_LIVE } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
+import dynamic from 'next/dynamic'
+
+const AvatarPicker = dynamic(() => import('@/components/Avatar/AvatarPicker').then((m) => m.AvatarPicker), {
+    ssr: false,
+})
+const InviteFriendsModal = dynamic(() => import('../Global/InviteFriendsModal'), { ssr: false })
+const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ssr: false })
+const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
+    useAboutHelpPreload()
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsModalMounted, setIsInviteFriendsModalMounted] = useState(false)
+    const openInviteFriendsModal = () => {
+        setIsInviteFriendsModalMounted(true)
+        setIsInviteFriendsModalOpen(true)
+    }
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
+    // Once mounted, keep the picker alive while its drawer is closed. Its save
+    // queue lives in component refs; unmounting here could let an older write
+    // race a newer pick after a close/reopen sequence.
+    const [avatarPickerMounted, setAvatarPickerMounted] = useState(false)
+    useEffect(() => {
+        if (avatarPickerOpen) setAvatarPickerMounted(true)
+    }, [avatarPickerOpen])
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -39,19 +55,25 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess, hasCardRelationship, showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
+    const { showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isUpdateModalMounted, setIsUpdateModalMounted] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
-    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
+    const [isStoreUpdateModalMounted, setIsStoreUpdateModalMounted] = useState(false)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
     const onUpdateTap = () => {
-        if (pendingBundle) setIsUpdateModalOpen(true)
-        else setIsStoreUpdateModalOpen(true)
+        if (pendingBundle) {
+            setIsUpdateModalMounted(true)
+            setIsUpdateModalOpen(true)
+        } else {
+            setIsStoreUpdateModalMounted(true)
+            setIsStoreUpdateModalOpen(true)
+        }
     }
 
     const logout = async () => {
@@ -67,8 +89,24 @@ export const Profile = () => {
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
-        <div className="h-full w-full bg-background">
-            <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
+        <div className="h-full w-full bg-background-page">
+            <NavHeader
+                hideLabel
+                onPrev={onBack}
+                rightElement={
+                    // Log Out already has its own button at the bottom of this
+                    // screen (below) — a second one up here was redundant. Edit
+                    // profile earns the top-right slot instead: it's the one
+                    // action worth reaching without scrolling.
+                    <Button
+                        variant="ghost"
+                        href="/profile/edit"
+                        icon="edit"
+                        aria-label={t('menu.personalDetails')}
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
+                    />
+                }
+            />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
                     copy-username icon it used to lean on was removed
@@ -80,7 +118,7 @@ export const Profile = () => {
                     isVerified={isUserSumsubKycApproved}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
-                <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
+                {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline
@@ -88,28 +126,18 @@ export const Profile = () => {
                         /profile/edit. */}
                     <ListGroup>
                         <ProfileMenuItem
-                            icon="globe-lock"
-                            label={t('menu.unlockedRegions')}
-                            href="/profile/identity-verification"
+                            icon="bank"
+                            label={t('menu.accounts')}
+                            href="/profile/accounts"
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
-                            // one screen.
+                            // one screen. One entry carries it: verification
+                            // starts from either page.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        {/* Card row shows for holders and for everyone the card is
-                            still attainable by (see useCardSurfaceAccess). Past the
-                            waitlist gate goes straight to /card; everyone else lands
-                            on /shhhhh — the waitlist/explainer door, the canonical
-                            card entry point — whose CTA forwards on to /card
-                            post-launch. We deliberately DON'T send users without that
-                            gate to /card: it notFound()s them. */}
+                        <ProfileMenuItem icon="wallet" label={t('menu.payments')} href="/profile/payments" />
                         {showCardMenuItem && (
-                            <ProfileMenuItem
-                                icon="credit-card"
-                                label={hasCardAccess || hasCardRelationship ? t('menu.yourCard') : t('menu.peanutCard')}
-                                href={cardHref}
-                                badge={hasCardAccess || hasCardRelationship ? undefined : t('menu.newBadge')}
-                            />
+                            <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
                         <ProfileMenuItem
                             icon="exchange"
@@ -123,7 +151,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            onClick={openInviteFriendsModal}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -132,7 +160,6 @@ export const Profile = () => {
                             label={t('menu.points')}
                             href="/rewards"
                         />
-                        <ProfileMenuItem icon="user" label={t('menu.personalDetails')} href="/profile/edit" />
                     </ListGroup>
 
                     <ListGroup>
@@ -152,7 +179,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateOffered) && (
+                        {(pendingBundle || storeUpdateRequired) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}
@@ -174,26 +201,33 @@ export const Profile = () => {
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
-                            variant="primary-soft"
-                            shadowSize="4"
+                            variant="secondary"
                             className="w-full"
                             onClick={logout}
+                            icon="logout"
                         >
-                            <Icon name="logout" size={20} fill="black" />
-                            <span className="font-bold">{t('logOut')}</span>
+                            <span>{t('logOut')}</span>
                         </Button>
                     </div>
                 </div>
             </div>
 
-            <InviteFriendsModal
-                visible={isInviteFriendsModalOpen}
-                onClose={() => setIsInviteFriendsModalOpen(false)}
-                username={user?.user.username ?? ''}
-                source="profile"
-            />
-            <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
-            <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            {/* Load on first use, then retain the controlled root so visible=false
+                can run the modal's close transition before the page unmounts. */}
+            {isInviteFriendsModalMounted && (
+                <InviteFriendsModal
+                    visible={isInviteFriendsModalOpen}
+                    onClose={() => setIsInviteFriendsModalOpen(false)}
+                    username={user?.user.username ?? ''}
+                    source="profile"
+                />
+            )}
+            {isUpdateModalMounted && (
+                <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
+            )}
+            {isStoreUpdateModalMounted && (
+                <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            )}
         </div>
     )
 }

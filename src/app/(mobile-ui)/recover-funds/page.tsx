@@ -3,8 +3,8 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Notification } from '@/components/0_Bruddle/Notification'
-import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
 import { useState, useCallback, useContext } from 'react'
@@ -15,6 +15,7 @@ import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName } from
 import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
@@ -25,7 +26,6 @@ import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useFormatter, useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 
@@ -176,6 +176,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />
@@ -192,7 +193,7 @@ export default function RecoverFundsPage() {
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={recoverFunds}
                         disabled={isLoading || isSigning}
@@ -231,6 +232,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('sentTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />
@@ -244,19 +246,13 @@ export default function RecoverFundsPage() {
                                         t('unknownChain', { chainId: selectedBalance!.chainId }),
                                 })}
                             </h2>
-                            <a
-                                href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-2 hover:underline"
-                            >
-                                <span>{t('viewOnExplorer')}</span>
-                                <Icon name="external-link" size={24} />
-                            </a>
+                            <LinkButton href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`} external icon>
+                                {t('viewOnExplorer')}
+                            </LinkButton>
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             router.push('/home')
@@ -266,7 +262,7 @@ export default function RecoverFundsPage() {
                         {t('goToHome')}
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         onClick={() => {
                             setTokenBalances(
@@ -301,11 +297,12 @@ export default function RecoverFundsPage() {
                 <div className="my-auto">
                     <EmptyState
                         icon={balancesError ? 'alert' : 'wallet'}
+                        iconColor={balancesError ? 'red' : 'gray'}
                         title={balancesError ? tCommon('somethingWentWrong') : t('noTokens')}
                         description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
@@ -319,11 +316,12 @@ export default function RecoverFundsPage() {
             ) : (
                 <PageStack.Center className="gap-4">
                     <h1>{t('selectToken')}</h1>
-                    <ScrollableList>
+                    <ListGroup role="listbox" aria-label={t('selectToken')}>
                         {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
+                                showBalance
                                 isSelected={
                                     !!selectedBalance &&
                                     areEvmAddressesEqual(balance.address, selectedBalance?.address) &&
@@ -334,7 +332,7 @@ export default function RecoverFundsPage() {
                                 }}
                             />
                         ))}
-                    </ScrollableList>
+                    </ListGroup>
                     <GeneralRecipientInput
                         placeholder={t('recipientPlaceholder')}
                         recipient={recipient}
@@ -345,7 +343,7 @@ export default function RecoverFundsPage() {
                         }}
                     />
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             setStatus('review')
@@ -362,7 +360,7 @@ export default function RecoverFundsPage() {
                     >
                         {t('review')}
                     </Button>
-                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    {!!errorMessage && <Callout priority="error">{errorMessage}</Callout>}
                 </PageStack.Center>
             )}
         </PageStack>

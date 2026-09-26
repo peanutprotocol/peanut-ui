@@ -1,6 +1,7 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import { getTransactionExplorerUrl } from '@/utils/general.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -494,6 +495,59 @@ describe('mapTransactionDataForDrawer', () => {
         }
     })
 
+    describe('cross-chain withdrawal transaction proof (TASK-22614)', () => {
+        const completedWithdraw = (destinationChain: string, destinationTxHash: string) =>
+            baseEntry({
+                txHash: '0x' + 'a'.repeat(64),
+                status: EHistoryStatus.COMPLETED,
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: externalEoa,
+                extraData: { kind: 'CRYPTO_WITHDRAW', destinationChain, destinationTxHash },
+            })
+
+        it('links a completed Tron delivery to its destination transaction', () => {
+            const result = mapTransactionDataForDrawer(completedWithdraw('TRON', 'b'.repeat(64))).transactionDetails
+
+            expect(result.txHash).toBe('b'.repeat(64))
+            expect(result.explorerUrl).toBe(`https://tronscan.org/#/transaction/${'b'.repeat(64)}`)
+        })
+
+        it('preserves a case-sensitive Solana signature in the destination link', () => {
+            const signature = '2AgqhXGtYtBBaEPLtxUSuvXikE6bb1jF2nbYb61CSEhe78CqrDCCTcyDD6pDbDDjHsVGnrUfEDbKf2utWxM6TCqG'
+            const result = mapTransactionDataForDrawer(completedWithdraw('SOLANA', signature)).transactionDetails
+
+            expect(result.txHash).toBe(signature)
+            expect(result.explorerUrl).toBe(`https://solscan.io/tx/${signature}`)
+        })
+
+        it('keeps a pending withdrawal on the source proof even if destination fields arrive prematurely', () => {
+            const sourceHash = '0x' + 'c'.repeat(64)
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    txHash: sourceHash,
+                    status: EHistoryStatus.PENDING,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: {
+                        kind: 'CRYPTO_WITHDRAW',
+                        destinationChain: 'TRON',
+                        destinationTxHash: 'd'.repeat(64),
+                    },
+                })
+            ).transactionDetails
+
+            expect(result.txHash).toBe(sourceHash)
+            expect(result.explorerUrl).toContain(`/tx/${sourceHash}`)
+            expect(result.explorerUrl).not.toContain('tronscan.org')
+        })
+
+        it('preserves the exact Arbitrum Sepolia network for a sandbox proof', () => {
+            const sourceHash = '0x' + 'e'.repeat(64)
+
+            expect(getTransactionExplorerUrl('421614', sourceHash)).toBe(`https://sepolia.arbiscan.io/tx/${sourceHash}`)
+        })
+    })
+
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
             // Per `isIntentKind` runtime guard — an unknown kind is NOT
@@ -510,6 +564,66 @@ describe('mapTransactionDataForDrawer', () => {
             const result = mapTransactionDataForDrawer(entry).transactionDetails
             expect(result.direction).toBeDefined()
             expect(result.extraDataForDrawer?.kind).toBeUndefined()
+        })
+    })
+
+    /**
+     * A deposit on a standing account whose refund is on its way back to the
+     * payer. The intent stays non-terminal, so its status alone reads as an
+     * ordinary deposit still in progress — `extraData.refundInFlight` is the
+     * only thing that says the money is going the other way.
+     */
+    describe('a deposit being returned to the payer', () => {
+        const returning = baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            status: EHistoryStatus.PAYMENT_SUBMITTED,
+            extraData: { kind: 'ONRAMP', provider: 'BRIDGE', refundInFlight: true },
+        })
+
+        it('names the return instead of the deposit, and stays in progress', () => {
+            const result = mapTransactionDataForDrawer(returning).transactionDetails
+            expect(result.actionLabelKey).toBe('type.beingReturned')
+            expect(result.status).toBe('processing')
+        })
+
+        it('leaves an ordinary deposit alone', () => {
+            const ordinary = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.PAYMENT_SUBMITTED,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            expect(mapTransactionDataForDrawer(ordinary).transactionDetails.actionLabelKey).toBeUndefined()
+        })
+
+        // Bridge rails map both terminal return statuses to 'failed', which
+        // reads as a deposit that never worked. It worked and then went back.
+        it.each([EHistoryStatus.REFUNDED, EHistoryStatus.RETURNED])('names the finished return on %s', (status) => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.actionLabelKey).toBe('type.returnedToSender')
+            expect(result.status).toBe('refunded')
+        })
+
+        it('carries why the bank sent it back to the receipt', () => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.REFUNDED,
+                extraData: {
+                    kind: 'ONRAMP',
+                    provider: 'BRIDGE',
+                    returnReason: { code: 'third_party', text: 'Risk Rejection: Third Party Payment' },
+                },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.extraDataForDrawer?.returnReasonCode).toBe('third_party')
         })
     })
 
@@ -662,5 +776,314 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.showFullName).toBe(true)
             expect(result.initials).toBe('ND')
         })
+    })
+
+    describe('counterparty avatarKey (TASK-22625)', () => {
+        const detailsOf = (entry: HistoryEntry) => mapTransactionDataForDrawer(entry).transactionDetails
+
+        it('carries the recipient pick on an outgoing send', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('carries the sender pick on an incoming receive', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'badge.OG.hat' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBe('badge.OG.hat')
+        })
+
+        it('carries the sender pick on a claimed send link', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'basic.frog' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'SEND_LINK' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('is null when the counterparty is not a Peanut user', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        it('is null when the user has no pick', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        // The reaper rewrites the name to system copy ("Transaction did not
+        // complete") — keeping the sticker beside it would still read as "sent
+        // to alice".
+        it('drops the pick on a reaper-failed row', () => {
+            const result = detailsOf(
+                baseEntry({
+                    status: EHistoryStatus.FAILED,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'DIRECT_TRANSFER', failReason: 'DIRECT_TRANSFER_timeout' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        // A bank send-link claimed by a Peanut user renders as a send to them,
+        // and the recipient-side offramp edge renders as a receive — both are
+        // person rows, so both must carry the pick.
+        it('carries the claimer pick on a bank send-link claim', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'OFFRAMP', bridgeFlow: 'BANK_SEND_LINK_CLAIM' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('carries the initiator pick on a received bank withdraw', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'basic.frog' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'OFFRAMP' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('drops the pick on a failed QR payment', () => {
+            const result = detailsOf(
+                baseEntry({
+                    status: EHistoryStatus.FAILED,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'QR_PAY' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+    })
+
+    describe('sender reference on a bank deposit', () => {
+        const deposit = (senderReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', senderReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(deposit('  INVOICE 4471 ').extraDataForDrawer?.senderReference).toBe('INVOICE 4471')
+        })
+
+        it('is absent when the API sends none or blank', () => {
+            expect(deposit().extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('   ').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+
+        it('is absent when the bank sent a SEPA placeholder instead of a note', () => {
+            expect(deposit('/ROC/NOT PROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('/ROC/').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('NOTPROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+    })
+
+    describe("payer of a deposit into the user's bank details", () => {
+        // Shapes from peanut-api-ts src/db/history.ts: a deposit-account
+        // deposit has the payer's bank as sender, typed by its rail; the
+        // user's own one-off deposit has their wallet as sender.
+        const deposit = (senderAccount: HistoryEntry['senderAccount']) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+                })
+            ).transactionDetails.extraDataForDrawer
+
+        it('carries the payer name the bank reported', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false, fullName: ' Ana Pérez ' })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBe('Ana Pérez')
+        })
+
+        it('is still a deposit-account deposit when the bank sent no name', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
+        it('is not one for a Manteca deposit, whose sender is also a bank account', () => {
+            // peanut-api-ts src/manteca/history.ts: the user's own CBU transfer.
+            const drawer = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { identifier: 'Manteca Deposit', type: 'BANK_CBU', isUser: false },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'MANTECA' },
+                })
+            ).transactionDetails.extraDataForDrawer
+            expect(drawer?.isDepositAccountDeposit).toBeUndefined()
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
+        it("is not one when the sender is the user's own wallet or an address", () => {
+            expect(
+                deposit({ identifier: '0xabc', type: 'peanut-wallet', isUser: true })?.isDepositAccountDeposit
+            ).toBeUndefined()
+            expect(
+                deposit({ identifier: '0xabc', type: 'evm-address', isUser: false })?.isDepositAccountDeposit
+            ).toBeUndefined()
+        })
+    })
+
+    describe('payment reference on a bank withdrawal', () => {
+        // The API key is `extraData.paymentReference` (peanut-api-ts
+        // `src/db/history.ts`). An earlier attempt read `payoutReference` and
+        // therefore rendered nothing — this test pins the real key.
+        const withdraw = (paymentReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', paymentReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(withdraw('  hello world ').extraDataForDrawer?.paymentReference).toBe('hello world')
+        })
+
+        it('is absent when the API sends none or blank — an older API, or a rail that takes none', () => {
+            expect(withdraw().extraDataForDrawer?.paymentReference).toBeUndefined()
+            expect(withdraw('   ').extraDataForDrawer?.paymentReference).toBeUndefined()
+        })
+    })
+
+    describe('Bridge wire status (QA ledger AL6: deposit stuck on "Processing")', () => {
+        const bridgeDeposit = (status: string, overrides: Partial<HistoryEntry> = {}) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    status: status as HistoryEntry['status'],
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+                    ...overrides,
+                })
+            ).transactionDetails
+
+        beforeEach(() => jest.mocked(pipelineAlert).mockClear())
+
+        it('COMPLETED, the word a deposit-account deposit arrives with, reads completed', () => {
+            const details = bridgeDeposit('COMPLETED')
+            expect(details.direction).toBe('bank_deposit')
+            expect(details.status).toBe('completed')
+            expect(pipelineAlert).not.toHaveBeenCalled()
+        })
+
+        it('PAYMENT_PROCESSED still reads completed', () => {
+            expect(bridgeDeposit('PAYMENT_PROCESSED').status).toBe('completed')
+        })
+
+        it.each([
+            ['FAILED', 'failed'],
+            ['EXPIRED', 'failed'],
+            ['CANCELLED', 'cancelled'],
+        ])('the intent word %s reads %s, not processing', (status, expected) => {
+            expect(bridgeDeposit(status).status).toBe(expected)
+        })
+
+        it('an unknown word defers to the completion stamp and is reported once', () => {
+            const stamped = { completedAt: '2026-09-18T12:09:36.000Z' }
+            expect(bridgeDeposit('SETTLED_V2', stamped).status).toBe('completed')
+            expect(bridgeDeposit('SETTLED_V2', stamped).status).toBe('completed')
+            expect(pipelineAlert).toHaveBeenCalledTimes(1)
+            expect(pipelineAlert).toHaveBeenCalledWith(
+                'projection_drift',
+                expect.stringContaining('SETTLED_V2'),
+                expect.any(Object),
+                'warning'
+            )
+        })
+
+        it('an unknown word defers to the cancellation stamp', () => {
+            expect(bridgeDeposit('VOIDED_V2', { cancelledAt: '2026-09-18T12:09:36.000Z' }).status).toBe('cancelled')
+        })
+
+        it('an unknown word with no terminal stamp stays processing', () => {
+            expect(bridgeDeposit('SOMETHING_NEW').status).toBe('processing')
+        })
+    })
+})
+
+describe('a wire fee is its own receipt line (TASK-23054)', () => {
+    const usAccount: Account = { identifier: '123456780', type: 'US', isUser: false }
+    // the backend states the bank amount (currency.amount): final_amount, or
+    // its payout helper before then
+    const withdrawal = (extraData: Record<string, unknown>) =>
+        mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '80.00', code: 'USD' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', ...extraData },
+            })
+        ).transactionDetails
+
+    it("carries the fee and the backend's bank amount, not a subtraction of its own", () => {
+        const details = withdrawal({ payoutFeeUsd: 20 })
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBe(80)
+    })
+
+    it('states no bank amount when the backend gives none in dollars', () => {
+        const details = mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '', code: '' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20 },
+            })
+        ).transactionDetails
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBeUndefined()
+    })
+
+    it('a free payout keeps the convention: no fee line, nothing received to state', () => {
+        for (const payoutFeeUsd of [undefined, null, 0]) {
+            const details = withdrawal({ payoutFeeUsd })
+            expect(details.fee).toBeUndefined()
+            expect(details.payoutReceivedUsd).toBeUndefined()
+        }
     })
 })

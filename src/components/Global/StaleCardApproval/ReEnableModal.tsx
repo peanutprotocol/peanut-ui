@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
@@ -73,29 +73,25 @@ export default function StaleCardApprovalReEnableModal() {
                 : null
 
     const ctas: ActionModalButtonProps[] = succeeded
-        ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'purple', shadowSize: '4', onClick: close }]
+        ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'primary', shadowSize: '4', onClick: close }]
         : [
               {
                   text: isGranting ? t('staleCardApprovalModal.workingCta') : t('staleCardApprovalModal.reEnableCta'),
-                  variant: 'purple',
+                  variant: 'primary',
                   shadowSize: '4',
                   disabled: isGranting,
                   onClick: () => void onReEnable(),
               },
-              {
-                  text: t('staleCardApprovalModal.notNowCta'),
-                  variant: 'stroke',
-                  disabled: isGranting,
-                  onClick: close,
-              },
           ]
+    const tertiaryCta: ActionModalTertiaryCta | undefined = succeeded
+        ? undefined
+        : { text: t('staleCardApprovalModal.notNowCta'), disabled: isGranting, onClick: close }
 
     return (
         <ActionModal
             visible={visible}
             onClose={close}
-            icon="credit-card"
-            iconContainerClassName="bg-action-secondary"
+            concept="card"
             title={succeeded ? t('staleCardApprovalModal.successTitle') : t('staleCardApprovalModal.title')}
             description={
                 succeeded
@@ -103,6 +99,7 @@ export default function StaleCardApprovalReEnableModal() {
                     : (errorMessage ?? t('staleCardApprovalModal.description'))
             }
             ctas={ctas}
+            tertiaryCta={tertiaryCta}
         />
     )
 }

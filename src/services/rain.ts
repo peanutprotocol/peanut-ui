@@ -130,6 +130,9 @@ export interface PrepareRainWithdrawalInput {
      *  completes it on confirm; a follow-up `recordPayment` re-enters the
      *  same trusted-completion path (idempotent). */
     chargeId?: string
+    /** The Bridge offramp intent a collateral-only withdrawal funds. The backend
+     *  links its collateral record to it, so Activity shows one row. */
+    fundsIntentId?: string
 }
 
 export interface PrepareRainWithdrawalResponse {
@@ -237,6 +240,9 @@ export interface RainProvisioningDataResponse {
     last4: string
     network: string
     cardholderName?: string
+    /** Revocable, wallet-scoped credential for Apple Wallet's direct launch. */
+    walletAuthorizationToken?: string
+    walletAuthorizationExpiresIn?: number
     billingAddress: {
         line1: string
         line2?: string
@@ -245,6 +251,11 @@ export interface RainProvisioningDataResponse {
         postalCode: string
         countryCode: string
     }
+}
+
+export interface RainProvisioningAuthorizationResponse {
+    walletAuthorizationToken: string
+    walletAuthorizationExpiresIn: number
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
@@ -392,6 +403,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Approved residence is eligible, but a restricted residence change
+          // is still pending. Recoverable by reviewing/cancelling that request.
+          status: 'pending-residence-blocked'
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
@@ -414,6 +431,8 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
+    /** Use an already-cached proof without opening a new ceremony. */
+    stepUpToken?: string
     /**
      * Suppress the GLOBAL cooldown explainer for a 425 (the typed
      * `RainCooldownError` and its telemetry are unchanged). Only the internal
@@ -432,7 +451,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
-    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
+    if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
     const response = await apiFetch(opts.path, {
         method: opts.method,
@@ -718,18 +737,29 @@ export const rainApi = {
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }
-        return rainRequest<ApplyForCardResponse>({
-            method: 'POST',
-            path: '/rain/cards',
-            body,
-            // The first-time-application path runs 7 sequential Sumsub calls, a
-            // deliberate 2.5s readiness sleep, the Rain createApplication call,
-            // and an optional inline issueCard — routinely 7-13s. The default
-            // 10s fetch timeout clips that tail, aborting client-side while the
-            // backend completes (user sees a false failure on a card that was
-            // actually submitted). Give this one call generous headroom.
-            timeoutMs: 60_000,
-        })
+        try {
+            return await rainRequest<ApplyForCardResponse>({
+                method: 'POST',
+                path: '/rain/cards',
+                body,
+                // The first-time-application path runs 7 sequential Sumsub calls, a
+                // deliberate 2.5s readiness sleep, the Rain createApplication call,
+                // and an optional inline issueCard — routinely 7-13s. The default
+                // 10s fetch timeout clips that tail, aborting client-side while the
+                // backend completes (user sees a false failure on a card that was
+                // actually submitted). Give this one call generous headroom.
+                timeoutMs: 60_000,
+            })
+        } catch (e) {
+            // Residence denials are HTTP 403s, so normalize both stable codes
+            // into the success union. Keep a prohibited ACTIVE residence
+            // terminal while routing a prohibited PENDING change to its
+            // recoverable residence-management screen.
+            if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
+                return { status: e.code, message: e.message }
+            }
+            throw e
+        }
     },
 
     /**
@@ -843,6 +873,23 @@ export const rainApi = {
             path: `/rain/cards/${cardId}/provisioning-data`,
             body: { wallet },
             stepUp: true,
+            rateLimitSensitive: true,
+            noStore: true,
+        })
+    },
+
+    /** Mint the card-scoped Wallet credential without returning card secrets. */
+    getProvisioningAuthorization: async (
+        cardId: string,
+        wallet: 'apple' | 'google',
+        options?: { stepUpToken?: string }
+    ): Promise<RainProvisioningAuthorizationResponse> => {
+        return rainRequest<RainProvisioningAuthorizationResponse>({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/provisioning-authorization`,
+            body: { wallet },
+            stepUp: true,
+            stepUpToken: options?.stepUpToken,
             rateLimitSensitive: true,
             noStore: true,
         })

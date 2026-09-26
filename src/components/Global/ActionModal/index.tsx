@@ -1,6 +1,8 @@
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
@@ -13,6 +15,19 @@ export interface ActionModalButtonProps extends ButtonProps {
     children?: React.ReactNode
 }
 
+/** The tertiary action: an underlined LinkButton under the ctas. Every
+ *  dismiss or defer action (cancel, not now, do this later, skip, keep, close)
+ *  goes here, never into `ctas` as a secondary or ghost Button — design.md
+ *  "dismiss and defer actions", ruled 2026-09-25, hugo. */
+export interface ActionModalTertiaryCta {
+    text: string
+    onClick?: () => void
+    /** Renders a link instead of a button. */
+    href?: string
+    disabled?: boolean
+    'data-testid'?: string
+}
+
 export interface ActionModalCheckboxProps {
     text: string | React.ReactNode
     checked: boolean
@@ -21,29 +36,53 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
-export type ActionModalTone = 'error' | 'warning' | 'success' | 'info'
+export type ActionModalTone = 'error' | 'attention' | 'success' | 'info' | 'peanut'
 
-// mirrors PRIORITY_STYLES in 0_Bruddle/Notification: yellow is for warnings
-// only, red for errors, green for success, blue for plain information
-const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
+// mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for attention
+// only, red for errors, green for success, blue for plain information.
+// `peanut` is Peanut's own (the app, the wallet, friends), yellow like the
+// Peanut concepts in CONCEPT_ICONS; it has no default glyph, the caller
+// names the Peanut thing. A product concept passes `concept` instead.
+const TONE_STYLES: Record<ActionModalTone, { icon?: IconName; color: IconBubbleColor }> = {
     error: { icon: 'ban', color: 'red' },
-    warning: { icon: 'alert', color: 'yellow' },
+    attention: { icon: 'alert', color: 'yellow' },
     success: { icon: 'check', color: 'green' },
     info: { icon: 'info', color: 'blue' },
+    peanut: { color: 'yellow' },
 }
 
-export interface ActionModalProps {
+/**
+ * An icon never renders without a color that says something (TASK-22761):
+ * a tone, or a product concept's own pair. There is no implicit color.
+ */
+type ActionModalIconProps =
+    | {
+          /** Semantic bubble color + default icon. An explicit `icon` still wins. */
+          tone: ActionModalTone
+          concept?: undefined
+          icon?: IconName | React.ReactElement
+          isLoadingIcon?: boolean
+      }
+    | {
+          /** A product concept's bubble (CONCEPT_ICONS): its icon and color, as on every other surface. */
+          concept: Concept
+          tone?: undefined
+          icon?: undefined
+          isLoadingIcon?: false
+      }
+    | { tone?: undefined; concept?: undefined; icon?: undefined; isLoadingIcon?: false }
+
+export type ActionModalProps = ActionModalBaseProps & ActionModalIconProps
+
+interface ActionModalBaseProps {
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
-    /** Semantic bubble color + default icon. Explicit `icon` / `iconContainerClassName` still win. */
-    tone?: ActionModalTone
-    icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
-    isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
     ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
     preventClose?: boolean
@@ -58,7 +97,12 @@ export interface ActionModalProps {
     footer?: React.ReactNode
     /** The footer is decoration (an absolutely positioned mascot), not an
      *  action. It renders outside the in-flow wrapper, so it adds no row of
-     *  its own beneath the ctas. */
+     *  its own beneath the ctas.
+     *  To paint such art BEHIND the panel, move the surface background off the
+     *  panel and onto the content box (`modalPanelClassName="bg-transparent"` +
+     *  `contentContainerClassName="bg-background-default"`). The panel is its own
+     *  stacking context, so a negative z-index inside it still paints on top of
+     *  the panel's own background — see ConfirmInviteModal. */
     footerIsDecorative?: boolean
     content?: React.ReactNode
     classOverlay?: string
@@ -71,11 +115,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
     title,
     description,
     tone,
+    concept,
     icon: customIcon,
     iconProps,
     iconContainerClassName: customIconContainerClassName,
     isLoadingIcon = false,
     ctas,
+    tertiaryCta,
     ctaClassName,
     checkbox,
     preventClose,
@@ -93,11 +139,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
     classOverlay,
     hideOverlay,
 }) => {
-    const defaultModalPanelClasses = 'max-w-[85%]'
-    const defaultIconContainerClassName = 'bg-action-primary' // default pink background
+    const defaultModalPanelClasses = 'mx-8 max-w-md'
     const defaultIconPropsClassName = 'text-black' // default black icon color
-    const toneStyle = tone ? TONE_STYLES[tone] : undefined
-    const icon = customIcon ?? toneStyle?.icon
+    const bubbleStyle = concept ? CONCEPT_ICONS[concept] : tone ? TONE_STYLES[tone] : undefined
+    const icon = customIcon ?? bubbleStyle?.icon
 
     // board bubble is the 48px icon bubble with a 24px icon (17800:57255,
     // 17829:74078) — was a hand-rolled 32px circle with a 16px icon
@@ -162,15 +207,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            color={toneStyle?.color}
-                            // custom classes AUGMENT the default (or the tone), never
-                            // bare-|| replace it — the IconBubble board forbids
-                            // resizing the bubble, and the ! overrides existed only
-                            // because of the old replace
-                            className={twMerge(
-                                toneStyle ? undefined : defaultIconContainerClassName,
-                                customIconContainerClassName
-                            )}
+                            color={bubbleStyle?.color}
+                            // custom classes AUGMENT the color, never replace it —
+                            // the IconBubble board forbids resizing the bubble
+                            className={customIconContainerClassName}
                             data-testid="action-modal-icon"
                         />
                     )}
@@ -218,7 +258,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                         {
                                             text,
                                             onClick,
-                                            variant = 'purple',
+                                            variant = 'primary',
                                             className: btnClassName,
                                             icon: btnIcon,
                                             iconPosition,
@@ -265,6 +305,20 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+                {/* XL/24 above: the LinkButton hit area reaches 14px above its
+                    text and the primary's shadow takes 4px, so less overlaps. */}
+                {tertiaryCta && (
+                    <div className="mt-6 flex w-full justify-center">
+                        <LinkButton
+                            onClick={tertiaryCta.onClick}
+                            href={tertiaryCta.href}
+                            disabled={tertiaryCta.disabled}
+                            data-testid={tertiaryCta['data-testid']}
+                        >
+                            {tertiaryCta.text}
+                        </LinkButton>
                     </div>
                 )}
                 {/* An action footer is a row and gets the XL/24 above it. A

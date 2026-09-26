@@ -9,9 +9,9 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
-import { StatusTag } from '../../_components/StatusTag'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function ButtonPage() {
     return (
@@ -20,31 +20,32 @@ export default function ButtonPage() {
                 title="Button"
                 description="Primary interaction component. Supports variants, sizes, shadows, icons, loading, and long-press."
                 status="production"
-                usages="120+ usages"
+                usages="275 usages"
             />
 
             <WhenToUse
                 use={[
                     'Primary and secondary CTAs in flows',
                     'Actions that submit, confirm, or navigate forward',
+                    'Button-looking navigation — pass href (link mode, renders one anchor)',
                     'Icon + label combinations for contextual actions (share, copy)',
                 ]}
                 dontUse={[
-                    'Navigation links — use Next.js Link instead',
-                    'Toggle states — use Checkbox or Switch',
+                    'Underlined text links — use LinkButton',
+                    'Toggle states — use Checkbox or Toggle',
                     'Inline text actions — use underlined text links',
                 ]}
             />
 
             <DoDont
                 doExample={
-                    <Button variant="purple" className="w-full">
+                    <Button variant="primary" className="w-full">
                         Continue
                     </Button>
                 }
                 doLabel="Default (medium, 44px) for primary CTAs — shadow is built in"
                 dontExample={
-                    <Button variant="purple" size="small" className="w-full">
+                    <Button variant="primary" size="small" className="w-full">
                         Continue
                     </Button>
                 }
@@ -57,21 +58,13 @@ export default function ButtonPage() {
                 <Playground
                     name="Button"
                     importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    defaults={{ variant: 'purple', children: 'Continue' }}
+                    defaults={{ variant: 'primary', children: 'Continue' }}
                     controls={[
                         {
                             type: 'select',
                             prop: 'variant',
                             label: 'variant',
-                            options: [
-                                'purple',
-                                'stroke',
-                                'primary-soft',
-                                'transparent',
-                                'dark',
-                                'transparent-dark',
-                                'transparent-light',
-                            ],
+                            options: ['primary', 'secondary', 'ghost'],
                         },
                         {
                             type: 'select',
@@ -105,7 +98,7 @@ export default function ButtonPage() {
                     }}
                     codeTemplate={(props) => {
                         const parts = ['<Button']
-                        if (props.variant && props.variant !== 'purple') parts.push(`variant="${props.variant}"`)
+                        if (props.variant && props.variant !== 'primary') parts.push(`variant="${props.variant}"`)
                         if (props.size) parts.push(`size="${props.size}"`)
                         if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
                         if (props.icon) parts.push(`icon="${props.icon}"`)
@@ -119,47 +112,36 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
-            <DocSection title="Variants" description="Production variants ordered by usage count.">
+            <DocSection
+                title="Variants"
+                description="The three board rows. There is no fourth variant. Counts are Button call sites in product code, /dev and tests excluded — primary includes the 102 that pass no variant at all."
+            >
                 <DocSection.Content>
                     <div className="space-y-4">
                         {(
                             [
-                                ['purple', '59 usages', 'production'],
-                                ['stroke', '27 usages', 'production'],
-                                ['primary-soft', '18 usages', 'production'],
-                                ['transparent', '12 usages', 'production'],
-                                ['dark', '2 usages', 'limited'],
-                                ['transparent-dark', '3 usages', 'limited'],
+                                ['primary', 'the default CTA', '199 usages'],
+                                ['secondary', 'the outlined one', '52 usages'],
+                                ['ghost', 'the text-only one', '24 usages'],
                             ] as const
-                        ).map(([variant, count, status]) => (
+                        ).map(([variant, role, count]) => (
                             <div key={variant}>
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
-                                    <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <StatusTag status={status} />
+                                    <span className="text-body-xs text-foreground-secondary">{role}</span>
+                                    <span className="text-label-m text-foreground-secondary">{count}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
                         ))}
-                        <div>
-                            <div className="mb-2 flex items-center gap-2">
-                                <span className="text-label-l">transparent-light</span>
-                                <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <StatusTag status="limited" />
-                            </div>
-                            <div className="rounded-sm bg-foreground-primary p-3">
-                                <Button variant="transparent-light">transparent-light</Button>
-                            </div>
-                        </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Variants"
-                        code={`<Button variant="purple">Primary</Button>
-<Button variant="stroke">Stroke</Button>
-<Button variant="primary-soft">Soft</Button>
-<Button variant="transparent">Transparent</Button>`}
+                        code={`<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="ghost">Ghost</Button>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -168,23 +150,23 @@ export default function ButtonPage() {
                 <DocSection.Content>
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="text-center">
-                            <Button variant="stroke">default</Button>
+                            <Button variant="secondary">default</Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">medium · 44px</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="small">
+                            <Button variant="secondary" size="small">
                                 small
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">40px (44px hit area)</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="medium">
+                            <Button variant="secondary" size="medium">
                                 medium
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">44px (= default)</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="large">
+                            <Button variant="secondary" size="large">
                                 large
                             </Button>
                             <p className="mt-2 text-body-xs text-foreground-secondary">48px</p>
@@ -207,10 +189,51 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Link Mode"
+                description="Pass href and the Button renders ONE anchor with the exact button classes — next/link for internal routes, a plain <a> for external/scheme hrefs and downloads. Never wrap a Button in a Link (nested interactive) and never hand-roll .btn classes on an anchor."
+            >
+                <DocSection.Content>
+                    <div className="space-y-3">
+                        <Button href="/home" className="w-full">
+                            Internal route (next/link)
+                        </Button>
+                        <Button variant="secondary" href="https://peanut.me" external className="w-full">
+                            External (new tab, plain anchor)
+                        </Button>
+                        <Button href="/home" disabled className="w-full">
+                            Disabled link (no href, aria-disabled)
+                        </Button>
+                    </div>
+                    <DesignNote type="info">
+                        The split: underlined text link → LinkButton. Button-looking navigation → Button with href.
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Link mode"
+                        code={`{/* internal route — next/link client nav */}
+<Button href="/home">Go home</Button>
+
+{/* external — plain <a>, new tab */}
+<Button variant="secondary" href="https://peanut.me" external>
+  Visit site
+</Button>
+
+{/* download — plain <a> with the attribute */}
+<Button variant="secondary" href="/receipt/1/pdf" download icon="download">
+  Download PDF
+</Button>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Props">
                 <PropsTable
                     rows={[
-                        { name: 'variant', type: 'ButtonVariant', default: "'purple'", description: 'Visual style' },
+                        { name: 'variant', type: 'ButtonVariant', default: "'primary'", description: 'Visual style' },
                         {
                             name: 'size',
                             type: "'small' | 'medium' | 'large'",
@@ -224,7 +247,6 @@ export default function ButtonPage() {
                             default: '(none)',
                             description: "'4' is standard (160+ usages)",
                         },
-                        { name: 'shadowType', type: "'primary' | 'secondary'", default: "'primary'" },
                         {
                             name: 'loading',
                             type: 'boolean',
@@ -241,6 +263,24 @@ export default function ButtonPage() {
                             description: 'Hold-to-confirm with progress bar',
                         },
                         { name: 'disableHaptics', type: 'boolean', default: 'false' },
+                        {
+                            name: 'href',
+                            type: 'string',
+                            default: '(none)',
+                            description: 'Link mode: renders one anchor instead of a button',
+                        },
+                        {
+                            name: 'external',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: plain <a>, target="_blank" rel="noopener noreferrer"',
+                        },
+                        {
+                            name: 'plainAnchor',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: force plain <a> for an internal route (full page load)',
+                        },
                     ]}
                 />
             </DocSection>
@@ -254,8 +294,8 @@ export default function ButtonPage() {
                         area. The old &quot;large is shorter than default&quot; trap is gone.
                     </DesignNote>
                     <DesignNote type="info">
-                        Primary CTA pattern: variant=&quot;purple&quot; className=&quot;w-full&quot; — no size prop, no
-                        shadowSize (the 4px shadow is built into purple/stroke).
+                        Primary CTA pattern: variant=&quot;primary&quot; className=&quot;w-full&quot; — no size prop, no
+                        shadowSize (the 4px shadow is built into purple/secondary).
                     </DesignNote>
                 </div>
             </DocSection>
@@ -265,23 +305,24 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-label-l">Primary CTA (most common)</p>
-                            <Button variant="purple" className="mt-2 w-full">
+                            <Button variant="primary" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
                         <div>
+                            {/* a second path of equal weight — never cancel or go back, those are the tertiary LinkButton */}
                             <p className="text-label-l">Secondary CTA</p>
-                            <Button variant="stroke" className="mt-2 w-full">
-                                Go Back
+                            <Button variant="secondary" className="mt-2 w-full">
+                                Enter code
                             </Button>
                         </div>
                         <div>
                             <p className="text-label-l">With icon</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" icon="share">
+                                <Button variant="primary" icon="share">
                                     Share
                                 </Button>
-                                <Button variant="stroke" icon="copy">
+                                <Button variant="secondary" icon="copy">
                                     Copy
                                 </Button>
                             </div>
@@ -289,10 +330,10 @@ export default function ButtonPage() {
                         <div>
                             <p className="text-label-l">States</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" disabled>
+                                <Button variant="primary" disabled>
                                     Disabled
                                 </Button>
-                                <Button variant="purple" loading>
+                                <Button variant="primary" loading>
                                     Loading
                                 </Button>
                             </div>
@@ -303,19 +344,19 @@ export default function ButtonPage() {
                     <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
-                        code={`<Button variant="purple" className="w-full">
+                        code={`<Button variant="primary" className="w-full">
   Continue
 </Button>`}
                     />
                     <CodeBlock
                         label="Secondary CTA"
-                        code={`<Button variant="stroke" className="w-full">
-  Go Back
+                        code={`<Button variant="secondary" className="w-full">
+  Enter code
 </Button>`}
                     />
                     <CodeBlock
                         label="With icon"
-                        code={`<Button variant="purple" icon="share">
+                        code={`<Button variant="primary" icon="share">
   Share
 </Button>`}
                     />
@@ -337,6 +378,56 @@ export default function ButtonPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Payment success — back home + receipt"
+                    path="src/features/payments/shared/components/PaymentSuccessView.tsx"
+                    description="The success screen stacks the two buttons full width: primary goes home, secondary opens the receipt."
+                    code={`<Button onClick={handleDone} shadowSize="4">
+  {t('success.backToHome')}
+</Button>
+<Button
+  variant="secondary"
+  shadowSize="4"
+  onClick={() => openTransactionDetails(receiptTransaction)}
+>
+  {t('success.seeReceipt')}
+</Button>`}
+                >
+                    <div className="flex w-full flex-col gap-4">
+                        <Button shadowSize="4">Back to home</Button>
+                        <Button variant="secondary" shadowSize="4">
+                            See receipt
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Signup — Next beside the username field"
+                    path="src/components/Setup/Views/Signup.tsx"
+                    description="Inline CTA on one row with the input: large size, 4/12 width, loading while the username check runs."
+                    code={`<Button
+  size="large"
+  className="w-4/12"
+  loading={isLoading}
+  shadowSize="4"
+  onClick={() => handleNext(async () => isValid)}
+  disabled={!isValid || isChanging || isLoading}
+>
+  {t('next')}
+</Button>`}
+                >
+                    <div className="flex items-center gap-2">
+                        <div className="input flex h-12 flex-1 items-center px-4 text-body-s text-foreground-secondary">
+                            kushagra
+                        </div>
+                        <Button size="large" className="w-4/12" shadowSize="4">
+                            Next
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

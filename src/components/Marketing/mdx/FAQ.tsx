@@ -1,7 +1,8 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
-import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { PROSE_WIDTH } from '../constants'
+import { extractText } from './mdx.utils'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -24,19 +25,11 @@ interface FAQProps {
     children: ReactNode
 }
 
-/** Extract text content from React nodes for JSON-LD plain text */
-function extractText(node: ReactNode): string {
-    if (typeof node === 'string') return node
-    if (typeof node === 'number') return String(node)
-    if (!node) return ''
-    if (Array.isArray(node)) return node.map(extractText).join('')
-    if (isValidElement(node)) return extractText(node.props.children)
-    return ''
-}
-
 /**
- * MDX FAQ component. Purple section with peanut pattern overlay,
- * animated accordion, and FAQPage JSON-LD. Matches LP styling exactly.
+ * MDX FAQ component: the FAQ panel plus FAQPage JSON-LD. Matches LP styling.
+ *
+ * Same flat look as home and merchant pages, but `inline`: it sits in the
+ * prose column and follows the prose rhythm instead of the band's padding.
  */
 export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     const heading = title ?? getTranslations(locale).faqTitle
@@ -68,16 +61,9 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     }
 
     return (
-        <section
-            className="overflow-x-hidden"
-            style={{
-                backgroundColor: '#6340df',
-                backgroundImage: `url(${PeanutsBG.src})`,
-                backgroundSize: '10rem auto',
-                backgroundRepeat: 'repeat',
-            }}
-        >
-            <FAQsPanel heading={heading} questions={questions} />
+        // same column as the prose, CTA and RelatedPages around it
+        <section className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
+            <FAQsPanel heading={heading} questions={questions} inline />
             <JsonLd data={faqSchema} />
         </section>
     )

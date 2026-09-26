@@ -5,6 +5,7 @@ import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowCon
 import { useContext, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import NavHeader from '../../Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import LinkSendInitialView from './views/Initial.link.send.view'
 import LinkSendSuccessView from './views/Success.link.send.view'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -33,12 +34,12 @@ const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
     return (
         <>
             {view === 'INITIAL' && (
-                <div className="space-y-8 flex w-full flex-col justify-start">
+                <PageStack>
                     <NavHeader onPrev={onPrev} title={tNav('send')} />
-                    <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                    <PageStack.Center className="gap-4 md:my-0">
                         <LinkSendInitialView />
-                    </div>
-                </div>
+                    </PageStack.Center>
+                </PageStack>
             )}
             {view === 'SUCCESS' && <LinkSendSuccessView />}
         </>

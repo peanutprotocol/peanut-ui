@@ -1,21 +1,18 @@
 'use client'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
 import type { LandingStrings } from './landingStrings'
 
-// Define the background color as a constant
-const businessBgColor = '#90A8ED'
-
 export function DropLink({ strings }: { strings: LandingStrings }) {
+    const reduceMotion = useReducedMotion()
     return (
         <section
             id="drop-link"
-            className="flex min-h-[500px] items-center justify-center px-4 py-16 text-n-1 md:min-h-[700px]"
-            style={{ backgroundColor: businessBgColor }}
+            className="flex min-h-[500px] items-center justify-center bg-blue-300 px-4 py-16 text-foreground-primary md:min-h-[700px]"
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="space-y-8 w-full md:w-2/3">
@@ -27,11 +24,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                         {/* Mobile Floating Icons */}
                         <motion.div
                             className="absolute top-20 -left-6 z-10"
-                            animate={{
-                                y: [0, -15, 0],
-                                rotate: [0, 8, -8, 0],
-                                x: [0, -3, 3, 0],
-                            }}
+                            animate={
+                                reduceMotion
+                                    ? undefined
+                                    : {
+                                          y: [0, -15, 0],
+                                          rotate: [0, 8, -8, 0],
+                                          x: [0, -3, 3, 0],
+                                      }
+                            }
                             transition={{
                                 duration: 3,
                                 repeat: Infinity,
@@ -43,11 +44,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                         <motion.div
                             className="absolute top-20 -right-4 z-10"
-                            animate={{
-                                y: [0, -18, 0],
-                                x: [0, 6, 0],
-                                rotate: [0, -6, 6, 0],
-                            }}
+                            animate={
+                                reduceMotion
+                                    ? undefined
+                                    : {
+                                          y: [0, -18, 0],
+                                          x: [0, 6, 0],
+                                          rotate: [0, -6, 6, 0],
+                                      }
+                            }
                             transition={{
                                 duration: 2.5,
                                 repeat: Infinity,
@@ -60,11 +65,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                         <motion.div
                             className="absolute bottom-16 -left-4 z-10"
-                            animate={{
-                                y: [0, -12, 0],
-                                rotate: [0, -10, 10, 0],
-                                x: [0, 5, -5, 0],
-                            }}
+                            animate={
+                                reduceMotion
+                                    ? undefined
+                                    : {
+                                          y: [0, -12, 0],
+                                          rotate: [0, -10, 10, 0],
+                                          x: [0, 5, -5, 0],
+                                      }
+                            }
                             transition={{
                                 duration: 2.8,
                                 repeat: Infinity,
@@ -83,11 +92,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                         <motion.div
                             className="absolute -right-6 bottom-16 z-10"
-                            animate={{
-                                y: [0, -16, 0],
-                                x: [0, -4, 4, 0],
-                                rotate: [0, 12, -12, 0],
-                            }}
+                            animate={
+                                reduceMotion
+                                    ? undefined
+                                    : {
+                                          y: [0, -16, 0],
+                                          x: [0, -4, 4, 0],
+                                          rotate: [0, 12, -12, 0],
+                                      }
+                            }
                             transition={{
                                 duration: 3.2,
                                 repeat: Infinity,
@@ -112,7 +125,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
                         <Button
                             shadowSize="4"
-                            className="mt-8 hidden w-58 bg-white px-7 pt-4 pb-11 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
+                            className="mt-8 hidden w-58 bg-white px-6 hover:bg-white/90 md:inline-block md:w-72 md:px-10"
                         >
                             {strings.signUp}
                         </Button>
@@ -123,11 +136,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     {/* Desktop Floating Icons */}
                     <motion.div
                         className="absolute -top-4 -left-8 z-10 hidden md:block"
-                        animate={{
-                            y: [0, -20, 0],
-                            rotate: [0, 10, -10, 0],
-                            x: [0, -5, 5, 0],
-                        }}
+                        animate={
+                            reduceMotion
+                                ? undefined
+                                : {
+                                      y: [0, -20, 0],
+                                      rotate: [0, 10, -10, 0],
+                                      x: [0, -5, 5, 0],
+                                  }
+                        }
                         transition={{
                             duration: 3,
                             repeat: Infinity,
@@ -139,11 +156,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                     <motion.div
                         className="absolute -top-8 -right-6 z-10 hidden md:block"
-                        animate={{
-                            y: [0, -25, 0],
-                            x: [0, 10, 0],
-                            rotate: [0, -8, 8, 0],
-                        }}
+                        animate={
+                            reduceMotion
+                                ? undefined
+                                : {
+                                      y: [0, -25, 0],
+                                      x: [0, 10, 0],
+                                      rotate: [0, -8, 8, 0],
+                                  }
+                        }
                         transition={{
                             duration: 2.5,
                             repeat: Infinity,
@@ -156,11 +177,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                     <motion.div
                         className="absolute -bottom-4 -left-6 z-10 hidden md:block"
-                        animate={{
-                            y: [0, -18, 0],
-                            rotate: [0, -12, 12, 0],
-                            x: [0, 8, -8, 0],
-                        }}
+                        animate={
+                            reduceMotion
+                                ? undefined
+                                : {
+                                      y: [0, -18, 0],
+                                      rotate: [0, -12, 12, 0],
+                                      x: [0, 8, -8, 0],
+                                  }
+                        }
                         transition={{
                             duration: 2.8,
                             repeat: Infinity,
@@ -179,11 +204,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                     <motion.div
                         className="absolute -right-4 -bottom-8 z-10 hidden md:block"
-                        animate={{
-                            y: [0, -22, 0],
-                            x: [0, -8, 8, 0],
-                            rotate: [0, 15, -15, 0],
-                        }}
+                        animate={
+                            reduceMotion
+                                ? undefined
+                                : {
+                                      y: [0, -22, 0],
+                                      x: [0, -8, 8, 0],
+                                      rotate: [0, 15, -15, 0],
+                                  }
+                        }
                         transition={{
                             duration: 3.2,
                             repeat: Infinity,
@@ -195,10 +224,14 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     </motion.div>
 
                     <motion.div
-                        animate={{
-                            rotate: [0, -2, 2, -2, 2, 0],
-                            x: [0, -2, 2, -2, 2, 0],
-                        }}
+                        animate={
+                            reduceMotion
+                                ? undefined
+                                : {
+                                      rotate: [0, -2, 2, -2, 2, 0],
+                                      x: [0, -2, 2, -2, 2, 0],
+                                  }
+                        }
                         transition={{
                             duration: 0.8,
                             repeat: Infinity,

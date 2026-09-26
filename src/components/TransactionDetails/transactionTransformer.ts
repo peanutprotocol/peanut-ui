@@ -1,24 +1,29 @@
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
+    type DepositReturnReasonCode,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,
+    getTransactionExplorerUrl,
     getInitialsFromName,
     getTokenDetails,
     getChainName,
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
-import { parseWireAmount } from './transaction-details.utils'
+import { parseWireAmount, senderNoteText } from './transaction-details.utils'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
+
+/** Sender account types that are not a payer's bank account. */
+const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -95,7 +100,8 @@ export interface DrawerDepositInstructions {
     amount: string
     currency: string
     bank_name: string
-    bank_address: string
+    /** absent on some rails — Mexican SPEI has none */
+    bank_address?: string
     payment_rail: string
     deposit_message: string
     // US format
@@ -160,13 +166,28 @@ const REAPER_FAIL_COPY: Record<string, string> = {
     refund_timeout: "Refund didn't complete",
 }
 
+// One Sentry signal per unknown word per session: the transformer runs on
+// every render of every row.
+const reportedBridgeStatuses = new Set<string>()
+function reportUnknownBridgeStatus(entry: HistoryEntry, status: string | undefined): void {
+    const word = status ?? '(none)'
+    if (reportedBridgeStatuses.has(word)) return
+    reportedBridgeStatuses.add(word)
+    pipelineAlert(
+        'projection_drift',
+        `transactionTransformer: unknown Bridge wire status "${word}"`,
+        { entryUuid: entry.uuid, kind: entry.extraData?.kind, status: word },
+        'warning'
+    )
+}
+
 /**
- * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
+ * Map raw `entry.status` to the drawer's IconStatusType. Two regimes:
  * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
  * the rest (NEW/PENDING/COMPLETED/...). SEND_LINK with COMPLETED status
  * stays "pending" until claimed (sender-side).
  */
-function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
+function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): IconStatusType {
     const status = entry.status?.toUpperCase()
     const provider = entry.extraData?.provider
     const isBridgeRails = provider === 'BRIDGE' || entry.extraData?.fulfillmentType === 'bridge'
@@ -180,15 +201,27 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             case 'PAYMENT_SUBMITTED':
                 return 'processing'
             case 'PAYMENT_PROCESSED':
+            // The API sends COMPLETED when the intent never stored a Bridge
+            // state, which is every deposit-account deposit. Without this case
+            // those rows read "Processing" forever after the money is credited.
+            case 'COMPLETED':
                 return 'completed'
             case 'UNDELIVERABLE':
             case 'RETURNED':
             case 'REFUNDED':
             case 'ERROR':
+            case 'FAILED':
+            case 'EXPIRED':
                 return 'failed'
             case 'CANCELED':
+            case 'CANCELLED':
                 return 'cancelled'
             default:
+                // A word this switch does not know must not read as in-flight
+                // when the API already stamped the row as finished.
+                reportUnknownBridgeStatus(entry, status)
+                if (entry.completedAt) return 'completed'
+                if (entry.cancelledAt) return 'cancelled'
                 return 'processing'
         }
     }
@@ -238,7 +271,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         default: {
             const knownStatuses: StatusType[] = ['completed', 'pending', 'failed', 'cancelled', 'soon', 'processing']
             const lower = entry.status?.toLowerCase()
-            return lower && knownStatuses.includes(lower as StatusPillType) ? (lower as StatusPillType) : 'pending'
+            return lower && knownStatuses.includes(lower as IconStatusType) ? (lower as IconStatusType) : 'pending'
         }
     }
 }
@@ -249,6 +282,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
  */
 function computeDerivedFields(entry: HistoryEntry): {
     explorerUrlWithTx: string | undefined
+    proofTxHash: string | undefined
     addressExplorerUrl: string | undefined
     tokenDisplayDetails:
         | {
@@ -260,20 +294,25 @@ function computeDerivedFields(entry: HistoryEntry): {
         | undefined
     rewardData: RewardData | undefined
 } {
-    // For crypto deposits, force the explorer URL to Peanut's wallet chain
-    // (Arbitrum) — the underlying chainId field is the deposit-source chain.
-    // CRYPTO_DEPOSIT and CRYPTO_WITHDRAW both record the tx hash on Peanut's
-    // wallet chain (Arbitrum) — for withdrawals entry.chainId is the
-    // DESTINATION, so linking it with the recorded hash mislinked receipts on
-    // destinations that have an explorer (e.g. Avalanche) and left them
-    // linkless on ones that don't (Tempo, Solana, Tron). Always link the
-    // chain the recorded hash actually lives on. (Known residual: a withdraw
-    // completed via the BRIDGE_EXECUTED webhook carries the destination-side
-    // hash — rare; linking source keeps the dominant case correct.)
+    // Charge history's top-level hash is the source-side proof. A completed
+    // cross-chain withdraw can additionally carry a server-authenticated
+    // destination proof from BRIDGE_EXECUTED; only switch when the pair is
+    // complete, so pending and partially-deployed API responses stay on the
+    // source transaction instead of combining a hash with the wrong chain.
     const kind = intentKindOf(entry)
-    const explorerUrlChainID =
+    const sourceExplorerChainId =
         kind === 'CRYPTO_DEPOSIT' || kind === 'CRYPTO_WITHDRAW' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
-    const baseUrl = getExplorerUrl(explorerUrlChainID)
+    const destinationProof =
+        kind === 'CRYPTO_WITHDRAW' &&
+        entry.status?.toUpperCase() === 'COMPLETED' &&
+        entry.extraData?.destinationTxHash &&
+        entry.extraData.destinationChain
+            ? {
+                  hash: entry.extraData.destinationTxHash,
+                  chain: entry.extraData.destinationChain,
+              }
+            : undefined
+    const baseUrl = getExplorerUrl(sourceExplorerChainId)
 
     let explorerUrlWithTx: string | undefined
     let addressExplorerUrl: string | undefined
@@ -281,9 +320,11 @@ function computeDerivedFields(entry: HistoryEntry): {
         if (entry.senderAccount?.identifier) {
             addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
         }
-        if (entry.txHash && explorerUrlChainID) {
-            explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
-        }
+    }
+    const proofHash = destinationProof?.hash ?? entry.txHash
+    const proofChain = destinationProof?.chain ?? sourceExplorerChainId
+    if (proofHash && proofChain) {
+        explorerUrlWithTx = getTransactionExplorerUrl(proofChain, proofHash)
     }
 
     let tokenDisplayDetails
@@ -303,7 +344,7 @@ function computeDerivedFields(entry: HistoryEntry): {
     }
 
     const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
-    return { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData }
+    return { explorerUrlWithTx, proofTxHash: proofHash, addressExplorerUrl, tokenDisplayDetails, rewardData }
 }
 
 /**
@@ -327,6 +368,10 @@ export interface TransactionDetails {
     isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
+    /** The counterparty's picked profile avatar (TASK-22625). Null whenever the
+     *  counterparty is not a Peanut user, so a render site can pass it straight
+     *  through without re-checking `isPeerActuallyUser`. */
+    avatarKey?: string | null
     amount: number | bigint
     /** Raw destination-token amount string from the BE (e.g. "0.000416666"
      *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
@@ -339,15 +384,21 @@ export interface TransactionDetails {
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
-    status?: StatusPillType
+    status?: IconStatusType
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
+    /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
+    payoutReceivedUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
     memoKey?: 'memoTestDeposit'
+    /** Catalog key (under `transaction`) that replaces the row's type label
+     *  when the type alone would be wrong — a deposit going back to the payer
+     *  is not "Bank deposit". */
+    actionLabelKey?: 'type.beingReturned' | 'type.returnedToSender'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -382,6 +433,26 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        /** The payer's own note on a bank deposit, as their bank sent it.
+         *  Undefined for an empty field or a bank placeholder
+         *  ("/ROC/NOT PROVIDED") — see senderNoteText. */
+        senderReference?: string
+        /** A deposit someone else paid into the user's bank details (a
+         *  standing deposit account), as opposed to the user's own one-off
+         *  bank deposit. */
+        isDepositAccountDeposit?: boolean
+        /** The payer's name as their bank reported it. Owner-only: the API
+         *  withholds it from anyone else. Deposit-account deposits only. */
+        payerName?: string
+        /** The provider reported the transfer as returned or refunded after
+         *  it settled. */
+        wasReturned?: boolean
+        /** Why the bank sent the deposit back; picks the receipt's reason line. */
+        returnReasonCode?: DepositReturnReasonCode
+        /** The reference we sent out on a fiat payout — the user's own text
+         *  when they typed one, otherwise the default our payment partner
+         *  composed. Owner-only: it never reaches a public receipt. */
+        paymentReference?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -408,8 +479,9 @@ export interface TransactionDetails {
             merchantCountry: string | null
             merchantMcc: string | null
             /** Rain-enriched brand logo URL when their enrichment identified the
-             *  merchant. Drawer keeps the generic card icon for v1; this is
-             *  plumbed so a future swap doesn't need a backend change. */
+             *  merchant. Rendered as the row and receipt avatar (MerchantLogoIcon),
+             *  falling back to the generic card icon when null/empty or on a load
+             *  error. */
             merchantLogo: string | null
             merchantId: string | null
             localAmount: string | null
@@ -506,7 +578,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
     const showFullName = out.showFullName
-    let uiStatus: StatusPillType = out.uiStatus ?? 'pending'
+    let uiStatus: IconStatusType = out.uiStatus ?? 'pending'
     const strategyOverrodeUiStatus = out.uiStatus !== undefined
 
     if (!isPeerActuallyUser) {
@@ -546,6 +618,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
 
+    // A deposit whose refund is on its way back to the payer. The intent stays
+    // non-terminal on purpose, so the status alone reads as an ordinary deposit
+    // still in progress — `extraData.refundInFlight` is the only thing that
+    // says the money is going the other way (peanut-api-ts `src/db/history.ts`).
+    const isDepositBeingReturned = direction === 'bank_deposit' && entry.extraData?.refundInFlight === true
+    if (isDepositBeingReturned) uiStatus = 'processing'
+
+    // The return finished: the payer has the money and the intent is terminal.
+    // Bridge rails map RETURNED/REFUNDED to 'failed', which tells the user the
+    // deposit never worked. It did work, and then the bank sent it back — a
+    // different thing to know, and the only one that says what to do next.
+    const returnedStatus = entry.status?.toUpperCase()
+    const isDepositReturned =
+        direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
+    if (isDepositReturned) uiStatus = 'refunded'
+
     // Active dispute trumps the underlying spend's status — a card spend
     // that's been contested isn't really "completed" from the user's POV,
     // even though Rain settled it. Flip the pill to `pending` while the
@@ -568,8 +656,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // so this shows the true amount deducted instead of just the principal.
     const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
     const amount = baseAmount + networkFeeUsd
+    // The one fee shown as its own line: a wire's, which the user picked and
+    // saw before confirming (TASK-23054). The bank receives the amount less it.
+    const payoutFeeUsd =
+        typeof entry.extraData?.payoutFeeUsd === 'number' && entry.extraData.payoutFeeUsd > 0
+            ? entry.extraData.payoutFeeUsd
+            : undefined
+    const usdBankAmount = (currency: HistoryEntry['currency']) => {
+        const value = currency?.code?.toUpperCase() === 'USD' ? Number(currency.amount) : Number.NaN
+        return Number.isFinite(value) ? value : undefined
+    }
 
-    const { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData } = computeDerivedFields(entry)
+    const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
+        computeDerivedFields(entry)
 
     // If full name is empty, set it to same as nameForDetails as fallback
     if (!fullName || fullName === '') {
@@ -579,6 +678,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // determine which name to use for initials based on showFullName preference
     // if showFullName is false or undefined, use username; otherwise use fullName
     const nameForInitials = showFullName && fullName ? fullName : nameForDetails
+
+    // A deposit into the user's standing bank details. The wire carries no flag
+    // for it, so read the shape the API gives it (peanut-api-ts
+    // src/db/history.ts, `isDepositAccount`): a Bridge deposit whose sender is
+    // the payer's bank account, typed by its rail. Every other Bridge deposit
+    // names the user's own wallet ('peanut-wallet') or an on-chain address as
+    // the sender. Manteca deposits also carry a bank sender (BANK_CBU), but
+    // they are the user's own transfer, so the provider gate is required.
+    const isDepositAccountDeposit =
+        direction === 'bank_deposit' &&
+        entry.extraData?.provider === 'BRIDGE' &&
+        entry.senderAccount?.isUser === false &&
+        !NON_BANK_SENDER_TYPES.has(entry.senderAccount.type)
 
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
@@ -595,6 +707,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenAmount: entry.amount,
         fullName,
         showFullName,
+        // Read after the reaper / failed-QR overrides above, so a row whose
+        // counterparty was rewritten to system copy cannot keep their sticker.
+        avatarKey: isPeerActuallyUser ? (out.avatarKey ?? null) : null,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
@@ -605,18 +720,25 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
-        // rate, never surfaced as a separate line item. Keep the backend field
-        // populated for ops/debug, but never thread it to the UI. `fee` stays
-        // `undefined` so `rowVisibilityConfig.fee` is always false and the
-        // drawer's fee row never renders. If this rule changes, update
-        // docs/product-conventions.md first.
-        fee: undefined,
+        // rate, never surfaced as a separate line item — with one exception, a
+        // wire's flat fee (TASK-23054, Hugo 2026-09-25: "communicate it
+        // clearly"). The user chose it on the review screen, so the receipt
+        // states it and what the bank received.
+        fee: payoutFeeUsd,
+        // the backend's own figure (Bridge's final_amount, or its payout helper
+        // before then), never a subtraction here
+        payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
         memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
+        actionLabelKey: isDepositReturned
+            ? ('type.returnedToSender' as const)
+            : isDepositBeingReturned
+              ? ('type.beingReturned' as const)
+              : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)
@@ -628,7 +750,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         })(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
-        txHash: entry.txHash,
+        // Keep displayed/copied proof and its explorer URL atomic. Completed
+        // cross-chain withdrawals use the destination pair; pending and legacy
+        // rows keep the source pair.
+        txHash: proofTxHash,
         explorerUrl: explorerUrlWithTx,
         tokenDisplayDetails,
         tokenAddress: entry.tokenAddress,
@@ -645,6 +770,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            senderReference: senderNoteText(entry.extraData?.senderReference),
+            isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            // The bank sent the money back after it settled, so the
+            // conversion happened even though the row reads as failed.
+            wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
+            payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
+            paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

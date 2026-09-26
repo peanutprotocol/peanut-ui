@@ -119,6 +119,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
             <ActionModal
                 visible={visible && !showIframe && !isConfirming}
                 onClose={onSkip}
+                tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : copy.title}
                 description={error || copy.description}
@@ -127,17 +128,12 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                         text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : t('bridgeTos.acceptTerms'),
                         onClick: handleAcceptTerms,
                         disabled: isLoading,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },
-                    {
-                        text: t('bridgeTos.notNow'),
-                        onClick: onSkip,
-                        variant: 'transparent' as const,
-                        className: 'underline text-body-s w-full h-fit mt-3',
-                    },
                 ]}
+                tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
             />
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}

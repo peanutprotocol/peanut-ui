@@ -64,6 +64,31 @@ describe('demoRespond — routing', () => {
         expect(data.user.username).toBe(DEMO_USER.user.username)
     })
 
+    it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
+        // The form asks for it the moment it opens with "this account is mine"
+        // ticked. Unmapped, strict mode throws and the screen-capture harness
+        // fails the screen ("Missing synthetic responses").
+        const res = await demoRespond('/users/me/verified-address', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        // Nothing to prefill, so the form asks — no synthetic address is served.
+        expect(await res.json()).toEqual({})
+    })
+
+    it('only advertises badges with live unlock paths in the demo catalog', async () => {
+        const { data } = await body('/badge/catalog')
+        const codes = data.badges.map(({ code }: { code: string }) => code)
+
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'TRON']))
+        // campaign links still award these, but they are not earnable (Hugo, 2026-09-25)
+        expect(codes).not.toContain('SURF_UP')
+        expect(codes).not.toEqual(
+            expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
+        )
+        // every account holds BETA_TESTER from sign-up, so the API does not list it as earnable
+        expect(codes).not.toContain('BETA_TESTER')
+        expect(data.badges.every(({ earnable }: { earnable: boolean }) => earnable)).toBe(true)
+    })
+
     it('returns populated contacts for GET /users/contacts', async () => {
         const { data } = await body('/users/contacts?limit=20&offset=0')
         expect(data.contacts).toHaveLength(DEMO_CONTACTS.length)
@@ -93,6 +118,13 @@ describe('demoRespond — routing', () => {
     it('treats GET /requests (search) as "none found" via 404', async () => {
         const { res } = await body('/requests?recipient=demo')
         expect(res.status).toBe(404)
+    })
+
+    it('returns a terminal claim status for the optimistic-claim poll', async () => {
+        const { res, data } = await body('/send-links/demo-pubkey/status?c=42161&v=v4.4&i=0')
+
+        expect(res.status).toBe(200)
+        expect(data).toMatchObject({ pubKey: 'demo-pubkey', status: 'CLAIMED' })
     })
 
     it('returns a believable off-ramp success for POST /bridge/offramp/create', async () => {
@@ -272,5 +304,40 @@ describe('demo mode is web-safe', () => {
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
         enableDemoMode() // even with the flag set...
         expect(isDemoMode()).toBe(false) // ...web stays inert
+    })
+})
+
+describe('demoRespond — card application', () => {
+    it('walks apply → terms → pending like the real contract', async () => {
+        const before = await body('/rain/cards')
+        expect(before.data.status.hasApplication).toBe(false)
+
+        const ask = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: false }) })
+        expect(ask.data.status).toBe('terms-required')
+
+        const accept = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: true }) })
+        expect(accept.data.status).toBe('pending')
+
+        const after = await body('/rain/cards')
+        expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
+    })
+})
+
+describe('demoRespond — withdraw quote (TASK-23054)', () => {
+    it('answers the typed bank amount at a synthetic 1:1 rate, offline included', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=50',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ destinationCurrency: 'eur', rate: '1', sourceAmount: '50' })
+    })
+
+    it('answers only the rate before an amount is typed', async () => {
+        const res = await demoRespond('/bridge/offramp/quote?destinationCurrency=gbp', { method: 'GET' })
+        const body = await res.json()
+        expect(body.rate).toBe('1')
+        expect(body.sourceAmount).toBeUndefined()
     })
 })

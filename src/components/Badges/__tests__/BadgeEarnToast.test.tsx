@@ -1,18 +1,14 @@
-import { render as rtlRender, screen, act, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import type { ComponentProps } from 'react'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
-// next/navigation — mutable pathname so we can exercise the /home gate; stable
-// router object so the effect doesn't re-fire on the tap-triggered re-render.
+// next/navigation — mutable pathname so we can exercise the /home gate.
 let mockPathname = '/home'
-const mockRouterPush = jest.fn()
-const mockRouter = { push: mockRouterPush }
 jest.mock('next/navigation', () => ({
     usePathname: () => mockPathname,
-    useRouter: () => mockRouter,
 }))
 
 jest.mock('next/image', () => ({
@@ -40,16 +36,6 @@ let mockPending: Array<{
 }> = []
 jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
     useBadgeEarnToast: () => ({ pending: mockPending, markSeen: mockMarkSeen }),
-}))
-
-// Minimal stub: surface the title so we can assert the detail modal opened.
-jest.mock('@/components/Badges/BadgeDetailModal', () => ({
-    BadgeDetailModal: ({ isOpen, title, code }: { isOpen: boolean; title: string; code?: string }) =>
-        isOpen ? (
-            <div data-testid="badge-detail-modal" data-code={code}>
-                {title}
-            </div>
-        ) : null,
 }))
 
 import posthog from 'posthog-js'
@@ -82,7 +68,7 @@ describe('BadgeEarnToast', () => {
         expect(mockToast).not.toHaveBeenCalled()
     })
 
-    it('fires one toast for a single badge and opens the detail modal on tap', () => {
+    it('fires a non-interactive toast for a single badge', () => {
         mockPending = [badge('PRODUCT_HUNT', 'Product Hunt')]
         render(<BadgeEarnToast />)
 
@@ -92,13 +78,9 @@ describe('BadgeEarnToast', () => {
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_shown', { count: 1 })
 
         render(mockToast.mock.calls[0][0].content)
-        act(() => fireEvent.click(screen.getByRole('button', { name: /tap to view/i })))
-
-        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
-        expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1, target: 'badge_detail' })
-        expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
-        expect(screen.getByTestId('badge-detail-modal')).toHaveAttribute('data-code', 'PRODUCT_HUNT')
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.queryByText(/tap to view/i)).not.toBeInTheDocument()
     })
 
     it('renders the API iconUrl instead of the local legacy asset', () => {
@@ -119,7 +101,7 @@ describe('BadgeEarnToast', () => {
         expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
     })
 
-    it('announces unlocked avatars in a second toast 500ms later and hands the user to the picker (TASK-22142)', () => {
+    it('announces unlocked avatars in a non-interactive second toast 500ms later (TASK-22142)', () => {
         jest.useFakeTimers()
         mockPending = [badge('BUG_WHISPERER', 'Bug Whisperer')]
         render(<BadgeEarnToast />)
@@ -136,31 +118,12 @@ describe('BadgeEarnToast', () => {
 
         render(mockToast.mock.calls[1][0].content)
         expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
-
-        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
-        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn-avatar:BUG_WHISPERER')
-        // the badge rides along so the first hand deals one of its avatars
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
-        expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Choose avatar/)).not.toBeInTheDocument()
         jest.useRealTimers()
     })
 
-    it('hands the picker the newest badge of a coalesced batch', () => {
-        jest.useFakeTimers()
-        mockPending = [badge('BUG_WHISPERER', 'Bug Whisperer'), badge('SHHHHH', 'Shhh')]
-        render(<BadgeEarnToast />)
-
-        act(() => jest.advanceTimersByTime(500))
-        render(mockToast.mock.calls[1][0].content)
-        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
-        jest.useRealTimers()
-    })
-
-    // Most badges ship no avatar art, so this batch is the common one: the
-    // newest badge has none and an older one carries the three the toast
-    // announces. Naming the artless code would deal any avatar already held.
-    it('hands the picker the newest badge that actually has avatars', () => {
+    it('announces avatars when an older badge in a coalesced batch has art', () => {
         jest.useFakeTimers()
         mockPending = [badge('PRODUCT_HUNT', 'Product Hunt'), badge('SHHHHH', 'Shhh')]
         render(<BadgeEarnToast />)
@@ -168,9 +131,7 @@ describe('BadgeEarnToast', () => {
         act(() => jest.advanceTimersByTime(500))
         render(mockToast.mock.calls[1][0].content)
         expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
-
-        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=SHHHHH')
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
         jest.useRealTimers()
     })
 
@@ -184,7 +145,7 @@ describe('BadgeEarnToast', () => {
         jest.useRealTimers()
     })
 
-    it('coalesces multiple badges and routes to /badges on tap', () => {
+    it('coalesces multiple badges without an action', () => {
         mockPending = [badge('SHHHHH', 'Shhh'), badge('PRODUCT_HUNT', 'Product Hunt')]
         render(<BadgeEarnToast />)
 
@@ -192,11 +153,8 @@ describe('BadgeEarnToast', () => {
         expect(mockMarkSeen).toHaveBeenCalledWith(['SHHHHH', 'PRODUCT_HUNT'])
 
         render(mockToast.mock.calls[0][0].content)
-        expect(screen.getByText(/You unlocked 2 badges/)).toBeInTheDocument()
-
-        act(() => fireEvent.click(screen.getByRole('button', { name: /tap to view/i })))
-        expect(mockRouterPush).toHaveBeenCalledWith('/badges')
-        expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+        expect(screen.getByText(/2 badges unlocked/)).toBeInTheDocument()
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
     it('dismisses the live toast when the user navigates away from /home', () => {

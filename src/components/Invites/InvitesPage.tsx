@@ -3,9 +3,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -242,7 +240,7 @@ function InvitePageContent() {
 
         const hasBackendLegacyAcceptance = !!inviteCode && !!inviteCodeData?.success && !!legacyAcquisition
         if (hasValidInvite || hasBackendLegacyAcceptance) {
-            // Cookies so PWA-install + later signup + registration all see the invite.
+            // Cookies so the app handoff, signup, and registration all see the invite.
             stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
         }
         // Explicit URL acquisition survives signup in the shared cookie.
@@ -320,13 +318,8 @@ function InvitePageContent() {
     const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
-        <InvitesPageLayout image={PeanutWavingHello.src}>
-            <div
-                className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
-                    'flex flex-col items-end justify-center gap-6 pt-8'
-                )}
-            >
+        <InvitesPageLayout pose="waving-hello">
+            <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
                         <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
@@ -339,7 +332,7 @@ function InvitePageContent() {
                             <Button
                                 disabled={isLoggingIn}
                                 loading={isLoggingIn}
-                                variant="primary-soft"
+                                variant="secondary"
                                 onClick={handleLoginWithBadgeCampaign}
                                 shadowSize="4"
                             >

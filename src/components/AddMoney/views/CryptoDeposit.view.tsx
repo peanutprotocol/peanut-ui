@@ -3,15 +3,16 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import ChainChip from '../components/ChainChip'
-import HowToDepositModal from '../components/HowToDepositModal'
-import SupportedNetworksModal from '../components/SupportedNetworksModal'
+import HowToDepositDrawer from '../components/HowToDepositDrawer'
+import SupportedNetworksDrawer from '../components/SupportedNetworksDrawer'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import {
     CHAIN_LOGOS,
@@ -25,7 +26,7 @@ import type {
     DepositAddressStatusResponse,
     RhinoChainType,
 } from '@/services/services.types'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tooltip } from '@/components/Tooltip'
 import { useState } from 'react'
 import Image from 'next/image'
@@ -96,6 +97,20 @@ const CryptoDepositView = ({
         )
     }
 
+    // deposit detected and settling — the processing state owns the whole
+    // screen so the send-instructions cannot invite a second deposit
+    if (status === 'loading') {
+        return (
+            <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <ProcessingScreen
+                    title={tAddMoney('processingDepositTitle')}
+                    description={tAddMoney('processingDepositBody')}
+                />
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -109,23 +124,23 @@ const CryptoDepositView = ({
                     })}
                 </p>
 
-                {/* loading state */}
-                {(isLoading || status === 'loading') && (
+                {/* address preparation keeps the bare mascot */}
+                {isLoading && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {status === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
+                        <Loading variant="mascot" />
                     </div>
                 )}
 
                 {/* address-creation error — without this the screen instructs the
                     user to send funds while showing no address at all */}
-                {isError && !isLoading && status !== 'loading' && (
+                {isError && !isLoading && (
                     <div className="flex flex-col items-center gap-4">
-                        <Notification priority="attention" title={t('addressErrorTitle')}>
+                        <Callout priority="attention" title={t('addressErrorTitle')}>
                             {t('addressErrorDescription')}
-                        </Notification>
+                        </Callout>
                         {onRetry && (
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 className="w-full bg-background-default"
                                 shadowSize="4"
                                 onClick={onRetry}
@@ -136,7 +151,7 @@ const CryptoDepositView = ({
                     </div>
                 )}
 
-                {depositAddressData && !isLoading && status !== 'loading' && (
+                {depositAddressData && !isLoading && (
                     <>
                         {/* qr code */}
                         <div className="flex items-center justify-center">
@@ -147,7 +162,7 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* deposit address + networks + tokens card — white bg */}
-                        <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                        <div className={`flex flex-col overflow-hidden ${CARD_SURFACE}`}>
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
@@ -240,9 +255,9 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* warning card */}
-                        <Notification priority="attention" title={t('warningTitle')}>
+                        <Callout priority="attention" title={t('warningTitle')}>
                             {t('warningDescription')}
-                        </Notification>
+                        </Callout>
 
                         {/* min/max limits */}
                         <div className="flex w-full flex-col gap-1">
@@ -269,7 +284,7 @@ const CryptoDepositView = ({
 
                         {/* how to deposit button */}
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full bg-background-default"
                             shadowSize="4"
                             onClick={() => setShowHowToDeposit(true)}
@@ -282,8 +297,8 @@ const CryptoDepositView = ({
             </div>
 
             {/* modals */}
-            <HowToDepositModal visible={showHowToDeposit} onClose={() => setShowHowToDeposit(false)} />
-            <SupportedNetworksModal visible={showSupportedNetworks} onClose={() => setShowSupportedNetworks(false)} />
+            <HowToDepositDrawer visible={showHowToDeposit} onClose={() => setShowHowToDeposit(false)} />
+            <SupportedNetworksDrawer visible={showSupportedNetworks} onClose={() => setShowSupportedNetworks(false)} />
         </div>
     )
 }

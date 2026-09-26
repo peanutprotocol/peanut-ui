@@ -7,19 +7,22 @@ import Cookies from 'js-cookie'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { persistLocale } from '@/i18n/app/locale-store'
 import { type Locale } from '@/i18n/types'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { localeHref } from './LocaleSwitcher'
 
 const DISMISS_KEY = 'locale-suggestion-dismissed'
 
 // Inlined rather than read from the catalogs: this is a client component, and
 // importing '@/i18n' would ship every locale's full catalog in the client
-// bundle of each landing page for just these three strings. Keep in sync with
-// the localeSuggestion* keys in src/i18n/{locale}.json.
-const STRINGS: Record<Locale, { text: string; cta: string; dismiss: string }> = {
-    en: { text: 'If you prefer to see this page in English,', cta: 'click here!', dismiss: 'Dismiss' },
-    'es-419': { text: 'Si prefieres ver esta página en español,', cta: '¡haz clic aquí!', dismiss: 'Descartar' },
-    'es-ar': { text: 'Si preferís ver esta página en español,', cta: '¡hacé clic acá!', dismiss: 'Descartar' },
-    'pt-br': { text: 'Se você prefere ver esta página em português,', cta: 'clique aqui!', dismiss: 'Dispensar' },
+// bundle of each landing page for just these two strings. Keep in sync with
+// the localeSuggestion* keys in src/i18n/{locale}.json. The dismiss label is
+// no longer here — Callout owns its close button and labels it from the
+// page's own catalog.
+const STRINGS: Record<Locale, { text: string; cta: string }> = {
+    en: { text: 'If you prefer to see this page in English,', cta: 'click here!' },
+    'es-419': { text: 'Si prefieres ver esta página en español,', cta: '¡haz clic aquí!' },
+    'es-ar': { text: 'Si preferís ver esta página en español,', cta: '¡hacé clic acá!' },
+    'pt-br': { text: 'Se você prefere ver esta página em português,', cta: 'clique aqui!' },
 }
 
 // Banner is switched off: first-visit language now comes from the proxy's
@@ -72,31 +75,22 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
     }
 
     return (
-        // Horizontal padding leaves room for the absolutely-positioned dismiss
-        // button, so long copy can't run underneath it.
-        <div
-            lang={suggested}
-            className="relative border-b border-n-1 bg-primary-1/20 px-10 py-2 text-center text-sm text-n-1"
-        >
-            <span>
+        // lang rides the wrapper, not the Callout: the banner speaks the
+        // SUGGESTED language while the page around it does not.
+        <div lang={suggested}>
+            {/* square corners only: the compact inline anatomy is a borderless tint
+                (ruled 2026-09-03), and this one runs edge to edge. */}
+            <Callout priority="info" onDismiss={dismiss} className="rounded-none">
                 {i18n.text}{' '}
                 <Link
                     href={localeHref(pathname, suggested)}
                     hrefLang={suggested}
                     onClick={() => persistLocale(toAppLocale(suggested))}
-                    className="font-bold underline underline-offset-2"
+                    className="underline underline-offset-2"
                 >
                     {i18n.cta}
                 </Link>
-            </span>
-            <button
-                type="button"
-                onClick={dismiss}
-                aria-label={i18n.dismiss}
-                className="absolute top-1/2 right-3 -translate-y-1/2 px-1 leading-none opacity-60 hover:opacity-100"
-            >
-                <span aria-hidden>×</span>
-            </button>
+            </Callout>
         </div>
     )
 }

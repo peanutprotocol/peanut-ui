@@ -1,4 +1,9 @@
-import { type TCreateOfframpRequest } from '../../services/services.types'
+import {
+    type OfframpQuote,
+    type UsdPayoutRailFees,
+    type TCreateGuestOfframpRequest,
+    type TCreateOfframpRequest,
+} from '../../services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 
 export type CreateOfframpSuccessResponse = {
@@ -7,6 +12,8 @@ export type CreateOfframpSuccessResponse = {
         toAddress: string
         blockchainMemo?: string
     }
+    /** The OFFRAMP intent. Absent on the guest route. */
+    intentId?: string
 }
 
 /**
@@ -20,7 +27,7 @@ export type CreateOfframpSuccessResponse = {
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; status?: number }> {
     try {
         const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
@@ -28,12 +35,23 @@ export async function createOfframp(
                 ...params,
                 provider: 'bridge', // note: bridge is currently the only provider
             }),
+            // The first withdraw on a rail grants the endorsement inside this
+            // request, and that grant polls the provider before the transfer
+            // is even created. The default client budget is 20s, so the
+            // browser could abort mid-grant; an abort that lands after the
+            // transfer exists leaves an orphan, and the retry creates a second
+            // one. Same budget confirm already takes, for the same reason.
+            timeoutMs: 60_000,
         })
 
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer.' }
+            return {
+                error: data.error || 'Failed to create off-ramp transfer.',
+                code: data.code,
+                status: response.status,
+            }
         }
 
         return { data }
@@ -46,22 +64,95 @@ export async function createOfframp(
     }
 }
 
+/**
+ * Quote a withdrawal typed in the bank currency: the USDC that pays that
+ * amount at the current rate. Without `destinationAmount`, only the rate.
+ */
+export async function getOfframpQuote(
+    destinationCurrency: string,
+    destinationAmount?: string
+): Promise<{ data?: OfframpQuote; error?: string }> {
+    try {
+        const query = new URLSearchParams({ destinationCurrency })
+        if (destinationAmount) query.set('destinationAmount', destinationAmount)
+        const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })
+        const data = await response.json()
+        if (!response.ok) {
+            return { error: data.error || 'Failed to get the offramp quote.' }
+        }
+        return { data }
+    } catch (error) {
+        console.error('Error calling offramp quote API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * The rails a USD withdrawal may use and the fee for each, from the backend's
+ * one fee table. The app shows these and never a fee of its own.
+ */
+export async function getUsdPayoutRailFees(): Promise<{ data?: UsdPayoutRailFees; error?: string }> {
+    try {
+        const response = await serverFetch('/bridge/offramp/rail-fees', { method: 'GET' })
+        const data = await response.json()
+        if (!response.ok) return { error: data.error || 'Failed to get the payout fees.' }
+        return { data }
+    } catch (error) {
+        console.error('Error calling offramp rail fees API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * The rails the provider says this US account can take (`payment_rails`),
+ * or null when it does not say. A wire needs an address the bank accepts.
+ */
+export async function getExternalAccountPaymentRails(
+    customerId: string,
+    externalAccountId: string
+): Promise<{ data?: { supported: string[] } | null; error?: string }> {
+    try {
+        const response = await serverFetch(
+            `/bridge/customers/${encodeURIComponent(customerId)}/external-accounts/${encodeURIComponent(externalAccountId)}`,
+            { method: 'GET' }
+        )
+        const data = await response.json()
+        if (!response.ok) return { error: data.error || 'Failed to read the bank account.' }
+        const supported = data?.payment_rails?.supported
+        return { data: Array.isArray(supported) ? { supported: supported.map(String) } : null }
+    } catch (error) {
+        console.error('Error calling external account API:', error)
+        return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+    }
+}
+
+/**
+ * Claim a send link to a bank account as a guest. The API resolves the sender
+ * from the link and checks `signature` — the link key's signature over
+ * guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId).
+ * A repeat to the same account returns the same transfer.
+ */
 export async function createOfframpForGuest(
-    params: TCreateOfframpRequest
-): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+    params: TCreateGuestOfframpRequest
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string; code?: string; status?: number }> {
     try {
         const response = await serverFetch('/bridge/offramp/create-for-guest', {
             method: 'POST',
-            body: JSON.stringify({
-                ...params,
-                provider: 'bridge',
-            }),
+            body: JSON.stringify(params),
+            // the guest's name, address and link signature must not reach telemetry
+            redactTelemetry: true,
+            // same budget as createOfframp: the endorsement grant can run inside this request
+            timeoutMs: 60_000,
         })
 
         const data = await response.json()
 
         if (!response.ok) {
-            return { error: data.error || 'Failed to create off-ramp transfer for guest.' }
+            return {
+                error: data.error || 'Failed to create off-ramp transfer for guest.',
+                code: data.code,
+                status: response.status,
+            }
         }
 
         return { data }

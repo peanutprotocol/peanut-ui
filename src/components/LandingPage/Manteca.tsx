@@ -35,7 +35,7 @@ const Manteca = ({
     return (
         <section
             id="qr-pay"
-            className="relative overflow-hidden py-20 text-n-1 md:min-h-[850px] lg:min-h-[750px]"
+            className="relative overflow-hidden py-20 text-foreground-primary md:min-h-[850px] lg:min-h-[750px]"
             style={{ backgroundColor }}
         >
             <div className="hidden md:block">
@@ -97,7 +97,13 @@ const Manteca = ({
                     />
                 </div>
 
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} className="md:order-2" />
+                <Image
+                    src={mantecaIphone}
+                    alt={i18n.landingPayLocalPhoneAlt}
+                    width={250}
+                    height={250}
+                    className="md:order-2"
+                />
             </div>
         </section>
     )

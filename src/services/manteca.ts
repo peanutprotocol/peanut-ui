@@ -47,11 +47,23 @@ export type QrPayment = {
     perk?: {
         eligible: boolean
         discountPercentage: number
+        /** Local reveal flag (hold-to-claim done). NOT payout settlement —
+         *  see `payoutStatus` for that. */
         claimed?: boolean
         amountSponsored?: number
         txHash?: string
+        /** perk_usage row the reward was issued under. Present once the API
+         *  returns after durable issuance (TASK-22692); absent from older APIs. */
+        usageId?: string
+        /** Settlement of the reward transfer itself, which now completes after
+         *  the response. `pending` is still an earned reward. */
+        payoutStatus?: 'pending' | 'completed' | 'failed'
     }
 }
+
+/** Client-minted UUID naming one signed payment attempt in `qr_payment_stage`
+ *  telemetry. Telemetry only — never an idempotency, auth or funding key. */
+export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string }
 
 export type QrPaymentCharge = {
     uuid: string
@@ -80,6 +92,9 @@ export type QrPaymentLock = {
     paymentAgainstAmount: string
     paymentAgainst: string
     expireAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expireAt`, against the device clock (see receiveLock). */
+    expiresInMs?: number
     creationTime: string
     /** Entity-aware Manteca deposit address served by the API (per-entity
      *  balances from 2026-09-14). Optional only while an older API without
@@ -123,6 +138,9 @@ export type WithdrawPriceLock = {
     priceLockCode: string
     price: string
     expiresAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expiresAt`, against the device clock (see receiveLock). */
+    expiresInMs?: number
     usdAmount: string
     fiatAmount: string
     currency: string
@@ -176,57 +194,59 @@ export const mantecaApi = {
      * `rainWithdrawal` branch creates the Manteca order first and funds after.
      */
     completeQrPaymentWithSignedTx: async (
-        body:
-            | {
-                  kind: 'userOp'
-                  paymentLockCode: string
-                  qrType?: string
-                  signedUserOp: Pick<
-                      SignUserOperationReturnType,
-                      | 'sender'
-                      | 'nonce'
-                      | 'callData'
-                      | 'signature'
-                      | 'callGasLimit'
-                      | 'verificationGasLimit'
-                      | 'preVerificationGas'
-                      | 'maxFeePerGas'
-                      | 'maxPriorityFeePerGas'
-                      | 'paymaster'
-                      | 'paymasterData'
-                      | 'paymasterVerificationGasLimit'
-                      | 'paymasterPostOpGasLimit'
-                      | 'factory'
-                      | 'factoryData'
-                  >
-                  chainId: string
-                  entryPointAddress: Address
-                  /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
-                   *  strategy). Lets backend stamp the prepared intent with the
-                   *  on-chain tx hash so the collateral webhook reconciles to the
-                   *  right kind in history (vs. an unmatched generic charge). */
-                  rainPreparationId?: string
-              }
-            | {
-                  kind: 'rainWithdrawal'
-                  paymentLockCode: string
-                  qrType?: string
-                  signedRainWithdrawal: {
-                      /** Classification hint only — never a target address. */
-                      preparedCoordinatorAddress?: string
-                      preparationId: string
-                      amount: string
-                      recipientAddress: Address
-                      directTransfer: boolean
-                      adminSalt: string
-                      adminNonce: string
-                      adminSignature: string
-                      executorSignature: string
-                      executorSalt: string
-                      expiresAt: number
+        body: ClientPaymentAttemptBody &
+            (
+                | {
+                      kind: 'userOp'
+                      paymentLockCode: string
+                      qrType?: string
+                      signedUserOp: Pick<
+                          SignUserOperationReturnType,
+                          | 'sender'
+                          | 'nonce'
+                          | 'callData'
+                          | 'signature'
+                          | 'callGasLimit'
+                          | 'verificationGasLimit'
+                          | 'preVerificationGas'
+                          | 'maxFeePerGas'
+                          | 'maxPriorityFeePerGas'
+                          | 'paymaster'
+                          | 'paymasterData'
+                          | 'paymasterVerificationGasLimit'
+                          | 'paymasterPostOpGasLimit'
+                          | 'factory'
+                          | 'factoryData'
+                      >
+                      chainId: string
+                      entryPointAddress: Address
+                      /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
+                       *  strategy). Lets backend stamp the prepared intent with the
+                       *  on-chain tx hash so the collateral webhook reconciles to the
+                       *  right kind in history (vs. an unmatched generic charge). */
+                      rainPreparationId?: string
                   }
-                  chainId: string
-              }
+                | {
+                      kind: 'rainWithdrawal'
+                      paymentLockCode: string
+                      qrType?: string
+                      signedRainWithdrawal: {
+                          /** Classification hint only — never a target address. */
+                          preparedCoordinatorAddress?: string
+                          preparationId: string
+                          amount: string
+                          recipientAddress: Address
+                          directTransfer: boolean
+                          adminSalt: string
+                          adminNonce: string
+                          adminSignature: string
+                          executorSignature: string
+                          executorSalt: string
+                          expiresAt: number
+                      }
+                      chainId: string
+                  }
+            )
     ): Promise<QrPayment> => {
         const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
             method: 'POST',

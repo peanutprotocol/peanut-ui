@@ -20,9 +20,26 @@ import {
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
 /**
- * Read the flag from PostHog. Local, CI and preview builds also accept
- * localStorage['pwa-sunset'] = 'true' because PostHog may be unavailable there.
- * Production builds for peanut.me ignore the override.
+ * Every Vercel preview deployment keeps the web signup flow while the
+ * production PWA sunset flag is enabled: ad-hoc PR previews are temporary
+ * review environments, and the `dev` branch preview backs staging, where the
+ * team still creates accounts. Both read the production PostHog project, so
+ * the flag alone cannot tell them apart from peanut.me.
+ *
+ * Require a git ref as well as VERCEL_ENV: local visual builds set only
+ * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep following
+ * the flag.
+ */
+function isVercelPreviewDeployment(): boolean {
+    return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
+}
+
+/**
+ * Read the flag from PostHog. Local, CI, staging and preview builds also
+ * accept localStorage['pwa-sunset'] = 'true' because PostHog may be
+ * unavailable there, and because it is how QA forces the migration state on
+ * a deployment that otherwise ignores the flag. Production builds for
+ * peanut.me ignore the override.
  */
 export function isPwaSunsetOn(): boolean {
     if (
@@ -32,6 +49,7 @@ export function isPwaSunsetOn(): boolean {
     ) {
         return true
     }
+    if (isVercelPreviewDeployment()) return false
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
 }
 

@@ -14,6 +14,7 @@ import type { ReceiptViewModel } from '../useReceiptViewModel'
 
 const mockCancelSendLink = jest.fn()
 
+jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'sender' } } }) }))
@@ -53,7 +54,17 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
-jest.mock('../ReceiptReferralNudge', () => ({ ReceiptReferralNudge: () => null }))
+jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+}))
+jest.mock('../useReceiptPdfFile', () => ({
+    useReceiptPdfFile: () => ({ share: jest.fn(), download: jest.fn(), busy: null, unavailable: false, error: false }),
+}))
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }),
+}))
+jest.mock('../ReceiptMoreActionsDrawer', () => ({ ReceiptMoreActionsDrawer: () => null }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => null }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => null }))
 

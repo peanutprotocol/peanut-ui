@@ -4,11 +4,13 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import Card from '@/components/Global/Card'
+import GlobalCard from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -90,14 +92,14 @@ export function QrPayFormView() {
                 onRefreshToken={qrLimitIncreaseFlow.refreshToken}
                 isMultiLevel
             />
-            <div className="flex min-h-inherit flex-col gap-8">
+            <PageStack>
                 <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     {/* Merchant Card */}
                     <Card className="p-4">
-                        <div className="space-x-3 flex items-center">
+                        <div className="flex items-center gap-3">
                             <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
@@ -109,7 +111,7 @@ export function QrPayFormView() {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1 text-center text-body-s">
-                                    <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
+                                    <Icon name="arrow-up-right" size={16} /> {t('youArePaying')}
                                 </p>
                                 <p
                                     className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
@@ -174,7 +176,7 @@ export function QrPayFormView() {
                     })()}
 
                     {/* Information Card */}
-                    <Card className="space-y-0 px-4">
+                    <GlobalCard className="px-4">
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
@@ -202,7 +204,7 @@ export function QrPayFormView() {
                             value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />
-                    </Card>
+                    </GlobalCard>
 
                     {/* Send Button */}
                     <Button
@@ -229,19 +231,19 @@ export function QrPayFormView() {
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (
-                        <Notification priority="info" data-testid="quote-updated-notice">
+                        <Callout priority="info" data-testid="quote-updated-notice">
                             {quoteUpdatedNotice}
-                        </Notification>
+                        </Callout>
                     )}
 
                     {/* Error State */}
                     {errorMessage && (
-                        <Notification priority="error" data-testid="error-alert">
+                        <Callout priority="error" data-testid="error-alert">
                             {errorMessage}
-                        </Notification>
+                        </Callout>
                     )}
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         </>
     )
 }

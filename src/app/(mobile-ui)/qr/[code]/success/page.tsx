@@ -4,8 +4,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useParams, useSearchParams } from 'next/navigation'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect } from 'react'
 import Loading from '@/components/Global/Loading'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -17,9 +17,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { BASE_URL } from '@/constants/general.consts'
 
 export default function RedirectQrSuccessPage() {
-    const t = useTranslations('qrPay')
-    const tCommon = useTranslations('common')
-    const router = useRouter()
+    // the app hook applies the iOS copy layer: the sticker text drops the points clause there
+    const t = useAppTranslations('qrPay')
     const params = useParams()
     const searchParams = useSearchParams()
     const code = (params?.code as string) || searchParams.get('code') || ''
@@ -52,10 +51,7 @@ export default function RedirectQrSuccessPage() {
         <PageStack>
             <NavHeader title={t('claimSuccess.navTitle')} />
             <PageStack.Center className="gap-4">
-                <div className="space-y-1 text-center">
-                    <h1 className="text-heading-s">{t('claimSuccess.title')}</h1>
-                    <p className="text-body-m text-foreground-secondary">{t('claimSuccess.description')}</p>
-                </div>
+                <h1 className="text-center text-heading-s">{t('claimSuccess.title')}</h1>
 
                 <div className="flex justify-center py-4">
                     <QRCodeWrapper url={qrUrl} />
@@ -73,18 +69,9 @@ export default function RedirectQrSuccessPage() {
                     </div>
                 </Card>
 
-                <div className="space-y-3">
+                <div>
                     <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={() => router.push('/home')}
-                        className="w-full"
-                        icon="arrow-up-right"
-                    >
-                        {tCommon('goToHome')}
-                    </Button>
-                    <Button
-                        variant="primary-soft"
+                        variant="secondary"
                         shadowSize="4"
                         onClick={async () => {
                             try {

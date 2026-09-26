@@ -21,7 +21,7 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
-    Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
+    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
     Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
     Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
@@ -31,6 +31,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
+    'Welcome to Peanut!':
+        'visible title vs. its spoken form: es shows "¡Bienvenid@ a Peanut!", screen readers get "¡Te damos la bienvenida a Peanut!" (the @ is read as "arroba")',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
     Username:
         "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
@@ -38,6 +40,9 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
+    'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
+    'Pay a QR code':
+        'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
 }
 
 describe('deepMerge fallback', () => {
@@ -72,6 +77,68 @@ describe('catalog key parity', () => {
     it.each(DELTA_LOCALES)('%s holds only keys that exist in en', (locale) => {
         const stray = leafPaths(CATALOGS[locale]).filter((path) => !enPaths.includes(path))
         expect(stray).toEqual([])
+    })
+})
+
+describe('navigation action labels', () => {
+    const EXPECTED_ACTIONS: Record<AppLocale, { request: string; add: string }> = {
+        en: { request: 'Request', add: 'Add' },
+        'es-419': { request: 'Solicitar', add: 'Agregar' },
+        'es-AR': { request: 'Solicitar', add: 'Agregar' },
+        'pt-BR': { request: 'Cobrar', add: 'Adicionar' },
+    }
+
+    it.each(APP_LOCALES)('%s keeps request and add distinct', async (locale) => {
+        const { navigation } = await loadMessages(locale)
+        expect({ request: navigation.request, add: navigation.add }).toEqual(EXPECTED_ACTIONS[locale])
+        expect(navigation.request).not.toBe(navigation.add)
+    })
+})
+
+describe('deposit screen copy', () => {
+    const EXPECTED = {
+        en: {
+            howToDeposit: 'How to deposit',
+            supportedNetworks: 'Supported networks',
+            supportedTokens: 'Supported tokens',
+            bridgingNote:
+                'USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).',
+        },
+        'es-419': {
+            howToDeposit: 'Cómo depositar',
+            supportedNetworks: 'Redes compatibles',
+            supportedTokens: 'Tokens compatibles',
+            bridgingNote:
+                'Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).',
+        },
+        'es-AR': {
+            howToDeposit: 'Cómo depositar',
+            supportedNetworks: 'Redes compatibles',
+            supportedTokens: 'Tokens compatibles',
+            bridgingNote:
+                'Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).',
+        },
+        'pt-BR': {
+            howToDeposit: 'Como depositar',
+            supportedNetworks: 'Redes compatíveis',
+            supportedTokens: 'Tokens compatíveis',
+            bridgingNote:
+                'Depósitos de USDC na Arbitrum são creditados pelo valor total. Depósitos de outras redes ou tokens passam por ponte e podem variar um pouco (±0,1%).',
+        },
+    } satisfies Record<
+        AppLocale,
+        { howToDeposit: string; supportedNetworks: string; supportedTokens: string; bridgingNote: string }
+    >
+
+    it.each(APP_LOCALES)('%s uses the approved localized copy', async (locale) => {
+        const { addMoney } = await loadMessages(locale)
+
+        expect({
+            howToDeposit: addMoney.howToDeposit.title,
+            supportedNetworks: addMoney.crypto.supportedNetworks,
+            supportedTokens: addMoney.crypto.supportedTokens,
+            bridgingNote: addMoney.crypto.bridgingVarianceNoteEvm,
+        }).toEqual(EXPECTED[locale])
     })
 })
 
@@ -136,6 +203,38 @@ describe('ICU message compilation', () => {
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])
+    })
+})
+
+describe('badge invite requirement agreement', () => {
+    const EXPECTED = {
+        en: ['Invite 1 friend who joins Peanut.', 'Invite 2 friends who join Peanut.'],
+        'es-419': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'es-AR': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'pt-BR': ['Convide 1 amigo que entre no Peanut.', 'Convide 2 amigos que entrem no Peanut.'],
+    } satisfies Record<AppLocale, [string, string]>
+
+    it.each(APP_LOCALES)('%s uses singular and plural relative verbs', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'badges' })
+
+        expect([t('unlock.invites', { target: 1 }), t('unlock.invites', { target: 2 })]).toEqual(EXPECTED[locale])
+    })
+})
+
+describe('badge avatar benefit agreement', () => {
+    const EXPECTED = {
+        en: ['1 profile avatar', '3 profile avatars'],
+        'es-419': ['1 avatar de perfil', '3 avatares de perfil'],
+        'es-AR': ['1 avatar de perfil', '3 avatares de perfil'],
+        'pt-BR': ['1 avatar de perfil', '3 avatares de perfil'],
+    } satisfies Record<AppLocale, [string, string]>
+
+    it.each(APP_LOCALES)('%s agrees the avatar count with its noun', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'badges' })
+
+        expect([t('benefit.avatars', { count: 1 }), t('benefit.avatars', { count: 3 })]).toEqual(EXPECTED[locale])
     })
 })
 

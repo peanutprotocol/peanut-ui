@@ -1,10 +1,9 @@
 /**
  * The badge that records a device's owner as having found the five-tap beta
- * switch on the About screen. The OTA card reads it back as permission to join
- * the `staging` channel — a record of who opted in, NOT an access boundary:
- * anyone who performs the gesture awards it to themselves, and deleting the
- * row only holds until they tap again. Capgo's channel self-assignment setting
- * is the real boundary.
+ * switch on the About screen. It records the opt-in gesture, but is NOT an
+ * access boundary: anyone who performs the gesture awards it to themselves,
+ * and deleting the row only holds until they tap again. Capgo's channel
+ * self-assignment setting is the real boundary.
  *
  * It is never rendered. It says "team" and is handed out on a gesture, so
  * showing it beside earned badges would let any customer wear Peanut staff

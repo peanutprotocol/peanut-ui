@@ -78,14 +78,15 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
-        { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+        { id: 'bank', title: 'Bank transfer', description: 'EUR, USD, MXN, ARS and more', icons: [], soon: false },
         // present in the catalog but must NOT surface in the send list —
         // withdraw-to-own-account rail (see the exclusion test below)
         { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
+        { id: 'pix', title: 'Pix', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
-            title: 'Exchange or Wallet',
-            description: 'Binance, Metamask and more',
+            title: 'Crypto',
+            description: 'Binance, MetaMask and more',
             icons: [],
             soon: false,
         },
@@ -216,11 +217,11 @@ function applyDefaults() {
 
     mockUseGeoFilteredPaymentOptions.mockReturnValue({
         filteredMethods: [
-            { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+            { id: 'bank', title: 'Bank transfer', description: 'EUR, USD, MXN, ARS and more', icons: [], soon: false },
             {
                 id: 'exchange-or-wallet',
-                title: 'Exchange or Wallet',
-                description: 'Binance, Metamask and more',
+                title: 'Crypto',
+                description: 'Binance, MetaMask and more',
                 icons: [],
                 soon: false,
             },
@@ -251,23 +252,38 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
-        expect(screen.getByText('Send money with a link')).toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
+        expect(screen.getByText('Perfect for WhatsApp and Messenger')).toBeInTheDocument()
+        expect(screen.queryByText(/No account needed for crypto-wallet claims/)).not.toBeInTheDocument()
         expect(screen.getByText('Send via link')).toBeInTheDocument()
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
 
-    test('Shows Peanut contacts option at top of methods list', () => {
+    // Send → Bank cannot pay an Argentine account (Argentina shows Soon), and
+    // Brazil's Pix row pays any key, not only a QR (2026-09-23).
+    test('Bank row names the currencies Send can pay, and the Pix row says it pays any key', () => {
+        mockUseGeoFilteredPaymentOptions.mockImplementation(({ methods }: { methods: unknown[] }) => ({
+            filteredMethods: methods,
+        }))
         renderSend()
 
-        const contactsCard = screen.getByTestId('action-card-Peanut contacts')
+        expect(screen.getByText('EUR, USD, MXN, BRL & more')).toBeInTheDocument()
+        expect(screen.getByText('Any Pix key')).toBeInTheDocument()
+        expect(screen.queryByText(/ARS/)).not.toBeInTheDocument()
+    })
+
+    test('Shows Peanut user option at top of methods list', () => {
+        renderSend()
+
+        const contactsCard = screen.getByTestId('action-card-Peanut user')
         expect(contactsCard).toBeInTheDocument()
     })
 
     test('Shows geo-filtered payment methods', () => {
         renderSend()
 
-        expect(screen.getByTestId('action-card-Bank')).toBeInTheDocument()
-        expect(screen.getByTestId('action-card-Exchange or Wallet')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Bank transfer')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Crypto')).toBeInTheDocument()
     })
 
     test('Excludes Mercado Pago from the send list (withdraw-to-own-account rail — PR #2813 review)', () => {
@@ -290,7 +306,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         // Should still render without errors
-        expect(screen.getByTestId('action-card-Peanut contacts')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Peanut user')).toBeInTheDocument()
     })
 })
 
@@ -302,7 +318,7 @@ describe('GROUP 2: Send by Link', () => {
         renderSend({ view: 'link' })
 
         expect(screen.getByTestId('link-send-flow-manager')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('createLink=true also shows LinkSendFlowManager', () => {
@@ -341,7 +357,7 @@ describe('GROUP 3: Contacts View', () => {
         renderSend({ view: 'contacts' })
 
         expect(screen.getByTestId('contacts-view')).toBeInTheDocument()
-        expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
     })
 
     test('Back from a cold deep-link into contacts replaces to /send without minting history', () => {
@@ -387,15 +403,15 @@ describe('GROUP 4: Method Selection', () => {
         // navigation mounts clean state, so no reset call is needed here.
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Bank'))
+        fireEvent.click(screen.getByTestId('action-card-Bank transfer'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=bank')
     })
 
-    test('Clicking exchange-or-wallet navigates to /withdraw?method=crypto', () => {
+    test('Clicking exchange-or-wallet navigates straight to /withdraw/crypto', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Exchange or Wallet'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
+        fireEvent.click(screen.getByTestId('action-card-Crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
     })
 
     test('Pix navigates into the manteca PIX flow', () => {
@@ -408,10 +424,10 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Clicking Peanut contacts navigates to /send?view=contacts', () => {
+    test('Clicking Peanut user navigates to /send?view=contacts', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Peanut contacts'))
+        fireEvent.click(screen.getByTestId('action-card-Peanut user'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
     })
 

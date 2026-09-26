@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -27,7 +28,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/request',
@@ -50,7 +51,14 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), init: jest.fn() },
+    // onFeatureFlags: the guest store hand-off CTA reads the migration flag and
+    // the bank-hub link on this screen is flag-gated — both subscribe through it.
+    default: {
+        capture: jest.fn(),
+        init: jest.fn(),
+        isFeatureEnabled: jest.fn(() => false),
+        onFeatureFlags: jest.fn(() => jest.fn()),
+    },
 }))
 
 // ---------- hooks & services ----------
@@ -101,6 +109,8 @@ jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     printableAddress: jest.fn((a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`),
     jsonStringify: jest.fn((v: any) => JSON.stringify(v)),
+    // the bank-hub link names its origin through withReturnTo, which sanitizes
+    sanitizeRedirectURL: jest.requireActual('@/utils/cookie-url.utils').sanitizeRedirectURL,
 }))
 
 jest.mock('@/utils/balance.utils', () => ({
@@ -154,7 +164,10 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
+                    // the real field reports all three in one pass, the dollar side last
+                    props.setDisplayedAmount?.(e.target.value)
                     props.setPrimaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.('')
                 }}
                 disabled={props.disabled}
             />
@@ -182,6 +195,9 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: (props: any) => <div data-testid="peanut-action-card" data-type={props.type} />,
 }))
 
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -200,25 +216,6 @@ jest.mock('@/components/Global/ShareButton', () => ({
         <button data-testid="share-button" data-url={props.url} onClick={() => props.generateUrl?.()}>
             {props.children}
         </button>
-    ),
-}))
-
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="file-upload-input">
-            <input
-                data-testid="comment-field"
-                value={props.attachmentOptions?.message ?? ''}
-                onChange={(e) =>
-                    props.setAttachmentOptions?.({
-                        ...props.attachmentOptions,
-                        message: e.target.value,
-                    })
-                }
-                placeholder={props.placeholder}
-            />
-        </div>
     ),
 }))
 
@@ -312,6 +309,7 @@ jest.mock('@/components/User/UserCard', () => ({
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
 import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -348,11 +346,13 @@ function renderPayRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <PayRequestLink />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <PayRequestLink />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -360,11 +360,13 @@ function renderDirectRequest() {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <DirectRequestInitialView username="test-user" />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={{}}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <DirectRequestInitialView username="test-user" />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -454,42 +456,43 @@ function applyDefaults() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    safeBackTesting.reset()
     mockSearchParams.clear()
     applyDefaults()
 })
 
 // ============================================================
-// GROUP 0: Balance affordance — spendable (smart + card collateral)
+// GROUP 0: Balance affordance — a request shows no balance at all
 // ============================================================
 describe('GROUP 0: Balance affordance', () => {
-    // Regression for the report where /request read lower than /home: both entry
-    // views must show the spendable total (smart + card collateral), sourced from
-    // the hook's `formattedSpendableBalance` — NOT the smart-only `formattedBalance`.
-    // Distinct sentinels prove which field reaches the AmountInput's walletBalance.
-    const SPENDABLE = '250.00 (spendable)'
-    const SMART_ONLY = '100.00 (smart-only)'
+    // A request asks somebody ELSE for money, so the user's own balance is not a
+    // ceiling on what they may type — and an amount row the user cannot act on is
+    // noise. Both request entry views therefore pass no walletBalance (TASK-22452).
+    // The screens that DO spend the balance (send-link, direct send, semantic
+    // request, contribute pot, withdraw) show it AND fill it; their coverage lives
+    // in Global/AmountInput/__tests__/balance-fill.test.tsx.
     const walletWithSplit = {
         address: '0x1234567890abcdef1234567890abcdef12345678',
         isConnected: true,
         spendableBalance: BigInt(250_000_000), // defined → not the loading branch
-        formattedSpendableBalance: SPENDABLE,
-        formattedBalance: SMART_ONLY,
+        formattedSpendableBalance: '250.00 (spendable)',
+        formattedBalance: '100.00 (smart-only)',
     }
 
-    test('create-request shows the spendable balance, not smart-only', () => {
+    test('create-request shows no balance row', () => {
         mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderCreateRequest()
 
-        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-wallet-balance')
     })
 
-    test('direct-request shows the spendable balance, not smart-only', () => {
+    test('direct-request shows no balance row', () => {
         mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderDirectRequest()
 
-        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-wallet-balance')
     })
 })
 
@@ -511,7 +514,49 @@ describe('GROUP 1: Initial Form States', () => {
         renderCreateRequest()
 
         fireEvent.click(screen.getByTestId('nav-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+    })
+
+    test.each(['/request', '/request?amount=20', '/request/', 'https://outside.example'])(
+        'request Back rejects a same-route or external return target (%s)',
+        (returnTo) => {
+            renderCreateRequest({ returnTo })
+
+            fireEvent.click(screen.getByTestId('nav-back'))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+            expect(mockRouterBack).not.toHaveBeenCalled()
+        }
+    )
+
+    // Home → Request drawer → Share a request link → back pushed /home, so
+    // browser back from home reopened Request (TASK-23054 integration pass).
+    test('with home behind it in history, back rewinds to home instead of pushing it', async () => {
+        window.history.replaceState(null, '', '/')
+        safeBackTesting.reset()
+        window.history.pushState({}, '', '/home')
+        window.history.pushState({}, '', '/request')
+        renderCreateRequest()
+
+        const popped = new Promise<void>((resolve) =>
+            window.addEventListener('popstate', () => resolve(), { once: true })
+        )
+        fireEvent.click(screen.getByTestId('nav-back'))
+        await act(() => popped)
+
+        expect(window.location.pathname).toBe('/home')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        safeBackTesting.reset()
+    })
+
+    test('request Back honors a safe explicit origin', () => {
+        renderCreateRequest({ returnTo: '/profile?section=payments' })
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile?section=payments')
+        expect(mockRouterBack).not.toHaveBeenCalled()
     })
 
     test('QR code is blurred before an amount is entered', () => {
@@ -560,14 +605,17 @@ describe('GROUP 1: Initial Form States', () => {
     test('comment input is available', () => {
         renderCreateRequest()
 
-        expect(screen.getByTestId('file-upload-input')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('Comment')).toBeInTheDocument()
     })
 
-    test('info content shows hint about leaving amount empty', () => {
+    // Konrad, 2026-09-23: an open amount is not worth a callout, which is
+    // kept for what a user must know. The empty amount is where the old hint
+    // showed, so the screen must render no callout at all there.
+    test('shows no callout while the amount is empty', () => {
         renderCreateRequest()
 
-        expect(screen.getByText(/Leave empty to let payers choose amounts/)).toBeInTheDocument()
+        expect(screen.getByTestId('amount-field')).toHaveValue('')
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 })
 
@@ -610,11 +658,11 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+            expect(screen.getByTestId('qr-code-wrapper')).not.toHaveAttribute('data-blurred', 'true')
         })
     })
 
-    test('after link creation, amount input is disabled', async () => {
+    test('after link creation, the form is replaced by the persistent success state', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -626,7 +674,8 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('amount-input')).toHaveAttribute('data-disabled', 'true')
+            expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Request created' })).toBeInTheDocument()
         })
     })
 
@@ -878,16 +927,20 @@ describe('GROUP 5: Merchant / Bill Split Flow', () => {
     test('merchant param populates comment with bill split message', () => {
         renderCreateRequest({ merchant: 'CoolCafe' })
 
-        const commentField = screen.getByTestId('comment-field')
+        const commentField = screen.getByPlaceholderText('Comment')
         expect(commentField).toHaveValue('Bill split for CoolCafe')
     })
 
-    test('merchant + amount params auto-create request link', async () => {
+    // ui#3271 QA pass 2: this used to auto-create the link the instant both
+    // params were present, skipping the create step where BankInstructionsToggle
+    // lives — a split-bill request could never offer bank-sharing. It must now
+    // behave like any other prefilled request: show the create form and wait
+    // for an explicit tap.
+    test('merchant + amount params prefill the form instead of auto-creating', () => {
         renderCreateRequest({ merchant: 'CoolCafe', amount: '25' })
 
-        await waitFor(() => {
-            expect(mockRequestsApi.create).toHaveBeenCalled()
-        })
+        expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
+        expect(mockRequestsApi.create).not.toHaveBeenCalled()
     })
 })
 
@@ -983,7 +1036,11 @@ describe('GROUP 7: Edge Cases', () => {
         })
     })
 
-    test('changing amount after link creation resets request state', async () => {
+    // The field is disabled once the request exists, so a change that still
+    // arrives is the input echoing its own value (currency swap, reformat, new
+    // FX rate). It must not bring the Create button back: the next tap there
+    // made a duplicate request.
+    test('an amount change after link creation keeps the created request', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -993,20 +1050,17 @@ describe('GROUP 7: Edge Cases', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
         })
 
-        // Wait for link creation
         await waitFor(() => {
             expect(screen.getByTestId('share-button')).toBeInTheDocument()
         })
 
-        // Now change the amount — this should reset the request
         await act(async () => {
             fireEvent.change(field, { target: { value: '20' } })
         })
 
-        // The Create request button should reappear (since requestId is reset)
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
-        })
+        expect(screen.getByTestId('share-button')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Create request' })).not.toBeInTheDocument()
+        expect(mockRequestsApi.create).toHaveBeenCalledTimes(1)
     })
 
     test('aborted request does not show error', async () => {

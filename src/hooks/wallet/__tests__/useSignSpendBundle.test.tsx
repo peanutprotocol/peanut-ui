@@ -1045,3 +1045,100 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
         expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
     })
 })
+
+describe('useSignSpendBundle — pre-Pay smart-only candidate and progress events (TASK-22692)', () => {
+    const PREPARED = {
+        client: {},
+        chainId: '42161',
+        entryPointAddress: '0xentry',
+        accountAddress: ACCOUNT,
+        calls: [],
+        lockCode: 'LOCK123',
+        lockExpiresAtMs: Number.MAX_SAFE_INTEGER,
+        userOperation: { nonce: 7n },
+    } as any
+
+    async function signWithCandidate(forceStrategy?: 'collateral-only') {
+        const onProgress = jest.fn()
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+                forceStrategy,
+                preparedSmartSpend: PREPARED,
+                onProgress,
+            })
+        })
+        return onProgress
+    }
+
+    it('smart-only: hands the candidate to the signer and reports preflight → preparation(reused) in order', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'smart-only', smartBalance: 200_000_000n })
+        mockSignCallsUserOp.mockImplementation(async (...args: unknown[]) => {
+            const options = args[2] as { onPrepared?: (origin: string) => void } | undefined
+            options?.onPrepared?.('reused')
+            return { signedUserOp: { signature: '0xpasskey' } }
+        })
+        const onProgress = await signWithCandidate()
+
+        expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
+        const [calls, chainId, options] = mockSignCallsUserOp.mock.calls[0] as any[]
+        expect(chainId).toBe('42161')
+        expect(calls).toHaveLength(1)
+        expect(calls[0].to).toBe('0xaf88d065e77c8cC2239327C5EDb3A432268e5831')
+        expect(options.prepared).toBe(PREPARED)
+        // routing stayed live: the candidate did not skip the balance read
+        expect(mockResolveSpendStrategy).toHaveBeenCalledTimes(1)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(onProgress.mock.calls.map(([e]) => e)).toEqual([
+            { stage: 'preflight_ready' },
+            { stage: 'signing_preparation_ready', preparation: 'reused' },
+        ])
+    })
+
+    it('mixed: the candidate is ignored — the batched op is built fresh and the Rain draft is the preparation', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+        mockSessionKeySignEnabled.mockReturnValue(false)
+        const onProgress = await signWithCandidate()
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
+        const options = (mockSignCallsUserOp.mock.calls[0] as any[])[2]
+        expect(options?.prepared).toBeUndefined()
+        expect(onProgress.mock.calls.map(([e]) => e)).toEqual([
+            { stage: 'preflight_ready' },
+            { stage: 'signing_preparation_ready', preparation: 'fresh' },
+        ])
+    })
+
+    it('routed collateral-only runs the mixed pipeline: the candidate is ignored and the batched op is built fresh', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        mockSessionKeySignEnabled.mockReturnValue(false)
+        const onProgress = await signWithCandidate()
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
+        const options = (mockSignCallsUserOp.mock.calls[0] as any[])[2]
+        expect(options?.prepared).toBeUndefined()
+        expect(onProgress.mock.calls.map(([e]) => e)).toEqual([
+            { stage: 'preflight_ready' },
+            { stage: 'signing_preparation_ready', preparation: 'fresh' },
+        ])
+    })
+
+    it('forced collateral-only: the candidate is ignored — no kernel UserOp at all', async () => {
+        const onProgress = await signWithCandidate('collateral-only')
+
+        expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(onProgress.mock.calls.map(([e]) => e)).toEqual([
+            { stage: 'preflight_ready' },
+            { stage: 'signing_preparation_ready', preparation: 'fresh' },
+        ])
+    })
+})

@@ -116,3 +116,28 @@ describe('useSumsubWebSdk', () => {
         expect(result.current.sdkLoadError).toBe(false)
     })
 })
+
+describe('SDK credential lifecycle', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        installSdk()
+    })
+    afterEach(() => {
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+    it('refreshing the token preserves the mounted questionnaire; changing session replaces it', () => {
+        let token = 'first'
+        let sessionKey = 'session:0'
+        const { result, rerender } = renderHookWithIntl(() =>
+            useSumsubWebSdk({ ...baseArgs(), accessToken: token, sessionKey })
+        )
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(launch).toHaveBeenCalledTimes(1)
+        token = 'refreshed'
+        rerender()
+        expect(launch).toHaveBeenCalledTimes(1)
+        sessionKey = 'session:1'
+        rerender()
+        expect(launch).toHaveBeenCalledTimes(2)
+    })
+})

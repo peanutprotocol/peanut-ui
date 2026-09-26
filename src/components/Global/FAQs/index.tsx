@@ -1,10 +1,13 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 export type FAQsProps = {
     heading: string
-    /** Translated label for the per-question "learn more" link. */
+    /** Translated label for the per-question "learn more" link. Without it the
+     *  link is not rendered — there is no English fallback to leak. */
     learnMoreLabel?: string
     questions: Array<{
         id: string
@@ -18,11 +21,11 @@ export type FAQsProps = {
         /** Article that answers this question in full. Renders a "learn more" link under the answer. */
         learnMoreHref?: string
     }>
+    /** Set when the panel sits inside a page's content column (marketing
+     *  pages): the caller owns width and side padding, and the panel drops the
+     *  band's own padding. The look is the same flat heading + ruled list. */
+    inline?: boolean
 }
-
-// Matches the landing page's other "learn more" affordances: right-aligned,
-// underlined at rest, arrow trailing.
-const learnMoreClass = 'text-body-m text-foreground-primary underline hover:no-underline md:text-body-l'
 
 function linkifyText(text: string) {
     const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
@@ -38,7 +41,7 @@ function linkifyText(text: string) {
                 key={match.index}
                 href={match[2]}
                 {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="text-black underline hover:text-action-ghost-hover"
+                className="text-foreground-primary underline hover:text-action-ghost-hover"
             >
                 {match[1]}
             </a>
@@ -49,12 +52,31 @@ function linkifyText(text: string) {
     return parts
 }
 
-export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }: FAQsProps) {
+export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }: FAQsProps) {
     return (
         // drift fix: was near-miss hex — snapped to the page-background token
-        <section className="relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32">
+        <section
+            className={
+                // inline: no top padding, so the prose block above sets the gap
+                // (its own bottom margin: 16 under an h2, 24 under a paragraph)
+                inline
+                    ? 'relative overflow-hidden pb-12 text-foreground-primary'
+                    : 'relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32'
+            }
+        >
             <div className="mx-auto max-w-3xl">
-                <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
+                    (60px) needs 401px and clips at 320px (TASK-22366). inline, the
+                    blog column is 240px at 320 and "FREQUENTES" at headingSmall
+                    needs 267px, so it steps down to heading.m on mobile. heading.m
+                    carries its own weight (800), so no font-extraBlack on top */}
+                <h2
+                    className={
+                        inline
+                            ? 'font-roboto-flex-extrabold text-heading-m uppercase md:text-headingMedium'
+                            : 'font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium'
+                    }
+                >
                     {heading}
                 </h2>
                 <div className="mt-10 border-y-2 border-border-default">
@@ -63,38 +85,50 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
                             key={faq.id}
                             className={`group py-4 ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}
                         >
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase md:text-heading-xs [&::-webkit-details-marker]:hidden">
+                            {/* native details/summary, deliberately not the DS
+                                Accordion: radix unmounts closed content, and
+                                these answers must stay in the server HTML for
+                                search on ~700 pages. */}
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-heading-card uppercase focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid md:text-heading-xs [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
-                                <span className="shrink-0 text-heading-m leading-none transition-transform duration-fast group-open:rotate-45">
-                                    +
-                                </span>
+                                <Icon
+                                    name="plus"
+                                    size={20}
+                                    className="shrink-0 transition-transform duration-fast group-open:rotate-45"
+                                />
                             </summary>
                             <div className="mt-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
+                                {/* english-only label, and latent: nothing sets calModal
+                                    today. cal.com binds [data-cal-link] on any element,
+                                    so a button keeps the behaviour and is keyboard
+                                    reachable — the hrefless anchor was neither focusable
+                                    nor exposed as a link. */}
                                 {faq.calModal && (
-                                    <a
+                                    <button
+                                        type="button"
                                         data-cal-link="kkonrad+hugo0/15min?duration=30"
                                         data-cal-config='{"layout":"month_view"}'
-                                        className="underline"
+                                        className="cursor-pointer underline"
                                     >
                                         Let&apos;s talk!
-                                    </a>
+                                    </button>
                                 )}
                                 {faq.redirectUrl && faq.redirectText && (
                                     <a
                                         href={faq.redirectUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-black underline"
+                                        className="text-foreground-primary underline"
                                     >
                                         {faq.redirectText}
                                     </a>
                                 )}
-                                {faq.learnMoreHref && (
+                                {faq.learnMoreHref && learnMoreLabel && (
                                     <p className="mt-4 text-right">
-                                        <a href={faq.learnMoreHref} className={learnMoreClass}>
-                                            {learnMoreLabel} →
-                                        </a>
+                                        <LinkButton href={faq.learnMoreHref} icon>
+                                            {learnMoreLabel}
+                                        </LinkButton>
                                     </p>
                                 )}
                             </div>

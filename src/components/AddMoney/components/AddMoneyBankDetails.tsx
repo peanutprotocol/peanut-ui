@@ -6,14 +6,16 @@ import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -70,6 +72,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     // routing and country context
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const params = useParams()
     // Native routes keep the country in query state instead of a path segment.
     const currentCountryName = (params.country as string) || countryFromQuery || ''
@@ -111,6 +116,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // For add-money flow, amount is now in URL state via nuqs
     const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+    // the backend decides the matching mode; only a flexible transfer may tell
+    // the user that any amount works
+    const isFlexibleAmount = onrampData?.flexibleAmount === true
 
     const currencySymbolBasedOnCountry = useMemo(() => {
         // symbol of the detected onramp currency (e.g., €, $)
@@ -178,7 +186,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const formattedCurrencyAmount = useMemo(() => {
         if (!amount) return ''
 
-        return formatCurrencyAmount(amount, onrampCurrency)
+        return formatBankAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
 
     const isUk = currentCountryDetails?.id === 'GB' || currentCountryDetails?.iso3 === 'GBR'
@@ -198,24 +206,24 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
         if (isUs) {
             lines.push(
-                line(t('bankDetails.beneficiaryName'), String(onrampData?.depositInstructions?.bankBeneficiaryName)),
+                line(t('bankDetails.beneficiaryName'), onrampData?.depositInstructions?.bankBeneficiaryName || loading),
                 line(
                     t('bankDetails.beneficiaryAddress'),
-                    String(onrampData?.depositInstructions?.bankBeneficiaryAddress)
+                    onrampData?.depositInstructions?.bankBeneficiaryAddress || loading
                 )
             )
         }
 
         if (!isUs && !isMexico && !isUk) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName))
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading)
             )
         }
 
         // for mexico, include clabe
         if (isMexico) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName)),
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading),
                 line(t('bankDetails.clabe'), onrampData?.depositInstructions?.clabe || loading)
             )
         }
@@ -280,7 +288,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <Card className="p-4">
-                    <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
+                    <p className="text-body-xs text-foreground-secondary">
+                        {isFlexibleAmount ? t('bankDetails.amountLabel') : t('bankDetails.amountToSend')}
+                    </p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-heading-s text-foreground-primary md:text-heading-l">
                             {formattedCurrencyAmount}
@@ -288,9 +298,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
-                    <Notification priority="attention" className="mt-4">
-                        {t('bankDetails.sendExactAmount')}
-                    </Notification>
+                    <Callout priority="attention" className="mt-4">
+                        {isFlexibleAmount ? t('bankDetails.sendAnyAmount') : t('bankDetails.sendExactAmount')}
+                    </Callout>
                 </Card>
 
                 <Card className="p-4">
@@ -309,9 +319,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         )}
                     </div>
 
-                    <Notification priority="attention" className="mt-4">
+                    <Callout priority="attention" className="mt-4">
                         {t('bankDetails.pasteInReferenceField')}
-                    </Notification>
+                    </Callout>
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
@@ -439,10 +449,12 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     )}
                 </Card>
 
-                <Notification priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
-                    <ul className="list-inside list-disc text-start">
-                        {[
-                            t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+                <Callout priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
+                    <BulletList
+                        items={[
+                            ...(isFlexibleAmount
+                                ? []
+                                : [t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount })]),
                             t('bankDetails.doubleCheckReference', {
                                 reference:
                                     shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
@@ -454,11 +466,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             ...(currentCountryDetails?.id !== 'MX'
                                 ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
                                 : []),
-                        ].map((item, index) => (
-                            <li key={index}>{item}</li>
-                        ))}
-                    </ul>
-                </Notification>
+                        ]}
+                    />
+                </Callout>
 
                 {/* Arrival expectation per rail: waiting for money with no ETA
                     is the classic support-ticket generator. Copy is honest about
@@ -473,14 +483,14 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             : t('bankDetails.etaSepa')}
                 </p>
 
-                <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
+                <Button onClick={leaveToHome} variant="primary" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>
 
                 <ShareButton
                     generateText={generateBankDetails}
                     title={t('bankDetails.shareTitle')}
-                    variant="primary-soft"
+                    variant="secondary"
                     className="w-full"
                 >
                     {t('bankDetails.shareDetails')}

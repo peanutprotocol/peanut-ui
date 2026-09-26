@@ -46,7 +46,7 @@ jest.mock('@/hooks/wallet/spendPreflight', () => ({
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: null }),
 }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (e: unknown) => ({ kind: 'message', message: String(e) }),
 }))
@@ -175,7 +175,7 @@ function renderPage() {
     mockSearchParams.clear()
     mockSearchParams.set('country', 'argentina')
     mockSearchParams.set('method', 'bank')
-    mockSearchParams.set('destination', '0000003100064523644259')
+    mockSearchParams.set('destination', 'qa.account')
     mockSearchParams.set('isSavedAccount', 'true')
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = () => (

@@ -1,25 +1,23 @@
 'use client'
 
+import { Card } from '@/components/0_Bruddle/Card'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import StuckBadge from './StuckBadge'
 import type { SpecRules } from './journeyTypes'
 
 function Rule({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="flex items-center gap-1.5 rounded-sm border border-border-default bg-white px-2 py-1">
-            <span className="text-[10px] font-bold tracking-wide text-foreground-secondary uppercase">{label}</span>
+        <Card className="flex-row items-center gap-2 px-2 py-1">
+            <span className="text-label-m text-foreground-secondary">{label}</span>
             {children}
-        </div>
+        </Card>
     )
 }
 
 /** Compact legend strip for the email machine's global rules (from spec.rules). */
 export default function RulesLegend({ rules, specError }: { rules: SpecRules | null; specError: string | null }) {
     if (!rules) {
-        return (
-            <div className="rounded-sm border border-border-default bg-action-secondary/40 p-3 text-body-s">
-                {specError ?? 'Loading email-machine rules…'}
-            </div>
-        )
+        return <Callout priority={specError ? 'error' : 'info'}>{specError ?? 'Loading email-machine rules…'}</Callout>
     }
     return (
         <div className="flex flex-wrap gap-2">

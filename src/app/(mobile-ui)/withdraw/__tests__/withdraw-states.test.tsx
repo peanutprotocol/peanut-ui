@@ -10,7 +10,7 @@
  * (?step=amount, ?amount=, send marker forwarding) is what's asserted.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -63,6 +63,8 @@ const mockSetError = jest.fn()
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetIsMaxWithdrawal = jest.fn()
+const mockSetRecipient = jest.fn()
+const mockSetIsValidRecipient = jest.fn()
 
 const mockWithdrawFlow = {
     error: { showError: false, errorMessage: '' },
@@ -72,6 +74,8 @@ const mockWithdrawFlow = {
     selectedBankAccount: null as any,
     setSelectedBankAccount: mockSetSelectedBankAccount,
     setSelectedMethod: mockSetSelectedMethod,
+    setRecipient: mockSetRecipient,
+    setIsValidRecipient: mockSetIsValidRecipient,
 }
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -86,6 +90,8 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation, for the real AmountInput
+    formatTokenAmount: (...args: unknown[]) => jest.requireActual('@/utils/general.utils').formatTokenAmount(...args),
     // real implementation: same-origin paths pass, everything else is rejected
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
@@ -95,11 +101,26 @@ jest.mock('@/utils/general.utils', () => ({
 const mockGetCountryFromAccount = jest.fn(
     () => ({ iso2: 'US', path: 'us' }) as { iso2: string; path: string } | undefined
 )
+const mockGetOfframpConfigFromAccount = jest.fn(() => ({ currency: 'usd', paymentRail: 'ach' }))
 jest.mock('@/utils/bridge.utils', () => ({
     getCountryFromAccount: mockGetCountryFromAccount,
+    getOfframpConfigFromAccount: () => mockGetOfframpConfigFromAccount(),
     getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
     railJurisdictionForBank: jest.fn(() => 'US'),
+}))
+
+// bank amount typed in its currency (TASK-23054): the quote rate the amount step converts with
+let mockBankRate: string | null = '0.9'
+// the last refresh failed; the hook keeps the last rate
+let mockBankRateError = false
+jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
+    useBridgeOfframpQuote: ({ currency }: { currency: string | null }) => ({
+        quote: currency && mockBankRate ? { rate: mockBankRate } : null,
+        isFetching: false,
+        isError: !!currency && mockBankRateError,
+        refetch: jest.fn(),
+    }),
 }))
 
 const mockUseGetExchangeRate = jest.fn()
@@ -124,6 +145,22 @@ jest.mock('@/features/limits/utils', () => ({
 
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+}))
+
+// The token selector's context is app-level; the flow writes the scanned
+// destination into it, so the test reads the writes off these mocks.
+const mockSetSelectedChainID = jest.fn()
+const mockSetSelectedTokenAddress = jest.fn()
+const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const TRON_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
+const mockSupportedChainsAndTokens: Record<string, { chainId: string; tokens: unknown[] }> = {}
+jest.mock('@/context/tokenSelector.context', () => ({
+    tokenSelectorContext: jest.requireActual('react').createContext({
+        supportedChainsAndTokens: mockSupportedChainsAndTokens,
+        setSelectedChainID: (...args: unknown[]) => mockSetSelectedChainID(...args),
+        setSelectedTokenAddress: (...args: unknown[]) => mockSetSelectedTokenAddress(...args),
+    }),
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
@@ -132,36 +169,47 @@ jest.mock('@/constants/analytics.consts', () => ({
     },
 }))
 
-// Mock complex UI components
+// Mock complex UI components. A test that needs the real field's effects (its
+// per-render reporting to the flow) sets mockUseRealAmountInput.
+let mockUseRealAmountInput = false
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="amount-input">
-            <input
-                data-testid="amount-field"
-                value={props.initialAmount ?? ''}
-                onChange={(e) => {
-                    props.setPrimaryAmount?.(e.target.value)
-                }}
-                disabled={props.disabled}
-            />
-            {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
-            {!!props.balanceFillAmount && (
-                <button
-                    data-testid="use-full-balance"
-                    data-fill={String(props.balanceFillAmount)}
-                    onClick={() => {
-                        // real component floors to cents, then reports both ways
-                        const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
-                        props.onBalanceFilled?.(filled)
-                        props.setPrimaryAmount?.(filled)
+    default: (props: any) => {
+        if (mockUseRealAmountInput) {
+            const RealAmountInput = jest.requireActual('@/components/Global/AmountInput').default
+            return <RealAmountInput {...props} />
+        }
+        return (
+            <div data-testid="amount-input">
+                <input
+                    data-testid="amount-field"
+                    data-symbol={props.primaryDenomination?.symbol}
+                    value={props.initialAmount ?? ''}
+                    onChange={(e) => {
+                        props.setPrimaryAmount?.(e.target.value)
+                        // the real component reports the converted value too
+                        props.setSecondaryAmount?.(String(Number(e.target.value) / props.primaryDenomination.price))
                     }}
-                >
-                    Use full balance
-                </button>
-            )}
-        </div>
-    ),
+                    disabled={props.disabled}
+                />
+                {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
+                {!!props.balanceFillAmount && (
+                    <button
+                        data-testid="use-full-balance"
+                        data-fill={String(props.balanceFillAmount)}
+                        onClick={() => {
+                            // real component floors to cents, then reports both ways
+                            const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
+                            props.onBalanceFilled?.(filled)
+                            props.setPrimaryAmount?.(filled)
+                        }}
+                    >
+                        Use full balance
+                    </button>
+                )}
+            </div>
+        )
+    },
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -215,7 +263,6 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
         return (
             <div data-testid="withdraw-method-view" data-show-all={showAll}>
                 <span data-testid="page-title">{props.pageTitle}</span>
-                <span data-testid="main-heading">{props.mainHeading}</span>
                 <button data-testid="method-view-back" onClick={props.onExit}>
                     Back
                 </button>
@@ -229,6 +276,7 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { clearScannedDestination, stashScannedDestination } from '@/features/withdraw/destination'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
@@ -251,8 +299,20 @@ const mockOnUrlUpdate = jest.fn()
 function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
-    return render(
-        <NuqsTestingAdapter searchParams={params} onUrlUpdate={mockOnUrlUpdate}>
+    return render(withdrawTree(params, queryClient))
+}
+
+// hasMemory: a URL write re-renders the page, as it does under Next.js. The
+// adapter then renders again, and its queue reset (it runs on every render)
+// would drop the writes under test.
+function withdrawTree(params: Record<string, string>, queryClient: QueryClient, { hasMemory = false } = {}) {
+    return (
+        <NuqsTestingAdapter
+            searchParams={params}
+            onUrlUpdate={mockOnUrlUpdate}
+            hasMemory={hasMemory}
+            resetUrlUpdateQueueOnMount={!hasMemory}
+        >
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <WithdrawPage />
@@ -265,6 +325,12 @@ function renderWithdraw(params: Record<string, string> = {}) {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockSupportedChainsAndTokens.solana = {
+        chainId: 'solana',
+        tokens: [{ symbol: 'USDC', address: SOLANA_USDC }],
+    }
+    // Tron delivers USDT and no USDC — the token rule's fallback branch.
+    mockSupportedChainsAndTokens.tron = { chainId: 'tron', tokens: [{ symbol: 'USDT', address: TRON_USDT }] }
     mockWithdrawFlow.error = { showError: false, errorMessage: '' }
     mockWithdrawFlow.selectedMethod = null
     mockWithdrawFlow.selectedBankAccount = null
@@ -300,6 +366,10 @@ beforeEach(() => {
     // the default country resolution here — tests that override it (GROUP 6)
     // then don't leak into later tests regardless of order or early failure.
     mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
+    mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+    mockBankRate = '0.9'
+    mockBankRateError = false
+    mockUseRealAmountInput = false
 })
 
 // ============================================================
@@ -310,15 +380,14 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
+        expect(screen.getByTestId('page-title')).toHaveTextContent('Withdraw')
     })
 
-    test('Method=bank from send flow shows "Send" title and send heading', () => {
+    test('Method=bank from send flow shows the "Send" title', () => {
         renderWithdraw({ method: 'bank' })
 
         expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('page-title')).toHaveTextContent('Send')
-        expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to send?')
     })
 
     test('?step=amount with no method in flow memory falls back to the method view (guard)', () => {
@@ -342,7 +411,7 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw()
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     // The exchange-rate widget's "Try it!" CTA lands here for users with a
@@ -351,15 +420,15 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw({ returnTo: '/profile/exchange-rate?from=USD&to=EUR' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
-        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterReplace).not.toHaveBeenCalledWith('/home')
     })
 
     test('Back ignores an off-origin ?returnTo and still resets to /home', () => {
         renderWithdraw({ returnTo: 'https://evil.example/phish' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     test('Back from the send flow still goes to /send, ignoring ?returnTo', () => {
@@ -404,34 +473,218 @@ describe('GROUP 2: Amount Input', () => {
         expect(screen.getByText('Amount to withdraw')).toBeInTheDocument()
     })
 
-    test('?method=crypto entry lands on the amount step without a step param (send hand-off)', async () => {
-        // /withdraw?method=crypto is send's entry URL — the method is implied,
-        // so the flow commits it and moves to the amount step by itself
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto', step: 'amount' })
-
-        expect(await screen.findByTestId('amount-input')).toBeInTheDocument()
-    })
-
-    test('With method=crypto from send flow shows "Amount to send" heading', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto', step: 'amount' })
-
-        expect(screen.getByText('Amount to send')).toBeInTheDocument()
-    })
-
-    test('Send flow shows "Send" in nav header', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto', step: 'amount' })
-
-        expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
-    })
-
     test('The URL amount pre-fills the input (refresh-safe)', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         renderWithdraw({ step: 'amount', amount: '42' })
 
         expect(screen.getByTestId('amount-field')).toHaveValue('42')
+    })
+})
+
+// ============================================================
+// GROUP 2b: bank amount typed in EUR, GBP, MXN or COP (TASK-23054)
+// ============================================================
+describe('GROUP 2b: bank amount typed in its currency', () => {
+    beforeEach(() => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: 'germany' } }
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'eur', paymentRail: 'sepa' })
+        mockGetCountryFromAccount.mockReturnValue({ iso2: 'DE', path: 'germany' })
+    })
+
+    test('the field takes the bank amount in EUR', () => {
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
+    })
+
+    test('Continue hands the bank amount to the review, never as ?amount=', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('destinationAmount=90')
+        expect(pushed).not.toMatch(/[?&]amount=/)
+    })
+
+    // Staging, 2026-09-24: EUR 5 showed ≈ USD 5.71 and Continue did nothing. The
+    // real field re-reported the amount on every render of the page, each report
+    // wrote the URL, and in Next.js a URL write restores the router and discards
+    // the navigation still in flight: Continue re-renders the page (setError), so
+    // its push to the review never landed.
+    test('Continue from a typed EUR amount reaches the review: a re-render writes no URL', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        // drop URL updates earlier tests left queued: this adapter does not reset
+        // its queue on render, so they would land in this test
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        const queryClient = createQueryClient()
+        const view = render(withdrawTree(params, queryClient, { hasMemory: true }))
+        const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        await settle()
+        expect(mockOnUrlUpdate.mock.calls.at(-1)?.[0].queryString).toContain('destinationAmount=5')
+        const writesAfterTyping = mockOnUrlUpdate.mock.calls.length
+
+        view.rerender(withdrawTree(params, queryClient, { hasMemory: true }))
+        await settle()
+        expect(mockOnUrlUpdate.mock.calls.length).toBe(writesAfterTyping)
+
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5')
+    })
+
+    // Hugo, 2026-09-25: an amount typed in USD leads with USD on the review. It
+    // is handed on as the USD typed, exact, not re-quoted from its EUR equivalent.
+    test('a USD amount typed after the currency toggle is handed on as ?amount=', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.9'
+        const params = { step: 'amount' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+        const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+        fireEvent.click(screen.getByRole('button', { name: /switch currency/i }))
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '50' } })
+        await settle()
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('amount=50')
+        expect(pushed).not.toContain('destinationAmount')
+        // the amount step's own URL keeps the toggle and the USD, for back and refresh
+        const written = mockOnUrlUpdate.mock.calls.at(-1)?.[0].queryString as string
+        expect(written).toContain('amountCurrency=usd')
+        expect(written).toContain('amount=50')
+    })
+
+    test('back from the review restores a bank-currency entry in that currency', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.9'
+        const params = { step: 'amount', destinationAmount: '90' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        expect(screen.getByRole('textbox')).toHaveValue('90')
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+    })
+
+    test('back from the review restores the field in USD with the USD typed', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.9'
+        const params = { step: 'amount', amount: '50', amountCurrency: 'usd', destinationAmount: '45' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        expect(screen.getByRole('textbox')).toHaveValue('50')
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?amount=50')
+    })
+
+    test('the checks run on the USD it converts to: 90 EUR at 0.9 is 100 USD, the whole balance', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '91' } })
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('a failed rate refresh keeps the field open with the last rate', () => {
+        mockBankRateError = true
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
+    })
+
+    // One rate for the amount and the minimum: the old second rate call answered
+    // '1' on failure and made the COP minimum $4,000.
+    test('the minimum converts with the same quote rate: £2 at 0.79 is under the £3 minimum', () => {
+        const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+        bridgeUtils.getMinimumAmount.mockImplementation((iso2: string) => (iso2 === 'GB' ? 3 : 1))
+        try {
+            mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'gbp', paymentRail: 'faster_payments' })
+            mockGetCountryFromAccount.mockReturnValue({ iso2: 'GB', path: 'united-kingdom' })
+            mockBankRate = '0.79'
+            renderWithdraw({ step: 'amount' })
+
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+            expect(screen.getByText('Continue')).toBeDisabled()
+
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '4' } })
+            expect(screen.getByText('Continue')).not.toBeDisabled()
+            expect(mockUseGetExchangeRate).not.toHaveBeenCalled()
+        } finally {
+            bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
+        }
+    })
+
+    // The minimum is compared in the currency the user types: exactly 50 MXN
+    // passes. The old check converted it to USD at the quote rate and rounded
+    // up, so 50 MXN at 18.2 needed $3 — 54.60 MXN.
+    test.each([
+        ['mxn', 'spei', 'MX', 'mexico', '18.2', '49.99', '50', 'MX$50'],
+        ['gbp', 'faster_payments', 'GB', 'united-kingdom', '0.79', '2.99', '3', '£3'],
+        ['cop', 'bre_b', 'CO', 'colombia', '3900', '3999.99', '4000', 'Col$4,000'],
+    ])(
+        '%s: the payout minimum at the boundary, in the typed currency',
+        async (currency, paymentRail, iso2, path, rate, below, minimum, shown) => {
+            const minimums: Record<string, number> = { MX: 50, GB: 3, CO: 4000 }
+            const bridgeUtils = jest.requireMock('@/utils/bridge.utils')
+            bridgeUtils.getMinimumAmount.mockImplementation((code: string) => minimums[code] ?? 1)
+            try {
+                mockGetOfframpConfigFromAccount.mockReturnValue({ currency, paymentRail })
+                mockGetCountryFromAccount.mockReturnValue({ iso2, path })
+                mockBankRate = rate
+                renderWithdraw({ step: 'amount' })
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: below } })
+                expect(screen.getByText('Continue')).toBeDisabled()
+                await waitFor(() =>
+                    expect(mockSetError).toHaveBeenCalledWith({
+                        showError: true,
+                        errorMessage: `Minimum withdrawal is ${shown}.`,
+                    })
+                )
+
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: minimum } })
+                expect(screen.getByText('Continue')).not.toBeDisabled()
+            } finally {
+                bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
+            }
+        }
+    )
+
+    test('a mid-typing "90." is handed on as 90', () => {
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90.' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+    })
+
+    test('waits for the rate before opening the field', () => {
+        mockBankRate = null
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test('a US account keeps the USD amount', () => {
+        mockGetOfframpConfigFromAccount.mockReturnValue({ currency: 'usd', paymentRail: 'ach' })
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', '$')
     })
 })
 
@@ -477,50 +730,168 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
 
-    test('Crypto: the balance error stays visible even while limits are blocking (TASK-21666)', () => {
-        // Regression: above the off-ramp limit, crypto rendered NOTHING — the
-        // limits card never renders for crypto and the banner was suppressed.
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
-        mockUseLimitsValidation.mockReturnValue({
-            isBlocking: true,
-            isWarning: false,
-            isLoading: false,
-            currency: 'USD',
+    // The crypto amount step lives on /withdraw/crypto, after the destination.
+    // Every URL that still names it here forwards there, and renders nothing on
+    // the way: the Withdraw method list or an amount step flashed for a few
+    // frames before the forward landed (TASK-23054).
+    describe('crypto entries forward to /withdraw/crypto', () => {
+        test.each([
+            ['Send → Crypto', { method: 'crypto' }, null, '/withdraw/crypto?method=crypto'],
+            [
+                'an old send amount-step link',
+                { method: 'crypto', step: 'amount', amount: '25' },
+                null,
+                '/withdraw/crypto?method=crypto&amount=25',
+            ],
+            [
+                'an old withdraw amount-step link',
+                { step: 'amount', amount: '0.4' },
+                { type: 'crypto' },
+                '/withdraw/crypto?amount=0.4',
+            ],
+        ])('%s renders nothing and replaces to the crypto flow', (_case, params, method, target) => {
+            mockWithdrawFlow.selectedMethod = method
+            const { container } = renderWithdraw(params)
+
+            expect(container).toBeEmptyDOMElement()
+            expect(mockRouterReplace).toHaveBeenCalledWith(target)
+            expect(mockRouterPush).not.toHaveBeenCalled()
         })
 
-        renderWithdraw({ step: 'amount' })
+        // /withdraw keeps its layout mounted, so a crypto entry can arrive with a
+        // bank method left in flow memory. The entry names the rail, so the bank
+        // method and its saved account go.
+        test('replaces a bank method left selected, and its saved account', () => {
+            mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
 
-        expect(screen.queryByTestId('limits-warning-card')).not.toBeInTheDocument()
-        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
+            const { container } = renderWithdraw({ method: 'crypto', step: 'amount', amount: '0.5' })
+
+            expect(container).toBeEmptyDOMElement()
+            expect(mockSetSelectedMethod).toHaveBeenCalledWith({
+                type: 'crypto',
+                title: 'Crypto',
+                countryPath: undefined,
+            })
+            expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        })
     })
 
-    test('Crypto withdrawal has no amount-step minimum (parity with send-via-link)', () => {
-        // Regression: the shared amount step applied the bank $1 minimum to
-        // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
-        // that send-via-link already allows. Same-chain Arbitrum withdrawals
-        // have no minimum at all; Rhino's per-network bridge minimums are
-        // enforced at review time, once the destination is known.
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+    describe('a destination scanned into the flow (TASK-22251)', () => {
+        // Real, publicly known addresses. The uppercase L is the character a
+        // lowercasing pass would destroy — it must reach the recipient step intact.
+        const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+        const SECOND_SOLANA_ADDRESS = 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'
+        const TRON_ADDRESS = 'TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC'
+        const scanEntry = (scan: string) => ({ method: 'crypto', step: 'amount', amount: '25', scan })
 
-        renderWithdraw({ step: 'amount', amount: '0.4' })
+        const scanInto = (address: string) => {
+            const id = stashScannedDestination(address, 'solana')
+            if (!id) throw new Error('expected a payable destination')
+            return id
+        }
 
-        const continueBtn = screen.getByText('Continue')
-        expect(continueBtn).not.toBeDisabled()
+        beforeEach(() => {
+            clearScannedDestination()
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        })
 
-        fireEvent.click(continueBtn)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=0.4')
-    })
+        test('seeds the recipient step with the scanned address, its chain and token', () => {
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
 
-    test('Crypto send forwards the send marker AND the amount to the next step', () => {
-        // `?method=` is the ONLY send-vs-withdraw signal, and `?amount=` is the
-        // one typed amount — both must survive the hop (TASK-21664/21665).
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('solana')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
+            expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
 
-        renderWithdraw({ method: 'crypto', step: 'amount', amount: '25' })
+        // Tron has no USDC, so the token rule falls back to the chain's only
+        // token. Scanning one must not land the recipient step on a token Rhino
+        // cannot deliver there.
+        test('a scanned Tron address seeds Tron and its USDT', () => {
+            const id = stashScannedDestination(TRON_ADDRESS, 'tron')
+            if (!id) throw new Error('expected a payable destination')
 
-        fireEvent.click(screen.getByText('Continue'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+            renderWithdraw(scanEntry(id))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('tron')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(TRON_USDT)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: TRON_ADDRESS })
+        })
+
+        test('carries the address onward in process, never in the next URL', () => {
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+
+            expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+            expect(mockRouterReplace.mock.calls[0][0]).not.toContain(SOLANA_ADDRESS)
+        })
+
+        // /withdraw keeps its layout mounted, so scanning from a bank withdrawal's
+        // amount step arrives with that bank method still in flow memory. The scan
+        // names the rail: without this, Continue follows the old bank route and the
+        // scanned address is dropped.
+        test('replaces a bank method the user left selected, and its saved account', () => {
+            mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'spain' }
+
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+
+            expect(mockSetSelectedMethod).toHaveBeenCalledWith({
+                type: 'crypto',
+                title: 'Crypto',
+                countryPath: undefined,
+            })
+            expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        })
+
+        // Same mounted layout: a second scan navigates without remounting, so the
+        // flow must follow the new scan id rather than keep the first destination.
+        test('a second scan wins over the first', () => {
+            scanInto(SOLANA_ADDRESS)
+            const second = scanInto(SECOND_SOLANA_ADDRESS)
+
+            renderWithdraw(scanEntry(second))
+
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SECOND_SOLANA_ADDRESS })
+            expect(mockSetRecipient).not.toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
+        })
+
+        // Only the scan that stashed it gets it back. A withdrawal the user
+        // started themselves, or a URL left over from an earlier scan, does not.
+        test.each([
+            ['the entry names no scan', undefined],
+            ['the entry names a scan that is over', 'scan-does-not-exist'],
+        ])('seeds nothing when %s', (_case, scan) => {
+            scanInto(SOLANA_ADDRESS)
+
+            renderWithdraw({ method: 'crypto', step: 'amount', amount: '25', ...(scan ? { scan } : {}) })
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        test('hands the destination over once, so arriving again cannot re-apply it', () => {
+            const id = scanInto(SOLANA_ADDRESS)
+
+            renderWithdraw(scanEntry(id)).unmount()
+            mockSetRecipient.mockClear()
+            renderWithdraw(scanEntry(id))
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+        })
+
+        test('leaves the step to its defaults when the chain list has no token yet', () => {
+            // A recipient marked valid with no token to send is a broken review
+            // step, so an unresolved chain seeds nothing at all.
+            mockSupportedChainsAndTokens.solana = { chainId: 'solana', tokens: [] }
+
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+
+            expect(mockSetSelectedChainID).not.toHaveBeenCalled()
+            expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+        })
     })
 
     test('Manteca method carries the amount into the manteca flow (TASK-21664)', () => {
@@ -549,22 +920,10 @@ describe('GROUP 3: Amount Validation', () => {
         )
     })
 
-    test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {
-        // Regression: the crypto exemption must follow selectedMethod (the
-        // routing source of truth), not the URL param. A leftover bank method
-        // from an abandoned withdraw still routes Continue to the bank flow —
-        // so sub-$1 must stay blocked.
-        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-
-        renderWithdraw({ method: 'crypto', step: 'amount', amount: '0.5' })
-
-        expect(screen.getByText('Continue')).toBeDisabled()
-    })
-
     test('Marks the amount as a max withdrawal, and unmarks it on any edit', () => {
         // The flag is what lets the crypto path settle the sub-cent remainder
         // the displayed 2 decimals leave behind (TASK-21899).
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('12.345678', 6),
             formattedSpendableBalance: '12.34',
@@ -584,7 +943,7 @@ describe('GROUP 3: Amount Validation', () => {
         // The flow passes the number its own validation compares against, not
         // the rounded label; the input is what floors it for display, and the
         // crypto path recovers the remainder from the flag (TASK-21899).
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('12.345678', 6),
             formattedSpendableBalance: '12.34',
@@ -601,7 +960,7 @@ describe('GROUP 3: Amount Validation', () => {
     })
 
     test('Full balance passes validation and continues with that amount', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
 
         renderWithdraw({ step: 'amount' })
         fireEvent.click(screen.getByTestId('use-full-balance'))
@@ -610,7 +969,7 @@ describe('GROUP 3: Amount Validation', () => {
         expect(continueBtn).not.toBeDisabled()
 
         fireEvent.click(continueBtn)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=100')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/us?step=form&amount=100')
     })
 
     test('Full balance below the method minimum keeps Continue disabled', async () => {
@@ -635,7 +994,7 @@ describe('GROUP 3: Amount Validation', () => {
     })
 
     test('No fill action while the balance is still loading', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockUseWallet.mockReturnValue({
             spendableBalance: undefined,
             formattedSpendableBalance: '0.00',
@@ -691,56 +1050,12 @@ describe('GROUP 4: Limits Validation', () => {
 
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
-
-    test('Crypto withdrawal does NOT show limits card even when blocking', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockUseLimitsValidation.mockReturnValue({
-            isBlocking: true,
-            isWarning: false,
-            isLoading: false,
-            currency: 'USD',
-        })
-        const { getLimitsWarningCardProps } = require('@/features/limits/utils')
-        getLimitsWarningCardProps.mockReturnValue({
-            variant: 'error',
-            message: 'Monthly limit exceeded',
-        })
-
-        renderWithdraw({ step: 'amount' })
-
-        expect(screen.queryByTestId('limits-warning-card')).not.toBeInTheDocument()
-    })
 })
 
 // ============================================================
 // GROUP 5: Navigation
 // ============================================================
 describe('GROUP 5: Navigation', () => {
-    // Regression: this handler used to router.push('/send') over the retained
-    // /withdraw?method=crypto entry, so send's safe-back popped right back into
-    // the amount step and ?method=crypto re-selected crypto — Back looped
-    // between Send and the amount screen forever (TASK-22424).
-    test('Back from crypto send pops in-app history, not push', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        window.history.pushState({}, '', '/withdraw?method=crypto')
-        renderWithdraw({ method: 'crypto', step: 'amount' })
-
-        fireEvent.click(screen.getByTestId('nav-back'))
-        expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockRouterBack).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
-    test('Back from crypto send replaces to /send on a cold deep link', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto', step: 'amount' })
-
-        fireEvent.click(screen.getByTestId('nav-back'))
-        expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
     test('Back from a selected bank country returns to the country list', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         renderWithdraw({ step: 'amount' })
@@ -796,6 +1111,33 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         fireEvent.click(screen.getByText('Continue'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
+    })
+})
+
+// ============================================================
+// GROUP 6b: links written before the amount moved last (TASK-22589)
+// ============================================================
+describe('GROUP 6b: old deep links never dead-end', () => {
+    test('?step=amount with nothing chosen falls back to the pick screen', () => {
+        mockWithdrawFlow.selectedMethod = null
+        renderWithdraw({ step: 'amount', amount: '50' })
+
+        expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
+    })
+
+    test('?step=amount for a bank country with no account yet goes to that country form', () => {
+        // the amount was typed first under the old order — keep it in the URL
+        // and send the user to the destination the flow still needs
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
+        mockWithdrawFlow.selectedBankAccount = null
+
+        renderWithdraw({ step: 'amount', amount: '50' })
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('/withdraw/germany')
+        expect(pushed).toContain('step=form')
+        expect(pushed).toContain('amount=50')
     })
 })
 

@@ -1,4 +1,4 @@
-import { wireErrorCode } from '@/services/api-error'
+import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
 
 /**
  * One table for every `/manteca/qr-payment/init` refusal the screen reacts to.
@@ -22,9 +22,11 @@ export const QR_INIT_CODE = {
     MERCHANT_REFUND: 'MANTECA_MERCHANT_RECENT_REFUND',
     NOT_PROVISIONED: 'MANTECA_USER_NOT_PROVISIONED',
     KYC: 'MANTECA_KYC_REQUIRED',
+    SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     PIX_RECURRING: 'PIX_RECURRING_NOT_SUPPORTED',
     MISSING_AMOUNT: 'PAYMENT_DESTINATION_MISSING_AMOUNT',
+    NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
     EXPIRED: 'PAYMENT_DESTINATION_EXPIRED',
     DECODE: 'PAYMENT_DESTINATION_DECODING_ERROR',
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
@@ -70,9 +72,12 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
     [QR_INIT_CODE.MERCHANT_REFUND]: { amountRetryable: false },
     [QR_INIT_CODE.NOT_PROVISIONED]: { amountRetryable: false },
     [QR_INIT_CODE.KYC]: { amountRetryable: false },
+    // The id on file is what the provider refuses; only support can change it.
+    [QR_INIT_CODE.SENDER_REJECTED]: { amountRetryable: false },
     [QR_INIT_CODE.PIX_MIN_AMOUNT]: { amountRetryable: true },
     [QR_INIT_CODE.PIX_RECURRING]: { amountRetryable: false },
     [QR_INIT_CODE.MISSING_AMOUNT]: { amountRetryable: false },
+    [QR_INIT_CODE.NOT_FOUND]: { amountRetryable: false },
     [QR_INIT_CODE.EXPIRED]: { amountRetryable: false },
     [QR_INIT_CODE.DECODE]: { amountRetryable: false },
     /*
@@ -83,6 +88,20 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
      * it means the derivation broke.
      */
     [QR_INIT_CODE.KEY_MISMATCH]: { amountRetryable: false },
+}
+
+/*
+ * The API answers every deterministic init refusal as a 400 or a 422: the
+ * verdict cannot change without changing the input. A code this table has not
+ * learned yet is still one of those, so the status alone stops the retries
+ * (four POSTs, four price locks, and a "provider issues" message for a
+ * per-user refusal); the table then only decides the copy.
+ */
+const DETERMINISTIC_STATUSES: ReadonlySet<number> = new Set([400, 422])
+
+function isDeterministicRejectionStatus(error: unknown): boolean {
+    const status = apiErrorStatus(error)
+    return status !== undefined && DETERMINISTIC_STATUSES.has(status)
 }
 
 /**
@@ -111,7 +130,8 @@ export function qrInitCode(error: unknown): QrInitCode | undefined {
 export function isNonRetryableQrInitError(error: unknown): boolean {
     if (error instanceof Error && error.message.includes(MISSING_AUTH_MESSAGE)) return true
     const code = qrInitCode(error)
-    return !!code && code in DETERMINISTIC
+    if (code) return code in DETERMINISTIC
+    return isDeterministicRejectionStatus(error)
 }
 
 /** Where the refusal was observed. The same code is not equally actionable in both. */
@@ -161,8 +181,20 @@ export type QrScanOutcome =
     | { kind: 'awaiting-merchant-amount' }
     | { kind: 'failed'; reason: QrScanFailure }
 
-/** `offline` and `provider-issues` are transport verdicts, not backend codes. */
-export type QrScanFailure = QrInitCode | 'offline' | 'auth-missing' | 'provider-issues'
+/**
+ * `offline` and `provider-issues` are transport verdicts, not backend codes;
+ * `rejected` is a 4xx whose code this build has not learned.
+ */
+export type QrScanFailure = QrInitCode | 'offline' | 'auth-missing' | 'provider-issues' | 'rejected'
+
+/**
+ * Failures whose only way out is a person. The copy says "contact support",
+ * so the screen must offer the support entry the generic init card omits.
+ */
+export const SUPPORT_ACTIONABLE_FAILURES: ReadonlySet<QrScanFailure> = new Set<QrScanFailure>([
+    QR_INIT_CODE.SENDER_REJECTED,
+    'rejected',
+])
 
 export type QrScanInput = {
     hasLock: boolean
@@ -193,6 +225,11 @@ export function classifyScanOutcome(input: QrScanInput): QrScanOutcome {
     if (code === QR_INIT_CODE.MISSING_AMOUNT) return { kind: 'awaiting-merchant-amount' }
     if (code && code in DETERMINISTIC) return { kind: 'failed', reason: code }
     if (error.message.includes(MISSING_AUTH_MESSAGE)) return { kind: 'failed', reason: 'auth-missing' }
+
+    // A 4xx with a code this build has not learned: still a refusal of THIS
+    // request, never a provider outage. The retry gate stopped at one POST for
+    // the same reason. A known code has already had its say above.
+    if (!code && isDeterministicRejectionStatus(error)) return { kind: 'failed', reason: 'rejected' }
 
     /*
      * A PAUSED query is a positive signal that the DEVICE lost connectivity —

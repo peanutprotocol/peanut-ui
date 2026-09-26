@@ -1,5 +1,6 @@
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import type { paths } from '@/types/api.generated'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
@@ -19,7 +20,54 @@ export interface CreateRequestRequest {
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
+    /** the requester lets a payer settle this request by bank transfer */
+    bankInstructionsShared?: boolean
+    /**
+     * The amount asked, in a fiat currency. Sent for a non-USD request alone:
+     * the API then sets `tokenAmount` (always dollars) at its own rate and
+     * ignores the one in this body. A USD request omits it, so it is the same
+     * body an API without the field accepts.
+     */
+    requestedAmount?: { amount: string; currency: string }
 }
+
+/**
+ * The requester's standing bank details for one request, plus the reference a
+ * payer must type. Derived from the generated contract rather than restated,
+ * so a field the API drops fails the build at every reader.
+ */
+export type RequestDepositInstructions = Omit<
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json'],
+    'payerAmount'
+> & {
+    /**
+     * The amount to send in this account's currency. Optional here although
+     * the contract makes it required: an API that predates the field is still
+     * answering during the deploy window, so every reader must handle it
+     * missing.
+     */
+    payerAmount?: RequestPayerAmount
+}
+
+/**
+ * `GET /requests/:uuid/pay-amounts` — what is left to pay, on every rail the
+ * requester can receive on. Derived from the generated contract, so a field the
+ * API drops fails the build at every reader.
+ */
+export type RequestPayAmounts =
+    paths['/requests/{uuid}/pay-amounts']['get']['responses'][200]['content']['application/json']
+
+/** One way to pay a request, with the amount in that rail's own currency. */
+export type RequestPayRail = RequestPayAmounts['rails'][number]
+
+/** The amount a payer settles on one rail, in that rail's currency. */
+export type RequestPayerAmount = RequestPayRail['payerAmount']
+
+/**
+ * How much of a request money arriving by bank answered, as the backend
+ * decides it: nothing yet, some of it, or the whole request.
+ */
+export type BankFulfilment = 'none' | 'partial' | 'paid'
 
 export interface TRequestResponse {
     uuid: string
@@ -35,6 +83,34 @@ export interface TRequestResponse {
     attachmentUrl: string | null
     createdAt: string
     updatedAt: string
+    /**
+     * A bank deposit carrying this request's reference answered it. `paidAt`
+     * is when it landed and `receivedAmount` is what arrived, which can be
+     * less than `tokenAmount` — a part payment leaves the request open.
+     *
+     * `bankFulfilment` is the backend's own verdict on those two numbers: a
+     * transfer loses fees on the way, so the request counts as paid once the
+     * net amount is close enough to the amount asked. Read it rather than
+     * comparing the amounts here.
+     *
+     * `payerName` is the name the payer's bank reported on the last transfer.
+     * It is on the owner-facing request alone — a payer opening the link never
+     * sees who else paid it.
+     *
+     * Both are optional while the backend that returns them ships.
+     */
+    paidAt: string | null
+    receivedAmount: string | null
+    bankFulfilment?: BankFulfilment
+    payerName?: string | null
+    bankInstructionsShared: boolean
+    /** the fiat currency the requester asked in; absent or null means USD. `tokenAmount` is always dollars. */
+    currency?: string | null
+    /** the amount asked, in `currency`; null unless the requester asked in a fiat currency */
+    requestedAmount?: string | null
+    /** dollars per one unit of `currency` when the request was created */
+    requestedFxRate?: string | null
+    requestedFxAsOf?: string | null
     charges: ChargeEntry[]
     history: TRequestHistory[]
     recipientAccount: {
@@ -43,6 +119,7 @@ export interface TRequestResponse {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
     totalCollectedAmount: number
@@ -77,6 +154,7 @@ export interface RequestLink {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
 }
@@ -153,6 +231,7 @@ export interface Payment {
         user: {
             username: string
             bridgeKycStatus?: string
+            avatarKey?: string | null
         } | null
     }
 }
@@ -188,6 +267,12 @@ export interface TRequestChargeResponse {
     tokenType: string
     tokenSymbol: string
     transactionType: TChargeTransactionType
+    /**
+     * The ledger kind behind the charge, which a receipt is looked up by.
+     * `transactionType` folds several kinds into one, so it cannot stand in for
+     * this. Absent on an API deployed before it (api#1638).
+     */
+    intentKind?: string
     updatedAt: string
     payments: Payment[]
     fulfillmentPayment: Payment | null
@@ -213,6 +298,7 @@ export interface TRequestChargeResponse {
             user: {
                 username: string
                 bridgeKycStatus?: string
+                avatarKey?: string | null
             }
         }
     }
@@ -292,6 +378,31 @@ export interface TCreateOfframpRequest {
     }
 }
 
+/**
+ * GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current
+ * rate (`rate` = bank units per 1 USDC, fee included). Derived from the
+ * generated contract, so a field the API drops fails the build at every reader.
+ */
+export type OfframpQuote = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
+
+/** GET /bridge/offramp/rail-fees: the USD payout rails and the fee for each. */
+export type UsdPayoutRailFees =
+    paths['/bridge/offramp/rail-fees']['get']['responses'][200]['content']['application/json']
+
+/** Body of POST /bridge/offramp/create-for-guest. The sender comes from the link, never from here. */
+export interface TCreateGuestOfframpRequest {
+    /** Must equal the link amount, as a decimal of its token. */
+    amount: string
+    sendLinkPubKey: string
+    /** Link key signature over guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId). */
+    signature: string
+    source: TCreateOfframpRequest['source']
+    destination: TCreateOfframpRequest['destination']
+    /** travel rule: the guest claimer is the beneficiary */
+    beneficiaryName: string
+    beneficiaryAddress?: TCreateOfframpRequest['beneficiaryAddress']
+}
+
 export interface TCreateOfframpResponse {
     transferId: string
     depositInstructions: {
@@ -355,6 +466,7 @@ export type SendLink = {
         username: string
         fullName: string
         bridgeKycStatus: string
+        avatarKey?: string | null
         accounts: {
             identifier: string
             type: string
@@ -415,6 +527,8 @@ export interface PointsInvite {
     username: string
     fullName: string | null
     showFullName?: boolean
+    /** Invitee's picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
     invitedAt: string
     kycStatus: BridgeKycStatus | null
     kycVerified: boolean

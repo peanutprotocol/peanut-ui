@@ -5,11 +5,15 @@ import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/general.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
+import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
-import { type StatusPillType } from '@/components/Global/StatusPill'
-import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
+import {
+    type DepositReturnReasonCode,
+    type TransactionDirection,
+} from '@/components/TransactionDetails/transaction-types'
 import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
@@ -122,6 +126,14 @@ export interface HistoryEntryExtraData {
      *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
      *  entry (SDA path). Baked into the displayed amount in the transformer. */
     networkFeeUsd?: number | null
+    /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
+    payoutFeeUsd?: number | null
+    /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
+    payoutRail?: string | null
+    /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
+     *  webhook. Both fields appear together and only after destination finality. */
+    destinationTxHash?: string
+    destinationChain?: string
     // Crypto address-book nickname for the viewer's CRYPTO_WITHDRAW destination
     // (BE joins it at read time; absent when the address is not saved).
     savedAddressNickname?: string
@@ -132,6 +144,24 @@ export interface HistoryEntryExtraData {
 
     // Reaper-set on FAILED transitions for orphaned PENDING intents.
     failReason?: string | null
+
+    /**
+     * A deposit on a standing account whose refund is on its way back to the
+     * payer. The intent stays non-terminal and carries this flag (peanut-api-ts
+     * `src/db/history.ts`), so the status alone reads as an ordinary deposit
+     * still in progress.
+     */
+    refundInFlight?: boolean | null
+    /** Why a standing-account deposit went back to the payer, once the API
+     *  knows. Owner-only. `text` is the provider's wording, for support. */
+    returnReason?: { code: DepositReturnReasonCode; text: string | null } | null
+    /** What the payer wrote on a bank transfer into a deposit account.
+     *  Third-party text, so the API sends it to the account owner only. */
+    senderReference?: string | null
+    /** The reference WE sent the provider on a fiat payout, read back from
+     *  the stored destination (peanut-api-ts `outgoingPaymentReference`).
+     *  What we asked for, not what the receiving bank printed. Owner-only. */
+    paymentReference?: string | null
 
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
@@ -225,6 +255,9 @@ export type HistoryEntry = {
               fullName?: string
               userId?: string
               showFullName?: boolean
+              /** Counterparty's picked profile avatar (TASK-22625). Absent for a
+               *  non-user account, and on an API that predates the field. */
+              avatarKey?: string | null
           }
         | undefined
     recipientAccount: {
@@ -235,6 +268,8 @@ export type HistoryEntry = {
         fullName?: string
         userId?: string
         showFullName?: boolean
+        /** Counterparty's picked profile avatar (TASK-22625). */
+        avatarKey?: string | null
     }
     extraData?: HistoryEntryExtraData
     claimedAt?: string | Date
@@ -297,10 +332,10 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
 // `pending` rows — notably Rain card AUTHs that sit unsettled for hours —
 // stay consistent with their completed siblings instead of rendering a bare
 // `$30.24` next to a peer's `-$30.24`.
-// An exhaustive Record (not a Set) on purpose: adding a StatusPillType forces
+// An exhaustive Record (not a Set) on purpose: adding a IconStatusType forces
 // an explicit sign decision here at compile time, keeping this in lockstep
 // with the status styling in TransactionCard.
-const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
+const STATUS_SHOWS_SIGN: Record<IconStatusType, boolean> = {
     completed: true,
     pending: true,
     processing: true,
@@ -314,8 +349,8 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
 // Status families for the states-board amount treatment (board 17966:12128).
 // One source next to STATUS_SHOWS_SIGN so sign, strikethrough, and grey-out
 // stay in lockstep — TransactionCard consumes these instead of re-listing.
-export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
-export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
+export const PENDING_AMOUNT_STATUSES: ReadonlySet<IconStatusType> = new Set(['pending', 'processing', 'soon'])
+export const STRUCK_AMOUNT_STATUSES: ReadonlySet<IconStatusType> = new Set(['cancelled', 'failed', 'refunded'])
 
 /**
  * Open requests — unfulfilled request links (direction `request_sent` /
@@ -450,7 +485,16 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             // That's the top-line amount, not an annotation — always correct
             // it, pending or not; unlike OFFRAMP's secondary "≈ CODE" line,
             // there's no safe "blank it" fallback for the primary amount.
-            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
+            // `currency.code` is data, and it is not always a currency: an
+            // intent denominated in the token itself carries "USDC" here, which
+            // no FX provider quotes. Asking anyway threw on every history
+            // render and corrected nothing.
+            if (
+                usdAmount === entry.currency?.amount &&
+                entry.currency?.code &&
+                entry.currency.code !== 'USD' &&
+                isQuotableCurrency(entry.currency.code)
+            ) {
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
@@ -471,7 +515,9 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             // when bridge/manteca returns non-usd currency on pending states, it may mirror the usd amount.
             // convert it using current fx rate if it looks unconverted (missing or ~equal to usd amount).
-            if (entry.currency?.code && entry.currency.code !== 'USD') {
+            // see ONRAMP above: a code no provider quotes is not worth asking
+            // about, and the mirrored-amount correction has nothing to apply
+            if (entry.currency?.code && entry.currency.code !== 'USD' && isQuotableCurrency(entry.currency.code)) {
                 const usdNum = Number(usdAmount)
                 const hasCurrencyAmount = !!entry.currency.amount
                 const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN

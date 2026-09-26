@@ -6,6 +6,7 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 
 /**
@@ -102,8 +103,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         {t('iframeWrapper.troubleDescriptionLine2')}
                     </p>
                 ),
+                tone: 'info' as const,
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -111,31 +112,26 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         onClick: () => {
                             handleCopy(src)
                         },
-                        variant: 'purple' as ButtonVariant,
+                        variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
                         text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'stroke' as ButtonVariant,
-                        className: 'w-full',
-                    },
-                    {
-                        text: t('iframeWrapper.cancel'),
-                        onClick: () => setIsHelpModalOpen(false),
-                        variant: 'stroke' as ButtonVariant,
+                        variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
                 ],
+                tertiaryCta: { text: t('iframeWrapper.cancel'), onClick: () => setIsHelpModalOpen(false) },
             }
         }
 
         return {
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
+            tone: 'attention' as const,
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -143,16 +139,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         setIsHelpModalOpen(false)
                         onClose('manual')
                     },
-                    variant: 'purple' as ButtonVariant,
+                    variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
-                {
-                    text: t('iframeWrapper.continueVerifying'),
-                    onClick: () => setIsHelpModalOpen(false),
-                    variant: 'stroke' as ButtonVariant,
-                    className: 'w-full',
-                },
             ],
+            tertiaryCta: { text: t('iframeWrapper.continueVerifying'), onClick: () => setIsHelpModalOpen(false) },
         }
     }, [modalVariant, copied, src, router, t])
 
@@ -217,31 +208,28 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
+                    {/* gap-4: the link's 44px hit area extends 14px past its text row */}
+                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
                         <Button
-                            variant={'stroke'}
+                            variant={'secondary'}
                             className={`max-w-md`}
                             onClick={() => {
                                 setModalVariant('stop-verification')
                                 setIsHelpModalOpen(true)
                             }}
-                            shadowType="primary"
                         >
                             {t('iframeWrapper.stopVerification')}
                         </Button>
 
-                        <button
+                        <LinkButton
                             onClick={() => {
                                 setModalVariant('trouble')
                                 setIsHelpModalOpen(true)
                             }}
-                            className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
-                            <p className="text-body-xs font-medium text-foreground-secondary underline">
-                                {t('iframeWrapper.havingTrouble')}
-                            </p>
-                        </button>
+                            <Icon name="peanut-support" size={16} className="shrink-0" />
+                            {t('iframeWrapper.havingTrouble')}
+                        </LinkButton>
                     </div>
                 </div>
             </div>
@@ -250,14 +238,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 onClose={() => setIsHelpModalOpen(false)}
                 title={modalDetails.title}
                 description={modalDetails.description}
+                tone={modalDetails.tone}
                 icon={modalDetails.icon}
-                iconContainerClassName={modalDetails.iconContainerClassName}
-                modalPanelClassName="max-w-full pointer-events-auto"
+                modalPanelClassName="pointer-events-auto mx-0 max-w-full"
                 ctaClassName="grid grid-cols-1 gap-3"
                 contentContainerClassName="px-6 py-6"
                 modalClassName="!z-[10001] pointer-events-auto"
                 preventClose={true}
                 ctas={modalDetails.ctas}
+                tertiaryCta={modalDetails.tertiaryCta}
             />
         </Modal>
     )

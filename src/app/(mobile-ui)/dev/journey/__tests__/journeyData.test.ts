@@ -38,11 +38,9 @@ describe('journeyData', () => {
         }
     })
 
-    it('the #2475 chooser surfaces are marked NEW in this PR', () => {
+    it('the TASK-23054 checklist is marked NEW in this PR', () => {
         const newOnes = IN_APP_SURFACES.filter((s) => s.isNewInThisPr).map((s) => s.id)
-        expect(newOnes).toEqual(
-            expect.arrayContaining(['step-outbound-spend', 'modal-spend-chooser', 'step-email-blocked'])
-        )
+        expect(newOnes).toEqual(expect.arrayContaining(['home-checklist', 'step-email-blocked']))
     })
 
     it('maps each lifecycle spec stage to exactly one column', () => {
@@ -51,9 +49,7 @@ describe('journeyData', () => {
         expect([...mapped].sort()).toEqual(['create_card', 'first_spend', 'fund', 'verify', 'win_back'])
     })
 
-    it('carries all 7 inventory findings, each source-file-annotated', () => {
-        expect(FINDINGS).toHaveLength(7)
-        expect(FINDINGS.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    it('keeps remaining inventory findings source-file-annotated', () => {
         for (const finding of FINDINGS) {
             expect(finding.sourceFiles.length).toBeGreaterThan(0)
             for (const file of finding.sourceFiles) expect(file).toMatch(/^src\//)

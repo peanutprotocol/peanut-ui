@@ -56,6 +56,7 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
     // LATAM Countries
     { currencyCode: 'BRL', currencyName: 'Brazilian Real', country: 'Brazil', flagCode: 'br', path: 'brazil' },
     { currencyCode: 'ARS', currencyName: 'Argentine Peso', country: 'Argentina', flagCode: 'ar', path: 'argentina' },
+    { currencyCode: 'COP', currencyName: 'Colombian Peso', country: 'Colombia', flagCode: 'co', path: 'colombia' },
 ]
 
 export default countryCurrencyMappings
@@ -105,6 +106,7 @@ export function getBankAccountCountryCode(
     const isUs = rawType === AccountType.US || rawType?.endsWith('ach')
     const isClabe = rawType === AccountType.CLABE || rawType?.endsWith('clabe')
     const isGb = rawType === AccountType.GB || rawType?.endsWith('gb')
+    const isCo = rawType === AccountType.CO_BANK_TRANSFER || rawType?.endsWith('_co')
 
     if (isIban && identifier) {
         const prefix = identifier.replace(/\s+/g, '').slice(0, 2).toUpperCase()
@@ -113,6 +115,7 @@ export function getBankAccountCountryCode(
     if (isUs) return 'us'
     if (isClabe) return 'mx'
     if (isGb) return 'gb'
+    if (isCo) return 'co'
     // `manteca` is a LATAM passthrough — Argentina (ARS/CBU) or Brazil (BRL/PIX).
     // The account type itself doesn't carry country, but currency does.
     if (type === AccountType.MANTECA) {

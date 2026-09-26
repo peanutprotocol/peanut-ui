@@ -2,152 +2,58 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import Modal from '@/components/Global/Modal'
 import ActionModal, { type ActionModalTone } from '@/components/Global/ActionModal'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
-import EasterEggModal from '@/components/Global/EasterEggModal'
+import { ProductUsage } from '../../_components/ProductUsage'
 
-const TONES: ActionModalTone[] = ['error', 'warning', 'success', 'info']
+const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info', 'peanut']
 
 export default function ModalPage() {
-    const [showModal, setShowModal] = useState(false)
-    const [showEasterEgg, setShowEasterEgg] = useState(false)
     const [showActionModal, setShowActionModal] = useState(false)
     const [actionCheckbox, setActionCheckbox] = useState(false)
     const [toneModal, setToneModal] = useState<ActionModalTone | null>(null)
+    // product recreations open on demand — an auto-opened overlay would cover the page
+    const [bridgeTosModal, setBridgeTosModal] = useState(false)
+    const [lockCardModal, setLockCardModal] = useState(false)
 
     return (
         <DocPage>
             <DocHeader
-                title="Modal"
-                description="Base Modal for custom dialog content, and ActionModal for standardized confirmation/action dialogs with icon, title, description, CTAs, and optional checkbox."
+                title="ActionModal"
+                description="Standard confirmation and action dialog with an icon, title, description, CTAs, and optional checkbox."
                 status="production"
             />
 
-            {/* Base Modal */}
-            <DocSection title="Base Modal">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        HeadlessUI Dialog wrapper with animated overlay and panel. Use for custom modal content.
-                    </p>
-
-                    <div>
-                        <Button variant="stroke" onClick={() => setShowModal(true)}>
-                            Open Base Modal
-                        </Button>
-                        <Modal visible={showModal} onClose={() => setShowModal(false)} title="Example Modal">
-                            <div className="p-5">
-                                <p className="text-body-s text-foreground-secondary">
-                                    This is the base Modal. It provides the overlay, panel animation, close button, and
-                                    optional title bar. You supply the children.
-                                </p>
-                                <div className="mt-4">
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="w-full"
-                                        onClick={() => setShowModal(false)}
-                                    >
-                                        Got it
-                                    </Button>
-                                </div>
-                            </div>
-                        </Modal>
-                    </div>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'visible',
-                                type: 'boolean',
-                                default: '-',
-                                required: true,
-                                description: 'Controls modal visibility',
-                            },
-                            {
-                                name: 'onClose',
-                                type: '() => void',
-                                default: '-',
-                                required: true,
-                                description: 'Called when overlay or close button clicked',
-                            },
-                            {
-                                name: 'title',
-                                type: 'string',
-                                default: '(none)',
-                                description: 'Renders title bar with border',
-                            },
-                            {
-                                name: 'className',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the Dialog root',
-                            },
-                            { name: 'classWrap', type: 'string', default: "''", description: 'Class for Dialog.Panel' },
-                            {
-                                name: 'classOverlay',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the backdrop overlay',
-                            },
-                            {
-                                name: 'classButtonClose',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the close button',
-                            },
-                            {
-                                name: 'preventClose',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Disables closing via overlay click',
-                            },
-                            {
-                                name: 'hideOverlay',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Hides close button and title, renders children directly',
-                            },
-                            {
-                                name: 'video',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Aspect-ratio video mode',
-                            },
-                            { name: 'children', type: 'ReactNode', default: '-', required: true },
-                        ]}
-                    />
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock label="Import" code={`import Modal from '@/components/Global/Modal'`} />
-
-                    <CodeBlock
-                        label="Usage"
-                        code={`<Modal visible={visible} onClose={() => setVisible(false)} title="Example">
-  <div className="p-5">
-    {/* Your content */}
-  </div>
-</Modal>`}
-                    />
-                </DocSection.Code>
-            </DocSection>
+            <WhenToUse
+                use={[
+                    'A decision the user answers: confirm, cancel, or a destructive action.',
+                    'One short message plus its CTAs, when the content must fully catch attention.',
+                    'Destructive confirms: red icon bubble, primary confirm, tertiary cancel link.',
+                    'Every modal in the app — route it through ActionModal, never Global/Modal directly.',
+                ]}
+                dontUse={[
+                    'Content you browse — a detail view, a selection list, anything that scrolls. → use a Drawer.',
+                    'A decision raised from inside an open drawer — the modal opens behind the drawer overlay. → use a nested Drawer.',
+                    'A purely informational surface — every modal offers at least one action button.',
+                ]}
+            />
 
             {/* ActionModal */}
             <DocSection title="ActionModal">
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
-                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on
-                        top of Base Modal.
+                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox.
                     </p>
 
                     <div>
-                        <Button variant="stroke" onClick={() => setShowActionModal(true)}>
+                        <Button variant="secondary" onClick={() => setShowActionModal(true)}>
                             Open ActionModal
                         </Button>
                         <ActionModal
@@ -158,6 +64,7 @@ export default function ModalPage() {
                             }}
                             title="Confirm Action"
                             description="Are you sure you want to proceed? This action cannot be undone."
+                            tone="attention"
                             icon="alert"
                             checkbox={{
                                 text: 'I understand the consequences',
@@ -166,16 +73,8 @@ export default function ModalPage() {
                             }}
                             ctas={[
                                 {
-                                    text: 'Cancel',
-                                    variant: 'stroke',
-                                    onClick: () => {
-                                        setShowActionModal(false)
-                                        setActionCheckbox(false)
-                                    },
-                                },
-                                {
                                     text: 'Confirm',
-                                    variant: 'purple',
+                                    variant: 'primary',
                                     disabled: !actionCheckbox,
                                     onClick: () => {
                                         setShowActionModal(false)
@@ -183,18 +82,27 @@ export default function ModalPage() {
                                     },
                                 },
                             ]}
+                            tertiaryCta={{
+                                text: 'Cancel',
+                                onClick: () => {
+                                    setShowActionModal(false)
+                                    setActionCheckbox(false)
+                                },
+                            }}
                         />
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <p className="text-body-s text-foreground-secondary">
-                            <code>tone</code> picks the bubble color and a default icon: error (red, ban), warning
-                            (yellow, alert), success (green, check), info (blue, info). An explicit <code>icon</code> or{' '}
-                            <code>iconContainerClassName</code> still wins.
+                            <code>tone</code> picks the bubble color and a default icon: error (red, ban), attention
+                            (yellow, alert), success (green, check), info (blue, info), peanut (yellow, no default: name
+                            the Peanut thing). A product concept passes <code>concept</code> and takes its CONCEPT_ICONS
+                            pair (QR pay pink, card yellow, bank blue). An explicit <code>icon</code> still wins over a
+                            tone. An icon without a tone or a concept does not compile.
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {TONES.map((tone) => (
-                                <Button key={tone} variant="stroke" size="small" onClick={() => setToneModal(tone)}>
+                                <Button key={tone} variant="secondary" size="small" onClick={() => setToneModal(tone)}>
                                     tone=&quot;{tone}&quot;
                                 </Button>
                             ))}
@@ -203,9 +111,10 @@ export default function ModalPage() {
                             visible={toneModal !== null}
                             onClose={() => setToneModal(null)}
                             tone={toneModal ?? 'info'}
+                            icon={toneModal === 'peanut' ? 'bell' : undefined}
                             title={`tone="${toneModal ?? 'info'}"`}
                             description="Icon and bubble color come from the tone, not from a class name."
-                            ctas={[{ text: 'Close', variant: 'stroke', onClick: () => setToneModal(null) }]}
+                            ctas={[{ text: 'Close', variant: 'primary', onClick: () => setToneModal(null) }]}
                         />
                     </div>
 
@@ -216,9 +125,9 @@ export default function ModalPage() {
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
                             {
                                 name: 'tone',
-                                type: "'error' | 'warning' | 'success' | 'info'",
+                                type: "'error' | 'attention' | 'success' | 'info' | 'peanut'",
                                 default: '(none)',
-                                description: 'Semantic bubble color + default icon',
+                                description: 'Semantic bubble color + default icon. Required whenever an icon renders',
                             },
                             {
                                 name: 'description',
@@ -249,6 +158,13 @@ export default function ModalPage() {
                                 type: 'ActionModalButtonProps[]',
                                 default: '[]',
                                 description: 'Array of {text, variant, onClick, ...ButtonProps}',
+                            },
+                            {
+                                name: 'tertiaryCta',
+                                type: 'ActionModalTertiaryCta',
+                                default: '(none)',
+                                description:
+                                    '{text, onClick?, href?, disabled?}: the underlined LinkButton under the ctas. Every cancel, not now, skip or keep goes here',
                             },
                             {
                                 name: 'checkbox',
@@ -288,16 +204,14 @@ export default function ModalPage() {
   onClose={() => setVisible(false)}
   title="Confirm Action"
   description="Are you sure?"
-  tone="warning"
+  tone="attention"
   checkbox={{
     text: 'I understand',
     checked: checked,
     onChange: setChecked,
   }}
-  ctas={[
-    { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
-    { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
-  ]}
+  ctas={[{ text: 'Confirm', variant: 'primary', onClick: handleConfirm }]}
+  tertiaryCta={{ text: 'Cancel', onClick: handleCancel }}
 />`}
                     />
                 </DocSection.Code>
@@ -308,90 +222,101 @@ export default function ModalPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    ActionModal is the preferred pattern for confirmations and simple actions. Use Base Modal only when
-                    you need fully custom content.
+                    Use ActionModal for confirmations and simple actions. Flag a custom-dialog need before using an
+                    undocumented modal shell.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Prefer <code>tone</code> over iconContainerClassName: yellow is for warnings only, red for errors,
-                    green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
+                    Cancel, not now, do this later, skip, keep and close are never a Button next to the primary. They go
+                    in <code>tertiaryCta</code>, the underlined link 24px under the ctas. A secondary Button is only for
+                    a second path of equal weight.
+                </DesignNote>
+                <DesignNote type="warning">
+                    Every icon takes a <code>tone</code> or a <code>concept</code>: red for errors, green for success,
+                    blue for plain information, yellow for attention and for Peanut&apos;s own. A concept keeps its
+                    CONCEPT_ICONS color, so QR pay is pink here too. There is no implicit color; never recolor the
+                    bubble with iconContainerClassName.
                 </DesignNote>
             </DocSection>
 
-            {/* Specialized Modals Reference */}
-            <DocSection title="Specialized Modals (14)">
-                <p className="text-body-s text-foreground-secondary">
-                    These are pre-built modals for specific flows. They compose ActionModal or Modal internally.
-                </p>
-                <div className="overflow-x-auto rounded-sm border border-border-default text-body-xs">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-border-default bg-background-badge-accent/20">
-                                <th className="px-3 py-1.5 text-left font-bold">Component</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Purpose</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[
-                                ['InviteFriendsModal', 'Share referral link with copy + social buttons'],
-                                ['ConfirmInviteModal', 'Confirm invitation before sending'],
-                                ['GuestLoginModal', 'Prompt guest users to log in or register'],
-                                ['BalanceWarningModal', 'Warn about insufficient balance'],
-                                ['TokenAndNetworkConfirmationModal', 'Confirm token + chain before transfer'],
-                                ['TokenSelectorModal', 'Pick token from a list'],
-                                ['ChainSelectorModal', 'Pick blockchain network'],
-                                ['RecipientSelectorModal', 'Pick or enter recipient address'],
-                                ['QRCodeModal', 'Display QR code for sharing'],
-                                ['TransactionStatusModal', 'Show tx pending/success/failed state'],
-                                ['WalletConnectModal', 'Wallet connection flow'],
-                                ['ExportPrivateKeyModal', 'Reveal and copy private key'],
-                                ['ConfirmTransactionModal', 'Final review before transaction submit'],
-                            ].map(([name, purpose]) => (
-                                <tr key={name} className="border-b border-border-default last:border-0">
-                                    <td className="px-3 py-1.5 font-mono font-bold">{name}</td>
-                                    <td className="px-3 py-1.5">{purpose}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </DocSection>
-
-            <SectionDivider />
-
-            {/* Easter Egg Modal */}
-            <DocSection title="Easter Egg Modal">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.) in
-                        the country selector. Uses base Modal with an image and humorous caption.
-                    </p>
-
-                    <div>
-                        <Button variant="stroke" onClick={() => setShowEasterEgg(true)}>
-                            Open Easter Egg (Antarctica)
-                        </Button>
-                        <EasterEggModal
-                            visible={showEasterEgg}
-                            onClose={() => setShowEasterEgg(false)}
-                            countryCode="AQ"
-                        />
-                    </div>
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import EasterEggModal from '@/components/Global/EasterEggModal'`}
-                    />
-                    <CodeBlock
-                        label="Usage"
-                        code={`<EasterEggModal
-  visible={showEasterEgg}
-  onClose={() => setShowEasterEgg(false)}
-  countryCode="AQ"
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="KYC — Bridge terms of service"
+                    path="src/components/Kyc/BridgeTosStep.tsx"
+                    description="One full-width primary with the defer action as the tertiary link, and the same modal carries the error state: icon, title and description all swap when the accept call fails."
+                    code={`<ActionModal
+  visible={visible && !showIframe && !isConfirming}
+  onClose={onSkip}
+  tone={error ? 'error' : 'info'}
+  icon={error ? 'alert' : 'badge'}
+  title={error ? t('bridgeTos.errorTitle') : copy.title}
+  description={error || copy.description}
+  ctas={[
+    {
+      text: t('bridgeTos.acceptTerms'),
+      onClick: handleAcceptTerms,
+      variant: 'primary',
+      className: 'w-full',
+      shadowSize: '4',
+    },
+  ]}
+  tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
 />`}
+                >
+                    <Button variant="secondary" size="small" onClick={() => setBridgeTosModal(true)}>
+                        Open example
+                    </Button>
+                    <ActionModal
+                        visible={bridgeTosModal}
+                        onClose={() => setBridgeTosModal(false)}
+                        tone="info"
+                        icon="badge"
+                        title="Accept Bridge terms"
+                        description="Bridge is our banking partner. Accept their terms to finish verification."
+                        ctas={[
+                            {
+                                text: 'Accept terms',
+                                onClick: () => setBridgeTosModal(false),
+                                variant: 'primary',
+                                className: 'w-full',
+                                shadowSize: '4',
+                            },
+                        ]}
+                        tertiaryCta={{ text: 'Not now', onClick: () => setBridgeTosModal(false) }}
                     />
-                </DocSection.Code>
-            </DocSection>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — lock the card"
+                    path="src/components/Card/LockCardModal.tsx"
+                    description="tone=attention with an explicit lock icon, and preventClose while the call runs so the modal cannot be dismissed mid-request."
+                    code={`<ActionModal
+  visible={isOpen}
+  onClose={onClose}
+  preventClose={phase === 'loading'}
+  hideModalCloseButton={phase === 'loading'}
+  tone="attention"
+  icon="lock"
+  title={t(copyKeys.title)}
+  description={t(copyKeys.body)}
+  content={hasBody ? bodyContent : undefined}
+  tertiaryCta={{ text: tCommon('cancel'), onClick: onClose, disabled: phase === 'loading' }}
+/>`}
+                >
+                    <Button variant="secondary" size="small" onClick={() => setLockCardModal(true)}>
+                        Open example
+                    </Button>
+                    <ActionModal
+                        visible={lockCardModal}
+                        onClose={() => setLockCardModal(false)}
+                        tone="attention"
+                        icon="lock"
+                        title="Lock your card?"
+                        description="Payments stop straight away. You can unlock the card at any time."
+                        ctas={[{ text: 'Lock card', variant: 'primary', onClick: () => setLockCardModal(false) }]}
+                        tertiaryCta={{ text: 'Cancel', onClick: () => setLockCardModal(false) }}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

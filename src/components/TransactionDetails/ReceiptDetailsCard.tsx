@@ -6,22 +6,36 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
+import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
-import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
+import {
+    bankAccountLabelKey,
+    getAccountCopyValue,
+    receiptStatusDate,
+    type BankAccountLabelKey,
+    type ReceiptStatusDateKind,
+} from './transaction-details.utils'
+import {
+    isSettledConversion,
+    receiptConversionLine,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from './receipt-conversion.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { getTransactionSign } from '@/utils/history.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency } from '@/utils/general.utils'
+import { formatAmount } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
@@ -44,14 +58,10 @@ export function ReceiptDetailsCard({
     transaction,
     vm,
     shouldShowQrShare,
-    convertedAmount,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
-    /** "BRL 15.00" — local-fiat / destination-token equivalent for the
-     *  "Estimate conversion" row (board 17835:84507). */
-    convertedAmount?: string
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -74,13 +84,26 @@ export function ReceiptDetailsCard({
             : t('rows.received')
     }
 
-    const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
+    const statusDate = receiptStatusDate(transaction)
+    const statusDateLabel = (kind: ReceiptStatusDateKind) => {
+        if (kind === 'claimed') return t('rows.claimed')
+        if (kind === 'cancelled') return t('rows.cancelled')
+        // a deposit the bank sent back is Returned everywhere on the receipt,
+        // never Refunded (design.md status words)
+        if (kind === 'refunded') {
+            return transaction.actionLabelKey === 'type.returnedToSender' ? t('returnedStatus') : t('rows.refunded')
+        }
+        if (kind === 'closed') return t('rows.closedAt')
+        return getCompletedLabel()
+    }
+
+    const convertedAmount = receiptConvertedAmount(transaction)
+    const exchangeRate = receiptExchangeRate(transaction)
+
+    const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
 
     return (
-        <Card
-            position={shouldShowQrShare ? 'first' : 'single'}
-            className="divide-y divide-dashed divide-border-default px-4 py-0"
-        >
+        <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
             {/* Request-pot progress (board): first row of the card. */}
             <RequestPotProgressRow transaction={transaction} />
 
@@ -91,45 +114,31 @@ export function ReceiptDetailsCard({
                 />
             )}
 
-            {rowVisibilityConfig.cancelled && (
-                <DataRow
-                    label={t('rows.cancelled')}
-                    value={formatDate(new Date(transaction.cancelledDate || transaction.createdAt || transaction.date))}
-                />
-            )}
-
-            {rowVisibilityConfig.claimed && (
-                <DataRow label={t('rows.claimed')} value={formatDate(new Date(transaction.claimedAt!))} />
-            )}
-
-            {rowVisibilityConfig.completed && (
-                <DataRow label={getCompletedLabel()} value={formatDate(new Date(transaction.completedAt!))} />
-            )}
-
-            {rowVisibilityConfig.refunded && (
-                <DataRow label={t('rows.refunded')} value={formatDate(new Date(transaction.date))} />
-            )}
-
-            {rowVisibilityConfig.closed && transaction.cancelledDate && (
-                <DataRow label={t('rows.closedAt')} value={formatDate(new Date(transaction.cancelledDate))} />
+            {rowVisibilityConfig.statusDate && statusDate && (
+                <DataRow label={statusDateLabel(statusDate.kind)} value={formatDate(statusDate.date)} />
             )}
 
             {/* Contributors after the date rows, per the request board. */}
             <RequestPotContributorRows vm={vm} />
 
+            {/* plain text: the payer's bank wrote it */}
+            {rowVisibilityConfig.from && (
+                <DataRow
+                    label={t('rows.from')}
+                    value={transaction.extraDataForDrawer?.payerName ?? t('rows.fromNameNotProvided')}
+                />
+            )}
+
             {rowVisibilityConfig.to && (
+                /* printableAddress shortens Solana/Tron/EVM and passes
+                   usernames through — no viem isAddress pre-guard, which
+                   is EVM-only and let 44-char Solana counterparties
+                   render full-length. copy keeps the full raw value. */
                 <DataRow
                     label={t('rows.to')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            {/* printableAddress shortens Solana/Tron/EVM and passes
-                                usernames through — no viem isAddress pre-guard, which
-                                is EVM-only and let 44-char Solana counterparties
-                                render full-length. */}
-                            <span>{printableAddress(transaction.userName)}</span>
-                            <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
-                        </div>
-                    }
+                    value={printableAddress(transaction.userName)}
+                    allowCopy
+                    copyValue={transaction.userName}
                 />
             )}
 
@@ -138,6 +147,8 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.txId && transaction.txHash && (
+                /* the `typeof value === 'string'` gate in DataRow keeps the
+                   copy glyph off the explorer-link branch. */
                 <DataRow
                     label={t('rows.txId')}
                     value={
@@ -146,18 +157,17 @@ export function ReceiptDetailsCard({
                                 href={transaction.explorerUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 hover:underline"
+                                className="flex max-w-full min-w-0 items-center gap-2 hover:underline"
                             >
-                                <span>{shortenStringLong(transaction.txHash)}</span>
-                                <Icon name="external-link" size={14} />
+                                <span className="min-w-0 truncate">{shortenStringLong(transaction.txHash)}</span>
+                                <Icon name="external-link" size={14} className="shrink-0" />
                             </Link>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <span>{shortenStringLong(transaction.txHash)}</span>
-                                <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
-                            </div>
+                            shortenStringLong(transaction.txHash)
                         )
                     }
+                    allowCopy
+                    copyValue={transaction.txHash}
                 />
             )}
 
@@ -165,64 +175,90 @@ export function ReceiptDetailsCard({
 
             {rowVisibilityConfig.fee && <DataRow label={t('rows.fee')} value={feeDisplay} />}
 
+            {rowVisibilityConfig.bankReceives && (
+                <DataRow
+                    label={t('rows.bankReceives')}
+                    value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                />
+            )}
+
             {rowVisibilityConfig.mantecaDepositInfo && (
                 <MantecaDepositInfo transaction={transaction} country={country} />
             )}
 
-            {/* Local-fiat / destination-token equivalent (board: "Estimate
-                conversion ≈ BRL 15.00"), suppressed on cancelled receipts
-                like the other money rows. */}
-            {convertedAmount && transaction.status !== 'cancelled' && (
-                <DataRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
-            )}
+            {/* One conversion, one row (board: "Estimate conversion ≈ BRL
+                15.00"). Settled, it reads as what happened, with the rate on a
+                second line; pending, it stays an estimate. */}
+            {rowVisibilityConfig.conversion &&
+                convertedAmount &&
+                (isSettledConversion(transaction) ? (
+                    <DataRow
+                        label={t('rows.converted')}
+                        value={
+                            <span className="flex flex-col items-end">
+                                <span>{receiptConversionLine(transaction, getTransactionSign(transaction))}</span>
+                                {exchangeRate && (
+                                    <span className="text-body-s text-foreground-secondary">{exchangeRate}</span>
+                                )}
+                            </span>
+                        }
+                    />
+                ) : (
+                    <DataRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
+                ))}
 
-            {/* Exchange rate and original currency for completed bank_deposit transactions */}
-            {rowVisibilityConfig.exchangeRate && transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                <DataRow
-                    label={tCommon('exchangeRate')}
-                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
-                />
+            {rowVisibilityConfig.exchangeRate && exchangeRate && (
+                <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
+                /* copy yields the FULL identifier — masking is for visual
+                   privacy only; the user owns the account and may need to
+                   paste it elsewhere. */
                 <DataRow
                     label={bankAccountLabel(transaction.bankAccountDetails!.type)}
                     value={
-                        <div className="flex items-center gap-2">
-                            <span>
-                                {isGuestBankClaim
-                                    ? transaction.bankAccountDetails.identifier
-                                    : maskAccountIdentifier(
-                                          transaction.bankAccountDetails.identifier,
-                                          transaction.bankAccountDetails.type
-                                      )}
-                            </span>
-                            {!isGuestBankClaim && (
-                                // Copy yields the FULL identifier — masking is for
-                                // visual privacy only; the user owns the account
-                                // and may need to paste it elsewhere.
-                                <CopyToClipboard
-                                    textToCopy={getAccountCopyValue(
-                                        transaction.bankAccountDetails.identifier,
-                                        transaction.bankAccountDetails.type
-                                    )}
-                                    iconSize="4"
-                                />
-                            )}
-                        </div>
+                        isGuestBankClaim
+                            ? transaction.bankAccountDetails.identifier
+                            : maskAccountIdentifier(
+                                  transaction.bankAccountDetails.identifier,
+                                  transaction.bankAccountDetails.type
+                              )
                     }
+                    allowCopy={!isGuestBankClaim}
+                    copyValue={getAccountCopyValue(
+                        transaction.bankAccountDetails.identifier,
+                        transaction.bankAccountDetails.type
+                    )}
+                />
+            )}
+
+            {/* The reference that left our systems with the payout. */}
+            {rowVisibilityConfig.paymentReference && (
+                <DataRow
+                    label={t('rows.paymentReference')}
+                    value={transaction.extraDataForDrawer!.paymentReference}
+                    allowCopy
+                    copyValue={transaction.extraDataForDrawer!.paymentReference}
                 />
             )}
 
             {rowVisibilityConfig.transferId && (
                 <DataRow
                     label={t('rows.transferId')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
-                            <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                        </div>
-                    }
+                    value={shortenAddress(transaction.id.toUpperCase(), 20)}
+                    allowCopy
+                    copyValue={transaction.id.toUpperCase()}
+                />
+            )}
+
+            {/* plain text: a third party typed it */}
+            {rowVisibilityConfig.senderReference && (
+                <DataRow
+                    label={t('rows.senderNote')}
+                    value={transaction.extraDataForDrawer!.senderReference}
+                    allowCopy
+                    copyValue={transaction.extraDataForDrawer!.senderReference}
                 />
             )}
 
@@ -266,15 +302,10 @@ export function ReceiptDetailsCard({
                 <DataRow
                     label={t('rows.attachment')}
                     value={
-                        <Link
-                            href={transaction.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center underline"
-                        >
+                        <LinkButton href={transaction.attachmentUrl} external>
                             {t('rows.download')}
-                            <Icon name="download" size={14} />
-                        </Link>
+                            <Icon name="download" size={14} className="shrink-0" />
+                        </LinkButton>
                     }
                 />
             )}

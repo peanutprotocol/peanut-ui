@@ -1,11 +1,14 @@
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
-import { PeanutCheering } from '@/assets/mascot'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -21,20 +24,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
 
-// An underlined text link is ~20px tall; the `after:` pseudo-element grows the
-// tap target to the 44px minimum without moving the text (design.md touch law).
-const UNDERLINED_LINK =
-    'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
-const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
-const BULLET_ROW = 'flex items-start gap-2'
-// h-4 is the Body/XS line box, so the dot centres on the first line (and stays
-// put when the row wraps) without an off-scale margin nudge
-const BULLET_MARKER = 'flex h-4 shrink-0 items-center'
-const BULLET_DOT = 'size-1 rounded-round bg-action-primary'
-
-const ResidenceStep = () => {
+const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
@@ -51,6 +44,7 @@ const ResidenceStep = () => {
     // selector is the natural place to change the answer. Forward entry and
     // deep links (direction 1 / 0) always start on the selector.
     const [view, setView] = useState<ResidenceView>(() => {
+        if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
         if (restrictionSets.full.has(residenceCountry)) return 'restricted'
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
@@ -214,7 +208,7 @@ const ResidenceStep = () => {
 
     // celebration illustration for the "Good news" outcome only — the selector
     // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(view === 'congrats' ? PeanutCheering.src : null)
+    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached
@@ -254,7 +248,7 @@ const ResidenceStep = () => {
            no ID check; the bank rail unlocks with verification. The card IS
            named here as of 2026-09-05 (slava's call, reversing the earlier
            product direction that kept it unnamed in onboarding), and the
-           clause states both of its gates — the ID check and the waitlist.
+           clause describes the identity verification needed to apply.
 
            The clause carries no country framing, which is what Rain's
            §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
@@ -298,14 +292,10 @@ const ResidenceStep = () => {
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.congrats.continue')}
                     </Button>
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -328,14 +318,10 @@ const ResidenceStep = () => {
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.partial.continue')}
                     </Button>
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -377,18 +363,14 @@ const ResidenceStep = () => {
                         </Button>
                     )}
                     {view === 'restricted' && (
-                        <Button variant="stroke" onClick={() => setView('notify')}>
+                        <Button variant="secondary" onClick={() => setView('notify')}>
                             {t('residenceStep.restricted.notifyMe')}
                         </Button>
                     )}
-                    <button
-                        type="button"
-                        className={CHANGE_COUNTRY_LINK}
-                        onClick={() => setView('select')}
-                        disabled={isLoading}
-                    >
+                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
+                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
-                    </button>
+                    </LinkButton>
                 </div>
             </div>
         )
@@ -412,32 +394,32 @@ const ResidenceStep = () => {
                     onValueChange={onResidenceChange}
                     onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />
-                <button
-                    type="button"
-                    className={`self-start text-left ${UNDERLINED_LINK}`}
-                    aria-expanded={showSecondCountry}
-                    onClick={() => {
+                <Accordion
+                    type="single"
+                    collapsible
+                    variant="link"
+                    value={showSecondCountry ? 'second-country' : ''}
+                    onValueChange={(value) => {
                         // Collapsing must also clear the stored pick — an
                         // invisible second residence would still be sent to
-                        // analytics and persisted after signup. Dispatch stays
-                        // outside the updater (React may replay updaters).
-                        if (showSecondCountry && secondResidenceCountry) {
-                            setSecondResidenceCountry('')
-                        }
-                        setShowSecondCountry((current) => !current)
+                        // analytics and persisted after signup.
+                        if (!value && secondResidenceCountry) setSecondResidenceCountry('')
+                        setShowSecondCountry(!!value)
                     }}
                 >
-                    {t('residenceStep.multiDocLink')}
-                </button>
-                {showSecondCountry && (
-                    <CountryCombobox
-                        options={countryOptions}
-                        placeholder={t('residenceStep.secondCountryPlaceholder')}
-                        value={secondResidenceCountry || undefined}
-                        onValueChange={(value) => setSecondResidenceCountry(value)}
-                        onClear={hasPair ? () => onRemoveCountry('second') : undefined}
-                    />
-                )}
+                    <Accordion.Item value="second-country">
+                        <Accordion.Trigger>{t('residenceStep.multiDocLink')}</Accordion.Trigger>
+                        <Accordion.Content>
+                            <CountryCombobox
+                                options={countryOptions}
+                                placeholder={t('residenceStep.secondCountryPlaceholder')}
+                                value={secondResidenceCountry || undefined}
+                                onValueChange={(value) => setSecondResidenceCountry(value)}
+                                onClear={hasPair ? () => onRemoveCountry('second') : undefined}
+                            />
+                        </Accordion.Content>
+                    </Accordion.Item>
+                </Accordion>
                 {/* Dual-residence comparison: facts about each residence, not a
                     menu of perks. The guidance leads with the truth norm; the
                     order is presentation only and eligibility stays with the
@@ -451,37 +433,23 @@ const ResidenceStep = () => {
                                 const summary = residenceAvailability(restrictionSets, iso2)
                                 const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
                                 return (
-                                    <div
-                                        key={iso2}
-                                        className="rounded-sm border border-border-default bg-background-default p-3"
-                                    >
+                                    <div key={iso2} className={`${CARD_SURFACE} p-3`}>
                                         <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>
-                                        {/* Drawn rather than list-disc: an outside marker hangs
-                                                left of the text column and an inside one re-indents
-                                                wrapped lines, and neither puts the dot on the card
-                                                title's own left edge. */}
-                                        <ul className="space-y-2 text-body-xs text-foreground-secondary">
-                                            {summary.available.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span>{t(`residenceStep.compare.items.${item}`)}</span>
-                                                </li>
-                                            ))}
-                                            {summary.unavailable.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span className="line-through">
+                                        <BulletList
+                                            size="xs"
+                                            items={[
+                                                ...summary.available.map((item) =>
+                                                    t(`residenceStep.compare.items.${item}`)
+                                                ),
+                                                ...summary.unavailable.map((item) => (
+                                                    <span key={item} className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                                )),
+                                            ]}
+                                        />
                                         {/* One verification enrols every rail in the region's
                                                 set, but a rail in another currency only pays out
                                                 into an account on that network — so it is stated
@@ -497,13 +465,13 @@ const ResidenceStep = () => {
                         </div>
                         {/* The title slot is a sentence-case Body/S line; this guidance
                                 labels a block of prose, so it takes the mini-header step. */}
-                        <Notification priority="info" hideIcon>
+                        <Callout priority="info" hideIcon>
                             <MiniHeader className="mb-1 text-inherit">
                                 {t('residenceStep.compare.guideTitle')}
                             </MiniHeader>
                             <p>{t('residenceStep.compare.guideDeclaration')}</p>
                             <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
-                        </Notification>
+                        </Callout>
                     </div>
                 )}
             </div>
@@ -515,7 +483,7 @@ const ResidenceStep = () => {
                         <Button
                             key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'purple' : 'stroke'}
+                            variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
                             onClick={() => onSelectPrimary(iso2)}
                             disabled={isLoading}
                             loading={isLoading}

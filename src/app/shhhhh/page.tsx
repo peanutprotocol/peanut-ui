@@ -4,10 +4,10 @@ import Footer from '@/components/LandingPage/Footer'
 import ShhhhhLandingPage from './ShhhhhLandingPage'
 
 export const metadata = generateMeta({
-    title: 'Shhhhh. | The peanut card is out, quietly.',
+    title: 'Peanut Card | Get your card',
     description:
-        'A non-custodial card accepted at over 150 million Visa-accepting merchants. We are letting beta users in slowly — about 50 a week.',
-    keywords: 'peanut card, non-custodial card, visa-accepting merchants, closed beta, stablecoins',
+        'Get your Peanut Card for online payments, and contactless with Apple Pay or Google Pay where supported. Verification and approval required.',
+    keywords: 'peanut card, visa-accepting merchants, virtual card, stablecoins',
     canonical: '/shhhhh',
 })
 

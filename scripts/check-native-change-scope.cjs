@@ -2,9 +2,10 @@
 
 // A replacement build may reuse the current native version only when every
 // native change since that version belongs to the platform being rebuilt.
-// Shared changes (Capacitor config, plugin versions, patches) are deliberately
-// rejected: they may alter both shells, even when the immediate incident was
-// observed on one platform.
+// Shared changes (Capacitor config, cross-platform plugin versions, patches)
+// are deliberately rejected: they may alter both shells, even when the
+// immediate incident was observed on one platform. Platform runtime dependency
+// inputs live below android/ or ios/ and therefore remain attributable.
 
 const PLATFORM_PREFIXES = {
     android: 'android/',

@@ -13,7 +13,8 @@
 import { expect, test } from '@playwright/test'
 import { captureStep, collectConsoleLogs, getConsoleErrors } from '../utils/capture'
 import { dismissModals } from '../utils/dismiss-modals'
-// type-only IconName import inside nav-config is erased at runtime, so this is safe to import here
+// nav-config pulls lucide-react in at runtime (every nav entry carries an icon component).
+// that resolves under playwright's node runner, so importing the real config here is safe.
 import { SIDEBAR_CONFIG, TIERS } from '../../src/app/(mobile-ui)/dev/ds/_components/nav-config'
 
 // tier indexes + every doc page; playground sub-items live under /dev (standalone harnesses), not /dev/ds
@@ -65,16 +66,16 @@ test.describe('Dev showcase (design system)', () => {
         assertNoConsoleErrors(c.entries, '/dev/ds')
     })
 
-    test('/dev/ds doc pages — full component sweep', async ({ page }, testInfo) => {
-        const c = collectConsoleLogs(page)
-        for (const route of DS_DOC_ROUTES) {
+    for (const route of new Set(DS_DOC_ROUTES)) {
+        test(`${route} — component showcase`, async ({ page }, testInfo) => {
+            const c = collectConsoleLogs(page)
             const res = await page.goto(route, { waitUntil: 'domcontentloaded' })
             expect(res?.ok(), `${route} responded non-2xx`).toBeTruthy()
             await dismissModals(page)
             await page.waitForTimeout(800)
             await captureStep(page, testInfo, { name: route.replace('/dev/ds', 'ds').replaceAll('/', '-') })
-        }
-        c.flush(testInfo, 'ds-doc-sweep')
-        assertNoConsoleErrors(c.entries, 'ds doc sweep')
-    })
+            c.flush(testInfo, 'ds-doc-page')
+            assertNoConsoleErrors(c.entries, route)
+        })
+    }
 })

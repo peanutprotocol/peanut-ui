@@ -81,7 +81,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
         </button>
     ),
 }))
-jest.mock('@/components/0_Bruddle/Notification', () => ({ Notification: ({ children }: any) => <div>{children}</div> }))
+jest.mock('@/components/0_Bruddle/Callout', () => ({ Callout: ({ children }: any) => <div>{children}</div> }))
 jest.mock('@/components/0_Bruddle/PageStack', () => {
     const Pass = ({ children }: any) => <div>{children}</div>
     return { PageStack: Object.assign(Pass, { Center: Pass }) }

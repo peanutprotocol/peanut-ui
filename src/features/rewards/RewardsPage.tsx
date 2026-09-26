@@ -7,8 +7,6 @@ import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
-import InvitesGraph from '@/components/Global/InvitesGraph'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
@@ -24,13 +22,19 @@ import { getInitialsFromName } from '@/utils/general.utils'
 import { profileUrl } from '@/utils/native-routes'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
 import { getTierBadge, getTierProgressPercent } from './utils'
+
+const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
+const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
 
 export function RewardsPage() {
     const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
+    const [isInviteModalMounted, setIsInviteModalMounted] = useState(false)
 
     const {
         user,
@@ -42,7 +46,6 @@ export function RewardsPage() {
         invites,
         isInvitesPending,
         isInvitesError,
-        invitesError,
         tierInfo,
         isTierInfoPending,
         isTierInfoError,
@@ -51,28 +54,33 @@ export function RewardsPage() {
         cashStatus,
         animatedTotal,
     } = useRewardsFlow()
+    const openInviteModal = () => {
+        setIsInviteModalMounted(true)
+        setIsInviteModalOpen(true)
+    }
 
-    // isPending, not isLoading: both queries wait on `user`, and a disabled query
-    // reports isLoading false. isLoading would send the first paint to the error
-    // state below, before either request has even started.
-    if (isInvitesPending || isTierInfoPending) {
+    // Tier data owns the hero and is the only request that blocks first content.
+    // Invite rows, cash totals and the graph settle independently below.
+    if (isTierInfoPending) {
         return <Loading variant="mascot" />
     }
 
     // getTierInfo catches its own failures and resolves with `data: null`, so the
     // query never reports an error. Past the guard above the request has settled,
     // so missing data means it failed.
-    if (isInvitesError || isTierInfoError || !tierInfo?.data) {
+    if (isTierInfoError || !tierInfo?.data) {
         // in the swallowed-error path both error objects are null — log the
         // settled response so the branch never prints a contentless "null"
-        console.error(
-            'Error loading points data:',
-            invitesError ?? tierInfoError ?? { tierInfoSettledWithoutData: tierInfo }
-        )
+        console.error('Error loading points data:', tierInfoError ?? { tierInfoSettledWithoutData: tierInfo })
 
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
+                <EmptyState
+                    icon="alert"
+                    iconColor="red"
+                    title={t('loadPointsFailed')}
+                    description={t('contactSupport')}
+                />
             </div>
         )
     }
@@ -115,16 +123,9 @@ export function RewardsPage() {
                             )
                         })()}
 
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={() => setIsInviteModalOpen(true)}
-                        className="w-full"
-                    >
+                    <Button variant="primary" shadowSize="4" onClick={openInviteModal} className="w-full">
                         {t('inviteNow')}
                     </Button>
-
-                    <div className="border-t border-border-disabled" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
@@ -180,7 +181,7 @@ export function RewardsPage() {
                     </div>
                 </Card>
 
-                {/* iOS presents the programme as cashback (see useAppTranslations);
+                {/* iOS presents the programme in points (see useAppTranslations);
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">
@@ -218,12 +219,13 @@ export function RewardsPage() {
                         <p className="text-center text-body-s">
                             {user?.invitedBy && (
                                 <>
-                                    <span
+                                    <button
+                                        type="button"
                                         onClick={() => router.push(profileUrl(user.invitedBy!))}
-                                        className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                                        className="inline-flex cursor-pointer items-center gap-1 font-bold focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={16} />
-                                    </span>{' '}
+                                    </button>{' '}
                                     {t('invitedYou')}{' '}
                                 </>
                             )}
@@ -234,16 +236,30 @@ export function RewardsPage() {
                 )}
 
                 {/* if user has invites: show button above people list */}
-                {invites && invites?.invitees && invites.invitees.length > 0 ? (
+                {isInvitesPending ? (
+                    <Card className="!mt-8 p-4" aria-busy="true">
+                        <div className="h-5 w-40 animate-pulse rounded bg-background-disabled" />
+                        <div className="mt-4 h-12 w-full animate-pulse rounded bg-background-disabled" />
+                    </Card>
+                ) : isInvitesError ? (
+                    <EmptyState
+                        icon="alert"
+                        iconColor="red"
+                        title={t('loadInvitesFailed')}
+                        description={t('contactSupport')}
+                        containerClassName="!mt-8"
+                    />
+                ) : invites?.invitees && invites.invitees.length > 0 ? (
                     <>
                         {/* people you invited */}
-                        <div
-                            className="flex cursor-pointer items-center justify-between"
+                        <button
+                            type="button"
+                            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px] focus-visible:outline-action-focus"
                             onClick={() => router.push('/rewards/invites')}
                         >
                             <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
                             <NavigationArrow className="text-foreground-primary" />
-                        </div>
+                        </button>
 
                         <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
@@ -258,17 +274,22 @@ export function RewardsPage() {
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
                                         onClick={() => router.push(profileUrl(username))}
-                                        className="cursor-pointer"
+                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
                                                     initials={getInitialsFromName(displayName)}
-                                                    userName={displayName}
+                                                    // The invitee's own handle, so the letter
+                                                    // fallback matches their profile. An
+                                                    // invitee without one keeps the display
+                                                    // name — an empty name reads as "not a
+                                                    // user" and drops to a wallet icon.
+                                                    userName={username || displayName}
+                                                    avatarKey={invite.avatarKey}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
-                                                    context="card"
-                                                    size="small"
+                                                    size="m"
                                                 />
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
@@ -293,17 +314,17 @@ export function RewardsPage() {
                     <>
                         {/* if user has no invites: canonical empty state with modal button */}
                         <EmptyState
-                            icon="trophy"
+                            concept="rewards"
                             title={t('noInvitesYet')}
                             description={t('shareInviteLinkPrompt')}
                             containerClassName="!mt-8"
                             cta={
                                 <Button
-                                    variant="purple"
+                                    variant="primary"
                                     shadowSize="4"
                                     size="small"
                                     className="mt-2"
-                                    onClick={() => setIsInviteModalOpen(true)}
+                                    onClick={openInviteModal}
                                 >
                                     {t('shareInviteLink')}
                                 </Button>
@@ -313,12 +334,16 @@ export function RewardsPage() {
                 )}
 
                 {/* Invite Modal */}
-                <InviteFriendsModal
-                    visible={isInviteModalOpen}
-                    onClose={() => setIsInviteModalOpen(false)}
-                    username={username ?? ''}
-                    source="points_page"
-                />
+                {/* Load on first use, then keep the controlled root mounted so
+                    visible=false can animate the modal closed. */}
+                {isInviteModalMounted && (
+                    <InviteFriendsModal
+                        visible={isInviteModalOpen}
+                        onClose={() => setIsInviteModalOpen(false)}
+                        username={username ?? ''}
+                        source="points_page"
+                    />
+                )}
             </section>
         </PageContainer>
     )

@@ -150,7 +150,7 @@ export function SemanticRequestFlowProvider({
 
     // amount state
     const [amount, setAmount] = useState<string>(initialParsedUrl.amount || '')
-    const [usdAmount, setUsdAmount] = useState<string>(initialParsedUrl.amount || '')
+    const [usdAmount, setUsdAmount] = useState<string>(isTokenDenominated ? '' : initialParsedUrl.amount || '')
 
     // attachment state
     const [attachment, setAttachment] = useState<SemanticRequestAttachment>({})
@@ -189,7 +189,7 @@ export function SemanticRequestFlowProvider({
     const resetSemanticRequestFlow = useCallback(() => {
         setCurrentView('INITIAL')
         setAmount(initialParsedUrl.amount || '')
-        setUsdAmount(initialParsedUrl.amount || '')
+        setUsdAmount(isTokenDenominated ? '' : initialParsedUrl.amount || '')
         setAttachment({})
         setCharge(null)
         setPayment(null)
@@ -198,7 +198,7 @@ export function SemanticRequestFlowProvider({
         setIsLoading(false)
         setIsSuccess(false)
         setIsExternalWalletPayment(false)
-    }, [initialParsedUrl.amount])
+    }, [initialParsedUrl.amount, isTokenDenominated])
 
     const value = useMemo<SemanticRequestFlowContextValue>(
         () => ({

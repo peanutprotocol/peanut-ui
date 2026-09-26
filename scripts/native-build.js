@@ -317,7 +317,11 @@ function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
         }
         if (isCoveredByDisableList(rel) || isHandledByTransform(rel)) continue
         if (entry.name === 'route.ts' || entry.name === 'route.js') {
-            found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            // A force-static handler is written to a file at build time, which the export keeps.
+            const content = fs.readFileSync(full, 'utf-8')
+            if (!/export\s+const\s+dynamic\s*=\s*['"]force-static['"]/.test(content)) {
+                found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            }
             continue
         }
         if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) {
@@ -687,9 +691,9 @@ async function main() {
     }
 }
 
-// Web-only dead weight in the bundled export (~8 MB): /dev test pages and the
-// iOS-PWA install videos are unreachable from native flows. KEEP_DEV_PAGES=true
-// retains /dev for profiling/test builds (e.g. the confetti repro page).
+// Web-only dead weight in the bundled export: /dev test pages are unreachable
+// from native flows. KEEP_DEV_PAGES=true retains them all for profiling and
+// tests; KEEP_LOTTIE_PROFILE=true retains only TASK-21683's device harness.
 //
 // Exception: dev/deferred stays. It IS reachable from native flows — it's the
 // landing target for the deferred-deep-link e2e (dest=/dev/deferred) and the
@@ -704,12 +708,10 @@ function pruneExportedAssets() {
         const devDir = path.join(outDir, 'dev')
         if (fs.existsSync(devDir)) {
             for (const entry of fs.readdirSync(devDir)) {
-                if (entry !== 'deferred') targets.push(path.join(devDir, entry))
+                const keepLottieProfile = process.env.KEEP_LOTTIE_PROFILE === 'true' && entry === 'lottie-profile'
+                if (entry !== 'deferred' && !keepLottieProfile) targets.push(path.join(devDir, entry))
             }
         }
-    }
-    for (const entry of fs.readdirSync(outDir)) {
-        if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
     }
     // public/ is copied wholesale, so the press kit rides along (~14 MB of team
     // photos, brand PDF and EPS) even though /[locale]/press is disabled here.

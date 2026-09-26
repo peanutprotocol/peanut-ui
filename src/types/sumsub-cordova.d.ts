@@ -48,6 +48,8 @@ declare global {
     interface Window {
         SNSMobileSDK?: {
             init(accessToken: string, tokenExpirationHandler: () => Promise<string>): SNSMobileSDKBuilder
+            /** Clears a stale JavaScript instance lock; supplied by the Cordova wrapper. */
+            reset?(): void
         }
     }
 }

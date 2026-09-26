@@ -2,10 +2,10 @@
  * THE chain registry — single source of truth for every chain fact the FE
  * hand-maintains about Rhino-connected chains.
  *
- * Before this file, one chain's facts were spread across SEVEN maps
+ * Before this file, one chain's facts were spread across SIX maps
  * (CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, EVM_CHAIN_ID_TO_RHINO_NAME,
  * RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN, EVM_DEPOSIT_TOKEN_EXCEPTIONS,
- * CHAIN_ROLLOUT_FLAGS, NON_EVM_WITHDRAW_CHAINS) — the drift between them
+ * NON_EVM_WITHDRAW_CHAINS) — the drift between them
  * caused the SCROLL rot and the frozen-SDA incident. Those exports still
  * exist at their old import paths, but every one of them is now DERIVED
  * from this registry (see the `derive*` helpers below + the equality tests
@@ -39,6 +39,13 @@ export interface ChainRegistryEntry {
     /** Display key on deposit surfaces (the legacy `ChainName`). */
     displayName?: string
     logoUrl?: string
+    /** Full transaction explorer prefix for chains that are not represented in
+     *  chain-details.json. Keep this beside the chain identity so receipts do
+     *  not grow a second network-name switch. */
+    transactionExplorerUrlPrefix?: string
+    /** Exact-id explorer prefixes for aliases that share a provider routing
+     *  bucket but belong to a different network (for example a testnet). */
+    aliasTransactionExplorerUrlPrefixes?: Readonly<Record<string, string>>
     /** Present = advertised DEPOSIT chain. `tokens` only when narrower than
      *  the family default (USDT/USDC/ETH for EVM) — drives the "USDT only"
      *  funds-safety annotations. */
@@ -48,9 +55,6 @@ export interface ChainRegistryEntry {
     withdraw?: { tokens: readonly string[] }
     /** Synthetic selector record for non-EVM chains (no chain-details entry). */
     nonEvmRecord?: { networkName: string; tokens: readonly RegistryTokenMeta[] }
-    /** PostHog rollout gate — see engineering/patterns/feature-gates.md.
-     *  Delete when the chain launch is permanent. */
-    rolloutFlag?: string
 }
 
 const TOKEN_LOGO = {
@@ -67,6 +71,9 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'evm',
         displayName: 'ARBITRUM',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png?1706606717',
+        aliasTransactionExplorerUrlPrefixes: {
+            '421614': 'https://sepolia.arbiscan.io/tx/',
+        },
         deposit: {},
         withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
     },
@@ -91,7 +98,6 @@ const CHAIN_REGISTRY_LITERAL = [
         // same-day: ARB→BASE quotes OK for ETH/USDC/USDT + outflow SDA
         // create OK. Rollout-flagged like the other 2026-07 additions.
         withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
-        rolloutFlag: 'chain-rollout-base',
     },
     {
         id: '10',
@@ -148,27 +154,24 @@ const CHAIN_REGISTRY_LITERAL = [
     },
 
     // ── 2026-07 expansion (peanut-ui#2396/#2398) — each verified against ──
-    // ── Rhino prod: live quote + outflow SDA create; rollout-flagged ──────
+    // ── Rhino prod: live quote + outflow SDA create ──────────────────────
     {
         id: '43114',
         rhinoName: 'AVALANCHE',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
-        rolloutFlag: 'chain-rollout-avalanche',
     },
     {
         id: '999',
         rhinoName: 'HYPEREVM',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
-        rolloutFlag: 'chain-rollout-hyperevm',
     },
     {
         id: '57073',
         rhinoName: 'INK',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
-        rolloutFlag: 'chain-rollout-ink',
     },
     {
         id: '747474',
@@ -178,21 +181,18 @@ const CHAIN_REGISTRY_LITERAL = [
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/32239/standard/katana.jpg?1751496126',
         deposit: {},
         withdraw: { tokens: ['USDC', 'USDT'] }, // delivered as vbUSDC/vbUSDT
-        rolloutFlag: 'chain-rollout-katana',
     },
     {
         id: '59144',
         rhinoName: 'LINEA',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
-        rolloutFlag: 'chain-rollout-linea',
     },
     {
         id: '5000',
         rhinoName: 'MANTLE',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] }, // USDT delivered as USDT0
-        rolloutFlag: 'chain-rollout-mantle',
     },
     {
         id: '9745',
@@ -202,14 +202,12 @@ const CHAIN_REGISTRY_LITERAL = [
         logoUrl: 'https://coin-images.coingecko.com/asset_platforms/images/32256/small/plasma.jpg?1758000963',
         deposit: { tokens: ['USDT'] }, // USDT0-only chain — USDC would be lost
         withdraw: { tokens: ['USDT'] },
-        rolloutFlag: 'chain-rollout-plasma',
     },
     {
         id: '988',
         rhinoName: 'STABLE',
         family: 'evm',
         withdraw: { tokens: ['USDT'] }, // USDT0-only chain
-        rolloutFlag: 'chain-rollout-stable',
     },
     {
         id: '4217',
@@ -219,7 +217,6 @@ const CHAIN_REGISTRY_LITERAL = [
         logoUrl: 'https://icons.llamao.fi/icons/chains/rsz_tempo.jpg',
         deposit: { tokens: ['USDT', 'USDC'] }, // no ETH asset on Tempo
         withdraw: { tokens: ['USDC', 'USDT'] }, // delivered as USDC.e/USDT0
-        rolloutFlag: 'chain-rollout-tempo',
     },
     {
         id: '8217',
@@ -229,7 +226,6 @@ const CHAIN_REGISTRY_LITERAL = [
         logoUrl: 'https://coin-images.coingecko.com/asset_platforms/images/9672/small/kaia.png?1734946776',
         deposit: { tokens: ['USDT'] }, // USDT-only at Rhino — USDC would be lost
         // NOT a withdraw destination: Rhino SDA create rejects Kaia tokenOut
-        rolloutFlag: 'chain-rollout-kaia',
     },
 
     // ── non-EVM ─────────────────────────────────────────────────────────────
@@ -239,6 +235,7 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'solana',
         displayName: 'SOLANA',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/5/standard/solana.png?1706606708',
+        transactionExplorerUrlPrefix: 'https://solscan.io/tx/',
         deposit: {}, // SOL family default (USDT/USDC)
         withdraw: { tokens: ['USDC', 'USDT'] },
         nonEvmRecord: {
@@ -260,7 +257,6 @@ const CHAIN_REGISTRY_LITERAL = [
                 },
             ],
         },
-        rolloutFlag: 'chain-rollout-solana',
     },
     {
         id: 'tron',
@@ -268,6 +264,7 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'tron',
         displayName: 'TRON',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/1094/standard/TRON_LOGO.png?1706606652',
+        transactionExplorerUrlPrefix: 'https://tronscan.org/#/transaction/',
         deposit: {}, // TRON family default (USDT)
         withdraw: { tokens: ['USDT'] }, // no USDC on Tron
         nonEvmRecord: {
@@ -282,7 +279,6 @@ const CHAIN_REGISTRY_LITERAL = [
                 },
             ],
         },
-        rolloutFlag: 'chain-rollout-tron',
     },
 ] as const satisfies readonly ChainRegistryEntry[]
 
@@ -295,22 +291,22 @@ export type RegistryChainName = Extract<RegistryEntryLiteral, { displayName: str
  *  entry). The literal source above keeps the name union type-safe. */
 export const CHAIN_REGISTRY: readonly ChainRegistryEntry[] = CHAIN_REGISTRY_LITERAL
 
+/** Resolve any chain identifier carried by our wire contracts: selector id,
+ *  alias id, Rhino name, or display name. */
+export function resolveChainRegistryEntry(identifier: string | number): ChainRegistryEntry | undefined {
+    const normalized = String(identifier).trim().toUpperCase()
+    return CHAIN_REGISTRY.find((entry) =>
+        [entry.id, ...(entry.aliasIds ?? []), entry.rhinoName, entry.displayName].some(
+            (candidate) => candidate?.toUpperCase() === normalized
+        )
+    )
+}
+
 // ─── Derived views ─────────────────────────────────────────────────────────
 // Everything below is COMPUTED from the registry — never hand-edit a chain
 // fact here; edit the entry above.
 
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-
-/**
- * Per-chain PostHog rollout flags, keyed by every identifier a chain appears
- * under (selector id, aliases, deposit display name) so one flag governs all
- * surfaces of the same chain. See engineering/patterns/feature-gates.md.
- */
-export const CHAIN_ROLLOUT_FLAGS: Record<string, string> = Object.fromEntries(
-    CHAIN_REGISTRY.filter((c) => c.rolloutFlag).flatMap((c) =>
-        [c.id, ...(c.aliasIds ?? []), ...(c.displayName ? [c.displayName] : [])].map((key) => [key, c.rolloutFlag!])
-    )
-)
 
 /**
  * Synthetic selector records for non-EVM withdraw destinations (no
@@ -333,7 +329,6 @@ export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = Object.f
                 name: t.name,
                 symbol: t.symbol,
                 logoURI: t.logoURI,
-                usdPrice: 0,
             })),
         },
     ])

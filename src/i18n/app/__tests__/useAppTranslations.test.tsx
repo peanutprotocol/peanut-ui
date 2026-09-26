@@ -1,11 +1,12 @@
 /**
- * The iOS-only cashback copy layer.
+ * The iOS-only copy layer.
  *
  * App Store Review Guideline 3.1.5 (v) forbids cryptocurrency apps from
  * offering currency for "encouraging other users to download". The native iOS
- * build presents the referral programme as cashback; web and Android keep the
- * rewards vocabulary. The whole contract is: overrides apply on iOS only, and
- * every other platform renders byte-for-byte what it rendered before.
+ * build presents the referral programme in points and never names the dollar
+ * payouts as a reward for inviting; web and Android keep the rewards
+ * vocabulary. The whole contract is: overrides apply on iOS only, and every
+ * other platform renders byte-for-byte what it rendered before.
  */
 import React, { type ReactNode } from 'react'
 import { renderHook } from '@testing-library/react'
@@ -48,8 +49,8 @@ describe('useAppTranslations', () => {
     describe('off iOS', () => {
         beforeEach(() => mockIsIOSNative.mockReturnValue(false))
 
-        it('renders the rewards vocabulary untouched', () => {
-            expect(t('rewards')('title')).toBe('Rewards')
+        it('renders the base vocabulary untouched', () => {
+            expect(t('rewards')('title')).toBe('Points')
             expect(t('rewards')('lifetimeRewards', { amount: '$10.00' })).toBe(
                 'Lifetime rewards: $10.00. To earn more, invite friends.'
             )
@@ -67,21 +68,25 @@ describe('useAppTranslations', () => {
         beforeEach(() => mockIsIOSNative.mockReturnValue(true))
 
         it('prefers the ios override when the namespace has one', () => {
-            expect(t('rewards')('title')).toBe('Cashback')
-            expect(t('rewards')('lifetimeRewards', { amount: '$10.00' })).toBe('Lifetime cashback: $10.00')
-            expect(t('qrPay')('success.earnedRewardTitle')).toBe('You earned cashback!')
-            expect(t('transaction')('type.reward')).toBe('Cashback')
-            expect(t('profile')('menu.points')).toBe('Cashback')
+            expect(t('rewards')('lifetimeRewards', { amount: '$10.00' })).toBe('Earned so far: $10.00')
+            expect(t('qrPay')('success.earnedRewardTitle')).toBe('You got a surprise!')
+            expect(t('transaction')('type.reward')).toBe('Receive')
         })
 
-        it('attributes cashback to the payment, not the signup', () => {
+        it('names the entry Points, the same as every other platform', () => {
+            expect(t('home')('rewards')).toBe('Points')
+            expect(t('rewards')('title')).toBe('Points')
+            expect(t('profile')('menu.points')).toBe('Points')
+        })
+
+        it('attributes earnings to the payment, not the signup', () => {
             expect(t('home.perk').raw('usedPeanut' as never)).toContain('paid with Peanut')
         })
 
         it('falls through to the base string when there is no override', () => {
             // same namespace as an overridden key, deliberately not overridden
             expect(t('rewards')('inviteNow')).toBe('Invite Now')
-            expect(t('rewards')('peopleYouInvited')).toBe('People you invited')
+            expect(t('rewards')('peopleYouInvited')).toBe('People invited')
             expect(t('qrPay')('success.splitThisBill')).toBe('Split this bill')
         })
 
@@ -91,13 +96,21 @@ describe('useAppTranslations', () => {
         })
 
         it('resolves overrides in every locale, es-AR through the es-419 layer', () => {
-            expect(t('rewards', 'es-419')('title')).toBe('Cashback')
-            expect(t('rewards', 'pt-BR')('title')).toBe('Cashback')
-            // es-AR overrides only what voseo changes; `title` comes from es-419
-            expect(t('rewards', 'es-AR')('title')).toBe('Cashback')
+            expect(t('rewards', 'es-419')('title')).toBe('Puntos')
+            expect(t('rewards', 'pt-BR')('title')).toBe('Pontos')
+            expect(t('rewards', 'es-419')('howItWorks.title')).toBe('Cómo funciona')
+            expect(t('rewards', 'pt-BR')('howItWorks.title')).toBe('Como funciona')
+            // es-AR overrides only what voseo changes; `howItWorks.title` comes from es-419
+            expect(t('rewards', 'es-AR')('howItWorks.title')).toBe('Cómo funciona')
             expect(t('rewards', 'es-AR')('earnWhenFriendsUse')).toBe(
-                '¡Ganás cashback cada vez que tus amigos pagan con Peanut!'
+                '¡Ganás puntos cada vez que tus amigos pagan con Peanut!'
             )
+        })
+
+        it('never says cashback in any locale', () => {
+            for (const locale of ['en', 'es-419', 'es-AR', 'pt-BR'] as const) {
+                expect(JSON.stringify(CATALOGS[locale]).toLowerCase()).not.toContain('cashback')
+            }
         })
 
         it('reports has() against both layers', () => {
@@ -109,7 +122,7 @@ describe('useAppTranslations', () => {
 })
 
 describe('iosCopy catalog invariants', () => {
-    const OVERRIDDEN = ['rewards', 'home', 'home.perk', 'home.carousel', 'qrPay', 'transaction', 'profile', 'global']
+    const OVERRIDDEN = ['rewards', 'home.perk', 'home.carousel', 'qrPay', 'transaction', 'global']
 
     const at = (root: unknown, path: string): unknown =>
         path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown>)?.[key], root)

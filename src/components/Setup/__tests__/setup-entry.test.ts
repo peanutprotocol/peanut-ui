@@ -1,11 +1,7 @@
 /** @jest-environment jsdom */
-import { DeviceType } from '@/hooks/useGetDeviceType'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep, type SetupEntryInput } from '../setup-entry'
 
 const base: SetupEntryInput = {
-    isCapacitor: false,
-    deviceType: DeviceType.WEB,
-    isStandalonePWA: false,
     hasInviteCode: false,
     stepParam: null,
     webSignupClosed: false,
@@ -15,90 +11,42 @@ const base: SetupEntryInput = {
 describe('resolveSetupEntryStep', () => {
     describe('known device (passkey credentials, no session) always lands on Log In', () => {
         it.each([
-            ['capacitor + invite code', { isCapacitor: true, hasInviteCode: true }],
-            ['capacitor + ?step=signup', { isCapacitor: true, stepParam: 'signup' }],
-            ['desktop web', {}],
-            ['desktop web + invite code', { hasInviteCode: true }],
-            ['android browser (not installed)', { deviceType: DeviceType.ANDROID }],
-            [
-                'android PWA + ?step=signup',
-                { deviceType: DeviceType.ANDROID, isStandalonePWA: true, stepParam: 'signup' },
-            ],
-            ['ios', { deviceType: DeviceType.IOS, hasInviteCode: true }],
+            ['plain entry', {}],
+            ['invite code', { hasInviteCode: true }],
+            ['?step=signup', { stepParam: 'signup' }],
         ])('%s', (_name, overrides) => {
             expect(resolveSetupEntryStep({ ...base, ...overrides, knownDevice: true })).toBe('landing')
         })
     })
 
     describe('?step=login', () => {
-        it.each([
-            ['capacitor', { isCapacitor: true }],
-            ['desktop web', {}],
-            ['android browser', { deviceType: DeviceType.ANDROID }],
-        ])('lands on Log In on %s, even with an invite code', (_name, overrides) => {
-            expect(resolveSetupEntryStep({ ...base, ...overrides, stepParam: 'login', hasInviteCode: true })).toBe(
-                'landing'
-            )
+        it('lands on Log In even with an invite code', () => {
+            expect(resolveSetupEntryStep({ ...base, stepParam: 'login', hasInviteCode: true })).toBe('landing')
         })
     })
 
-    describe('capacitor', () => {
+    describe('app entry', () => {
         it('lands on landing by default', () => {
-            expect(resolveSetupEntryStep({ ...base, isCapacitor: true })).toBe('landing')
+            expect(resolveSetupEntryStep(base)).toBe('landing')
         })
 
         it.each([
             ['invite code', { hasInviteCode: true }],
             ['?step=signup', { stepParam: 'signup' }],
         ])('skips the invite gate with %s', (_name, overrides) => {
-            expect(resolveSetupEntryStep({ ...base, isCapacitor: true, ...overrides })).toBe('signup')
-        })
-    })
-
-    describe('web', () => {
-        it('desktop → pwa-install', () => {
-            expect(resolveSetupEntryStep(base)).toBe('pwa-install')
-        })
-
-        it('android browser → android-initial-pwa-install', () => {
-            expect(resolveSetupEntryStep({ ...base, deviceType: DeviceType.ANDROID })).toBe(
-                'android-initial-pwa-install'
-            )
-        })
-
-        it('android installed PWA → landing', () => {
-            expect(resolveSetupEntryStep({ ...base, deviceType: DeviceType.ANDROID, isStandalonePWA: true })).toBe(
-                'landing'
-            )
-        })
-
-        it('ios → landing', () => {
-            expect(resolveSetupEntryStep({ ...base, deviceType: DeviceType.IOS })).toBe('landing')
+            expect(resolveSetupEntryStep({ ...base, ...overrides })).toBe('signup')
         })
 
         it.each([
-            ['invite code', { hasInviteCode: true }],
+            ['plain entry', {}],
             ['?step=signup', { stepParam: 'signup' }],
-        ])('%s skips the invite gate on every device', (_name, overrides) => {
-            for (const deviceType of [DeviceType.WEB, DeviceType.ANDROID, DeviceType.IOS]) {
-                expect(resolveSetupEntryStep({ ...base, deviceType, ...overrides })).toBe('signup')
-            }
-        })
-
-        it('does not skip the landing gate while web signups are closed', () => {
-            expect(
-                resolveSetupEntryStep({
-                    ...base,
-                    deviceType: DeviceType.IOS,
-                    hasInviteCode: true,
-                    webSignupClosed: true,
-                })
-            ).toBe('landing')
-            expect(resolveSetupEntryStep({ ...base, stepParam: 'signup', webSignupClosed: true })).toBe('pwa-install')
+            ['invite code', { hasInviteCode: true }],
+        ])('routes %s to Log In while web signups are closed', (_name, overrides) => {
+            expect(resolveSetupEntryStep({ ...base, ...overrides, webSignupClosed: true })).toBe('landing')
         })
 
         it('an unknown ?step value changes nothing', () => {
-            expect(resolveSetupEntryStep({ ...base, stepParam: 'residence' })).toBe('pwa-install')
+            expect(resolveSetupEntryStep({ ...base, stepParam: 'residence' })).toBe('landing')
         })
     })
 })

@@ -9,6 +9,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { IntlWrapper } from '@/test-utils/intl'
 import { loadMessages } from '@/i18n/app/messages'
 import en from '@/i18n/app/messages/en.json'
+import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import { AboutView } from '../About.view'
 import * as capacitor from '@/utils/capacitor'
 
@@ -25,6 +26,9 @@ jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
+let mockOpenHelp: jest.Mock | null = null
+jest.mock('@/components/Global/AppHelpProvider', () => ({ useAppHelpDrawer: () => mockOpenHelp }))
+
 const fetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser }) }))
 
@@ -32,6 +36,7 @@ const claimPeanutTeamBadge = jest.fn<Promise<boolean>, []>()
 jest.mock('@/services/peanut-team-badge', () => ({ claimPeanutTeamBadge: () => claimPeanutTeamBadge() }))
 
 beforeEach(() => {
+    mockOpenHelp = null
     access.supported = true
     toast.info.mockClear()
     fetchUser.mockClear()
@@ -68,6 +73,35 @@ describe('AboutView', () => {
         )
     })
 
+    // Every About document opens in a drawer with the same full-width row.
+    // Security Disclosure once rendered as a <button> that ended at ~60% width.
+    it('renders every policy row the same way in one card, the last row closing it', () => {
+        mockOpenHelp = jest.fn()
+        render(<AboutView appVersion="1.2.3" />)
+        const rows = Object.values(en.profile.about.policies).map(
+            (name) => screen.getByText(name).closest('a') as HTMLElement
+        )
+        expect(rows).toHaveLength(8)
+        expect(new Set(rows.map((row) => row.parentElement)).size).toBe(1)
+        expect(new Set(rows.map((row) => row.tagName)).size).toBe(1)
+        expect(new Set(rows.map((row) => row.className.replace('cursor-pointer', '').trim())).size).toBe(1)
+
+        const cards = rows.map((row) => row.firstElementChild as HTMLElement)
+        expect(cards[0]).toHaveClass('rounded-t-sm')
+        for (const card of cards.slice(1, -1)) {
+            expect(card).not.toHaveClass('rounded-t-sm')
+            expect(card).not.toHaveClass('rounded-b-sm')
+        }
+        expect(cards[cards.length - 1]).toHaveClass('rounded-b-sm')
+
+        rows.forEach((row, index) => {
+            expect(row).toHaveAttribute('role', 'button')
+            expect(row).not.toHaveAttribute('href')
+            fireEvent.click(row)
+            expect(mockOpenHelp).toHaveBeenLastCalledWith(LEGAL_POLICIES[index].slug)
+        })
+    })
+
     it('keeps the beta switch hidden until the fifth tap', async () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(4)
@@ -77,16 +111,29 @@ describe('AboutView', () => {
         expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
     })
 
-    // The card reads the badge off the user object, so revealing before the
-    // claim lands would show a disabled toggle and an "ask for access" line on
-    // the very gesture that just granted it.
-    it('earns the team badge and refetches the user before revealing the card', async () => {
+    // The badge is a support/diagnostic record. The card must be usable while
+    // the record and the best-effort profile refresh complete.
+    it('records the team badge and refreshes the user after revealing the card', async () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(5)
 
         await waitFor(() => expect(claimPeanutTeamBadge).toHaveBeenCalledTimes(1))
         await waitFor(() => expect(fetchUser).toHaveBeenCalledTimes(1))
         expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+    })
+
+    it('reveals the usable switch before a slow badge write completes', async () => {
+        let releaseClaim!: (claimed: boolean) => void
+        claimPeanutTeamBadge.mockReturnValueOnce(new Promise<boolean>((resolve) => (releaseClaim = resolve)))
+
+        render(<AboutView appVersion="1.2.3" />)
+        tapVersion(5)
+
+        expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+        expect(fetchUser).not.toHaveBeenCalled()
+
+        releaseClaim(true)
+        await waitFor(() => expect(fetchUser).toHaveBeenCalledTimes(1))
     })
 
     // Offline, the switch still has to appear: a device already on beta needs

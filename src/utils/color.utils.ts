@@ -43,12 +43,10 @@ const COLORS_MAPPING = {
 }
 
 // specific colors for different avatar types/contexts
-export const AVATAR_LINK_BG = '#FF90E8' // peanut pink for links
 export const AVATAR_WALLET_BG = '#FFC900' // yellow for address/non-user/add/withdraw header (action/secondary token)
 
 // text/icon colors
-export const AVATAR_TEXT_LIGHT = '#FFFFFF' // white
-export const AVATAR_TEXT_DARK = '#000000' // black
+export const AVATAR_TEXT_DARK = 'var(--color-foreground-primary)' // black
 
 /**
  * Generates a deterministic background color from a predefined list based on a username.

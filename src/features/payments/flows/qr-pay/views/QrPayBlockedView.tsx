@@ -1,8 +1,10 @@
 'use client'
 
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import Card from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useQrPayFlow } from '../QrPayFlowContext'
@@ -14,7 +16,8 @@ import { useQrPayFlow } from '../QrPayFlowContext'
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
-    const { view, paymentMethodName, errorInitiatingPayment, onBack, retryOrderNotReady } = useQrPayFlow()
+    const { view, paymentMethodName, errorInitiatingPayment, initErrorNeedsSupport, onBack, retryOrderNotReady } =
+        useQrPayFlow()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const supportLink = (
@@ -28,21 +31,25 @@ export function QrPayBlockedView() {
     )
 
     // A failed init keeps its historical shape: message + CTA inside the card,
-    // no title, no support link.
+    // no title. The support link appears only for the refusals whose copy
+    // sends the user to support, so the one instruction on screen is reachable.
     if (view === 'INIT_ERROR') {
         return (
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
-                        <Icon name="alert" size={24} />
-                    </div>
-                    <p className="font-medium"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
+            <PageStack>
+                <PageStack.Center className="gap-4">
+                    <Card className="relative z-10 w-full items-center gap-4 p-4">
+                        {/* terminal init failure — error tone, not the attention yellow
+                            the maintenance/waiting states use */}
+                        <IconBubble icon="alert" color="red" size="m" />
+                        <p className="text-body-m"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
 
-                    <Button onClick={onBack} variant="purple">
-                        {t('maintenance.goBack')}
-                    </Button>
-                </Card>
-            </div>
+                        <Button onClick={onBack} variant="primary">
+                            {t('maintenance.goBack')}
+                        </Button>
+                    </Card>
+                    {initErrorNeedsSupport ? supportLink : null}
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
@@ -54,32 +61,32 @@ export function QrPayBlockedView() {
         : t('orderNotReady.description')
 
     return (
-        <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
-            <Card className="flex w-full flex-col items-center gap-2 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
-                    <Icon name={icon} size={24} />
-                </div>
-                <span className="text-heading-card">{title}</span>
-                <p
-                    className={
-                        isMaintenance
-                            ? 'text-center font-normal text-foreground-secondary'
-                            : 'max-w-52 text-center font-normal text-foreground-secondary'
-                    }
-                >
-                    {description}
-                </p>
-            </Card>
-            {isMaintenance ? (
-                <Button onClick={onBack} variant="purple" shadowSize="4">
-                    {t('maintenance.goBack')}
-                </Button>
-            ) : (
-                <Button onClick={retryOrderNotReady} variant="purple" shadowSize="4">
-                    {t('orderNotReady.cta')}
-                </Button>
-            )}
-            {supportLink}
-        </div>
+        <PageStack>
+            <PageStack.Center className="gap-4">
+                <Card className="w-full items-center gap-2 p-4 text-center">
+                    <IconBubble icon={icon} color="yellow" size="m" />
+                    <span className="text-heading-card">{title}</span>
+                    <p
+                        className={
+                            isMaintenance
+                                ? 'font-normal text-foreground-secondary'
+                                : 'max-w-52 font-normal text-foreground-secondary'
+                        }
+                    >
+                        {description}
+                    </p>
+                </Card>
+                {isMaintenance ? (
+                    <Button onClick={onBack} variant="primary" shadowSize="4">
+                        {t('maintenance.goBack')}
+                    </Button>
+                ) : (
+                    <Button onClick={retryOrderNotReady} variant="primary" shadowSize="4">
+                        {t('orderNotReady.cta')}
+                    </Button>
+                )}
+                {supportLink}
+            </PageStack.Center>
+        </PageStack>
     )
 }

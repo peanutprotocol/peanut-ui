@@ -26,8 +26,8 @@ import {
 /** Fixtures that intend a LIVE quote: the flow now refuses to sign or submit
  *  against an expired lock, so a fixed past date would be a different case. */
 const LIVE_QUOTE_EXPIRY = new Date(Date.now() + 10 * 60_000).toISOString()
-/** An explicitly dead quote, for the expiry scenarios. */
-const DEAD_QUOTE_EXPIRY = new Date(Date.now() - 60_000).toISOString()
+/** The time left the API measured for a live quote; the device deadline counts from it. */
+const LIVE_QUOTE_TTL_MS = 10 * 60_000
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -97,14 +97,16 @@ jest.mock('@/assets/payment-apps', () => ({
     PIX: '/pix.png',
 }))
 
-// The page imports PeanutThinking from @/assets/mascot and STAR_STRAIGHT_ICON
-// from @/assets/icons directly — mock those paths, not the @/assets barrel, and
-// keep sibling exports (e.g. PEANUTMAN, ETHEREUM_ICON used by QRScanner) intact.
-jest.mock('@/assets/mascot', () => ({
-    ...jest.requireActual('@/assets/mascot'),
-    PeanutThinking: '/peanut-guy.gif',
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
 }))
 
+// The page imports STAR_STRAIGHT_ICON from @/assets/icons directly — mock that
+// path, not the @/assets barrel, and keep sibling exports intact.
 jest.mock('@/assets/icons', () => ({
     ...jest.requireActual('@/assets/icons'),
     STAR_STRAIGHT_ICON: '/star.png',
@@ -137,6 +139,12 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 const mockSignSpend = jest.fn()
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
     useSignSpendBundle: () => ({ signSpend: mockSignSpend }),
+}))
+
+// Pre-Pay UserOp preparation needs the kernel-client provider; its own
+// integration lives in features/payments/flows/qr-pay/__tests__.
+jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
+    useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
 }))
 
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
@@ -382,11 +390,6 @@ jest.mock('@/components/Global/Loading', () => ({
         ),
 }))
 
-jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="cycling-loading" />,
-}))
-
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="nav-header">{props.title}</div>,
@@ -468,6 +471,7 @@ jest.mock('@/constants/analytics.consts', () => ({
         SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
         REWARD_CLAIMED: 'reward_claimed',
         REWARD_CLAIM_DISMISSED: 'reward_claim_dismissed',
+        QR_PAYMENT_STAGE: 'qr_payment_stage',
     },
 }))
 
@@ -481,6 +485,7 @@ jest.mock('@/services/services.types', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import QRPayPage from '../page'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 // ---------- helpers ----------
 
@@ -648,6 +653,7 @@ function applyDefaults() {
         paymentAgainstAmount: '10',
         paymentAgainst: 'USD',
         expireAt: LIVE_QUOTE_EXPIRY,
+        expiresInMs: LIVE_QUOTE_TTL_MS,
         creationTime: '2026-04-16T00:00:00Z',
     })
 
@@ -727,7 +733,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         const modal = screen.getByTestId('action-modal')
         expect(modal).toBeInTheDocument()
         expect(screen.getByText('Unlock QR payments')).toBeInTheDocument()
-        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
     })
 
     // Pool QR pay is residence-agnostic, so the offer is legitimate for almost
@@ -740,7 +746,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         expect(screen.getByText(/doesn't accept documents issued in your country/i)).toBeInTheDocument()
-        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
     })
 
     // nothing revokes a pool rail when a later reverification is refused on
@@ -914,6 +920,7 @@ describe('GROUP 2: Payment Form States', () => {
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...overrides,
         }
@@ -1093,6 +1100,7 @@ describe('GROUP 3: Processing States', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1112,11 +1120,10 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
-        // After clicking pay, loading state should trigger PeanutLoading or CyclingLoading
-        // (signSpend resolves, then completeQrPayment hangs)
+        // after clicking pay the flow shows the shared processing screen
+        // (signSpend resolves, then completeQrPayment hangs) — TASK-22452
         await waitFor(() => {
-            // Component is in loading state - either shows a loading variant or loading button text
-            const loadingEl = screen.queryByTestId('peanut-loading') ?? screen.queryByTestId('cycling-loading')
+            const loadingEl = screen.queryByTestId('peanut-loading')
             const loadingButton = screen.queryByText('Loading...')
             expect(loadingEl || loadingButton).toBeTruthy()
         })
@@ -1138,6 +1145,7 @@ describe('GROUP 3: Processing States', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1212,7 +1220,7 @@ describe('GROUP 4: Success States', () => {
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
         expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
         expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
@@ -1226,7 +1234,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1305,7 +1313,7 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Perk claimed shows shake class + go home button', async () => {
-        // Make claimPerk fast for test
+        // Fake timers: skip the hold-to-claim gesture timing
         jest.useFakeTimers()
 
         await completeMantecaPayment({
@@ -1342,11 +1350,10 @@ describe('GROUP 4: Success States', () => {
 
     // Regression: the perk is already claimed server-side during QR-payment
     // processing, and the QR response carries the sponsored amount. The
-    // hold-to-claim gesture must report that reward directly — it must NOT make
-    // a second /perks/claim round-trip (that endpoint now requires a usageId the
-    // client never has, so the old call always 400'd and surfaced a false
-    // "reward is being processed" error even though the reward had landed).
-    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+    // hold-to-claim gesture must report that reward directly with no error.
+    // (A second /perks/claim round-trip is structurally impossible now —
+    // perksApi is deleted — so this only asserts the reward path.)
+    test('Perk claim reports the reward from the QR response, no error', async () => {
         jest.useFakeTimers()
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
@@ -1390,6 +1397,126 @@ describe('GROUP 4: Success States', () => {
         jest.useRealTimers()
     })
 
+    // Regression (TASK-22692): the API now returns once the reward is durably
+    // issued and budget-reserved, BEFORE its payout transfer settles. A
+    // `payoutStatus: 'pending'` perk with no txHash is still an earned reward:
+    // the hold-to-claim card, the gesture and the confetti must all be there,
+    // and the reveal must not ask the server for anything — the local
+    // `claimed` flag is a reveal, not a settlement.
+    test('a durably issued reward whose payout is still pending keeps hold-to-claim + confetti, with no payout request', async () => {
+        jest.useFakeTimers()
+
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'pending',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('You earned a reward!')).toBeInTheDocument()
+        })
+        const claimButton = screen.getByRole('button', { name: /Claim Reward/i })
+        await act(async () => {
+            fireEvent.pointerDown(claimButton)
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(1600)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Go to Home')).toBeInTheDocument()
+        })
+        expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
+
+        // The reveal talks to no one: the scan init and the completion are the
+        // only calls it makes.
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+
+        jest.useRealTimers()
+    })
+
+    // The API keeps `eligible: true` on a FAILED payout so the entitlement
+    // survives for reconciliation. That is bookkeeping, not a reward the user
+    // can act on: the payment itself still succeeded and renders as such, but
+    // nothing may offer a hold, shake, celebrate or report a claim.
+    test('a reward whose payout already failed: payment success stays, no claimable card, no confetti, no reward events', async () => {
+        jest.useFakeTimers()
+
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+
+        // give any armed timer a chance to fire — nothing is armed
+        await act(async () => {
+            jest.advanceTimersByTime(2000)
+        })
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+
+        jest.useRealTimers()
+    })
+
+    test('a failed payout the API marks claimed still shows the payment confirmation, never the earned-reward banner', async () => {
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                claimed: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+        expect(screen.queryByText('Go to Home')).not.toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+    })
+
+    test('a perk the API did not reserve (eligible: false) gets no hold-to-claim and no confetti', async () => {
+        await completeMantecaPayment({
+            perk: { eligible: false, discountPercentage: 5, sponsoredUsd: 0.5 },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
+        })
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+    })
+
     test('PIX success shows PIX icon', async () => {
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
 
@@ -1408,6 +1535,7 @@ describe('GROUP 4: Success States', () => {
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1441,7 +1569,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         // Savings message should appear for Argentina QR3 payments, via the localized catalog
@@ -1460,7 +1588,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.getByText(message)).toBeInTheDocument()
@@ -1472,7 +1600,7 @@ describe('GROUP 4: Success States', () => {
     const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
 
     test.each([
-        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a plain Manteca success (no perk)', {}, /Paid to/],
         ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
     ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
         'invite row renders on %s',
@@ -1513,7 +1641,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
@@ -1557,6 +1685,7 @@ const reconnectLock = {
     paymentAgainstAmount: '1',
     paymentAgainst: 'USD',
     expireAt: LIVE_QUOTE_EXPIRY,
+    expiresInMs: LIVE_QUOTE_TTL_MS,
     creationTime: '2026-04-16T00:00:00Z',
 }
 
@@ -1678,6 +1807,7 @@ describe('GROUP 5: Error States', () => {
             code: 'LOCK-REPLACEMENT',
             paymentPrice: '1250',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
         })
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
@@ -1780,7 +1910,7 @@ describe('GROUP 5: Error States', () => {
      * state: an expired lock must produce a re-quote and ZERO signing/submission.
      */
     test('an already-expired quote re-quotes without signing or submitting', async () => {
-        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expireAt: DEAD_QUOTE_EXPIRY })
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expiresInMs: 0 })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
@@ -1796,11 +1926,33 @@ describe('GROUP 5: Error States', () => {
         expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
     })
 
+    // A phone clock a few minutes fast read Manteca's expireAt as already past and
+    // re-quoted on every tap. The time left our API measured decides (api#1707).
+    test.each([
+        ['a fast device clock, with time left on the lock', { expiresInMs: 120_000 }],
+        ['an API without the time left: no device-side expiry check', { expiresInMs: undefined }],
+    ])('%s: a live lock signs instead of re-quoting', async (_case, ttl) => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...reconnectLock,
+            expireAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+            ...ttl,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
     test('a signature that finishes AFTER the quote dies submits nothing and re-quotes', async () => {
         // The lock is live at tap time and dead by the time signing resolves.
         mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
             ...reconnectLock,
-            expireAt: new Date(Date.now() + 120).toISOString(),
+            expiresInMs: 120,
         })
         mockSignSpend.mockImplementationOnce(
             () => new Promise((resolve) => setTimeout(() => resolve({ strategy: 'smart-only' }), 200))
@@ -1820,7 +1972,7 @@ describe('GROUP 5: Error States', () => {
     test('a REPLACEMENT signed after the quote dies is never submitted', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
             ...reconnectLock,
-            expireAt: new Date(Date.now() + 400).toISOString(),
+            expiresInMs: 400,
         })
         const mixedArtifact = (prep: string, coordinatorAddress: string) =>
             registerSpendArtifactMeta(
@@ -1926,7 +2078,7 @@ describe('GROUP 5: Error States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
         await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
     })
 
@@ -2313,6 +2465,69 @@ describe('GROUP 5: Error States', () => {
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     }, 20_000)
 
+    // A refused sender id is a support case, not a KYC prompt: the user is
+    // verified, so "finish verifying your identity" would send them in circles.
+    it('routes a refused sender id on its wire code, offers support, and does not retry', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // The copy's only instruction is "contact support", so the card must offer it.
+        expect(screen.getByText('Having trouble?')).toBeInTheDocument()
+
+        // Past the 3 s retry backoff: still one POST.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        jest.useRealTimers()
+    })
+
+    // The same refusal after the user typed an amount on an open-amount QR: the
+    // re-init call site, which classifies at the call rather than through the
+    // scan query.
+    it('a refused sender id at the re-init call site shows the support copy and blocks Pay', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: '' }).mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // Deterministic, and only support can change the outcome: no Sentry
+        // event, and a different amount is no way out, so Pay stays blocked.
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+    }, 20_000)
+
     /*
      * Offline is not an outcome. Under react-query's default networkMode a
      * device that drops mid-retry PAUSES the query — resumable, no fetch in
@@ -2421,6 +2636,7 @@ describe('GROUP 5: Error States', () => {
             paymentAgainstAmount: '1',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         }
         mockMantecaApi.initiateQrPayment
@@ -2514,6 +2730,7 @@ describe('GROUP: Entity deposit recipient wiring', () => {
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
             expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...lockExtra,
         })

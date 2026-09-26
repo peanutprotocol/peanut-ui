@@ -71,7 +71,6 @@ export async function getSupportedChainsAndTokens(): Promise<Record<string, Chai
                 name: token.name,
                 symbol: token.symbol,
                 logoURI: TOKEN_LOGO_OVERRIDES[`${chainTokens.chainId}:${token.symbol.toUpperCase()}`] ?? token.logoURI,
-                usdPrice: 0,
             })
         }
     }

@@ -43,7 +43,7 @@ export const LanguageView = () => {
     }
 
     return (
-        <PageStack gap="6" className="h-full bg-background">
+        <PageStack gap="6" className="h-full bg-background-page">
             <NavHeader title={t('title')} onPrev={onBack} />
             {/* top-aligned list page (design.md list recipe), not PageStack.Center:
                 a short settings list floating mid-screen read as misplaced.

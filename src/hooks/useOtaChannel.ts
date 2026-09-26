@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
+import { isNativePrerelease } from '@/utils/native-prerelease'
 import {
     BETA_OTA_CHANNEL,
     clearPendingBetaExit,
@@ -34,11 +35,10 @@ function betaExitFinished(status: OtaChannelStatus, recordedBundle: string): boo
  *   UI to catch up
  * - `left-still-beta`: channel unset, but the beta bundle is still running and
  *   no production OTA can replace it — the app has to be reinstalled
- * - `left-override`: Capgo still routes this device to beta — someone assigned
- *   it from the dashboard, and only the dashboard can take it back
- * - `left-unconfirmed`: Capgo could not be reached to confirm the exit, so the
- *   device is still on the beta bundle and the switch stays on, backed by a
- *   stored marker that survives a restart
+ * - `left-override`: Capgo explicitly reports an override that the app cannot clear
+ * - `left-unconfirmed`: the release channel could not be confirmed after the
+ *   local preference was cleared, so the switch stays on with a stored marker
+ *   that survives a restart
  * - `closed`: the channel does not accept self-assignment
  * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
  */
@@ -87,7 +87,7 @@ export function useOtaChannel(): UseOtaChannel {
 
     // isNativeBridge() reads window, so it can only run after hydration.
     useEffect(() => {
-        if (!isNativeBridge()) return
+        if (!isNativeBridge() || isNativePrerelease()) return
         setSupported(true)
         refresh().catch((err) => console.warn('[capgo] channel read failed:', err))
     }, [refresh])

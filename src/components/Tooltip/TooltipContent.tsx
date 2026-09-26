@@ -161,7 +161,7 @@ export const TooltipContent = ({
     const tooltipClasses: HTMLDivElement['className'] = useMemo(
         () =>
             twMerge(
-                'relative z-50 w-max max-w-[230px] rounded-sm border border-border-default bg-white px-3 py-2 text-body-s text-black shadow-sm',
+                'relative z-50 w-max max-w-[230px] rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s text-foreground-primary shadow-sm',
                 contentClassName
             ),
         [contentClassName]
@@ -169,7 +169,7 @@ export const TooltipContent = ({
 
     return (
         <div key={id} ref={tooltipRef} style={getPositionStyles()} className="pointer-events-none fixed z-50">
-            <div role="tooltip" className={tooltipClasses}>
+            <div id={id} role="tooltip" className={tooltipClasses}>
                 {content}
                 <div className={getArrowClasses()} />
             </div>

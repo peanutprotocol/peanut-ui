@@ -1,10 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
-import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
+import { CARD_HOVER } from '@/components/Marketing/constants'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
@@ -25,7 +26,7 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
 
     return (
         <section className="py-10 md:py-14">
-            {heading && <h2 className="mb-6 text-h2 font-bold md:text-h1">{heading}</h2>}
+            {heading && <h2 className="mb-6 text-heading-l md:text-heading-xl">{heading}</h2>}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {slugs.map((slug) => {
                     const seo = COUNTRIES_SEO[slug]
@@ -46,12 +47,16 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                         alt={`${countryName} flag`}
                                         width={32}
                                         height={24}
-                                        className="rounded-sm"
+                                        className="shrink-0 rounded-sm"
                                     />
                                 )}
-                                <div>
-                                    <span className="font-semibold">{countryName}</span>
-                                    <span className="ml-1 text-sm text-black/50">&rarr;</span>
+                                <div className="flex min-w-0 items-center gap-1">
+                                    <span className="truncate text-body-m-semibold">{countryName}</span>
+                                    <Icon
+                                        name="arrow-up-right"
+                                        size={16}
+                                        className="shrink-0 text-foreground-secondary"
+                                    />
                                 </div>
                             </Card>
                         </Link>

@@ -1,0 +1,188 @@
+/**
+ * One CTA class on Home at a time (Hugo, 2026-09-25): the getting-started
+ * checklist until the first payment, the carousel after it. Never both.
+ */
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+import type { OnboardingState } from '@/utils/activation-step.utils'
+
+let mockFlow: {
+    isOnboardingComplete: boolean
+    isActivated: boolean
+    onboarding: OnboardingState
+    isChecklistHidden?: boolean
+    hiddenHomeCtas?: ReadonlySet<string>
+}
+jest.mock('../useHomeFlow', () => ({
+    useHomeFlow: () => ({
+        isPageLoading: false,
+        username: 'demo',
+        spendableBalance: 0n,
+        isFetchingSpendableBalance: false,
+        isSpendableBalanceStale: false,
+        isBalanceHidden: false,
+        toggleBalanceVisibility: jest.fn(),
+        hideChecklist: jest.fn(),
+        hideCta: jest.fn(),
+        isChecklistHidden: false,
+        hiddenHomeCtas: new Set<string>(),
+        ...mockFlow,
+    }),
+}))
+jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
+jest.mock('@/components/Home/ActivationCTAs', () => ({
+    __esModule: true,
+    default: () => <div>activation-checklist</div>,
+}))
+jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
+jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
+// The real component renders `whenEmpty` only when it has no large task card
+// of its own; the marker mirrors that single-surface contract.
+let mockHasTaskCard = false
+jest.mock('@/components/Home/PendingVerificationTasks', () => ({
+    __esModule: true,
+    default: ({ whenEmpty }: { whenEmpty: React.ReactNode }) =>
+        mockHasTaskCard ? <div>verification-task-card</div> : <>{whenEmpty}</>,
+}))
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: [], rails: [] }) }))
+jest.mock('@/utils/bridge-tasks.utils', () => ({ selectHomeTasks: () => ({ documentSlide: undefined }) }))
+let mockHasProviderRejection = false
+const BLOCKED = {
+    kind: 'verification-issue',
+    reasonCode: 'provider_rejected',
+    ctaId: 'blocked-card:verification-issue:provider_rejected',
+}
+jest.mock('@/hooks/useProviderRejection', () => ({
+    useProviderRejection: () => ({
+        hasProviderRejection: mockHasProviderRejection,
+        blockedCard: mockHasProviderRejection ? BLOCKED : null,
+    }),
+}))
+jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
+jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
+jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
+jest.mock('../views/HomeTopNav', () => ({ HomeTopNav: () => null }))
+jest.mock('@/components/0_Bruddle/PageContainer', () => ({
+    __esModule: true,
+    default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
+
+import { HomePage } from '../HomePage'
+
+const FUNDED: OnboardingState = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'first_payment',
+}
+
+describe('HomePage — never two CTA classes at once', () => {
+    beforeEach(() => {
+        mockHasTaskCard = false
+        mockHasProviderRejection = false
+    })
+
+    it('a due verification task card replaces the checklist', () => {
+        mockHasTaskCard = true
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
+        render(<HomePage />)
+        expect(screen.getByText('verification-task-card')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
+    it('before the first payment: the checklist, no carousel', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
+    it('after the first payment: the carousel, no checklist', () => {
+        mockFlow = {
+            isOnboardingComplete: true,
+            isActivated: true,
+            onboarding: { ...FUNDED, firstPaymentDone: true, step: 'completed' },
+        }
+        render(<HomePage />)
+        expect(screen.getByText('home-carousel')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+    })
+
+    it('a rejected bank rail keeps its card even when the three rows are done', () => {
+        mockHasProviderRejection = true
+        mockFlow = {
+            isOnboardingComplete: true,
+            isActivated: false,
+            onboarding: { ...FUNDED, firstPaymentRoute: 'none', step: 'completed' },
+        }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
+    it('a user with no card and no QR who finished the three rows gets the carousel', () => {
+        mockFlow = {
+            isOnboardingComplete: true,
+            isActivated: false,
+            onboarding: { ...FUNDED, firstPaymentRoute: 'none', step: 'completed' },
+        }
+        render(<HomePage />)
+        expect(screen.getByText('home-carousel')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+    })
+
+    it('a hidden checklist with only the payment row left hands over to the carousel', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
+        render(<HomePage />)
+        expect(screen.getByText('home-carousel')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+    })
+
+    it('a hidden checklist comes back while it may not be hidden (money not in yet)', () => {
+        mockFlow = {
+            isOnboardingComplete: false,
+            isActivated: false,
+            onboarding: { ...FUNDED, addMoneyDone: false, step: 'add_money' },
+            isChecklistHidden: true,
+        }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+    })
+
+    it('hiding never hides a rejection card', () => {
+        mockHasProviderRejection = true
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
+    it('a hidden blocked card hands over to the carousel', () => {
+        mockHasProviderRejection = true
+        mockFlow = {
+            isOnboardingComplete: false,
+            isActivated: false,
+            onboarding: FUNDED,
+            hiddenHomeCtas: new Set([BLOCKED.ctaId]),
+        }
+        render(<HomePage />)
+        expect(screen.getByText('home-carousel')).toBeInTheDocument()
+        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
+    })
+
+    it('a blocked card hidden under another reason code shows again', () => {
+        mockHasProviderRejection = true
+        mockFlow = {
+            isOnboardingComplete: false,
+            isActivated: false,
+            onboarding: FUNDED,
+            hiddenHomeCtas: new Set(['blocked-card:verification-issue:an_older_reason']),
+        }
+        render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+})

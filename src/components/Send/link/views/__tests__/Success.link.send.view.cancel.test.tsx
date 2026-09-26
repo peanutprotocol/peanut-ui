@@ -9,14 +9,14 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TRANSACTIONS } from '@/constants/query.consts'
 
-const mockPush = jest.fn()
+const mockReplace = jest.fn()
 const mockCancelLinkAndClaim = jest.fn()
 const mockPollForClaimConfirmation = jest.fn(async () => true)
 const mockInvalidateQueries = jest.fn(async () => undefined)
 const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
 const mockCaptureException = jest.fn()
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
@@ -96,7 +96,7 @@ describe('LinkSendSuccessView — cancel on an already-claimed link', () => {
 
         await cancelFromView()
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
         expect(mockToast.info).toHaveBeenCalledWith('sendLinkAlreadyClaimed')
         expect(mockToast.error).not.toHaveBeenCalled()
         expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
@@ -111,7 +111,7 @@ describe('LinkSendSuccessView — cancel on an already-claimed link', () => {
 
         await cancelFromView()
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
         expect(mockToast.error).not.toHaveBeenCalled()
     })
 
@@ -121,7 +121,7 @@ describe('LinkSendSuccessView — cancel on an already-claimed link', () => {
         await cancelFromView()
 
         await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('link.cancelFailed'))
-        expect(mockPush).not.toHaveBeenCalled()
+        expect(mockReplace).not.toHaveBeenCalled()
         expect(mockInvalidateQueries).not.toHaveBeenCalled()
     })
 })
@@ -136,5 +136,5 @@ test('confirmed cancellation leaves for home while history is still pending', as
     expect(mockPollForClaimConfirmation).not.toHaveBeenCalled()
     expect(screen.queryByTestId('confirm-cancel')).toBeNull()
     expect(mockToast.error).not.toHaveBeenCalled()
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'), { timeout: 3000 })
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'), { timeout: 3000 })
 })

@@ -9,14 +9,45 @@ jest.mock('@/utils/api-fetch', () => ({
 
 const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
-const response = (init: { ok: boolean; body?: unknown }) =>
+const response = (init: { ok: boolean; status?: number; body?: unknown; headers?: Record<string, string> }) =>
     ({
         ok: init.ok,
+        status: init.status ?? (init.ok ? 200 : 500),
+        headers: new Headers(init.headers),
         json: async () => {
             if (init.body === undefined) throw new SyntaxError('Unexpected end of JSON input')
             return init.body
         },
     }) as Response
+
+describe('usersApi.checkUsername', () => {
+    beforeEach(() => mockServerFetch.mockReset())
+
+    it('POSTs the exact username and returns the minimal found state', async () => {
+        mockServerFetch.mockResolvedValue(response({ ok: true, body: { found: true } }))
+
+        await expect(usersApi.checkUsername('alice')).resolves.toEqual({ status: 'found' })
+        expect(mockServerFetch).toHaveBeenCalledWith('/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'alice' }),
+        })
+    })
+
+    it('maps a miss without exposing profile data', async () => {
+        mockServerFetch.mockResolvedValue(response({ ok: true, body: { found: false } }))
+
+        await expect(usersApi.checkUsername('alice')).resolves.toEqual({ status: 'not-found' })
+    })
+
+    it('preserves the server retry window when rate limited', async () => {
+        mockServerFetch.mockResolvedValue(response({ ok: false, status: 429, body: { retryAfterSeconds: 3600 } }))
+
+        await expect(usersApi.checkUsername('alice')).resolves.toEqual({
+            status: 'rate-limited',
+            retryAfterSeconds: 3600,
+        })
+    })
+})
 
 describe('usersApi.requestDeletion', () => {
     beforeEach(() => mockServerFetch.mockReset())
@@ -57,4 +88,16 @@ describe('usersApi.requestDeletion', () => {
 
         await expect(usersApi.requestDeletion()).rejects.toThrow('Failed to request account deletion')
     })
+})
+
+it.each([
+    {
+        status: 409,
+        body: { error: 'A deposit is still arriving.', code: 'DEPOSIT_IN_FLIGHT' },
+        code: 'DEPOSIT_IN_FLIGHT',
+    },
+    { status: 503, body: { error: 'DEPOSIT_ACCOUNTS_UNAVAILABLE' }, code: 'DEPOSIT_ACCOUNTS_UNAVAILABLE' },
+])('preserves deletion refusal $code for localized UI copy', async ({ status, body, code }) => {
+    mockServerFetch.mockResolvedValue(response({ ok: false, status, body }))
+    await expect(usersApi.requestDeletion()).rejects.toMatchObject({ name: 'ApiError', status, code })
 })

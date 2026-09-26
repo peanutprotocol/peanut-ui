@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { extractInviteeName } from '@/utils/general.utils'
-import DevNoteCard from '../_components/DevNoteCard'
 import DevPageShell from '../_components/DevPageShell'
 
 type MockPerk = {
@@ -95,13 +97,15 @@ export default function PerkSuccessTestPage() {
             width="prose"
         >
             <div className="space-y-4">
-                <DevNoteCard title="Test the perk claim success screen">
-                    <ul className="space-y-1">
-                        <li>1. Click &ldquo;Trigger Success&rdquo; to show the success screen</li>
-                        <li>2. Wait 2 seconds before you can dismiss (debounce)</li>
-                        <li>3. Tap to dismiss and load next mock perk</li>
-                    </ul>
-                </DevNoteCard>
+                <Callout priority="info" title="Test the perk claim success screen">
+                    <NumberedList
+                        items={[
+                            'Select “Trigger Success” to show the success screen.',
+                            'Wait two seconds for the dismiss action.',
+                            'Select the preview to dismiss it and load the next mock perk.',
+                        ]}
+                    />
+                </Callout>
 
                 {/* Current Perk Info */}
                 <Card className="p-4">
@@ -115,14 +119,14 @@ export default function PerkSuccessTestPage() {
 
                 {/* Trigger Button */}
                 {!showSuccess && (
-                    <Button onClick={handleShowSuccess} shadowSize="4" className="w-full">
+                    <Button variant="primary" onClick={handleShowSuccess} className="w-full">
                         Trigger Success
                     </Button>
                 )}
 
                 {/* Success Screen Preview */}
                 {showSuccess && (
-                    <div className="rounded-lg border-2 border-dashed border-gray-600/30 p-4">
+                    <Card className="border-dashed p-4">
                         <p className="mb-4 text-center text-label-m text-foreground-secondary">
                             SUCCESS SCREEN PREVIEW (tap to dismiss when ready)
                         </p>
@@ -138,17 +142,15 @@ export default function PerkSuccessTestPage() {
                                 className={`flex w-full items-center gap-4 p-4 ${isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}`}
                             >
                                 {/* Check icon */}
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-success-3">
-                                    <Icon name="check" size={28} className="text-white" />
-                                </div>
+                                <IconBubble icon="check" size="m" color="green" />
 
                                 {/* Text content */}
                                 <div>
                                     <p className="text-body-s text-foreground-secondary">You received</p>
                                     <p className="text-heading-m">+${currentPerk.amountUsd}</p>
                                     <p className="mt-1 flex items-center gap-1 text-body-s text-foreground-secondary">
-                                        <Icon name="invite-heart" size={14} />
-                                        <span className="font-medium">{inviteeName}</span>
+                                        <Icon name="invite-heart" size={16} />
+                                        <span className="text-body-s-semibold">{inviteeName}</span>
                                         <span>joined Pioneers</span>
                                     </p>
                                 </div>
@@ -156,25 +158,25 @@ export default function PerkSuccessTestPage() {
 
                             {/* Tap to continue - fades in when ready */}
                             <p
-                                className={`mt-4 text-body-s text-foreground-secondary transition-opacity duration-300 ${canDismiss ? 'opacity-100' : 'opacity-0'}`}
+                                className={`mt-4 text-body-s text-foreground-secondary transition-opacity duration-moderate ${canDismiss ? 'opacity-100' : 'opacity-0'}`}
                             >
                                 Tap to continue
                             </p>
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {/* Quick Actions */}
                 <div className="flex gap-2">
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => setCurrentPerkIndex((prev) => (prev + 1) % MOCK_PERKS.length)}
                         className="flex-1"
                     >
                         Next Perk
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => {
                             setShowSuccess(false)
                             setPlaySound(false)

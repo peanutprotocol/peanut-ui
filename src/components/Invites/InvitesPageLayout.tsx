@@ -1,6 +1,9 @@
 'use client'
 
 import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -21,15 +24,15 @@ const STAR_POSITIONS = [
 ] as const
 
 interface InvitesPageLayoutProps {
-    image: string
+    pose: MascotPose
     children: React.ReactNode
     // Swap the static illustration for the draggable peanut. Waitlist jail only
     // — /invite is a signup conversion surface and does not get a toy next to
-    // its CTA. Falls back to `image` when the kill-switch is off.
+    // its CTA. Falls back to the Lottie mascot when the kill-switch is off.
     showRagdoll?: boolean
 }
 
-const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPageLayoutProps) => {
+const InvitesPageLayout = ({ pose, children, showRagdoll = false }: InvitesPageLayoutProps) => {
     const t = useTranslations('invites')
 
     return (
@@ -60,7 +63,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                     ))}
                     {/* animated clouds background */}
                     <CloudsBackground minimal />
-                    {/* main illustration — draggable peanut on the jail step, static image otherwise */}
+                    {/* main illustration — draggable peanut on the jail step, Lottie otherwise */}
                     {showRagdoll && PeanutRagdoll ? (
                         <div
                             aria-hidden="true"
@@ -69,16 +72,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                             <PeanutRagdoll />
                         </div>
                     ) : (
-                        <Image
-                            src={image}
-                            alt={t('illustrationAlt')}
-                            width={500}
-                            height={500}
-                            className={
-                                'relative max-h-full w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'
-                            }
-                            priority
-                        />
+                        <PeanutMascot pose={pose} alt={t('illustrationAlt')} className={MASCOT_HERO_CLASS} />
                     )}
                 </div>
 

@@ -1,27 +1,30 @@
 'use client'
 
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { getCountryFromAccount, getCountryFromPath } from '@/utils/bridge.utils'
-import { bankWithdrawMinUsd } from './amount-validation'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
+import { BRIDGE_OFFRAMP_MIN_USD, bankPayoutMinimum, meetsBankPayoutMinimum } from './amount-validation'
+import { formatBankAmount } from '@/utils/currency'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { AccountType } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { SCAN_ID_PARAM, takeScannedDestination, withdrawTokenForChain } from './destination'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
-import { useWithdrawAmount } from './useWithdrawAmount'
+import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
+import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { WITHDRAW_ROOT_STEPS } from './types'
 
 /**
@@ -37,7 +40,15 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
+    const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins
+    // over /home, which only fits tab-bar entries. Rewinds rather than pushes:
+    // a pushed /home kept the withdraw flow under it, so back from home
+    // reopened it.
+    const leaveFlow = useReturnTo(
+        readReturnTo({ get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) }, '/withdraw') ?? '/home'
+    )
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
     const {
@@ -48,11 +59,16 @@ export function useWithdrawRootFlow() {
         setSelectedBankAccount,
         setSelectedMethod,
         setIsMaxWithdrawal,
+        setRecipient,
+        setIsValidRecipient,
     } = useWithdrawFlow()
+
+    const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(urlAmount)
+    const [destinationAmount, setDestinationAmount] = useWithdrawDestinationAmount()
 
     const stepper = useFlowStepper({
         steps: WITHDRAW_ROOT_STEPS,
@@ -67,26 +83,52 @@ export function useWithdrawRootFlow() {
                 goBackToSend()
                 return
             }
-            // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
-            // wins over the /home reset, which only fits tab-bar entries
-            const returnTo = readReturnTo(
-                { get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) },
-                '/withdraw'
-            )
-            router.push(returnTo ?? '/home')
+            leaveFlow()
         },
     })
 
-    // Send → Exchange or Wallet enters as /withdraw?method=crypto: the method
-    // is implied, so commit it and land straight on the amount step.
+    // A scanned address, old Send → Crypto links (/withdraw?method=crypto) and
+    // old crypto amount-step links arrive here but belong to /withdraw/crypto. Decided from the URL on the first render, so the page
+    // renders nothing while the effect below forwards: the Withdraw method list
+    // must never show on the way (TASK-23054).
+    const forwardsToCrypto = isCryptoFromSend || (stepper.step === 'amount' && selectedMethod?.type === 'crypto')
     useEffect(() => {
-        if (!isCryptoFromSend) return
-        if (!selectedMethod) {
+        if (!forwardsToCrypto) return
+        if (scanIdParam && !supportedChainsAndTokens) return
+        const scanned = takeScannedDestination(scanIdParam)
+        const token = scanned ? withdrawTokenForChain(supportedChainsAndTokens?.[scanned.chainId]?.tokens) : undefined
+        if (scanned && token) {
+            setSelectedChainID(scanned.chainId)
+            setSelectedTokenAddress(token.address)
+            setRecipient({ name: undefined, address: scanned.address })
+            setIsValidRecipient(true)
+        }
+        if (selectedMethod?.type !== 'crypto') {
             setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
         }
-        if (stepper.step === 'method') void stepper.goTo('amount')
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCryptoFromSend, selectedMethod, stepper.step])
+        setSelectedBankAccount(null)
+        const params = new URLSearchParams()
+        if (methodParam) params.set('method', methodParam)
+        if (urlAmount) params.set('amount', urlAmount)
+        // toString, not `params.size`: Safari before 17 has no `size`, which
+        // dropped the send marker and the amount from the forward
+        const query = params.toString()
+        router.replace(`/withdraw/crypto${query ? `?${query}` : ''}`)
+    }, [
+        forwardsToCrypto,
+        selectedMethod,
+        scanIdParam,
+        supportedChainsAndTokens,
+        methodParam,
+        urlAmount,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setRecipient,
+        setIsValidRecipient,
+        setSelectedBankAccount,
+        setSelectedMethod,
+        router,
+    ])
 
     // flag to know if the user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -104,46 +146,36 @@ export function useWithdrawRootFlow() {
     // by the hook. Empty while loading so we don't flash "$0.00".
     const walletBalance = balance === undefined ? '' : formattedSpendableBalance
 
-    // derive country and account type for minimum amount validation
-    const { countryIso2, rateAccountType } = useMemo(() => {
-        if (selectedBankAccount) {
-            const country = getCountryFromAccount(selectedBankAccount)
-            return { countryIso2: country?.iso2 || '', rateAccountType: selectedBankAccount.type as AccountType }
-        }
-        if (selectedMethod?.countryPath) {
-            const country = getCountryFromPath(selectedMethod.countryPath)
-            const iso2 = country?.iso2 || ''
-            let accountType: AccountType = AccountType.IBAN
-            if (iso2 === 'US') accountType = AccountType.US
-            else if (iso2 === 'GB') accountType = AccountType.GB
-            else if (iso2 === 'MX') accountType = AccountType.CLABE
-            return { countryIso2: iso2, rateAccountType: accountType }
-        }
-        return { countryIso2: '', rateAccountType: AccountType.US }
-    }, [selectedBankAccount, selectedMethod])
-
     // crypto withdrawals are plain on-chain transfers — fiat-rail minimums don't
     // apply. selectedMethod is the routing source of truth; the URL param only
     // covers the first render before the mount effect commits the crypto method.
     const isCryptoWithdraw = selectedMethod ? selectedMethod.type === 'crypto' : isCryptoFromSend
 
-    // fetch exchange rate for non-USD countries to convert local minimum to USD
-    const { exchangeRate } = useGetExchangeRate({
-        accountType: rateAccountType,
-        enabled: !isCryptoWithdraw && rateAccountType !== AccountType.US && countryIso2 !== '',
-    })
+    // A bank account paid in EUR, GBP, MXN or COP takes the amount in that
+    // currency (TASK-23054): the user types the bank amount, and the USD
+    // under it converts at the quote rate, fees included — so the min,
+    // balance and limit checks below run on what will actually leave.
+    const bankCurrency = selectedMethod?.type === 'bridge' ? bankAmountCurrency(selectedBankAccount) : null
+    const bankRate = useBridgeOfframpQuote({ currency: bankCurrency, enabled: stepper.step === 'amount' })
+    // The field can toggle to USD. A USD amount the user typed is handed on as
+    // USD, exact, and the review leads with it; only a bank amount is re-quoted.
+    // The URL keeps the toggle and the USD, so back and refresh restore both.
+    const [amountCurrencyParam, setAmountCurrencyParam] = useQueryState('amountCurrency', parseAsString)
+    const isBankFieldInUsd = !!bankCurrency && amountCurrencyParam === 'usd'
 
-    // compute minimum withdrawal in USD using the exchange rate
-    const minUsdAmount = useMemo(() => {
-        // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
-        // are direct transfers with no floor, matching send-via-link. Rhino's
-        // per-network bridge minimums are enforced chain-aware at review time
-        // (see withdraw/crypto), once the destination is known.
-        if (isCryptoWithdraw) return 0
-        // shared with the submit-side re-check in useBridgeOfframpFlow (Chip
-        // round 5) — one conversion, two enforcement points
-        return bankWithdrawMinUsd(countryIso2, exchangeRate)
-    }, [isCryptoWithdraw, countryIso2, exchangeRate])
+    // The USD floor under every bank payout. No amount-step minimum for crypto:
+    // same-chain (Arbitrum) withdrawals are direct transfers with no floor,
+    // matching send-via-link. Rhino's per-network bridge minimums are enforced
+    // chain-aware at review time (see withdraw/crypto), once the destination is
+    // known.
+    const minUsdAmount = isCryptoWithdraw ? 0 : BRIDGE_OFFRAMP_MIN_USD
+
+    // A bank amount typed in its currency meets the payout minimum in that
+    // currency: exactly 50 MXN passes (TASK-23054). The USD floor above still
+    // applies to what it converts to. Shared with the submit-side re-check in
+    // useBridgeOfframpFlow.
+    const belowBankMinimum =
+        !!bankCurrency && !!destinationAmount && !meetsBankPayoutMinimum(Number(destinationAmount), bankCurrency)
 
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits
@@ -174,15 +206,19 @@ export function useWithdrawRootFlow() {
             // balance check so a pre-filled amount isn't false-blocked; the effect
             // re-validates once it lands (validateAmount is in its deps).
             const balanceLoaded = balance !== undefined
-            if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
+            if (!belowBankMinimum && usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
 
             // determine message
             let message = ''
-            if (usdEquivalent < minUsdAmount) {
-                const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
+            if (belowBankMinimum || usdEquivalent < minUsdAmount) {
+                // the minimum in the currency the user typed
+                const minDisplay =
+                    belowBankMinimum && bankCurrency
+                        ? formatBankAmount(bankPayoutMinimum(bankCurrency), bankCurrency)
+                        : formatBankAmount(minUsdAmount, 'USD')
                 message = isFromSendFlow
                     ? t('errors.minimumSend', { amount: minDisplay })
                     : t('errors.minimumWithdrawal', { amount: minDisplay })
@@ -194,7 +230,7 @@ export function useWithdrawRootFlow() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, t, tErrors]
+        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, belowBankMinimum, bankCurrency, t, tErrors]
     )
 
     // The exact string the balance tap last filled. Any other value reaching
@@ -235,15 +271,32 @@ export function useWithdrawRootFlow() {
             }
 
             // the URL is the durable copy of the typed amount (survives refresh,
-            // shareable mid-flow) — nuqs throttles the actual history writes
-            void setUrlAmount(newValue === '' ? null : newValue)
+            // shareable mid-flow) — nuqs throttles the actual history writes.
+            // For a bank-currency amount the USD is only derived; the bank amount is stored.
+            if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
+            // the field re-reports an unchanged USD when the rate refreshes; an
+            // unchanged URL write can discard Continue's navigation (see below)
+            else if (isBankFieldInUsd && newValue !== urlAmount) void setUrlAmount(newValue === '' ? null : newValue)
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal]
+        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, isBankFieldInUsd, urlAmount]
+    )
+
+    const handleDestinationAmountChange = useCallback(
+        (value: string) => {
+            // "90." or ".5" mid-typing is stored the way the quote API accepts it
+            const next = normalizeBankAmount(value) ?? ''
+            // The field re-reports an unchanged amount when the quote rate refreshes.
+            // Writing it anyway replaces the URL, and in Next.js that discards a
+            // navigation in flight, such as Continue's push to the review.
+            if (next === destinationAmount) return
+            void setDestinationAmount(next || null)
+        },
+        [setDestinationAmount, destinationAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -266,11 +319,16 @@ export function useWithdrawRootFlow() {
             const params = new URLSearchParams()
             for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value)
             if (isFromSendFlow && methodParam && !params.has('method')) params.set('method', methodParam)
-            if (rawTokenAmount) params.set('amount', rawTokenAmount)
+            // a bank-currency amount is handed on as typed; the review quotes its USDC
+            if (bankCurrency && !isBankFieldInUsd) {
+                if (destinationAmount) params.set('destinationAmount', destinationAmount)
+            } else if (rawTokenAmount) {
+                params.set('amount', rawTokenAmount)
+            }
             const qs = params.toString()
             return qs ? `?${qs}` : ''
         },
-        [isFromSendFlow, methodParam, rawTokenAmount]
+        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount, isBankFieldInUsd]
     )
 
     const handleAmountContinue = useCallback(() => {
@@ -316,9 +374,10 @@ export function useWithdrawRootFlow() {
                 setError({ showError: true, errorMessage: t('errors.countryUnresolved') })
             }
         } else if (selectedMethod.countryPath) {
-            // Bridge (and any other) countries go to the country page for the
-            // bank-account form
-            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery()))
+            // A bridge method with no account yet — an old `?step=amount` link,
+            // or flow memory lost to a refresh. The form comes first now, so
+            // send them there with the amount they typed still in the URL.
+            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
         } else {
             // No branch matched the selected method — surface an error rather
             // than leaving the user with a silently-dead Continue button.
@@ -352,6 +411,8 @@ export function useWithdrawRootFlow() {
         // to a different method
         setRawTokenAmount('')
         void setUrlAmount(null)
+        void setDestinationAmount(null)
+        void setAmountCurrencyParam(null)
         filledFromBalanceRef.current = null
         setIsMaxWithdrawal(false)
         if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
@@ -369,6 +430,8 @@ export function useWithdrawRootFlow() {
         setSelectedMethod,
         setSelectedBankAccount,
         setUrlAmount,
+        setDestinationAmount,
+        setAmountCurrencyParam,
         setIsMaxWithdrawal,
         stepper,
     ])
@@ -376,11 +439,12 @@ export function useWithdrawRootFlow() {
     // check if continue button should be disabled
     const continueDisabled = useMemo(() => {
         if (!rawTokenAmount) return true
+        if (bankCurrency && !destinationAmount) return true
 
         const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
-        if (numericAmount < minUsdAmount) return true // below the method's USD minimum
+        if (numericAmount < minUsdAmount || belowBankMinimum) return true // below a payout minimum
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
@@ -390,16 +454,20 @@ export function useWithdrawRootFlow() {
         return !isCryptoWithdraw && (limitsValidation.isLoading || limitsValidation.isBlocking)
     }, [
         rawTokenAmount,
+        bankCurrency,
+        destinationAmount,
         balance,
         maxDecimalAmount,
         error.showError,
         minUsdAmount,
+        belowBankMinimum,
         isCryptoWithdraw,
         limitsValidation.isLoading,
         limitsValidation.isBlocking,
     ])
 
     return {
+        forwardsToCrypto,
         stepper,
         rawTokenAmount,
         walletBalance,
@@ -413,6 +481,22 @@ export function useWithdrawRootFlow() {
         isCryptoFromSend,
         isBankFromSend,
         selectedMethod,
+        // bank amount typed in its currency (TASK-23054): null outside EUR, GBP, MXN and COP accounts
+        bankAmount: bankCurrency
+            ? {
+                  currency: bankCurrency,
+                  rate: bankRate.quote?.rate ?? null,
+                  rateFailed: bankRate.isError,
+                  refetchRate: bankRate.refetch,
+                  destinationAmount,
+                  onDestinationAmountChange: handleDestinationAmountChange,
+                  isInUsd: isBankFieldInUsd,
+                  onDenominationChange: (symbol: string) => {
+                      const next = symbol.toUpperCase() === 'USD' ? 'usd' : null
+                      if (next !== amountCurrencyParam) void setAmountCurrencyParam(next)
+                  },
+              }
+            : null,
         handleAmountChange,
         handleAmountContinue,
         handleAmountBack,

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { focusManager } from '@tanstack/react-query'
+import { setConnectivityAppActive } from '@/utils/connectivity'
 import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
@@ -17,6 +18,7 @@ import { notifyNotificationsUpdated, onForegroundPushDelivered } from '@/utils/n
 import { dispatchBackPress } from '@/utils/back-handler'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
+import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
 
@@ -150,6 +152,8 @@ export function useNativeAppLinks() {
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
                     const code = toInviteCode(parsed.searchParams.get('code') ?? '')
                     if (code) stashInvite(code, EInviteType.DIRECT)
+                    const badgeCampaigns = badgeCampaignsFromSearchParams(parsed.searchParams)
+                    if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
                 }
             } catch {}
             lastDispatchedUrl = url
@@ -157,7 +161,7 @@ export function useNativeAppLinks() {
             // Flag first (synchronously): the landing gate's /home replace races
             // this push on cold start and must yield to it.
             anyDeepLinkNavigated = true
-            markDeepLinkNavigated()
+            markDeepLinkNavigated(safe)
             /*
              * A deep link arriving while our in-app browser sheet is up (the
              * Persona/Bridge KYC return leg) must dismiss it or the nav happens
@@ -182,6 +186,7 @@ export function useNativeAppLinks() {
                 // resumed app kept rendering its pre-background query data (stale
                 // home Activity). Drive the focusManager from the native lifecycle.
                 const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+                    setConnectivityAppActive(isActive)
                     focusManager.setFocused(isActive)
                     // Android WebViews do not reliably emit visibilitychange on
                     // resume. Refresh lightweight notification consumers (the
@@ -263,7 +268,7 @@ export function useNativeAppLinks() {
                             captureLink('deferred', restored.dest, restored.dest, 'expired')
                             return
                         }
-                        markDeepLinkNavigated()
+                        markDeepLinkNavigated(restored.dest)
                         router.push(restored.dest)
                         captureLink('deferred', restored.dest, restored.dest, 'navigated')
                     })

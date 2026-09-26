@@ -9,6 +9,7 @@ import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import {
     SUPPORT_EMAIL,
     CRISP_LOCALE_BY_APP_LOCALE,
@@ -70,6 +71,28 @@ const SupportDrawer = () => {
     useEffect(() => {
         latestPayloadRef.current = latestPayload
     })
+
+    /*
+     * Defence in depth, not the fix.
+     *
+     * This drawer IS the app's support surface, and it is mounted by every app
+     * layout, so while it exists the stock Crisp launcher must not be on screen.
+     * The real fix is the marketing layout's own lifecycle
+     * (components/Marketing/CrispLauncher); this marker only makes sure a future
+     * main-window Crisp loader cannot leak a bubble into the app the way the
+     * marketing widget did.
+     *
+     * The rule keys off an attribute the APP sets rather than one marketing
+     * sets, so it can never reach the drawer's `/crisp-proxy` iframe: that is a
+     * separate document, which renders no SupportDrawer and therefore carries no
+     * marker, and the chatbox inside it stays visible.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.crispLauncher = 'hidden'
+        return () => {
+            delete document.documentElement.dataset.crispLauncher
+        }
+    }, [])
 
     /*
      * The handshake pull happens once at iframe boot; later changes (email/name
@@ -242,6 +265,14 @@ const SupportDrawer = () => {
                 // seeded with the current snapshot, so this never returns.
                 if (!snapshot) return
 
+                // Bind the freshly fetched token before publishing identity. On
+                // Android, setUser writes immediately when a session is already
+                // active; doing it first could expose a replacement mailbox to
+                // the former token during a coordinated token rotation.
+                if (tokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
+                }
+
                 // set user data before opening
                 if (snapshot.email || snapshot.fullName) {
                     CapacitorCrisp.setUser({
@@ -249,9 +280,6 @@ const SupportDrawer = () => {
                         nickname: snapshot.fullName || snapshot.username || undefined,
                         avatar: snapshot.avatar || undefined,
                     })
-                }
-                if (tokenId) {
-                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
                 }
                 /*
                  * Custom data for support agents. Every key is written
@@ -437,7 +465,7 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-2xl bg-background-page pt-2 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
@@ -461,37 +489,34 @@ const SupportDrawer = () => {
             >
                 {/* drag handle */}
                 <div
-                    className="flex cursor-grab items-center justify-center pb-4 active:cursor-grabbing"
+                    className="flex cursor-grab items-center justify-center pb-6 active:cursor-grabbing"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className="h-1.5 w-10 rounded-full bg-black" />
+                    {/* radius, no border and handle geometry match DrawerContent; the
+                        page-tint fill stays because the chat and its loading states paint it */}
+                    <div className="h-[5px] w-8 rounded-full bg-foreground-secondary" />
                 </div>
 
                 {/* min-h-0 lets the iframe row shrink below its content when the panel does */}
                 <div className="flex min-h-0 w-full flex-1 justify-center">
                     <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background-page">
                                 <Loading variant="mascot" />
                             </div>
                         )}
                         {isCrispFailed && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background-page px-8 text-center">
                                 <p className="text-body-m-semibold text-foreground-primary">
                                     {t('supportDrawer.chatLoadFailed')}
                                 </p>
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
-                                <a
-                                    href={`mailto:${SUPPORT_EMAIL}`}
-                                    className="text-body-m text-foreground-primary underline"
-                                >
-                                    {SUPPORT_EMAIL}
-                                </a>
-                                <Button variant="stroke" className="w-full" onClick={handleRetry}>
+                                <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
+                                <Button variant="secondary" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>
                             </div>

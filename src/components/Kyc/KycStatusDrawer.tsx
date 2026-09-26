@@ -10,6 +10,7 @@ import { useCallback } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useAuth } from '@/context/authContext'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -23,7 +24,8 @@ interface KycStatusDrawerProps {
 // provider names, no rail reads. Resuming/retrying launches Sumsub via the kept
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
-    const { identity, status, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
+    const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision } = useIdentityVerification()
+    const { logoutUser } = useAuth()
     const t = useTranslations('kyc')
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -57,12 +59,32 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
             case 'verified':
                 return <KycCompleted reviewedAt={identity.reviewedAt} />
             case 'action_required':
+                // A FINAL rejection stored as action_required is a decision:
+                // "Resubmit" cannot pass it, so it gets the failed view.
+                if (isTerminalFailure) {
+                    return (
+                        <KycFailed
+                            actionMessage={identity.actionMessage}
+                            rejectLabels={identity.rejectLabels}
+                            reviewedAt={identity.reviewedAt}
+                            onRetry={resumeKyc}
+                            isTerminal
+                            onContactSupport={() => setIsSupportModalOpen(true)}
+                        />
+                    )
+                }
                 return (
                     <KycActionRequired
                         onResume={resumeKyc}
                         isLoading={sumsubFlow.isLoading}
                         actionMessage={identity.actionMessage}
                         rejectLabels={identity.rejectLabels}
+                        isEmailCollision={isEmailCollision}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onLogOut={() => {
+                            onClose()
+                            void logoutUser()
+                        }}
                     />
                 )
             case 'failed':

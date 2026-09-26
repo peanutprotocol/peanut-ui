@@ -1,6 +1,7 @@
 'use client'
 
-import { PeanutWhistling } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_ART_FILL } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import Link from 'next/link'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
@@ -18,67 +19,49 @@ import { type CTAButton } from '@/components/LandingPage/landing.types'
  * overlaps with the h2 subtitle below. Measures the h2 position on mount
  * and resize, then sets its own bottom edge to sit 6% into the h2.
  */
-function PeanutMascot() {
-    const imgRef = useRef<HTMLImageElement>(null)
+function HeroMascot() {
+    const hostRef = useRef<HTMLDivElement>(null)
 
     const position = useCallback(() => {
-        const img = imgRef.current
+        const host = hostRef.current
         const hero = document.getElementById('hero')
         const h2 = hero?.querySelector('h2')
-        if (!img || !hero || !h2) return
+        if (!host || !hero || !h2) return
 
         const heroRect = hero.getBoundingClientRect()
         const h2Rect = h2.getBoundingClientRect()
-        const peanutHeight = img.getBoundingClientRect().height
+        const hostHeight = host.getBoundingClientRect().height
 
-        if (peanutHeight === 0) return // not rendered yet
+        if (hostHeight === 0) return // not rendered yet
+
+        const peanutHeight = hostHeight * MASCOT_ART_FILL
+        const footPadding = (hostHeight - peanutHeight) / 2
 
         // Position so peanut's feet (bottom 3%) overlap with h2 top
         const overlap = peanutHeight * 0.06
         const peanutBottom = h2Rect.top - heroRect.top + overlap
-        const peanutTop = peanutBottom - peanutHeight
+        const peanutTop = peanutBottom - peanutHeight - footPadding
 
-        img.style.top = `${peanutTop}px`
+        host.style.top = `${peanutTop}px`
     }, [])
 
     useEffect(() => {
-        const img = imgRef.current
-        if (!img) return
-
-        // Position once image loads and on resize
-        const onLoad = () => {
-            position()
-            // Re-position after a short delay to account for layout shifts
-            setTimeout(position, 500)
-        }
-
-        if (img.complete) {
-            onLoad()
-        } else {
-            img.addEventListener('load', onLoad)
-        }
-
+        position()
+        const settle = setTimeout(position, 500)
         window.addEventListener('resize', position)
         return () => {
-            img.removeEventListener('load', onLoad)
+            clearTimeout(settle)
             window.removeEventListener('resize', position)
         }
     }, [position])
 
     return (
-        <Image
-            ref={imgRef}
-            src={PeanutWhistling}
-            // Animated webp — the optimizer passes animated images through
-            // untouched, so `unoptimized` skips a pointless /_next/image hop.
-            unoptimized
-            // This is the mobile LCP element. Without `preload` Next emits
-            // loading="lazy" and the browser discovers it ~7s late on a
-            // throttled connection (Lighthouse: 19.5s LCP, 36% load delay).
-            preload
-            alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
-        />
+        <div
+            ref={hostRef}
+            className="absolute left-1/2 z-10 h-[40vh] w-[90%] -translate-x-1/2 md:h-[min(40vh,calc(100svh-28rem))]"
+        >
+            <PeanutMascot pose="waving-chill" alt="Peanut Guy" className="size-full" />
+        </div>
     )
 }
 
@@ -144,16 +127,14 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                     onClick={cta.onClick}
                 >
-                    <Button
-                        shadowSize="4"
-                        icon={cta.icon}
-                        className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
-                    >
+                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
                         {cta.label}
                     </Button>
                 </a>
                 {cta.subtext && (
-                    <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{cta.subtext}</span>
+                    <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
+                        {cta.subtext}
+                    </span>
                 )}
             </div>
         )
@@ -171,7 +152,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
@@ -200,18 +181,18 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     <Image src={Star} alt="" />
                 </AnimateOnView>
             </div>
-            <PeanutMascot />
+            <HeroMascot />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 {/* Short phone viewports only: the pt-BR headline wraps to 3 lines (and to 4 below
                     360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
                     back from this gap rather than from the artwork, so every locale keeps the same
                     hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span
-                    className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                    className="mt-2 block text-center text-xl leading-tight text-foreground-primary md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
                     <Link prefetch={false} href={contentHrefs.unitedStates} className="hover:underline">
@@ -227,7 +208,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
+                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
@@ -237,7 +218,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     <Link
                         prefetch={false}
                         href="/setup?step=login"
-                        className="mt-4 block text-center text-body-s text-n-1 underline"
+                        className="mt-4 block text-center text-body-s text-foreground-primary underline"
                     >
                         {strings.logIn}
                     </Link>

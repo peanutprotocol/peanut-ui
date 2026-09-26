@@ -11,8 +11,7 @@
  * `$web_vitals` shape so the rows land in the existing series rather than a
  * parallel one. Everything except the protocol gate is deferred to PostHog's
  * own switches, so turning web vitals off server-side turns iOS off too. CLS
- * stays absent on WebKit, which has no Layout Instability API — the same gap
- * the iOS PWA already shows.
+ * stays absent on WebKit, which has no Layout Instability API.
  */
 
 import type { Metric } from 'web-vitals'
@@ -163,7 +162,7 @@ export function startWebVitalsShim(): void {
     })
 
     // A metric that arrives as the app goes away would otherwise sit in the
-    // buffer until a flush timer the WebView never runs.
+    // buffer until a flush timer the native WebView never runs.
     window.addEventListener('pagehide', flush)
 
     void import('web-vitals')

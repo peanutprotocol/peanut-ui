@@ -35,6 +35,7 @@ import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
+import { sponsorUserOperationArgs } from '@/hooks/wallet/paymasterSponsorship'
 
 interface KernelClientContextType {
     setWebAuthnKey: (webAuthnKey: WebAuthnKey) => void
@@ -158,13 +159,16 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
         // front rejected a deliberately unsponsored harness run that never
         // needed one.
         assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
+        // Single callback on purpose: viem then invokes it exactly once per
+        // preparation. A pre-Pay preview request does not consume the
+        // sponsorship policy (see paymasterSponsorship.ts, TASK-22692).
         clientConfig.paymaster = {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
                     chain,
                     transport: http(paymasterUrl),
                 })
-                return zerodevPaymaster.sponsorUserOperation({ userOperation, shouldOverrideFee: true })
+                return zerodevPaymaster.sponsorUserOperation(sponsorUserOperationArgs(userOperation))
             },
         }
     } else {
@@ -278,6 +282,9 @@ export const createKernelClientForChain = async <C extends Chain>(
               }
             : undefined,
         paymaster: {
+            // Single callback on purpose: viem then invokes it exactly once
+            // per preparation. A pre-Pay preview request does not consume the
+            // sponsorship policy (see paymasterSponsorship.ts, TASK-22692).
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
                     chain: chain,
@@ -285,10 +292,7 @@ export const createKernelClientForChain = async <C extends Chain>(
                 })
 
                 try {
-                    return await zerodevPaymaster.sponsorUserOperation({
-                        userOperation,
-                        shouldOverrideFee: true,
-                    })
+                    return await zerodevPaymaster.sponsorUserOperation(sponsorUserOperationArgs(userOperation))
                 } catch (error) {
                     console.error('Paymaster error:', error)
                     throw error

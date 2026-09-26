@@ -6,7 +6,7 @@
  *
  * One source of truth for the perk-claim style press-and-hold:
  *   - useHoldToClaim drives progress + isShaking + shakeIntensity + haptics.
- *   - The button is a Bruddle <Button variant="purple" shadowSize="4">
+ *   - The button is a Bruddle <Button variant="primary" shadowSize="4">
  *     (default primary CTA), with a solid black overlay that fills
  *     left→right as holdProgress climbs. Solid black (not bg-black/30) so
  *     contrast against the pink stays strong — matches the QR-claim button.
@@ -90,7 +90,7 @@ export const HoldToClaimButton: FC<Props> = ({
     return (
         <Button
             {...buttonProps}
-            variant="purple"
+            variant="primary"
             shadowSize="4"
             disabled={disabled || loading}
             loading={loading}
@@ -105,6 +105,19 @@ export const HoldToClaimButton: FC<Props> = ({
                 style={{ width: `${holdProgress}%`, left: 0 }}
             />
             <span className="relative z-10">{children}</span>
+            {/* white copy of the label clipped to the fill so the text stays
+                readable over the black overlay — matches the QR-claim button.
+                aria-hidden: it duplicates the label for sighted users only;
+                hidden while loading so it never overlays the spinner state. */}
+            {!loading && (
+                <span
+                    aria-hidden="true"
+                    className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
+                    style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                >
+                    {children}
+                </span>
+            )}
         </Button>
     )
 }

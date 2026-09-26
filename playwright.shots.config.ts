@@ -71,6 +71,10 @@ export default defineConfig({
     projects: WIDTHS.map(({ width, height }) => ({
         name: String(width),
         use: { viewport: { width, height } },
+        // overflow*.spec.ts is the i18n overflow gate — it runs per-locale
+        // through playwright.overflow.config.ts, never in the en-US capture
+        // matrix.
+        testIgnore: /overflow.*\.spec\.ts/,
     })),
 
     webServer: {

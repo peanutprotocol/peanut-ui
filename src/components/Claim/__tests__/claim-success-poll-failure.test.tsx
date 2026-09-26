@@ -28,7 +28,7 @@ jest.mock('next/image', () => ({
     },
 }))
 
-const mockSendLinksApi = { get: jest.fn() }
+const mockSendLinksApi = { getClaimStatus: jest.fn() }
 jest.mock('@/services/sendLinks', () => ({
     ESendLinkStatus: {
         creating: 'creating',
@@ -125,14 +125,14 @@ const renderView = (onCustom = jest.fn(), initialHash?: string) => {
 
 describe('SUCCESS view — polled claim failure', () => {
     beforeEach(() => {
-        mockSendLinksApi.get.mockReset()
+        mockSendLinksApi.getClaimStatus.mockReset()
         mockRouterPush.mockReset()
         mockSoundPlayed.mockReset()
         mockTriggerHaptic.mockReset()
     })
 
     test('a retryable failure replaces the success card with the retry copy and a way back', async () => {
-        mockSendLinksApi.get.mockResolvedValue({
+        mockSendLinksApi.getClaimStatus.mockResolvedValue({
             status: 'FAILED',
             claimFailureCode: 'CHAIN_INFRA_UNAVAILABLE',
             events: [],
@@ -149,7 +149,7 @@ describe('SUCCESS view — polled claim failure', () => {
     })
 
     test('a failure with no code gets the generic copy and no retry button', async () => {
-        mockSendLinksApi.get.mockResolvedValue({ status: 'FAILED', claimFailureCode: null, events: [] })
+        mockSendLinksApi.getClaimStatus.mockResolvedValue({ status: 'FAILED', claimFailureCode: null, events: [] })
 
         renderView()
 
@@ -159,7 +159,7 @@ describe('SUCCESS view — polled claim failure', () => {
     })
 
     test('a confirmed claim still renders the success card', async () => {
-        mockSendLinksApi.get.mockResolvedValue({
+        mockSendLinksApi.getClaimStatus.mockResolvedValue({
             status: 'CLAIMED',
             claim: { txHash: '0xabc' },
             events: [],
@@ -174,7 +174,7 @@ describe('SUCCESS view — polled claim failure', () => {
     test('a CLAIMED status with no projected hash still renders the success card', async () => {
         // matches the backend's notify point: CLAIMED means the money moved, so
         // the view must not sit on "processing" waiting the txHash out
-        mockSendLinksApi.get.mockResolvedValue({
+        mockSendLinksApi.getClaimStatus.mockResolvedValue({
             status: 'CLAIMED',
             events: [],
         })
@@ -188,14 +188,14 @@ describe('SUCCESS view — polled claim failure', () => {
 
 describe('SUCCESS view — before the poll resolves', () => {
     beforeEach(() => {
-        mockSendLinksApi.get.mockReset()
+        mockSendLinksApi.getClaimStatus.mockReset()
         mockSoundPlayed.mockReset()
         mockTriggerHaptic.mockReset()
     })
 
     test('a claim with no outcome yet shows processing — no success card, sound or haptic', async () => {
         // a poll that never settles: the optimistic 202 has landed, nothing else
-        mockSendLinksApi.get.mockReturnValue(new Promise(() => {}))
+        mockSendLinksApi.getClaimStatus.mockReturnValue(new Promise(() => {}))
 
         renderView()
 
@@ -206,17 +206,17 @@ describe('SUCCESS view — before the poll resolves', () => {
     })
 
     test('a poll that keeps erroring stays in processing rather than claiming success', async () => {
-        mockSendLinksApi.get.mockRejectedValue(new Error('network down'))
+        mockSendLinksApi.getClaimStatus.mockRejectedValue(new Error('network down'))
 
         renderView()
 
-        await waitFor(() => expect(mockSendLinksApi.get).toHaveBeenCalled())
+        await waitFor(() => expect(mockSendLinksApi.getClaimStatus).toHaveBeenCalled())
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         expect(screen.queryByTestId('success-card')).not.toBeInTheDocument()
     })
 
     test('a synchronous claim arrives with its hash and renders success immediately', () => {
-        mockSendLinksApi.get.mockReturnValue(new Promise(() => {}))
+        mockSendLinksApi.getClaimStatus.mockReturnValue(new Promise(() => {}))
 
         renderView(jest.fn(), '0xabc')
 

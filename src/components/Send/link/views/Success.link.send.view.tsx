@@ -14,7 +14,7 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useAuth } from '@/context/authContext'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
@@ -26,7 +26,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 const LinkSendSuccessView = () => {
     const t = useTranslations('send')
     const tNav = useTranslations('navigation')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
@@ -58,7 +60,7 @@ const LinkSendSuccessView = () => {
                 icon="cancel"
                 title={tNav('send')}
                 onPrev={() => {
-                    router.push('/home')
+                    leaveToHome()
                     resetLinkSendFlow()
                 }}
             />
@@ -89,9 +91,8 @@ const LinkSendSuccessView = () => {
                         </ShareButton>
                         <Button
                             onClick={() => setShowCancelLinkDrawer(true)}
-                            variant={'primary-soft'}
+                            variant="secondary"
                             className="flex w-full items-center gap-1"
-                            shadowSize="4"
                             disabled={isLoading || cancelStatus === 'cancelled'}
                             loading={isLoading}
                         >
@@ -152,7 +153,7 @@ const LinkSendSuccessView = () => {
 
                                 // Brief delay for toast visibility
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
-                                router.push('/home')
+                                leaveToHome()
                             } catch (invalidateError) {
                                 console.error('Failed to update after claim:', invalidateError)
                                 captureException(invalidateError, {
@@ -166,7 +167,7 @@ const LinkSendSuccessView = () => {
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccessRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
-                                router.push('/home')
+                                leaveToHome()
                             }
                         } catch (error) {
                             if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
@@ -177,7 +178,7 @@ const LinkSendSuccessView = () => {
                                 setShowCancelLinkDrawer(false)
                                 toast.info(friendly(error))
                                 void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
-                                router.push('/home')
+                                leaveToHome()
                                 return
                             }
                             captureException(error)

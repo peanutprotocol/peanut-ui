@@ -43,6 +43,7 @@ import {
     SpendRecoveryQuoteReviewError,
     toQuoteReview,
 } from './signSpendRetry'
+import { buildUsdcTransferCall, type PreparedSmartSpend } from './smartSpendPreparation'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -106,15 +107,24 @@ export interface SignSpendBundleInput {
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Fires right before the one-time session-key grant prompt appears. */
     onGrantRequired?: () => void
+    /** Unsigned smart-only candidate built ahead of Pay. Consulted only when
+     *  LIVE routing picks smart-only; every other strategy ignores it. */
+    preparedSmartSpend?: PreparedSmartSpend | null
+    /** Latency telemetry only: fires as the pipeline crosses each boundary. */
+    onProgress?: (event: SignSpendProgressEvent) => void
     /** Set by an internal controller recovery re-sign: a 425 on ITS prepare is
      *  handled by the recovery (wait or quote review), so the global cooldown
      *  explainer must not fire for an attempt the user never made. */
     suppressCooldownEvent?: boolean
-    /** Epoch ms this payment's provider quote dies at. Lets an internal
-     *  recovery wait out a Rain cooldown when it still fits, instead of
-     *  handing back to quote review. */
+    /** This payment's lock deadline on this device's clock, in ms
+     *  (`receiveLock`). Lets an internal recovery wait out a Rain cooldown
+     *  when it still fits, instead of handing back to quote review. */
     lockExpiresAt?: number
 }
+
+export type SignSpendProgressEvent =
+    | { stage: 'preflight_ready' }
+    | { stage: 'signing_preparation_ready'; preparation: 'reused' | 'fresh' }
 
 /**
  * Sign-only sibling of `useSpendBundle`. Picks a strategy
@@ -166,6 +176,8 @@ export const useSignSpendBundle = () => {
                 forceStrategy,
                 onStrategyDecided,
                 onGrantRequired,
+                preparedSmartSpend,
+                onProgress,
                 suppressCooldownEvent,
                 lockExpiresAt,
             } = input
@@ -294,17 +306,21 @@ export const useSignSpendBundle = () => {
                 if (!activeAccount) {
                     throw new Error('useSignSpendBundle: kernel account not initialized after preflight')
                 }
+                onProgress?.({ stage: 'preflight_ready' })
 
                 // ─── smart-only ─────────────────────────────────────────────────
                 if (strategy === 'smart-only') {
-                    const transferData = encodeFunctionData({
-                        abi: erc20Abi,
-                        functionName: 'transfer',
-                        args: [recipient, requiredUsdcAmount],
-                    })
+                    // The only strategy a pre-Pay candidate can serve: it is a
+                    // plain transfer from the smart account, so nothing about it
+                    // depends on a Rain draft or a session key.
                     const signedUserOp = await signCallsUserOp(
-                        [{ to: PEANUT_WALLET_TOKEN as Hex, value: 0n, data: transferData }],
-                        chainIdStr
+                        [buildUsdcTransferCall(recipient, requiredUsdcAmount)],
+                        chainIdStr,
+                        {
+                            prepared: preparedSmartSpend,
+                            onPrepared: (origin) =>
+                                onProgress?.({ stage: 'signing_preparation_ready', preparation: origin }),
+                        }
                     )
                     return { strategy, signedUserOp }
                 }
@@ -325,6 +341,7 @@ export const useSignSpendBundle = () => {
                     )
                     livePreparationId = prep.preparationId
                     preparedCoordinator = prep.coordinatorAddress
+                    onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
                     abortReplacementIfGone()
 
                     // The prep states the coordinator this withdrawal targets;
@@ -396,6 +413,7 @@ export const useSignSpendBundle = () => {
                 )
                 livePreparationId = prep.preparationId
                 preparedCoordinator = prep.coordinatorAddress
+                onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
                 abortReplacementIfGone()
 
                 /*

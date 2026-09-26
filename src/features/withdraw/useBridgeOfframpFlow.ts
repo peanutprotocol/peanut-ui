@@ -12,18 +12,24 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
+import {
+    getBankPayout,
+    getOfframpConfigFromAccount,
+    getCountryFromPath,
+    railJurisdictionForBank,
+} from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
+import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
-import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
-import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
+import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -34,23 +40,45 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { type Account } from '@/interfaces/interfaces'
-import { parseAsString, useQueryState } from 'nuqs'
+import { parseAsString, parseAsStringEnum, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
-import { useWithdrawAmount } from './useWithdrawAmount'
+import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
+import { bankAmountCurrency, normalizeBankAmount } from './bank-amount'
+import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
-import { AccountType } from '@/interfaces/interfaces'
-import { WITHDRAW_BANK_STEPS } from './types'
+import {
+    BRIDGE_OFFRAMP_MIN_USD,
+    bankPayoutMinimum,
+    meetsBankPayoutMinimum,
+    validateBankOfframpAmount,
+} from './amount-validation'
+import { formatBankAmount } from '@/utils/currency'
+import { WITHDRAW_BANK_STEPS, type ReviewPayout } from './types'
+import {
+    DEFAULT_USD_PAYOUT_SPEED,
+    USD_PAYOUT_SPEEDS,
+    effectiveUsdPayoutSpeed,
+    usdAmountReceived,
+} from './usd-payout-speed'
+import { useUsdPayoutSpeeds } from './useUsdPayoutSpeeds'
+import {
+    bankReferenceDestinationFields,
+    bankReferenceProblem,
+    bankReferenceSpecForRail,
+    payoutDefaultReferenceNoteForRail,
+    payoutNoteForRail,
+} from './bank-reference'
 
 /**
  * Flow hook for the Bridge bank-withdraw review page
  * (/withdraw/[country]/bank): the review → success stepper (named screen ids
  * in the URL), the offramp submission (create → send on-chain → confirm), the
- * capability gates and the KYC/advisory modal state. The amount arrives in the
- * URL (`?amount=`, TASK-21664/21665); the selected account lives in the
- * /withdraw-scoped flow context.
+ * capability gates and the KYC modal state. The amount arrives in the
+ * URL (`?amount=`, TASK-21664/21665) — or, for an account paid in EUR, GBP,
+ * MXN or COP, the bank amount the user typed (`?destinationAmount=`,
+ * TASK-23054), whose USDC comes from a quote. The selected account lives in
+ * the /withdraw-scoped flow context.
  */
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
@@ -64,8 +92,14 @@ export function useBridgeOfframpFlow() {
     // funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
     const confirmPendingCopy = t('bank.confirmPending')
 
-    const { selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
-    const [amountToWithdraw] = useWithdrawAmount()
+    const { selectedBankAccount: bankAccount, setSelectedBankAccount, error, setError } = useWithdrawFlow()
+    // The provider refused the saved account for good; the review offers to add it again instead of Retry.
+    const [isBankAccountNotUsable, setIsBankAccountNotUsable] = useState(false)
+    const [urlAmount] = useWithdrawAmount()
+    const [destinationAmountParam] = useWithdrawDestinationAmount()
+    // the URL is editable: "90." or ".5" is read the way the quote API accepts
+    // it, and anything else counts as no amount
+    const destinationAmount = normalizeBankAmount(destinationAmountParam) ?? ''
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
@@ -87,10 +121,43 @@ export function useBridgeOfframpFlow() {
     // renders THIS — `?amount=` stays user-editable after completion, and
     // rendering it would let a URL edit forge the confirmation (Chip round 8).
     const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
+    // What the bank gets for that executed amount, pinned with it for the same reason.
+    const [executedPayout, setExecutedPayout] = useState<ReviewPayout | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    // The optional reference the user sends with the payment. Form state only:
+    // it has no place in a shared link.
+    const [reference, setReference] = useState('')
+
+    // USD only (TASK-23054): same-day ACH, free, or a wire, whose fee comes from
+    // the backend's fee table. The choice is in the URL, so a refresh or a
+    // shared link keeps it; a wire that cannot be picked falls back to ACH.
+    const [askedSpeed, setAskedSpeed] = useQueryState(
+        'speed',
+        parseAsStringEnum([...USD_PAYOUT_SPEEDS]).withDefault(DEFAULT_USD_PAYOUT_SPEED)
+    )
+    const accountRail = bankAccount ? getOfframpConfigFromAccount(bankAccount) : null
+    const isUsdPayout = accountRail?.currency === 'usd'
+    // Until the fees and the account's rails are read, the speeds on screen are
+    // not final, so the withdrawal waits rather than go out on the wrong one.
+    const { options: speedOptions, isReady: isSpeedReady } = useUsdPayoutSpeeds({
+        enabled: isUsdPayout,
+        customerId: user?.user.bridgeCustomerId,
+        externalAccountId: bankAccount?.bridgeAccountId,
+        amountUsd: Number(urlAmount),
+    })
+    const speed = isUsdPayout ? effectiveUsdPayoutSpeed(speedOptions, askedSpeed) : null
+    const speedFeeUsd = speedOptions.find((option) => option.speed === speed)?.feeUsd ?? '0.00'
+    // the rail the transfer is created on: the chosen speed for USD, else the account's own
+    const payoutRail = speed ?? accountRail?.paymentRail
+
+    // null when the rail takes no reference — the field then stays hidden
+    const referenceSpec = bankReferenceSpecForRail(payoutRail)
+    const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
+    const payoutNoteKey = payoutNoteForRail(payoutRail)
+    const payoutDefaultReferenceNoteKey = payoutDefaultReferenceNoteForRail(payoutRail)
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
@@ -98,6 +165,13 @@ export function useBridgeOfframpFlow() {
         guards: bankStepGuards({ executed: !!completedTxHash }),
     })
     const step = stepper.step
+
+    // Bank amount typed in EUR, GBP, MXN or COP (TASK-23054): the USDC that
+    // leaves the balance is the quote's, at the provider's current rate, and
+    // refreshes with the rate until the user confirms. That USDC is what the
+    // offramp sends; the bank amount is an estimate.
+    const accountCurrency = bankAmountCurrency(bankAccount)
+    const bankCurrency = destinationAmount ? accountCurrency : null
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -107,22 +181,50 @@ export function useBridgeOfframpFlow() {
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const countryFromPath = getCountryFromPath(country)
 
-    // The destination's rail minimum, in USD — the amount step enforces it and
-    // the submit re-checks it (Chip round 5: the flat $1 floor bypassed the
-    // GB £3 / MX 50 MXN minimums). GB/MX minimums are local-currency, so they
-    // convert through the same sell rate the amount step uses; until that rate
-    // loads the submit stays disabled rather than under-enforcing.
-    // iso2, not id: the UK record is { id: 'GBR', iso2: 'GB' } and an id-keyed
-    // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
-    const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
-    const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
-    const { exchangeRate } = useGetExchangeRate({
-        accountType:
-            countryIso2 === 'GB' ? AccountType.GB : countryIso2 === 'MX' ? AccountType.CLABE : AccountType.IBAN,
-        enabled: minNeedsRate,
+    // The destination's payout minimum is in the account's currency (£3,
+    // 50 MXN, 4,000 COP) — the amount step enforces it and the submit
+    // re-checks it (Chip round 5: the flat $1 floor bypassed them). A bank
+    // amount typed in that currency is compared as typed, so exactly 50 MXN
+    // passes (TASK-23054). A USD ?amount= from an older link converts at the
+    // quote rate first; until that rate loads the submit stays disabled rather
+    // than under-enforcing.
+    const payoutMinimum = bankPayoutMinimum(accountCurrency)
+    const minNeedsRate = !bankCurrency && payoutMinimum > 1
+    // One rate for the amount, the minimum and the bank amount the review
+    // shows: the quote. Without a typed bank amount it is fetched for the rate
+    // alone, for every account paid in EUR, GBP, MXN or COP.
+    const bankQuote = useBridgeOfframpQuote({
+        currency: bankCurrency ?? accountCurrency,
+        destinationAmount: bankCurrency ? destinationAmount : undefined,
+        enabled: step === 'review' && !isLoading && !submittedTxHash,
     })
-    const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
-    const isMinReady = !minNeedsRate || parseFloat(exchangeRate || '0') > 0
+    const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
+    // a quote whose refresh failed stays on screen but is not confirmed
+    const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
+    const quoteRate = parseFloat(bankQuote.quote?.rate ?? '0')
+    const isMinReady = !minNeedsRate || (isQuoteCurrent && quoteRate > 0)
+    // What the bank receives, in its currency; undefined when only the $1 floor applies.
+    const bankPayoutAmount = bankCurrency
+        ? Number(destinationAmount)
+        : minNeedsRate
+          ? Number(urlAmount) * quoteRate
+          : undefined
+    // What the bank receives, from the same account-type mapping the transfer
+    // uses — never from the account's country (TASK-23054: a UK IBAN showed a
+    // GBP quote while the transfer paid EUR).
+    const payout: ReviewPayout | null = useMemo(() => {
+        if (!bankAccount) return null
+        const { currency, bankConvertsTo } = getBankPayout(bankAccount)
+        // a USD payout converts nothing, so it has no rate and no bank amount
+        const rate = accountCurrency ? bankQuote.quote?.rate : undefined
+        const usdAmount = Number(urlAmount)
+        const amount = bankCurrency
+            ? destinationAmount
+            : rate && usdAmount > 0
+              ? (usdAmount * Number(rate)).toFixed(2)
+              : undefined
+        return { currency, bankConvertsTo, rate, amount, enteredInBankCurrency: !!bankCurrency }
+    }, [bankAccount, accountCurrency, bankCurrency, destinationAmount, urlAmount, bankQuote.quote])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -144,21 +246,11 @@ export function useBridgeOfframpFlow() {
         // success on this page can't mis-fire eea_uplift_completed.
         onManualClose: resetUpliftFunnel,
     })
-    // A ready bank rail can still carry a pending Bridge requirement (the gate's
-    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt before the
-    // withdrawal — the offramp cannot proceed until it's completed.
-    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
-    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
-        advisory,
-        isLoading: sumsubFlow.isLoading,
-        // Route through the self-heal resubmit path (reheal-tagged action) so the
-        // completed submission round-trips to Bridge. start-action mints a plain
-        // token whose webhook completion has no Bridge relay → answers are dropped.
-        onCompleteNow: () => {
-            if (!advisory) return Promise.resolve()
-            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
-        },
-    })
+    // A ready bank rail can still carry a future-dated Bridge requirement (the
+    // gate's `advisory`). The rail works until that date, so the withdrawal never
+    // waits on it: inside the heads-up window the review screen shows a notice, and the verification
+    // starts from the Home and Accounts task cards (PendingVerificationTasks).
+    const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
 
     // close kyc modal when sumsub sdk opens
@@ -173,7 +265,7 @@ export function useBridgeOfframpFlow() {
     useEffect(() => {
         if (country) {
             const countryInfo = getCountryFromPath(country)
-            if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
+            if (!countryInfo || !hasBridgeBankCorridor(countryInfo.id)) {
                 router.replace(`/withdraw${fromSendFlow ? '?method=bank' : ''}`)
             }
         }
@@ -204,21 +296,26 @@ export function useBridgeOfframpFlow() {
         // round 10).
         const recovery = new URLSearchParams()
         if (fromSendFlow) recovery.set('method', 'bank')
-        if (amountToWithdraw) recovery.set('amount', amountToWithdraw)
+        if (urlAmount) recovery.set('amount', urlAmount)
+        if (destinationAmount) recovery.set('destinationAmount', destinationAmount)
         const recoveryQs = recovery.toString()
         const recoveryQuery = recoveryQs ? `?${recoveryQs}` : ''
         if (step === 'success') {
             if (!bankAccount) router.replace(`/withdraw${recoveryQuery}`)
             return
         }
-        if (!amountToWithdraw) {
+        // a bank amount is not the USDC yet — that arrives with its quote
+        const hasAmount = bankCurrency ? !!destinationAmount : !!urlAmount || !!destinationAmount
+        if (!hasAmount) {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
-        } else if (!bankAccount && amountToWithdraw) {
-            // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country, recoveryQuery))
+        } else if (!bankAccount) {
+            // An amount with no destination — send the user to the country's
+            // bank form, named in the URL, with the amount still on it
+            recovery.set('step', 'form')
+            router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
-    }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
+    }, [bankAccount, router, urlAmount, destinationAmount, bankCurrency, country, step, fromSendFlow])
 
     const destinationDetails = (account: Account) => {
         // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
@@ -231,7 +328,8 @@ export function useBridgeOfframpFlow() {
         const { currency, paymentRail } = getOfframpConfigFromAccount(account)
         return {
             currency,
-            paymentRail,
+            // a USD account goes out on the speed the user picked
+            paymentRail: currency === 'usd' && speed ? speed : paymentRail,
             externalAccountId: account.bridgeAccountId,
         }
     }
@@ -260,16 +358,25 @@ export function useBridgeOfframpFlow() {
             return
         }
 
-        // The GB/MX rail minimum converts through the FX rate — the submit is
-        // disabled until it loads; reaching here early is a race, not a user
-        // error: no-op rather than under-enforce.
+        // A USD ?amount= meets a GBP/MXN/COP minimum through the quote rate —
+        // the submit is disabled until it loads; reaching here early is a race,
+        // not a user error: no-op rather than under-enforce.
         if (!isMinReady) return
+        // The ToS step calls this directly, past the disabled button: a quote
+        // whose refresh failed is never confirmed.
+        if (bankCurrency && !isQuoteCurrent) return
+
+        // the submit is disabled while the reference breaks the rail's limits
+        if (referenceProblem) return
+        // and while the USD speeds are still loading
+        if (!isSpeedReady) return
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
-        // or above the destination's rail minimum (round 5 — was a flat $1),
-        // within the displayed balance. The normalized string goes on the wire.
-        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance, minUsd)
+        // or above the $1 floor, within the displayed balance, and then at or
+        // above the destination's payout minimum in its own currency (round 5 —
+        // was a flat $1). The normalized string goes on the wire.
+        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
         if (!amountCheck.ok) {
             // the submit button is disabled until the balance loads — reaching
             // here with balanceLoading is a race, not a user error: no-op.
@@ -278,9 +385,22 @@ export function useBridgeOfframpFlow() {
                 amountCheck.reason === 'insufficientBalance'
                     ? tErrors('notEnoughBalanceAddFunds')
                     : amountCheck.reason === 'belowMinimum'
-                      ? t('errors.minimumWithdrawal', { amount: `$${minUsd}` })
+                      ? t('errors.minimumWithdrawal', { amount: formatBankAmount(BRIDGE_OFFRAMP_MIN_USD, 'USD') })
                       : t('errors.invalidAmount')
             setError({ showError: true, errorMessage })
+            return
+        }
+        if (
+            accountCurrency &&
+            bankPayoutAmount !== undefined &&
+            !meetsBankPayoutMinimum(bankPayoutAmount, accountCurrency)
+        ) {
+            setError({
+                showError: true,
+                errorMessage: t('errors.minimumWithdrawal', {
+                    amount: formatBankAmount(payoutMinimum, accountCurrency),
+                }),
+            })
             return
         }
         const amountUsd = amountCheck.normalized
@@ -321,8 +441,8 @@ export function useBridgeOfframpFlow() {
             const createPayload = {
                 // note: for bank withdrawals, minimum $1 is required
                 // reference: https://apidocs.bridge.xyz/docs/transaction-costs
+                // the fee is the backend's to set; a wire's comes from its fee table
                 amount: amountUsd,
-                developer_fee: '0',
                 onBehalfOf: user.user.bridgeCustomerId,
                 source: {
                     currency: PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase(),
@@ -332,12 +452,24 @@ export function useBridgeOfframpFlow() {
                 destination: {
                     ...destination,
                     externalAccountId: destination.externalAccountId,
+                    ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
             }
-            const { data, error } = await createOfframp(createPayload)
+            const { data, error, code, status } = await createOfframp(createPayload)
 
             if (error) {
-                setError({ showError: true, errorMessage: error })
+                const notUsable = code === API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE
+                if (notUsable) {
+                    setIsBankAccountNotUsable(true)
+                    // the API switched the account off: refetch so the saved list drops it
+                    void fetchUser()
+                }
+                setError({
+                    showError: true,
+                    errorMessage: notUsable
+                        ? toFriendlyError(new ApiError(error, { status: status ?? 409, code }))
+                        : error,
+                })
                 errorAlreadyDisplayed = true
                 throw new Error(error)
             }
@@ -352,7 +484,8 @@ export function useBridgeOfframpFlow() {
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
                 createPayload.amount,
-                { kind: 'FIAT_OFFRAMP' }
+                // Card-balance funding links to this offramp, so Activity shows one withdrawal
+                { kind: 'FIAT_OFFRAMP', fundsIntentId: data.intentId }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
@@ -397,6 +530,7 @@ export function useBridgeOfframpFlow() {
             // what moved, not what the URL says now.
             setCompletedTxHash(txIdentifier)
             setExecutedAmountUsd(amountUsd)
+            setExecutedPayout(payout)
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: amountUsd,
@@ -423,22 +557,13 @@ export function useBridgeOfframpFlow() {
         }
     }
 
-    // Enforce the mandatory verification pre-empt, then run the offramp. When the
-    // gate isn't `ready` (or there's no pending requirement) this is a no-op and
-    // proceedWithOfframp runs straight away (it handles the not-ready cases).
-    // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
-    // funnel event as it opens.
     // A fresh closure every render, on purpose (Chip review round 4): a
     // useCallback here froze the FIRST render's proceedWithOfframp — its
     // captured `gate`/`balance` never updated (the deps are all stable for
     // the page's lifetime), so a click after capabilities resolved ran the
     // stale `gate.kind === 'loading'` no-op forever. Nothing needs a stable
     // identity: this is a button onClick, not an effect dep.
-    const handleCreateAndInitiateOfframp = () => {
-        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
-        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
-        advisoryIntercept(() => void proceedWithOfframp())
-    }
+    const handleCreateAndInitiateOfframp = () => void proceedWithOfframp()
 
     useEffect(() => {
         fetchUser()
@@ -472,11 +597,24 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady,
+        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent) && isSpeedReady,
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
+        executedPayout,
         amountToWithdraw,
+        payout,
+        isRateLoading: !!accountCurrency && !bankQuote.quote && bankQuote.isFetching,
+        // bank amount typed in its currency (TASK-23054): null on the USD path
+        bankAmount: bankCurrency
+            ? {
+                  currency: bankCurrency,
+                  destinationAmount,
+                  quote: bankQuote.quote,
+                  quoteFailed: bankQuote.isError,
+                  refetchQuote: bankQuote.refetch,
+              }
+            : null,
         bankAccount,
         country,
         countryFromPath,
@@ -487,9 +625,34 @@ export function useBridgeOfframpFlow() {
         submittedTxHash,
         balanceErrorMessage,
         confirmPendingCopy,
+        reference,
+        setReference,
+        referenceSpec,
+        payoutNoteKey,
+        payoutDefaultReferenceNoteKey,
+        referenceProblem,
+        // USD speed choice: null for any other currency
+        usdSpeed: isUsdPayout
+            ? {
+                  options: speedOptions,
+                  selected: speed ?? DEFAULT_USD_PAYOUT_SPEED,
+                  onSelect: (next: (typeof USD_PAYOUT_SPEEDS)[number]) => void setAskedSpeed(next),
+                  feeUsd: speedFeeUsd,
+                  receivedUsd: usdAmountReceived(Number(amountToWithdraw), speedFeeUsd),
+              }
+            : null,
         pointsData,
         onBack,
         handleCreateAndInitiateOfframp,
+        // Clearing the account sends the review back to this country's bank
+        // form with the amount kept (see the redirect effect above).
+        onAddBankAccountAgain: isBankAccountNotUsable
+            ? () => {
+                  setIsBankAccountNotUsable(false)
+                  setError({ showError: false, errorMessage: '' })
+                  setSelectedBankAccount(null)
+              }
+            : undefined,
         // gate + modal surface
         gate,
         sumsubFlow,
@@ -498,7 +661,7 @@ export function useBridgeOfframpFlow() {
         resetUpliftFunnel,
         showBridgeTos,
         hideTos,
-        advisoryModalProps,
+        advisoryDeadline,
         pendingModal,
     }
 }

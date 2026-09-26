@@ -15,7 +15,14 @@ permissions:
     contents: read
 
 jobs:
+    # Runs first; every job below waits for it (backdoor-scan.yml).
+    backdoor-scan:
+        uses: ./.github/workflows/backdoor-scan.yml
+        secrets:
+            TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+
     Deploy-Preview:
+        needs: backdoor-scan
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
