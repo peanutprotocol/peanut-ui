@@ -1,6 +1,15 @@
 import { QrKycState } from '@/constants/kyc.consts'
+import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+
+/**
+ * The verification QR pay starts. Any verified user gets the QR pool rails,
+ * whatever their residence, so this is also the ID check for a user whose
+ * residence rules out bank rails and the card (Home's Verify row, the
+ * "Unlock QR payments" slide).
+ */
+export const QR_IDENTITY_CHECK_INTENT: KYCRegionIntent = 'LATAM'
 
 export interface QrKycGate {
     kycGateState: QrKycState
@@ -19,6 +28,8 @@ export interface QrKycGate {
 export function selectQrKycGate(input: {
     isLoading: boolean
     isRegionRestricted: boolean
+    /** useIdentityVerification: the ID check ended on a final decision (not region) */
+    isTerminalFailure: boolean
     canPayManteca: boolean
     mantecaRails: RailCapability[]
     nextActions: NextAction[]
@@ -40,6 +51,18 @@ export function selectQrKycGate(input: {
     }
     if (input.canPayManteca) {
         return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+    }
+    // Below the enabled-pay return, unlike the region refusal: a user whose
+    // pool rail was enabled before the decision can still pay, and nothing
+    // here should take that away. Without an enabled rail, "Unlock now" would
+    // start an ID check that cannot pass, so the answer is the blocked ending
+    // (contact support), the same one a provider refusal gets.
+    if (input.isTerminalFailure) {
+        return {
+            kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
+            qrKycUserMessage: noAction,
+            qrKycActionKey: noAction,
+        }
     }
     // Verdict-first via the shared railVerdict collapse (rail.resolved,
     // BE-derived; legacy fallback for older/cached responses). The

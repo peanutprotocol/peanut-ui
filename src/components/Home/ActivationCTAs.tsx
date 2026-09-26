@@ -14,7 +14,6 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
@@ -23,6 +22,8 @@ import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -56,11 +57,11 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
     const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
-    const { isRegionRestricted } = useIdentityVerification()
-    const residenceRestrictions = useResidenceRestrictions()
+    const { isRegionRestricted, identity } = useIdentityVerification()
 
     const {
         blockedCard,
+        hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
         fixableProvider,
@@ -87,6 +88,15 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
+    const qrIdentityCheck = useQrIdentityCheck()
+
+    // The checklist's Verify row opens the same start modal the bank and
+    // deposit gates use: its outage, region and residence checks run here too.
+    const [showInitiateKyc, setShowInitiateKyc] = useState(false)
+    // the SDK takes over the screen; the modal that opened it should not stay behind it
+    useEffect(() => {
+        if (kycFlow.showWrapper) setShowInitiateKyc(false)
+    }, [kycFlow.showWrapper])
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId
@@ -113,6 +123,19 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),
                 href: REGION_RESTRICTED_CTA_HREF,
+            }
+        }
+
+        // The ID check ended on a final decision: nothing on the list can
+        // finish, so the one honest step is support (a person can review a
+        // misclassification). Region refusals are handled above.
+        if (hasIdentityFailure) {
+            return {
+                bubble: { icon: 'globe-lock', color: 'blue' },
+                title: t('verificationIssue.title'),
+                description: t('verificationIssue.description'),
+                ctaLabel: t('verificationIssue.cta'),
+                href: '', // handled in onClick
             }
         }
 
@@ -170,6 +193,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
         return null
     }, [
         t,
+        hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
         isEmailBlocked,
@@ -182,14 +206,35 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
 
     if (onboarding.step === 'completed' && !step) return null
 
-    // A fully restricted residence (no bank rails AND no card) has nothing
-    // behind "Verify identity" — the ID check could only end on a terminal
-    // rejection, so the list would offer doors that cannot open.
-    if (!step && onboarding.verify === 'todo' && residenceRestrictions.banking && residenceRestrictions.card) {
-        return null
-    }
-
-    if (!step) return <GettingStartedChecklist onboarding={onboarding} onHide={onHideChecklist} />
+    // A fully restricted residence (no bank rails, no card) still gets the
+    // list: QR pay is open to every verified user wherever they live (Hugo,
+    // 2026-09-26), so its Verify row starts the QR ID check.
+    if (!step)
+        return (
+            <>
+                <GettingStartedChecklist
+                    onboarding={onboarding}
+                    onHide={onHideChecklist}
+                    onStartIdentityCheck={() => setShowInitiateKyc(true)}
+                    onStartQrIdentityCheck={qrIdentityCheck.start}
+                />
+                <InitiateKycModal
+                    cooldownActive={!!kycFlow.errorCooldown}
+                    visible={showInitiateKyc}
+                    onClose={() => setShowInitiateKyc(false)}
+                    // no corridor: the one ID check, the same start the status drawer resumes
+                    onVerify={() => void kycFlow.handleInitiateKyc()}
+                    onContactSupport={() => {
+                        setShowInitiateKyc(false)
+                        openSupportWithMessage(buildContactSupportMessage({ userId: user?.user?.userId }))
+                    }}
+                    isLoading={kycFlow.isLoading}
+                    error={kycFlow.error}
+                />
+                <SumsubKycModals flow={kycFlow} />
+                {qrIdentityCheck.modals}
+            </>
+        )
 
     return (
         <Card position="solo" className="p-0">
@@ -209,6 +254,10 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
                         // navigate — never open support, never start a Sumsub flow.
                         if (isRegionRestricted) {
                             router.push(REGION_RESTRICTED_CTA_HREF)
+                        } else if (hasIdentityFailure) {
+                            openSupportWithMessage(
+                                buildContactSupportMessage({ reason: identity.reason, userId: user?.user?.userId })
+                            )
                         } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
                         } else if (hasProviderRejection && isRestartBlocked && !hasFixableRejection) {

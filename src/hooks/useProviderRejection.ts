@@ -7,9 +7,12 @@ import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
 import { type BlockedCardKind, blockedCardCtaId } from '@/utils/home-carousel.utils'
-import { type OnboardingState } from '@/utils/activation-step.utils'
+import { type OnboardingState, canAlreadyTransact as canTransactOn } from '@/utils/activation-step.utils'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useMemo } from 'react'
+
+/** dismissal-key code for a final ID-check decision the API gave no reason code for */
+const IDENTITY_FAILED_CODE = 'identity_failed'
 
 /**
  * Whether a bank or QR provider rejection should replace the Home checklist,
@@ -105,7 +108,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
     // card-holder with a dead/rejected bank rail gets nagged with "Complete your
     // setup" on a rail they can't — and needn't — fix.
     const canAlreadyTransact = useMemo(
-        () => rails.some((rail) => rail.status === 'enabled') || (user?.user?.isActivated ?? false),
+        () => canTransactOn(rails, user?.user?.isActivated ?? false),
         [rails, user?.user?.isActivated]
     )
 
@@ -127,7 +130,13 @@ export function useProviderRejection(onboarding: OnboardingState) {
         !hasCardPath &&
         (hasFixableRejection || hasBlockedRejection)
 
-    const { isRegionRestricted } = useIdentityVerification()
+    const { isRegionRestricted, identity } = useIdentityVerification()
+    // The ID check ended on a final decision and the user moves money nowhere
+    // (resolveOnboarding reads an enabled rail as done): the Verify row can
+    // never finish, so the verification-issue card with contact support takes
+    // the checklist's place, as the region card does.
+    const hasIdentityFailure = onboarding.verify === 'failed' && !isRegionRestricted && !onboarding.firstPaymentDone
+    const identityFailureCode = identity.reason?.code ?? IDENTITY_FAILED_CODE
     const blockedCard = useMemo((): { kind: BlockedCardKind; reasonCode: string | null; ctaId: string } | null => {
         const card = (kind: BlockedCardKind, reasonCode: string | null) => ({
             kind,
@@ -135,6 +144,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
             ctaId: blockedCardCtaId(kind, reasonCode),
         })
         if (isRegionRestricted) return card('region-restricted', IDENTITY_REGION_RESTRICTED_CODE)
+        if (hasIdentityFailure) return card('verification-issue', identityFailureCode)
         if (!hasProviderRejection) return null
         if (isEmailBlocked) return card('add-email', primaryRejectionCode)
         if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
@@ -142,6 +152,8 @@ export function useProviderRejection(onboarding: OnboardingState) {
         return card('verification-issue', primaryRejectionCode)
     }, [
         isRegionRestricted,
+        hasIdentityFailure,
+        identityFailureCode,
         hasProviderRejection,
         isEmailBlocked,
         hasFixableRejection,
@@ -151,6 +163,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
 
     return {
         blockedCard,
+        hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
         fixableProvider,

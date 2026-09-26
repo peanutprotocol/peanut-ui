@@ -221,7 +221,7 @@
             "verifyDescriptionAdvisory": "Faça uma verificação rápida com nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
             "verifyDescriptionCorridor": "Conclua a verificação para liberar {corridor}.",
             "verifyDescriptionCorridorAdvisory": "Conclua a verificação para manter {corridor} disponíveis.",
-            "tosTitle": "Aceitar os Termos de Serviço",
+            "tosTitle": "Aceitar os termos de serviço",
             "tosDescription": "Aceite os termos do nosso parceiro de pagamentos para ativar transferências bancárias.",
             "tosDescriptionAdvisory": "Aceite os termos do nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
             "tosSepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
@@ -1350,7 +1350,7 @@
         "kyc": {
             "unlockTitle": "Desbloqueie pagamentos com QR",
             "unlockDescription": "Confirme sua identidade para pagar uma chave Pix ou código QR. Leva cerca de um minuto.",
-            "unlockCta": "Desbloquear agora",
+            "unlockCta": "Verificar identidade",
             "inProgressTitle": "Quase lá",
             "inProgressDescription": "Estamos confirmando sua identidade. Continue de onde parou e logo você estará pagando.",
             "notNow": "Agora não",
@@ -2738,6 +2738,8 @@
         "continueVerification": "Continuar verificação",
         "unsupportedRegionError": "Os depósitos bancários ainda não estão disponíveis na sua região. Avisaremos assim que forem liberados.",
         "railsUnavailableError": "Sua identidade está verificada, mas não conseguimos configurar os pagamentos para a sua região no momento. Fale com o suporte e vamos resolver.",
+        "sessionBlockedSubmissionError": "Não conseguimos terminar de configurar esses pagamentos. O problema é nosso: fale com o suporte e vamos concluir.",
+        "sessionBlockedDecisionError": "Não podemos configurar esses pagamentos para esta conta. Fale com o suporte se achar que é um erro.",
         "unexpectedError": "Ocorreu um erro inesperado",
         "processingStatusValue": "Estamos revisando seus documentos. Isso geralmente leva de 5 a 10 min.",
         "errorSdkUnavailable": "A verificação não está disponível. Atualize o app.",
@@ -2768,7 +2770,7 @@
             "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
             "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos.",
             "ctaUploadDocument": "Enviar documento",
-            "ctaUnlockNow": "Desbloquear agora",
+            "ctaUnlockNow": "Verificar identidade",
             "ctaWithdrawFunds": "Sacar fundos"
         },
         "regionRestricted": {
@@ -2825,7 +2827,7 @@
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
         "bridgeTos": {
-            "baseTitle": "Aceitar os Termos de Serviço",
+            "baseTitle": "Aceitar os termos de serviço",
             "baseDescription": "Para ativar as transferências bancárias, você precisa aceitar os Termos de Serviço do nosso parceiro de pagamentos.",
             "sepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
             "sepaDescription": "Para ativar transferências bancárias em euros e libras esterlinas, aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias.",
@@ -3144,7 +3146,7 @@
             "howLong": {
                 "standard": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
                 "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "hosted": "O processo de verificação costuma levar alguns minutos se você tiver todos os documentos em mãos."
+                "hosted": "O processo de verificação costuma levar alguns minutos se você tiver todos os documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
             },
             "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
             "startCta": "Tenho tudo, começar",

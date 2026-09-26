@@ -22,7 +22,7 @@ import { selectQrKycGate } from './qrKycGate.utils'
 // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
 export function useQrPayKycGate() {
     const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { isRegionRestricted } = useIdentityVerification()
+    const { isRegionRestricted, isTerminalFailure } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -47,11 +47,21 @@ export function useQrPayKycGate() {
                 // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
                 isLoading: isLoadingCapabilities || (!user && !userFetchSettled),
                 isRegionRestricted,
+                isTerminalFailure,
                 canPayManteca: canDo('pay', { provider: 'manteca' }),
                 mantecaRails: railsForProvider('manteca'),
                 nextActions,
             }),
-        [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled, isRegionRestricted]
+        [
+            isLoadingCapabilities,
+            canDo,
+            railsForProvider,
+            nextActions,
+            user,
+            userFetchSettled,
+            isRegionRestricted,
+            isTerminalFailure,
+        ]
     )
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY

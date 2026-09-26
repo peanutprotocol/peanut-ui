@@ -3,10 +3,12 @@ import { useCardSurfaceAccess } from '../useCardSurfaceAccess'
 import { useCardInfo } from '../useCardInfo'
 import { useCapabilities } from '../useCapabilities'
 import { useResidenceRestrictions } from '../useResidenceRestrictions'
+import { useIdentityVerification } from '../useIdentityVerification'
 
 jest.mock('../useCardInfo', () => ({ useCardInfo: jest.fn() }))
 jest.mock('../useCapabilities', () => ({ useCapabilities: jest.fn() }))
 jest.mock('../useResidenceRestrictions', () => ({ useResidenceRestrictions: jest.fn() }))
+jest.mock('../useIdentityVerification', () => ({ useIdentityVerification: jest.fn() }))
 
 const setup = (
     scenario: {
@@ -14,9 +16,13 @@ const setup = (
         cardStatuses?: string[]
         restrictedCard?: boolean
         hasApplication?: boolean
+        /** the Rain application rail's own status (rejected/failed = blocked) */
+        applicationStatus?: 'pending' | 'requires-info' | 'blocked'
+        identityFailed?: boolean
         loading?: boolean
     } = {}
 ) => {
+    ;(useIdentityVerification as jest.Mock).mockReturnValue({ isTerminalFailure: scenario.identityFailed ?? false })
     ;(useCardInfo as jest.Mock).mockReturnValue({
         cardInfo: scenario.loading ? undefined : { geoProhibited: scenario.geoProhibited },
     })
@@ -34,6 +40,8 @@ const setup = (
         operations: { pay: status === 'ACTIVE' ? 'enabled' : 'blocked' },
     }))
     if (scenario.hasApplication) rails.push({ id: 'rain.card_application', channel: 'card', status: 'pending' })
+    if (scenario.applicationStatus)
+        rails.push({ id: 'rain.card_rain', channel: 'card', status: scenario.applicationStatus })
     ;(useCapabilities as jest.Mock).mockReturnValue({
         rails,
         channelOf: (rail: { channel: string }) => rail.channel,
@@ -94,5 +102,27 @@ describe('public card surfaces', () => {
             hasIssuedCard: false,
             canSpendPathViaCard: false,
         })
+    })
+    it.each(['blocked', 'requires-info'] as const)(
+        'a %s card application is a relationship, not a held card and not a spend path',
+        (applicationStatus) => {
+            expect(setup({ applicationStatus })).toMatchObject({
+                // /card still shows the application's status
+                showCardSurface: true,
+                hasCardRelationship: true,
+                holdsCardOrApplication: false,
+                canSpendPathViaCard: false,
+            })
+        }
+    )
+    it('a pending application is held and stays a spend path', () => {
+        expect(setup({ applicationStatus: 'pending' })).toMatchObject({
+            holdsCardOrApplication: true,
+            canSpendPathViaCard: true,
+        })
+    })
+    it('an ID check that ended on a final decision is no card spend path, unless a card is issued', () => {
+        expect(setup({ identityFailed: true }).canSpendPathViaCard).toBe(false)
+        expect(setup({ identityFailed: true, cardStatuses: ['ACTIVE'] }).canSpendPathViaCard).toBe(true)
     })
 })

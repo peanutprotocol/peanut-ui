@@ -9,6 +9,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { IntlWrapper } from '@/test-utils/intl'
 import { loadMessages } from '@/i18n/app/messages'
 import en from '@/i18n/app/messages/en.json'
+import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import { AboutView } from '../About.view'
 import * as capacitor from '@/utils/capacitor'
 
@@ -72,8 +73,8 @@ describe('AboutView', () => {
         )
     })
 
-    // TASK-23054: in the app, Security Disclosure opens the help drawer, and
-    // that row once rendered as a <button> that ended at ~60% width.
+    // Every About document opens in a drawer with the same full-width row.
+    // Security Disclosure once rendered as a <button> that ended at ~60% width.
     it('renders every policy row the same way in one card, the last row closing it', () => {
         mockOpenHelp = jest.fn()
         render(<AboutView appVersion="1.2.3" />)
@@ -93,8 +94,12 @@ describe('AboutView', () => {
         }
         expect(cards[cards.length - 1]).toHaveClass('rounded-b-sm')
 
-        fireEvent.click(rows[rows.length - 1])
-        expect(mockOpenHelp).toHaveBeenCalledWith('security-disclosure')
+        rows.forEach((row, index) => {
+            expect(row).toHaveAttribute('role', 'button')
+            expect(row).not.toHaveAttribute('href')
+            fireEvent.click(row)
+            expect(mockOpenHelp).toHaveBeenLastCalledWith(LEGAL_POLICIES[index].slug)
+        })
     })
 
     it('keeps the beta switch hidden until the fifth tap', async () => {

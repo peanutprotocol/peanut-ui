@@ -30,6 +30,7 @@ jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     useCardSurfaceAccess: (): ReturnType<typeof import('@/hooks/useCardSurfaceAccess').useCardSurfaceAccess> => ({
         hasIssuedCard: mockShowCardSurface,
         hasCardRelationship: mockShowCardSurface,
+        holdsCardOrApplication: mockShowCardSurface,
         showCardSurface: mockShowCardSurface,
         canSpendPathViaCard: mockShowCardSurface,
         cardHref: '/card',

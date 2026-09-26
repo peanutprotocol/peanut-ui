@@ -9,9 +9,17 @@ import {
 } from './appHelpTypes'
 
 const articles = new Map<string, Promise<AppHelpArticle>>()
+const loadedArticles = new Map<string, AppHelpArticle>()
 
-async function fetchArticle(slug: AppHelpSlug, locale: HelpLocale): Promise<AppHelpArticle | null> {
-    const response = await fetch(appHelpArticlePath(slug, locale))
+export const getCachedAppHelpArticle = (slug: AppHelpSlug, locale: HelpLocale) =>
+    loadedArticles.get(`${locale}/${slug}`) ?? null
+
+async function fetchArticle(
+    slug: AppHelpSlug,
+    locale: HelpLocale,
+    priority: RequestPriority
+): Promise<AppHelpArticle | null> {
+    const response = await fetch(appHelpArticlePath(slug, locale), { priority })
     return response.ok ? ((await response.json()) as AppHelpArticle) : null
 }
 
@@ -20,14 +28,21 @@ async function fetchArticle(slug: AppHelpSlug, locale: HelpLocale): Promise<AppH
  * none. Rejects when neither exists. A loaded article is kept for the session;
  * a failed load is retried on the next open.
  */
-export function loadAppHelpArticle(slug: AppHelpSlug, locale: HelpLocale): Promise<AppHelpArticle> {
+export function loadAppHelpArticle(
+    slug: AppHelpSlug,
+    locale: HelpLocale,
+    priority: RequestPriority = 'auto'
+): Promise<AppHelpArticle> {
     const key = `${locale}/${slug}`
     const cached = articles.get(key)
     if (cached) return cached
 
     const pending = (async () => {
-        const article = (await fetchArticle(slug, locale)) ?? (locale === 'en' ? null : await fetchArticle(slug, 'en'))
+        const article =
+            (await fetchArticle(slug, locale, priority)) ??
+            (locale === 'en' ? null : await fetchArticle(slug, 'en', priority))
         if (!article) throw new Error(`App help article unavailable: ${slug}/${locale}`)
+        loadedArticles.set(key, article)
         return article
     })()
     articles.set(key, pending)

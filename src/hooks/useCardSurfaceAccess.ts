@@ -3,11 +3,18 @@
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 export interface CardSurfaceAccess {
     hasIssuedCard: boolean
     /** Existing cards and applications stay accessible even if residence changes. */
     hasCardRelationship: boolean
+    /**
+     * A card is issued or its application is in (card rail enabled or
+     * pending). A rejected application, or one waiting on information, is a
+     * relationship (the /card surface shows its status) but not a held card.
+     */
+    holdsCardOrApplication: boolean
     showCardSurface: boolean
     /**
      * A card SPEND is reachable: an issued card, or a residence that can
@@ -17,6 +24,10 @@ export interface CardSurfaceAccess {
      * While cardInfo is still loading this collapses to false (unless a
      * card is already issued) — never tease the spend arm to a user whose
      * residence may come back prohibited.
+     *
+     * Not a path when the card application is rejected or waiting on
+     * information, or the ID check ended on a final decision: /card would
+     * only show that dead end.
      */
     canSpendPathViaCard: boolean
     cardHref: '/card'
@@ -27,6 +38,7 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     const { cardInfo } = useCardInfo()
     const { rails, channelOf } = useCapabilities()
     const restrictions = useResidenceRestrictions()
+    const { isTerminalFailure: identityFailed } = useIdentityVerification()
     // /users/me already carries the backend-normalized capability block. Using
     // it here avoids calling /rain/cards (and potentially Rain's balance API)
     // just to decide whether one Profile menu row should be visible. This is
@@ -39,16 +51,21 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     // rail but are not presented as a currently spendable card.
     const hasIssuedCard = cardRails.some((rail) => rail.operations?.pay === 'enabled')
     const hasCardRelationship = cardRails.length > 0
+    const holdsCardOrApplication = cardRails.some((rail) => rail.status === 'enabled' || rail.status === 'pending')
+    // rejected, failed (both `blocked`) or requires-info, and nothing live beside it
+    const applicationStuck = hasCardRelationship && !holdsCardOrApplication
     const canApply = !restrictions.card && cardInfo?.geoProhibited !== true
 
     return {
         hasIssuedCard,
         hasCardRelationship,
+        holdsCardOrApplication,
         showCardSurface: hasCardRelationship || canApply,
         // spend needs a loaded cardInfo: undefined (loading/error) must not
         // read as "not prohibited" and flash the card arm before the
         // geo answer lands
-        canSpendPathViaCard: hasIssuedCard || (cardInfo !== undefined && canApply),
+        canSpendPathViaCard:
+            hasIssuedCard || (cardInfo !== undefined && canApply && !applicationStuck && !identityFailed),
         cardHref: '/card',
     }
 }
