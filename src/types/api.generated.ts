@@ -11488,6 +11488,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
+                                cause?: "review-action" | "review-pending" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;

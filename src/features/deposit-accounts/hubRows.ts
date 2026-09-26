@@ -8,7 +8,13 @@ import { corridorsForCountry } from './countryCorridor'
 import { depositGateView, isDepositBlock, offersVerification, type DepositGateView } from './depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from './rails'
 import { isHeld } from './resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from './types'
+import type {
+    ClaimableCorridor,
+    DepositAccountView,
+    DepositCorridor,
+    UnavailableCause,
+    UnavailableCorridor,
+} from './types'
 
 /** What the backend and the capability gate say about each virtual-account corridor. */
 export interface VirtualAccountsInput {
@@ -117,15 +123,22 @@ function isOpenable(
     unavailable: VirtualAccountsInput['unavailable'],
     gates: Record<DepositCorridor, GateState>
 ): boolean {
-    const reason = unavailable?.[corridor]?.reason
-    if (reason === 'not-offered') return false
-    if (reason !== undefined) return true
+    const withheld = unavailable?.[corridor]
+    // the user's own review holds the corridor: the claim step's gate drawer
+    // names it and starts the action that clears it
+    if (withheld?.reason === 'not-offered') return reviewHolds(withheld.cause)
+    if (withheld !== undefined) return true
     return (
         view.claimable ||
         (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
         canTopUp(corridor, gates) ||
         offersVerification(gates[corridor])
     )
+}
+
+/** a review the user can act on or wait for, which the claim step explains */
+function reviewHolds(cause: UnavailableCause | undefined): boolean {
+    return cause === 'review-action' || cause === 'review-pending'
 }
 
 /** the countries each corridor serves, computed once per corridor */
@@ -184,6 +197,10 @@ export type ClosedRow =
     | { kind: 'not-offered-here'; corridor: DepositCorridor }
     /** the backend does not offer it, and the user has not said where they live */
     | { kind: 'residence-missing'; corridor: DepositCorridor }
+    /** we do not open banking for residents of the user's country */
+    | { kind: 'residence-restricted'; corridor: DepositCorridor }
+    /** nothing about the user: the corridor is not open to them yet */
+    | { kind: 'not-open'; corridor: DepositCorridor }
 
 /**
  * Why an account the user does not hold cannot be opened from the list.
@@ -192,10 +209,13 @@ export type ClosedRow =
  * Then the backend's own signal, never a guess from the gate:
  * - no verdict at all (the corridor is in neither list): its provider preview
  *   failed, so the row says only that it could not be checked;
- * - `not-offered`: the API's word for "their region, or not open yet"
- *   (peanut-api-ts `unavailableReason`), with nothing on the wire to tell the
- *   two apart. With a residence the row names both and offers support; with
- *   none it asks for one, the step that has to come first either way.
+ * - `cause`, where the API sends one: a restricted residence, or a corridor
+ *   not open to this user yet. Each gets its own words, and neither asks for a
+ *   residence or offers support that cannot change it (TASK-23054);
+ * - `not-offered` from an API that predates `cause`: its word for "their
+ *   region, or not open yet", with nothing on the wire to tell the two apart.
+ *   With a residence the row names both and offers support; with none it asks
+ *   for one, the step that has to come first either way.
  */
 export function closedOpenRow(
     row: OpenAccountRow,
@@ -208,6 +228,9 @@ export function closedOpenRow(
 ): ClosedRow {
     if (context.reachedLimit !== undefined) return { kind: 'account-limit', limit: context.reachedLimit }
     if (row.unchecked) return { kind: 'unchecked', corridor: row.corridor }
+    if (context.unavailable?.cause === 'residence-restricted')
+        return { kind: 'residence-restricted', corridor: row.corridor }
+    if (context.unavailable?.cause === 'not-open') return { kind: 'not-open', corridor: row.corridor }
     if (context.unavailable?.reason === 'not-offered')
         return context.hasResidence
             ? { kind: 'not-offered-here', corridor: row.corridor }
@@ -219,11 +242,22 @@ export function closedOpenRow(
  * The bank rows under the virtual accounts. A row goes where an active virtual
  * account already covers its currency (`dedupeHeldBankRows`); a row the user
  * cannot use stays and sorts last.
+ *
+ * One status per currency (TASK-23054): a bank row the user cannot use yet
+ * also goes when its corridor is listed to open with the backend's own
+ * answer. That row already says where the rail stands and leads to the same
+ * fix, so the bank row could only repeat it in other words ("Verify ID" above,
+ * "Processing" below). A usable bank row stays: a transfer the user sends
+ * themselves needs no account and no free account slot.
  */
-export function otherWaysRows(rows: readonly UnlockRow[], activeCurrencies: ReadonlySet<string>): UnlockRow[] {
-    return dedupeHeldBankRows(rows, activeCurrencies).sort(
-        (a, b) => Number(a.chip === 'notAvailable') - Number(b.chip === 'notAvailable')
-    )
+export function otherWaysRows(
+    rows: readonly UnlockRow[],
+    activeCurrencies: ReadonlySet<string>,
+    answeredOpenCorridors: ReadonlySet<DepositCorridor> = new Set()
+): UnlockRow[] {
+    return dedupeHeldBankRows(rows, activeCurrencies)
+        .filter((row) => row.chip === 'active' || !row.corridor || !answeredOpenCorridors.has(row.corridor))
+        .sort((a, b) => Number(a.chip === 'notAvailable') - Number(b.chip === 'notAvailable'))
 }
 
 /**
