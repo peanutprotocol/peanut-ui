@@ -35,7 +35,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
         const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
         const result = validatePixKey(normalized)
         if (!result.valid) {
-            setErrorMessage(result.message ?? t('pixKey.invalid'))
+            setErrorMessage(t('pixKey.invalid'))
         }
         return result.valid
     }
