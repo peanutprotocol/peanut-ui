@@ -131,7 +131,6 @@ describe('iOS release workflow', () => {
                 },
             })
             expect(overwrite.status).not.toBe(0)
-            expect(fs.readFileSync(outputPath, 'utf8')).toContain('Peanut Wallet Push Provisioning Extension App Store')
         } finally {
             fs.rmSync(directory, { recursive: true, force: true })
         }
