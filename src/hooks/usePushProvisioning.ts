@@ -4,6 +4,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
+import { getClearEpoch } from '@/utils/auth-token'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
@@ -67,19 +68,26 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         const scopeAtStart = availabilityScope
+        const authEpochAtStart = getClearEpoch()
         const wallet = isIOSNative() ? 'apple' : 'google'
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_TAPPED, { wallet })
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
             const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
-                if (availabilityScopeRef.current === scopeAtStart) return null
-                if (nativeWriteStarted) {
+                const loggedOut = getClearEpoch() !== authEpochAtStart
+                if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
+                const latest = latestSelectionRef.current
+                const cardChanged = latest.cardId !== card.id
+                // Unmounting the card screen cancels the sheet, but Home still
+                // owns this active card's Wallet metadata and grant. Only a
+                // replacement card, disabled rollout, or logout may erase it.
+                const flagDisabledWhileMounted = availabilityScopeRef.current !== '' && !latest.flagOn
+                if (nativeWriteStarted && (cardChanged || flagDisabledWhileMounted || loggedOut)) {
                     await clearWalletStateIfCardMatches(card.id)
                     // A late A write can have landed after B's app-wide mirror.
                     // Put the current card back without touching B's grant.
-                    const latest = latestSelectionRef.current
-                    if (latest.flagOn && latest.cardId !== card.id && isIOSNative()) {
+                    if (!loggedOut && latest.flagOn && cardChanged && isIOSNative()) {
                         await rememberCardForWallet({ peanutCardId: latest.cardId, last4: latest.last4 })
                     }
                 }

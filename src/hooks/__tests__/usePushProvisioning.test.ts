@@ -4,6 +4,7 @@ import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
+import { getClearEpoch } from '@/utils/auth-token'
 import {
     addCardToWallet,
     clearWalletStateIfCardMatches,
@@ -34,6 +35,10 @@ jest.mock('@/utils/capacitor', () => {
     const actual = jest.requireActual('@/utils/capacitor')
     return { ...actual, isIOSNative: jest.fn(), isAndroidNative: jest.fn() }
 })
+jest.mock('@/utils/auth-token', () => {
+    const actual = jest.requireActual('@/utils/auth-token')
+    return { ...actual, getClearEpoch: jest.fn() }
+})
 const mockedFlag = jest.fn()
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
 
@@ -49,6 +54,7 @@ const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof r
 const mockedClearStaleCard = clearWalletStateIfCardMatches as jest.MockedFunction<typeof clearWalletStateIfCardMatches>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
+const mockedClearEpoch = getClearEpoch as jest.MockedFunction<typeof getClearEpoch>
 
 const card = { id: 'card-1', last4: '0420' }
 
@@ -75,6 +81,7 @@ describe('usePushProvisioning', () => {
         mockedFlag.mockReturnValue(true)
         mockedIsIOS.mockReturnValue(true)
         mockedIsAndroid.mockReturnValue(false)
+        mockedClearEpoch.mockReturnValue(0)
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false })
         mockedGetProvisioningData.mockResolvedValue(provisioningData)
         mockedRememberCard.mockResolvedValue(undefined)
@@ -304,7 +311,7 @@ describe('usePushProvisioning', () => {
         expect(mockedAddCard).not.toHaveBeenCalled()
     })
 
-    it('clears a late native write after the card screen unmounts', async () => {
+    it('cancels a screen-unmounted add without removing the active Wallet card', async () => {
         let finishMirror!: () => void
         mockedRememberCard.mockReturnValueOnce(new Promise((resolve) => (finishMirror = resolve)))
         const { result, unmount } = renderHook(() => usePushProvisioning(card))
@@ -323,8 +330,32 @@ describe('usePushProvisioning', () => {
             outcome = await pending
         })
         expect(outcome).toEqual({ added: false, canceled: true })
-        expect(mockedClearStaleCard).toHaveBeenCalledWith('card-1')
+        expect(mockedClearStaleCard).not.toHaveBeenCalled()
         expect(mockedRememberCard).toHaveBeenCalledTimes(1)
+        expect(mockedAddCard).not.toHaveBeenCalled()
+    })
+
+    it('clears a late native write after logout even when the card screen unmounted', async () => {
+        let finishMirror!: () => void
+        mockedRememberCard.mockReturnValueOnce(new Promise((resolve) => (finishMirror = resolve)))
+        const { result, unmount } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let pending!: Promise<Awaited<ReturnType<typeof result.current.addToWallet>>>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalled())
+        unmount()
+        mockedClearEpoch.mockReturnValue(1)
+
+        let outcome!: Awaited<typeof pending>
+        await act(async () => {
+            finishMirror()
+            outcome = await pending
+        })
+        expect(outcome).toEqual({ added: false, canceled: true })
+        expect(mockedClearStaleCard).toHaveBeenCalledWith('card-1')
         expect(mockedAddCard).not.toHaveBeenCalled()
     })
 
