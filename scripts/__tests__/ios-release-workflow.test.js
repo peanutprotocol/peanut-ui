@@ -1,7 +1,7 @@
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
-const { execFileSync } = require('child_process')
+const { execFileSync, spawnSync } = require('child_process')
 
 const workflowSource = fs.readFileSync(path.join(__dirname, '..', '..', '.github/workflows/ios-release.yml'), 'utf8')
 const targetStripper = fs.readFileSync(path.join(__dirname, '..', 'disable-wallet-ios-targets.mjs'), 'utf8')
@@ -120,6 +120,18 @@ describe('iOS release workflow', () => {
                 'Peanut Wallet Push Provisioning Authorization App Store'
             )
             expect(document.documentElement.textContent).not.toContain('${WALLET_EXTENSION_PROFILE_NAME}')
+            expect(fs.statSync(outputPath).mode & 0o777).toBe(0o600)
+            const overwrite = spawnSync(process.execPath, [renderExportOptions], {
+                env: {
+                    ...process.env,
+                    APPLE_TEAM_ID: 'TEAM123',
+                    PROFILE_NAME: 'Peanut Wallet App Store',
+                    WALLET_PROVISIONING_ENABLED: 'false',
+                    EXPORT_OPTIONS_PATH: outputPath,
+                },
+            })
+            expect(overwrite.status).not.toBe(0)
+            expect(fs.readFileSync(outputPath, 'utf8')).toContain('Peanut Wallet Push Provisioning Extension App Store')
         } finally {
             fs.rmSync(directory, { recursive: true, force: true })
         }
