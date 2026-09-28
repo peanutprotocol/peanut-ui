@@ -1,6 +1,7 @@
 package me.peanut.wallet;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,6 +17,8 @@ import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
+import androidx.core.view.WindowCompat;
+
 import io.sentry.Sentry;
 import io.sentry.SentryLevel;
 
@@ -28,10 +31,27 @@ public class MainActivity extends BridgeActivity {
     private static final String RENDERER_RECOVERY_INTENT = "peanut.rendererRecoveryIntent";
     private RendererRecovery rendererRecovery;
 
+    private void useDarkStatusBarIcons() {
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
+        // Native SDK screens can change system-bar appearance. Restore dark
+        // icons when our light WebView window returns to the foreground.
+        useDarkStatusBarIcons();
         rendererRecovery.onResume();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // uiMode is handled in-place by this Activity. Android can replace the
+        // status-bar appearance when the device theme changes, so restore it
+        // after Capacitor has handled the new configuration.
+        useDarkStatusBarIcons();
     }
 
     @Override
