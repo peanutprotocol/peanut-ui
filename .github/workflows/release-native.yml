@@ -13,7 +13,7 @@ name: App Release Android & iOS
 # and to Play production stays a manual step in the respective consoles.
 #
 # Changed native contracts keep the old platform bridge channels pinned. The
-# later manual OTA cutover is separate so store rollout can be verified first.
+# later reviewed main-push OTA cutover is separate so store rollout can be verified first.
 
 on:
     workflow_run:

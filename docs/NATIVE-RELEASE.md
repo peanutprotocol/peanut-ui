@@ -219,9 +219,9 @@ only while that commit is still current `main`. When that main-push OTA succeeds
 or fails at the native-compatibility preflight, **App Release Android & iOS** starts
 for the same commit. A canceled or unrelated failed OTA does not start a native
 build. It uploads one shared native version to TestFlight and Play `internal`
-before writing the attested `v<version>` tag. Native workflows have no manual
-dispatch or tag-push trigger; reruns are rejected. A manual OTA dispatch does
-not start a native release.
+before writing the attested `v<version>` tag. Production OTA and native
+workflows have no manual dispatch trigger; reruns are rejected. The native
+children also have no tag-push trigger.
 
 1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
    its release QA is complete.
@@ -237,18 +237,13 @@ Use the workflow that matches the release:
 | | trigger | what it does |
 |-|---------|--------------|
 | native | **App Release Android & iOS**, after the first completed OTA from a `main` push | resolves `<major>.<build+1>.0` → builds iOS + Android from that exact current commit and one version → TestFlight + Play `internal` → tags `v<version>` |
-| OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+| OTA | **App Release OTA**, on a `main` push | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
 Merging reviewed code to `main` starts production OTA for that exact commit. Its
 first successful or native-incompatible completion starts the native TestFlight
-and Play internal build for the same commit. There is no manual native retry:
-if a release fails, correct the cause in a reviewed `main` change so a fresh
-push runs the release sequence. A manual **App Release OTA** dispatch on `main`
-can retry OTA publishing, but never starts a native build:
-
-```sh
-gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref main
-```
+and Play internal build for the same commit. There is no manual OTA or native
+retry: if a release fails, correct the cause in a reviewed `main` change so a
+fresh push runs the release sequence.
 
 The workflow pins `main` at checkout, uses that commit's release tooling and app source,
 then verifies that `main` remains at that SHA before uploading and before each
@@ -702,10 +697,11 @@ release flag or second dispatch is needed.
    from an older native release line, including saved or queued bridges. The
    1.5/1.6 fleet retains bridge recovery, and same-release OTA rollbacks remain
    available on newer binaries.
-2. Once the new native release is available to users, dispatch
-   `release-ota.yml` on the current `main` tip with
-   `nativeMigrationCutover=true`. It requires the new native tag and both
-   platform floors to equal that release. It uploads separate signed bundles
+2. Once the new native release is available to users, merge a reviewed commit
+   that adds `.github/native-ota-cutover-version` containing the tagged native
+   version (for example, `1.7.0`). That push automatically starts
+   `release-ota.yml`; the cutover requires the marker to match the current
+   native tag and the new platform floors to equal that release. It uploads separate signed bundles
    with `min_update_version=1.7.0`, verifies each artifact, then changes each
    production channel's bundle and native-version policy in one request.
    Devices on 1.5/1.6 keep their last compatible installed bundle and need a
@@ -713,10 +709,11 @@ release flag or second dispatch is needed.
    devices, or retire the bridge before a verified 1.7 binary is available.
 
 If either platform cutover fails, the other remains on its verified new bundle.
-Inspect both channels and the exact candidate artifacts, then rerun the manual
-cutover; it resumes the still-active bridge and publishes a fresh version to
-the already-cut-over platform. Do not treat a partial cutover as a successful
-release.
+Inspect both channels and the exact candidate artifacts, then merge a reviewed
+fix to `main`. The resulting automatic OTA resumes the still-active bridge and
+publishes a fresh version to the already-cut-over platform. Do not treat a
+partial cutover as a successful release. The marker can be removed in a later
+reviewed commit once both bridges are inactive.
 
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated
