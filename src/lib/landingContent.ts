@@ -20,6 +20,13 @@ interface LandingFrontmatter {
     }
 }
 
+/** One word of the product marquee. `id` is the English word at the same
+ *  position in landing/en.md, so link targets survive translation. */
+export interface MarqueeChip {
+    id: string
+    label: string
+}
+
 export interface LandingContent {
     heroConfig: {
         primaryCta: { label: string; href: string; subtext?: string }
@@ -29,7 +36,7 @@ export interface LandingContent {
         questions: Array<{ id: string; question: string; answer: string }>
         marquee: { visible: boolean; message: string }
     }
-    marqueeMessages: string[]
+    marqueeMessages: MarqueeChip[]
 }
 
 // Fallback used if the singleton MD is missing (e.g. submodule hasn't synced).
@@ -62,6 +69,21 @@ export function getLandingContent(locale: Locale = 'en'): LandingContent {
     return { ...base, faqData: { ...base.faqData, questions: withSupportedRails(base.faqData.questions, locale) } }
 }
 
+function marqueeWords(fm: LandingFrontmatter | undefined): string[] {
+    return (fm?.marquee ?? []).filter((m): m is string => typeof m === 'string')
+}
+
+// Every locale lists the marquee in the same order as en, so the English word
+// at a position is that chip's id. A list whose length differs from en's is
+// out of step; its words become their own ids (unlinked unless spelled the same).
+function marqueeChips(words: string[], locale: Locale): MarqueeChip[] {
+    const ids =
+        locale === 'en'
+            ? words
+            : marqueeWords(readSingletonContentLocalized<LandingFrontmatter>('landing', 'en')?.frontmatter)
+    return words.map((label, i) => ({ id: ids.length === words.length ? ids[i] : label, label }))
+}
+
 function readLandingContent(locale: Locale): LandingContent {
     const content = readSingletonContentLocalized<LandingFrontmatter>('landing', locale)
     if (!content) return DEFAULTS
@@ -91,6 +113,6 @@ function readLandingContent(locale: Locale): LandingContent {
                     ? fm.faqs.marquee
                     : DEFAULTS.faqData.marquee,
         },
-        marqueeMessages: (fm.marquee ?? DEFAULTS.marqueeMessages).filter((m): m is string => typeof m === 'string'),
+        marqueeMessages: marqueeChips(marqueeWords(fm), locale),
     }
 }

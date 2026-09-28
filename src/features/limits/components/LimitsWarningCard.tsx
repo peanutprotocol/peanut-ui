@@ -199,7 +199,6 @@ export default function LimitsWarningCard({
                 />
                 {onIncreaseLimits ? (
                     <>
-                        <div className="my-1 border-t" />
                         <button
                             onClick={onIncreaseLimits}
                             disabled={isIncreaseLimitsLoading}
@@ -213,7 +212,6 @@ export default function LimitsWarningCard({
                     </>
                 ) : showSupportLink ? (
                     <>
-                        <div className="my-1 border-t" />
                         <button
                             onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
                             className="flex items-center gap-1"

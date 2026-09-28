@@ -49,7 +49,7 @@ const readiness: Record<string, string> = {
     '11-a-earlyusermodal': 'Earn from invites',
     'fixture-reconsent': 'A small update to our terms',
     '18-a-reconsentmodal': 'A small update to our terms',
-    '67-e-provideemailstep': 'Add your email to continue',
+    '67-e-provideemailstep': 'Add email to continue',
 }
 const routeOverrides: Record<
     string,

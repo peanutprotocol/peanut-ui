@@ -9,9 +9,14 @@ describe('classifySignupEntryFlow', () => {
         ['/home', 'default'],
         ['%2Fadd-money', 'add-money'],
         ['/add-money/us/bank', 'add-money'],
+        ['/profile/accounts', 'identity-verification'],
+        ['%2Fprofile%2Faccounts%2Fadditional', 'identity-verification'],
+        ['/profile/payments', 'identity-verification'],
+        // not a prefix match on the segment: /profile/accountsx is not the page
+        ['/profile/accountsx', 'other'],
+        // retired paths (old links/bookmarks) still bucket the same way
         ['/profile/accounts-and-payments', 'identity-verification'],
         ['%2Fprofile%2Faccounts-and-payments%2Fadditional', 'identity-verification'],
-        // pre-2026-09-19 path (old links/bookmarks) still buckets the same way
         ['/profile/identity-verification', 'identity-verification'],
         ['%2Fprofile%2Fidentity-verification%2Fadditional', 'identity-verification'],
         ['%2Fcard', 'card'],

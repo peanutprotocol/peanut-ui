@@ -320,7 +320,7 @@ export default function LayoutsPage() {
                             </div>
                             <PageStack.Center className="gap-4">
                                 <div className="text-center text-heading-xs text-foreground-primary">
-                                    How much do you want to withdraw?
+                                    Amount to withdraw
                                 </div>
                                 <div className="text-center text-heading-big-input">$0.00</div>
                                 <Button variant="primary" shadowSize="4" className="w-full">

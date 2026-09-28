@@ -100,6 +100,8 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
         })
         return response
     } catch (error) {
+        // a request its caller cancelled is not a timeout or a network error
+        if (fetchOptions.signal?.aborted) throw error
         captureApiTiming({
             route,
             method,

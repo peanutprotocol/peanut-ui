@@ -49,7 +49,15 @@ export function breakableIdentifier(value: string): string {
     return lines.join('\n')
 }
 
-const grey = '#6A6A6A'
+// react-pdf cannot read CSS variables, so the PDF keeps its own copy of the
+// semantic tokens it paints with. The values must equal globals.css `@theme`;
+// a test checks them. The card border and the dashed row rule are print-only
+// values with no app token: the PDF keeps a light rule on purpose.
+export const PDF_TOKENS = {
+    foregroundPrimary: '#000000',
+    foregroundSecondary: '#5f646d',
+} as const
+const grey = PDF_TOKENS.foregroundSecondary
 const border = '#000000'
 
 const styles = StyleSheet.create({
@@ -57,7 +65,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Montserrat',
         fontWeight: 500,
         fontSize: 9,
-        color: '#000000',
+        color: PDF_TOKENS.foregroundPrimary,
         paddingVertical: 48,
         paddingHorizontal: 56,
     },
@@ -68,7 +76,7 @@ const styles = StyleSheet.create({
         marginBottom: 28,
     },
     issuer: { textAlign: 'right', fontSize: 8, color: grey },
-    issuerName: { fontWeight: 600, color: '#000000' },
+    issuerName: { fontWeight: 600, color: PDF_TOKENS.foregroundPrimary },
     title: { fontSize: 14, fontWeight: 600, marginBottom: 14 },
     amountCard: {
         borderWidth: 1.5,

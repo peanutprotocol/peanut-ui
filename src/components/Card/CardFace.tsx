@@ -265,7 +265,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <Badge status="custom" customText={t('virtual')} />
+                                    <Badge status="neutral" customText={t('virtual')} />
                                 </div>
                             )}
                         </>

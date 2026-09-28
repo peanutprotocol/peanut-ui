@@ -837,6 +837,10 @@ dialog::backdrop {
     border-width: 5px;
     border-radius: 27px;
 }
+.device-frame.neutral {
+    border-width: 5px;
+    border-radius: 24px;
+}
 .device-screen {
     position: absolute;
     inset: 0;
@@ -855,6 +859,7 @@ dialog::backdrop {
     object-fit: fill;
 }
 .device-camera {
+    display: none;
     position: absolute;
     z-index: 2;
     top: 10px;
@@ -865,13 +870,18 @@ dialog::backdrop {
     background: #050506;
     transform: translateX(-50%);
 }
-.android .device-camera {
+.device-safe.device-dynamic-island .device-camera,
+.device-safe.device-punch-hole .device-camera {
+    display: block;
+}
+.device-safe.device-punch-hole .device-camera {
     top: 8px;
     width: 10px;
     height: 10px;
     box-shadow: 0 0 0 2px rgb(255 255 255 / 10%);
 }
 .device-home {
+    display: none;
     position: absolute;
     z-index: 2;
     bottom: 7px;
@@ -883,8 +893,13 @@ dialog::backdrop {
     box-shadow: 0 1px 2px rgb(0 0 0 / 45%);
     transform: translateX(-50%);
 }
-.android .device-home {
-    display: none;
+.device-safe .device-home {
+    display: block;
+}
+.device-safe.android .device-home {
+    bottom: 5px;
+    width: 72px;
+    height: 3px;
 }
 .device-button {
     position: absolute;

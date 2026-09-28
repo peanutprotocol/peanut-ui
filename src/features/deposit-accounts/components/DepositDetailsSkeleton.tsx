@@ -1,10 +1,7 @@
 'use client'
 
 import Card from '@/components/Global/Card'
-
-// interim placeholder tint: no skeleton surface token exists yet (design.md
-// open conflict). never bg-border-default — that is a near-black border color.
-const pulse = 'animate-pulse rounded bg-foreground-primary/10'
+import { SKELETON_PULSE } from '../skeleton'
 
 /**
  * The provisioning state renders the loaded layout, block for block, so
@@ -20,12 +17,12 @@ export function DepositDetailsSkeleton({ rows }: { rows: number }) {
             <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                 {Array.from({ length: rows }).map((_, index) => (
                     <div key={index} className="flex flex-col gap-1 py-3">
-                        <div className={`h-3 w-24 ${pulse}`} />
-                        <div className={`h-4 w-44 ${pulse}`} />
+                        <div className={`h-3 w-24 ${SKELETON_PULSE}`} />
+                        <div className={`h-4 w-44 ${SKELETON_PULSE}`} />
                     </div>
                 ))}
             </Card>
-            <div className={`h-13 w-full ${pulse}`} />
+            <div className={`h-13 w-full ${SKELETON_PULSE}`} />
         </div>
     )
 }

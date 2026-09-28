@@ -465,7 +465,7 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background-page pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-2xl bg-background-page pt-2 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
@@ -489,12 +489,14 @@ const SupportDrawer = () => {
             >
                 {/* drag handle */}
                 <div
-                    className="flex cursor-grab items-center justify-center pb-4 active:cursor-grabbing"
+                    className="flex cursor-grab items-center justify-center pb-6 active:cursor-grabbing"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className="h-1.5 w-10 rounded-full bg-black" />
+                    {/* radius, no border and handle geometry match DrawerContent; the
+                        page-tint fill stays because the chat and its loading states paint it */}
+                    <div className="h-[5px] w-8 rounded-full bg-foreground-secondary" />
                 </div>
 
                 {/* min-h-0 lets the iframe row shrink below its content when the panel does */}

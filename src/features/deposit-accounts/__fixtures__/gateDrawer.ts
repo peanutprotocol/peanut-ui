@@ -1,5 +1,5 @@
 import { act, fireEvent } from '@testing-library/react'
-import { GATE_DRAWER_CLOSE_MS } from '../components/DepositAccountsFlow'
+import { DRAWER_CLOSE_MS } from '../drawer'
 
 /**
  * TESTS ONLY. Tap a gate-drawer button and let the drawer's close animation
@@ -11,7 +11,7 @@ export function tapGateButton(button: HTMLElement): void {
     try {
         fireEvent.click(button)
         act(() => {
-            jest.advanceTimersByTime(GATE_DRAWER_CLOSE_MS)
+            jest.advanceTimersByTime(DRAWER_CLOSE_MS)
         })
     } finally {
         jest.useRealTimers()

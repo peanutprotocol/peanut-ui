@@ -1,0 +1,42 @@
+name: Backdoor scan
+
+# Called first by every workflow that installs, builds or runs a PR's code
+# (tests, preview, screen-library, code-analysis, provider checks); their other
+# jobs wait for it. In July 2025 a payload hidden 709 spaces to the right in
+# tailwind.config.js ran on the machine of whoever built the branch, and any of
+# those workflows would have run it with their secrets (Vercel, Cloudflare,
+# Bridge, mono read access).
+#
+# No install, no submodules, no persisted token: it only reads the diff. The
+# scanner (scripts/backdoor-scan.mjs, canonical copy in mono/scripts) is taken
+# from the BASE commit, so a PR cannot weaken the check that judges it.
+
+on:
+    workflow_call:
+        secrets:
+            TYPESAFE_API_KEY:
+                required: false
+
+permissions:
+    contents: read
+
+jobs:
+    scan:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  # HEAD^1 is the base tip of a PR merge commit, or the previous commit
+                  # on a push or schedule -- one commit of history is enough.
+                  fetch-depth: 2
+                  persist-credentials: false
+            - name: Scan the added lines for hidden code
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+              run: |
+                  BASE=$(git rev-parse HEAD^1)
+                  # Before the base branch has a scanner (the PR that adds it), use the PR's copy.
+                  git show "$BASE:scripts/backdoor-scan.mjs" > "$RUNNER_TEMP/backdoor-scan.mjs" 2>/dev/null \
+                      || cp scripts/backdoor-scan.mjs "$RUNNER_TEMP/backdoor-scan.mjs"
+                  node "$RUNNER_TEMP/backdoor-scan.mjs" --base "$BASE" --head HEAD --allow-ref "$BASE" --jev

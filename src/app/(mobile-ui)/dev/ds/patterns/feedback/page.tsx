@@ -275,13 +275,13 @@ export default function FeedbackPage() {
                 <ProductUsage.Example
                     title="Limits — a row that is not ready yet"
                     path="src/features/limits/views/LimitsPageView.tsx"
-                    description="status=custom in a ListItem trailing slot. The row is disabled, and the badge is the reason."
+                    description="status=soon in a ListItem trailing slot. The row is disabled, and the badge is the reason."
                     code={`<ListItem
   position="solo"
   title={restOfWorldName}
   onClick={() => {}}
   disabled={true}
-  trailing={<Badge status="custom" customText={tCommon('comingSoon')} />}
+  trailing={<Badge status="soon" customText={tCommon('comingSoon')} />}
 />`}
                 >
                     <ListItem
@@ -289,7 +289,7 @@ export default function FeedbackPage() {
                         title="Rest of the world"
                         onClick={() => {}}
                         disabled
-                        trailing={<Badge status="custom" customText="Coming soon" />}
+                        trailing={<Badge status="soon" customText="Coming soon" />}
                     />
                 </ProductUsage.Example>
 

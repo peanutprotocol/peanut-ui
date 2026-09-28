@@ -1,6 +1,7 @@
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Divider } from '@/components/0_Bruddle/Divider'
 import { NOTION_JOB_BOARD_URL, OPEN_ROLES } from '@/components/Jobs/openRoles'
 import { RoleCard } from '@/components/Jobs/RoleCard'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
@@ -12,6 +13,21 @@ import Link from 'next/link'
 // describes itself. Don't add a headcount, a funding number, an office, or a perk
 // that isn't written down there. The team bios in that file are still placeholders,
 // so only names and roles are used.
+const WORK_BLOCKS = [
+    {
+        label: 'The product is live',
+        body: "Invite-only doesn't mean quiet. What you ship this week lands on people who are moving real money this week, in a currency that isn't the one they earn in.",
+    },
+    {
+        label: 'The map is the job',
+        body: "MercadoPago QR in Argentina. PIX in Brazil. Bank transfers in 40+ countries. Every market is another set of rails, another set of rules about ID and bank accounts, and another group of people who'd rather not think about either.",
+    },
+    {
+        label: "Who you'd be joining",
+        body: 'Hugo Montenegro and Konrad co-founded Peanut. Peanut is a trading name of Squirrel Labs Ltd, registered in England & Wales (No. 14558823).',
+    },
+] as const
+
 export function Careers() {
     return (
         <>
@@ -39,30 +55,19 @@ export function Careers() {
 
                     <section className="flex flex-col gap-4">
                         <h2 className="text-heading-xs text-foreground-primary">How the work works</h2>
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">The product is live</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    Invite-only doesn&apos;t mean quiet. What you ship this week lands on people who are
-                                    moving real money this week, in a currency that isn&apos;t the one they earn in.
-                                </p>
-                            </Card>
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">The map is the job</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    MercadoPago QR in Argentina. PIX in Brazil. Bank transfers in 40+ countries. Every
-                                    market is another set of rails, another set of rules about ID and bank accounts, and
-                                    another group of people who&apos;d rather not think about either.
-                                </p>
-                            </Card>
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">Who you&apos;d be joining</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    Hugo Montenegro and Konrad co-founded Peanut. Peanut is a trading name of Squirrel
-                                    Labs Ltd, registered in England &amp; Wales (No. 14558823).
-                                </p>
-                            </Card>
-                        </div>
+                        {/* same composition as the press kit's "Company description" card:
+                            one shadowed card, labelled blocks stacked with a rule between */}
+                        <Card shadowSize="4" className="p-6">
+                            {WORK_BLOCKS.map(({ label, body }, index) => (
+                                <div key={label}>
+                                    {index > 0 && <Divider />}
+                                    <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                        {label}
+                                    </h3>
+                                    <p className="text-body-s text-foreground-primary">{body}</p>
+                                </div>
+                            ))}
+                        </Card>
                         <p className="text-body-s text-foreground-secondary">
                             The bar for everything we build is one line:{' '}
                             <span className="text-body-s-semibold text-foreground-primary">

@@ -43,15 +43,15 @@ describe('ContributePotInputView — the asked amount', () => {
         renderView()
 
         const headline = screen.getByTestId('request-asked-amount')
-        expect(headline).toHaveTextContent('50.00 EUR requested')
+        expect(headline).toHaveTextContent('€50 requested')
         expect(headline).toHaveTextContent('$55.84 in dollars')
     })
 
-    it('uses the decimals the currency is paid in', () => {
+    it('leads with the currency symbol and no cents on a round amount', () => {
         mockRequest = { uuid: 'r1', currency: 'JPY', requestedAmount: '8200', tokenSymbol: 'USDC' }
         renderView()
 
-        expect(screen.getByTestId('request-asked-amount')).toHaveTextContent('8,200 JPY requested')
+        expect(screen.getByTestId('request-asked-amount')).toHaveTextContent('¥8,200 requested')
     })
 
     it.each([

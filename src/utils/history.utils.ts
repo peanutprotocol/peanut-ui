@@ -10,7 +10,10 @@ import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
-import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
+import {
+    type DepositReturnReasonCode,
+    type TransactionDirection,
+} from '@/components/TransactionDetails/transaction-types'
 import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
@@ -123,6 +126,10 @@ export interface HistoryEntryExtraData {
      *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
      *  entry (SDA path). Baked into the displayed amount in the transformer. */
     networkFeeUsd?: number | null
+    /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
+    payoutFeeUsd?: number | null
+    /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
+    payoutRail?: string | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */
     destinationTxHash?: string
@@ -145,6 +152,9 @@ export interface HistoryEntryExtraData {
      * still in progress.
      */
     refundInFlight?: boolean | null
+    /** Why a standing-account deposit went back to the payer, once the API
+     *  knows. Owner-only. `text` is the provider's wording, for support. */
+    returnReason?: { code: DepositReturnReasonCode; text: string | null } | null
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null

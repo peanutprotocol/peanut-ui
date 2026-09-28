@@ -12,6 +12,8 @@ import type { DepositRules, DepositSenderTerms } from './types'
  */
 export type DepositRuleKey =
     | 'providerHeld'
+    | 'anyoneAny'
+    | 'ownOrBusinessAny'
     | 'ownAccount'
     | 'ownAccountMax'
     | 'ownAccountNo'
@@ -45,10 +47,12 @@ export type FormatMoney = (amount: string, currency: string) => string
  * then each payer in turn — the user's own account, a business, another
  * person — and finally the floor.
  *
- * Three lines, always the same three, because the question a holder has is
- * "can THIS person pay me" and a missing line reads as a yes. Where the rail
- * publishes nothing about a payer, the line says so rather than disappearing:
- * "not confirmed" is an answer, silence is not.
+ * Every payer is answered, because the question a holder has is "can THIS
+ * person pay me" and a missing line reads as a yes. Where the rail publishes
+ * nothing about a payer, the line says so rather than disappearing: "not
+ * confirmed" is an answer, silence is not. Payers with the same answer share
+ * one line: "yes" and "any amount" on two bullets read as two different rules
+ * (QA 2026-09-24).
  */
 export function depositRuleLines(
     matching: DepositSenderTerms,
@@ -72,10 +76,15 @@ export function depositRuleLines(
     // corridor — which forbade the user's own top-up, the one payment that
     // always works. The Add-money bank row leads here now, so that sentence
     // was telling users their own deposit would bounce.
-    lines.push(ownAccountLine(rules, formatMoney))
-
-    lines.push({ key: businessKey(matching, rules) })
-    lines.push(...individualLines(matching, rules, formatMoney))
+    const own = ownAccountLine(rules, formatMoney)
+    const business = businessKey(matching, rules)
+    const individuals = individualLines(matching, rules, formatMoney)
+    if (own.key === 'ownAccount' && business === 'businessAny') {
+        if (individuals[0].key === 'individualAny') lines.push({ key: 'anyoneAny' })
+        else lines.push({ key: 'ownOrBusinessAny' }, ...individuals)
+    } else {
+        lines.push(own, { key: business }, ...individuals)
+    }
 
     if (rules?.min) {
         lines.push({ key: 'minimum', values: { min: formatMoney(rules.min.amount, rules.min.currency) } })
@@ -92,6 +101,24 @@ export function depositRuleLines(
     }
 
     return lines
+}
+
+/** a corridor's limit on who may pay in, as a key under depositAccounts.senderLimit */
+export type SenderLimitKey = 'businessOnly' | 'othersUnconfirmed'
+
+/**
+ * The one line that says who may pay into an account, where the corridor
+ * limits it. `anyone` needs none, and `own-name-only` is never shared.
+ *
+ * One rule for every screen a third party's transfer depends on: the holder's
+ * account details, the request toggle that shares them, and the payer's
+ * bank-transfer screen. EUR is the case it was written for (QA 2026-09-24):
+ * the holder and businesses may pay in, a friend's transfer is returned.
+ */
+export function senderLimitKey(matching: DepositSenderTerms): SenderLimitKey | undefined {
+    if (matching.sender === 'business-only') return 'businessOnly'
+    if (matching.sender === 'unknown') return 'othersUnconfirmed'
+    return undefined
 }
 
 /**

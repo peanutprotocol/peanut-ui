@@ -49,7 +49,14 @@ jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
     default: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ onPrev }: { onPrev?: () => void }) => (
+        <button data-testid="nav-back" onClick={onPrev}>
+            Back
+        </button>
+    ),
+}))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="loading" /> }))
 
 // SavedAccountsView: expose the callbacks the view wires up
@@ -58,7 +65,7 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
     default: (props: {
         savedAccounts: Account[]
         onAccountClick: (account: Account, path?: string) => void
-        onCryptoClick: () => void
+        onCryptoClick?: () => void
         onSelectNewMethodClick: () => void
         savedAddresses: { id: string; address: string; chainId: string; nickname: string }[]
         onSavedAddressClick: (saved: { id: string; address: string; chainId: string; nickname: string }) => void
@@ -85,9 +92,11 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
                     {saved.nickname}
                 </button>
             ))}
-            <button data-testid="crypto-row" onClick={props.onCryptoClick}>
-                Crypto
-            </button>
+            {props.onCryptoClick && (
+                <button data-testid="crypto-row" onClick={props.onCryptoClick}>
+                    Crypto
+                </button>
+            )}
         </div>
     ),
 }))
@@ -167,9 +176,10 @@ const mockSavedBaseAddress = {
     nickname: 'Binance',
     lastUsedAt: '2026-09-01T00:00:00Z',
 }
+let mockSavedAddresses: (typeof mockSavedBaseAddress)[] = [mockSavedBaseAddress]
 jest.mock('@/hooks/useSavedAddresses', () => ({
     useSavedAddresses: () => ({
-        savedAddresses: [mockSavedBaseAddress],
+        savedAddresses: mockSavedAddresses,
         isLoading: false,
         findSaved: () => undefined,
         rename: { mutateAsync: jest.fn() },
@@ -225,15 +235,13 @@ const IBAN_ACCOUNT = {
     details: { countryName: 'germany' },
 } as unknown as Account
 
+const BANK_ACCOUNTS = [
+    { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
+    { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
+]
+let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({
-        user: {
-            accounts: [
-                { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
-                { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
-            ],
-        },
-    }),
+    useAuth: () => ({ user: { accounts: mockUserAccounts } }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -260,18 +268,15 @@ const mockOnMethodChosen = jest.fn()
 const renderView = (searchParams: Record<string, string> = {}) =>
     render(
         <NuqsTestingAdapter searchParams={searchParams}>
-            <WithdrawMethodView
-                pageTitle="Withdraw"
-                mainHeading="Where to?"
-                onExit={mockOnExit}
-                onMethodChosen={mockOnMethodChosen}
-            />
+            <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
         </NuqsTestingAdapter>
     )
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockIsBankFromSend = false
+    mockUserAccounts = BANK_ACCOUNTS
+    mockSavedAddresses = [mockSavedBaseAddress]
 })
 
 // ---------- tests ----------
@@ -439,12 +444,7 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
         const onUrlUpdate = jest.fn()
         render(
             <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
-                <WithdrawMethodView
-                    pageTitle="Withdraw"
-                    mainHeading="Where to?"
-                    onExit={mockOnExit}
-                    onMethodChosen={mockOnMethodChosen}
-                />
+                <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
             </NuqsTestingAdapter>
         )
         fireEvent.click(screen.getByTestId('hub-bank-row'))
@@ -468,9 +468,82 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
         expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
     })
 
+    // QA 2026-09-24 (QA-30): Send → Bank listed the crypto address book under
+    // the saved bank accounts.
+    it('Send → Bank with saved accounts: the bank accounts only, no address book and no crypto row', () => {
+        mockIsBankFromSend = true
+        renderView({ method: 'bank' })
+        expect(screen.getByTestId('account-DE89370400440532013000')).toBeInTheDocument()
+        expect(screen.queryByTestId('saved-address-saved-1')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('crypto-row')).not.toBeInTheDocument()
+    })
+
+    it('Send → Bank with only crypto addresses saved: straight to the bank list', () => {
+        mockIsBankFromSend = true
+        mockUserAccounts = []
+        renderView({ method: 'bank' })
+        expect(screen.getByTestId('currency-list')).toBeInTheDocument()
+        expect(screen.queryByTestId('saved-address-saved-1')).not.toBeInTheDocument()
+    })
+
+    it('own-account withdraw keeps both rails on the saved screen', () => {
+        renderView()
+        expect(screen.getByTestId('saved-address-saved-1')).toBeInTheDocument()
+        expect(screen.getByTestId('crypto-row')).toBeInTheDocument()
+    })
+
     it('no rail chosen: the crypto row still leads the list', () => {
         renderView({ showAll: 'true' })
         expect(screen.getByTestId('currency-crypto-row')).toBeInTheDocument()
+    })
+})
+
+// Staging 2026-09-24: Withdraw → Crypto went to an empty destination form while
+// the user had saved addresses. The address book must come first on Withdraw;
+// Send → Bank still never shows it (QA-30).
+describe('WithdrawMethodView — Withdraw → Crypto shows the address book first', () => {
+    const renderWithMemory = (searchParams: Record<string, string>) =>
+        render(
+            <NuqsTestingAdapter searchParams={searchParams} hasMemory>
+                <WithdrawMethodView pageTitle="Withdraw" onExit={mockOnExit} onMethodChosen={mockOnMethodChosen} />
+            </NuqsTestingAdapter>
+        )
+
+    it('Crypto on the full list, with saved addresses: the saved addresses, not the form', async () => {
+        renderWithMemory({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('currency-crypto-row'))
+
+        expect(await screen.findByTestId(`saved-address-${mockSavedBaseAddress.id}`)).toBeInTheDocument()
+        expect(screen.getByTestId('crypto-row')).toBeInTheDocument()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('Crypto on the full list, nothing saved: straight to the destination form', () => {
+        mockSavedAddresses = []
+        mockUserAccounts = []
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('currency-crypto-row'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    it('only crypto addresses saved: back from the bank list returns to them, not out of Withdraw', async () => {
+        mockUserAccounts = []
+        renderWithMemory({ showAll: 'true', rail: 'bank' })
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(await screen.findByTestId(`saved-address-${mockSavedBaseAddress.id}`)).toBeInTheDocument()
+        expect(mockOnExit).not.toHaveBeenCalled()
+    })
+
+    it('Send → Bank: back from the bank list still leaves, the address book stays hidden', () => {
+        mockIsBankFromSend = true
+        mockUserAccounts = []
+        renderView({ showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(mockOnExit).toHaveBeenCalled()
+        expect(screen.queryByTestId(`saved-address-${mockSavedBaseAddress.id}`)).not.toBeInTheDocument()
     })
 })
 

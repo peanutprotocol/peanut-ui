@@ -286,9 +286,7 @@ export default function AmountInputPage() {
 />`}
                 >
                     <div className="flex flex-col items-center gap-1">
-                        <div className="text-center text-heading-xs text-foreground-primary">
-                            How much do you want to withdraw?
-                        </div>
+                        <div className="text-center text-heading-xs text-foreground-primary">Amount to withdraw</div>
                         <div className="mt-2 flex items-center gap-1">
                             <span className="text-heading-xs text-foreground-secondary">$</span>
                             <span className="text-heading-big-input">100.482915</span>

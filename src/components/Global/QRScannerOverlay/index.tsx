@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, {
     type ActionModalButtonProps,
     type ActionModalCheckboxProps,
+    type ActionModalTertiaryCta,
     type ActionModalTone,
 } from '@/components/Global/ActionModal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
@@ -51,6 +52,7 @@ interface QrResultModalContent {
     title: string
     description: React.ReactNode
     ctas: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
     checkbox?: ActionModalCheckboxProps
 }
 
@@ -125,7 +127,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             tone: 'success',
             title: t('qrScannerOverlay.titleWillBeNotified'),
             description: t('qrScannerOverlay.willBeNotified', { qrName }),
-            ctas: [{ text: tCommon('close'), variant: 'secondary', onClick: onClose }],
+            ctas: [{ text: tCommon('close'), shadowSize: '4', onClick: onClose }],
         },
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
@@ -151,11 +153,11 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                         closeAfterNavigation()
                     },
                 },
-                // The only way out: preventClose covers Escape, the backdrop and
-                // the back handler, and the X is hidden, so without this the user
-                // has to accept the warning to leave the modal.
-                { text: tCommon('close'), variant: 'secondary', onClick: onClose },
             ],
+            // The only way out: preventClose covers Escape, the backdrop and
+            // the back handler, and the X is hidden, so without this the user
+            // has to accept the warning to leave the modal.
+            tertiaryCta: { text: tCommon('close'), onClick: onClose },
         },
         // A payload that is not an http(s) link is not one the user can be asked
         // to trust, so it is reported as unrecognised instead of offered.
@@ -170,10 +172,8 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                           <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
                       </>
                   ),
-                  ctas: [
-                      { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
-                      { text: tCommon('close'), variant: 'secondary', onClick: onClose },
-                  ],
+                  ctas: [{ text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() }],
+                  tertiaryCta: { text: tCommon('close'), onClick: onClose },
               }
             : unrecognizedContent,
         [EModalType.UNRECOGNIZED]: unrecognizedContent,

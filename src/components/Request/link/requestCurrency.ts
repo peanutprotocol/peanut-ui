@@ -12,7 +12,8 @@ import { ceilToMinorUnit, minorUnitDigits } from '@/features/deposit-accounts/pa
 export function usdEquivalent(amount: string, unitsPerUsd: number): string {
     const value = Number(amount)
     if (!Number.isFinite(value) || value <= 0 || !(unitsPerUsd > 0)) return ''
-    return (value / unitsPerUsd).toFixed(2)
+    // rounded up, as the API prices it: the requester sees the figure the payer will
+    return ceilToMinorUnit(value / unitsPerUsd, 'USD').toFixed(2)
 }
 
 /**

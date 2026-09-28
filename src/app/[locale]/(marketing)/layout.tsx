@@ -29,7 +29,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
     }
 
     return (
-        <main className="relative flex min-h-dvh flex-col bg-background-default" lang={locale}>
+        <main className="relative flex min-h-dvh flex-col bg-background-page" lang={locale}>
             <HtmlLang locale={locale} />
             <HeroBackNav />
             {/* THE marketing/content top bar (compare-page style, ruled the one
@@ -38,7 +38,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
                 mirrors HeroBackNav's left-4; the inner h-10 row is the exact
                 40px band the back circle occupies, so the selector centers on
                 it (min-h on the padded div was border-box and did nothing). */}
-            <div className="bg-background-page px-4 pt-[calc(var(--safe-top)_+_1rem)] pb-4">
+            <div className="px-4 pt-[calc(var(--safe-top)_+_1rem)] pb-4">
                 <div className="flex min-h-10 items-center justify-end">
                     {/* min-h, not h: the picker is a 44px touch target and a
                         fixed 40px row would clip it. The boundary stays because
@@ -51,7 +51,10 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
                 </div>
             </div>
             <LocaleSuggestion locale={locale} />
-            <div className="flex-1">{children}</div>
+            {/* overflow-x-clip: full-bleed bands (mdx Steps) are 100vw wide, which
+                is the viewport plus the scrollbar. clip keeps that last few px off
+                the document width without making a scroll container. */}
+            <div className="flex-1 overflow-x-clip">{children}</div>
             <Footer locale={locale} />
             {/* Crisp chat widget on all marketing/SEO pages. A component, not an
                 inline script, because the launcher has to disappear again when a

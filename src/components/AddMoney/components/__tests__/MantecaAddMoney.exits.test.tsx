@@ -23,7 +23,11 @@ jest.mock('next/navigation', () => ({
 // The flow's outermost exit (used by the amount step and now the CVU details
 // screen). A shared spy makes "the settled screen left the flow" observable.
 const mockSafeBack = jest.fn()
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockSafeBack }))
+const mockReturnTo = jest.fn()
+jest.mock('@/hooks/useSafeBack', () => ({
+    useSafeBack: () => mockSafeBack,
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
+}))
 
 // nuqs — a plain object store, so `step` transitions are observable
 const queryState: Record<string, any> = {}
@@ -61,6 +65,7 @@ jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...a: unknown[]
 
 jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ symbol: 'R$', price: 5 }) }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [] }) }))
+jest.mock('@/hooks/useBankRows', () => ({ useBankChipFor: () => () => 'unlock' }))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ isLoading: false, error: null }) }))
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
@@ -109,7 +114,7 @@ describe('MantecaAddMoney — BRL/PIX exits', () => {
 
         fireEvent.click(screen.getByText('child-done'))
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockReturnTo).toHaveBeenCalledWith('/home')
         expect(setQueryState).not.toHaveBeenCalledWith({ step: 'inputAmount' })
     })
 

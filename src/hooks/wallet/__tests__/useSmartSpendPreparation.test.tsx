@@ -65,7 +65,7 @@ const baseInput = (): SmartSpendPreparationInput => ({
     requiredUsdcAmount: 10_000_000n,
     recipient: RECIPIENT,
     lockCode: 'LOCK123',
-    lockExpiresAt: new Date(NOW + 120_000).toISOString(),
+    lockExpiresAt: NOW + 120_000,
 })
 
 beforeEach(() => {
@@ -133,7 +133,7 @@ test.each<[string, Partial<SmartSpendPreparationInput>]>([
     ['recipient', { recipient: '0x1111111111111111111111111111111111111111' }],
     ['account', { accountAddress: '0x2222222222222222222222222222222222222222' }],
     ['lock code', { lockCode: 'LOCK456' }],
-    ['lock expiry', { lockExpiresAt: new Date(NOW + 300_000).toISOString() }],
+    ['lock expiry', { lockExpiresAt: NOW + 300_000 }],
 ])('a changed %s rebuilds the candidate and discards the superseded result', async (_label, change) => {
     const first = deferred<object>()
     mockPrepareUserOperation.mockReturnValueOnce(first.promise)
@@ -175,7 +175,7 @@ test.each<[string, Partial<SmartSpendPreparationInput>]>([
     ['no account yet', { accountAddress: undefined }],
     ['no lock (open-amount QR)', { lockCode: null }],
     ['unknown expiry', { lockExpiresAt: null }],
-    ['already expired lock', { lockExpiresAt: new Date(NOW - 1_000).toISOString() }],
+    ['already expired lock', { lockExpiresAt: NOW - 1_000 }],
 ])('%s: nothing is prepared', async (_label, change) => {
     const { result } = renderHook((input: SmartSpendPreparationInput) => useSmartSpendPreparation(input), {
         initialProps: { ...baseInput(), ...change },

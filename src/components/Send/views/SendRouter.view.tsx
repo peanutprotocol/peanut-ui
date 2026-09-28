@@ -1,7 +1,6 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PIX from '@/assets/payment-apps/pix.svg'
-import { PEANUTMAN } from '@/assets/mascot'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
@@ -9,6 +8,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import Image from 'next/image'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
@@ -19,6 +19,7 @@ import { useMemo } from 'react'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
+import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
@@ -87,8 +88,10 @@ export const SendRouterView = () => {
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
-                // navigate to external wallet send flow
-                router.push('/withdraw?method=crypto')
+                // Straight to the destination screen. The old /withdraw?method=crypto
+                // entry rendered the Withdraw method list for a few frames before it
+                // forwarded here (TASK-23054).
+                router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
                 // navigate to pix send flow
@@ -112,20 +115,21 @@ export const SendRouterView = () => {
                     return {
                         ...method,
                         title: t('methods.bankTitle'),
-                        description: t('methods.bankDescription'),
-                        identifierIcon: <IconBubble icon="bank" size="s" color="gray" />,
+                        // ARS stays off this list: Send → Bank lists Argentina as Soon
+                        description: t('methods.sendBankDescription'),
+                        identifierIcon: <IconBubble {...CONCEPT_ICONS.bank} size="s" />,
                     }
                 case 'exchange-or-wallet':
                     return {
                         ...method,
                         title: t('methods.exchangeOrWalletTitle'),
                         description: t('methods.exchangeOrWalletDescription'),
-                        identifierIcon: <IconBubble icon="credit-card" size="s" color="blue" />,
+                        identifierIcon: <IconBubble {...CONCEPT_ICONS.crypto} size="s" />,
                     }
                 case 'pix':
                     return {
                         ...method,
-                        description: t('methods.instantTransfers'),
+                        description: t('methods.pixKeyDescription'),
                         identifierIcon: <Image src={PIX} alt="Pix" className="size-8 min-w-8" />,
                     }
                 default:
@@ -143,9 +147,7 @@ export const SendRouterView = () => {
     const sendOptions = useMemo(() => {
         const peanutContactsOption: PaymentMethod = {
             id: 'peanut-contacts',
-            identifierIcon: (
-                <IconBubble icon={<Image src={PEANUTMAN} alt="" className="h-5 w-auto" />} size="s" color="yellow" />
-            ),
+            identifierIcon: <IconBubble {...CONCEPT_ICONS.peanutUser} size="s" />,
             title: t('methods.contactsTitle'),
             description: t('methods.contactsDescription'),
             icons: [],
@@ -194,10 +196,10 @@ export const SendRouterView = () => {
                     centered title + sub, full-width primary cta */}
                 <Card position="solo" className="flex flex-col items-center gap-6 p-6">
                     <div className="flex flex-col items-center gap-2">
-                        <IconBubble icon="link" size="m" color="blue" />
+                        <IconBubble {...CONCEPT_ICONS.sendLink} size="m" />
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
-                            <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
+                            <ChatAppsLine />
                         </div>
                     </div>
                     <Button

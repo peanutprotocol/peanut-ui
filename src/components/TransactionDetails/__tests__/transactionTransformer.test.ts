@@ -610,6 +610,21 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.actionLabelKey).toBe('type.returnedToSender')
             expect(result.status).toBe('refunded')
         })
+
+        it('carries why the bank sent it back to the receipt', () => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.REFUNDED,
+                extraData: {
+                    kind: 'ONRAMP',
+                    provider: 'BRIDGE',
+                    returnReason: { code: 'third_party', text: 'Risk Rejection: Third Party Payment' },
+                },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.extraDataForDrawer?.returnReasonCode).toBe('third_party')
+        })
     })
 
     describe('refund credit rows (status + sign + flag)', () => {
@@ -1028,5 +1043,47 @@ describe('mapTransactionDataForDrawer', () => {
         it('an unknown word with no terminal stamp stays processing', () => {
             expect(bridgeDeposit('SOMETHING_NEW').status).toBe('processing')
         })
+    })
+})
+
+describe('a wire fee is its own receipt line (TASK-23054)', () => {
+    const usAccount: Account = { identifier: '123456780', type: 'US', isUser: false }
+    // the backend states the bank amount (currency.amount): final_amount, or
+    // its payout helper before then
+    const withdrawal = (extraData: Record<string, unknown>) =>
+        mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '80.00', code: 'USD' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', ...extraData },
+            })
+        ).transactionDetails
+
+    it("carries the fee and the backend's bank amount, not a subtraction of its own", () => {
+        const details = withdrawal({ payoutFeeUsd: 20 })
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBe(80)
+    })
+
+    it('states no bank amount when the backend gives none in dollars', () => {
+        const details = mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '', code: '' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20 },
+            })
+        ).transactionDetails
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBeUndefined()
+    })
+
+    it('a free payout keeps the convention: no fee line, nothing received to state', () => {
+        for (const payoutFeeUsd of [undefined, null, 0]) {
+            const details = withdrawal({ payoutFeeUsd })
+            expect(details.fee).toBeUndefined()
+            expect(details.payoutReceivedUsd).toBeUndefined()
+        }
     })
 })

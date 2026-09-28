@@ -7,6 +7,12 @@ describe('usdEquivalent', () => {
         expect(usdEquivalent('13500', 1350)).toBe('10.00')
     })
 
+    // TASK-23054: the line said "≈ USD 22.33" and the payer was asked for $22.34
+    it('rounds up to the cent, as the API stores it', () => {
+        expect(usdEquivalent('20', 0.8955)).toBe('22.34')
+        expect(usdEquivalent('10', 0.8955)).toBe('11.17')
+    })
+
     it('gives nothing without an amount or a rate', () => {
         expect(usdEquivalent('', 0.8)).toBe('')
         expect(usdEquivalent('0', 0.8)).toBe('')

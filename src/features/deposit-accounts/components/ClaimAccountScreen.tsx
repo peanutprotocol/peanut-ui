@@ -1,14 +1,15 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { Icon } from '@/components/Global/Icons/Icon'
+import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
@@ -16,17 +17,21 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositFeeLine } from './DepositFeeLine'
 import { DepositRuleList } from './DepositRuleList'
 
+/** Section 8A of the terms; DocsLink retargets it at the reader's locale. */
+const VIRTUAL_ACCOUNT_TERMS_HREF = '/en/terms#virtual-accounts'
+
 /**
  * The claim step — the one screen where the user decides to hold an account.
  *
  * It sells the outcome (a real account, not a lookup) before it asks for the
- * tap: three benefit rows for what the account actually buys them, and the
- * conditions — a bank's rules, not ours — held to one Callout above the
- * CTA rather than stacked into the page.
+ * tap: three one-line benefit rows for what the account actually buys them,
+ * and the conditions — a bank's rules, not ours — held to one Callout above
+ * the CTA rather than stacked into the page.
  *
- * Who may pay in is stated here, in the same three lines the details screen
- * states them in and through the same resolver: the backend runs it before an
- * account exists and returns the terms as `claimable`. A user who reads
+ * Who may pay in is stated here, behind one closed toggle in the details
+ * screen's card style, in the lines the details screen uses and through the
+ * same resolver and `DepositRuleList`: the backend runs it before an account
+ * exists and returns the terms as `claimable`. A user who reads
  * "anyone can pay you" only AFTER opening the account was deciding blind, and
  * on the corridors where a stranger's payment is sent back that is the one
  * fact they needed first.
@@ -60,17 +65,14 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, arrivalDetail, ruleLines, minimumDeposit } = useDepositAccountCopy()
+    const { t, arrivalShort, ruleLines } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
 
+    // The floor is one of these lines, and the screen states each rule once.
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
-    // The floor renders in the payer rules too; the "good to know" aside repeats
-    // it because that is where a user looks for "what should I know before I
-    // open this", and the smallest deposit is one of those facts.
-    const minimum = minimumDeposit(terms?.rules)
     // The terms were resolved without one input, and only the dollar rail
     // reads it: the state on the user's residence can forbid a third-party
     // payment outright. The lines below are the rail's published terms without
@@ -88,38 +90,38 @@ export function ClaimAccountScreen({
                     description={t('claim.subheading')}
                 />
 
-                {/*
-                 * `title` is a plain string here on purpose, wrapped in a span:
-                 * ListItem truncates a bare string title to one line, and these
-                 * are full sentences, not row labels.
-                 */}
                 <ListGroup>
                     <ListItem
-                        leading={<Icon name="wallet" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{t('claim.benefitBalance')}</span>}
+                        leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitBalance')}
                     />
                     <ListItem
-                        leading={<Icon name="clock" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{arrivalDetail(rail.corridor)}</span>}
+                        leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
+                        title={arrivalShort(rail.corridor)}
                     />
                     <ListItem
-                        leading={<Icon name="link" size={24} className="self-start text-foreground-primary" />}
-                        title={<span>{t('claim.benefitStable')}</span>}
+                        leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitStable')}
                     />
                 </ListGroup>
 
                 {rules && (
-                    <Section title={t('details.whoCanPay')}>
-                        <DepositRuleList lines={rules} />
-                        {statePending && (
-                            <p className="text-body-xs text-foreground-secondary">{t('claim.statePending')}</p>
-                        )}
-                    </Section>
+                    <Accordion type="single" collapsible>
+                        <Accordion.Item value="who-can-pay">
+                            <Accordion.Trigger>{t('claim.whoCanPay')}</Accordion.Trigger>
+                            <Accordion.Content className="flex flex-col gap-3">
+                                <DepositRuleList lines={rules} />
+                                {statePending && (
+                                    <p className="text-body-xs text-foreground-secondary">{t('claim.statePending')}</p>
+                                )}
+                            </Accordion.Content>
+                        </Accordion.Item>
+                    </Accordion>
                 )}
             </div>
             {/*
-             * The CTA is the LAST child, and that is load-bearing rather than
-             * taste. The shell reserves 6rem below the scroller to clear the
+             * The CTA ends the page (only the terms line follows it), and that
+             * is load-bearing rather than taste. The shell reserves 6rem below the scroller to clear the
              * fixed bottom nav, and the reservation clears whatever ends the
              * page. With the Callout after it the reservation cleared the
              * Callout instead, and at 375x667 the button first painted at
@@ -157,8 +159,6 @@ export function ClaimAccountScreen({
                         items={[
                             // what it costs, before the account is opened
                             <DepositFeeLine key="fee" rail={rail} />,
-                            // the smallest deposit the corridor accepts, where it publishes one
-                            ...(minimum ? [t('claim.faqMinimum', { min: minimum })] : []),
                             // A euro account is a shared SEPA one, so the IBAN can
                             // be issued in another EU country — said plainly here so
                             // a user who reached it by picking, say, France is not
@@ -178,15 +178,32 @@ export function ClaimAccountScreen({
                     />
                 )}
                 {!isUnavailable && (
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        loading={isClaiming}
-                        disabled={isClaiming}
-                        onClick={onClaim}
-                    >
-                        {t('claim.cta', { currency: rail.currency })}
-                    </Button>
+                    <>
+                        <Button
+                            variant="primary"
+                            className="w-full"
+                            loading={isClaiming}
+                            disabled={isClaiming}
+                            onClick={onClaim}
+                        >
+                            {t('claim.cta', { currency: rail.currency })}
+                        </Button>
+                        {/* The terms the tap agrees to. It sits under the button,
+                            so the shell reservation still clears the button. */}
+                        <p className="text-center text-body-xs text-foreground-secondary">
+                            {t.rich('claim.termsAgreement', {
+                                currency: rail.currency,
+                                terms: (chunks) => (
+                                    <DocsLink
+                                        href={VIRTUAL_ACCOUNT_TERMS_HREF}
+                                        className="underline underline-offset-2"
+                                    >
+                                        {chunks}
+                                    </DocsLink>
+                                ),
+                            })}
+                        </p>
+                    </>
                 )}
             </PageStack.Footer>
         </PageStack>
