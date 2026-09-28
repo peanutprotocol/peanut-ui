@@ -3454,14 +3454,13 @@
             "cancelCta": "Cancelar y devolver fondos"
         },
         "balanceWarningModal": {
-            "title": "Saldo alto",
-            "congrats": "¡Eres rico! Felicitaciones por tener un saldo alto.",
+            "title": "Aviso de saldo alto",
             "goodToKnow": "Bueno saberlo",
-            "selfCustody": "Con Peanut, eres el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
-            "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
-            "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",
+            "selfCustody": "Peanut es completamente autocustodial y necesitas tu passkey biométrica para acceder a tu cuenta.",
+            "passkey": "Ningún equipo de soporte tiene acceso a tu cuenta ni puede recuperarla.",
+            "learnMore": "Aprende más sobre cómo proteger tu passkey en <link>{platform}</link>.",
             "yourDevice": "tu dispositivo",
-            "slideToContinue": "Desliza y continúa"
+            "slideToContinue": "Desliza para continuar"
         },
         "guestLoginModal": {
             "title": "Inicia sesión con Peanut Wallet",

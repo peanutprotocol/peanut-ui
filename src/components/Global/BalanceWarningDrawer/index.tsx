@@ -2,7 +2,6 @@
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
@@ -103,37 +102,26 @@ export default function BalanceWarningDrawer({ visible, onCloseAction }: Balance
                         <IconBubble icon="wallet" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('balanceWarningModal.title')}</DrawerTitle>
-                            <DrawerDescription>{t('balanceWarningModal.congrats')}</DrawerDescription>
+                            <DrawerDescription>{t('balanceWarningModal.selfCustody')}</DrawerDescription>
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <div className="flex w-full flex-col items-start gap-2 text-left">
-                            <p className="text-label-m tracking-wide text-foreground-secondary uppercase">
-                                {t('balanceWarningModal.goodToKnow')}
-                            </p>
-                            {/* the two self-custody facts read as a checklist, not flowing prose —
-                                same structure the passkey-help surface uses for its fixes */}
-                            <Callout
-                                priority="info"
-                                className="w-full text-left"
-                                items={[t('balanceWarningModal.selfCustody'), t('balanceWarningModal.passkey')]}
-                            />
-                            <p className="text-body-s text-foreground-secondary">
-                                {t.rich('balanceWarningModal.learnMore', {
-                                    platform: platformName,
-                                    link: (chunks) => (
-                                        <a
-                                            href={platformInfo.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="underline"
-                                        >
-                                            {chunks}
-                                        </a>
-                                    ),
-                                })}
-                            </p>
-                        </div>
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('balanceWarningModal.passkey')}{' '}
+                            {t.rich('balanceWarningModal.learnMore', {
+                                platform: platformName,
+                                link: (chunks) => (
+                                    <a
+                                        href={platformInfo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline"
+                                    >
+                                        {chunks}
+                                    </a>
+                                ),
+                            })}
+                        </p>
                         {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                         <div className="w-full" data-vaul-no-drag>
                             <SlideToConfirm

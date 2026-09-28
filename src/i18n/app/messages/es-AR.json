@@ -1532,11 +1532,9 @@
             "line2": "Explorá, pagá e invitá a tus amigos."
         },
         "balanceWarningModal": {
-            "congrats": "¡Sos rico! Felicitaciones por tener un saldo alto.",
-            "selfCustody": "Con Peanut, sos el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
-            "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la perdés, no se puede recuperar, porque solo vos tenés acceso.",
-            "learnMore": "Aprendé a mantener tu passkey segura en <link>{platform}</link>.",
-            "slideToContinue": "Deslizá y continuá"
+            "selfCustody": "Peanut es completamente autocustodial y necesitás tu passkey biométrica para acceder a tu cuenta.",
+            "learnMore": "Aprendé más sobre cómo proteger tu passkey en <link>{platform}</link>.",
+            "slideToContinue": "Deslizá para continuar"
         },
         "guestLoginModal": {
             "title": "Iniciá sesión con Peanut Wallet",
