@@ -40,6 +40,29 @@ describe('iOS release workflow', () => {
         expect(workflowSource).not.toContain('if [ "$PAYMENT" != "1" ]; then')
     })
 
+    it('compiles the shared card store into the Wallet authorization UI extension', () => {
+        const sourcePhase = projectSource.match(
+            /\/\* PushProvisioningExtensionUI Sources \*\/ = \{[\s\S]*?files = \(([\s\S]*?)\);/
+        )?.[1]
+        expect(sourcePhase).toBeDefined()
+        const buildIds = [...sourcePhase.matchAll(/([A-F0-9]{24}) \/\* .*? in Sources \*\//g)].map((match) => match[1])
+        const sourceNames = buildIds.map((id) => {
+            const fileRef = projectSource.match(
+                new RegExp(`${id} /\\* .*? \\*/ = \\{isa = PBXBuildFile; fileRef = ([A-F0-9]{24})`)
+            )?.[1]
+            return projectSource.match(
+                new RegExp(`${fileRef} /\\* .*? \\*/ = \\{isa = PBXFileReference;[^\\n]*path = ([^;]+);`)
+            )?.[1]
+        })
+        expect(sourceNames).toEqual(
+            expect.arrayContaining([
+                'IssuerAuthorizationExtensionHandler.swift',
+                'WalletExtensionAuth.swift',
+                'WalletExtensionCardStore.swift',
+            ])
+        )
+    })
+
     it('keeps unentitled iOS releases available by omitting Wallet targets', () => {
         expect(workflowSource).toContain("if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}")
         expect(workflowSource).toContain('node scripts/disable-wallet-ios-targets.mjs')
