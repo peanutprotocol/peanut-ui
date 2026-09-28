@@ -751,7 +751,10 @@ release flag or second dispatch is needed.
    TestFlight and Play internal, leaves active legacy Capgo channels unchanged,
    and tags the exact commit only after both builds succeed. Promote the binaries
    in the store consoles after device validation. New binaries carry their own JS
-   while the old lanes stay pinned.
+   while the old lanes stay pinned. Native 1.7 and newer reject OTA bundles
+   from an older native release line, including saved or queued bridges. The
+   1.5/1.6 fleet retains bridge recovery, and same-release OTA rollbacks remain
+   available on newer binaries.
 2. Once the new native release is available to users, dispatch
    `release-ota.yml` on the current `main` tip with
    `nativeMigrationCutover=true`. It requires the new native tag and both
