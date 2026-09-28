@@ -284,6 +284,9 @@ jobs:
                   ENVEOF
 
             - name: Build the static export
+              env:
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: node scripts/native-build.js
 
             - name: Verify export output
@@ -611,6 +614,8 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Match the screen-library build: restored Webpack hashes crash WasmHash.
                   SCREEN_CAPTURE_BUILD: '1'
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -794,13 +799,16 @@ jobs:
     #
     # ds-shots runs the same spec but is advisory by design (see its comment
     # above), so nothing gated it. This job does, and it stays lean: build,
-    # one spec, no screenshots and no diff machinery.
+    # the gated specs, no screenshots and no diff machinery.
+    #
+    # The drawer shadow-clip sweep (TASK-23054) is gated here too: a clipped
+    # CTA shadow is only visible in real layout, and it shipped twice.
     press-contract:
         needs: backdoor-scan
         name: press-contract
         runs-on: ubuntu-latest
-        # Build ~4m + one spec. A hang past this is a bug, not a slow day.
-        timeout-minutes: 20
+        # Build ~4m + two specs. A hang past this is a bug, not a slow day.
+        timeout-minutes: 25
         permissions:
             contents: read
         steps:
@@ -867,10 +875,15 @@ jobs:
               env:
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
 
             - name: Run the press-physics spec
               run: npx playwright test e2e/flows/button-press-physics.spec.ts --config=playwright.regression.config.ts
+
+            - name: Run the drawer shadow-clip spec
+              run: npx playwright test e2e/flows/drawer-shadow-clip.spec.ts --config=playwright.regression.config.ts
 
             - name: Upload results on failure
               if: failure()

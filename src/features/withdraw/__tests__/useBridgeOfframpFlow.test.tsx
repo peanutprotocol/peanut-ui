@@ -70,37 +70,19 @@ let mockCountryId = 'US'
 let mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
 jest.mock('@/utils/bridge.utils', () => ({
     getOfframpConfigFromAccount: () => mockOfframpConfig,
+    getBankPayout: () => ({ ...mockOfframpConfig, bankConvertsTo: null }),
     getCountryFromPath: () =>
         mockCountryId === 'GB'
             ? { id: 'GBR', iso2: 'GB', title: 'United Kingdom' }
             : { id: 'US', iso2: 'US', title: 'United States' },
     railJurisdictionForBank: () => 'US',
-    // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN)
-    getMinimumAmount: (id: string) => (id === 'MX' ? 50 : id === 'GB' || id === 'GBR' ? 3 : 1),
+    // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN / 4,000 COP)
+    getMinimumAmount: (id: string) => ({ MX: 50, GB: 3, GBR: 3, CO: 4000 })[id] ?? 1,
 }))
 
-// Bridge sell rate: the shared minimum's source when the account has no quote
-// currency. An account with one converts the minimum with its quote instead.
-let mockExchangeRate: string | null | undefined = '0.79'
-let mockExchangeRateError = false
-const mockExchangeRateCalls: Array<{ accountType: unknown; enabled?: boolean }> = []
-jest.mock('@/hooks/useGetExchangeRate', () => ({
-    __esModule: true,
-    default: (args: { accountType: unknown; enabled?: boolean }) => {
-        mockExchangeRateCalls.push(args)
-        return { exchangeRate: mockExchangeRate, isFetchingRate: false, isError: mockExchangeRateError }
-    },
-}))
-
-// a withdrawal quoted in its bank currency (TASK-23054): the quote the review
-// shows and funds. Its rate (local currency per 1 USD) also converts the rail minimum.
-type MockQuote = {
-    destinationCurrency: string
-    rate: string
-    updatedAt: string
-    sourceAmount: string
-    destinationAmount: string
-}
+// a withdrawal quoted for its amount (TASK-23054): the quote the review shows and
+// funds. Its rate (local currency per 1 USD) also converts the rail minimum.
+type MockQuote = { rate: string; sourceAmount?: string; destinationAmount?: string }
 let mockQuote: MockQuote | null = null
 let mockQuoteReceivedAt = Date.now()
 // what the real hook does on requote: hide the quote until another one lands
@@ -138,14 +120,20 @@ const landNewQuote = (quote: MockQuote) => {
     mockQuoteReceivedAt = Date.now()
 }
 
-const eurQuote = (overrides: Partial<MockQuote> = {}): MockQuote => ({
-    destinationCurrency: 'eur',
-    rate: '0.8955',
-    updatedAt: '2026-09-24T15:54:16.373Z',
-    sourceAmount: '2233.39',
-    destinationAmount: '2000.00',
-    ...overrides,
-})
+// USD speeds (TASK-23054): the fee table and the account's rails, as the
+// backend answers them. Same-day ACH free and a $20 wire by default.
+let mockSpeedOptions = [
+    { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+    { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+    { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: null },
+] as Array<{ speed: string; feeUsd: string; minimumUsd: string; block: string | null }>
+let mockSpeedsReady = true
+jest.mock('../useUsdPayoutSpeeds', () => ({
+    useUsdPayoutSpeeds: ({ enabled }: { enabled: boolean }) => ({
+        options: enabled ? mockSpeedOptions : [],
+        isReady: !enabled || mockSpeedsReady,
+    }),
+}))
 
 jest.mock('@/utils/regions.utils', () => ({
     isBridgeSupportedCountry: () => true,
@@ -202,22 +190,17 @@ jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
     useWaitingOnProviderModal: () => ({ open: jest.fn(), isOpen: false }),
 }))
 
-// the advisory pre-empt is pass-through here — its own behavior has its own
-// tests. IMPORTANT: render-stable singletons, like the real hooks (their
-// returns are useCallback-stable) — unstable mocks would recompute the old
-// memoized submit handler and hide the frozen-closure regression.
-const stableAdvisoryPreempt = { intercept: (fn: () => void) => fn(), modalProps: {} }
-jest.mock('@/hooks/useAdvisoryPreempt', () => ({
-    useAdvisoryPreempt: () => stableAdvisoryPreempt,
-}))
-
+// IMPORTANT: render-stable singletons, like the real hooks (their returns are
+// useCallback-stable) — unstable mocks would recompute the old memoized submit
+// handler and hide the frozen-closure regression.
 const stableUpliftFunnel = { trackStarted: jest.fn(), trackCompleted: jest.fn(), reset: jest.fn() }
 jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
     useEeaUpliftFunnel: () => stableUpliftFunnel,
 }))
 
+const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: mockFetchUser }),
 }))
 
 const mockCreateOfframp = jest.fn()
@@ -230,8 +213,9 @@ jest.mock('@/app/actions/offramp', () => ({
 // mutable gate + balance: the stale-closure regression flips these mid-test.
 // gateFor is a fresh function each render, so the hook's gate memo recomputes.
 let mockGateKind: string = 'ready'
+let mockAdvisory: { effectiveDate: string; actionKey: string; requirementKey?: string } | undefined
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: () => ({ kind: mockGateKind, advisory: undefined }) }),
+    useCapabilities: () => ({ gateFor: () => ({ kind: mockGateKind, advisory: mockAdvisory }) }),
 }))
 
 const mockSendMoney = jest.fn()
@@ -241,6 +225,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSetError = jest.fn()
+const mockSetSelectedBankAccount = jest.fn()
 const bankAccount = { id: 'acct-1', bridgeAccountId: 'ext-1' }
 // mutable: the context-loss recovery cases simulate a refresh that remounted
 // the withdraw-scoped provider without a selected account
@@ -250,6 +235,7 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
         selectedBankAccount: mockBankAccount,
         error: { showError: false, errorMessage: '' },
         setError: mockSetError,
+        setSelectedBankAccount: mockSetSelectedBankAccount,
     }),
 }))
 
@@ -269,7 +255,7 @@ const renderFlow = (searchParams: Record<string, string>) =>
 
 const armHappyOfframp = () => {
     mockCreateOfframp.mockResolvedValue({
-        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1', intentId: 'offramp-intent-1' },
     })
     mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
     mockConfirmOfframp.mockResolvedValue({})
@@ -278,21 +264,25 @@ const armHappyOfframp = () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockGateKind = 'ready'
+    mockAdvisory = undefined
     mockBalance = 100n * 10n ** 6n
     mockCountryId = 'US'
     mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
-    mockExchangeRate = '0.79'
-    mockExchangeRateError = false
-    mockExchangeRateCalls.length = 0
+    mockSpeedOptions = [
+        { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+        { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+        { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: null },
+    ]
+    mockSpeedsReady = true
     mockPointsCalls.length = 0
     mockBankAccount = bankAccount
     mockIsBankFromSend = false
     mockQuote = null
-    mockTxReverted = false
     mockQuoteReceivedAt = Date.now()
     mockQuoteReplaced = false
     mockQuoteError = false
     mockQuoteCalls.length = 0
+    mockTxReverted = false
 })
 
 // ---------- tests ----------
@@ -307,8 +297,38 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         })
 
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
+        // the offramp intent goes along, so a card-balance funding shows as one withdrawal
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
+        })
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+    })
+
+    it('a future-dated verification request never holds the withdrawal: the deadline is exposed for the notice and the offramp runs', async () => {
+        armHappyOfframp()
+        const dueSoon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        mockAdvisory = { effectiveDate: dueSoon, actionKey: 'sumsub:eea_uplift', requirementKey: 'nationalities' }
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.advisoryDeadline).toBe(dueSoon)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
+        expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+        expect(stableUpliftFunnel.trackStarted).not.toHaveBeenCalled()
+    })
+
+    it('a request due outside the heads-up window shows no notice', () => {
+        mockAdvisory = {
+            effectiveDate: '2099-10-01',
+            actionKey: 'sumsub:government_id',
+            requirementKey: 'government_id_expired',
+        }
+        const view = renderFlow({ amount: '50', step: 'review' })
+        expect(view.result.current.advisoryDeadline).toBeUndefined()
     })
 
     it('a click after the gate and balance resolve runs the offramp (regression: memoized handler froze the loading gate)', async () => {
@@ -393,18 +413,13 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(mockPointsCalls.at(-1)?.[1]).toBe('50')
     })
 
-    // A GBP account; the minimum converts with the quote rate (0.79 GBP ≈ 1 USD →
-    // £3 ≈ $4). A USD `?amount=` on it is quoted on its USDC side, so the quote
-    // answers that amount with the estimated payout.
+    // A GBP account at 0.79 GBP per 1 USD. A USD amount on it is quoted on its
+    // USD side, and the server estimates the payout, rounded down to the penny.
     const useGbAccount = (usd: string) => {
         mockCountryId = 'GB' // real record: { id: 'GBR', iso2: 'GB' }
         mockOfframpConfig = { currency: 'gbp', paymentRail: 'faster_payments' }
-        mockQuote = eurQuote({
-            destinationCurrency: 'gbp',
-            rate: '0.79',
-            sourceAmount: usd,
-            destinationAmount: (Number(usd) * 0.79).toFixed(2),
-        })
+        const pence = Math.floor((Math.round(Number(usd) * 100) * 79) / 100)
+        mockQuote = { rate: '0.79', sourceAmount: usd, destinationAmount: (pence / 100).toFixed(2) }
     }
 
     it('GB: an amount below the converted £3 rail minimum never reaches createOfframp (Chip round 5)', async () => {
@@ -420,10 +435,9 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             showError: true,
             errorMessage: 'withdraw.errors.minimumWithdrawal',
         })
-        // the £3 minimum converts through the GBP quote rate, the one rate of the
-        // flow — not a second rate source, and not EUR on the 'GBR' id (Chip round 6)
+        // the £3 minimum is checked on the GBP quote for this amount, the one rate
+        // of the flow — not a second rate source, and not EUR on the 'GBR' id (Chip round 6)
         expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'gbp', amount: { sourceAmount: '2' } })
-        expect(mockExchangeRateCalls.every((c) => !c.enabled)).toBe(true)
     })
 
     it('GB: an amount above the converted minimum proceeds', async () => {
@@ -438,10 +452,11 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '5' }))
     })
 
+    // £3 compared in GBP: $3.79 × 0.79 is £2.99, $3.80 × 0.79 is £3.00 (the server estimate, rounded down)
     it.each([
-        ['3.99', false],
-        ['4', true],
-    ])('GB at quote 0.79 (minimum $4): $%s proceeds = %s', async (amount, proceeds) => {
+        ['3.79', false],
+        ['3.8', true],
+    ])('GB at quote 0.79 (minimum £3): $%s proceeds = %s', async (amount, proceeds) => {
         armHappyOfframp()
         useGbAccount(amount)
         const view = renderFlow({ amount, step: 'review' })
@@ -459,10 +474,10 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
      * fabricated minimum; now there is no rate and nothing is submitted — and
      * the blocking notice says why.
      */
-    it('GB: a quote whose refresh failed blocks the submit, says so with its retry, and never creates an offramp', async () => {
+    it('GB: a failed quote blocks the submit, says so with its retry, and never creates an offramp', async () => {
         armHappyOfframp()
         useGbAccount('50')
-        // a USD amount, quoted on its USDC side; the quote's last refresh failed
+        // a USD amount, quoted on its USD side; the quote's last refresh failed
         mockQuoteError = true
         const view = renderFlow({ amount: '50', step: 'review' })
 
@@ -477,20 +492,8 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(mockSendMoney).not.toHaveBeenCalled()
     })
 
-    it('GB on a rail with no quote currency: the minimum uses the Bridge sell rate, and fails closed without it', () => {
-        mockCountryId = 'GB' // rail stays usd: no quote for this account
-        mockExchangeRate = null
-        mockExchangeRateError = true
-        const view = renderFlow({ amount: '50', step: 'review' })
-
-        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: null })
-        expect(view.result.current.isSubmitReady).toBe(false)
-        expect(view.result.current.balanceErrorMessage).toBe('exchangeRate.widget.rateUnavailable')
-    })
-
     it('US: a fixed-floor destination needs no rate and is never blocked by one', () => {
-        mockExchangeRate = null
-        mockExchangeRateError = true
+        mockQuoteError = true
         const view = renderFlow({ amount: '50', step: 'review' })
 
         expect(view.result.current.isSubmitReady).toBe(true)
@@ -575,6 +578,46 @@ describe('useBridgeOfframpFlow — card re-approval cancelled before the money l
     })
 })
 
+describe('useBridgeOfframpFlow — saved account the provider refused (TASK-23054)', () => {
+    it('shows the mapped copy, refetches the saved accounts and offers to add the account again instead of Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({
+            error: 'This bank account can no longer be used. Add it again.',
+            code: 'BANK_ACCOUNT_NOT_USABLE',
+            status: 409,
+        })
+        const view = renderFlow({ amount: '50', step: 'review' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'This bank account can no longer be used. Add it again.',
+        })
+
+        act(() => view.result.current.onAddBankAccountAgain!())
+        // clearing the account is what sends the review back to the bank form
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+    })
+
+    it('any other create error keeps Retry', async () => {
+        mockCreateOfframp.mockResolvedValue({ error: 'Bridge is down', status: 502 })
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockSetError).toHaveBeenCalledWith({ showError: true, errorMessage: 'Bridge is down' })
+        expect(view.result.current.onAddBankAccountAgain).toBeUndefined()
+    })
+})
+
 describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amount (Chip round 10)', () => {
     it('review without a selected account: recovery to country selection carries ?amount=', () => {
         mockBankAccount = null
@@ -602,12 +645,9 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
 describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
     const submitWithReference = async (reference: string) => {
         armHappyOfframp()
-        // a EUR, GBP, MXN or COP account is quoted for the USDC amount too; USD ignores it
-        mockQuote = eurQuote({
-            destinationCurrency: mockOfframpConfig.currency,
-            sourceAmount: '50',
-            destinationAmount: '44.77',
-        })
+        // $50 converts far above any rail's payout minimum at this rate; a EUR,
+        // GBP, MXN or COP account is quoted for the USDC amount, USD ignores it
+        mockQuote = { rate: '4000', sourceAmount: '50', destinationAmount: '200000.00' }
         const view = renderFlow({ amount: '50', step: 'review' })
         act(() => view.result.current.setReference(reference))
         await act(async () => {
@@ -666,11 +706,11 @@ describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
     })
 
     it('a rail that takes no reference offers no field and sends none', async () => {
-        mockOfframpConfig = { currency: 'usd', paymentRail: 'wire' }
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'swift' }
         const view = await submitWithReference('Invoice 42')
 
         expect(view.result.current.referenceSpec).toBeNull()
-        expect(sentDestination()).toEqual({ currency: 'usd', paymentRail: 'wire', externalAccountId: 'ext-1' })
+        expect(sentDestination()).toEqual({ currency: 'eur', paymentRail: 'swift', externalAccountId: 'ext-1' })
     })
 
     it('a reference that breaks the rail limits blocks the submit: nothing is created, nothing moves', async () => {
@@ -695,10 +735,10 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
     beforeEach(() => {
         mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
         mockBalance = 3000n * 10n ** 6n
-        mockQuote = eurQuote()
+        mockQuote = { rate: '0.8955', sourceAmount: '2233.39' }
     })
 
-    it('sends exactly the quoted USDC; the bank amount stays an estimate', async () => {
+    it('sends exactly the quoted USDC, source-denominated as before', async () => {
         armHappyOfframp()
         const view = renderFlow({ destinationAmount: '2000', step: 'review' })
 
@@ -709,14 +749,14 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
             view.result.current.handleCreateAndInitiateOfframp()
         })
 
-        expect(mockCreateOfframp).toHaveBeenCalledWith({
-            amount: '2233.39',
-            developer_fee: '0',
-            onBehalfOf: 'cust-1',
-            source: { currency: 'usdc', paymentRail: 'arbitrum', fromAddress: '0xuser' },
-            destination: { currency: 'eur', paymentRail: 'sepa', externalAccountId: 'ext-1' },
+        const payload = mockCreateOfframp.mock.calls[0][0]
+        expect(payload.amount).toBe('2233.39')
+        // the bank amount never reaches the offramp: the transfer converts the USDC
+        expect(payload).not.toHaveProperty('destinationAmount')
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', {
+            kind: 'FIAT_OFFRAMP',
+            fundsIntentId: 'offramp-intent-1',
         })
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', { kind: 'FIAT_OFFRAMP' })
     })
 
     it('is not ready to submit until the quote arrives', async () => {
@@ -745,6 +785,88 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         })
     })
 
+    // The minimum is compared in the bank's currency, as typed: exactly 50 MXN
+    // passes. The old check converted it to USD and rounded up ($3 = 54.60 MXN).
+    // The quote's USDC stays above the $1 floor in every case, so only the
+    // bank-currency minimum decides.
+    describe.each([
+        ['mxn', 'spei', '49.99', '50', '2.75'],
+        ['gbp', 'faster_payments', '2.99', '3', '3.81'],
+        ['cop', 'bre_b', '3999.99', '4000', '1.02'],
+    ])('%s: the payout minimum at the boundary', (currency, paymentRail, below, minimum, sourceAmount) => {
+        beforeEach(() => {
+            mockOfframpConfig = { currency, paymentRail }
+            mockQuote = { rate: '18.2', sourceAmount }
+        })
+
+        it(`${below} is refused before anything is created`, async () => {
+            const view = renderFlow({ destinationAmount: below, step: 'review' })
+
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+            })
+
+            expect(mockCreateOfframp).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'withdraw.errors.minimumWithdrawal',
+            })
+        })
+
+        it(`exactly ${minimum} goes through`, async () => {
+            armHappyOfframp()
+            const view = renderFlow({ destinationAmount: minimum, step: 'review' })
+
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+            })
+
+            expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: sourceAmount }))
+        })
+    })
+
+    it('typed in EUR: the review payout leads with the typed bank amount, and success keeps it', async () => {
+        armHappyOfframp()
+        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
+
+        expect(view.result.current.payout).toEqual({
+            currency: 'eur',
+            bankConvertsTo: null,
+            rate: '0.8955',
+            amount: '2000',
+            enteredInBankCurrency: true,
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        // the payout the screen showed is the currency the transfer sent
+        expect(mockCreateOfframp.mock.calls[0][0].destination.currency).toBe(view.result.current.payout?.currency)
+        expect(view.result.current.executedPayout).toMatchObject({ amount: '2000', enteredInBankCurrency: true })
+    })
+
+    it('typed in USD to a EUR account: USDC exact, the bank amount the server estimate', async () => {
+        armHappyOfframp()
+        mockQuote = { rate: '0.9', sourceAmount: '50', destinationAmount: '45.00' }
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        // the typed USD is quoted for the account's currency
+        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '50' } })
+        expect(view.result.current.amountToWithdraw).toBe('50')
+        expect(view.result.current.payout).toMatchObject({
+            currency: 'eur',
+            rate: '0.9',
+            amount: '45.00',
+            enteredInBankCurrency: false,
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).toHaveBeenCalledWith(
+            expect.objectContaining({ amount: '50', destination: expect.objectContaining({ currency: 'eur' }) })
+        )
+    })
+
     it('a US account ignores a bank amount: USD pays 1:1 and needs ?amount=', () => {
         mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
         const view = renderFlow({ amount: '50', destinationAmount: '2000', step: 'review' })
@@ -754,29 +876,48 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
     })
 
     // A EUR account whose amount was entered in USD (Chip 5311936420): the amount
-    // step hands on ?amount= alone. The review prices that USD side: the server
-    // estimates the payout for exactly USD 12.01, and the floored EUR estimate of
-    // the amount step never comes back as an amount.
-    it('a EUR account with a USD amount is quoted on its USD side: exactly 12.01 sent, payout estimated by the server', async () => {
+    // step hands on ?amount= alone, and the review spends exactly that USD. The
+    // server estimates the payout for it; the floored EUR of the amount step
+    // never comes back as an amount.
+    it('a EUR account with a USD amount spends exactly 12.01, with the payout the server estimates', async () => {
         armHappyOfframp()
         // the server's estimate for USD 12.01 at Bridge's 0.8955: €10.75, rounded down
-        mockQuote = eurQuote({ sourceAmount: '12.01', destinationAmount: '10.75' })
+        mockQuote = { rate: '0.8955', sourceAmount: '12.01', destinationAmount: '10.75' }
         const view = renderFlow({ amount: '12.01', step: 'review' })
 
         expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '12.01' } })
         expect(mockQuoteCalls.some((call) => call.amount && 'destinationAmount' in call.amount)).toBe(false)
         expect(view.result.current.amountToWithdraw).toBe('12.01')
-        expect(view.result.current.bankAmount?.quote?.destinationAmount).toBe('10.75')
-
+        expect(view.result.current.payout).toMatchObject({ amount: '10.75', enteredInBankCurrency: false })
         await act(async () => {
             view.result.current.handleCreateAndInitiateOfframp()
         })
         const payload = mockCreateOfframp.mock.calls[0][0]
-        expect(payload).toMatchObject({ amount: '12.01' })
-        expect(payload).not.toHaveProperty('quoteId')
+        expect(payload.amount).toBe('12.01')
         expect(payload).not.toHaveProperty('destinationAmount')
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '12.01', { kind: 'FIAT_OFFRAMP' })
+        expect(payload).not.toHaveProperty('quoteId')
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '12.01', expect.objectContaining({ kind: 'FIAT_OFFRAMP' }))
     })
+
+    it.each(['abc', '1.1234567', '0.009'])(
+        'a EUR account with an amount the quote cannot take (%s) is refused, never sent unquoted',
+        async (amount) => {
+            armHappyOfframp()
+            const view = renderFlow({ amount, step: 'review' })
+
+            expect(mockQuoteCalls.every((call) => call.amount === undefined)).toBe(true)
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+            })
+
+            expect(mockCreateOfframp).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'withdraw.errors.invalidAmount',
+            })
+        }
+    )
 
     // A 503 on the 30-second refresh used to swap the page for the Retry screen,
     // unmounting an open KYC, terms or confirm step.
@@ -821,19 +962,15 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
 
 /**
  * The quote on the review holds still, and the bank amount is always an
- * estimate: Bridge converts the USDC at settlement. An old quote is replaced
- * before create, and the user confirms the new numbers — the app never
- * creates or sends on its own, and never sends a second time after a send
- * that may have gone out.
+ * estimate. An old quote is replaced before create, and the user confirms the
+ * new numbers — the app never creates or sends on its own, and never sends a
+ * second time after a send that may have gone out.
  */
 describe('useBridgeOfframpFlow — the quote on the review', () => {
-    const EUR_DESTINATION = { currency: 'eur', paymentRail: 'sepa', externalAccountId: 'ext-1' }
-    const SOURCE = { currency: 'usdc', paymentRail: 'arbitrum', fromAddress: '0xuser' }
-
     beforeEach(() => {
         mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
         mockBalance = 3000n * 10n ** 6n
-        mockQuote = eurQuote()
+        mockQuote = { rate: '0.8955', sourceAmount: '2233.39', destinationAmount: '2000' }
     })
 
     const submit = async (view: ReturnType<typeof renderFlow>) => {
@@ -841,70 +978,6 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
             view.result.current.handleCreateAndInitiateOfframp()
         })
     }
-
-    it('USDC typed on a EUR account: quotes the USDC side and creates with exactly that USDC', async () => {
-        armHappyOfframp()
-        mockQuote = eurQuote({ sourceAmount: '50', destinationAmount: '44.77' })
-        const view = renderFlow({ amount: '50', step: 'review' })
-
-        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '50' } })
-        expect(view.result.current.bankAmount?.quote?.destinationAmount).toBe('44.77')
-        await submit(view)
-
-        expect(mockCreateOfframp).toHaveBeenCalledWith(
-            expect.objectContaining({ amount: '50', destination: EUR_DESTINATION })
-        )
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
-    })
-
-    it('USDC with fractional cents is quoted at whole cents, never sent unquoted', async () => {
-        armHappyOfframp()
-        mockQuote = eurQuote({ sourceAmount: '50.12', destinationAmount: '44.88' })
-        const view = renderFlow({ amount: '50.123456', step: 'review' })
-
-        // the quote asks for the cut amount, and the review shows the quote's
-        expect(mockQuoteCalls.at(-1)).toMatchObject({ currency: 'eur', amount: { sourceAmount: '50.12' } })
-        expect(view.result.current.amountToWithdraw).toBe('50.12')
-        await submit(view)
-
-        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50.12' }))
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50.12', { kind: 'FIAT_OFFRAMP' })
-    })
-
-    it.each(['abc', '1.1234567', '0.009'])(
-        'a EUR account with an amount the quote cannot take (%s) is refused, never sent unquoted',
-        async (amount) => {
-            armHappyOfframp()
-            const view = renderFlow({ amount, step: 'review' })
-
-            expect(mockQuoteCalls.every((call) => call.currency === null)).toBe(true)
-            await submit(view)
-
-            expect(mockCreateOfframp).not.toHaveBeenCalled()
-            expect(mockSendMoney).not.toHaveBeenCalled()
-            expect(mockSetError).toHaveBeenCalledWith({
-                showError: true,
-                errorMessage: 'withdraw.errors.invalidAmount',
-            })
-        }
-    )
-
-    it('USD account: no quote is asked for (USD pays 1:1)', async () => {
-        armHappyOfframp()
-        mockOfframpConfig = { currency: 'usd', paymentRail: 'ach' }
-        const view = renderFlow({ amount: '50', step: 'review' })
-
-        expect(mockQuoteCalls.every((call) => call.currency === null)).toBe(true)
-        await submit(view)
-
-        expect(mockCreateOfframp).toHaveBeenCalledWith({
-            amount: '50',
-            developer_fee: '0',
-            onBehalfOf: 'cust-1',
-            source: SOURCE,
-            destination: { currency: 'usd', paymentRail: 'ach', externalAccountId: 'ext-1' },
-        })
-    })
 
     it('a quote received over a minute ago is replaced before create, and the user confirms the new numbers', async () => {
         armHappyOfframp()
@@ -923,7 +996,7 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
         expect(view.result.current.bankAmount?.quoteNotice).toBe('withdraw.reviewUpdatedQuote')
 
         // the new quote has other numbers; they are shown, and nothing runs on its own
-        landNewQuote(eurQuote({ sourceAmount: '2241.37', rate: '0.8923' }))
+        landNewQuote({ rate: '0.8923', sourceAmount: '2241.37', destinationAmount: '2000' })
         view.rerender()
         expect(view.result.current.amountToWithdraw).toBe('2241.37')
         expect(mockCreateOfframp).not.toHaveBeenCalled()
@@ -932,13 +1005,12 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
         expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
         expect(mockCreateOfframp.mock.calls[0][0]).toMatchObject({ amount: '2241.37' })
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
-        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2241.37', { kind: 'FIAT_OFFRAMP' })
         expect(view.result.current.bankAmount?.quoteNotice).toBeNull()
     })
 
-    it('an estimate from typed USDC is re-reviewed the same way when it is old', async () => {
+    it('an estimate from typed USD is re-reviewed the same way when it is old', async () => {
         armHappyOfframp()
-        mockQuote = eurQuote({ sourceAmount: '12.01', destinationAmount: '10.75' })
+        mockQuote = { rate: '0.8955', sourceAmount: '12.01', destinationAmount: '10.75' }
         mockQuoteReceivedAt = Date.now() - 61_000
         const view = renderFlow({ amount: '12.01', step: 'review' })
 
@@ -960,7 +1032,7 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
 
         await submit(view)
         expect(mockCreateOfframp).toHaveBeenCalledTimes(2)
-        expect(mockCreateOfframp.mock.calls[1][0]).toMatchObject({ amount: '2233.39', destination: EUR_DESTINATION })
+        expect(mockCreateOfframp.mock.calls[1][0]).toMatchObject({ amount: '2233.39' })
         expect(mockQuoteRequote).not.toHaveBeenCalled()
     })
 
@@ -971,7 +1043,7 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
             showError: true,
             errorMessage: 'qrPay.errors.paymentStatusUnknown',
         })
-        // the quote stops refreshing: no new numbers invite a second payment
+        // the quote stops: no new numbers invite a second payment
         expect(mockQuoteCalls.at(-1)?.enabled).toBe(false)
 
         await submit(view)
@@ -1049,121 +1121,143 @@ describe('useBridgeOfframpFlow — the quote on the review', () => {
         await submit(view)
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
     })
-
-    it('card re-approval dismissed before signing: the retry runs again with the same numbers (nothing was sent)', async () => {
-        armHappyOfframp()
-        mockSendMoney.mockRejectedValueOnce(new SpendRecoveryAbortedError(new Error('grant dismissed')))
-        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
-        await submit(view)
-
-        await submit(view)
-
-        expect(mockQuoteRequote).not.toHaveBeenCalled()
-        expect(mockCreateOfframp).toHaveBeenCalledTimes(2)
-        expect(mockCreateOfframp.mock.calls[1][0]).toMatchObject({ amount: '2233.39' })
-        expect(mockSendMoney).toHaveBeenCalledTimes(2)
-    })
-
-    it('a refused create is an ordinary error with the API message', async () => {
-        armHappyOfframp()
-        mockCreateOfframp.mockResolvedValueOnce({
-            error: 'The bank account cannot be used.',
-            code: 'BANK_ACCOUNT_NOT_USABLE',
-            status: 409,
-        })
-        const view = renderFlow({ destinationAmount: '2000', step: 'review' })
-
-        await submit(view)
-
-        expect(mockQuoteRequote).not.toHaveBeenCalled()
-        expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockSetError).toHaveBeenCalledWith({ showError: true, errorMessage: 'The bank account cannot be used.' })
-    })
 })
 
 /**
- * The £3 rail floor on a quoted GBP payout. The USD minimum converts at the
- * quote's rate, and the quoted payout itself must also reach £3: the provider
- * refuses anything under it, whatever the USD amount says.
+ * The £3 rail floor on a quoted GBP payout: the quoted payout itself must
+ * reach £3, whatever the USD amount says — the provider refuses anything under it.
  */
 describe('useBridgeOfframpFlow — rail minimum on a quoted payout', () => {
-    const gbpQuote = (overrides: Partial<MockQuote>) => eurQuote({ destinationCurrency: 'gbp', ...overrides })
-
     beforeEach(() => {
-        armHappyOfframp()
         mockCountryId = 'GB'
         mockOfframpConfig = { currency: 'gbp', paymentRail: 'faster_payments' }
-        mockExchangeRate = '0.7' // another rate source: must not decide a quoted withdrawal's minimum
     })
 
-    const submitWith = async (quote: MockQuote, destinationAmount: string) => {
-        mockQuote = quote
-        const view = renderFlow({ destinationAmount, step: 'review' })
-        await act(async () => {
-            view.result.current.handleCreateAndInitiateOfframp()
-        })
-        return view
-    }
-
-    it('the quoted payout is checked too: £2.99 is refused even when its USD clears the minimum', async () => {
-        // rate 0.8 → $4 minimum; a payout under £3 must not pass on the USD figure alone
-        await submitWith(gbpQuote({ rate: '0.8', sourceAmount: '5.00', destinationAmount: '2.99' }), '2.99')
-
-        expect(mockCreateOfframp).not.toHaveBeenCalled()
-        expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockSetError).toHaveBeenCalledWith({
-            showError: true,
-            errorMessage: 'withdraw.errors.minimumWithdrawal',
-        })
-    })
-
-    it('a payout of exactly £3.00 meets the floor', async () => {
-        await submitWith(gbpQuote({ rate: '0.8', sourceAmount: '5.00', destinationAmount: '3.00' }), '3')
-
-        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
-    })
-
-    it('an estimate from typed USDC under £3 is refused the same way', async () => {
-        mockQuote = gbpQuote({ rate: '0.8', sourceAmount: '5.00', destinationAmount: '2.99' })
+    it('an estimate from typed USD under £3 is refused even when its USD clears the $1 floor', async () => {
+        armHappyOfframp()
+        mockQuote = { rate: '0.8', sourceAmount: '5', destinationAmount: '2.99' }
         const view = renderFlow({ amount: '5', step: 'review' })
         await act(async () => {
             view.result.current.handleCreateAndInitiateOfframp()
         })
 
         expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.minimumWithdrawal',
+        })
     })
 
-    it('the minimum fails closed when the quote refresh failed', async () => {
-        mockQuoteError = true
-        const view = await submitWith(
-            eurQuote({
-                destinationCurrency: 'gbp',
-                rate: '0.75',
-                sourceAmount: '5.00',
-                destinationAmount: '3.75',
-            }),
-            '3.75'
-        )
+    it('an estimate of exactly £3.00 meets the floor', async () => {
+        armHappyOfframp()
+        mockQuote = { rate: '0.8', sourceAmount: '3.75', destinationAmount: '3.00' }
+        const view = renderFlow({ amount: '3.75', step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '3.75' }))
+    })
+})
+
+describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire (TASK-23054)', () => {
+    const submit = async (searchParams: Record<string, string>, reference = '') => {
+        armHappyOfframp()
+        const view = renderFlow(searchParams)
+        if (reference) act(() => view.result.current.setReference(reference))
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        return view
+    }
+    const sent = () => mockCreateOfframp.mock.calls[0][0] as Record<string, unknown>
+
+    it('goes out standard ACH by default, free, and the bank receives the whole amount', async () => {
+        const view = await submit({ amount: '50', step: 'review' })
+
+        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'ach', feeUsd: '0.00', receivedUsd: '50.00' })
+        expect(sent().destination).toMatchObject({ paymentRail: 'ach' })
+        // the fee is the backend's to set: the request carries none
+        expect(sent()).not.toHaveProperty('developer_fee')
+        expect(sent()).not.toHaveProperty('developerFee')
+    })
+
+    it('same day (the toggle on, ?speed=ach_same_day) sends ach_same_day, free, with the ACH reference field', async () => {
+        const view = await submit({ amount: '50', step: 'review', speed: 'ach_same_day' }, 'RENT SEP')
+
+        expect(view.result.current.usdSpeed).toMatchObject({ feeUsd: '0.00', receivedUsd: '50.00' })
+        expect(sent().destination).toEqual({
+            currency: 'usd',
+            paymentRail: 'ach_same_day',
+            externalAccountId: 'ext-1',
+            achReference: 'RENT SEP',
+        })
+    })
+
+    it('picking a speed moves the review to it', async () => {
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect('ach_same_day')
+        })
+        expect(view.result.current.usdSpeed?.selected).toBe('ach_same_day')
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect('wire')
+        })
+        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'wire', feeUsd: '20.00' })
+    })
+
+    it.each([
+        ['ach_same_day' as const, 'the same-day toggle'],
+        ['wire' as const, 'the wire tab'],
+    ])('the speed picked on the review (%s, %s) is the rail the transfer is created on', async (speed, _control) => {
+        armHappyOfframp()
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.usdSpeed!.onSelect(speed)
+        })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(sent().destination).toMatchObject({ paymentRail: speed })
+    })
+
+    it('a wire goes out on the wire rail with its memo, and the review shows the fee and the net', async () => {
+        const view = await submit({ amount: '50', step: 'review', speed: 'wire' }, 'Invoice 42 / rent')
+
+        expect(view.result.current.usdSpeed).toMatchObject({ selected: 'wire', feeUsd: '20.00', receivedUsd: '30.00' })
+        expect(view.result.current.referenceSpec?.field).toBe('wireMessage')
+        expect(sent().destination).toEqual({
+            currency: 'usd',
+            paymentRail: 'wire',
+            externalAccountId: 'ext-1',
+            wireMessage: 'Invoice 42 / rent',
+        })
+    })
+
+    it('a wire that cannot be picked goes out standard ACH, whatever the URL asks', async () => {
+        mockSpeedOptions = [
+            { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+            { speed: 'wire', feeUsd: '20.00', minimumUsd: '21.00', block: 'belowMinimum' },
+        ]
+        const view = await submit({ amount: '10', step: 'review', speed: 'wire' })
+
+        expect(view.result.current.usdSpeed?.selected).toBe('ach')
+        expect(sent().destination).toMatchObject({ paymentRail: 'ach' })
+    })
+
+    it('while the fees and the account rails load, nothing is sent', async () => {
+        mockSpeedsReady = false
+        const view = await submit({ amount: '50', step: 'review', speed: 'wire' })
 
         expect(view.result.current.isSubmitReady).toBe(false)
-        expect(view.result.current.bankAmount?.quoteFailed).toBe(true)
         expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
     })
 
-    it('the minimum converts at the quote rate (Bridge’s own rate), no other rate read', async () => {
-        await submitWith(
-            eurQuote({
-                destinationCurrency: 'gbp',
-                rate: '0.75',
-                sourceAmount: '4.00',
-                destinationAmount: '3.00',
-            }),
-            '3'
-        )
+    it('offers no speed on a non-USD account', () => {
+        mockOfframpConfig = { currency: 'eur', paymentRail: 'sepa' }
+        const view = renderFlow({ amount: '50', step: 'review', speed: 'wire' })
 
-        // Bridge 0.75 → $4; the bank amount stays an estimate
-        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '4' }))
-        expect(mockCreateOfframp.mock.calls[0][0]).not.toHaveProperty('quoteId')
-        expect(mockExchangeRateCalls.every((call) => !call.enabled)).toBe(true)
+        expect(view.result.current.usdSpeed).toBeNull()
     })
 })

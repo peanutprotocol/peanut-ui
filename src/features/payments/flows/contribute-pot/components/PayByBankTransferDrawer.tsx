@@ -117,11 +117,13 @@ export function PayByBankTransferDrawer({
                 }
                 body={
                     <div className="text-body-xs">
-                        {figure
-                            ? t(figure.approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
-                                  amount: formatBankAmount(figure.value, figure.currency),
-                              })
-                            : t('bankTransfer.description')}
+                        {!figure
+                            ? t('bankTransfer.description')
+                            : figure.approx
+                              ? t('bankTransfer.amountValueApprox', {
+                                    amount: formatBankAmount(figure.value, figure.currency),
+                                })
+                              : formatBankAmount(figure.value, figure.currency)}
                     </div>
                 }
                 onClick={() => setIsOpen(true)}

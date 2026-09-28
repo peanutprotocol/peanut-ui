@@ -51,8 +51,8 @@ export function SemanticRequestReceiptView() {
             ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`)
             : undefined
 
-        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
-        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         // determine who paid (payer name for display)
         const payerName = successfulPayment.payerAccount?.user?.username || successfulPayment.payerAddress || 'Unknown'

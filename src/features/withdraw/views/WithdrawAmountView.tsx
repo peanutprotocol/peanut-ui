@@ -40,11 +40,11 @@ interface WithdrawAmountViewProps {
         /** Destination units per 1 USD, fees included. */
         rate: number
         initialAmount: string
-        /** 'USD' when a USD amount was carried in: the field opens on USD, toggleable. */
-        initialDenomination?: string
+        /** 'USD' when the amount is in USD (toggled, or carried in from Rates & fees); `initialAmount` is then the USD. */
+        initialDenomination: string
         onAmountChange: (value: string) => void
         /** The unit the field shows ('USD' or the bank currency), on open and on every switch. */
-        onDenominationChange?: (symbol: string) => void
+        onDenominationChange: (symbol: string) => void
     }
 }
 
@@ -84,11 +84,13 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                     <AmountInput
                         initialAmount={bankAmount.initialAmount}
                         initialDenomination={bankAmount.initialDenomination}
-                        setCurrentDenomination={bankAmount.onDenominationChange}
                         setPrimaryAmount={bankAmount.onAmountChange}
                         setSecondaryAmount={onAmountChange}
+                        setCurrentDenomination={bankAmount.onDenominationChange}
                         primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
                         secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                        // the quote rounds the USDC up to the cent; the line and the balance check match it
+                        roundSecondaryUp
                         walletBalance={walletBalance}
                         // the balance row is USD and the field is the bank currency:
                         // floor the USD to cents first so the fill never quotes above it

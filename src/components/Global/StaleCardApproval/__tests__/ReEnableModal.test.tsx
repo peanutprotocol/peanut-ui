@@ -26,6 +26,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         title?: string
         description?: string
         ctas?: { text: string; onClick: () => void }[]
+        tertiaryCta?: { text: string; disabled?: boolean; onClick?: () => void }
     }) =>
         props.visible ? (
             <div data-testid="modal">
@@ -36,6 +37,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {props.tertiaryCta && <button onClick={props.tertiaryCta.onClick}>{props.tertiaryCta.text}</button>}
             </div>
         ) : null,
 }))

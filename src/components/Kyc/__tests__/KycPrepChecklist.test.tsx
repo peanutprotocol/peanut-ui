@@ -29,7 +29,8 @@ describe('KycPrepChecklist', () => {
     it('drops the extra-document note on the hosted path', () => {
         render(<KycPrepChecklist path="hosted" />)
         expect(screen.queryByText('extraDocNote')).not.toBeInTheDocument()
-        expect(screen.getByText('howLongLabel')).toBeInTheDocument()
+        expect(screen.queryByText('howLongLabel')).not.toBeInTheDocument()
+        expect(screen.getByTestId('kyc-prep-single-session')).toHaveTextContent('howLong.hosted')
     })
 
     /*

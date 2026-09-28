@@ -66,8 +66,8 @@ export default function ExchangeRatePage() {
     )
     const goesToAddMoney = destination.startsWith('/add-money')
 
-    // A Bridge bank withdrawal's floor comes from Bridge's own rate — the same
-    // gate the amount step and the bank submit enforce — never from the
+    // A Bridge bank withdrawal's floor is the payout minimum the amount step and
+    // the bank submit enforce, in USD at Bridge's own rate — never at the
     // widget's indicative display rate. Queried only for that route.
     const bankCountry = getExchangeRateWidgetBankCountry(routableFrom, routableTo, formattedBalance)
     const bankMinimum = useBankWithdrawMinimum(bankCountry ?? '', { enabled: bankCountry !== null })

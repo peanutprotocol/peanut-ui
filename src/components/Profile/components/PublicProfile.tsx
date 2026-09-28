@@ -296,7 +296,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 >
                     <DrawerContent>
                         <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
-                            <IconBubble icon="user" className="bg-action-primary" />
+                            <IconBubble icon="user" color="yellow" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
                                 <DrawerDescription>

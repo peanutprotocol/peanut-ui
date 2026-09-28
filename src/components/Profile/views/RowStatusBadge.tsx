@@ -1,8 +1,7 @@
 'use client'
 
 import Badge from '@/components/Global/Badges/Badge'
-import type { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import type { UnlockChip, UnlockRow } from '@/utils/unlock-payments.utils'
+import type { UnlockRow } from '@/utils/unlock-payments.utils'
 
 /**
  * The one status-badge vocabulary for a KYC-unlock row (bank/QR rows and the
@@ -36,16 +35,4 @@ export function rowStatusBadge(row: UnlockRow, t: (key: any) => string) {
 /** During a verification outage the unlock path is closed, so those rows render inert. */
 export function isRowTappable(row: UnlockRow, isKycDegraded: boolean): boolean {
     return !!row.href || row.chip === 'active' || row.chip === 'alwaysOn' || (!!row.regionPath && !isKycDegraded)
-}
-
-type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
-
-/** IconBubble color per chip — used only by rows that still lead with an icon (the Peanut group). */
-export const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
-    attention: 'yellow',
-    notAvailable: 'gray',
 }

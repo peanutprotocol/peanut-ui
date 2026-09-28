@@ -67,7 +67,12 @@ const InvitesPage = () => {
         console.error('Error loading invites:', error)
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <EmptyState icon="alert" title={t('loadInvitesFailed')} description={t('contactSupport')} />
+                <EmptyState
+                    icon="alert"
+                    iconColor="red"
+                    title={t('loadInvitesFailed')}
+                    description={t('contactSupport')}
+                />
             </div>
         )
     }
@@ -81,7 +86,7 @@ const InvitesPage = () => {
                 <NavHeader title={t('invitesTitle')} onPrev={onBack} />
                 <div className="mx-auto my-auto w-full">
                     <EmptyState
-                        icon="trophy"
+                        concept="rewards"
                         title={t('noInvitesYet')}
                         description={t('shareInviteLinkPrompt')}
                         cta={

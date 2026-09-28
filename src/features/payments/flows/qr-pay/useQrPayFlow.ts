@@ -12,13 +12,12 @@ import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { isAddress, parseUnits } from 'viem'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { mantecaApi } from '@/services/manteca'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -59,6 +58,7 @@ import {
     classifyScanOutcome,
     isNonRetryableQrInitError,
     QR_INIT_CODE,
+    SUPPORT_ACTIONABLE_FAILURES,
 } from './init-error-classifier'
 import { useQrFailureCopy } from './useQrFailureCopy'
 import { useQrPayKycGate } from './useQrPayKycGate'
@@ -108,7 +108,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
     // /home pop the user back into a stale error / KYC screen. Replace instead of push.
     const onBack = useSafeBack('/home', { replace: true })
@@ -495,6 +497,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         () => entryGuardError ?? (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
         [entryGuardError, scanOutcome, scanFailureCopy]
     )
+    // The generic init card has no support entry; these refusals need one.
+    const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
@@ -519,6 +523,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
             } else if (scanOutcome.reason === QR_INIT_CODE.EXPIRED) {
                 posthog.capture(ANALYTICS_EVENTS.QR_MERCHANT_CHARGE_EXPIRED_SHOWN, { qr_type: qrType })
+            } else if (scanOutcome.reason === QR_INIT_CODE.SENDER_REJECTED) {
+                // A support case, not a transport failure: nothing else records it.
+                posthog.capture(ANALYTICS_EVENTS.QR_SENDER_REJECTED_SHOWN, { qr_type: qrType })
             }
         }
     }, [
@@ -562,12 +569,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             const elapsed = Date.now() - hiddenAt
             hiddenAt = null
             if (elapsed > STALE_THRESHOLD_MS) {
-                router.push('/home')
+                leaveToHome()
             }
         }
         document.addEventListener('visibilitychange', onVisibility)
         return () => document.removeEventListener('visibilitychange', onVisibility)
-    }, [router])
+    }, [leaveToHome])
 
     /*
      * Editing the amount clears the last init error. A cap or Pix-minimum
@@ -751,8 +758,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                  * headroom. Routing that to "unexpected error" threw away the
                  * one screen that could tell them to try a smaller amount.
                  */
-                telemetry.stage('lock_ready', { outcome: 'failed' })
                 const deterministic = classifyQrInitError(error, 'amount-entry')
+                telemetry.stage('lock_ready', {
+                    outcome: 'failed',
+                    ...(deterministic ? { failureCode: deterministic.code } : {}),
+                })
                 if (deterministic) {
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
@@ -1226,6 +1236,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         isSuccess,
         errorMessage,
         errorInitiatingPayment,
+        initErrorNeedsSupport,
         isBlockingError,
         balanceErrorMessage,
         // controller-rotation quote handoff

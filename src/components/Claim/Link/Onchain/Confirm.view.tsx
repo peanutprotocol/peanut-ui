@@ -286,7 +286,7 @@ export const ConfirmClaimLinkView = ({
                         />
 
                         {/* Peanut fee row */}
-                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />
+                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$0'} hideBottomBorder />
                     </Card>
                 )}
 

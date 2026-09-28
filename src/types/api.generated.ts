@@ -370,6 +370,7 @@ export interface paths {
                                 name: string;
                                 publicDescription: string;
                             } & {
+                                earnable: boolean;
                                 unlock: {
                                     /** @enum {string} */
                                     kind: "invites";
@@ -950,7 +951,19 @@ export interface paths {
                                 blockchainMemo?: string;
                                 toAddress: string;
                             };
+                            intentId: string;
                             transferId: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -1078,6 +1091,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1090,6 +1104,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1102,6 +1117,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1114,6 +1130,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1160,6 +1177,52 @@ export interface paths {
                             rate: string;
                             sourceAmount?: string;
                             updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bridge/offramp/rail-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rails a USD bank payout may use, and the fee for each */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            currency: "USD";
+                            minimumAfterFeeUsd: string;
+                            rails: {
+                                feeUsd: string;
+                                rail: "ach" | "ach_same_day" | "wire";
+                            }[];
                         };
                     };
                 };
@@ -5898,8 +5961,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -6157,8 +6220,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -7586,6 +7649,8 @@ export interface paths {
                         amount: string;
                         chargeId?: string;
                         directTransfer: boolean;
+                        /** Format: uuid */
+                        fundsIntentId?: string;
                         recipientAddress: string;
                         totalAmountCents?: string;
                     };
@@ -7989,8 +8054,8 @@ export interface paths {
                         executorSignature: string;
                         expiresAt: number;
                         preparationId: string;
-                        recipientAddress: string;
                         preparedCoordinatorAddress?: string;
+                        recipientAddress: string;
                     };
                 };
             };
@@ -8227,8 +8292,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8496,8 +8561,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -10420,39 +10485,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/test-error": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/tokens/price": {
         parameters: {
             query?: never;
@@ -10610,7 +10642,6 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
-                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -10674,6 +10705,7 @@ export interface paths {
                             /** @enum {string} */
                             code: "RESIDENCE_CHANGE_UNAVAILABLE";
                             error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -11013,7 +11045,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -11033,6 +11065,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -11051,7 +11085,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -11474,6 +11508,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
+                                cause?: "review-action" | "review-pending" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
@@ -11584,6 +11619,16 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                levelKey?: string;
+                                purpose: string;
+                                requirementKey?: string;
+                                tosUrl?: string;
+                            };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
                                 issues: string[];
@@ -11591,16 +11636,6 @@ export interface paths {
                                 pending: string[];
                             };
                             verificationUrl?: string;
-                            nextAction?: {
-                                currency?: string;
-                                effectiveDate?: string;
-                                key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
-                                levelKey?: string;
-                                purpose: string;
-                                requirementKey?: string;
-                                tosUrl?: string;
-                            };
                         };
                     };
                 };
@@ -11624,6 +11659,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12364,7 +12400,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -12384,6 +12420,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12402,7 +12440,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -12430,8 +12468,8 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
-                                reviewedAt?: string;
                                 reviewPending?: boolean;
+                                reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
@@ -12674,6 +12712,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12687,6 +12726,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12700,6 +12740,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };

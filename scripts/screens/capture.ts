@@ -436,7 +436,14 @@ async function main() {
                 }
                 for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
-                    else await page.locator(action.fill.selector).fill(action.fill.value)
+                    else {
+                        await page.locator(action.fill.selector).fill(action.fill.value)
+                        // Pause like a person before the next tap. The app writes a typed value to the
+                        // URL after a short throttle (nuqs, 50 ms), and in Next.js a URL write that lands
+                        // during a navigation discards it: an instant Continue went nowhere (p64, 5 of 40 local
+                        // runs). An in-page timer fires after the app's earlier one, whatever the CPU load.
+                        await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)))
+                    }
                 }
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })

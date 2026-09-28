@@ -1,8 +1,8 @@
 /**
- * The Bridge bank minimum, through the REAL rate hook and a shared QueryClient
- * with only the network mocked — so a mocked final rate string cannot hide a
- * fallback again. Every consumer (widget page, amount step, bank submit) reads
- * this gate, so what it says is what all three enforce.
+ * The Bridge bank minimum Rates & fees shows, through the REAL rate hook and a
+ * shared QueryClient with only the network mocked — so a mocked final rate
+ * string cannot hide a fallback again. The withdraw flows compare the same
+ * payout minimum in the bank's currency; this is it in USD, up to the cent.
  */
 import { act, renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
@@ -37,18 +37,20 @@ const bridgeRate = (rates: Partial<Record<AccountType, string | { error: string 
 beforeEach(() => getExchangeRateMock.mockReset())
 
 describe('useBankWithdrawMinimum', () => {
-    it('MX at Bridge 17: $3 (ceil 50 / 17)', async () => {
+    // $2.95 × 17 = 50.15 MXN reaches 50; $2.94 × 17 = 49.98 does not. A
+    // whole-dollar ceiling asked $3 (51 MXN) for a 50 MXN minimum.
+    it('MX at Bridge 17: $2.95, the cent that reaches 50 MXN', async () => {
         bridgeRate({ [AccountType.CLABE]: '17' })
         const { result, client } = renderGate('MX')
-        await waitFor(() => expect(result.current).toEqual({ minUsd: 3, status: 'ready' }))
+        await waitFor(() => expect(result.current).toEqual({ minUsd: 2.95, status: 'ready' }))
         expect(getExchangeRateMock).toHaveBeenCalledWith(AccountType.CLABE)
         client.clear()
     })
 
-    it("MX at Bridge 16.5: $4 — Bridge's rate, whatever an indicative quote says", async () => {
+    it("MX at Bridge 16.5: $3.04 — Bridge's rate, whatever an indicative quote says", async () => {
         bridgeRate({ [AccountType.CLABE]: '16.5' })
         const { result, client } = renderGate('MX')
-        await waitFor(() => expect(result.current).toEqual({ minUsd: 4, status: 'ready' }))
+        await waitFor(() => expect(result.current).toEqual({ minUsd: 3.04, status: 'ready' }))
         client.clear()
     })
 
@@ -70,7 +72,7 @@ describe('useBankWithdrawMinimum', () => {
     it('a refresh that fails blocks again, and recovery restores the matching threshold', async () => {
         bridgeRate({ [AccountType.CLABE]: '17' })
         const { result, client } = renderGate('MX')
-        await waitFor(() => expect(result.current.minUsd).toBe(3))
+        await waitFor(() => expect(result.current.minUsd).toBe(2.95))
 
         bridgeRate({ [AccountType.CLABE]: { error: 'upstream 500' } })
         await act(async () => {
@@ -83,18 +85,25 @@ describe('useBankWithdrawMinimum', () => {
         await act(async () => {
             await client.refetchQueries({ queryKey: ['exchangeRate', AccountType.CLABE] })
         })
-        await waitFor(() => expect(result.current).toEqual({ minUsd: 4, status: 'ready' }))
+        await waitFor(() => expect(result.current).toEqual({ minUsd: 3.04, status: 'ready' }))
         client.clear()
     })
 
-    it('GB uses the GBP query (£3 at 0.79 → $4); a pair change never reuses another country', async () => {
+    it('GB uses the GBP query (£3 at 0.79 → $3.80); a pair change never reuses another country', async () => {
         bridgeRate({ [AccountType.GB]: '0.79', [AccountType.CLABE]: '17' })
         const { result, rerender, client } = renderGate('GB')
-        await waitFor(() => expect(result.current.minUsd).toBe(4))
+        await waitFor(() => expect(result.current.minUsd).toBe(3.8))
         expect(getExchangeRateMock).toHaveBeenCalledWith(AccountType.GB)
 
         rerender({ iso2: 'MX', on: true })
-        await waitFor(() => expect(result.current.minUsd).toBe(3))
+        await waitFor(() => expect(result.current.minUsd).toBe(2.95))
+        client.clear()
+    })
+
+    it('an exact conversion stays on its cent: £3 at 0.75 is $4, not $4.01', async () => {
+        bridgeRate({ [AccountType.GB]: '0.75' })
+        const { result, client } = renderGate('GB')
+        await waitFor(() => expect(result.current).toEqual({ minUsd: 4, status: 'ready' }))
         client.clear()
     })
 

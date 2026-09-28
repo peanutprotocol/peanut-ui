@@ -12,6 +12,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
@@ -26,6 +27,7 @@ type InitiateKycVariant =
     | 'cross_region'
     | 'country_payments'
     | 'region-unavailable'
+    | 'bank-unavailable'
 
 interface InitiateKycModalProps {
     cooldownActive?: boolean
@@ -126,8 +128,10 @@ export const InitiateKycModal = ({
     // Resolved once so every branch below reads one variant rather than each
     // re-checking the residence — the caller's variant is what the rail gate
     // could see, this is what the user's residence makes of it.
-    const resolvedVariant: InitiateKycVariant | 'bank-unavailable' =
-        isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
+    // A caller may also pass 'bank-unavailable' itself: the rail's own
+    // `residence_bank_restricted` refusal (resolveKycModalVariant), which covers
+    // a pending residence this device's restriction read cannot see.
+    const resolvedVariant: InitiateKycVariant = isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
     const isBankUnavailable = resolvedVariant === 'bank-unavailable'
     const isProviderRejection = resolvedVariant === 'provider_rejection'
     const isBlocked = resolvedVariant === 'blocked'
@@ -254,9 +258,9 @@ export const InitiateKycModal = ({
                         >
                             {t('degraded.notifyMe')}
                         </Button>
-                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
-                            {tCommon('gotIt')}
-                        </Button>
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={onClose}>{tCommon('gotIt')}</LinkButton>
+                        </div>
                     </div>
                 </DrawerContent>
             </Drawer>

@@ -122,17 +122,9 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
-// Keep this to badges the API can currently award (plus active campaigns).
+// Mirror GET /badge/catalog: only badges a user can earn today.
 // Registry metric metadata alone is not an unlock path.
 const DEMO_BADGE_CATALOG = [
-    {
-        code: 'BETA_TESTER',
-        name: 'Beta Tester',
-        description: 'Early enough to be part of the experiment.',
-        publicDescription: 'Early enough to be part of the experiment.',
-        iconUrl: '/badges/beta_tester.svg',
-        unlock: { kind: 'special_recognition' },
-    },
     {
         code: 'CARD_FIRST_SWIPE',
         name: 'First Swipe',
@@ -140,6 +132,7 @@ const DEMO_BADGE_CATALOG = [
         publicDescription: 'They put their card to work.',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
+        earnable: true,
     },
     {
         code: 'CARD_SPENT_1K',
@@ -148,6 +141,7 @@ const DEMO_BADGE_CATALOG = [
         publicDescription: '$1K swiped.',
         iconUrl: '/badges/money_stack.svg',
         unlock: { kind: 'card_spend', targetUsd: 1000 },
+        earnable: true,
     },
     {
         code: 'ENS',
@@ -156,14 +150,16 @@ const DEMO_BADGE_CATALOG = [
         publicDescription: 'They moved money with an ENS name.',
         iconUrl: '/badges/ens.svg',
         unlock: { kind: 'ens_payment' },
+        earnable: true,
     },
     {
-        code: 'SURF_UP',
-        name: "Surf's Up",
-        description: 'You caught the wave early.',
-        publicDescription: 'They caught the wave early.',
-        iconUrl: '/badges/surf_up.svg',
+        code: 'TRON',
+        name: 'Tron Native',
+        description: 'Found on Tron. Where the dollars actually move.',
+        publicDescription: 'Found on Tron. Where the dollars actually move.',
+        iconUrl: '/badges/tron.svg',
         unlock: { kind: 'campaign' },
+        earnable: true,
     },
 ]
 

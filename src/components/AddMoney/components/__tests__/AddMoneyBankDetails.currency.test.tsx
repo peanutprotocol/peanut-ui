@@ -61,11 +61,11 @@ it.each(['germany', 'france', 'poland'])(
     async (country) => {
         mockQueryCountry = country
         renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
-        expect(screen.getByText('€40.00')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Copy €40.00' })).toBeInTheDocument()
+        expect(screen.getByText('€40')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Copy €40' })).toBeInTheDocument()
         expect(mockQuote).toHaveBeenCalledWith({ accountType: 'iban', enabled: true })
         fireEvent.click(screen.getByText('Share'))
-        await waitFor(() => expect(mockShare).toHaveBeenCalledWith(expect.stringContaining('€40.00')))
+        await waitFor(() => expect(mockShare).toHaveBeenCalledWith(expect.stringContaining('€40')))
     }
 )
 
@@ -73,17 +73,17 @@ it('keeps the web path country ahead of query state', () => {
     mockPathCountry = 'germany'
     mockQueryCountry = 'us'
     renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
-    expect(screen.getByText('€40.00')).toBeInTheDocument()
+    expect(screen.getByText('€40')).toBeInTheDocument()
 })
 
 it('keeps USD for the US fallback', () => {
     renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
-    expect(screen.getByText('$40.00')).toBeInTheDocument()
+    expect(screen.getByText('$40')).toBeInTheDocument()
 })
 
 it('uses the request country instead of add-money URL state', () => {
     mockRequestCountry = countryData.find((country) => country.path === 'germany')
     mockQueryCountry = 'us'
     renderWithIntl(<AddMoneyBankDetails flow="request-fulfillment" />)
-    expect(screen.getByText('€40.00')).toBeInTheDocument()
+    expect(screen.getByText('€40')).toBeInTheDocument()
 })

@@ -63,6 +63,10 @@ export const REASON_CODE_KEYS = {
     // this entry the copy ships in English to every locale.
     residence_unresolved: 'reasons.residence_unresolved',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
+    // Any other residence the bank rails are closed to (api#1738). Country-
+    // neutral on purpose: the UK line names UK regulation, which is false for
+    // a Japanese or Sudanese resident.
+    residence_bank_restricted: 'reasons.residence_bank_restricted',
 } as const
 
 export type KnownReasonCode = keyof typeof REASON_CODE_KEYS

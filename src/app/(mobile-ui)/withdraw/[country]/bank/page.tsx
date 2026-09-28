@@ -1,13 +1,12 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { getCountryFromPath } from '@/utils/bridge.utils'
@@ -18,6 +17,7 @@ import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { payoutAmounts } from '@/features/withdraw/bank-amount'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
@@ -30,7 +30,9 @@ import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 export default function WithdrawBankPage() {
     const locale = useLocale()
     const tNav = useTranslations('navigation')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const flow = useBridgeOfframpFlow()
     const bankRegionIntent = useBankRegionIntent()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -48,9 +50,14 @@ export default function WithdrawBankPage() {
         bankAmount,
     } = flow
 
-    if (!bankAccount) {
+    if (!bankAccount || !flow.payout) {
         return null
     }
+
+    // the success screen shows what executed, never the still-editable URL (Chip round 8)
+    const successAmounts = flow.executedAmountUsd
+        ? payoutAmounts(flow.executedAmountUsd, flow.executedPayout ?? flow.payout)
+        : null
 
     // a quoted withdrawal's amounts come from its quote — nothing to review
     // before the first one, or while a replaced quote is on its way. A later
@@ -83,7 +90,7 @@ export default function WithdrawBankPage() {
                 onPrev={() => {
                     if (step === 'success') {
                         // the flow provider is /withdraw-scoped — navigation IS the reset
-                        router.push('/home')
+                        leaveToHome()
                     } else {
                         flow.onBack()
                     }
@@ -94,21 +101,15 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
-                    bankAmount={
-                        bankAmount?.quote?.destinationAmount
-                            ? {
-                                  currency: bankAmount.currency,
-                                  destinationAmount: bankAmount.quote.destinationAmount,
-                                  rate: bankAmount.quote.rate,
-                              }
-                            : undefined
-                    }
-                    quoteNotice={bankAmount?.quoteNotice ?? null}
+                    payout={flow.payout}
+                    isRateLoading={flow.isRateLoading}
                     fromSendFlow={fromSendFlow}
+                    verificationDeadline={flow.advisoryDeadline}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
                     submittedTxHash={flow.submittedTxHash}
                     sendOutcomeUnknown={flow.sendOutcomeUnknown}
+                    quoteNotice={bankAmount?.quoteNotice ?? null}
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}
@@ -119,16 +120,19 @@ export default function WithdrawBankPage() {
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
-                    onDone={() => router.push('/home')}
+                    onDone={leaveToHome}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
+                    onAddBankAccountAgain={flow.onAddBankAccountAgain}
+                    usdSpeed={flow.usdSpeed}
                 />
             )}
 
-            {step === 'success' && (
+            {step === 'success' && successAmounts && (
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={`$${flow.executedAmountUsd ?? amountToWithdraw}`}
+                    currencyAmount={successAmounts.headline}
+                    secondaryAmount={successAmounts.secondary}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                 />
@@ -181,8 +185,6 @@ export default function WithdrawBankPage() {
                 reasonCode={getGateReasonCode(gate)}
                 regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
-            <AdvisoryPreemptModal {...flow.advisoryModalProps} />
-
             <KycReverificationPendingModal
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}

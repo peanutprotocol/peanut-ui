@@ -4,7 +4,6 @@ import { join } from 'node:path'
 const LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR']
 const COPY_PATHS = new Map([
     ['Continue', 'common.continue'],
-    ['Start Spending', 'home.activation.steps.outbound.cta'],
     ['What if I lose my phone?', 'profile.backup.faq.losePhone'],
     ['What if I change phone?', 'profile.backup.faq.changePhone'],
     ["Why can't I export my private key?", 'profile.backup.faq.exportKeys'],
@@ -13,6 +12,7 @@ const COPY_PATHS = new Map([
     ['Earn from invites', 'global.earlyUserModal.title'],
     ["Chat couldn't load", 'global.supportDrawer.chatLoadFailed'],
     ['A small update to our terms', 'global.reConsent.title'],
+    ['Open new account', 'depositAccounts.list.openTitle'],
 ])
 
 const read = (source, locale) =>

@@ -1,7 +1,9 @@
 import { type Account } from '@/interfaces/interfaces'
 import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { OFFRAMP_QUOTE_CURRENCIES, QUOTE_AMOUNT_PATTERN } from '@/utils/offramp-quote.utils'
 import { parseUsdAmount } from './amount-validation'
+import { type ReviewPayout } from './types'
 
 /**
  * The currency the account is paid in, when the user types the amount in it
@@ -20,11 +22,11 @@ export function bankAmountCurrency(account: Account | null | undefined): string 
 }
 
 /**
- * A typed USDC amount (`?amount=`, older links) as the quote can price it:
- * cut to whole cents, never rounded up, because the quote takes 2 decimals.
- * The review then shows the quote's amount, so the user confirms exactly what
- * leaves. Null only for an amount the submit refuses anyway: not a plain
- * decimal, more than the token's 6 decimals, or under one cent.
+ * A typed USDC amount (`?amount=`) as the quote can price it: cut to whole
+ * cents, never rounded up, because the quote takes 2 decimals. The review then
+ * shows the quote's amount, so the user confirms exactly what leaves. Null
+ * only for an amount the submit refuses anyway: not a plain decimal, more than
+ * the token's 6 decimals, or under one cent.
  */
 export function quotableSourceAmount(amount: string): string | null {
     const normalized = parseUsdAmount(amount)
@@ -45,4 +47,20 @@ export function normalizeBankAmount(value: string | null | undefined): string | 
     if (amount.endsWith('.')) amount = amount.slice(0, -1)
     if (amount.startsWith('.')) amount = `0${amount}`
     return QUOTE_AMOUNT_PATTERN.test(amount) ? amount : null
+}
+
+/**
+ * The two amounts of a bank withdrawal, in the order the user reads them: the
+ * currency they typed the amount in leads (TASK-23054). The bank amount is "≈"
+ * because the provider converts at settlement; the USD that leaves the balance
+ * is exact. A USD payout, or a bank amount not quoted yet, has one amount.
+ */
+export function payoutAmounts(
+    usdAmount: string,
+    payout: Pick<ReviewPayout, 'currency' | 'amount' | 'enteredInBankCurrency'>
+): { headline: string; secondary?: string } {
+    const usd = formatBankAmount(usdAmount, 'USD')
+    const bank = payout.amount ? `≈ ${formatBankAmount(payout.amount, payout.currency)}` : undefined
+    if (!bank) return { headline: usd }
+    return payout.enteredInBankCurrency ? { headline: bank, secondary: usd } : { headline: usd, secondary: bank }
 }

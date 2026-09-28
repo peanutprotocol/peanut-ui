@@ -45,7 +45,7 @@ describe('InitiateKycModal — country_payments', () => {
 
     it('keeps the unlock CTA and the prep checklist of a fresh ID check', () => {
         renderModal({ variant: 'country_payments', regionName: 'Brazil', prepPath: 'extended' })
-        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
     })
 
     it('falls back to the generic copy with no country name', () => {

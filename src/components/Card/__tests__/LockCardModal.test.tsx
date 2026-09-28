@@ -155,7 +155,7 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
-    it('offers "Keep card" as a ghost button, and it closes without canceling', () => {
+    it('offers "Keep card" as the tertiary link, and it closes without canceling', () => {
         setup(OVERVIEW)
         const onClose = jest.fn()
         render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })

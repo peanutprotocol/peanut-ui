@@ -13,7 +13,7 @@ import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -68,6 +68,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // ?method=bank — so the marker alone doesn't mean "send". Same guard as
     // AddWithdrawRouterView.
     const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
+    // Back from a country returns to the list it was picked from. Rewinding,
+    // not pushing: a pushed list kept the country page under it, so browser
+    // back from the list reopened the country.
+    const leaveForParent = useReturnTo(
+        flow === 'add'
+            ? '/add-money?method=bank'
+            : isBankFromSend
+              ? `/withdraw?showAll=true&method=${methodParam}`
+              : '/withdraw?showAll=true&rail=bank'
+    )
 
     // hooks
     const { deviceType } = useDeviceType()
@@ -183,15 +193,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         router.replace(`/withdraw${isBankFromSend ? `?method=${methodParam}` : ''}`)
     }, [flow, view, currentCountry, router, isBankFromSend, methodParam])
 
+    // A country whose one live rail is Manteca has no screen here: it forwards to
+    // that flow. Known from the URL on the first render, so the rail list never
+    // shows on the way (TASK-23054).
+    const mantecaForwardPath =
+        liveRails.length === 1 && liveRails[0].path?.includes('/manteca') ? liveRails[0].path : undefined
     useEffect(() => {
-        const rail = liveRails.length === 1 ? liveRails[0] : undefined
-        if (rail?.path?.includes('/manteca')) {
-            const extra = new URLSearchParams()
-            if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
-            if (urlAmount) extra.set('amount', urlAmount)
-            router.replace(rewriteMethodPath(rail.path, extra.toString()))
-        }
-    }, [liveRails, router, isBankFromSend, methodParam, urlAmount])
+        if (!mantecaForwardPath) return
+        const extra = new URLSearchParams()
+        if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
+        if (urlAmount) extra.set('amount', urlAmount)
+        router.replace(rewriteMethodPath(mantecaForwardPath, extra.toString()))
+    }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
@@ -468,6 +481,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // The redirect above is in flight. Rendering the form meanwhile would flash
     // a screen the user cannot complete, which is the thing being prevented.
     if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
+    if (mantecaForwardPath) return null
 
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (
@@ -541,11 +555,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // the user on the same form with a dead back button.
                         if (railListSkipped || isSepaDestination) {
                             withdrawFlow?.setSelectedBankAccount(null)
-                            router.push(
-                                isBankFromSend
-                                    ? `/withdraw?showAll=true&method=${methodParam}`
-                                    : '/withdraw?showAll=true&rail=bank'
-                            )
+                            leaveForParent()
                             return
                         }
                         // Only update query state when staying on this route. A queued
@@ -657,21 +667,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {
-                    if (flow === 'add') {
-                        router.push('/add-money?method=bank')
-                    } else {
+                    if (flow === 'withdraw') {
                         withdrawFlow?.setSelectedMethod(null)
                         withdrawFlow?.setSelectedBankAccount(null)
                         void setUrlAmount(null)
-                        // the country list is only ever reached on the bank rail —
-                        // name it so the chooser does not re-offer crypto on the
-                        // way back
-                        router.push(
-                            isBankFromSend
-                                ? `/withdraw?showAll=true&method=${methodParam}`
-                                : '/withdraw?showAll=true&rail=bank'
-                        )
                     }
+                    // the withdraw country list is only ever reached on the bank
+                    // rail — without history, the fallback names it so the chooser
+                    // does not re-offer crypto
+                    leaveForParent()
                 }}
             />
             <div className="flex-1 overflow-y-auto">

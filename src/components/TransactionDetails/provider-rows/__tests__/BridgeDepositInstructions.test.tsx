@@ -86,6 +86,21 @@ describe('BridgeDepositInstructions bank details', () => {
         expect(screen.queryByText('Bank Address')).not.toBeInTheDocument()
     })
 
+    it('folds the details behind a link that names what a tap does', () => {
+        render(<BridgeDepositInstructions transaction={transaction} />)
+        const toggle = screen.getByRole('button', { name: /See bank details/ })
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByText('Deutsche Bank')).not.toBeInTheDocument()
+
+        act(() => toggle.click())
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        expect(toggle).toHaveTextContent('Hide bank details')
+        expect(screen.getByText('Deutsche Bank')).toBeInTheDocument()
+
+        act(() => toggle.click())
+        expect(screen.queryByText('Deutsche Bank')).not.toBeInTheDocument()
+    })
+
     it('keeps the row where the rail provides it', () => {
         render(<BridgeDepositInstructions transaction={transaction} />)
         act(open)

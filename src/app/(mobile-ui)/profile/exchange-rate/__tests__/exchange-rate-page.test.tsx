@@ -238,21 +238,22 @@ describe('exchange-rate CTA', () => {
             mockPair.to = 'MXN'
         })
 
-        it('display 17, Bridge 16.5: $4, not the display-derived $3', async () => {
+        // 50 MXN in USD, up to the cent: the amount whose MXN reaches exactly 50
+        it('display 17, Bridge 16.5: $3.04, not the display-derived $2.95', async () => {
             mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '16.5' } })
             renderPage()
 
             await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
-            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 4, currency: 'USD' })
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 3.04, currency: 'USD' })
             expect(mockGetBridgeRate).toHaveBeenCalledWith(AccountType.CLABE)
         })
 
-        it('display 17, Bridge 17: $3', async () => {
+        it('display 17, Bridge 17: $2.95', async () => {
             mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '17' } })
             renderPage()
 
             await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
-            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 3, currency: 'USD' })
+            expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 2.95, currency: 'USD' })
         })
 
         it('Bridge rate failing while a display quote exists: blocked, no floor, and the tap does nothing', async () => {

@@ -503,3 +503,37 @@ describe('TransactionCard — counterparty avatar', () => {
         expect(container.querySelector('svg')).not.toBeNull()
     })
 })
+
+// TASK-23054: the row uses the receipt's amount format, cents shown and no
+// ".00" on a round amount. It used to drop a trailing zero ("$12.5").
+describe('TransactionCard — amount format', () => {
+    function renderAmount(amount: number, overrides: Partial<TransactionDetails> = {}) {
+        const tx = { ...eligibleTx(), amount, ...overrides } as TransactionDetails
+        return render(
+            <TransactionCard
+                type="send"
+                name="natalia"
+                amount={amount}
+                status="completed"
+                transaction={tx}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+    }
+
+    it.each([
+        [12.5, '-$12.50'],
+        [30, '-$30'],
+        [1234.56, '-$1,234.56'],
+    ])('shows %p as %s', (amount, expected) => {
+        renderAmount(amount)
+        expect(screen.getByText(expected)).toBeInTheDocument()
+    })
+
+    it('shows a request pot as collected / asked in the same format', () => {
+        renderAmount(22.3, { isRequestPotLink: true, totalAmountCollected: 0 })
+        expect(screen.getByText('$0 / $22.30')).toBeInTheDocument()
+    })
+})

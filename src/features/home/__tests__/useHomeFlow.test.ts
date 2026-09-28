@@ -19,7 +19,7 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useActivationStatus', () => ({
-    useActivationStatus: () => ({ isActivated: true, activationStep: 'verify', dismissCardStep: jest.fn() }),
+    useActivationStatus: () => ({ isActivated: true, onboarding: { step: 'completed' }, isOnboardingComplete: true }),
 }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ resetFlow: mockResetClaimBankFlow }),

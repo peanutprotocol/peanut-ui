@@ -58,8 +58,8 @@ const UnsupportedBrowserModalContent = ({
             onClose={handleModalClose}
             title={t(modalCopy.titleKey)}
             description={t(modalCopy.descriptionKey)}
+            tone="attention"
             icon={'alert' as IconName}
-            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={modalCopy.kind === 'browser' ? copyLinkActions : undefined}
             footer={
