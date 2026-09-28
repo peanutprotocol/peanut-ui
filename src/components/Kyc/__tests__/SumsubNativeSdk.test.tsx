@@ -28,11 +28,13 @@ jest.mock('@/components/Global/Modal', () => ({
 let isAndroid = false
 jest.mock('@/utils/capacitor', () => ({ isAndroidNativeBridge: () => isAndroid }))
 
+const callOrder: string[] = []
 let appStateHandler: ((state: { isActive: boolean }) => void) | undefined
 const removeAppStateListener = jest.fn()
 jest.mock('@capacitor/app', () => ({
     App: {
         addListener: (_event: string, handler: (state: { isActive: boolean }) => void) => {
+            callOrder.push('listen')
             appStateHandler = handler
             return Promise.resolve({ remove: removeAppStateListener })
         },
@@ -42,6 +44,7 @@ jest.mock('@capacitor/app', () => ({
 const launch = jest.fn()
 const dismiss = jest.fn()
 const resetSdk = jest.fn()
+let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
 function installSdk() {
@@ -52,7 +55,19 @@ function installSdk() {
     }
     builder.withLocale = () => builder
     builder.withDebug = () => builder
-    builder.build = () => ({ launch, dismiss })
+    builder.build = () => {
+        const instance = {
+            launch: (...a: unknown[]) => {
+                callOrder.push('launch')
+                return launch(...a)
+            },
+            dismiss,
+            sendEvent: jest.fn(),
+            getNewAccessToken: jest.fn(),
+        }
+        builtInstances.push(instance)
+        return instance
+    }
     ;(window as unknown as { SNSMobileSDK: unknown }).SNSMobileSDK = { init: () => builder, reset: resetSdk }
 }
 
@@ -71,6 +86,8 @@ describe('SumsubNativeSdk', () => {
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined
+        builtInstances = []
+        callOrder.length = 0
         isAndroid = false
         appStateHandler = undefined
         removeAppStateListener.mockReset()
@@ -382,6 +399,53 @@ describe('SumsubNativeSdk', () => {
 
             expect(props.onComplete).toHaveBeenCalledTimes(1)
             expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        // Capacitor does not replay appStateChange to late listeners, so a
+        // listener that registered after launch could miss the only resume.
+        it('registers the resume listener before launching the SDK', async () => {
+            await openSdk(baseProps())
+            expect(callOrder).toEqual(['listen', 'launch'])
+        })
+
+        // The wrapper's launch callback clears its global event route even when
+        // a newer session owns it. A stale session settling late must not cut
+        // the new session off from status events and token refreshes.
+        it('keeps routing native events to the new session when the old launch settles late', async () => {
+            let resolveFirst: (value: unknown) => void = () => {}
+            launch.mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)))
+            const props = baseProps()
+            const { rerender } = await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+            expect(props.onClose).toHaveBeenCalledTimes(1)
+
+            // the flow closes, then the user taps Verify again
+            await act(async () => {
+                rerender(<SumsubNativeSdk visible={false} {...props} />)
+            })
+            await act(async () => {
+                rerender(<SumsubNativeSdk visible {...props} />)
+            })
+            expect(builtInstances).toHaveLength(2)
+
+            await act(async () => {
+                resolveFirst({ success: true, status: 'Initial' })
+            })
+
+            const sdk = (window as unknown as { SNSMobileSDK: Required<NonNullable<Window['SNSMobileSDK']>> })
+                .SNSMobileSDK
+            sdk.sendEvent('onStatusChanged', { newStatus: 'Pending' })
+            sdk.getNewAccessToken()
+
+            expect(builtInstances[1].sendEvent).toHaveBeenCalledWith('onStatusChanged', { newStatus: 'Pending' })
+            expect(builtInstances[1].getNewAccessToken).toHaveBeenCalledTimes(1)
+            expect(builtInstances[0].sendEvent).not.toHaveBeenCalled()
+            // the stale result is ignored, not reported as a second close
+            expect(props.onClose).toHaveBeenCalledTimes(1)
         })
 
         it('removes the listener when the flow closes', async () => {

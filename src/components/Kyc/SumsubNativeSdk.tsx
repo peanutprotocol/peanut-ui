@@ -9,6 +9,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
+import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -138,8 +139,6 @@ export const SumsubNativeSdk = ({
                 .withDebug(process.env.NODE_ENV === 'development')
                 .build()
 
-            posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
-
             // The Cordova wrapper keeps a module-level instance lock until its
             // launch promise settles. A backgrounded native screen can disappear
             // without settling that promise; dismiss() does not clear the lock.
@@ -155,22 +154,31 @@ export const SumsubNativeSdk = ({
                 }
             }
 
-            void launchWithStaleLockRecovery().then(
-                (result) => {
-                    if (cancelled || settled) return
-                    settled = true
-                    if (result?.success === false) {
-                        reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
-                        return
+            const launchSdk = () => {
+                if (cancelled) return
+                // A reset lock lets a stale launch's late callback clear the
+                // wrapper's event route, so route native events to this instance.
+                setActiveSumsubInstance(sumsub, instance!)
+                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
+                void launchWithStaleLockRecovery().then(
+                    (result) => {
+                        if (cancelled || settled) return
+                        settled = true
+                        clearActiveSumsubInstance(instance)
+                        if (result?.success === false) {
+                            reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
+                            return
+                        }
+                        handleExit(result?.status)
+                    },
+                    (error) => {
+                        if (cancelled || settled) return
+                        settled = true
+                        clearActiveSumsubInstance(instance)
+                        reportFailure('launch-rejected', error)
                     }
-                    handleExit(result?.status)
-                },
-                (error) => {
-                    if (cancelled || settled) return
-                    settled = true
-                    reportFailure('launch-rejected', error)
-                }
-            )
+                )
+            }
 
             // Android runs the SDK as its own activity above the WebView's, so
             // the WebView only resumes once the SDK screen is gone. If the OS
@@ -182,9 +190,12 @@ export const SumsubNativeSdk = ({
             // excluded: its app state follows the whole app, not the WebView,
             // so a resume there says nothing about the SDK screen.
             if (isAndroidNativeBridge()) {
-                void import('@capacitor/app')
-                    .then(({ App }) =>
-                        App.addListener('appStateChange', ({ isActive }) => {
+                // Register before launching: Capacitor does not replay
+                // appStateChange to a listener that registers after the event.
+                const watchResume = async () => {
+                    try {
+                        const { App } = await import('@capacitor/app')
+                        const handle = await App.addListener('appStateChange', ({ isActive }) => {
                             // Capacitor reports active on every resume but inactive
                             // only once the WebView is fully covered. A resume just
                             // before the SDK screen opens (a permission prompt) is
@@ -194,19 +205,21 @@ export const SumsubNativeSdk = ({
                             orphanTimer = setTimeout(() => {
                                 if (settled || cancelled) return
                                 settled = true
+                                clearActiveSumsubInstance(instance)
                                 posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED, { platform: 'native' })
                                 sumsub.reset?.()
                                 handleExit(undefined)
                             }, ORPHANED_SDK_GRACE_MS)
                         })
-                    )
-                    .then((handle) => {
                         if (cancelled) void handle.remove()
                         else removeResumeListener = () => void handle.remove()
-                    })
-                    .catch(() => {
-                        // no app plugin: nothing to recover with
-                    })
+                    } catch {
+                        // no app plugin: launch without recovery
+                    }
+                }
+                void watchResume().then(launchSdk)
+            } else {
+                launchSdk()
             }
         } catch (error) {
             reportFailure('init-threw', error)
@@ -216,6 +229,7 @@ export const SumsubNativeSdk = ({
             cancelled = true
             clearTimeout(orphanTimer)
             removeResumeListener?.()
+            clearActiveSumsubInstance(instance)
             // Close the native screen when the React flow ends. The plugin may
             // leave its JavaScript lock behind; the next launch recovers it above.
             try {
