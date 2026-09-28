@@ -29,6 +29,7 @@ let isAndroid = false
 jest.mock('@/utils/capacitor', () => ({ isAndroidNativeBridge: () => isAndroid }))
 
 const callOrder: string[] = []
+let listenerRegistered: Promise<void> = Promise.resolve()
 let appStateHandler: ((state: { isActive: boolean }) => void) | undefined
 const removeAppStateListener = jest.fn()
 jest.mock('@capacitor/app', () => ({
@@ -36,7 +37,7 @@ jest.mock('@capacitor/app', () => ({
         addListener: (_event: string, handler: (state: { isActive: boolean }) => void) => {
             callOrder.push('listen')
             appStateHandler = handler
-            return Promise.resolve({ remove: removeAppStateListener })
+            return listenerRegistered.then(() => ({ remove: removeAppStateListener }))
         },
     },
 }))
@@ -88,6 +89,7 @@ describe('SumsubNativeSdk', () => {
         statusHandler = undefined
         builtInstances = []
         callOrder.length = 0
+        listenerRegistered = Promise.resolve()
         isAndroid = false
         appStateHandler = undefined
         removeAppStateListener.mockReset()
@@ -446,6 +448,24 @@ describe('SumsubNativeSdk', () => {
             expect(builtInstances[0].sendEvent).not.toHaveBeenCalled()
             // the stale result is ignored, not reported as a second close
             expect(props.onClose).toHaveBeenCalledTimes(1)
+        })
+
+        // Native dismiss dereferences the plugin's SDK, which is still null
+        // before the first launch: dismissing then crashes the app.
+        it('does not dismiss an SDK that never launched when the flow closes during setup', async () => {
+            let finishRegistration: () => void = () => {}
+            listenerRegistered = new Promise((resolve) => (finishRegistration = resolve))
+            const { unmount } = await openSdk(baseProps())
+            expect(launch).not.toHaveBeenCalled()
+
+            unmount()
+            await act(async () => {
+                finishRegistration()
+            })
+
+            expect(dismiss).not.toHaveBeenCalled()
+            expect(launch).not.toHaveBeenCalled()
+            expect(removeAppStateListener).toHaveBeenCalledTimes(1)
         })
 
         it('removes the listener when the flow closes', async () => {

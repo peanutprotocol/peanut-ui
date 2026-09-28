@@ -110,6 +110,7 @@ export const SumsubNativeSdk = ({
         let instance: SNSMobileSDKInstance | null = null
         let cancelled = false
         let settled = false
+        let launched = false
         let hasSubmitted = false
         let orphanTimer: ReturnType<typeof setTimeout> | undefined
         let removeResumeListener: (() => void) | undefined
@@ -156,6 +157,7 @@ export const SumsubNativeSdk = ({
 
             const launchSdk = () => {
                 if (cancelled) return
+                launched = true
                 // A reset lock lets a stale launch's late callback clear the
                 // wrapper's event route, so route native events to this instance.
                 setActiveSumsubInstance(sumsub, instance!)
@@ -232,6 +234,11 @@ export const SumsubNativeSdk = ({
             clearActiveSumsubInstance(instance)
             // Close the native screen when the React flow ends. The plugin may
             // leave its JavaScript lock behind; the next launch recovers it above.
+            // Never dismiss before launch: on Android the plugin's native SDK is
+            // still null then, and its dismiss throws a native crash that this
+            // try/catch cannot see (the flow can close while the resume listener
+            // is still registering).
+            if (!launched) return
             try {
                 instance?.dismiss()
             } catch {
