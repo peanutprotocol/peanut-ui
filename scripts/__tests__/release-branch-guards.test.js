@@ -352,11 +352,49 @@ describe('native release source branch', () => {
         expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
         expect(workflow).toContain('"$GITHUB_SHA" != "$OTA_SOURCE_SHA"')
         expect(workflow).toContain('queue: max')
-        expect(workflow.indexOf('Require compatible legacy OTA lanes before either store upload')).toBeLessThan(
+        expect(workflow.indexOf('Require compatible production OTA lanes before either store upload')).toBeLessThan(
             workflow.indexOf('    ios:')
         )
         expect(workflow).toContain("track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}")
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
+    })
+
+    it('permits both compatible legacy lanes or both native-floored lanes, but not a partial cutover', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        const step = workflow.slice(workflow.indexOf('- name: Require compatible production OTA lanes'))
+        const shell = step
+            .match(/run: \|\n([\s\S]*?)\n\s+- name: Preserve legacy lanes/)[1]
+            .split('\n')
+            .map((line) => line.replace(/^ {18}/, ''))
+            .join('\n')
+        const runLanes = (ios, android) => {
+            const script = `node() {
+                case "$*" in
+                    *android-bridge-status*) printf '%s\\n' "$ANDROID_STATUS" ;;
+                    *bridge-status*) printf '%s\\n' "$IOS_STATUS" ;;
+                    *) printf '%s\\n' "$*" >> "$CALLS_FILE" ;;
+                esac
+            }
+            ${shell}`
+            const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-lanes-'))
+            const callsFile = path.join(dir, 'calls')
+            const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+                env: { ...process.env, IOS_STATUS: ios, ANDROID_STATUS: android, CALLS_FILE: callsFile },
+                encoding: 'utf8',
+            })
+            const calls = fs.existsSync(callsFile) ? fs.readFileSync(callsFile, 'utf8') : ''
+            fs.rmSync(dir, { recursive: true, force: true })
+            return { status: result.status, calls }
+        }
+        const legacy = runLanes('active', 'active')
+        expect(legacy.status).toBe(0)
+        expect(legacy.calls).toContain('check-native-ota-surface.mjs v1.5.0')
+        expect(legacy.calls).toContain('check-native-ota-surface.mjs v1.6.0')
+
+        const native = runLanes('inactive', 'inactive')
+        expect(native.status).toBe(0)
+        expect(native.calls).toContain('verify-promotion')
+        expect(runLanes('inactive', 'active').status).toBe(1)
     })
 
     it.each(['ios', 'android'])('keeps the %s legacy lane during store builds', (platform) => {

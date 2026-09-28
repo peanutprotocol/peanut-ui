@@ -156,26 +156,26 @@ jobs:
                   fi
                   echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
-            - name: Require compatible legacy OTA lanes before either store upload
+            - name: Require compatible production OTA lanes before either store upload
               if: steps.guard.outputs.prerelease != 'true' && steps.guard.outputs.native_first != 'true'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
               run: |
                   BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
-                  if [ "$BRIDGE" != active ]; then
-                      echo '::error::iOS 1.5.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
-                      exit 1
-                  fi
-                  node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
-                  echo "The iOS 1.5.x bridge remains compatible with this main commit"
                   ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
-                  if [ "$ANDROID_BRIDGE" != active ]; then
-                      echo '::error::Android 1.6.x OTA bridge is not active; wait for the main-push OTA bootstrap before the store release' >&2
+                  if [ "$BRIDGE" != "$ANDROID_BRIDGE" ]; then
+                      echo '::error::the platform channels are partway through native migration; finish the OTA cutover before another native release' >&2
                       exit 1
                   fi
-                  node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
-                  echo "The Android 1.6.x bridge remains compatible with this main commit"
+                  if [ "$BRIDGE" = active ]; then
+                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
+                      node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
+                      echo 'Both legacy bridges remain compatible with this main commit'
+                  else
+                      node scripts/capgo-release-guard.mjs verify-promotion
+                      echo 'Both native-floored production channels are active'
+                  fi
 
             - name: Preserve legacy lanes during native-first migration
               if: steps.guard.outputs.native_first == 'true'
