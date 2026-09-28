@@ -129,12 +129,6 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     default: (args: unknown) => mockUseGetExchangeRate(args),
 }))
 
-// the public withdrawal rate behind the shared minimum (fees v2: net of Peanut's margin)
-const mockUseOfframpRate = jest.fn()
-jest.mock('@/hooks/useOfframpRate', () => ({
-    useOfframpRate: (...args: unknown[]) => mockUseOfframpRate(...args),
-}))
-
 const mockUseLimitsValidation = jest.fn()
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: (...args: any[]) => mockUseLimitsValidation(...args),
@@ -352,7 +346,6 @@ function applyDefaults() {
     mockUseGetExchangeRate.mockReturnValue({
         exchangeRate: '1',
     })
-    mockUseOfframpRate.mockReturnValue({ rate: 1, isError: false })
 
     mockUseLimitsValidation.mockReturnValue({
         isBlocking: false,
@@ -886,7 +879,7 @@ describe('GROUP 3: Amount Validation', () => {
         afterEach(() => bridgeUtils.getMinimumAmount.mockImplementation(() => 1))
 
         test('Bridge 16.5: $3.99 is refused with the $4 floor', async () => {
-            mockUseOfframpRate.mockReturnValue({ rate: 16.5, isError: false })
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: '16.5', isError: false })
             renderWithdraw({ step: 'amount', amount: '3.99' })
 
             expect(screen.getByText('Continue')).toBeDisabled()
@@ -899,42 +892,15 @@ describe('GROUP 3: Amount Validation', () => {
         })
 
         test('Bridge 16.5: exactly $4 continues to the bank flow', () => {
-            mockUseOfframpRate.mockReturnValue({ rate: 16.5, isError: false })
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: '16.5', isError: false })
             renderWithdraw({ step: 'amount', amount: '4' })
 
             fireEvent.click(screen.getByText('Continue'))
             expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('amount=4'))
-            expect(mockUseOfframpRate).toHaveBeenCalledWith('MXN', { enabled: true })
-        })
-
-        /*
-         * Fees v2: Bridge's gross 12.5 gives ceil(50 / 12.5) = $4, which pays
-         * 49.85 MXN at the net 12.4625 — under the 50 MXN floor. The public
-         * withdrawal rate is the net one, so the floor is ceil(4.012) = $5.
-         */
-        test('net rate 12.4625 (Bridge 12.5 less 0.30%): $4.99 is refused with the $5 floor', async () => {
-            mockUseOfframpRate.mockReturnValue({ rate: 12.4625, isError: false })
-            renderWithdraw({ step: 'amount', amount: '4.99' })
-
-            expect(screen.getByText('Continue')).toBeDisabled()
-            await waitFor(() =>
-                expect(mockSetError).toHaveBeenCalledWith({
-                    showError: true,
-                    errorMessage: 'Minimum withdrawal is $5.',
-                })
-            )
-        })
-
-        test('net rate 12.4625: exactly $5 continues', () => {
-            mockUseOfframpRate.mockReturnValue({ rate: 12.4625, isError: false })
-            renderWithdraw({ step: 'amount', amount: '5' })
-
-            fireEvent.click(screen.getByText('Continue'))
-            expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('amount=5'))
         })
 
         test('Bridge rate failed: Continue stays disabled and says the rate is unavailable, never a $50 floor', async () => {
-            mockUseOfframpRate.mockReturnValue({ rate: null, isError: true })
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: null, isError: true })
             renderWithdraw({ step: 'amount', amount: '100' })
 
             expect(screen.getByText('Continue')).toBeDisabled()
@@ -951,7 +917,7 @@ describe('GROUP 3: Amount Validation', () => {
         })
 
         test('Bridge rate pending: Continue stays disabled with no error yet', async () => {
-            mockUseOfframpRate.mockReturnValue({ rate: null, isError: false })
+            mockUseGetExchangeRate.mockReturnValue({ exchangeRate: null, isError: false })
             renderWithdraw({ step: 'amount', amount: '100' })
 
             expect(screen.getByText('Continue')).toBeDisabled()

@@ -9,14 +9,13 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import { AccountType } from '@/interfaces/interfaces'
 
-// The withdrawal rate (fees v2: net of Peanut's margin while collected) — the
-// only network the real minimum gate (useBankWithdrawMinimum → useOfframpRate)
-// makes here.
+// Bridge's execution-side rate — the only network the real minimum gate
+// (useBankWithdrawMinimum → useGetExchangeRate) makes here.
 const mockGetBridgeRate = jest.fn()
-jest.mock('@/utils/fx.utils', () => ({
-    ...jest.requireActual('@/utils/fx.utils'),
-    fetchOfframpRate: (...args: unknown[]) => mockGetBridgeRate(...args),
+jest.mock('@/app/actions/exchange-rate', () => ({
+    getExchangeRate: (...args: unknown[]) => mockGetBridgeRate(...args),
 }))
 
 const mockRouterPush = jest.fn()
@@ -113,9 +112,8 @@ afterEach(() => queryClient.clear())
 
 beforeEach(() => {
     jest.clearAllMocks()
-    // the rate query keeps its own retry rule; only the wait between tries is removed
-    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0, retryDelay: 0 } } })
-    mockGetBridgeRate.mockRejectedValue(new Error('not mocked for this test'))
+    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
+    mockGetBridgeRate.mockResolvedValue({ error: 'not mocked for this test' })
     mockPair.from = 'USD'
     mockPair.to = 'EUR'
     mockCtaAmount.current = null
@@ -241,33 +239,24 @@ describe('exchange-rate CTA', () => {
         })
 
         it('display 17, Bridge 16.5: $4, not the display-derived $3', async () => {
-            mockGetBridgeRate.mockResolvedValue(16.5)
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '16.5' } })
             renderPage()
 
             await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
             expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 4, currency: 'USD' })
-            expect(mockGetBridgeRate).toHaveBeenCalledWith('MXN')
+            expect(mockGetBridgeRate).toHaveBeenCalledWith(AccountType.CLABE)
         })
 
         it('display 17, Bridge 17: $3', async () => {
-            mockGetBridgeRate.mockResolvedValue(17)
+            mockGetBridgeRate.mockResolvedValue({ data: { sell_rate: '17' } })
             renderPage()
 
             await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
             expect(mockMinimumPolicy.current.resolve(17)).toEqual({ amount: 3, currency: 'USD' })
         })
 
-        // Bridge 12.5 gross → $4, which pays 49.85 MXN at the net 12.4625; the net rate gives $5
-        it('withdrawal rate with Peanut’s margin (12.4625): $5, not the gross $4', async () => {
-            mockGetBridgeRate.mockResolvedValue(12.4625)
-            renderPage()
-
-            await waitFor(() => expect(mockMinimumPolicy.current.blocked).toBeUndefined())
-            expect(mockMinimumPolicy.current.resolve(12.4625)).toEqual({ amount: 5, currency: 'USD' })
-        })
-
         it('Bridge rate failing while a display quote exists: blocked, no floor, and the tap does nothing', async () => {
-            mockGetBridgeRate.mockRejectedValue(new Error('upstream 500'))
+            mockGetBridgeRate.mockResolvedValue({ error: 'upstream 500' })
             mockCtaAmount.current = 100
             renderPage()
 

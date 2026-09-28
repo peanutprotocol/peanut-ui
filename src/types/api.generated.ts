@@ -929,7 +929,6 @@ export interface paths {
                         };
                         onBehalfOf: string;
                         provider?: string;
-                        quoteId?: string;
                         sendLinkPubKey?: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
@@ -973,18 +972,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
                             error: string;
                         };
                     };
@@ -1152,7 +1139,6 @@ export interface paths {
                     destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
                     destinationAmount?: string;
                     sourceAmount?: string;
-                    pricing?: "bridge_rate" | "fixed_output";
                 };
                 header: {
                     Authorization: string;
@@ -1171,66 +1157,8 @@ export interface paths {
                         "application/json": {
                             destinationAmount?: string;
                             destinationCurrency: string;
-                            expiresAt?: string;
-                            pricing: "bridge_rate" | "fixed_output";
-                            quoteId?: string;
                             rate: string;
                             sourceAmount?: string;
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/offramp/rate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The current withdrawal rate for a currency, as the app would quote it */
-        get: {
-            parameters: {
-                query: {
-                    destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            destinationCurrency: string;
-                            pricing: "bridge_rate" | "fixed_output";
-                            rate: string;
                             updatedAt: string;
                         };
                     };
@@ -5970,8 +5898,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6229,8 +6157,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -8061,8 +7989,8 @@ export interface paths {
                         executorSignature: string;
                         expiresAt: number;
                         preparationId: string;
-                        preparedCoordinatorAddress?: string;
                         recipientAddress: string;
+                        preparedCoordinatorAddress?: string;
                     };
                 };
             };
@@ -8299,8 +8227,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -8568,8 +8496,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -10682,6 +10610,7 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
+                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -11104,8 +11033,6 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
-                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
-                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -11657,6 +11584,13 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
+                            outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
+                            requirements?: {
+                                issues: string[];
+                                missing: string[];
+                                pending: string[];
+                            };
+                            verificationUrl?: string;
                             nextAction?: {
                                 currency?: string;
                                 effectiveDate?: string;
@@ -11667,13 +11601,6 @@ export interface paths {
                                 requirementKey?: string;
                                 tosUrl?: string;
                             };
-                            outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
-                            requirements?: {
-                                issues: string[];
-                                missing: string[];
-                                pending: string[];
-                            };
-                            verificationUrl?: string;
                         };
                     };
                 };
@@ -12457,8 +12384,6 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
-                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
-                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12505,8 +12430,8 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
-                                reviewPending?: boolean;
                                 reviewedAt?: string;
+                                reviewPending?: boolean;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };

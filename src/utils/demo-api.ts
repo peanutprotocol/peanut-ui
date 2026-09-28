@@ -23,13 +23,7 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 // /tokens/price is public too — the canned {} fallback is NOT a valid shape
 // for it. /tokens/wallet-portfolio is owner-only (session required), so it
 // gets a synthetic handler instead of a passthrough that would 401.
-const PASSTHROUGH_GET = new Set([
-    '/bridge/exchange-rate',
-    '/bridge/offramp/rate',
-    '/manteca/prices',
-    '/fx/rate',
-    '/tokens/price',
-])
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -642,13 +636,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/fx/rate',
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
     },
-    // Same for the public withdrawal rate (fees v2): no canned rate, so the
-    // widget and the withdrawal minimum say "unavailable" instead of guessing.
-    {
-        method: 'GET',
-        pattern: '/bridge/offramp/rate',
-        handler: () => json({ error: 'The exchange rate is not available right now.' }, 503),
-    },
 
     // The demo wallet holds nothing to recover; the shape is what
     // fetchWalletBalances reads.
@@ -932,9 +919,7 @@ export async function demoRespond(
 
     // The withdraw quote depends on its query, which route handlers never see:
     // answer it here at a synthetic 1:1 rate, so the USDC equals the typed
-    // amount on either side. A Bridge-rate estimate with no quoteId, as the API
-    // answers while collection is off: a signed fixed_output quote comes only
-    // from a fixture that names one (dev/fixtures/registry.ts).
+    // amount on either side.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {
         const query = new URL(path, 'http://capture.invalid').searchParams
         const amount = query.get('destinationAmount') ?? query.get('sourceAmount') ?? undefined
@@ -942,7 +927,6 @@ export async function demoRespond(
             destinationCurrency: query.get('destinationCurrency') ?? 'eur',
             rate: '1',
             updatedAt: CREATED_AT,
-            pricing: 'bridge_rate',
             ...(amount ? { destinationAmount: amount, sourceAmount: amount } : {}),
         })
     }

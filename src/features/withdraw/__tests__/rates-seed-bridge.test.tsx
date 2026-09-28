@@ -35,19 +35,16 @@ jest.mock('@/app/actions/offramp', () => ({
 }))
 // A rate-only answer in the GET /bridge/offramp/quote contract. The quote hook
 // refuses an answer for another currency (TASK-19427), so the mock names its
-// currency and pricing as the API does. Bridge-rate pricing: collection off.
+// currency as the API does.
 const rateQuote = (destinationCurrency: string, rate: string) => ({
     destinationCurrency,
     rate,
     updatedAt: new Date().toISOString(),
-    pricing: 'bridge_rate',
 })
-// The public withdrawal rate (GET /bridge/offramp/rate): the MX minimum's
-// source only where no quote exists yet — a Bridge country picked before any
-// account is saved. Mocked at the fetch, so the real rate hook and minimum run.
-jest.mock('@/utils/fx.utils', () => ({
-    ...jest.requireActual('@/utils/fx.utils'),
-    fetchOfframpRate: jest.fn(async () => 17),
+// the Bridge sell rate behind the MX minimum (50 MXN) where no quote exists yet
+jest.mock('@/hooks/useGetExchangeRate', () => ({
+    __esModule: true,
+    default: () => ({ exchangeRate: '17', isError: false }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: parseUnits('100', 6), formattedSpendableBalance: '100.00' }),

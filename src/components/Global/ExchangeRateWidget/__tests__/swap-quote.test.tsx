@@ -8,7 +8,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import ExchangeRateWidget from '../index'
-import { fetchDisplayRate, fetchOfframpRate, FxApiError } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 import {
     getExchangeRateWidgetRouteMinimum,
     type ExchangeRateWidgetMinimumPolicy,
@@ -25,17 +25,10 @@ jest.mock('@/utils/fx.utils', () => {
             super(`FX API returned ${status}`)
         }
     }
-    return {
-        fetchDisplayRate: jest.fn(),
-        // USD → EUR, GBP, MXN, COP is a withdrawal: the widget prices it at the offramp rate
-        fetchOfframpRate: jest.fn(),
-        isOfframpRatePair: jest.requireActual('@/utils/fx.utils').isOfframpRatePair,
-        FxApiError: MockFxApiError,
-    }
+    return { fetchDisplayRate: jest.fn(), FxApiError: MockFxApiError }
 })
 
 const mockFetchDisplayRate = fetchDisplayRate as jest.Mock
-const mockFetchOfframpRate = fetchOfframpRate as jest.Mock
 
 type Deferred = { resolve: (rate: number) => void; promise: Promise<number> }
 let pending: Record<string, Deferred>
@@ -52,13 +45,11 @@ const currencyPair = () =>
 
 const renderWidget = ({
     onUrlUpdate = jest.fn(),
-    from = 'USD',
     to = 'EUR',
     amount = '10',
     minimumPolicy,
 }: {
     onUrlUpdate?: jest.Mock
-    from?: string
     to?: string
     amount?: string
     minimumPolicy?: ExchangeRateWidgetMinimumPolicy
@@ -80,7 +71,7 @@ const renderWidget = ({
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
-    const { rerender } = render(tree({ from, to, amount }))
+    const { rerender } = render(tree({ from: 'USD', to, amount }))
     // an external URL change (a popstate, a pasted link): the adapter re-syncs
     // its memory from new initial params, the widget sees the new pair + amount
     const setExternalUrl = (searchParams: Record<string, string>) => rerender(tree(searchParams))
@@ -105,27 +96,18 @@ const settleDebounce = () =>
         await new Promise((resolve) => setTimeout(resolve, 700))
     })
 
-const pendingRate = (key: string) => {
-    if (!pending[key]) {
-        let resolve!: (rate: number) => void
-        const promise = new Promise<number>((r) => (resolve = r))
-        pending[key] = { resolve, promise }
-    }
-    return pending[key].promise
-}
-
-// No rate at all: a 429 is terminal for the hook (no retries)
-const ratesFail = () => {
-    mockFetchDisplayRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
-    mockFetchOfframpRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
-}
-
 beforeEach(() => {
     pending = {}
     mockFetchDisplayRate.mockReset()
-    mockFetchOfframpRate.mockReset()
-    mockFetchDisplayRate.mockImplementation((from: string, to: string) => pendingRate(`${from}/${to}`))
-    mockFetchOfframpRate.mockImplementation((currency: string) => pendingRate(`USD/${currency.toUpperCase()}`))
+    mockFetchDisplayRate.mockImplementation((from: string, to: string) => {
+        const key = `${from}/${to}`
+        if (!pending[key]) {
+            let resolve!: (rate: number) => void
+            const promise = new Promise<number>((r) => (resolve = r))
+            pending[key] = { resolve, promise }
+        }
+        return pending[key].promise
+    })
 })
 
 describe('ExchangeRateWidget swap', () => {
@@ -189,10 +171,7 @@ describe('ExchangeRateWidget swap', () => {
         expect(amountInputs()).toHaveLength(2)
         expect(sourceInput().value).toBe('10')
         expect(destinationInput().value).toBe('8.56')
-        // one fetch per pair: the withdrawal at the offramp rate, the deposit at the display rate
-        expect(mockFetchOfframpRate).toHaveBeenCalledTimes(1)
-        expect(mockFetchDisplayRate).toHaveBeenCalledTimes(1)
-        expect(mockFetchDisplayRate).toHaveBeenCalledWith('EUR', 'USD')
+        expect(mockFetchDisplayRate).toHaveBeenCalledTimes(2)
         client.clear()
     })
 })
@@ -251,14 +230,13 @@ describe('ExchangeRateWidget swap whose amount equals the old URL amount', () =>
         expect(currencyPair()).toEqual(['USD', 'EUR'])
         expect(sourceInput().value).toBe('10')
         expect(destinationInput().value).toBe('5.00')
-        expect(mockFetchOfframpRate).toHaveBeenCalledTimes(1)
-        expect(mockFetchDisplayRate).toHaveBeenCalledTimes(1)
+        expect(mockFetchDisplayRate).toHaveBeenCalledTimes(2)
         client.clear()
     })
 
     it('with no usable quote the swap is disabled and a click changes nothing', async () => {
         // a 429 is terminal for the hook (no retries), so "unavailable" shows at once
-        ratesFail()
+        mockFetchDisplayRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
         const { client } = renderWidget({ amount: '10' })
         await waitFor(() => expect(screen.getByText('Rate currently unavailable')).toBeInTheDocument())
 
@@ -454,7 +432,8 @@ describe('ExchangeRateWidget Bridge floor without a display quote', () => {
         resolve: (rate) => getExchangeRateWidgetRouteMinimum('USD', 'MXN', 50, rate, 4),
         label: (m) => `Minimum ${m.amount} ${m.currency}`,
     }
-    const displayFails = ratesFail
+    const displayFails = () =>
+        mockFetchDisplayRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
 
     it('display failed, 3 USD: disabled with the $4 minimum; the pill stays honest', async () => {
         displayFails()
@@ -520,71 +499,6 @@ describe('ExchangeRateWidget Bridge floor without a display quote', () => {
         expect(screen.queryByTestId('exchange-rate-minimum')).not.toBeInTheDocument()
         fireEvent.click(cta())
         expect(ctaAction).not.toHaveBeenCalled()
-        client.clear()
-    })
-})
-
-/**
- * Fees v2: a withdrawal pair shows the rate the withdrawal is quoted at (the
- * public offramp rate, Peanut's 0.30% inside it while collected). Deposits and
- * Manteca pairs keep the display rate; nothing adds a margin on the client.
- */
-describe('ExchangeRateWidget withdrawal rate', () => {
-    it('USD → EUR: typed USD converts at the offramp rate, not the display rate', async () => {
-        const { client } = renderWidget({ amount: '10' })
-        await act(async () => pending['USD/EUR'].resolve(0.8928135))
-        await waitFor(() => expect(destinationInput().value).toBe('8.93'))
-
-        expect(mockFetchOfframpRate).toHaveBeenCalledWith('EUR')
-        expect(mockFetchDisplayRate).not.toHaveBeenCalled()
-        expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('1 USD = 0.8928 EUR')
-        // still an estimate: the note stays, and there is no fee row to add
-        expect(screen.getByTestId('exchange-rate-note')).toBeInTheDocument()
-        client.clear()
-    })
-
-    it('USD → GBP: a typed bank amount derives the USD at the same rate, rounded up', async () => {
-        const { client } = renderWidget({ to: 'GBP', amount: '10' })
-        await act(async () => pending['USD/GBP'].resolve(0.8))
-        await waitFor(() => expect(destinationInput().value).toBe('8.00'))
-
-        fireEvent.change(destinationInput(), { target: { value: '100.01' } })
-
-        // 100.01 / 0.8 = 125.0125 USD, with no fee grossed up on top
-        expect(sourceInput().value).toBe('125.0125')
-        expect(mockFetchOfframpRate).toHaveBeenCalledWith('GBP')
-        client.clear()
-    })
-
-    it('a failed offramp rate is "unavailable", never the display rate instead', async () => {
-        mockFetchOfframpRate.mockImplementation(() => Promise.reject(new (FxApiError as any)(429)))
-        const { client } = renderWidget({ to: 'MXN', amount: '10' })
-
-        await waitFor(() =>
-            expect(screen.getByTestId('exchange-rate-pill')).toHaveTextContent('Rate currently unavailable')
-        )
-        expect(mockFetchDisplayRate).not.toHaveBeenCalled()
-        expect(swapButton()).toBeDisabled()
-        client.clear()
-    })
-
-    it('EUR → USD is a deposit: the display rate, never the withdrawal rate', async () => {
-        const { client } = renderWidget({ from: 'EUR', to: 'USD', amount: '10' })
-        await act(async () => pending['EUR/USD'].resolve(1.168))
-        await waitFor(() => expect(destinationInput().value).toBe('11.68'))
-
-        expect(mockFetchDisplayRate).toHaveBeenCalledWith('EUR', 'USD')
-        expect(mockFetchOfframpRate).not.toHaveBeenCalled()
-        client.clear()
-    })
-
-    it('USD → BRL is not a Bridge withdrawal: the display rate', async () => {
-        const { client } = renderWidget({ to: 'BRL', amount: '10' })
-        await act(async () => pending['USD/BRL'].resolve(5.8))
-        await waitFor(() => expect(destinationInput().value).toBe('58.00'))
-
-        expect(mockFetchDisplayRate).toHaveBeenCalledWith('USD', 'BRL')
-        expect(mockFetchOfframpRate).not.toHaveBeenCalled()
         client.clear()
     })
 })

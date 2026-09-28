@@ -1,6 +1,6 @@
 /**
- * Withdrawals quoted in the bank currency (TASK-23054) and fees v2: the quote
- * action that prices either side, and the create action that passes its quoteId.
+ * Withdrawals quoted in the bank currency (TASK-23054): the quote action that
+ * prices either side, and the create action that sends the USDC as typed.
  */
 const mockServerFetch = jest.fn()
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: (...args: unknown[]) => mockServerFetch(...args) }))
@@ -9,25 +9,22 @@ import { createOfframp, getOfframpQuote } from '../offramp'
 
 const QUOTE = {
     destinationCurrency: 'eur',
-    rate: '0.8928135',
+    rate: '0.8955',
     updatedAt: '2026-09-24T15:54:16.373Z',
     destinationAmount: '2000.00',
-    sourceAmount: '2240.11',
-    pricing: 'fixed_output',
-    quoteId: 'signed.quote',
-    expiresAt: '2026-09-24T15:56:16.373Z',
+    sourceAmount: '2233.39',
 }
 
 beforeEach(() => jest.clearAllMocks())
 
 describe('getOfframpQuote', () => {
-    it('asks for fixed_output pricing of the typed bank amount and returns the quote', async () => {
+    it('asks for the typed bank amount and returns the quote', async () => {
         mockServerFetch.mockResolvedValue({ ok: true, json: async () => QUOTE })
 
         const { data, error } = await getOfframpQuote('eur', { destinationAmount: '2000.00' })
 
         expect(mockServerFetch).toHaveBeenCalledWith(
-            '/bridge/offramp/quote?destinationCurrency=eur&pricing=fixed_output&destinationAmount=2000.00',
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=2000.00',
             expect.objectContaining({ method: 'GET' })
         )
         expect(data).toEqual(QUOTE)
@@ -35,13 +32,15 @@ describe('getOfframpQuote', () => {
     })
 
     it('asks for the typed USDC when the user typed that side', async () => {
-        mockServerFetch.mockResolvedValue({ ok: true, json: async () => QUOTE })
+        const estimate = { ...QUOTE, sourceAmount: '12.01', destinationAmount: '10.75' }
+        mockServerFetch.mockResolvedValue({ ok: true, json: async () => estimate })
 
-        await getOfframpQuote('eur', { sourceAmount: '50' })
+        const { data } = await getOfframpQuote('eur', { sourceAmount: '12.01' })
 
         expect(mockServerFetch.mock.calls[0][0]).toBe(
-            '/bridge/offramp/quote?destinationCurrency=eur&pricing=fixed_output&sourceAmount=50'
+            '/bridge/offramp/quote?destinationCurrency=eur&sourceAmount=12.01'
         )
+        expect(data).toEqual(estimate)
     })
 
     it('asks for the rate only when there is no amount yet', async () => {
@@ -49,20 +48,7 @@ describe('getOfframpQuote', () => {
 
         await getOfframpQuote('gbp')
 
-        expect(mockServerFetch.mock.calls[0][0]).toBe(
-            '/bridge/offramp/quote?destinationCurrency=gbp&pricing=fixed_output'
-        )
-    })
-
-    it('returns a Bridge-rate answer unchanged (margin off)', async () => {
-        const legacy = { ...QUOTE, rate: '0.8955', sourceAmount: '2233.39', pricing: 'bridge_rate' }
-        delete (legacy as Partial<typeof QUOTE>).quoteId
-        delete (legacy as Partial<typeof QUOTE>).expiresAt
-        mockServerFetch.mockResolvedValue({ ok: true, json: async () => legacy })
-
-        const { data } = await getOfframpQuote('eur', { destinationAmount: '2000.00' })
-
-        expect(data).toEqual(legacy)
+        expect(mockServerFetch.mock.calls[0][0]).toBe('/bridge/offramp/quote?destinationCurrency=gbp')
     })
 
     it('returns the API error instead of a quote', async () => {
@@ -75,16 +61,15 @@ describe('getOfframpQuote', () => {
     })
 })
 
-describe('createOfframp with a quote', () => {
+describe('createOfframp', () => {
     const REQUEST = {
-        amount: '2240.11',
+        amount: '12.01',
         onBehalfOf: 'cust-1',
         source: { currency: 'usdc', paymentRail: 'arbitrum', fromAddress: '0xuser' },
         destination: { currency: 'eur', paymentRail: 'sepa', externalAccountId: 'ext-1' },
-        quoteId: 'signed.quote',
     }
 
-    it('sends the quoteId to create', async () => {
+    it('sends the USDC amount as given', async () => {
         mockServerFetch.mockResolvedValue({
             ok: true,
             json: async () => ({ transferId: 'tr-1', depositInstructions: { toAddress: '0xdead' } }),
@@ -95,18 +80,18 @@ describe('createOfframp with a quote', () => {
         expect(JSON.parse(mockServerFetch.mock.calls[0][1].body)).toEqual({ ...REQUEST, provider: 'bridge' })
     })
 
-    it('returns the refusal code and status, so the app can requote', async () => {
+    it('returns the API error with its code and status', async () => {
         mockServerFetch.mockResolvedValue({
             ok: false,
             status: 409,
-            json: async () => ({ error: 'The exchange rate changed. Get a new quote.', code: 'BRIDGE_QUOTE_STALE' }),
+            json: async () => ({ error: 'The bank account cannot be used.', code: 'BANK_ACCOUNT_NOT_USABLE' }),
         })
 
         const result = await createOfframp(REQUEST)
 
         expect(result).toEqual({
-            error: 'The exchange rate changed. Get a new quote.',
-            code: 'BRIDGE_QUOTE_STALE',
+            error: 'The bank account cannot be used.',
+            code: 'BANK_ACCOUNT_NOT_USABLE',
             status: 409,
         })
     })

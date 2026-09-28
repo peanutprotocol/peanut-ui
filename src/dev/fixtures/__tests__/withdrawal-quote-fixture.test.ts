@@ -3,15 +3,13 @@
  */
 // node env: fixtureRespond builds web-standard Responses, which jsdom strips.
 //
-// The fees-v2 withdrawal fixtures (TASK-19427) answer the signed quote and the
-// public rate for ONE currency, and only for a client that asks for
-// fixed_output. These tests run the replies through the real client contract
-// (fetchOfframpRate, quoteAnswersRequest) and pin that every other request
-// keeps the demo's Bridge-rate estimate.
-import { fetchOfframpRate, FxApiError } from '@/utils/fx.utils'
-import { isFixedOutputQuote, quoteAnswersRequest } from '@/utils/offramp-quote.utils'
+// The EUR withdrawal fixture (TASK-19427) answers the quote for ONE currency at
+// a fixed Bridge rate. These tests run its replies through the real client
+// check (quoteAnswersRequest) and pin that every other request keeps the
+// demo's 1:1 estimate.
+import { quoteAnswersRequest } from '@/utils/offramp-quote.utils'
 import { fixtureRespond } from '@/dev/fixtures/respond'
-import { FIXTURES, simulatedWithdrawalPricing } from '@/dev/fixtures/registry'
+import { simulatedWithdrawalQuote } from '@/dev/fixtures/registry'
 import { deriveGate } from '@/utils/capability-gate'
 import { getBankRailCountryFromAccount } from '@/utils/bridge.utils'
 
@@ -21,14 +19,6 @@ jest.mock('@/app/actions/clients', () => ({}))
 
 let activeFixture: string | null = null
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => activeFixture }))
-
-// In fixture mode api-fetch hands every call to fixtureRespond.
-jest.mock('@/utils/api-fetch', () => ({
-    apiFetch: (path: string, options?: RequestInit) =>
-        jest
-            .requireActual<typeof import('@/dev/fixtures/respond')>('@/dev/fixtures/respond')
-            .fixtureRespond(path, options),
-}))
 
 afterEach(() => {
     activeFixture = null
@@ -65,12 +55,12 @@ const reviewGate = (me: FixtureUser) => {
 }
 
 /**
- * Synthetic browser QA: the bank-review fixtures must reach POST create, so
- * their user carries everything the submit checks before it — never real KYC.
+ * Synthetic browser QA: the bank-review fixture must reach POST create, so its
+ * user carries everything the submit checks before it — never real KYC.
  */
-describe.each(['withdraw-bank-fixed-output', 'withdraw-bank-quote-expired'])('%s — verified Bridge user', (name) => {
+describe('withdraw-bank-estimated-payout — verified Bridge user', () => {
     beforeEach(() => {
-        activeFixture = name
+        activeFixture = 'withdraw-bank-estimated-payout'
     })
 
     it('passes the review withdraw gate for the Spanish IBAN (EU SEPA rail enabled, identity verified)', async () => {
@@ -105,141 +95,71 @@ describe.each(['withdraw-bank-fixed-output', 'withdraw-bank-quote-expired'])('%s
     })
 })
 
-describe('withdraw-bank-quote-expired — the Withdraw button reaches create', () => {
-    it('create answers 409 BRIDGE_QUOTE_EXPIRED, whatever it is sent', async () => {
-        activeFixture = 'withdraw-bank-quote-expired'
-        const create = await fixtureRespond('/bridge/offramp/create', {
-            method: 'POST',
-            body: JSON.stringify({ quoteId: 'fixture-quote-eur-1', amount: '22.29' }),
-        })
-        expect(create.status).toBe(409)
-        expect((await create.json()).code).toBe('BRIDGE_QUOTE_EXPIRED')
-    })
-})
-
-describe('withdraw-bank-fixed-output', () => {
+describe('withdraw-bank-estimated-payout — the quote', () => {
     beforeEach(() => {
-        activeFixture = 'withdraw-bank-fixed-output'
+        activeFixture = 'withdraw-bank-estimated-payout'
     })
 
-    it('signs a quote for a typed bank amount: €20.00 costs $22.29 at 0.8973 (USDC rounded up)', async () => {
+    it('prices a typed bank amount: €20 costs $22.34 at 0.8955 (USDC rounded up)', async () => {
         const before = Date.now()
-        const { status, body } = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
+        const { status, body } = await quote('destinationCurrency=eur&destinationAmount=20')
 
         expect(status).toBe(200)
-        expect(body).toMatchObject({
+        expect(body).toEqual({
             destinationCurrency: 'eur',
-            rate: '0.8973',
-            destinationAmount: '20.00',
-            sourceAmount: '22.29',
-            pricing: 'fixed_output',
+            rate: '0.8955',
+            updatedAt: expect.any(String),
+            destinationAmount: '20',
+            sourceAmount: '22.34',
         })
-        expect(body.quoteId).toMatch(/^fixture-quote-eur-\d+$/)
-        // fresh on every request, with the API's 2-minute lifetime
+        // fresh on every request
         expect(Date.parse(body.updatedAt)).toBeGreaterThanOrEqual(before)
-        expect(Date.parse(body.expiresAt) - Date.parse(body.updatedAt)).toBe(2 * 60 * 1000)
         // what the app itself checks before it shows or confirms a quote
         expect(quoteAnswersRequest(body, 'eur', { destinationAmount: '20' })).toBe(true)
-        expect(isFixedOutputQuote(body)).toBe(true)
     })
 
-    it('prices typed USDC too: $50.00 buys €44.86 (bank amount rounded down)', async () => {
-        const { body } = await quote('destinationCurrency=eur&pricing=fixed_output&sourceAmount=50')
+    it('keeps typed USDC exactly: $12.01 buys about €10.75 (bank amount rounded down)', async () => {
+        const { body } = await quote('destinationCurrency=eur&sourceAmount=12.01')
 
-        expect(body).toMatchObject({ sourceAmount: '50.00', destinationAmount: '44.86', pricing: 'fixed_output' })
-        expect(quoteAnswersRequest(body, 'eur', { sourceAmount: '50' })).toBe(true)
+        expect(body).toMatchObject({ sourceAmount: '12.01', destinationAmount: '10.75' })
+        expect(body).not.toHaveProperty('quoteId')
+        expect(quoteAnswersRequest(body, 'eur', { sourceAmount: '12.01' })).toBe(true)
     })
 
-    it('each signed quote has its own id, so a discarded one is never shown again', async () => {
-        const first = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
-        const second = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
-        expect(second.body.quoteId).not.toBe(first.body.quoteId)
+    it('the amount step gets the rate only, at the same rate', async () => {
+        const { body } = await quote('destinationCurrency=eur')
+
+        expect(body).toMatchObject({ rate: '0.8955' })
+        expect(body.sourceAmount).toBeUndefined()
     })
 
-    it('the amount step gets the rate only, unsigned, at the same rate', async () => {
-        const { body } = await quote('destinationCurrency=eur&pricing=fixed_output')
-
-        expect(body).toMatchObject({ rate: '0.8973', pricing: 'fixed_output' })
-        expect(body.quoteId).toBeUndefined()
-        expect(isFixedOutputQuote(body)).toBe(false)
-    })
-
-    it('the public rate matches the signed quote and passes the real contract', async () => {
-        await expect(fetchOfframpRate('EUR')).resolves.toBe(0.8973)
-    })
-
-    it('an older client (no pricing=fixed_output) keeps the demo Bridge-rate estimate', async () => {
-        const { body } = await quote('destinationCurrency=eur&destinationAmount=20')
-
-        expect(body).toMatchObject({ rate: '1', pricing: 'bridge_rate', sourceAmount: '20' })
-        expect(body.quoteId).toBeUndefined()
-    })
-
-    it('another currency keeps the demo estimate, and its public rate stays unavailable', async () => {
-        const { body } = await quote('destinationCurrency=gbp&pricing=fixed_output&destinationAmount=20')
-        expect(body.pricing).toBe('bridge_rate')
-        await expect(fetchOfframpRate('GBP')).rejects.toMatchObject({ status: 503 })
+    it('another currency keeps the demo 1:1 estimate', async () => {
+        const { body } = await quote('destinationCurrency=gbp&destinationAmount=20')
+        expect(body).toMatchObject({ rate: '1', destinationAmount: '20', sourceAmount: '20' })
     })
 
     it('refuses an amount the API would refuse', async () => {
-        expect((await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20.001')).status).toBe(400)
-        expect((await quote('destinationCurrency=eur&pricing=fixed_output&sourceAmount=0.01')).status).toBe(400)
+        expect((await quote('destinationCurrency=eur&destinationAmount=20.001')).status).toBe(400)
+        expect((await quote('destinationCurrency=eur&sourceAmount=0.01')).status).toBe(400)
     })
 })
 
-describe('withdraw-bank-quote-expired', () => {
-    it('create refuses the quote; the requote has new numbers, and the public rate follows it', async () => {
-        activeFixture = 'withdraw-bank-quote-expired'
-
-        const first = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
-        expect(first.body).toMatchObject({ rate: '0.8973', sourceAmount: '22.29' })
-
-        const create = await fixtureRespond('/bridge/offramp/create', { method: 'POST', body: '{}' })
-        expect(create.status).toBe(409)
-        expect(await create.json()).toEqual({
-            error: 'This quote has expired. Get a new quote.',
-            code: 'BRIDGE_QUOTE_EXPIRED',
-        })
-
-        const second = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
-        expect(second.body).toMatchObject({ rate: '0.8964', destinationAmount: '20.00', sourceAmount: '22.32' })
-        expect(second.body.quoteId).not.toBe(first.body.quoteId)
-        await expect(fetchOfframpRate('EUR')).resolves.toBe(0.8964)
-    })
-})
-
-describe('rates-withdrawal-fixed-output', () => {
-    it('opens Rates & fees on USD → EUR and answers its public rate', async () => {
-        activeFixture = 'rates-withdrawal-fixed-output'
-        expect(FIXTURES['rates-withdrawal-fixed-output'].route).toBe(
-            '/profile/exchange-rate?from=USD&to=EUR&amount=100'
-        )
-        await expect(fetchOfframpRate('EUR')).resolves.toBe(0.8973)
-    })
-})
-
-describe('fixtures without withdrawal pricing', () => {
-    it('keep the offline 503 for the public rate, as before', async () => {
+describe('fixtures without a withdrawal quote', () => {
+    it('keep the demo 1:1 estimate for the quote', async () => {
         activeFixture = 'withdraw'
-        await expect(fetchOfframpRate('EUR')).rejects.toBeInstanceOf(FxApiError)
-    })
-
-    it('keep the demo Bridge-rate estimate for the quote', async () => {
-        activeFixture = 'withdraw'
-        const { body } = await quote('destinationCurrency=eur&pricing=fixed_output&destinationAmount=20')
-        expect(body).toMatchObject({ rate: '1', pricing: 'bridge_rate', destinationAmount: '20' })
+        const { body } = await quote('destinationCurrency=eur&destinationAmount=20')
+        expect(body).toMatchObject({ rate: '1', destinationAmount: '20' })
     })
 })
 
-describe('simulatedWithdrawalPricing', () => {
-    it('repeats its last rate once every listed rate was used', () => {
-        const pricing = simulatedWithdrawalPricing('eur', ['0.9000', '0.8900'])
-        const ask = () =>
-            pricing['GET /bridge/offramp/quote'](
-                '/bridge/offramp/quote?destinationCurrency=eur&pricing=fixed_output&sourceAmount=10'
+describe('simulatedWithdrawalQuote', () => {
+    it('answers only its own currency', () => {
+        const replies = simulatedWithdrawalQuote('eur', '0.9000')
+        const ask = (currency: string) =>
+            replies['GET /bridge/offramp/quote'](
+                `/bridge/offramp/quote?destinationCurrency=${currency}&sourceAmount=10`
             )
-        expect((ask()?.body as { rate: string }).rate).toBe('0.9000')
-        expect((ask()?.body as { rate: string }).rate).toBe('0.8900')
-        expect((ask()?.body as { rate: string }).rate).toBe('0.8900')
+        expect(ask('eur')?.body).toMatchObject({ rate: '0.9000', sourceAmount: '10', destinationAmount: '9.00' })
+        expect(ask('gbp')).toBeNull()
     })
 })

@@ -7,6 +7,7 @@ import {
 } from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import { toRoutePayloadAmount, type ExchangeRateWidgetMinimumPolicy } from '@/utils/exchangeRateWidget.utils'
 import Image from 'next/image'
 import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
@@ -109,10 +110,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // per request so the hook can tell it from the URL amount even when equal.
     const [sourceAmountIntent, setSourceAmountIntent] = useState<{ value: number | '' }>()
 
-    // Exchange rate hook handles all the conversion logic. A withdrawal pair
-    // (USD → EUR, GBP, MXN, COP) shows the rate the withdrawal is quoted at,
-    // Peanut's FX margin inside it, so the widget does no fee arithmetic.
-    // Deposits and every other pair show the indicative display rate.
+    // Exchange rate hook handles all the conversion logic
     const {
         sourceAmount,
         destinationAmount,
@@ -127,20 +125,28 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         destinationCurrency,
         initialSourceAmount: urlSourceAmount,
         sourceAmountIntent,
-        withdrawalRate: true,
     })
 
     const debouncedSourceAmount = useDebounce(sourceAmount, 500)
 
+    // Cross-currency (non-USD ↔ non-USD) transfers carry the Peanut developer fee —
+    // currently 0, so this is an identity pass kept for the planned FX-margin
+    // re-enable. The hook returns gross `source × rate`; we display net so
+    // "Recipient Gets" tracks what a transfer actually delivers if the fee returns.
+    const netDestinationAmount = useMemo<number | ''>(() => {
+        if (typeof destinationAmount !== 'number') return destinationAmount
+        return applyBridgeCrossCurrencyFee(destinationAmount, sourceCurrency, destinationCurrency)
+    }, [destinationAmount, sourceCurrency, destinationCurrency])
+
     // Track whether the user is actively typing in the destination field so we can
-    // echo their input verbatim instead of formatting the converted value over it.
+    // echo their input verbatim instead of formatting a net value over it.
     const [isEditingDestination, setIsEditingDestination] = useState(false)
 
-    const destinationDisplayValue = useMemo<string>(() => {
+    const netDestinationDisplayValue = useMemo<string>(() => {
         if (isEditingDestination) return getDestinationDisplayValue()
-        if (typeof destinationAmount !== 'number') return ''
-        return destinationAmount.toFixed(2)
-    }, [isEditingDestination, getDestinationDisplayValue, destinationAmount])
+        if (netDestinationAmount === '' || typeof netDestinationAmount !== 'number') return ''
+        return netDestinationAmount.toFixed(2)
+    }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
     // `intent` is the amount the new pair starts from (a picker: the field as
     // it is, '' included; a swap: the amount it carries). Recorded only when
@@ -208,13 +214,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // a usable quote: none while loading, on error, or with nothing to carry.
     // The reversed pair may then be pending, which disables the next swap
     // until its rate lands (a cached one swaps back at once).
-    const hasUsableQuote = !isLoading && !isError && typeof destinationAmount === 'number' && destinationAmount > 0
+    const hasUsableQuote =
+        !isLoading && !isError && typeof netDestinationAmount === 'number' && netDestinationAmount > 0
     const swapCurrencies = useCallback(() => {
         if (!hasUsableQuote) return
         setIsEditingDestination(false)
-        const newAmount = Math.round(destinationAmount * 100) / 100
+        const newAmount = Math.round(netDestinationAmount * 100) / 100
         updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount }, { value: newAmount })
-    }, [hasUsableQuote, sourceCurrency, destinationCurrency, destinationAmount, updateUrlParams])
+    }, [hasUsableQuote, sourceCurrency, destinationCurrency, netDestinationAmount, updateUrlParams])
 
     const showLoading = isLoading
 
@@ -276,7 +283,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
     // What the payload amount above actually funds at this rate — not the typed
     // "You get" figure, which a rounded source can fall short of.
-    const fundedDestinationAmount = ctaSourceAmount !== null && exchangeRate > 0 ? ctaSourceAmount * exchangeRate : null
+    const fundedDestinationAmount =
+        ctaSourceAmount !== null && exchangeRate > 0
+            ? applyBridgeCrossCurrencyFee(ctaSourceAmount * exchangeRate, sourceCurrency, destinationCurrency)
+            : null
 
     // The route's floor, checked against the side it is stated in: a USD floor
     // against the payload amount, a local one (1 BRL for PIX) against the cents
@@ -379,7 +389,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                         <input
                             min={0}
                             placeholder="0"
-                            value={destinationDisplayValue}
+                            value={netDestinationDisplayValue}
                             onChange={(e) => {
                                 const inputValue = e.target.value
                                 setIsEditingDestination(true)
@@ -387,7 +397,13 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                     handleDestinationAmountChange('', '')
                                 } else {
                                     const value = parseFloat(inputValue)
-                                    handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
+                                    // User typed a net "Recipient Gets" value — gross it up
+                                    // before handing to the hook so the source amount is
+                                    // computed from the gross equivalent (net / (1 - fee) / rate).
+                                    const grossValue = isNaN(value)
+                                        ? ''
+                                        : reverseBridgeCrossCurrencyFee(value, sourceCurrency, destinationCurrency)
+                                    handleDestinationAmountChange(inputValue, grossValue)
                                 }
                             }}
                             type="number"

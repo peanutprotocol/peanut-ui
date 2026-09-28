@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
-import { fetchDisplayRate, fetchOfframpRate, FxApiError } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 
 jest.mock('@/utils/fx.utils', () => {
     class MockFxApiError extends Error {
@@ -10,16 +10,10 @@ jest.mock('@/utils/fx.utils', () => {
             super(`FX API returned ${status}`)
         }
     }
-    return {
-        fetchDisplayRate: jest.fn(),
-        fetchOfframpRate: jest.fn(),
-        isOfframpRatePair: jest.requireActual('@/utils/fx.utils').isOfframpRatePair,
-        FxApiError: MockFxApiError,
-    }
+    return { fetchDisplayRate: jest.fn(), FxApiError: MockFxApiError }
 })
 
 const mockFetchDisplayRate = fetchDisplayRate as jest.Mock
-const mockFetchOfframpRate = fetchOfframpRate as jest.Mock
 
 const makeWrapper = () => {
     const client = new QueryClient({
@@ -318,77 +312,6 @@ describe('useExchangeRate across a swap (TASK-21369)', () => {
         // the refresh replaced the quote in place: no committed frame showed
         // the skeleton or an empty side on the way
         expect(seen.some((frame) => frame.isLoading || frame.destination === '')).toBe(false)
-        client.clear()
-    })
-})
-
-describe('useExchangeRate withdrawal rate (fees v2)', () => {
-    beforeEach(() => {
-        mockFetchDisplayRate.mockReset()
-        mockFetchOfframpRate.mockReset()
-    })
-
-    it('opted in, USD → EUR converts at the offramp rate', async () => {
-        mockFetchOfframpRate.mockResolvedValue(0.8928135)
-        const { client, wrapper } = makeWrapper()
-
-        const { result } = renderHook(
-            () =>
-                useExchangeRate({
-                    sourceCurrency: 'USD',
-                    destinationCurrency: 'EUR',
-                    initialSourceAmount: 100,
-                    withdrawalRate: true,
-                }),
-            { wrapper }
-        )
-
-        await waitFor(() => expect(result.current.destinationAmount).toBeCloseTo(89.28135, 6))
-        expect(mockFetchOfframpRate).toHaveBeenCalledWith('EUR')
-        expect(mockFetchDisplayRate).not.toHaveBeenCalled()
-        client.clear()
-    })
-
-    it('opted in, a deposit pair keeps the display rate', async () => {
-        mockFetchDisplayRate.mockResolvedValue(1.168)
-        const { client, wrapper } = makeWrapper()
-
-        const { result } = renderHook(
-            () => useExchangeRate({ sourceCurrency: 'EUR', destinationCurrency: 'USD', withdrawalRate: true }),
-            { wrapper }
-        )
-
-        await waitFor(() => expect(result.current.exchangeRate).toBe(1.168))
-        expect(mockFetchOfframpRate).not.toHaveBeenCalled()
-        client.clear()
-    })
-
-    it('without the opt-in (every other screen), USD → EUR keeps the display rate', async () => {
-        mockFetchDisplayRate.mockResolvedValue(0.8955)
-        const { client, wrapper } = makeWrapper()
-
-        const { result } = renderHook(() => useExchangeRate({ sourceCurrency: 'USD', destinationCurrency: 'EUR' }), {
-            wrapper,
-        })
-
-        await waitFor(() => expect(result.current.exchangeRate).toBe(0.8955))
-        expect(mockFetchOfframpRate).not.toHaveBeenCalled()
-        client.clear()
-    })
-
-    it('a failed offramp rate is an error with no conversion', async () => {
-        mockFetchOfframpRate.mockRejectedValue(new FxApiError(429, 'USD', 'GBP'))
-        const { client, wrapper } = makeWrapper()
-
-        const { result } = renderHook(
-            () => useExchangeRate({ sourceCurrency: 'USD', destinationCurrency: 'GBP', withdrawalRate: true }),
-            { wrapper }
-        )
-
-        await waitFor(() => expect(result.current.isError).toBe(true))
-        expect(result.current.exchangeRate).toBe(0)
-        expect(result.current.destinationAmount).toBe('')
-        expect(mockFetchOfframpRate).toHaveBeenCalledTimes(1)
         client.clear()
     })
 })

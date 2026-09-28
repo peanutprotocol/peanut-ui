@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchDisplayRate, FxApiError, isOfframpRatePair } from '@/utils/fx.utils'
-import { offrampRateQueryOptions } from '@/utils/offramp-rate.query'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
 type InputValue = number | ''
@@ -25,12 +24,6 @@ interface UseExchangeRateProps {
     initialSourceAmount?: number
     /** A pair change with a fresh intent starts from its value; without one, from `initialSourceAmount`. */
     sourceAmountIntent?: SourceAmountIntent
-    /**
-     * Price USD → EUR, GBP, MXN or COP at the rate a withdrawal is quoted at
-     * (public /bridge/offramp/rate, Peanut's margin inside while it is
-     * collected). Every other pair, deposits included, keeps the display rate.
-     */
-    withdrawalRate?: boolean
     enabled?: boolean
 }
 
@@ -53,10 +46,8 @@ export function useExchangeRate({
     destinationCurrency,
     initialSourceAmount = 10,
     sourceAmountIntent,
-    withdrawalRate = false,
     enabled = true,
 }: UseExchangeRateProps): UseExchangeRateReturn {
-    const usesOfframpRate = withdrawalRate && isOfframpRatePair(sourceCurrency, destinationCurrency)
     // What the user typed on each side, and which side was typed last. Both
     // amounts are derived from these and the current rate at render time —
     // never stored by an effect, so no render can pair one pair's amount with
@@ -102,26 +93,20 @@ export function useExchangeRate({
         isLoading,
         isError,
     } = useQuery<{ rate: number }>({
-        // A withdrawal pair shares its query with the withdrawal minimum
-        // (useBankWithdrawMinimum), so the pill and the floor use one rate.
-        ...(usesOfframpRate
-            ? offrampRateQueryOptions(destinationCurrency)
-            : {
-                  queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
-                  // First-party browsers and native clients both call api.peanut.me
-                  // directly. This preserves the real client IP at the API rate limiter;
-                  // proxying normal web traffic through Vercel collapses every user onto
-                  // one egress address and lets one noisy client throttle everyone.
-                  queryFn: async () => ({ rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }),
-                  staleTime: 5 * 60 * 1000, // 5 minutes
-                  gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
-                  refetchOnWindowFocus: true, // Refresh rates when user returns to tab
-                  refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
-                  // Invalid or unsupported pairs are deterministic client outcomes. Do
-                  // not turn one selection into four identical rate-limited requests.
-                  retry: (failureCount: number, error: Error) =>
-                      !(error instanceof FxApiError && [400, 404, 429].includes(error.status)) && failureCount < 3,
-              }),
+        queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
+        // First-party browsers and native clients both call api.peanut.me
+        // directly. This preserves the real client IP at the API rate limiter;
+        // proxying normal web traffic through Vercel collapses every user onto
+        // one egress address and lets one noisy client throttle everyone.
+        queryFn: async () => ({ rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
+        refetchOnWindowFocus: true, // Refresh rates when user returns to tab
+        refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+        // Invalid or unsupported pairs are deterministic client outcomes. Do
+        // not turn one selection into four identical rate-limited requests.
+        retry: (failureCount, error) =>
+            !(error instanceof FxApiError && [400, 404, 429].includes(error.status)) && failureCount < 3,
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 

@@ -3,6 +3,7 @@ import { AccountType } from '@/interfaces/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import RecipientGetsRow from './RecipientGetsRow'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
@@ -61,15 +62,23 @@ const ExchangeRate = ({
 
     const currency = nonEuroCurrency || toCurrency
 
-    // Estimate of the local currency amount. The flows here (bank claims, USD
-    // withdrawals, unquotable amounts) create unquoted transfers, which carry
-    // no Peanut FX margin: the server sets Bridge fees, and a margin exists
-    // only inside a `fixed_output` quote's rate (useBridgeOfframpQuote).
+    // calculate local currency amount if provided
+    // apply the cross-currency developer fee (currently 0 — identity; kept for
+    // the planned FX-margin re-enable) so the displayed "amount you will
+    // receive" tracks what Bridge actually delivers if the fee returns.
+    // NOTE: this component is used for Bridge offramp / bank-claim flows where the
+    // on-chain source is always USDC (even though the UI sourceCurrency prop defaults
+    // to 'USD' for display/rate-fetch purposes). Pass 'USDC' explicitly to the fee
+    // helper — it mirrors backend `getBridgeDeveloperFeeParams` where 'usd' is the
+    // fee-free fiat rail and 'usdc' is the stablecoin side that a re-enabled fee
+    // would apply to when crossing currencies.
     let localCurrencyAmount: string | null = null
     if (amountToConvert && rate && rate > 0) {
         const amount = parseFloat(amountToConvert)
         if (!isNaN(amount) && amount > 0) {
-            localCurrencyAmount = (amount * rate).toFixed(2)
+            const gross = amount * rate
+            const net = applyBridgeCrossCurrencyFee(gross, 'USDC', currency)
+            localCurrencyAmount = net.toFixed(2)
         }
     }
 

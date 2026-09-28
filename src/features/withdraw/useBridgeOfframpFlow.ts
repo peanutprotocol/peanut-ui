@@ -7,7 +7,7 @@ import { InsufficientSpendableError, isUserCancellation } from '@/hooks/wallet/s
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -46,7 +46,7 @@ import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
 import { bankAmountCurrency, normalizeBankAmount, quotableSourceAmount } from './bank-amount'
 import { useBridgeOfframpQuote } from '@/hooks/useBridgeOfframpQuote'
-import { isBridgeQuoteRefusal, isFixedOutputQuote, isFixedOutputQuoteRecent } from '@/utils/offramp-quote.utils'
+import { isQuoteRecent } from '@/utils/offramp-quote.utils'
 import { bankStepGuards } from './step-guards'
 import { validateBankOfframpAmount, bankWithdrawMinNeedsRate } from './amount-validation'
 import { useBankWithdrawMinimum } from './useBankWithdrawMinimum'
@@ -151,11 +151,11 @@ export function useBridgeOfframpFlow() {
 
     // Account paid in EUR, GBP, MXN or COP (TASK-23054): the amounts are the
     // quote's, for the side the user typed — the bank amount, or the USDC on
-    // an older `?amount=` link — and refresh with the rate until the user
-    // confirms. The USDC is what the offramp sends. A `fixed_output` quote
-    // also fixes the bank amount; any other quote leaves it an estimate.
-    // Typed USDC is cut to whole cents for the quote, and the review shows
-    // the quote's amount. Such an account never creates without a quote.
+    // an older `?amount=` link — and hold still while the user reviews them.
+    // The USDC is what the offramp sends; the bank amount is an estimate,
+    // because Bridge converts at settlement. Typed USDC is cut to whole cents
+    // for the quote, which sends it back unchanged, and the review shows the
+    // quote's amount. Such an account never creates without a quote.
     const quotedCurrency = bankAmountCurrency(bankAccount)
     const quotedSourceAmount = quotableSourceAmount(urlAmount)
     const quoteAmount = !quotedCurrency
@@ -169,12 +169,6 @@ export function useBridgeOfframpFlow() {
     // Shown after the app dropped a quote on submit and got a new one: the
     // user confirms the new numbers before anything is sent.
     const [quoteNotice, setQuoteNotice] = useState<string | null>(null)
-    // The last quote sent to create, the destination it was sent for, and
-    // whether the app then tried to send money to its deposit address. Create
-    // replays that transfer for the same quote while it waits for funds, so
-    // the quote goes out again only as a plain retry of that create: never for
-    // another account or reference, and never after a send was attempted.
-    const sentQuoteRef = useRef<{ quoteId: string; destination: string; sendAttempted: boolean } | null>(null)
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
     // add-money/[country]/bank page: scope to the rail jurisdiction this page
@@ -206,18 +200,16 @@ export function useBridgeOfframpFlow() {
     const isQuoteCurrent = !!bankQuote.quote && !bankQuote.isError
     // The shared minimum source (widget, amount step, here), converted with
     // this quote's rate whenever the account has one, so no other rate is
-    // fetched and none can block it. A signed (fixed_output) quote is what
-    // create executes: its rate sets the USD minimum, and its exact payout must
-    // also meet the rail's local floor. A Bridge-rate quote (collection off)
-    // keeps the estimate and its rate, as before.
+    // fetched and none can block it. The quoted payout must also meet the
+    // rail's local floor: a USD amount at the minimum can still round under it.
     const bankMinimum = useBankWithdrawMinimum(countryIso2, {
         quote: quoteCurrency ? { rate: bankQuote.quote?.rate, isError: bankQuote.isError } : undefined,
     })
     const minUsd = bankMinimum.minUsd
     const isMinReady = bankMinimum.status === 'ready'
-    const signedQuote = bankCurrency && bankQuote.quote && isFixedOutputQuote(bankQuote.quote) ? bankQuote.quote : null
+    const quotedPayout = bankCurrency ? bankQuote.quote?.destinationAmount : undefined
     const payoutBelowRailFloor =
-        !!signedQuote && minNeedsRate && Number(signedQuote.destinationAmount) < getMinimumAmount(countryIso2)
+        quotedPayout !== undefined && minNeedsRate && Number(quotedPayout) < getMinimumAmount(countryIso2)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -338,8 +330,8 @@ export function useBridgeOfframpFlow() {
 
     // Drop a quote the app will not confirm. The review waits for the next
     // one and asks the user to check it.
-    const requoteForReview = (quoteId: string) => {
-        bankQuote.discard(quoteId)
+    const requoteForReview = () => {
+        bankQuote.requote()
         setError({ showError: false, errorMessage: '' })
         setQuoteNotice(t('reviewUpdatedQuote'))
     }
@@ -393,10 +385,10 @@ export function useBridgeOfframpFlow() {
         const quote = bankCurrency ? bankQuote.quote : null
         if (bankCurrency && !quote) return
         setQuoteNotice(null)
-        // An old quote (a tab left in the background) is replaced before
-        // create would refuse it.
-        if (quote?.quoteId && !isFixedOutputQuoteRecent(bankQuote.receivedAt)) {
-            requoteForReview(quote.quoteId)
+        // An old quote (a tab left in the background) is replaced, and the
+        // user confirms the new numbers: nothing goes out at an old rate.
+        if (quote && !isQuoteRecent(bankQuote.receivedAt)) {
+            requoteForReview()
             return
         }
 
@@ -418,7 +410,7 @@ export function useBridgeOfframpFlow() {
             setError({ showError: true, errorMessage })
             return
         }
-        // The signed payout itself is under the rail's local floor: the
+        // The quoted payout itself is under the rail's local floor: the
         // provider would refuse it, whatever the USD amount says.
         if (payoutBelowRailFloor) {
             setError({ showError: true, errorMessage: t('errors.minimumWithdrawal', { amount: `$${minUsd}` }) })
@@ -480,31 +472,9 @@ export function useBridgeOfframpFlow() {
                     externalAccountId: destination.externalAccountId,
                     ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
-                // the server takes both amounts from the quote; `amount` is its sourceAmount
-                ...(quote?.quoteId ? { quoteId: quote.quoteId } : {}),
             }
 
-            if (quote?.quoteId) {
-                const sentDestination = JSON.stringify(createPayload.destination)
-                const sent = sentQuoteRef.current
-                if (sent?.quoteId === quote.quoteId && (sent.destination !== sentDestination || sent.sendAttempted)) {
-                    requoteForReview(quote.quoteId)
-                    return
-                }
-                sentQuoteRef.current = { quoteId: quote.quoteId, destination: sentDestination, sendAttempted: false }
-            }
-
-            const { data, error, code } = await createOfframp(createPayload)
-
-            if (error && quote?.quoteId && isBridgeQuoteRefusal(code)) {
-                // Create refused this quote before this attempt sent anything. The
-                // quote may still belong to a transfer made earlier (USED), which
-                // this screen never funds again. The new quote can have other
-                // amounts: the user confirms it, and the app never creates or
-                // sends on its own.
-                requoteForReview(quote.quoteId)
-                return
-            }
+            const { data, error } = await createOfframp(createPayload)
 
             if (error) {
                 setError({ showError: true, errorMessage: error })
@@ -519,9 +489,6 @@ export function useBridgeOfframpFlow() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            if (sentQuoteRef.current && sentQuoteRef.current.quoteId === quote?.quoteId) {
-                sentQuoteRef.current.sendAttempted = true
-            }
             sendStarted = true
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
@@ -583,12 +550,8 @@ export function useBridgeOfframpFlow() {
             // Card re-approval dismissed, or the screen left, before the
             // on-chain leg was prepared or signed. The offramp transfer row
             // exists but no funds moved, so this is control flow, not a failed
-            // withdrawal: the user can run it again from the same screen, with
-            // the same quote — the transfer still waits for its deposit.
-            if (e instanceof SpendRecoveryAbortedError) {
-                if (sentQuoteRef.current) sentQuoteRef.current.sendAttempted = false
-                return
-            }
+            // withdrawal: the user can run it again from the same screen.
+            if (e instanceof SpendRecoveryAbortedError) return
 
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
@@ -673,8 +636,6 @@ export function useBridgeOfframpFlow() {
             ? {
                   currency: bankCurrency,
                   quote: bankQuote.quote,
-                  // amounts create takes as they are; otherwise the bank amount is an estimate
-                  isExact: !!bankQuote.quote && isFixedOutputQuote(bankQuote.quote),
                   quoteFailed: bankQuote.isError,
                   refetchQuote: bankQuote.refetch,
                   quoteNotice,

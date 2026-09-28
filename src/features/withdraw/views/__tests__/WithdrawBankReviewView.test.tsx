@@ -33,6 +33,7 @@ const Harness = ({
     submittedTxHash = null,
     account = ibanAccount,
     showError = false,
+    amount = '50',
     bankAmount,
     quoteNotice = null,
     sendOutcomeUnknown = false,
@@ -43,7 +44,8 @@ const Harness = ({
     submittedTxHash?: string | null
     account?: Account
     showError?: boolean
-    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    amount?: string
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
     quoteNotice?: string | null
     sendOutcomeUnknown?: boolean
     onRetryQuote?: () => void
@@ -54,7 +56,7 @@ const Harness = ({
     return (
         <WithdrawBankReviewView
             bankAccount={account}
-            amount="50"
+            amount={amount}
             bankAmount={bankAmount}
             quoteNotice={quoteNotice}
             fromSendFlow={false}
@@ -319,12 +321,9 @@ describe('WithdrawBankReviewView — the account owner row', () => {
 })
 
 describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-23054)', () => {
-    it('Bridge-rate quote: shows about what the recipient gets and the rate behind the USDC', () => {
+    it('shows about what the recipient gets and the rate behind the USDC', () => {
         renderWithIntl(
-            <Harness
-                rail="sepa"
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
-            />
+            <Harness rail="sepa" bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }} />
         )
         expect(screen.getByText('Recipient gets')).toBeInTheDocument()
         expect(screen.getByText('≈ €2,000')).toBeInTheDocument()
@@ -332,17 +331,16 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument()
     })
 
-    it('fixed_output quote: shows the exact bank amount, and claims no locked rate', () => {
+    it('a payout estimated from typed USDC is shown as an estimate too, with no locked or exact claim', () => {
         renderWithIntl(
             <Harness
                 rail="sepa"
-                bankAmount={{ currency: 'eur', destinationAmount: '2000.50', rate: '0.8928135', isExact: true }}
+                amount="12.01"
+                bankAmount={{ currency: 'eur', destinationAmount: '10.75', rate: '0.8955' }}
             />
         )
-        expect(screen.getByText('€2,000.50')).toBeInTheDocument()
-        expect(screen.queryAllByText(/≈/)).toHaveLength(0)
-        expect(screen.getByText('1 USD = 0.8928 EUR')).toBeInTheDocument()
-        expect(screen.queryAllByText(/locked|guaranteed/i)).toHaveLength(0)
+        expect(screen.getByText('≈ €10.75')).toBeInTheDocument()
+        expect(screen.queryAllByText(/locked|guaranteed|exactly/i)).toHaveLength(0)
     })
 
     it('without one, keeps the exchange-rate rows of a USD amount', () => {
@@ -355,7 +353,7 @@ describe('WithdrawBankReviewView — bank amount typed in its currency (TASK-230
         renderWithIntl(
             <Harness
                 rail="sepa"
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8923', isExact: true }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8923' }}
                 quoteNotice="Review the updated quote to continue."
             />
         )
@@ -382,7 +380,7 @@ describe('WithdrawBankReviewView — a send whose outcome is unknown', () => {
                 rail="sepa"
                 showError
                 sendOutcomeUnknown
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
                 onRetryQuote={jest.fn()}
             />
         )
@@ -390,14 +388,14 @@ describe('WithdrawBankReviewView — a send whose outcome is unknown', () => {
     })
 })
 
-describe('WithdrawBankReviewView — a Bridge-rate quote whose refresh failed', () => {
-    // a failed 30-second refresh: the review, and any step open over it, stays
+describe('WithdrawBankReviewView — a quote whose refresh failed', () => {
+    // a failed refresh: the review, and any step open over it, stays
     it('a failed quote refresh is an inline error with a retry, on the same review', () => {
         const onRetryQuote = jest.fn()
         renderWithIntl(
             <Harness
                 rail="sepa"
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
                 onRetryQuote={onRetryQuote}
             />
         )
@@ -418,7 +416,7 @@ describe('WithdrawBankReviewView — a Bridge-rate quote whose refresh failed', 
                 rail="sepa"
                 showError
                 isSubmitReady={false}
-                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955', isExact: false }}
+                bankAmount={{ currency: 'eur', destinationAmount: '2000', rate: '0.8955' }}
                 onRetryQuote={onRetryQuote}
             />
         )

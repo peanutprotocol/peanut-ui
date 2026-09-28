@@ -54,7 +54,6 @@ export function simulatedFxRate(from: string, to: string, rate: string): (path: 
 const SIMULATED_USD_BRL = { 'GET /fx/rate': simulatedFxRate('USD', 'BRL', '5') }
 
 type OfframpQuoteBody = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
-type OfframpRateBody = paths['/bridge/offramp/rate']['get']['responses'][200]['content']['application/json']
 
 /** The amount syntax the quote accepts (the API's DESTINATION_AMOUNT_PATTERN), in whole cents. */
 function toCents(amount: string | null): bigint | null {
@@ -68,40 +67,29 @@ const fromCents = (cents: bigint): string => `${cents / 100n}.${(cents % 100n).t
 const invalidAmount = (): FixtureReply => ({ status: 400, body: { error: 'Enter an amount with at most 2 decimals.' } })
 
 /**
- * Simulated fees-v2 withdrawal pricing for ONE bank currency, for screenshots
- * only: the signed fixed_output quote, and the public rate it was built from.
- * `rates` are withdrawal rates with Peanut's margin already inside (4
- * decimals), issued in order, one per signed quote; the last one repeats. The
- * public rate and the rate-only quote always name the rate of the latest
- * signed quote, so the widget, the amount step and the review agree.
- *
- * Amounts round as the API does: USDC for a typed bank amount rounds up to
- * the cent, a bank amount for typed USDC rounds down. A request without
- * `pricing=fixed_output` (an older client), or for another currency, answers
- * null and gets the demo's Bridge-rate estimate. Times are stamped on each
- * request, so every answer is fresh. Not a price, and no provider is called.
+ * A simulated withdrawal quote for ONE bank currency at a fixed Bridge rate (4
+ * decimals), for screenshots only. Amounts round as the API does: USDC for a
+ * typed bank amount rounds up to the cent; typed USDC comes back unchanged,
+ * with its estimated bank amount rounded down. Another currency answers null
+ * and gets the demo's 1:1 estimate. Times are stamped on each request, so
+ * every answer is fresh. Not a price, and no provider is called.
  */
-export function simulatedWithdrawalPricing(currency: string, rates: readonly string[]) {
-    let issued = 0
-    const latestRate = () => rates[Math.min(Math.max(issued - 1, 0), rates.length - 1)]
-
+export function simulatedWithdrawalQuote(currency: string, rate: string) {
     const quote = (path: string): FixtureReply | null => {
         const query = new URL(path, 'http://fixture.local').searchParams
-        if (query.get('destinationCurrency') !== currency || query.get('pricing') !== 'fixed_output') return null
+        if (query.get('destinationCurrency') !== currency) return null
         const now = Date.now()
         const typedDestination = query.get('destinationAmount')
         const typedSource = query.get('sourceAmount')
         if (!typedDestination && !typedSource) {
             const body: OfframpQuoteBody = {
                 destinationCurrency: currency,
-                rate: latestRate(),
+                rate,
                 updatedAt: new Date(now).toISOString(),
-                pricing: 'fixed_output',
             }
             return { status: 200, body }
         }
 
-        const rate = rates[Math.min(issued, rates.length - 1)]
         const rateUnits = BigInt(rate.replace('.', '')) // 4 decimals
         let sourceCents: bigint
         let destinationCents: bigint
@@ -118,42 +106,22 @@ export function simulatedWithdrawalPricing(currency: string, rates: readonly str
             if (destinationCents === 0n) return { status: 400, body: { error: 'The amount is too small to withdraw.' } }
         }
 
-        issued += 1
         const body: OfframpQuoteBody = {
             destinationCurrency: currency,
             rate,
             updatedAt: new Date(now).toISOString(),
-            destinationAmount: fromCents(destinationCents),
-            sourceAmount: fromCents(sourceCents),
-            pricing: 'fixed_output',
-            quoteId: `fixture-quote-${currency}-${issued}`,
-            expiresAt: new Date(now + 2 * 60 * 1000).toISOString(),
+            // the typed side comes back exactly as typed, as from the API
+            destinationAmount: typedDestination ?? fromCents(destinationCents),
+            sourceAmount: typedSource ?? fromCents(sourceCents),
         }
         return { status: 200, body }
     }
 
-    const publicRate = (path: string): FixtureReply | null => {
-        const query = new URL(path, 'http://fixture.local').searchParams
-        if (query.get('destinationCurrency') !== currency) return null
-        const body: OfframpRateBody = {
-            destinationCurrency: currency,
-            rate: latestRate(),
-            updatedAt: new Date().toISOString(),
-            pricing: 'fixed_output',
-        }
-        return { status: 200, body }
-    }
-
-    return {
-        'GET /bridge/offramp/quote': quote,
-        'GET /bridge/offramp/rate': publicRate,
-    }
+    return { 'GET /bridge/offramp/quote': quote }
 }
 
-// Bridge 0.9 EUR per USD, less Peanut's 0.30%: 0.8973. The requote case then
-// moves to 0.8964, as if Bridge's rate fell to 0.8991 while the quote waited.
-const EUR_WITHDRAWAL_RATE = '0.8973'
-const EUR_WITHDRAWAL_RATE_AFTER_MOVE = '0.8964'
+// A synthetic Bridge sell rate, EUR per USD. No Peanut margin: none is collected.
+const EUR_WITHDRAWAL_RATE = '0.8955'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -219,16 +187,16 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
-// Fees v2 bank review: a verified Bridge customer whose Spanish IBAN is a
+// Bank review in EUR: a verified Bridge customer whose Spanish IBAN is a
 // Bridge account, which is what the submit needs before it asks create:
 // identity verified, the EU SEPA rail enabled (the review's withdraw gate reads
 // channel 'bank', country 'EU' — the demo user has no EU rail, so without this
 // the submit opens the "Unlock Spain" KYC drawer), a Bridge customer id, and the
 // account's Bridge id. Synthetic state for browser QA only: nothing here reaches
 // a provider or advances anyone's real KYC. Every amount comes from
-// simulatedWithdrawalPricing. Arrays replace on merge, so the rails listed are
+// simulatedWithdrawalQuote. Arrays replace on merge, so the rails listed are
 // the whole list: the demo's US rail, and SEPA.
-const FIXED_OUTPUT_WITHDRAW_USER = {
+const SEPA_WITHDRAW_USER = {
     'GET /users/me': {
         user: { bridgeCustomerId: 'fixture-bridge-customer' },
         accounts: [WALLET_ACCOUNT, { ...BANK_ACCOUNTS[0], bridgeAccountId: 'fixture-bridge-iban' }],
@@ -981,35 +949,17 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     // ---------------------------------------------------------------------
-    // Fees v2 withdrawals (TASK-19427): Peanut's 0.30% inside the rate, a
-    // signed fixed_output quote at review. Synthetic rates, stamped fresh on
+    // Withdrawals to a EUR bank (TASK-19427): the quote at Bridge's rate, and
+    // the bank amount always an estimate. A synthetic rate, stamped fresh on
     // every request. The bank review keeps its account in flow memory, so it
-    // has no URL of its own: open /withdraw, pick the Spanish IBAN, type 20 EUR
-    // and Continue. Rates & fees opens on its own.
+    // has no URL of its own: open /withdraw, pick the Spanish IBAN, type the
+    // amount and Continue.
     // ---------------------------------------------------------------------
-    'rates-withdrawal-fixed-output': {
-        route: '/profile/exchange-rate?from=USD&to=EUR&amount=100',
-        about: 'Rates & fees on a withdrawal pair: the public rate 0.8973 (Bridge 0.9 less 0.30%), 100 USD → 89.73 EUR, still an estimate.',
-        waitFor: '[data-testid="exchange-rate-pill"]',
-        replies: simulatedWithdrawalPricing('eur', [EUR_WITHDRAWAL_RATE]),
-    },
-    'withdraw-bank-fixed-output': {
+    'withdraw-bank-estimated-payout': {
         route: '/withdraw',
-        about: 'Bank review with a signed quote: pick the Spanish IBAN, 20 EUR, Continue — exactly €20 for $22.29 at 0.8973, no "≈".',
-        responses: FIXED_OUTPUT_WITHDRAW_USER,
-        replies: simulatedWithdrawalPricing('eur', [EUR_WITHDRAWAL_RATE]),
-    },
-    'withdraw-bank-quote-expired': {
-        route: '/withdraw',
-        about: 'Bank review whose quote create refuses (409 BRIDGE_QUOTE_EXPIRED): 20 EUR requoted at 0.8964 for $22.32, "Review the updated quote to continue." Nothing is sent.',
-        responses: FIXED_OUTPUT_WITHDRAW_USER,
-        replies: {
-            ...simulatedWithdrawalPricing('eur', [EUR_WITHDRAWAL_RATE, EUR_WITHDRAWAL_RATE_AFTER_MOVE]),
-            'POST /bridge/offramp/create': {
-                status: 409,
-                body: { error: 'This quote has expired. Get a new quote.', code: 'BRIDGE_QUOTE_EXPIRED' },
-            },
-        },
+        about: 'Bank review at 0.8955: pick the Spanish IBAN, 20 EUR, Continue — $22.34 for ≈ €20. In USD, 12.01 sends exactly $12.01 for ≈ €10.75.',
+        responses: SEPA_WITHDRAW_USER,
+        replies: simulatedWithdrawalQuote('eur', EUR_WITHDRAWAL_RATE),
     },
 
     // ---------------------------------------------------------------------

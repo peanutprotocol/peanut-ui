@@ -4,20 +4,19 @@ import { quoteAnswersRequest } from '@/utils/offramp-quote.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
-/** Bridge updates its rates about every 30 seconds; the quote follows. */
+/** Bridge updates its rates about every 30 seconds; the rate follows. */
 const QUOTE_REFRESH_MS = 30_000
 
 /**
  * The quote for a withdrawal to a bank paid in EUR, GBP, MXN or COP
- * (TASK-23054): the USDC a typed bank amount costs, or the bank amount typed
- * USDC buys. Without `amount` it returns only the rate, for the amount step.
- * No fallback rate: a failed quote is an error the screen must show, never a
- * guessed amount.
+ * (TASK-23054): the USDC a typed bank amount costs, or the estimated bank
+ * amount typed USDC buys. Without `amount` it returns only the rate, for the
+ * amount step, and keeps following Bridge's rate. No fallback rate: a failed
+ * quote is an error the screen must show, never a guessed amount.
  *
- * A signed (`fixed_output`) quote does not refresh on its own: the numbers
- * the user confirms are the ones on screen. It is replaced only through
- * `discard`, and the screen then asks the user to review the new numbers.
- * The rate and Bridge-rate estimates keep following Bridge's rate.
+ * A quote with an amount does not change on its own: the numbers the user
+ * confirms are the ones on screen. Only `requote` replaces it, and the screen
+ * then asks the user to review the new numbers.
  */
 export function useBridgeOfframpQuote({
     currency,
@@ -29,9 +28,10 @@ export function useBridgeOfframpQuote({
     amount?: OfframpQuoteAmount
     enabled?: boolean
 }) {
-    // A quote create refused, or the app will not confirm any more. It stays
+    // When the quote the app will not confirm any more arrived. It stays
     // hidden until a new quote replaces it.
-    const [discardedQuoteId, setDiscardedQuoteId] = useState<string | null>(null)
+    const [requotedAt, setRequotedAt] = useState<number | null>(null)
+    const holdsStill = !!amount
     const { data, dataUpdatedAt, isFetching, isError, refetch } = useQuery({
         queryKey: ['bridgeOfframpQuote', currency, amount ?? null],
         queryFn: async () => {
@@ -42,33 +42,32 @@ export function useBridgeOfframpQuote({
             return data
         },
         enabled: enabled && !!currency,
-        refetchInterval: (query) => (query.state.data?.quoteId ? false : QUOTE_REFRESH_MS),
-        refetchOnWindowFocus: (query) => !query.state.data?.quoteId,
-        refetchOnReconnect: (query) => !query.state.data?.quoteId,
+        // never stale: re-enabling the query (after a failed submit) must not swap the numbers either
+        staleTime: holdsStill ? Infinity : 0,
+        refetchInterval: holdsStill ? false : QUOTE_REFRESH_MS,
+        refetchOnWindowFocus: !holdsStill,
+        refetchOnReconnect: !holdsStill,
         retry: 2,
     })
 
     /** Drop this quote and get a new one. The screen shows no amounts until it lands. */
-    const discard = useCallback(
-        (quoteId: string) => {
-            setDiscardedQuoteId(quoteId)
-            void refetch()
-        },
-        [refetch]
-    )
+    const requote = useCallback(() => {
+        setRequotedAt(dataUpdatedAt)
+        void refetch()
+    }, [dataUpdatedAt, refetch])
 
     // A failed refresh keeps the last quote on screen, so the screen and any open
     // KYC or terms step stay mounted; `isError` says it is no longer current, and
-    // a caller must not confirm it until a fresh quote lands. A discarded quote
+    // a caller must not confirm it until a fresh quote lands. A replaced quote
     // is never shown again, whatever the refetch answers.
-    const isDiscarded = !!data?.quoteId && data.quoteId === discardedQuoteId
+    const isReplaced = requotedAt !== null && dataUpdatedAt === requotedAt
     return {
-        quote: isDiscarded ? null : (data ?? null),
+        quote: isReplaced ? null : (data ?? null),
         /** When the shown quote arrived (ms). */
         receivedAt: dataUpdatedAt,
         isFetching,
         isError,
         refetch,
-        discard,
+        requote,
     }
 }

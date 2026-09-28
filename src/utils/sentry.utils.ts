@@ -29,9 +29,8 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // reads as a success (`typedCampaignOnly`). Both are expected outcomes of a
     // typed code, surfaced inline to the user — not server bugs.
     { pattern: /\/invites\/validate/, statuses: [400, 409] },
-    // NOT here on purpose: /bridge/exchange-rate or /bridge/offramp/rate 429. It
-    // looks like ordinary quota noise and is not. useBankWithdrawMinimum fails
-    // closed on the offramp rate (fees v2), so a
+    // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
+    // quota noise and is not. useBankWithdrawMinimum fails closed on it, so a
     // GB/MX/CO withdrawal is blocked for as long as it lasts — this 429 is the
     // alert for a money screen users cannot complete, and for the open
     // FX-stampede P2 behind it. It reports until the keyed single-flight fix in

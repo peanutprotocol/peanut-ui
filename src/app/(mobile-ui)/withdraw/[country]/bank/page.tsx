@@ -100,7 +100,6 @@ export default function WithdrawBankPage() {
                                   currency: bankAmount.currency,
                                   destinationAmount: bankAmount.quote.destinationAmount,
                                   rate: bankAmount.quote.rate,
-                                  isExact: bankAmount.isExact,
                               }
                             : undefined
                     }

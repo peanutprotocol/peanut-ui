@@ -22,7 +22,7 @@ export type CreateOfframpSuccessResponse = {
  *
  * @param params - The data needed to create the off-ramp transfer.
  * @returns An object containing either the successful response data or an
- * error, with the API's error `code` (a refused quote is `BRIDGE_QUOTE_*`).
+ * error, with the API's error `code`.
  */
 export async function createOfframp(
     params: TCreateOfframpRequest
@@ -65,17 +65,15 @@ export async function createOfframp(
 
 /**
  * Quote a withdrawal: the USDC that pays a typed bank amount, or the bank
- * amount a typed USDC amount buys. Without an amount, only the rate.
- *
- * Always asks for `fixed_output` pricing. The API answers `bridge_rate` while
- * Peanut's FX margin is off, and then nothing changes for the caller.
+ * amount a typed USDC amount buys (an estimate: Bridge converts at settlement).
+ * Without an amount, only the rate.
  */
 export async function getOfframpQuote(
     destinationCurrency: string,
     amount?: OfframpQuoteAmount
 ): Promise<{ data?: OfframpQuote; error?: string }> {
     try {
-        const query = new URLSearchParams({ destinationCurrency, pricing: 'fixed_output' })
+        const query = new URLSearchParams({ destinationCurrency })
         if (amount && 'destinationAmount' in amount) query.set('destinationAmount', amount.destinationAmount)
         if (amount && 'sourceAmount' in amount) query.set('sourceAmount', amount.sourceAmount)
         const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })

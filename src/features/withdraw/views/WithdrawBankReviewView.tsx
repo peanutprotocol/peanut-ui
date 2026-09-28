@@ -28,11 +28,8 @@ interface WithdrawBankReviewViewProps {
     bankAccount: Account
     /** USDC that leaves the balance. */
     amount: string
-    /**
-     * The quote behind `amount` (TASK-23054): its bank amount and rate.
-     * `isExact` when create pays out exactly this bank amount; otherwise it is an estimate.
-     */
-    bankAmount?: { currency: string; destinationAmount: string; rate: string; isExact: boolean }
+    /** The quote behind `amount` (TASK-23054): its estimated bank amount and rate. */
+    bankAmount?: { currency: string; destinationAmount: string; rate: string }
     /** The app replaced the quote on submit; the user checks the new amounts. */
     quoteNotice?: string | null
     fromSendFlow: boolean
@@ -195,11 +192,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={`1 USD = ${Number(bankAmount.rate).toFixed(4)} ${bankAmount.currency.toUpperCase()}`}
                         />
-                        <RecipientGetsRow
-                            amount={bankAmount.destinationAmount}
-                            currency={bankAmount.currency}
-                            isExact={bankAmount.isExact}
-                        />
+                        <RecipientGetsRow amount={bankAmount.destinationAmount} currency={bankAmount.currency} />
                     </>
                 ) : (
                     <ExchangeRate
