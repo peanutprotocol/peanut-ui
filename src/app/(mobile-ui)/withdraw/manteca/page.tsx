@@ -14,6 +14,7 @@ import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
@@ -1236,7 +1237,9 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                            <Callout priority="error">
+                                <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                            </Callout>
                         )}
                     </div>
                 </div>
@@ -1312,7 +1315,9 @@ function MantecaBankWithdrawFlow() {
                         </Callout>
                     )}
                     {(errorMessage || sumsubFlow.error) && (
-                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                        <Callout priority="error">
+                            <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                        </Callout>
                     )}
                 </div>
             )}
