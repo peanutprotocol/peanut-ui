@@ -8,6 +8,7 @@ import { rainApi } from '@/services/rain'
 import { getCachedStepUpToken } from '@/services/step-up-cache'
 import { areFeatureFlagsLoaded } from '@/utils/featureFlag.utils'
 import { isIOSNative } from '@/utils/capacitor'
+import { clearWalletProvisioningOwner, setWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import {
     clearLegacyWalletSessionForWallet,
     clearWalletAuthorizationToken,
@@ -34,6 +35,21 @@ export function useWalletProvisioningLifecycle(): void {
     const overviewLoaded = overview !== undefined
     const cachedStepUpToken = getCachedStepUpToken()
     const bootstrapGeneration = useRef(0)
+    const previousCardId = useRef<string | undefined>(undefined)
+
+    useEffect(() => {
+        if (iosNative && flagsLoaded && overviewLoaded) {
+            setWalletProvisioningOwner({
+                cardId: activeCardId ?? null,
+                last4: activeCardLast4 ?? null,
+                flagOn,
+            })
+        } else {
+            clearWalletProvisioningOwner()
+        }
+    }, [activeCardId, activeCardLast4, flagOn, flagsLoaded, iosNative, overviewLoaded])
+
+    useEffect(() => () => clearWalletProvisioningOwner(), [])
 
     useEffect(() => {
         if (!iosNative) return
@@ -64,8 +80,13 @@ export function useWalletProvisioningLifecycle(): void {
             // mint a grant with a proof already cached from a recent assertion;
             // never start Face ID just because the app opened.
             if (!isCurrent()) return
+            if (previousCardId.current && previousCardId.current !== activeCardId) {
+                await clearWalletAuthorizationToken()
+                if (!isCurrent()) return
+            }
             await rememberCardForWallet({ peanutCardId: activeCardId, last4: activeCardLast4 })
             if (!isCurrent()) return
+            previousCardId.current = activeCardId
 
             if (!cachedStepUpToken) return
             try {
@@ -74,6 +95,7 @@ export function useWalletProvisioningLifecycle(): void {
                 })
                 if (!isCurrent()) return
                 await syncWalletAuthorizationToken(
+                    activeCardId,
                     authorization.walletAuthorizationToken,
                     authorization.walletAuthorizationExpiresIn
                 )

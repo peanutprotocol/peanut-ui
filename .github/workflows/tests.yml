@@ -490,9 +490,10 @@ jobs:
             ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
             || needs.ds-shots-filter.outputs.render == 'true')
         runs-on: ubuntu-latest
-        # Build ~4m + capture ~2m on a runner, plus install. A hang past this is
-        # a bug, not a slow day.
-        timeout-minutes: 30
+        # Build, capture, regression specs, and the i18n overflow gate took
+        # more than 30m on PR #3521 while tests were still passing. Allow
+        # enough time for the full suite, including runner variance.
+        timeout-minutes: 45
         # Read-only on purpose. This job checks out the PR and runs its
         # install, build and test code, and a later step is not an isolation
         # boundary: a postinstall can plant a GITHUB_PATH or GITHUB_ENV hook

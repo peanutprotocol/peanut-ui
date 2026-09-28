@@ -5,7 +5,13 @@ import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-update
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { isNativePrerelease } from '@/utils/native-prerelease'
-import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
+import {
+    bundlePredatesBinary,
+    forgetStagedFloors,
+    needsStoreUpdate,
+    rememberStagedFloors,
+    stagedFloors,
+} from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -122,6 +128,11 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
         // getLatest can offer a different version even when its number is lower
         // than the running OTA. This matters for the iOS 1.5.x recovery bridge.
         if (latest.url && latest.version) {
+            if (await bundlePredatesBinary(latest.version)) {
+                console.info(`[capgo] ignoring bundle ${latest.version} — it predates this native release`)
+                removeStoredValue(FAILURE_STREAK_KEY)
+                return 'up-to-date'
+            }
             // Refused before the download, not after: a bundle built for a newer
             // binary must never reach the device's disk or launch cache. Capgo's
             // own floor is the server-side half of this rule and
@@ -491,6 +502,9 @@ async function readStagedBundleImpl(
     if (next?.version && next.id !== current?.bundle?.id) {
         // A prior JS release may have armed next(). Migrate it before any
         // passkey or external app switch can trigger native installation.
+        if (await bundlePredatesBinary(next.version)) {
+            return disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id)
+        }
         if (await needsStoreUpdate(next.version, stagedFloors(next.id))) {
             callbacks.onStoreUpdateRequired?.()
             return disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id)
@@ -516,8 +530,11 @@ async function readStagedBundleImpl(
         }
         return null
     }
-    if (!(await needsStoreUpdate(staged.version, stagedFloors(staged.id)))) return staged
-    callbacks.onStoreUpdateRequired?.()
+    const predatesBinary = await bundlePredatesBinary(staged.version)
+    if (!predatesBinary) {
+        if (!(await needsStoreUpdate(staged.version, stagedFloors(staged.id)))) return staged
+        callbacks.onStoreUpdateRequired?.()
+    }
     removeStoredValue(STAGED_BUNDLE_KEY)
     forgetStagedFloors()
     await CapacitorUpdater.delete({ id: staged.id }).catch(() => undefined)
@@ -550,7 +567,7 @@ async function disarmStagedBundle(
     staged: BundleInfo,
     runningId: string | undefined
 ): Promise<null> {
-    console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    console.info(`[capgo] dropping staged bundle ${staged.version} — it is not eligible for this binary`)
     forgetStagedFloors()
     const sentinels =
         runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
@@ -566,6 +583,7 @@ async function disarmStagedBundle(
         // confirm is not one to act on.
         const queued = await updater.getNextBundle().catch(() => staged)
         if (queued?.id === staged.id) continue
+        if (readStoredValue(STAGED_BUNDLE_KEY) === staged.id) removeStoredValue(STAGED_BUNDLE_KEY)
         // Only now — delete() refuses while the bundle is still queued.
         await updater
             .delete({ id: staged.id })
@@ -599,8 +617,8 @@ const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
  */
 export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    // Reads through the store-update gate, which disarms a bundle built for a
-    // newer binary and answers null for one that is already running.
+    // Reads through both native-version gates and answers null for a bundle
+    // that is ineligible or already running.
     const next = await readStagedBundle()
     if (!next) return null
     // Old Android binaries cannot set() safely. Keep the bundle downloaded

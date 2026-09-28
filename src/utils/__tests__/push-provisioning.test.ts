@@ -2,7 +2,12 @@
 // answer on native binaries with the MeaWallet SDK, silently unavailable on
 // web and on older binaries running OTA'd JS (plugin call throws) — those must
 // keep the manual carousel, never surface an error.
-import { addCardToWallet, clearWalletSession, getPushProvisioningAvailability } from '../push-provisioning'
+import {
+    addCardToWallet,
+    clearWalletSession,
+    getPushProvisioningAvailability,
+    syncWalletAuthorizationToken,
+} from '../push-provisioning'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 
 const isAvailable = jest.fn()
@@ -127,4 +132,12 @@ describe('clearWalletSession', () => {
         await clearWalletSession()
         expect(nativeClearWalletSession).not.toHaveBeenCalled()
     })
+})
+
+it('binds the Wallet authorization credential to its Peanut card', async () => {
+    jest.clearAllMocks()
+    mockIsIOSNative.mockReturnValue(true)
+    mockIsAndroidNative.mockReturnValue(false)
+    await syncWalletAuthorizationToken('card-a', 'grant-a', 120)
+    expect(setWalletAuthorizationToken).toHaveBeenCalledWith({ cardId: 'card-a', token: 'grant-a', expiresIn: 120 })
 })

@@ -41,11 +41,12 @@ export interface AddCardToWalletResult {
 interface PushProvisioningPlugin {
     isAvailable(options: { last4?: string }): Promise<PushProvisioningAvailability>
     rememberCard(options: { peanutCardId: string; last4: string; displayName?: string }): Promise<void>
-    setWalletAuthorizationToken(options: { token: string; expiresIn: number }): Promise<void>
+    setWalletAuthorizationToken(options: { cardId: string; token: string; expiresIn: number }): Promise<void>
     clearWalletSession(options: Record<string, never>): Promise<void>
     clearWalletLegacySession(options: Record<string, never>): Promise<void>
     clearWalletCard(options: Record<string, never>): Promise<void>
     clearWalletAuthorizationToken(options: Record<string, never>): Promise<void>
+    clearWalletStateIfCardMatches(options: { cardId: string }): Promise<void>
     addCard(options: AddCardToWalletArgs): Promise<AddCardToWalletResult>
 }
 
@@ -89,8 +90,8 @@ export async function rememberCardForWallet(card: {
 }
 
 /** Keep the revocable, card-scoped credential used by direct Wallet launches. */
-export async function syncWalletAuthorizationToken(token: string, expiresIn: number): Promise<void> {
-    await PushProvisioning.call('setWalletAuthorizationToken', { token, expiresIn }, () => undefined)
+export async function syncWalletAuthorizationToken(cardId: string, token: string, expiresIn: number): Promise<void> {
+    await PushProvisioning.call('setWalletAuthorizationToken', { cardId, token, expiresIn }, () => undefined)
 }
 
 /** Remove the Wallet extension's bearer credential and card metadata on logout. */
@@ -111,4 +112,9 @@ export async function clearWalletCardForWallet(): Promise<void> {
 /** Drop the direct Wallet credential when the rollout is disabled. */
 export async function clearWalletAuthorizationToken(): Promise<void> {
     await PushProvisioning.call('clearWalletAuthorizationToken', {}, () => undefined)
+}
+
+/** Undo a stale async write without erasing a replacement card's Wallet state. */
+export async function clearWalletStateIfCardMatches(cardId: string): Promise<void> {
+    await PushProvisioning.call('clearWalletStateIfCardMatches', { cardId }, () => undefined)
 }

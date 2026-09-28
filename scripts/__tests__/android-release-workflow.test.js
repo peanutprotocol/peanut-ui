@@ -77,9 +77,9 @@ describe('Android replacement release workflow', () => {
         expect(workflow.slice(baselineJob)).toContain('contents: write')
     })
 
-    it('keeps the Android 1.6 bridge active for compatible native builds', () => {
+    it('keeps the Android 1.6 bridge active while a changed native binary builds', () => {
         expect(workflow).toContain('node scripts/capgo-release-guard.mjs android-bridge-status')
-        expect(workflow).toContain('node scripts/check-native-ota-surface.mjs v1.6.0 --platform android')
+        expect(workflow).not.toContain('node scripts/check-native-ota-surface.mjs v1.6.0 --platform android')
         expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
     })
 })

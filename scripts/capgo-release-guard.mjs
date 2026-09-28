@@ -446,6 +446,40 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         case 'verify-promotion':
             await policies()
             return 'Platform production policies verified'
+        case 'promote-migration-cutover': {
+            const target = platform(env)
+            const name = PRODUCTION_CHANNELS[target]
+            const version = required(env, 'VERSION')
+            const nativeFloor = required(env, 'NATIVE_FLOOR')
+            if (legacyBridgeVersion(target, version) || nativeFloor === (target === 'ios' ? '1.5.0' : '1.6.0')) {
+                throw new Error('migration cutover requires a new native-floored bundle')
+            }
+            const before = await policies({ allowIosBridge: true, allowAndroidBridge: true })
+            const row = before.find((entry) => entry.name === name)
+            if (
+                row.disable_auto_update_under_native !== false ||
+                !legacyBridgeVersion(target, channelVersion(row, name))
+            ) {
+                throw new Error(`${target} legacy bridge is not active`)
+            }
+            await bundle()
+            // One channel mutation switches the verified candidate and its
+            // native-version policy. Old binaries remain on their last compatible
+            // bundle; the server floor excludes them from this new one.
+            await request('channel', {
+                body: {
+                    channel: name,
+                    version,
+                    disableAutoUpdateUnderNative: true,
+                    rolloutEnabled: false,
+                },
+            })
+            const after = (await policies()).find((entry) => entry.name === name)
+            if (channelVersion(after, name) !== version || after.rollout_enabled !== false) {
+                throw new Error(`${name} migration cutover did not persist`)
+            }
+            return `${name} serves native-floored ${version}`
+        }
         case 'promote-production': {
             const target = platform(env)
             const name = PRODUCTION_CHANNELS[target]
