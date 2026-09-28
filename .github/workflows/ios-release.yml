@@ -40,11 +40,6 @@ on:
                 required: false
                 default: false
                 type: boolean
-            nativeFirst:
-                description: 'Native-first production migration: retain the legacy OTA channel'
-                required: false
-                default: false
-                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -157,28 +152,18 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   PRERELEASE: ${{ inputs.prerelease == true }}
-                  NATIVE_FIRST: ${{ inputs.nativeFirst == true }}
               run: |
                   if [ "$PRERELEASE" = true ]; then
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
                       echo "Dev pre-release: the production OTA channel is not read or written"
                       exit 0
                   fi
-                  if [ "$NATIVE_FIRST" = true ]; then
-                      test "$(node scripts/capgo-release-guard.mjs bridge-status)" = active
-                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
-                      echo "Native-first migration: keep the verified iOS legacy bridge pinned"
-                      exit 0
-                  fi
                   # The 1.5.x bridge is the only production path for native 1.5.0
                   # clients. Publishing a new .0 to this channel would strand them.
                   BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
                   if [ "$BRIDGE" = active ]; then
-                      # New TestFlight binaries also check the bridge on launch.
-                      # Keep their iOS native contract compatible with its JS.
-                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
-                      echo "Keeping the iOS 1.5.x bridge; the following OTA run publishes fresh main JS there"
+                      echo "Keeping the iOS 1.5.x bridge for older installs; the new binary carries its own JS"
                       exit 0
                   fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"

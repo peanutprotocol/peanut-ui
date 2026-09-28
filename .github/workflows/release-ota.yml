@@ -2,7 +2,8 @@ name: App Release OTA
 
 # Every compatible main push publishes an OTA from that exact main commit,
 # independently of the native store build. A changed native contract stops at
-# the floor guard until the native-first release and manual cutover complete.
+# the floor guard; completion still triggers the native build, while the later
+# OTA cutover waits until the new binaries are available.
 # Manual dispatch on main retries its current head.
 # The source must contain the newest attested native release and pass native
 # compatibility checks. It uploads

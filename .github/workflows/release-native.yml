@@ -1,7 +1,8 @@
 name: App Release Android & iOS
 
-# After every successful main-push OTA, build that same main commit for both
-# stores. A manual run on main retries the current head. The version is resolved
+# After every main-push OTA attempt, build that same main commit for both
+# stores, even when the OTA cannot run on the older native binaries. A manual
+# run on main retries the current head. The version is resolved
 # here, not typed, so iOS and Android share the same native version even though existing installs
 # remain on different versions.
 #
@@ -15,9 +16,8 @@ name: App Release Android & iOS
 # and Play internal under the next version, but writes no `v*` tag and no production
 # OTA bundle. A tag on a commit `main` lacks would halt every main OTA at its
 # provenance guard until the back-merge, so dev builds never become the release record.
-# A manual nativeFirst dispatch on main builds a changed native contract while
-# retaining the old platform bridge channels. The later manual OTA cutover is
-# deliberately separate so store rollout can be verified first.
+# Changed native contracts keep the old platform bridge channels pinned. The
+# later manual OTA cutover is separate so store rollout can be verified first.
 
 on:
     workflow_run:
@@ -26,11 +26,6 @@ on:
         branches: [main]
     workflow_dispatch:
         inputs:
-            nativeFirst:
-                description: 'Native migration: build the new shell while legacy OTA bridges remain pinned'
-                required: false
-                default: false
-                type: boolean
             track:
                 description: 'Play track'
                 required: true
@@ -59,13 +54,12 @@ concurrency:
 
 jobs:
     resolve:
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'push' }}
         runs-on: ubuntu-latest
         environment: Production
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             prerelease: ${{ steps.guard.outputs.prerelease }}
-            native_first: ${{ steps.guard.outputs.native_first }}
         steps:
             # The app tree in every job must be the exact main or dev commit selected here.
             - name: Guard release ref
@@ -73,12 +67,7 @@ jobs:
               env:
                   OTA_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || '' }}
                   TRACK: ${{ inputs.track || 'internal' }}
-                  NATIVE_FIRST: ${{ inputs.nativeFirst == true }}
               run: |
-                  if [ "$NATIVE_FIRST" = true ] && [ "$GITHUB_REF_NAME" != main ]; then
-                      echo '::error::native-first migration is only available on main' >&2
-                      exit 1
-                  fi
                   if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF_TYPE" = branch ] && [ "$GITHUB_REF_NAME" = dev ]; then
                       if [ "$TRACK" != internal ]; then
                           echo "::error::dev pre-releases upload only to Play internal, not $TRACK" >&2
@@ -90,34 +79,22 @@ jobs:
                           exit 1
                       fi
                       echo "prerelease=true" >> "$GITHUB_OUTPUT"
-                      echo "native_first=false" >> "$GITHUB_OUTPUT"
                       echo "Pre-release of the latest dev commit ${GITHUB_SHA:0:7}"
                       exit 0
                   fi
                   if [ "$GITHUB_REF_NAME" != "main" ] ||
                      { [ "$GITHUB_EVENT_NAME" != "workflow_run" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; }; then
-                      echo "::error::native releases require a successful main OTA, a manual dispatch on main, or a manual pre-release dispatch on dev" >&2
+                      echo "::error::native releases require a completed main-push OTA, a manual dispatch on main, or a manual pre-release dispatch on dev" >&2
                       exit 1
                   fi
                   echo "prerelease=false" >> "$GITHUB_OUTPUT"
-                  if [ "$NATIVE_FIRST" = true ] && [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
-                      echo '::error::native-first migration requires a manual dispatch on main' >&2
-                      exit 1
-                  fi
-                  if [ "$NATIVE_FIRST" = true ] && [ "$TRACK" != internal ]; then
-                      echo '::error::native-first migration uploads to Play internal before store promotion' >&2
-                      exit 1
-                  fi
-                  if [ "$NATIVE_FIRST" = true ]; then
-                      MAIN_TIP="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)"
-                      if [ "$MAIN_TIP" != "$GITHUB_SHA" ]; then
-                          echo "::error::main advanced after native-first dispatch (${GITHUB_SHA:0:7} -> ${MAIN_TIP:0:7}); dispatch again" >&2
-                          exit 1
-                      fi
-                  fi
-                  echo "native_first=$NATIVE_FIRST" >> "$GITHUB_OUTPUT"
                   if [ "$GITHUB_EVENT_NAME" = workflow_run ] && [ "$GITHUB_SHA" != "$OTA_SOURCE_SHA" ]; then
                       echo "::error::main advanced between OTA and native workflow start ($OTA_SOURCE_SHA -> $GITHUB_SHA)" >&2
+                      exit 1
+                  fi
+                  MAIN_TIP="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)"
+                  if [ "$MAIN_TIP" != "$GITHUB_SHA" ]; then
+                      echo "::error::main advanced after native release dispatch (${GITHUB_SHA:0:7} -> ${MAIN_TIP:0:7}); dispatch again" >&2
                       exit 1
                   fi
 
@@ -156,54 +133,9 @@ jobs:
                   fi
                   echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
-            - name: Require compatible production OTA lanes before either store upload
-              if: steps.guard.outputs.prerelease != 'true' && steps.guard.outputs.native_first != 'true'
-              env:
-                  CAPGO_APP_ID: me.peanut.wallet
-                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
-              run: |
-                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
-                  ANDROID_BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
-                  if [ "$BRIDGE" != "$ANDROID_BRIDGE" ]; then
-                      echo '::error::the platform channels are partway through native migration; finish the OTA cutover before another native release' >&2
-                      exit 1
-                  fi
-                  if [ "$BRIDGE" = active ]; then
-                      node scripts/check-native-ota-surface.mjs v1.5.0 --platform ios
-                      node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
-                      echo 'Both legacy bridges remain compatible with this main commit'
-                  else
-                      node scripts/capgo-release-guard.mjs verify-promotion
-                      echo 'Both native-floored production channels are active'
-                  fi
-
-            - name: Preserve legacy lanes during native-first migration
-              if: steps.guard.outputs.native_first == 'true'
-              env:
-                  CAPGO_APP_ID: me.peanut.wallet
-                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
-              run: |
-                  test "$(node scripts/capgo-release-guard.mjs bridge-status)" = active
-                  test "$(node scripts/capgo-release-guard.mjs android-bridge-status)" = active
-                  require_native_drift() {
-                      local base="$1" platform="$2" result
-                      if result="$(node scripts/check-native-ota-surface.mjs "$base" --platform "$platform" 2>&1)"; then
-                          echo "::error::$platform still matches $base; use the normal release path" >&2
-                          exit 1
-                      fi
-                      printf '%s\n' "$result"
-                      if [[ "$result" != *"this tree's native surface differs from $base"* ]]; then
-                          echo "::error::could not prove $platform native drift from $base" >&2
-                          exit 1
-                      fi
-                  }
-                  require_native_drift v1.5.0 ios
-                  require_native_drift v1.6.0 android
-                  echo 'Legacy channels remain pinned; the new binaries use their builtin bundle until a manual 1.7 OTA cutover.'
-
-            # Pre-release binaries skip OTA (NEXT_PUBLIC_NATIVE_PRERELEASE), so a
-            # mismatch here does not affect testers. It does mean main cannot ship
-            # these native changes until the legacy lane has a migration path.
+            # Dev pre-release binaries skip production OTA
+            # (NEXT_PUBLIC_NATIVE_PRERELEASE), so these checks inform testers
+            # without gating the automatic main native build.
             - name: Report legacy OTA lane compatibility
               if: steps.guard.outputs.prerelease == 'true'
               run: |
@@ -229,7 +161,6 @@ jobs:
             versionName: ${{ needs.resolve.outputs.version }}
             pushDebug: ${{ inputs.pushDebug }}
             prerelease: ${{ needs.resolve.outputs.prerelease == 'true' }}
-            nativeFirst: ${{ needs.resolve.outputs.native_first == 'true' }}
 
     android:
         needs: resolve
@@ -245,7 +176,6 @@ jobs:
             track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}
             pushDebug: ${{ inputs.pushDebug }}
             prerelease: ${{ needs.resolve.outputs.prerelease == 'true' }}
-            nativeFirst: ${{ needs.resolve.outputs.native_first == 'true' }}
 
     tag:
         needs: [resolve, ios, android]

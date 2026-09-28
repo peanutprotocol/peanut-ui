@@ -43,11 +43,6 @@ on:
                 required: false
                 default: false
                 type: boolean
-            nativeFirst:
-                description: 'Native-first production migration: retain the legacy OTA channel'
-                required: false
-                default: false
-                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -242,28 +237,16 @@ jobs:
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
                   PRERELEASE: ${{ inputs.prerelease == true }}
-                  NATIVE_FIRST: ${{ inputs.nativeFirst == true }}
               run: |
                   if [ "$PRERELEASE" = true ]; then
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
                       echo "Dev pre-release: the production OTA channel is not read or written"
                       exit 0
                   fi
-                  if [ "$NATIVE_FIRST" = true ]; then
-                      test "$(node scripts/capgo-release-guard.mjs android-bridge-status)" = active
-                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
-                      echo "Native-first migration: keep the verified Android legacy bridge pinned"
-                      exit 0
-                  fi
                   BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"
                   if [ "$BRIDGE" = active ]; then
-                      # A same-version replacement already passed the narrow
-                      # legacy-compatible scope check in the version step.
-                      if [ "$IS_REBUILD" != true ]; then
-                          node scripts/check-native-ota-surface.mjs v1.6.0 --platform android
-                      fi
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
-                      echo "Keeping the Android 1.6.x bridge for older installs"
+                      echo "Keeping the Android 1.6.x bridge for older installs; the new binary carries its own JS"
                       exit 0
                   fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"

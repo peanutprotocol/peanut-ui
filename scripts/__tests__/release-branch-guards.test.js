@@ -251,12 +251,23 @@ describe('release-ota.yml publishes main source', () => {
     })
 })
 
-function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'internal', nativeFirst = false } = {}) {
+function runNative(
+    guard,
+    branch,
+    event,
+    { devTip = 'a'.repeat(40), mainTip = 'a'.repeat(40), otaSha = 'a'.repeat(40), track = 'internal' } = {}
+) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
     const output = path.join(dir, 'output')
     const script = `
         git() {
-            if [ "$1" = "ls-remote" ]; then printf '%s\\trefs/heads/dev\\n' "$DEV_TIP"; else command git "$@"; fi
+            if [ "$1" = "ls-remote" ]; then
+                if [ "$3" = refs/heads/main ]; then
+                    printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"
+                else
+                    printf '%s\\trefs/heads/dev\\n' "$DEV_TIP"
+                fi
+            else command git "$@"; fi
         }
         ${guard}
     `
@@ -269,10 +280,10 @@ function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'int
             GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
             GITHUB_SHA: 'a'.repeat(40),
             GITHUB_OUTPUT: output,
-            OTA_SOURCE_SHA: 'a'.repeat(40),
+            OTA_SOURCE_SHA: otaSha,
             DEV_TIP: devTip,
+            MAIN_TIP: mainTip,
             TRACK: track,
-            NATIVE_FIRST: String(nativeFirst),
         },
         encoding: 'utf8',
     })
@@ -281,21 +292,59 @@ function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'int
     return { ...result, outputs }
 }
 
+function runNativeFloor(platform, bridgeStatus) {
+    const workflow = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
+    const step = workflow.slice(workflow.indexOf('- name: Check production OTA floor'))
+    const shell = step
+        .match(/run: \|\n([\s\S]*?)\n\s+- name:/)[1]
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-floor-'))
+    const output = path.join(dir, 'output')
+    const callsFile = path.join(dir, 'calls')
+    const script = `
+        node() {
+            printf '%s\\n' "$*" >> "$CALLS_FILE"
+            case "$*" in
+                *bridge-status*) printf '%s\\n' "$BRIDGE_STATUS" ;;
+                *current-version*) printf 'builtin\\n' ;;
+                *) return 1 ;;
+            esac
+        }
+        ${shell}
+    `
+    const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+        env: {
+            ...process.env,
+            PRERELEASE: 'false',
+            BRIDGE_STATUS: bridgeStatus,
+            GITHUB_OUTPUT: output,
+            CALLS_FILE: callsFile,
+        },
+        encoding: 'utf8',
+    })
+    const outputs = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
+    const calls = fs.existsSync(callsFile) ? fs.readFileSync(callsFile, 'utf8') : ''
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { ...result, outputs, calls }
+}
+
 describe('native release source branch', () => {
     const guard = guardOf('release-native.yml')
 
-    it('releases successful main OTA completions and main dispatches', () => {
+    it('releases completed main-push OTA attempts and main dispatches', () => {
         for (const event of ['workflow_run', 'workflow_dispatch']) {
             const result = runNative(guard, 'main', event)
             expect(result.status).toBe(0)
-            expect(result.outputs).toBe('prerelease=false\nnative_first=false\n')
+            expect(result.outputs).toBe('prerelease=false\n')
         }
     })
 
     it('pre-releases a dev dispatch only at the current dev tip', () => {
         const result = runNative(guard, 'dev', 'workflow_dispatch')
         expect(result.status).toBe(0)
-        expect(result.outputs).toBe('prerelease=true\nnative_first=false\n')
+        expect(result.outputs).toBe('prerelease=true\n')
 
         const stale = runNative(guard, 'dev', 'workflow_dispatch', { devTip: 'b'.repeat(40) })
         expect(stale.status).toBe(1)
@@ -308,16 +357,12 @@ describe('native release source branch', () => {
         expect(result.stderr).toContain('Play internal')
     })
 
-    it('accepts native-first only as a manual release from the current main tip', () => {
-        const main = runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true })
-        expect(main.status).toBe(0)
-        expect(main.outputs).toBe('prerelease=false\nnative_first=true\n')
-        expect(runNative(guard, 'dev', 'workflow_dispatch', { nativeFirst: true }).status).toBe(1)
-        expect(runNative(guard, 'main', 'workflow_run', { nativeFirst: true }).status).toBe(1)
-        expect(runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true, track: 'production' }).status).toBe(1)
-        expect(
-            runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true, devTip: 'b'.repeat(40) }).status
-        ).toBe(1)
+    it('refuses a superseded main commit or an OTA run from another commit', () => {
+        expect(runNative(guard, 'main', 'workflow_run', { otaSha: 'b'.repeat(40) }).status).toBe(1)
+        const staleMain = runNative(guard, 'main', 'workflow_run', { mainTip: 'b'.repeat(40) })
+        expect(staleMain.status).toBe(1)
+        expect(staleMain.stderr).toContain('main advanced')
+        expect(runNative(guard, 'main', 'workflow_dispatch', { mainTip: 'b'.repeat(40) }).status).toBe(1)
     })
 
     it.each([
@@ -346,55 +391,17 @@ describe('native release source branch', () => {
         }
     })
 
-    it('uses one native version and the Play internal track after OTA succeeds', () => {
+    it('uses one native version and the Play internal track after any main-push OTA completion', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
         expect(workflow).toMatch(/workflow_run:\n\s+workflows: \['App Release OTA'\]/)
-        expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
+        expect(workflow).toContain("github.event.workflow_run.event == 'push'")
+        expect(workflow).not.toContain('github.event.workflow_run.conclusion')
         expect(workflow).toContain('"$GITHUB_SHA" != "$OTA_SOURCE_SHA"')
         expect(workflow).toContain('queue: max')
-        expect(workflow.indexOf('Require compatible production OTA lanes before either store upload')).toBeLessThan(
-            workflow.indexOf('    ios:')
-        )
+        expect(workflow).not.toContain('Require compatible production OTA lanes before either store upload')
+        expect(workflow).not.toContain('nativeFirst')
         expect(workflow).toContain("track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}")
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
-    })
-
-    it('permits both compatible legacy lanes or both native-floored lanes, but not a partial cutover', () => {
-        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
-        const step = workflow.slice(workflow.indexOf('- name: Require compatible production OTA lanes'))
-        const shell = step
-            .match(/run: \|\n([\s\S]*?)\n\s+- name: Preserve legacy lanes/)[1]
-            .split('\n')
-            .map((line) => line.replace(/^ {18}/, ''))
-            .join('\n')
-        const runLanes = (ios, android) => {
-            const script = `node() {
-                case "$*" in
-                    *android-bridge-status*) printf '%s\\n' "$ANDROID_STATUS" ;;
-                    *bridge-status*) printf '%s\\n' "$IOS_STATUS" ;;
-                    *) printf '%s\\n' "$*" >> "$CALLS_FILE" ;;
-                esac
-            }
-            ${shell}`
-            const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-lanes-'))
-            const callsFile = path.join(dir, 'calls')
-            const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
-                env: { ...process.env, IOS_STATUS: ios, ANDROID_STATUS: android, CALLS_FILE: callsFile },
-                encoding: 'utf8',
-            })
-            const calls = fs.existsSync(callsFile) ? fs.readFileSync(callsFile, 'utf8') : ''
-            fs.rmSync(dir, { recursive: true, force: true })
-            return { status: result.status, calls }
-        }
-        const legacy = runLanes('active', 'active')
-        expect(legacy.status).toBe(0)
-        expect(legacy.calls).toContain('check-native-ota-surface.mjs v1.5.0')
-        expect(legacy.calls).toContain('check-native-ota-surface.mjs v1.6.0')
-
-        const native = runLanes('inactive', 'inactive')
-        expect(native.status).toBe(0)
-        expect(native.calls).toContain('verify-promotion')
-        expect(runLanes('inactive', 'active').status).toBe(1)
     })
 
     it.each(['ios', 'android'])('keeps the %s legacy lane during store builds', (platform) => {
@@ -402,9 +409,19 @@ describe('native release source branch', () => {
         expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
         expect(workflow).not.toContain('channel currentBundle production')
         expect(workflow).not.toContain('--channel production')
-        expect(workflow).toContain(
-            `node scripts/check-native-ota-surface.mjs v${platform === 'ios' ? '1.5.0' : '1.6.0'} --platform ${platform}`
-        )
+        expect(workflow).toContain('echo "needs_ota=false" >> "$GITHUB_OUTPUT"')
+        expect(workflow).not.toContain('nativeFirst')
+    })
+
+    it.each(['ios', 'android'])('builds %s after an incompatible OTA without moving its old channel', (platform) => {
+        const legacy = runNativeFloor(platform, 'active')
+        expect(legacy.status).toBe(0)
+        expect(legacy.outputs).toBe('needs_ota=false\n')
+        expect(legacy.calls).not.toContain('check-native-ota-surface')
+
+        const nativeFloored = runNativeFloor(platform, 'inactive')
+        expect(nativeFloored.status).toBe(0)
+        expect(nativeFloored.outputs).toBe('needs_ota=true\n')
     })
 })
 
