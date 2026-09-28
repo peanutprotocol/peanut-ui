@@ -11,6 +11,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { QrKycState } from '@/constants/kyc.consts'
+import { QR_IDENTITY_CHECK_INTENT } from '../qrKycGate.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
 // KYC screens come before any error screens - user needs to verify first.
@@ -53,7 +54,7 @@ export function QrPayKycGateView() {
                         text: t('kyc.unlockCta'),
                         onClick: () =>
                             sumsubFlow.handleInitiateKyc(
-                                'LATAM',
+                                QR_IDENTITY_CHECK_INTENT,
                                 undefined,
                                 isKycApproved || undefined,
                                 targetMantecaCountry
@@ -81,7 +82,7 @@ export function QrPayKycGateView() {
                         text: tCommon('continue'),
                         onClick: () =>
                             sumsubFlow.handleInitiateKyc(
-                                'LATAM',
+                                QR_IDENTITY_CHECK_INTENT,
                                 undefined,
                                 isKycApproved || undefined,
                                 targetMantecaCountry

@@ -268,3 +268,92 @@ describe('the gate drawer', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 })
+
+/*
+ * TASK-23054 (C11): a verified user whose own review for the corridor waits on
+ * them used to read "Verify identity first". The gate's action is the right
+ * one; only its words were about another step.
+ */
+describe('a corridor held by the user own review', () => {
+    const fixable: GateState = { kind: 'fixable-rejection', userMessage: null, actionKey: 'bridge-hosted' }
+    const reviewProps = (cause?: 'review-action') => ({
+        ...flowProps({ gate: fixable, withTerms: false }),
+        unavailable: {
+            ...emptyCorridorRecord(),
+            [CORRIDOR]: {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'not-offered' as const,
+                ...(cause ? { cause } : {}),
+            },
+        },
+    })
+
+    it('names the extra check, not identity, and starts the gate action that clears it', () => {
+        const props = reviewProps('review-action')
+        renderFlow(props)
+
+        expect(drawer()).toHaveTextContent(GATE.finishReviewTitle.replace('{currency}', 'EUR'))
+        expect(drawer()).toHaveTextContent(GATE.providerReviewBody.replace('{currency}', 'EUR'))
+        expect(drawer()).not.toHaveTextContent(GATE.verifyTitle)
+
+        tapGateButton(screen.getByTestId('corridor-gate-provider-review'))
+        return waitFor(() => expect(props.onResolveGate).toHaveBeenCalledWith(fixable, CORRIDOR))
+    })
+
+    it('keeps the identity words for an API that sends no cause', () => {
+        renderFlow(reviewProps())
+        expect(drawer()).toHaveTextContent(GATE.verifyTitle)
+    })
+})
+
+/*
+ * A rail the residence rule blocks (api#1738) used to end on "Contact support":
+ * the gate reads it as a terminal rejection, and support cannot lift a
+ * residence rule. It now states the rule and closes; an ordinary rejection
+ * keeps support.
+ */
+describe('a corridor the residence rule blocks', () => {
+    const blocked = (code?: string): GateState => ({
+        kind: 'blocked-rejection',
+        userMessage: 'Bank transfers are not available.',
+        ...(code ? { reason: { code, userMessage: 'x' } } : {}),
+    })
+
+    it('states a restricted residence in the app words and only closes', () => {
+        const props = flowProps({ gate: blocked('residence_bank_restricted'), withTerms: false })
+        renderFlow(props)
+
+        expect(drawer()).toHaveTextContent(GATE.blockedTitle.replace('{currency}', 'EUR'))
+        expect(drawer()).toHaveTextContent(
+            messages.depositAccounts.list.residenceRestrictedBody.replace('{currency}', 'EUR')
+        )
+        expect(drawer()).not.toHaveTextContent(messages.identity.reasons.uk_resident_blocked)
+        tapGateButton(screen.getByTestId('corridor-gate-residence-restricted'))
+        expect(screen.getByTestId('corridor-gate-residence-restricted')).toHaveTextContent(messages.common.gotIt)
+        expect(props.onContactSupport).not.toHaveBeenCalled()
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+    })
+
+    it('keeps the UK words for a UK residence only', () => {
+        const props = flowProps({ gate: blocked('uk_resident_blocked'), withTerms: false })
+        renderFlow(props)
+
+        expect(drawer()).toHaveTextContent(messages.kyc.initiate.titleRegionUnavailable)
+        expect(drawer()).toHaveTextContent(messages.identity.reasons.uk_resident_blocked)
+        tapGateButton(screen.getByTestId('corridor-gate-residence-restricted'))
+        expect(props.onContactSupport).not.toHaveBeenCalled()
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+    })
+
+    it('keeps an ordinary rejection on support', () => {
+        const props = flowProps({ gate: blocked('provider_rejected'), withTerms: false })
+        renderFlow(props)
+
+        tapGateButton(screen.getByTestId('corridor-gate-support'))
+        expect(props.onContactSupport).not.toHaveBeenCalled()
+        expect(props.onResolveGate).toHaveBeenCalledWith(blocked('provider_rejected'), CORRIDOR)
+    })
+})

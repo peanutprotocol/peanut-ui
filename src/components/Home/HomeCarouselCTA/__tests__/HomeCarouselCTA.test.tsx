@@ -5,8 +5,16 @@ import HomeCarouselCTA from '../index'
 
 const mockDismissCTA = jest.fn()
 let mockCTAs: Array<Record<string, unknown>> = []
+let mockHookOptions: { onStartQrIdentityCheck?: () => void } = {}
 jest.mock('@/hooks/useHomeCarouselCTAs', () => ({
-    useHomeCarouselCTAs: () => ({ carouselCTAs: mockCTAs, dismissCTA: mockDismissCTA }),
+    useHomeCarouselCTAs: (options: { onStartQrIdentityCheck?: () => void }) => {
+        mockHookOptions = options
+        return { carouselCTAs: mockCTAs, dismissCTA: mockDismissCTA }
+    },
+}))
+const mockStartQrCheck = jest.fn()
+jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
+    useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
 }))
 const mockStart = jest.fn()
 let mockFlow: { start: jest.Mock; startedTaskKey: string | null; isLoading: boolean; error: string | null }
@@ -68,5 +76,15 @@ describe('HomeCarouselCTA — document request slide', () => {
         render(<HomeCarouselCTA />)
         expect(screen.queryByText('One more document needed')).not.toBeInTheDocument()
         expect(screen.getByText('Invite friends')).toBeInTheDocument()
+    })
+})
+
+describe('HomeCarouselCTA — the "Unlock QR payments" slide', () => {
+    it('starts the QR ID check in place, not the accounts list', () => {
+        mockCTAs = []
+        mockFlow = { start: mockStart, startedTaskKey: null, isLoading: false, error: null }
+        render(<HomeCarouselCTA />)
+        mockHookOptions.onStartQrIdentityCheck?.()
+        expect(mockStartQrCheck).toHaveBeenCalled()
     })
 })

@@ -21,7 +21,6 @@ export const CreateRequestLinkView = () => {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const onBack = useRequestBack()
-    const onDone = useRequestBack({ replace: true })
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
         requestAmount,
@@ -56,7 +55,7 @@ export const CreateRequestLinkView = () => {
                 requestAmount={requestAmount}
                 currency={currency}
                 bankPayable={bankInstructionsShared}
-                onDone={onDone}
+                onDone={onBack}
             />
         )
     }

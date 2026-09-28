@@ -733,7 +733,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         const modal = screen.getByTestId('action-modal')
         expect(modal).toBeInTheDocument()
         expect(screen.getByText('Unlock QR payments')).toBeInTheDocument()
-        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
     })
 
     // Pool QR pay is residence-agnostic, so the offer is legitimate for almost
@@ -746,7 +746,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         expect(screen.getByText(/doesn't accept documents issued in your country/i)).toBeInTheDocument()
-        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
     })
 
     // nothing revokes a pool rail when a later reverification is refused on

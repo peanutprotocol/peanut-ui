@@ -62,16 +62,20 @@ jobs:
                   echo "Staging bundle version $VERSION"
 
             # NEXT_PUBLIC_* values are baked into the static export at build time.
-            # rpId MUST be peanut.me (passkeys + assetlinks/AASA). CAPACITOR_BUILD /
+            # The beta runs against the full staging environment: the Staging-OTA
+            # environment sets the site, passkey domain and API to staging. Android can
+            # use staging.peanut.me passkeys (its assetlinks.json lists the app); the iOS
+            # binary allows only webcredentials:peanut.me, so iOS beta testers log in with
+            # a peanut.me passkey. Without the variables it falls back to prod. CAPACITOR_BUILD /
             # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
             # Delimiter is quoted: a secret holding $ or a backtick must land in the
             # file verbatim, not be expanded — or executed — by the shell.
             - name: Bake staging NEXT_PUBLIC_* into the static export
               run: |
                   cat > .env.production.local <<'EOF'
-                  NEXT_PUBLIC_BASE_URL=https://peanut.me
-                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
-                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_BASE_URL=${{ vars.STAGING_OTA_BASE_URL || 'https://peanut.me' }}
+                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.STAGING_OTA_PEANUT_API_URL || vars.NEXT_PUBLIC_PEANUT_API_URL }}
+                  NEXT_PUBLIC_NATIVE_RP_ID=${{ vars.STAGING_OTA_NATIVE_RP_ID || 'peanut.me' }}
                   NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
                   NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL }}
                   NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID }}

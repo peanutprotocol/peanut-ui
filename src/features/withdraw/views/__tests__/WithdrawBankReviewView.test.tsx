@@ -94,7 +94,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
     })
 
     it('a rail with no reference shows no field', () => {
-        renderWithIntl(<Harness rail="wire" />)
+        renderWithIntl(<Harness rail="swift" />)
         expect(referenceInput()).not.toBeInTheDocument()
     })
 
@@ -434,5 +434,157 @@ describe('WithdrawBankReviewView — the amount leads in the currency the user t
         const [quoteRetry, submitRetry] = screen.getAllByRole('button', { name: /retry/i })
         expect(submitRetry).toBeDisabled()
         expect(quoteRetry).toBeEnabled()
+    })
+})
+
+describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', () => {
+    const usAccount = {
+        id: 'acct-us',
+        type: AccountType.US,
+        identifier: '123456780',
+        routingNumber: '021000021',
+        details: { countryCode: 'USA', accountOwnerName: 'Anna Rossi' },
+    } as unknown as Account
+
+    type Speed = 'ach' | 'ach_same_day' | 'wire'
+    const UsdHarness = ({
+        initial,
+        wireBlock = null,
+        wireFeeUsd = '20.00',
+        onSelect = jest.fn(),
+    }: {
+        initial: Speed
+        wireBlock?: 'belowMinimum' | 'accountCannotTake' | null
+        wireFeeUsd?: string
+        onSelect?: (speed: Speed) => void
+    }) => {
+        // the flow hook holds the speed in the URL; the harness holds it here
+        const [selected, setSelected] = React.useState<Speed>(initial)
+        const feeUsd = selected === 'wire' ? wireFeeUsd : '0.00'
+        return (
+            <WithdrawBankReviewView
+                bankAccount={usAccount}
+                amount="50"
+                payout={{ currency: 'usd', bankConvertsTo: null, enteredInBankCurrency: false }}
+                isRateLoading={false}
+                fromSendFlow={false}
+                isLoading={false}
+                isSubmitReady
+                submittedTxHash={null}
+                error={{ showError: false, errorMessage: '' }}
+                balanceErrorMessage={null}
+                confirmPendingCopy="processing"
+                referenceSpec={bankReferenceSpecForRail(selected)}
+                payoutNoteKey={payoutNoteForRail(selected)}
+                payoutDefaultReferenceNoteKey={null}
+                reference=""
+                referenceProblem={null}
+                onReferenceChange={jest.fn()}
+                onSubmit={jest.fn()}
+                onDone={jest.fn()}
+                usdSpeed={{
+                    options: [
+                        { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+                        { speed: 'ach_same_day', feeUsd: '0.00', minimumUsd: '1.00', block: null },
+                        { speed: 'wire', feeUsd: wireFeeUsd, minimumUsd: '21.00', block: wireBlock },
+                    ],
+                    selected,
+                    onSelect: (speed) => {
+                        onSelect(speed)
+                        setSelected(speed)
+                    },
+                    feeUsd,
+                    receivedUsd: selected === 'wire' ? '30.00' : '50.00',
+                }}
+            />
+        )
+    }
+
+    // a DataRow: the label's wrapper and the value's wrapper share one row
+    const row = (label: string) => screen.getByText(label).closest('.ds-data-row') as HTMLElement
+    const sameDay = () => screen.queryByRole('switch', { name: 'Same day' })
+    const tab = (name: RegExp) => screen.getByRole('tab', { name })
+    // radix tabs activate on mousedown, not click
+    const pickTab = (name: RegExp) => {
+        fireEvent.mouseDown(tab(name))
+        fireEvent.click(tab(name))
+    }
+
+    it('titles the section "Send by" and shows the fee in each tab label, from the options', () => {
+        renderWithIntl(<UsdHarness initial="ach" />)
+        expect(screen.getByRole('heading', { name: 'Send by' })).toBeInTheDocument()
+        expect(screen.queryByText('SPEED')).toBeNull()
+        expect(tab(/^ACH \(free\)$/)).toHaveAttribute('aria-selected', 'true')
+        expect(tab(/^Wire \(\$20\)$/)).toHaveAttribute('aria-selected', 'false')
+    })
+
+    it('reads the wire fee in the tab label from the backend option, never a fixed number', () => {
+        renderWithIntl(<UsdHarness initial="ach" wireFeeUsd="25.00" />)
+        expect(tab(/^Wire \(\$25\)$/)).toBeInTheDocument()
+    })
+
+    it('defaults to ACH with same day off, and the card says when it arrives and that it is free', () => {
+        renderWithIntl(<UsdHarness initial="ach" />)
+        expect(sameDay()).toHaveAttribute('aria-checked', 'false')
+        expect(screen.getByText('Usually the same business day, otherwise the next')).toBeInTheDocument()
+        expect(row('Arrives')).toHaveTextContent('1–3 business days')
+        expect(row('Fee')).toHaveTextContent('Free')
+        expect(row('Bank receives')).toHaveTextContent(/\$50(\.00)?/)
+        expect(row('Routing number')).toHaveTextContent('021000021')
+    })
+
+    it('turning same day on picks ach_same_day; off goes back to ach', () => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness initial="ach" onSelect={onSelect} />)
+        fireEvent.click(sameDay()!)
+        expect(onSelect).toHaveBeenLastCalledWith('ach_same_day')
+        expect(sameDay()).toHaveAttribute('aria-checked', 'true')
+        expect(row('Arrives')).toHaveTextContent('Usually the same business day, otherwise the next')
+        fireEvent.click(sameDay()!)
+        expect(onSelect).toHaveBeenLastCalledWith('ach')
+    })
+
+    it('the wire tab hides the same-day row, and going back to ACH keeps what it said', () => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness initial="ach" onSelect={onSelect} />)
+        fireEvent.click(sameDay()!)
+
+        pickTab(/^Wire/)
+        expect(onSelect).toHaveBeenLastCalledWith('wire')
+        expect(sameDay()).toBeNull()
+
+        pickTab(/^ACH/)
+        expect(onSelect).toHaveBeenLastCalledWith('ach_same_day')
+        expect(sameDay()).toHaveAttribute('aria-checked', 'true')
+    })
+
+    it('a wire shows its fee, when it arrives and what the bank receives', () => {
+        renderWithIntl(<UsdHarness initial="wire" />)
+        expect(tab(/^Wire/)).toHaveAttribute('aria-selected', 'true')
+        expect(row('Arrives')).toHaveTextContent('Within hours on a business day')
+        expect(row('Fee')).toHaveTextContent(/\$20(\.00)?/)
+        expect(row('Bank receives')).toHaveTextContent(/\$30(\.00)?/)
+        // the wire memo field replaces the 10-character ACH one
+        expect(screen.getByText(/Up to 140 characters/)).toBeInTheDocument()
+    })
+
+    it.each([
+        ['belowMinimum' as const, 'Wire needs at least $21.'],
+        ['accountCannotTake' as const, 'This account cannot receive a wire'],
+    ])('a wire that cannot be picked is a disabled tab with one line that says why (%s)', (block, reason) => {
+        const onSelect = jest.fn()
+        renderWithIntl(<UsdHarness initial="ach" wireBlock={block} onSelect={onSelect} />)
+        expect(screen.getByText(reason)).toBeInTheDocument()
+        pickTab(/^Wire/)
+        expect(onSelect).not.toHaveBeenCalled()
+        expect(tab(/^Wire/)).toBeDisabled()
+        // ACH and its same-day row stay usable
+        expect(sameDay()).toBeEnabled()
+    })
+
+    it('no helper line while the wire can be picked', () => {
+        renderWithIntl(<UsdHarness initial="ach" />)
+        expect(screen.queryByText(/Wire needs at least/)).toBeNull()
+        expect(tab(/^Wire/)).toBeEnabled()
     })
 })

@@ -299,13 +299,19 @@ export function DepositAccountsFlow({
                 ? ('support' as const)
                 : ('verify' as const)
             : undefined
+    // The user's own review for this corridor waits on them. The gate's action
+    // is the one that clears it; its identity words would tell a verified user
+    // to verify.
+    const reviewWaitsOnUser = unavailable?.[corridor]?.cause === 'review-action'
     const gateNotice = withheldAction
         ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-        : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-          ? { ...rawGateNotice, action: 'support' as const }
-          : rawGateNotice?.action === 'finish-review' && !canFinishReview
-            ? { ...rawGateNotice, action: 'finish-review-support' as const }
-            : rawGateNotice
+        : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+          ? { ...rawGateNotice, action: 'provider-review' as const }
+          : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+            ? { ...rawGateNotice, action: 'support' as const }
+            : rawGateNotice?.action === 'finish-review' && !canFinishReview
+              ? { ...rawGateNotice, action: 'finish-review-support' as const }
+              : rawGateNotice
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.

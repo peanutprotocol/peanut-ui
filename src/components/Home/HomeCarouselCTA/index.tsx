@@ -9,15 +9,18 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useHomeCarouselCTAs } from '@/hooks/useHomeCarouselCTAs'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
+import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 
 /**
  * `documentRequest`: a future-dated document request before its final week
  * (selectHomeTasks). It leads the carousel as a small item and has no close
- * button, so the carousel's 7-day dismissal can never hide it before its due
+ * button, so a carousel dismissal can never hide it before its due
  * date; in the final week Home moves it to the large task card instead.
  */
 const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) => {
-    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs()
+    // the "Unlock QR payments" slide starts the QR ID check in place
+    const qrIdentityCheck = useQrIdentityCheck()
+    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs({ onStartQrIdentityCheck: qrIdentityCheck.start })
     const documentFlow = useDocumentRequestFlow()
     const t = useTranslations('home.pendingTasks')
     const format = useFormatter()
@@ -38,7 +41,14 @@ const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) 
               format.dateTime(due, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
             : null
 
-    if (carouselCTAs.length === 0 && !documentRequest) return documentFlow.modals
+    const modals = (
+        <>
+            {documentFlow.modals}
+            {qrIdentityCheck.modals}
+        </>
+    )
+
+    if (carouselCTAs.length === 0 && !documentRequest) return modals
 
     return (
         <>
@@ -76,7 +86,7 @@ const HomeCarouselCTA = ({ documentRequest }: { documentRequest?: NextAction }) 
                     />
                 ))}
             </Carousel>
-            {documentFlow.modals}
+            {modals}
         </>
     )
 }

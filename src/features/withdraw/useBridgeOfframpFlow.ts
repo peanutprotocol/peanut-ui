@@ -40,7 +40,7 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { type Account } from '@/interfaces/interfaces'
-import { parseAsString, useQueryState } from 'nuqs'
+import { parseAsString, parseAsStringEnum, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from './useWithdrawAmount'
@@ -55,6 +55,13 @@ import {
 } from './amount-validation'
 import { formatBankAmount } from '@/utils/currency'
 import { WITHDRAW_BANK_STEPS, type ReviewPayout } from './types'
+import {
+    DEFAULT_USD_PAYOUT_SPEED,
+    USD_PAYOUT_SPEEDS,
+    effectiveUsdPayoutSpeed,
+    usdAmountReceived,
+} from './usd-payout-speed'
+import { useUsdPayoutSpeeds } from './useUsdPayoutSpeeds'
 import {
     bankReferenceDestinationFields,
     bankReferenceProblem,
@@ -123,23 +130,34 @@ export function useBridgeOfframpFlow() {
     // The optional reference the user sends with the payment. Form state only:
     // it has no place in a shared link.
     const [reference, setReference] = useState('')
-    // null when the account's rail takes no reference — the field then stays hidden
-    const referenceSpec = useMemo(
-        () => (bankAccount ? bankReferenceSpecForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
-        [bankAccount]
+
+    // USD only (TASK-23054): same-day ACH, free, or a wire, whose fee comes from
+    // the backend's fee table. The choice is in the URL, so a refresh or a
+    // shared link keeps it; a wire that cannot be picked falls back to ACH.
+    const [askedSpeed, setAskedSpeed] = useQueryState(
+        'speed',
+        parseAsStringEnum([...USD_PAYOUT_SPEEDS]).withDefault(DEFAULT_USD_PAYOUT_SPEED)
     )
+    const accountRail = bankAccount ? getOfframpConfigFromAccount(bankAccount) : null
+    const isUsdPayout = accountRail?.currency === 'usd'
+    // Until the fees and the account's rails are read, the speeds on screen are
+    // not final, so the withdrawal waits rather than go out on the wrong one.
+    const { options: speedOptions, isReady: isSpeedReady } = useUsdPayoutSpeeds({
+        enabled: isUsdPayout,
+        customerId: user?.user.bridgeCustomerId,
+        externalAccountId: bankAccount?.bridgeAccountId,
+        amountUsd: Number(urlAmount),
+    })
+    const speed = isUsdPayout ? effectiveUsdPayoutSpeed(speedOptions, askedSpeed) : null
+    const speedFeeUsd = speedOptions.find((option) => option.speed === speed)?.feeUsd ?? '0.00'
+    // the rail the transfer is created on: the chosen speed for USD, else the account's own
+    const payoutRail = speed ?? accountRail?.paymentRail
+
+    // null when the rail takes no reference — the field then stays hidden
+    const referenceSpec = bankReferenceSpecForRail(payoutRail)
     const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
-    const payoutNoteKey = useMemo(
-        () => (bankAccount ? payoutNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
-        [bankAccount]
-    )
-    const payoutDefaultReferenceNoteKey = useMemo(
-        () =>
-            bankAccount
-                ? payoutDefaultReferenceNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail)
-                : null,
-        [bankAccount]
-    )
+    const payoutNoteKey = payoutNoteForRail(payoutRail)
+    const payoutDefaultReferenceNoteKey = payoutDefaultReferenceNoteForRail(payoutRail)
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
@@ -310,7 +328,8 @@ export function useBridgeOfframpFlow() {
         const { currency, paymentRail } = getOfframpConfigFromAccount(account)
         return {
             currency,
-            paymentRail,
+            // a USD account goes out on the speed the user picked
+            paymentRail: currency === 'usd' && speed ? speed : paymentRail,
             externalAccountId: account.bridgeAccountId,
         }
     }
@@ -349,6 +368,8 @@ export function useBridgeOfframpFlow() {
 
         // the submit is disabled while the reference breaks the rail's limits
         if (referenceProblem) return
+        // and while the USD speeds are still loading
+        if (!isSpeedReady) return
 
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
@@ -420,8 +441,8 @@ export function useBridgeOfframpFlow() {
             const createPayload = {
                 // note: for bank withdrawals, minimum $1 is required
                 // reference: https://apidocs.bridge.xyz/docs/transaction-costs
+                // the fee is the backend's to set; a wire's comes from its fee table
                 amount: amountUsd,
-                developer_fee: '0',
                 onBehalfOf: user.user.bridgeCustomerId,
                 source: {
                     currency: PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase(),
@@ -576,7 +597,7 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent),
+        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent) && isSpeedReady,
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
@@ -610,6 +631,16 @@ export function useBridgeOfframpFlow() {
         payoutNoteKey,
         payoutDefaultReferenceNoteKey,
         referenceProblem,
+        // USD speed choice: null for any other currency
+        usdSpeed: isUsdPayout
+            ? {
+                  options: speedOptions,
+                  selected: speed ?? DEFAULT_USD_PAYOUT_SPEED,
+                  onSelect: (next: (typeof USD_PAYOUT_SPEEDS)[number]) => void setAskedSpeed(next),
+                  feeUsd: speedFeeUsd,
+                  receivedUsd: usdAmountReceived(Number(amountToWithdraw), speedFeeUsd),
+              }
+            : null,
         pointsData,
         onBack,
         handleCreateAndInitiateOfframp,

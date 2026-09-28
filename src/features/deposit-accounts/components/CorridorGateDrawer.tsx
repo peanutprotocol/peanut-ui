@@ -7,6 +7,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useTranslations } from 'next-intl'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -21,6 +22,7 @@ const TITLES = {
     'pending-review': 'gate.reviewTitle',
     'finish-review': 'gate.finishReviewTitle',
     'finish-review-support': 'gate.finishReviewTitle',
+    'provider-review': 'gate.finishReviewTitle',
 } as const
 
 const BODIES = {
@@ -39,6 +41,7 @@ const BODIES = {
     'pending-review': 'gate.reviewBody',
     'finish-review': 'gate.finishReviewBody',
     'finish-review-support': 'gate.finishReviewSupportBody',
+    'provider-review': 'gate.providerReviewBody',
 } as const
 
 const LABELS = {
@@ -53,6 +56,7 @@ const LABELS = {
     'pending-review': 'gate.reviewCta',
     'finish-review': 'gate.finishReviewCta',
     'finish-review-support': 'gate.supportCta',
+    'provider-review': 'gate.finishReviewCta',
 } as const
 
 /** the picture each reason gets; the default says "closed to you", which a wait is not */
@@ -62,6 +66,7 @@ const ICONS = {
     'account-limit': 'peanut-support',
     'finish-review': 'user-id',
     'finish-review-support': 'peanut-support',
+    'provider-review': 'user-id',
 } as const
 
 /** Reasons with nothing to press: the button closes the drawer, and the drawer updates by itself. */
@@ -123,7 +128,15 @@ export function CorridorGateDrawer({
     onTopUp?: () => void
 }) {
     const { t } = useDepositAccountCopy()
+    const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
     const waiting = WAITS.has(notice.action)
+    // A residence rule: nothing clears it, so the one button closes the drawer.
+    // The UK rule keeps its own words (TASK-20729); every other residence gets
+    // the country-neutral line (api#1738).
+    const residence = notice.action === 'residence-restricted'
+    const closesOnly = waiting || residence
     /*
      * At the account cap there is nothing to unblock: the user holds every
      * account we open for them, and support opening one more is a conversation,
@@ -132,10 +145,20 @@ export function CorridorGateDrawer({
      * keeps its own button first — those DO clear the block.
      */
     const topUpLeads = !!onTopUp && notice.action === 'account-limit'
-    const bodyKey = BODIES[notice.action]
-    const body =
-        notice.message ??
-        (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined)
+    const bodyKey = notice.action === 'residence-restricted' ? undefined : BODIES[notice.action]
+    const body = residence
+        ? notice.ukResidence
+            ? tIdentity('reasons.uk_resident_blocked')
+            : t('list.residenceRestrictedBody', { currency: rail.currency })
+        : (notice.message ??
+          (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined))
+    const title =
+        notice.action === 'residence-restricted'
+            ? notice.ukResidence
+                ? tKyc('initiate.titleRegionUnavailable')
+                : t('gate.blockedTitle', { currency: rail.currency })
+            : t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })
+    const label = notice.action === 'residence-restricted' ? tCommon('gotIt') : t(LABELS[notice.action])
 
     const actButton = (
         <Button
@@ -143,10 +166,10 @@ export function CorridorGateDrawer({
             className="w-full"
             loading={isActing}
             disabled={isActing}
-            onClick={waiting ? onClose : onAct}
+            onClick={closesOnly ? onClose : onAct}
             data-testid={`corridor-gate-${notice.action}`}
         >
-            {t(LABELS[notice.action])}
+            {label}
         </Button>
     )
     const topUpButton = onTopUp ? (
@@ -174,15 +197,14 @@ export function CorridorGateDrawer({
                     {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
                     <IconBubble
                         icon={gateIcon ?? 'globe-lock'}
-                        // a wait is yellow; every other reason has a button that clears it,
-                        // so it is a way forward, blue (TASK-22761)
-                        color={waiting ? 'yellow' : 'blue'}
+                        // a wait is yellow; a residence rule is closed, gray like the
+                        // hub's closed rows; every other reason has a button that
+                        // clears it, so it is a way forward, blue (TASK-22761)
+                        color={waiting ? 'yellow' : residence ? 'gray' : 'blue'}
                         className="mb-4"
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>
-                            {t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })}
-                        </DrawerTitle>
+                        <DrawerTitle>{title}</DrawerTitle>
                         {body && <DrawerDescription>{body}</DrawerDescription>}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
@@ -202,7 +224,7 @@ export function CorridorGateDrawer({
                                 disabled={isActing}
                                 data-testid={`corridor-gate-${notice.action}`}
                             >
-                                {t(LABELS[notice.action])}
+                                {label}
                             </LinkButton>
                         </div>
                     ) : (

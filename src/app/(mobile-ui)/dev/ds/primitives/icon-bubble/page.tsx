@@ -18,7 +18,7 @@ const COLORS: { color: IconBubbleColor; icon: IconName; means: string; useFor: s
         color: 'blue',
         icon: 'bank',
         means: 'A method or plain information',
-        useFor: 'Bank, crypto, exchange, links, add money, withdraw, Pix key, verification, other countries, support, info',
+        useFor: 'Bank, crypto, exchange, links, add money, withdraw, verification, other countries, support, info',
         never: 'A state',
     },
     {

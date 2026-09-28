@@ -18,6 +18,9 @@ export default function WithdrawRoot() {
     const tNav = useTranslations('navigation')
     const flow = useWithdrawRootFlow()
 
+    // on its way to /withdraw/crypto: render nothing rather than a screen the user never chose
+    if (flow.forwardsToCrypto) return null
+
     if (flow.stepper.step === 'amount') {
         const pageTitle = flow.isFromSendFlow ? tNav('send') : tNav('withdraw')
         const { bankAmount } = flow

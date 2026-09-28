@@ -6,18 +6,26 @@
  * same limits before anything is created. Limits are the provider's
  * (apidocs.bridge.xyz, create a transfer → destination).
  *
- * A rail with no entry takes no reference, and the field does not show:
- * - `wire`: no withdrawal uses it; US accounts pay out over `ach`.
+ * A rail with no entry takes no reference, and the field does not show.
  *
- * SEPA and ACH limits are confirmed against the provider's sandbox. The other
- * three are documentation only: the provider states a length for SPEI (40) and
+ * SEPA and ACH limits are confirmed against the provider's sandbox; same-day
+ * ACH takes the same `ach_reference` as ACH (USD integration guide). The wire
+ * memo is up to 140 characters, checked by the provider as four Fedwire lines
+ * of 35; the character set is the SEPA one, chosen to stay inside what
+ * Fedwire accepts. The other three are documentation only: the provider states a length for SPEI (40) and
  * Colombia (18) and none for Faster Payments, and documents no character set
  * for any of the three. Those character sets are ours, chosen to match what the
  * banks on each rail print. Verify each on staging before trusting it.
  */
 export interface BankReferenceSpec {
     /** The `destination` key of the create-offramp request that carries the text. */
-    field: 'sepaReference' | 'achReference' | 'fasterPaymentsReference' | 'speiReference' | 'coBankTransferReference'
+    field:
+        | 'sepaReference'
+        | 'achReference'
+        | 'wireMessage'
+        | 'fasterPaymentsReference'
+        | 'speiReference'
+        | 'coBankTransferReference'
     minLength: number
     maxLength: number
     /** Matches a whole reference made of allowed characters only. */
@@ -26,6 +34,7 @@ export interface BankReferenceSpec {
     helperKey:
         | 'referenceHelperSepa'
         | 'referenceHelperAch'
+        | 'referenceHelperWire'
         | 'referenceHelperFasterPayments'
         | 'referenceHelperSpei'
         | 'referenceHelperCoBankTransfer'
@@ -43,6 +52,15 @@ export interface BankReferenceSpec {
     rewrittenKey?: 'referenceFormattingMayChange'
 }
 
+const ACH_SPEC: BankReferenceSpec = {
+    field: 'achReference',
+    minLength: 1,
+    maxLength: 10,
+    allowed: /^[a-zA-Z0-9 ]*$/,
+    helperKey: 'referenceHelperAch',
+    invalidCharsKey: 'referenceInvalidCharsAch',
+}
+
 const SPECS: Record<string, BankReferenceSpec> = {
     sepa: {
         field: 'sepaReference',
@@ -53,13 +71,15 @@ const SPECS: Record<string, BankReferenceSpec> = {
         invalidCharsKey: 'referenceInvalidCharsSepa',
         rewrittenKey: 'referenceFormattingMayChange',
     },
-    ach: {
-        field: 'achReference',
+    ach: ACH_SPEC,
+    ach_same_day: ACH_SPEC,
+    wire: {
+        field: 'wireMessage',
         minLength: 1,
-        maxLength: 10,
-        allowed: /^[a-zA-Z0-9 ]*$/,
-        helperKey: 'referenceHelperAch',
-        invalidCharsKey: 'referenceInvalidCharsAch',
+        maxLength: 140,
+        allowed: /^[a-zA-Z0-9 &\-./]*$/,
+        helperKey: 'referenceHelperWire',
+        invalidCharsKey: 'referenceInvalidCharsSepa',
     },
     faster_payments: {
         field: 'fasterPaymentsReference',
@@ -149,6 +169,7 @@ export type PayoutNoteKey = PayoutSenderNoteKey | PayoutReferenceNoteKey
 const PAYOUT_NOTES: Record<string, PayoutNoteKey> = {
     sepa: 'payoutReferenceReplacesDefaultSepa',
     ach: 'payoutSenderAch',
+    ach_same_day: 'payoutSenderAch',
     spei: 'payoutSenderSpei',
     wire: 'payoutSenderWire',
 }

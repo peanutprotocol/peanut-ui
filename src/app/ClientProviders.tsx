@@ -28,8 +28,7 @@ import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
-import { AppHelpProvider } from '@/components/Global/AppHelpDrawer'
-import type { AppHelpDocuments } from '@/components/Global/appHelpTypes'
+import { AppHelpProvider } from '@/components/Global/AppHelpProvider'
 
 /*
  * Harness bootstrap ships only in harness builds. In prod bundles the dynamic
@@ -72,13 +71,7 @@ const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals
 // The full message catalog is 129 KB; app routes load it as their own chunk.
 const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
-export function ClientProviders({
-    children,
-    appHelpDocuments,
-}: {
-    children: React.ReactNode
-    appHelpDocuments?: AppHelpDocuments
-}) {
+export function ClientProviders({ children }: { children: React.ReactNode }) {
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -139,12 +132,10 @@ export function ClientProviders({
                                     <ScreenOrientationLocker />
                                     {marketing ? (
                                         children
-                                    ) : appHelpDocuments ? (
-                                        <AppHelpProvider documents={appHelpDocuments}>
+                                    ) : (
+                                        <AppHelpProvider>
                                             <AppGlobals>{children}</AppGlobals>
                                         </AppHelpProvider>
-                                    ) : (
-                                        <AppGlobals>{children}</AppGlobals>
                                     )}
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -42,6 +42,13 @@ export function useWithdrawRootFlow() {
     const [methodParam] = useQueryState('method', parseAsString)
     const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins
+    // over /home, which only fits tab-bar entries. Rewinds rather than pushes:
+    // a pushed /home kept the withdraw flow under it, so back from home
+    // reopened it.
+    const leaveFlow = useReturnTo(
+        readReturnTo({ get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) }, '/withdraw') ?? '/home'
+    )
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
     const {
@@ -76,19 +83,17 @@ export function useWithdrawRootFlow() {
                 goBackToSend()
                 return
             }
-            // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
-            // wins over the /home reset, which only fits tab-bar entries
-            const returnTo = readReturnTo(
-                { get: (key: string) => (key === RETURN_TO_PARAM ? returnToParam : null) },
-                '/withdraw'
-            )
-            router.push(returnTo ?? '/home')
+            leaveFlow()
         },
     })
 
-    // Send and old amount-step links enter the crypto destination flow directly.
+    // A scanned address, old Send → Crypto links (/withdraw?method=crypto) and
+    // old crypto amount-step links arrive here but belong to /withdraw/crypto. Decided from the URL on the first render, so the page
+    // renders nothing while the effect below forwards: the Withdraw method list
+    // must never show on the way (TASK-23054).
+    const forwardsToCrypto = isCryptoFromSend || (stepper.step === 'amount' && selectedMethod?.type === 'crypto')
     useEffect(() => {
-        if (!isCryptoFromSend && !(stepper.step === 'amount' && selectedMethod?.type === 'crypto')) return
+        if (!forwardsToCrypto) return
         if (scanIdParam && !supportedChainsAndTokens) return
         const scanned = takeScannedDestination(scanIdParam)
         const token = scanned ? withdrawTokenForChain(supportedChainsAndTokens?.[scanned.chainId]?.tokens) : undefined
@@ -105,10 +110,12 @@ export function useWithdrawRootFlow() {
         const params = new URLSearchParams()
         if (methodParam) params.set('method', methodParam)
         if (urlAmount) params.set('amount', urlAmount)
-        router.replace(`/withdraw/crypto${params.size ? `?${params}` : ''}`)
+        // toString, not `params.size`: Safari before 17 has no `size`, which
+        // dropped the send marker and the amount from the forward
+        const query = params.toString()
+        router.replace(`/withdraw/crypto${query ? `?${query}` : ''}`)
     }, [
-        isCryptoFromSend,
-        stepper.step,
+        forwardsToCrypto,
         selectedMethod,
         scanIdParam,
         supportedChainsAndTokens,
@@ -460,6 +467,7 @@ export function useWithdrawRootFlow() {
     ])
 
     return {
+        forwardsToCrypto,
         stepper,
         rawTokenAmount,
         walletBalance,

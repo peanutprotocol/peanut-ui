@@ -131,7 +131,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [tosAction, sepaTosAction]
         render(<PendingVerificationTasks />)
 
-        expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+        expect(screen.getByText('Accept terms of service')).toBeInTheDocument()
         expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
 
         const buttons = screen.getAllByRole('button', { name: /review terms/i })
@@ -231,7 +231,7 @@ describe('PendingVerificationTasks', () => {
         it('before its final week, when another task card hides the carousel, the card carries it too', () => {
             mockNextActions = [tosAction, documentTask]
             render(<PendingVerificationTasks placement="home" whenEmpty={carousel} whenEmptyShowsDocumentRequest />)
-            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Accept terms of service')).toBeInTheDocument()
             expect(screen.getByText('One more document needed')).toBeInTheDocument()
             expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
         })
@@ -279,7 +279,7 @@ describe('PendingVerificationTasks', () => {
     it('renders both tasks when ToS and hosted verification are pending together', () => {
         mockNextActions = [tosAction, hostedAction]
         render(<PendingVerificationTasks />)
-        expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+        expect(screen.getByText('Accept terms of service')).toBeInTheDocument()
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
     })
 
@@ -317,7 +317,7 @@ describe('PendingVerificationTasks', () => {
         it('a blocking ToS task: the card renders and the carousel does not', () => {
             mockNextActions = [tosAction]
             render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
-            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Accept terms of service')).toBeInTheDocument()
             expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
         })
 
@@ -371,7 +371,7 @@ describe('PendingVerificationTasks', () => {
             mockStoredDismissal = legacyBlockingFingerprints
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks placement="home" />)
-            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Accept terms of service')).toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 

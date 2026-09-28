@@ -7,24 +7,6 @@
     },
     "home": {
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Desbloqueá pagos"
-                },
-                "deposit": {
-                    "title": "Depositá",
-                    "description": "Agregá dinero para hacer tu primer pago"
-                },
-                "card": {
-                    "title": "Gastá donde acepten Visa",
-                    "description": "Usá tu saldo en más de 150M de comercios. En línea y sin contacto.",
-                    "cta": "Pedir tarjeta"
-                },
-                "outbound": {
-                    "title": "Hacé el primer pago",
-                    "description": "Pagá claves Pix y códigos QR de Pix o Mercado Pago"
-                }
-            },
             "addEmail": {
                 "title": "Agregar email"
             },
@@ -34,10 +16,6 @@
             "verificationIssue": {
                 "description": "Contactá a soporte para recibir ayuda con tu verificación."
             },
-            "spendWithPeanut": {
-                "title": "Pagá con Peanut",
-                "description": "Pagá con tarjeta, una clave Pix o códigos QR de Pix y Mercado Pago"
-            },
             "spendChooser": {
                 "title": "Elegí cómo gastar",
                 "payWithCard": "Pagá con tarjeta",
@@ -45,15 +23,13 @@
             }
         },
         "gettingStarted": {
-            "title": "Empezar",
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Listo. Tu plata ya tiene un usuario",
-            "getCard": "Conseguí la tarjeta Peanut",
             "addMoney": "Agregar dinero",
-            "firstPayment": "Hacé el primer pago",
-            "firstPaymentNote": "Mandá unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez",
-            "addMoneyStandingAccounts": "Conseguí datos bancarios a tu nombre. Cobrá en euros, dólares y más."
+            "firstPaymentCardNote": "Pedí la tarjeta o pagá un QR",
+            "firstPaymentQrNote": "Pagá un código QR",
+            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
+            "firstPaymentHeldCardNote": "Pagá con la tarjeta",
+            "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
         "autoBalance": {
             "title": "Terminá de configurar la tarjeta",
@@ -193,8 +169,7 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR",
-                "pixKey": "Pagos con clave Pix"
+                "qrPay": "Pagos QR"
             },
             "chips": {
                 "active": "Disponible",
@@ -205,6 +180,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueá este método de pago",
@@ -231,7 +207,7 @@
                 "since": "Verificación en revisión",
                 "body": "No necesitás hacer nada. Te vamos a avisar en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
-                "messageUs": "Escribinos y lo perseguimos"
+                "messageUs": "Escribinos y lo revisamos"
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
@@ -253,8 +229,7 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
-                "pixKey": "Pagá cualquier clave Pix en Brasil."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
@@ -266,14 +241,13 @@
                 "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guardá y mové euros sin un banco local.",
                 "qrPay": "Escaneá y pagá donde vivís.",
-                "pixKey": "Pagá cualquier clave Pix, sin QR."
+                "pixSend": "Enviá reales a cualquier clave Pix de Brasil."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
-            "qrPayNote": "Escaneá el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "qrPayNote": "Brasil y Argentina",
             "pixSendNote": "Enviá a cualquier clave Pix"
         },
         "backup": {
@@ -349,7 +323,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "La parte oficial",
+            "policiesHeading": "Políticas",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -1026,6 +1000,7 @@
             "heading": "Ingresá los datos bancarios",
             "accountOwnerNameFull": "Ingresá nombre y apellido",
             "state": "Seleccioná el estado",
+            "countryPlaceholder": "Seleccioná el país",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1418,7 +1393,7 @@
             "howLong": {
                 "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tenés todos los documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
@@ -1460,6 +1435,7 @@
             "manteca_action_correction_required": "Corregí la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
         }
     },
@@ -1672,8 +1648,9 @@
         "sessionExpired": "Tu sesión expiró. Iniciá sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisá tu conexión e intentalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
+        "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en {time}.",
+        "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya podés volver a intentarlo.",
         "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
@@ -1779,11 +1756,17 @@
             "errorBody": "Tus cuentas están bien. Revisá la conexión y probá de nuevo.",
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
-            "countriesTitle": "Todos los países"
+            "countriesTitle": "Todos los países",
+            "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
+            "uncheckedBody": "Volvé a intentarlo en un momento.",
+            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
+            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué.",
+            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos."
         },
         "claim": {
-            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
+            "heading": "Recibí pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",

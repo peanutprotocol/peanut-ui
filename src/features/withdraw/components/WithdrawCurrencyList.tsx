@@ -65,7 +65,6 @@ export function WithdrawCurrencyList({
 }: WithdrawCurrencyListProps) {
     const t = useTranslations('withdraw')
     const tGlobal = useTranslations('global')
-    const tRails = useTranslations('depositAccounts.rows.rails')
     const locale = useLocale()
     const [query, setQuery] = useState(initialQuery)
 
@@ -123,7 +122,9 @@ export function WithdrawCurrencyList({
                 <Accordion type="single" collapsible className="gap-0" data-testid="withdraw-currencies">
                     {filteredCurrencies.map((currency, index) => {
                         const position = getCardPosition(index, filteredCurrencies.length)
-                        const title = `${currency.code} · ${tRails(currency.railNameKey)}`
+                        // titled by the currency alone, the rule the Accounts hub
+                        // rows follow (design.md); the name is the subtitle
+                        const title = currency.code
                         const body = localizedCurrencyName(locale, currency.code, currency.name)
                         const testId = `withdraw-currency-${currency.code}`
                         const flag = (

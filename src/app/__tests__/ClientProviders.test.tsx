@@ -10,7 +10,6 @@
  */
 import React from 'react'
 import { ClientProviders } from '../ClientProviders'
-import type { AppHelpDocuments } from '@/components/Global/appHelpTypes'
 
 jest.mock('@/hooks/useSplashGate', () => ({ useSplashGate: jest.fn() }))
 jest.mock('@/hooks/useNativeAppLinks', () => ({ useNativeAppLinks: jest.fn() }))
@@ -52,9 +51,9 @@ function providerChain(node: React.ReactNode, acc: string[] = []): string[] {
 }
 
 describe('ClientProviders provider order', () => {
-    const chainFor = (path: string, appHelpDocuments?: AppHelpDocuments) => {
+    const chainFor = (path: string) => {
         pathname = path
-        return providerChain(ClientProviders({ children: <div data-testid="app" />, appHelpDocuments }))
+        return providerChain(ClientProviders({ children: <div data-testid="app" /> }))
     }
 
     it('mounts the intl provider outside ContextProvider on app routes', () => {
@@ -84,8 +83,11 @@ describe('ClientProviders provider order', () => {
     })
 
     it.each(['/home', '/pay/example'])('makes help drawers available to app routes at %s', (path) => {
-        const chain = chainFor(path, {} as AppHelpDocuments)
-        expect(chain).toContain('AppHelpProvider')
+        expect(chainFor(path)).toContain('AppHelpProvider')
+    })
+
+    it('leaves help drawers off marketing routes', () => {
+        expect(chainFor('/')).not.toContain('AppHelpProvider')
     })
 
     it('mounts the marketing intl provider outside ContextProvider on the landing page', () => {

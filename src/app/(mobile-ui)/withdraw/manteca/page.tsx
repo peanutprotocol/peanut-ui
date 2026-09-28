@@ -14,6 +14,7 @@ import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
@@ -28,7 +29,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -195,6 +196,9 @@ function MantecaBankWithdrawFlow() {
     })
     const step = stepper.step
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
@@ -963,7 +967,7 @@ function MantecaBankWithdrawFlow() {
                     <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
-                                router.push('/home')
+                                leaveToHome()
                                 resetState()
                             }}
                             shadowSize="4"
@@ -1233,7 +1237,9 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                            <Callout priority="error">
+                                <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                            </Callout>
                         )}
                     </div>
                 </div>
@@ -1309,7 +1315,9 @@ function MantecaBankWithdrawFlow() {
                         </Callout>
                     )}
                     {(errorMessage || sumsubFlow.error) && (
-                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                        <Callout priority="error">
+                            <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                        </Callout>
                     )}
                 </div>
             )}

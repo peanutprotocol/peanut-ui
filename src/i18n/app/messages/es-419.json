@@ -84,28 +84,6 @@
     "home": {
         "rewards": "Puntos",
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Desbloquea pagos",
-                    "description": "Depósitos bancarios, códigos QR y métodos de pago locales",
-                    "cta": "Desbloquear ahora"
-                },
-                "deposit": {
-                    "title": "Deposita",
-                    "description": "Agrega dinero para hacer tu primer pago",
-                    "cta": "Agregar dinero"
-                },
-                "card": {
-                    "title": "Gasta donde acepten Visa",
-                    "description": "Usa tu saldo en más de 150M de comercios. En línea y sin contacto.",
-                    "cta": "Pedir tarjeta"
-                },
-                "outbound": {
-                    "title": "Haz el primer pago",
-                    "description": "Paga claves Pix y códigos QR de Pix o MercadoPago",
-                    "cta": "Empezar a gastar"
-                }
-            },
             "addEmail": {
                 "title": "Agregar email",
                 "description": "Necesitamos un email para terminar de configurar tu cuenta.",
@@ -121,10 +99,6 @@
                 "description": "Contacta a soporte para recibir ayuda con tu verificación.",
                 "cta": "Contactar soporte"
             },
-            "spendWithPeanut": {
-                "title": "Paga con Peanut",
-                "description": "Paga con tarjeta, una clave Pix o códigos QR de Pix y MercadoPago"
-            },
             "spendChooser": {
                 "title": "Elige cómo gastar",
                 "description": "Ambas cuentan como tu primer pago.",
@@ -133,18 +107,28 @@
             }
         },
         "gettingStarted": {
-            "title": "Empezar",
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Listo. Tu dinero ya tiene un usuario",
-            "getCard": "Consigue la tarjeta Peanut",
+            "createAccountDone": "Usuario listo",
             "addMoney": "Agregar dinero",
-            "firstPayment": "Haz el primer pago",
-            "firstPaymentNote": "Envía unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
-            "addMoneyRoutes": "Transferencia bancaria o cripto",
-            "addMoneyStandingAccounts": "Consigue datos bancarios a tu nombre. Recibe pagos en euros, dólares y más.",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco requiere una verificación de identidad por única vez",
-            "addMoneyRoutesNoBank": "Cripto desde cualquier wallet o exchange",
-            "getCardNote": "Tus dólares, en rosa, donde sea que acepten Visa."
+            "firstPayment": "Primer pago",
+            "addMoneyRoutes": "Transferencia o cripto",
+            "addMoneyStandingAccounts": "Datos bancarios o cripto",
+            "addMoneyRoutesNoBank": "Cripto desde una wallet",
+            "verifyIdentity": "Verificar identidad",
+            "verifyIdentityNote": "Verificación única",
+            "inReview": "En revisión",
+            "firstPaymentCardNote": "Pide la tarjeta o paga un QR",
+            "firstPaymentQrNote": "Paga un código QR",
+            "firstPaymentCardOnlyNote": "Pide la tarjeta Peanut",
+            "verifyIdentityDone": "Identidad verificada",
+            "addMoneyDone": "Dinero recibido",
+            "firstPaymentHeldCardNote": "Paga con la tarjeta",
+            "firstPaymentHeldCardQrNote": "Paga con la tarjeta o un QR",
+            "hide": "Ocultar",
+            "welcomeTitle": "¡Bienvenid@ a Peanut!",
+            "welcomeBody": "{count} pasos rápidos para pagar, enviar y recibir",
+            "progress": "{done} de {total} listos",
+            "welcomeTitleSpoken": "¡Te damos la bienvenida a Peanut!"
         },
         "autoBalance": {
             "title": "Termina de configurar la tarjeta",
@@ -369,8 +353,7 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR",
-                "pixKey": "Pagos con clave Pix"
+                "qrPay": "Pagos QR"
             },
             "chips": {
                 "active": "Disponible",
@@ -381,6 +364,7 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "cardNotAvailableNote": "La tarjeta Peanut no está disponible para residentes de tu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
@@ -408,7 +392,7 @@
                 "since": "Verificación en revisión",
                 "body": "No necesitas hacer nada. Te avisaremos en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
-                "messageUs": "Escríbenos y lo perseguimos"
+                "messageUs": "Escríbenos y lo revisamos"
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
@@ -431,8 +415,7 @@
                 "usd": "Agrega o retira dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR.",
-                "pixKey": "Paga cualquier clave Pix en Brasil."
+                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Divide cuentas y paga a tus amigos en un toque.",
@@ -444,14 +427,13 @@
                 "mxn": "Mueve pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guarda y mueve euros sin un banco local.",
                 "qrPay": "Escanea y paga donde vives.",
-                "pixKey": "Paga cualquier clave Pix, sin QR."
+                "pixSend": "Envía reales a cualquier clave Pix de Brasil."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
-            "qrPayNote": "Escanea el código QR de un comercio en Brasil o Argentina.",
-            "pixKeyNote": "Brasil. CPF, CNPJ, teléfono, correo o clave aleatoria.",
+            "qrPayNote": "Brasil y Argentina",
             "pixSendNote": "Envía a cualquier clave Pix"
         },
         "backup": {
@@ -566,7 +548,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "La parte oficial",
+            "policiesHeading": "Políticas",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -631,7 +613,7 @@
     "limits": {
         "title": "Límites de pago",
         "pageDescription": "Los límites de pago controlan cuánto puedes enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
-        "unlockedRegions": "Cuentas y pagos",
+        "unlockedRegions": "Regiones desbloqueadas",
         "lockedRegions": "Regiones bloqueadas",
         "otherRegions": "Otras regiones",
         "cardLimits": {
@@ -1005,7 +987,6 @@
     "send": {
         "linkCard": {
             "title": "Envía con un enlace",
-            "description": "No se necesita cuenta para reclamar en billetera cripto. Banco, Pix y Mercado Pago requieren una cuenta Peanut.",
             "cta": "Enviar por enlace"
         },
         "methods": {
@@ -1370,7 +1351,7 @@
         "kyc": {
             "unlockTitle": "Desbloquea los pagos con QR",
             "unlockDescription": "Confirma tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
-            "unlockCta": "Desbloquear ahora",
+            "unlockCta": "Verificar identidad",
             "inProgressTitle": "Ya casi",
             "inProgressDescription": "Estamos confirmando tu identidad. Retoma donde quedaste y estarás pagando en un momento.",
             "notNow": "Ahora no",
@@ -1957,9 +1938,23 @@
             "sortCode": "Código de banco (Sort Code)",
             "routingNumber": "Número de ruta (Routing Number)",
             "fee": "Comisión",
+            "sendByLabel": "Enviar por",
+            "speedAchTab": "ACH ({fee})",
+            "speedWireTab": "Wire ({fee})",
+            "speedTabFree": "gratis",
+            "speedSameDayTitle": "Mismo día",
+            "speedAchBody": "1 a 3 días hábiles",
+            "speedSameDayHelper": "Normalmente el mismo día hábil; si no, el siguiente",
+            "speedWireBody": "En pocas horas, en un día hábil",
+            "speedFree": "Gratis",
+            "speedWireBelowMinimum": "El mínimo para wire es {amount}.",
+            "speedAccountCannotTake": "Esta cuenta no puede recibir wire",
+            "arrives": "Llega",
+            "bankReceives": "El banco recibe",
             "reference": "Referencia (opcional)",
             "referenceHelperSepa": "El banco del destinatario la muestra con el pago. De 6 a 140 caracteres: letras a-z, números, espacios y & - . /",
             "referenceHelperAch": "El banco del destinatario la muestra con el pago. Hasta 10 caracteres: letras a-z, números y espacios.",
+            "referenceHelperWire": "El banco del destinatario la muestra con el pago. Hasta 140 caracteres: letras a-z, números, espacios y & - . /",
             "referenceHelperFasterPayments": "El banco del destinatario la muestra con el pago. Hasta 18 caracteres: letras a-z, números, espacios y & - . /",
             "referenceHelperSpei": "El banco del destinatario la muestra con el pago. Hasta 40 caracteres: letras a-z, números y espacios.",
             "referenceHelperCoBankTransfer": "El banco del destinatario la muestra con el pago. Hasta 18 caracteres: letras a-z, números, espacios y & - . /",
@@ -2031,6 +2026,9 @@
             "cityLabel": "Ciudad",
             "postalCodeLabel": "Código postal",
             "stateRequired": "El estado es obligatorio",
+            "countryLabel": "País",
+            "countryPlaceholder": "Selecciona el país",
+            "countryRequired": "El país es obligatorio",
             "postalCode": "Código postal",
             "postalCodeRequired": "El código postal es obligatorio",
             "unsupportedCountry": "País no compatible",
@@ -2228,6 +2226,7 @@
             "tokenOnChain": "{token} en {chain}",
             "txId": "ID de transacción",
             "fee": "Comisión",
+            "bankReceives": "El banco recibe",
             "transferId": "ID de transferencia",
             "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
@@ -2740,6 +2739,8 @@
         "continueVerification": "Continuar verificación",
         "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región. Te avisaremos apenas se habiliten.",
         "railsUnavailableError": "Tu identidad está verificada, pero no podemos configurar los pagos para tu región en este momento. Contacta con soporte y lo resolvemos.",
+        "sessionBlockedSubmissionError": "No pudimos terminar de configurar estos pagos. El problema es nuestro: contacta con soporte y lo terminamos.",
+        "sessionBlockedDecisionError": "No podemos configurar estos pagos para esta cuenta. Contacta con soporte si crees que es un error.",
         "unexpectedError": "Ocurrió un error inesperado",
         "processingStatusValue": "Estamos revisando tus documentos. Esto suele tomar de 5 a 10 min.",
         "errorSdkUnavailable": "La verificación no está disponible. Actualiza la app.",
@@ -2770,7 +2771,7 @@
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
             "descriptionDefault": "Confirma tu identidad para desbloquear los pagos.",
             "ctaUploadDocument": "Subir documento",
-            "ctaUnlockNow": "Desbloquear ahora",
+            "ctaUnlockNow": "Verificar identidad",
             "ctaWithdrawFunds": "Retirar fondos"
         },
         "regionRestricted": {
@@ -3146,7 +3147,7 @@
             "howLong": {
                 "standard": "Unos minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "hosted": "El proceso de verificación suele tardar unos minutos si tienes todos los documentos a la mano."
+                "hosted": "El proceso de verificación suele tardar unos minutos si tienes todos los documentos a la mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
             "startCta": "Los tengo, empezar",
@@ -3244,6 +3245,7 @@
             "manteca_action_correction_required": "Corrige la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que requieren los depósitos y retiros locales. Puedes verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
+            "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado."
         }
     },
@@ -3564,7 +3566,6 @@
             "requestTitle": "Pide dinero",
             "requestDescription": "No hace falta una cuenta, solo envía un DM.",
             "sendTitle": "Envía con un enlace",
-            "sendDescription": "Cualquiera con el enlace puede reclamarlo",
             "perfectForChats": "Ideal para WhatsApp y Messenger"
         },
         "peanutActionDetailsCard": {
@@ -3748,8 +3749,9 @@
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
+        "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en {time}.",
+        "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya puedes volver a intentarlo.",
         "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
@@ -4065,12 +4067,18 @@
             "otherWaysBody": "También sirven para agregar y retirar dinero. No son cuentas a tu nombre.",
             "badgeLimitReached": "Límite alcanzado",
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "No está disponible donde vives, o todavía no. Si te mudaste, actualiza tu residencia. Soporte puede revisar por qué.",
+            "residenceRestrictedBody": "Las cuentas en {currency} no están disponibles para residentes de tu país.",
+            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti.",
+            "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
+            "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
+            "uncheckedBody": "Vuelve a intentarlo en un momento.",
             "countriesTitle": "Todos los países",
             "countriesPitch": "Elige un país",
             "badgeReady": "Lista",
             "badgeActive": "Activo",
-            "badgeNotSetUp": "Sin configurar",
-            "badgeVerify": "Requiere verificación",
+            "badgeSetUp": "Configurar",
+            "badgeVerifyId": "Verificar ID",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
             "accountCounter": "{used} de {cap} usadas",
@@ -4080,20 +4088,23 @@
             "errorTitle": "No pudimos cargar las cuentas",
             "errorBody": "Tus cuentas están bien. Revisa la conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
-            "badgeActionNeeded": "Acción requerida"
+            "badgeActionNeeded": "Acción requerida",
+            "badgeUnderReview": "En revisión"
         },
         "claim": {
-            "heading": "Datos bancarios en {currency}",
-            "subheading": "Datos bancarios reales que tu empleador, cliente o plataforma ya sabe usar.",
-            "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
+            "heading": "Recibe pagos en {currency}",
+            "subheading": "Datos bancarios a tu nombre. Compártelos con empleadores, clientes o plataformas como Deel.",
+            "conditionTerms": "Quién puede pagar depende de las reglas de {currency}. Se muestran cuando la cuenta esté abierta.",
             "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
-            "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
+            "benefitStable": "Se comparten una vez y sirven para cada pago",
+            "benefitBalance": "Llega en USD al saldo de Peanut",
             "conditionNoReference": "Sin referencia ni concepto que recordar.",
             "conditionReference": "Cada transferencia debe incluir la referencia que aparece con tus datos; sin ella no se puede asignar a tu cuenta.",
             "cta": "Abrir cuenta en {currency}",
             "errorTitle": "No pudimos abrir la cuenta",
-            "faqSepaShared": "Una cuenta en euros (SEPA) funciona en toda la eurozona. El IBAN puede emitirse en otro país de la UE."
+            "faqSepaShared": "Una cuenta en euros (SEPA) funciona en toda la eurozona. El IBAN puede emitirse en otro país de la UE.",
+            "whoCanPay": "Quién puede pagar",
+            "termsAgreement": "Al abrir la cuenta, aceptas los <terms>términos de la cuenta en {currency}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4111,7 +4122,6 @@
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
             "referenceRequired": "Cada transferencia necesita esta referencia.",
-            "whoCanPay": "Quién puede pagar",
             "termsToggle": "Límites y comisiones",
             "residenceCta": "Actualizar residencia",
             "qrPayCta": "Pagar un código QR"
@@ -4158,22 +4168,27 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos.",
+                "arrivalShort": "Suele llegar el mismo día hábil (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
                 "arrivalDetail": "Los Faster Payments suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Faster Payments)",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
                 "arrivalDetail": "ACH llega en uno a tres días hábiles. Una transferencia wire llega el mismo día.",
+                "arrivalShort": "De 1 a 3 días hábiles por ACH, el mismo día por wire",
                 "railName": "ACH o wire"
             },
             "SPEI_MX": {
                 "arrivalDetail": "Las transferencias SPEI suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (SPEI)",
                 "railName": "SPEI"
             },
             "PIX_BR": {
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Necesitas residencia",
                 "residenceRequired": "Solo los residentes legales de Brasil pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
@@ -4181,6 +4196,7 @@
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos",
                 "railName": "Banco o Mercado Pago",
                 "residenceTitle": "Necesitas residencia",
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
@@ -4188,7 +4204,8 @@
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos."
+                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos.",
+                "arrivalShort": "Suele llegar en minutos (Bre-B)"
             }
         },
         "gate": {
@@ -4214,6 +4231,7 @@
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contacta a soporte y lo revisamos.",
             "finishReviewTitle": "Una revisión más para la cuenta en {currency}",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando vuelves.",
+            "providerReviewBody": "Tu identidad ya está verificada. Nuestro socio de pagos necesita más información tuya antes de abrir cuentas en {currency}.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contacta a soporte y te ayudamos a completarla.",
             "finishReviewCta": "Continuar",
             "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
@@ -4240,7 +4258,7 @@
                 "why": "Se aceptan pagos de cualquier persona en esta moneda, por cualquier monto. Contacta a soporte antes de enviar más de US$100.000."
             },
             "ownOrBusinessAny": {
-                "line": "Cuenta propia o empresa: cualquier monto",
+                "line": "Cuenta propia o una empresa: cualquier monto",
                 "why": "Las transferencias desde tu propia cuenta bancaria y los pagos de una empresa no tienen límite de monto, así que el sueldo y las facturas pasan sin cambios. Contacta a soporte antes de enviar más de US$100.000."
             },
             "ownAccount": {
@@ -4256,15 +4274,15 @@
                 "why": "Todavía no se aceptan transferencias desde tu propia cuenta bancaria en esta moneda. Lo diremos acá el día que cambie."
             },
             "businessAny": {
-                "line": "Empresa: cualquier monto",
+                "line": "Una empresa: cualquier monto",
                 "why": "Un pago de una empresa no tiene límite. El sueldo y las facturas pasan sin cambios."
             },
             "businessNotYet": {
-                "line": "Empresa: todavía no",
+                "line": "Una empresa: todavía no",
                 "why": "Todavía no están disponibles los pagos de empresas en esta moneda. Lo diremos acá el día que cambie."
             },
             "businessUnconfirmed": {
-                "line": "Empresa: sin confirmar",
+                "line": "Una empresa: sin confirmar",
                 "why": "Los pagos de empresas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "individualAny": {
@@ -4292,7 +4310,7 @@
                 "why": "Los pagos de otras personas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "minimum": {
-                "line": "Depósito mínimo: {min}",
+                "line": "Mínimo: {min}",
                 "why": "Los depósitos deben ser de al menos {min}, incluidos los pagos de prueba."
             },
             "stateRestricted": {
@@ -4304,7 +4322,7 @@
                 "why": "Solo se acredita una transferencia que venga de una cuenta a tu nombre. Un pago de cualquier otra persona se devuelve a quien lo envió."
             },
             "businessAllowed": {
-                "line": "Empresa: permitido",
+                "line": "Una empresa: sí",
                 "why": "Las empresas registradas pueden pagarte. Se aplican los límites indicados aquí."
             },
             "maximum": {

@@ -317,7 +317,11 @@ function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
         }
         if (isCoveredByDisableList(rel) || isHandledByTransform(rel)) continue
         if (entry.name === 'route.ts' || entry.name === 'route.js') {
-            found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            // A force-static handler is written to a file at build time, which the export keeps.
+            const content = fs.readFileSync(full, 'utf-8')
+            if (!/export\s+const\s+dynamic\s*=\s*['"]force-static['"]/.test(content)) {
+                found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            }
             continue
         }
         if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { useAppHelpDrawer } from '@/components/Global/AppHelpDrawer'
+import { useAppHelpDrawer } from '@/components/Global/AppHelpProvider'
 import { useModalsContext } from '@/context/ModalsContext'
 
 /** Keep the article's localized support action available inside the app. */

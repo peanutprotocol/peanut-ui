@@ -82,3 +82,29 @@ describe('useIdentityVerification — isTerminalFailure', () => {
         expect(withIdentity({ status, canRetry: false }).isTerminalFailure).toBe(false)
     })
 })
+
+describe('useIdentityVerification — a FINAL action_required and an email collision', () => {
+    it('a FINAL rejectType on action_required is a terminal failure', () => {
+        expect(withIdentity({ status: 'action_required', rejectType: 'FINAL' }).isTerminalFailure).toBe(true)
+    })
+
+    it('with no rejectType (older API), a terminal label decides', () => {
+        expect(withIdentity({ status: 'action_required', rejectLabels: ['FORGERY'] }).isTerminalFailure).toBe(true)
+        expect(
+            withIdentity({ status: 'action_required', rejectLabels: ['BAD_PROOF_OF_IDENTITY'] }).isTerminalFailure
+        ).toBe(false)
+    })
+
+    it('an explicit RETRY outranks a stale terminal label', () => {
+        expect(
+            withIdentity({ status: 'action_required', rejectType: 'RETRY', rejectLabels: ['FORGERY'] })
+                .isTerminalFailure
+        ).toBe(false)
+    })
+
+    it('DUPLICATE_EMAIL is an email collision, not a terminal failure', () => {
+        const r = withIdentity({ status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] })
+        expect(r.isEmailCollision).toBe(true)
+        expect(r.isTerminalFailure).toBe(false)
+    })
+})

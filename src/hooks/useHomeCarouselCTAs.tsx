@@ -6,7 +6,6 @@ import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
@@ -29,12 +28,11 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-
-// Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
-// "sticky" but below 14 so we still nudge users about valuable actions they haven't
-// adopted. Per-CTA cooldowns can come later via the user-signaling unification project.
-const DISMISS_COOLDOWN_DAYS = 7
-const DISMISS_COOLDOWN_MS = DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+import { QrKycState } from '@/constants/kyc.consts'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { useIdentityVerification } from './useIdentityVerification'
+import { hideHomeCta, readHiddenHomeCtas, showQrPayCTA, showVerifyCTA } from '@/utils/home-carousel.utils'
+import { verifyRowStatus } from '@/utils/activation-step.utils'
 
 export type CarouselCTA = {
     id: string
@@ -54,34 +52,16 @@ export type CarouselCTA = {
     iconSize?: number
 }
 
-/** Read dismissals from preferences, dropping any whose cooldown has expired.
- *  Returns id → dismissedAt so callers can keep the timestamp around if needed.
- *  Accepts the legacy `string[]` shape (no timestamps) — those entries are
- *  treated as "dismissed now" so existing users get a fresh 7-day window from
- *  the moment they pick up this code, rather than CTAs suddenly reappearing. */
-const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
-    const dismissed = getUserPreferences(userId)?.dismissedCarouselCTAs
-    const now = new Date()
-    const cutoff = now.getTime() - DISMISS_COOLDOWN_MS
-
-    if (!dismissed) return new Map()
-
-    if (Array.isArray(dismissed)) {
-        // Legacy permanent-dismissal shape — coerce to "dismissed now".
-        return new Map(dismissed.map((id) => [id, now]))
-    }
-
-    const map = new Map<string, Date>()
-    for (const [id, iso] of Object.entries(dismissed)) {
-        const dismissedAt = new Date(iso)
-        if (!Number.isNaN(dismissedAt.getTime()) && dismissedAt.getTime() > cutoff) {
-            map.set(id, dismissedAt)
-        }
-    }
-    return map
-}
-
-export const useHomeCarouselCTAs = () => {
+export const useHomeCarouselCTAs = ({
+    onStartQrIdentityCheck,
+}: {
+    /** starts the QR ID check; the carousel component owns the flow and its modals */
+    onStartQrIdentityCheck?: () => void
+} = {}) => {
+    // read through a ref: the flow object is new every render, and the slides
+    // must not regenerate on each one
+    const startQrIdentityCheckRef = useRef(onStartQrIdentityCheck)
+    startQrIdentityCheckRef.current = onStartQrIdentityCheck
     const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
@@ -98,7 +78,8 @@ export const useHomeCarouselCTAs = () => {
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails, channelOf } = useCapabilities()
+    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -127,11 +108,7 @@ export const useHomeCarouselCTAs = () => {
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.set(ctaId, new Date())
-            const record: Record<string, string> = {}
-            for (const [id, dismissedAt] of dismissedRef.current) {
-                record[id] = dismissedAt.toISOString()
-            }
-            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
+            hideHomeCta(user?.user?.userId, ctaId)
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
@@ -144,8 +121,8 @@ export const useHomeCarouselCTAs = () => {
         // User-interview invite (temporary campaign): hand-picked heavy users
         // get asked for a 15-min call with the team. The cohort lives in the PostHog
         // flag's `username` release condition — never in code. Leads the
-        // carousel on purpose; it targets a handful of users. X-dismissal uses
-        // the standard 7-day cooldown (id filter below). Delete this block, the
+        // carousel on purpose; it targets a handful of users. Closing it hides
+        // it for good (id filter below). Delete this block, the
         // flag, the i18n keys, and the dev/home-ctas preview entry when the
         // campaign ends.
         if (interviewInviteOn) {
@@ -186,9 +163,6 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
-        // Rain (card) does NOT count; a card-only user must still see the verify CTA.
-        const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
@@ -226,9 +200,16 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
-        // (still loading) keeps the CTA hidden so it doesn't flash in then out.
-        if (hasKycApproval && hasMadeQrPayment === false) {
+        // the same gate the QR pay page reads: the slide shows only when a scan would pay
+        const qrGate = selectQrKycGate({
+            isLoading: false,
+            isRegionRestricted,
+            isTerminalFailure,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
+            nextActions,
+        })
+        if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
@@ -303,16 +284,28 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Card-eligible users use the card verification flow instead of bank onboarding.
-        if (!hasKycApproval && !isInFlight && isCardEligible === false) {
+        // Same QR-pay gate as the QR slide above: no "unlock" ask where the ID
+        // check can never open QR pay (region refused, provider blocked).
+        if (
+            showVerifyCTA({
+                qrGateState: qrGate.kycGateState,
+                // identity itself, not an enabled rail: a user moving money on a
+                // bank partner's own check still needs this one for QR pay
+                isIdentityVerified: verifyRowStatus({ status: identityStatus }) === 'done',
+                isInFlight,
+                isCardEligible,
+            })
+        ) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
                 concept: 'qrPay',
                 iconSize: 16,
+                // the QR ID check itself: the accounts list no longer shows QR,
+                // and Payments shows it closed to a banking-restricted residence
                 onClick: () => {
-                    router.push('/profile/accounts')
+                    startQrIdentityCheckRef.current?.()
                 },
             })
         }
@@ -323,7 +316,6 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPushOptedIn,
         canDo,
-        bankRails,
         isInFlight,
         router,
         requestPermission,
@@ -335,6 +327,10 @@ export const useHomeCarouselCTAs = () => {
         cardInfo,
         rails,
         channelOf,
+        nextActions,
+        isRegionRestricted,
+        isTerminalFailure,
+        identityStatus,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
@@ -356,7 +352,7 @@ export const useHomeCarouselCTAs = () => {
             return
         }
 
-        dismissedRef.current = getDismissedCTAs(user.user.userId)
+        dismissedRef.current = readHiddenHomeCtas(user.user.userId)
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 

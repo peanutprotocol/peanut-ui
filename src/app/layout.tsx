@@ -1,5 +1,4 @@
 import { ClientProviders } from './ClientProviders'
-import { loadAppHelpDocuments } from '@/components/Global/appHelpDocuments.server'
 import { type Viewport } from 'next'
 import { Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
@@ -150,8 +149,7 @@ export const viewport: Viewport = {
     themeColor: '#FAF4F0',
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-    const appHelpDocuments = await loadAppHelpDocuments()
+export default function RootLayout({ children }: { children: React.ReactNode }) {
     // Extract API hostname for DNS prefetch/preconnect (DRY principle)
     const apiHostname = new URL(PEANUT_API_URL).origin
 
@@ -283,7 +281,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 be defined there — on <body> the :root substitution fails and every
                 font-sans consumer falls back to the system font */}
             <body className="chakra-ui-light font-sans">
-                <ClientProviders appHelpDocuments={appHelpDocuments}>{children}</ClientProviders>
+                <ClientProviders>{children}</ClientProviders>
             </body>
         </html>
     )

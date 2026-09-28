@@ -84,28 +84,6 @@
     "home": {
         "rewards": "Points",
         "activation": {
-            "steps": {
-                "verify": {
-                    "title": "Unlock payments",
-                    "description": "Bank deposits, QR codes, and local payment methods",
-                    "cta": "Unlock now"
-                },
-                "deposit": {
-                    "title": "Deposit",
-                    "description": "Add money to make your first payment",
-                    "cta": "Add money"
-                },
-                "card": {
-                    "title": "Spend anywhere Visa is accepted",
-                    "description": "Use your balance at 150M+ merchants. Online, contactless.",
-                    "cta": "Get card"
-                },
-                "outbound": {
-                    "title": "Make the first payment",
-                    "description": "Pay Pix keys and Pix or MercadoPago QRs",
-                    "cta": "Start Spending"
-                }
-            },
             "addEmail": {
                 "title": "Add email",
                 "description": "We need an email address to finish setting up your account.",
@@ -121,10 +99,6 @@
                 "description": "Contact support for help with your verification.",
                 "cta": "Contact support"
             },
-            "spendWithPeanut": {
-                "title": "Spend with Peanut",
-                "description": "Pay by card, Pix key, or Pix and MercadoPago QR"
-            },
             "spendChooser": {
                 "title": "Choose how to spend",
                 "description": "Both count as your first payment.",
@@ -133,18 +107,28 @@
             }
         },
         "gettingStarted": {
-            "title": "Get started",
             "createAccount": "Create account",
-            "createAccountDone": "Done. Your money has a username now",
-            "getCard": "Get the Peanut Card",
+            "createAccountDone": "Username ready",
             "addMoney": "Add money",
-            "firstPayment": "Make the first payment",
-            "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
+            "firstPayment": "First payment",
             "addMoneyRoutes": "Bank transfer or crypto",
-            "addMoneyStandingAccounts": "Claim your own bank details. Get paid in euros, dollars and more.",
-            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
-            "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
-            "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
+            "addMoneyStandingAccounts": "Bank details or crypto",
+            "addMoneyRoutesNoBank": "Crypto from any wallet",
+            "verifyIdentity": "Verify identity",
+            "verifyIdentityNote": "One-time ID check",
+            "inReview": "In review",
+            "firstPaymentCardNote": "Get the card or pay a QR",
+            "firstPaymentQrNote": "Pay a QR code",
+            "firstPaymentCardOnlyNote": "Get the Peanut Card",
+            "verifyIdentityDone": "ID verified",
+            "addMoneyDone": "Money received",
+            "firstPaymentHeldCardNote": "Pay with the card",
+            "firstPaymentHeldCardQrNote": "Pay with the card or a QR",
+            "hide": "Hide",
+            "welcomeTitle": "Welcome to Peanut!",
+            "welcomeBody": "{count} quick steps to pay, send and receive",
+            "progress": "{done} of {total} done",
+            "welcomeTitleSpoken": "Welcome to Peanut!"
         },
         "autoBalance": {
             "title": "Finish setting up the card",
@@ -237,7 +221,7 @@
             "verifyDescriptionAdvisory": "Complete a quick verification with our payment partner to keep bank transfers available.",
             "verifyDescriptionCorridor": "Finish verifying to unlock {corridor}.",
             "verifyDescriptionCorridorAdvisory": "Finish verifying to keep {corridor} available.",
-            "tosTitle": "Accept Terms of Service",
+            "tosTitle": "Accept terms of service",
             "tosDescription": "Accept our payment partner's terms to enable bank transfers.",
             "tosDescriptionAdvisory": "Accept our payment partner's terms to keep bank transfers available.",
             "tosSepaTitle": "Accept updated bank transfer provider terms",
@@ -369,8 +353,7 @@
                 "usd": "USD · Bank transfer",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments",
-                "pixKey": "Pix key payments"
+                "qrPay": "QR payments"
             },
             "chips": {
                 "active": "Available",
@@ -381,6 +364,7 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "bankOnlyNotAvailableNote": "Bank transfers aren't available for residents of your country.",
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
             "unlockModal": {
                 "title": "Unlock {method}",
@@ -431,8 +415,7 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
-                "pixKey": "Pay any Pix key in Brazil."
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
@@ -444,14 +427,13 @@
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
                 "qrPay": "Scan and pay where you live.",
-                "pixKey": "Pay any Pix key, no QR needed."
+                "pixSend": "Send reais to any Pix key in Brazil."
             },
             "detailsDrawer": {
                 "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
-            "qrPayNote": "Scan a shop's QR code in Brazil or Argentina.",
-            "pixKeyNote": "Brazil. CPF, CNPJ, phone, email or random key.",
+            "qrPayNote": "Brazil and Argentina",
             "pixSendNote": "Send to any Pix key"
         },
         "backup": {
@@ -631,7 +613,7 @@
     "limits": {
         "title": "Payment limits",
         "pageDescription": "Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly.",
-        "unlockedRegions": "Accounts and payments",
+        "unlockedRegions": "Unlocked regions",
         "lockedRegions": "Locked regions",
         "otherRegions": "Other regions",
         "cardLimits": {
@@ -1005,7 +987,6 @@
     "send": {
         "linkCard": {
             "title": "Send with a link",
-            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {
@@ -1370,7 +1351,7 @@
         "kyc": {
             "unlockTitle": "Unlock QR payments",
             "unlockDescription": "Confirm your ID to pay any Pix key or QR. Takes a minute.",
-            "unlockCta": "Unlock now",
+            "unlockCta": "Verify identity",
             "inProgressTitle": "Almost there",
             "inProgressDescription": "We're confirming your ID. Pick up where you left off and you'll be paying in no time.",
             "notNow": "Not now",
@@ -1957,9 +1938,23 @@
             "sortCode": "Sort code",
             "routingNumber": "Routing number",
             "fee": "Fee",
+            "sendByLabel": "Send by",
+            "speedAchTab": "ACH ({fee})",
+            "speedWireTab": "Wire ({fee})",
+            "speedTabFree": "free",
+            "speedSameDayTitle": "Same day",
+            "speedAchBody": "1–3 business days",
+            "speedSameDayHelper": "Usually the same business day, otherwise the next",
+            "speedWireBody": "Within hours on a business day",
+            "speedFree": "Free",
+            "speedWireBelowMinimum": "Wire needs at least {amount}.",
+            "speedAccountCannotTake": "This account cannot receive a wire",
+            "arrives": "Arrives",
+            "bankReceives": "Bank receives",
             "reference": "Reference (optional)",
             "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
             "referenceHelperAch": "The recipient's bank shows it with the payment. Up to 10 characters: letters a-z, numbers and spaces.",
+            "referenceHelperWire": "The recipient's bank shows it with the payment. Up to 140 characters: letters a-z, numbers, spaces and & - . /",
             "referenceHelperFasterPayments": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
             "referenceHelperSpei": "The recipient's bank shows it with the payment. Up to 40 characters: letters a-z, numbers and spaces.",
             "referenceHelperCoBankTransfer": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
@@ -2031,6 +2026,9 @@
             "cityLabel": "City",
             "postalCodeLabel": "Postal code",
             "stateRequired": "State is required",
+            "countryLabel": "Country",
+            "countryPlaceholder": "Select country",
+            "countryRequired": "Country is required",
             "postalCode": "Postal code",
             "postalCodeRequired": "Postal code is required",
             "unsupportedCountry": "Unsupported country",
@@ -2228,6 +2226,7 @@
             "tokenOnChain": "{token} on {chain}",
             "txId": "Transaction ID",
             "fee": "Fee",
+            "bankReceives": "Bank receives",
             "transferId": "Transfer ID",
             "senderNote": "Sender's note",
             "paymentReference": "Reference we sent",
@@ -2740,6 +2739,8 @@
         "continueVerification": "Continue verification",
         "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
         "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
+        "sessionBlockedSubmissionError": "We could not finish setting up these payments. That is on our side: contact support and we will finish it.",
+        "sessionBlockedDecisionError": "We cannot set up these payments for this account. Contact support if you think this is a mistake.",
         "unexpectedError": "An unexpected error occurred",
         "processingStatusValue": "We're reviewing your documents. This usually takes 5-10 min.",
         "errorSdkUnavailable": "Verification is not available. Please update the app.",
@@ -2770,7 +2771,7 @@
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
             "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
-            "ctaUnlockNow": "Unlock now",
+            "ctaUnlockNow": "Verify identity",
             "ctaWithdrawFunds": "Withdraw funds"
         },
         "regionRestricted": {
@@ -2796,7 +2797,7 @@
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
             "bridgeTosTitle": "One more step",
             "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
-            "acceptTerms": "Accept Terms",
+            "acceptTerms": "Accept terms",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2827,7 +2828,7 @@
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "bridgeTos": {
-            "baseTitle": "Accept Terms of Service",
+            "baseTitle": "Accept terms of service",
             "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
             "sepaTitle": "Accept updated bank transfer provider terms",
             "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
@@ -2836,7 +2837,7 @@
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
             "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
-            "acceptTerms": "Accept Terms",
+            "acceptTerms": "Accept terms",
             "notNow": "Not now"
         },
         "reverificationPending": {
@@ -3146,7 +3147,7 @@
             "howLong": {
                 "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
-                "hosted": "Verification process usually takes a few minutes if you have all the documents in hand."
+                "hosted": "Verification process usually takes a few minutes if you have all the documents in hand. If a reviewer has to look at it, 1 to 3 business days."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
             "startCta": "I have these, start",
@@ -3244,6 +3245,7 @@
             "manteca_action_correction_required": "Please correct the information for your bank account verification.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
+            "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
         }
     },
@@ -3564,7 +3566,6 @@
             "requestTitle": "Request money",
             "requestDescription": "No account needed, just send a DM.",
             "sendTitle": "Send with a link",
-            "sendDescription": "Anyone with the link can claim it",
             "perfectForChats": "Perfect for WhatsApp and Messenger"
         },
         "peanutActionDetailsCard": {
@@ -3748,8 +3749,9 @@
         "sessionExpired": "Your session has expired. Please log in again.",
         "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
         "genericSupport": "There was an issue with your request. Please contact support.",
-        "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "rainCooldownRetryLive": "A previous card withdrawal is still active. Try again in {time}.",
+        "rainCooldownRetryNow": "The card cool-down has ended. You can try again now.",
         "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
@@ -4065,12 +4067,18 @@
             "otherWaysBody": "These also add and withdraw money. They are not accounts in your name.",
             "badgeLimitReached": "Limit reached",
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",
+            "notOfferedHereBody": "It is not available where you live, or not yet. If you moved, update your residence. Support can check why.",
+            "residenceRestrictedBody": "{currency} accounts are not available for residents of your country.",
+            "notOpenBody": "{currency} accounts are not open for you yet.",
+            "residenceMissingBody": "{currency} accounts depend on where you live. Set a residence to check.",
+            "uncheckedTitle": "We could not check the {currency} account",
+            "uncheckedBody": "Try again in a moment.",
             "countriesTitle": "All countries",
             "countriesPitch": "Pick a country",
             "badgeReady": "Ready",
             "badgeActive": "Active",
-            "badgeNotSetUp": "Not set up",
-            "badgeVerify": "Requires verification",
+            "badgeSetUp": "Set up",
+            "badgeVerifyId": "Verify ID",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
             "accountCounter": "{used} of {cap} used",
@@ -4080,20 +4088,23 @@
             "errorTitle": "We could not load the accounts",
             "errorBody": "Your accounts are fine. Check the connection and try again.",
             "errorRetry": "Try again",
-            "badgeActionNeeded": "Action needed"
+            "badgeActionNeeded": "Action needed",
+            "badgeUnderReview": "Under review"
         },
         "claim": {
-            "heading": "Bank details in {currency}",
-            "subheading": "Real bank details your employer, client or platform already knows how to use.",
-            "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
+            "heading": "Get paid in {currency}",
+            "subheading": "Bank details in your name. Share them with employers, clients or platforms like Deel.",
+            "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
-            "benefitStable": "Hand these details over once — they stay the same for every payment after.",
-            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "benefitStable": "Share once, use for every payment",
+            "benefitBalance": "Arrives as USD in the Peanut balance",
             "conditionNoReference": "No reference or memo to remember.",
             "conditionReference": "Every transfer needs the reference shown with your details, or it cannot be matched to you.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account",
-            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country."
+            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
+            "whoCanPay": "Who can pay",
+            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4111,7 +4122,6 @@
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "referenceRequired": "Every transfer needs this reference.",
-            "whoCanPay": "Who can pay",
             "termsToggle": "Limits and fees",
             "residenceCta": "Update residence",
             "qrPayCta": "Pay a QR code"
@@ -4158,22 +4168,27 @@
         "corridors": {
             "SEPA_EU": {
                 "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
+                "arrivalShort": "Usually arrives the same business day (SEPA)",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
                 "arrivalDetail": "Faster Payments usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Faster Payments)",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
                 "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
+                "arrivalShort": "1 to 3 business days by ACH, same day by wire",
                 "railName": "ACH or wire"
             },
             "SPEI_MX": {
                 "arrivalDetail": "SPEI transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (SPEI)",
                 "railName": "SPEI"
             },
             "PIX_BR": {
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Residence required",
                 "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
@@ -4181,6 +4196,7 @@
             },
             "BANK_TRANSFER_AR": {
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes",
                 "railName": "Bank or Mercado Pago",
                 "residenceTitle": "Residence required",
                 "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
@@ -4188,7 +4204,8 @@
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes.",
+                "arrivalShort": "Usually arrives in minutes (Bre-B)"
             }
         },
         "gate": {
@@ -4214,6 +4231,7 @@
             "blockedBody": "We could not open this account, and nothing in the app can fix it. Contact support and we will look into it.",
             "finishReviewTitle": "One more check for the {currency} account",
             "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner. It opens on their page, and this screen updates when you come back.",
+            "providerReviewBody": "Your identity is verified. Our payment partner needs more information from you before it can open {currency} accounts.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
             "actFailed": "We could not open the check. Try again in a moment.",
@@ -4236,63 +4254,63 @@
                 "why": "Money paid in still lands in your Peanut balance. The name on the account is not your own, so a payroll form that checks the name needs the account holder shown above."
             },
             "anyoneAny": {
-                "line": "Anyone: any amount",
+                "line": "Anyone: Any amount",
                 "why": "Payments from anyone are accepted in this currency, whatever the amount. Contact support before sending more than US$100,000."
             },
             "ownOrBusinessAny": {
-                "line": "Own account or business: any amount",
+                "line": "Own account or a business: Any amount",
                 "why": "Transfers from your own bank account and payments from a business have no amount limit, so salary and invoices go through unchanged. Contact support before sending more than US$100,000."
             },
             "ownAccount": {
-                "line": "Own account: yes",
+                "line": "Own account: Yes",
                 "why": "Transfers from your own bank account are supported. Contact support before sending more than US$100,000."
             },
             "ownAccountMax": {
-                "line": "Own account: up to {max}",
+                "line": "Own account: Up to {max}",
                 "why": "Money you send yourself is a top-up, not a payment from someone else. Transfers from your own account are accepted up to {max} in this currency. If a larger transfer of your own comes back, contact support."
             },
             "ownAccountNo": {
-                "line": "Own account: not yet",
+                "line": "Own account: Not yet",
                 "why": "Transfers from your own bank account are not accepted in this currency yet. We will say so here the day that changes."
             },
             "businessAny": {
-                "line": "Business: any amount",
+                "line": "A business: Any amount",
                 "why": "A payment from a business has no limit. Salary and invoices go through unchanged."
             },
             "businessNotYet": {
-                "line": "Business: not yet",
+                "line": "A business: Not yet",
                 "why": "Payments from a business are not available in this currency yet. We will say so here the day that changes."
             },
             "businessUnconfirmed": {
-                "line": "Business: not confirmed",
+                "line": "A business: Not confirmed",
                 "why": "Payments from a business are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "individualAny": {
-                "line": "Anyone else: any amount",
+                "line": "Other people: Any amount",
                 "why": "Payments from other people are accepted in this currency, so you can hand these details to whoever is paying you."
             },
             "individualCap": {
-                "line": "Anyone else: under {cap} per transfer",
+                "line": "Other people: Under {cap} per transfer",
                 "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
             },
             "individualCapFamily": {
-                "line": "Family with the same surname: any amount",
+                "line": "Family with the same surname: Any amount",
                 "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
             },
             "individualVolume": {
-                "line": "Anyone else: up to {limit} in total",
+                "line": "Other people: Up to {limit} in total",
                 "why": "The total other people may pay into this account is capped at {limit}. The period this total covers is not published, so contact support before a large payment. A business can pay any amount."
             },
             "individualNotYet": {
-                "line": "Anyone else: not yet",
+                "line": "Other people: Not yet",
                 "why": "Payments from other people are not available on this account yet."
             },
             "individualUnconfirmed": {
-                "line": "Anyone else: not confirmed",
+                "line": "Other people: Not confirmed",
                 "why": "Payments from other people are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {
-                "line": "Minimum deposit: {min}",
+                "line": "Minimum: {min}",
                 "why": "Deposits must be at least {min}, including test payments."
             },
             "stateRestricted": {
@@ -4304,7 +4322,7 @@
                 "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
             },
             "businessAllowed": {
-                "line": "Business: supported",
+                "line": "A business: Yes",
                 "why": "Registered businesses can pay you. The limits shown here still apply."
             },
             "maximum": {

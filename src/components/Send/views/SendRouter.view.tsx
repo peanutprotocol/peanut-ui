@@ -88,8 +88,10 @@ export const SendRouterView = () => {
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
-                // navigate to external wallet send flow
-                router.push('/withdraw?method=crypto')
+                // Straight to the destination screen. The old /withdraw?method=crypto
+                // entry rendered the Withdraw method list for a few frames before it
+                // forwarded here (TASK-23054).
+                router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
                 // navigate to pix send flow
@@ -198,7 +200,6 @@ export const SendRouterView = () => {
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
                             <ChatAppsLine />
-                            <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
                         </div>
                     </div>
                     <Button

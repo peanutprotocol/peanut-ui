@@ -79,6 +79,18 @@ async function launch(): Promise<void> {
     await jest.advanceTimersByTimeAsync(5_000)
 }
 
+it('keeps a dev pre-release binary on its built-in JS', async () => {
+    process.env.NEXT_PUBLIC_NATIVE_PRERELEASE = 'true'
+    try {
+        await launch()
+    } finally {
+        delete process.env.NEXT_PUBLIC_NATIVE_PRERELEASE
+    }
+    expect(mockUpdater.notifyAppReady).toHaveBeenCalled()
+    expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    expect(mockUpdater.download).not.toHaveBeenCalled()
+})
+
 it('logs a transient failure at info, not error', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()

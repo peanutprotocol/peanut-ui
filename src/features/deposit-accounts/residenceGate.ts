@@ -50,3 +50,16 @@ export function residenceAllows(corridor: DepositCorridor, residenceIso2s: strin
     if (!country) return true
     return residenceIso2s.some((iso2) => iso2.toUpperCase() === country.toUpperCase())
 }
+
+/**
+ * Is a residence-gated corridor closed to this user?
+ *
+ * A rail that already moves money stays open whatever the residence says: the
+ * user opened it while they lived there, and the provider still takes their
+ * transfers. Only a corridor with no working rail behind it waits on a
+ * residence. The Accounts rows and the Manteca top-up both ask this, so the
+ * row and the flow behind it can never disagree (C4, TASK-23054).
+ */
+export function residenceCloses(corridor: DepositCorridor, residenceIso2s: string[], railWorks: boolean): boolean {
+    return !railWorks && !residenceAllows(corridor, residenceIso2s)
+}

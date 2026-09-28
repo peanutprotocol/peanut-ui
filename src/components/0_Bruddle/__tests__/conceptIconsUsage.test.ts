@@ -35,10 +35,6 @@ const EXEMPT = new Map<string, string>([
         'components/Global/BottomNav/index.tsx :: qr-code',
         'the nav QR button is the reference: action-primary, the same pink as the qrPay brand fill',
     ],
-    [
-        'components/Home/GettingStartedChecklist.tsx :: arrow-up',
-        'first payment opens /send; it shares the withdraw glyph (design decision pending)',
-    ],
     ['components/Migration/ScanToDownloadModal.tsx :: qr-code', 'a QR that downloads the app, not QR pay'],
     [
         'features/deposit-accounts/components/ClaimAccountScreen.tsx :: link',

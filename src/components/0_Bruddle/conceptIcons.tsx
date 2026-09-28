@@ -29,8 +29,6 @@ export const CONCEPT_ICONS = {
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'brand' },
-    // sending to a Pix key (Accounts and payments, Spend section)
-    pixKey: { icon: 'arrow-up-right', color: 'blue' },
     addMoney: { icon: 'arrow-down', color: 'blue' },
     // mirrors addMoney: money in is arrow-down, money out is arrow-up
     withdraw: { icon: 'arrow-up', color: 'blue' },

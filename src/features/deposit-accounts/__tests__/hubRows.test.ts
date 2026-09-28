@@ -1,6 +1,6 @@
 import type { GateState } from '@/utils/capability-gate'
 import { buildBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
-import { closedBankRow, corridorMatchesSearch, otherWaysRows, virtualAccountRows } from '../hubRows'
+import { closedBankRow, closedOpenRow, corridorMatchesSearch, otherWaysRows, virtualAccountRows } from '../hubRows'
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 
@@ -39,6 +39,13 @@ const notOffered = (corridor: DepositCorridor): UnavailableCorridor => ({
     reason: 'not-offered',
 })
 
+/** a withheld corridor with the cause the backend names (TASK-23054) */
+const withheldFor = (
+    corridor: DepositCorridor,
+    cause: UnavailableCorridor['cause'],
+    reason: UnavailableCorridor['reason'] = 'not-offered'
+): UnavailableCorridor => ({ ...notOffered(corridor), reason, cause })
+
 /**
  * QA 2026-09-24 (QA-03/04/15): "Accounts" lists only accounts the user
  * holds. The rest sit under "Open new account".
@@ -61,10 +68,22 @@ describe('virtualAccountRows', () => {
         expect(open).toEqual([])
     })
 
-    it('offers no account for a corridor the user has no rail for', () => {
-        const { open } = virtualAccountRows(input({ corridors: ['SEPA_EU'] }), true)
+    // Hugo, 2026-09-25: "the other virtual account options should still show"
+    it('lists every account the user does not hold; one the backend gave no verdict on is unchecked', () => {
+        const gates = corridorRecord<GateState>((corridor) =>
+            corridor === 'BANK_TRANSFER_CO' ? { kind: 'needs-enrollment' } : READY
+        )
+        // only SEPA_EU has a verdict; ACH_US is a ready rail with none, and
+        // BANK_TRANSFER_CO a review corridor with no rail and none (chip, ui#3479)
+        const { open } = virtualAccountRows(input({ corridors: ['SEPA_EU'], gates }), true)
 
-        expect(open.map((row) => row.corridor)).toEqual(['SEPA_EU'])
+        expect(open.map((row) => [row.corridor, row.openable, row.unchecked])).toEqual([
+            ['SEPA_EU', true, false],
+            ['FASTER_PAYMENTS_GB', false, true],
+            ['ACH_US', false, true],
+            ['SPEI_MX', false, true],
+            ['BANK_TRANSFER_CO', false, true],
+        ])
     })
 
     // "always have grey items at bottom" (Hugo)
@@ -120,6 +139,98 @@ describe('virtualAccountRows', () => {
     })
 })
 
+describe('closedOpenRow', () => {
+    const rowOf = (corridors: DepositCorridor[], gate: GateState) =>
+        virtualAccountRows(input({ corridors, gates: corridorRecord<GateState>(() => gate) }), true).open.find(
+            (row) => row.corridor === 'FASTER_PAYMENTS_GB'
+        )!
+
+    it('names the limit first: at the limit nothing opens', () => {
+        expect(closedOpenRow(rowOf([], READY), { reachedLimit: 2, hasResidence: true })).toEqual({
+            kind: 'account-limit',
+            limit: 2,
+        })
+    })
+
+    // chip, ui#3479: a missing verdict is unknown, never openable and never a residence refusal
+    it.each([
+        ['a ready rail with no verdict', READY],
+        ['a review corridor with no rail and no verdict', { kind: 'needs-enrollment' } as GateState],
+    ])('reads %s as unchecked', (_case, gate) => {
+        const row = rowOf([], gate)
+        expect(row.openable).toBe(false)
+        expect(closedOpenRow(row, { hasResidence: true })).toEqual({
+            kind: 'unchecked',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
+    })
+
+    // the API's `not-offered` is "their region, or not open yet"; the residence is what the user can change
+    it("reads the backend's not-offered as where the user lives, or asks where that is", () => {
+        const unavailable = notOffered('FASTER_PAYMENTS_GB')
+        const { open } = virtualAccountRows(input({ unavailable: { FASTER_PAYMENTS_GB: unavailable } }), true)
+        const row = open.find((r) => r.corridor === 'FASTER_PAYMENTS_GB')!
+        expect(closedOpenRow(row, { unavailable, hasResidence: true })).toEqual({
+            kind: 'not-offered-here',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
+        expect(closedOpenRow(row, { unavailable, hasResidence: false })).toEqual({
+            kind: 'residence-missing',
+            corridor: 'FASTER_PAYMENTS_GB',
+        })
+    })
+})
+
+// C11 / C12: `not-offered` covered four facts, and every one of them read as
+// "not available where you live, or not yet", or asked for a residence.
+describe('a withheld corridor with its cause', () => {
+    const rowFor = (unavailable: UnavailableCorridor) =>
+        virtualAccountRows(input({ unavailable: { SEPA_EU: unavailable } }), true).open.find(
+            (row) => row.corridor === 'SEPA_EU'
+        )!
+
+    it.each(['review-action', 'review-pending'] as const)(
+        'opens the claim step, whose gate drawer names the review, for %s',
+        (cause) => {
+            expect(rowFor(withheldFor('SEPA_EU', cause)).openable).toBe(true)
+        }
+    )
+
+    it('keeps a closed review openable: its reason is support, which the claim step words', () => {
+        expect(rowFor(withheldFor('SEPA_EU', 'review-closed', 'support-required')).openable).toBe(true)
+    })
+
+    it('names a restricted residence, never "or not yet", with or without a residence on file', () => {
+        const unavailable = withheldFor('SEPA_EU', 'residence-restricted')
+        const row = rowFor(unavailable)
+        expect(row.openable).toBe(false)
+        for (const hasResidence of [true, false]) {
+            expect(closedOpenRow(row, { unavailable, hasResidence })).toEqual({
+                kind: 'residence-restricted',
+                corridor: 'SEPA_EU',
+            })
+        }
+    })
+
+    it('says a corridor is not open yet, and never asks for a residence that cannot change it', () => {
+        const unavailable = withheldFor('SEPA_EU', 'not-open')
+        const row = rowFor(unavailable)
+        expect(row.openable).toBe(false)
+        expect(closedOpenRow(row, { unavailable, hasResidence: false })).toEqual({
+            kind: 'not-open',
+            corridor: 'SEPA_EU',
+        })
+    })
+
+    it('still puts the limit first', () => {
+        const unavailable = withheldFor('SEPA_EU', 'residence-restricted')
+        expect(closedOpenRow(rowFor(unavailable), { unavailable, reachedLimit: 2, hasResidence: true })).toEqual({
+            kind: 'account-limit',
+            limit: 2,
+        })
+    })
+})
+
 describe('otherWaysRows', () => {
     const rows = buildBankRows({
         bankChips: { brl: 'active', ars: 'unlock', usd: 'active', mxn: 'unlock', sepa: 'active' },
@@ -136,6 +247,43 @@ describe('otherWaysRows', () => {
             ['mxn', 'unlock'],
             ['ars', 'notAvailable'],
         ])
+    })
+
+    // C16: "EUR — Verify ID" under the accounts and "EUR — Processing" under
+    // the other ways, on one screen.
+    it('lists a currency once: a bank row it cannot use yet goes where the account row answers for it', () => {
+        const pending = buildBankRows({
+            bankChips: { brl: 'active', ars: 'unlock', usd: 'processing', mxn: 'attention', sepa: 'processing' },
+            restrictions: { banking: false, card: false },
+            residenceIso2: 'PT',
+            isEuropeResidence: true,
+        })
+        const answered = new Set<DepositCorridor>(['SEPA_EU', 'ACH_US', 'SPEI_MX'])
+
+        const currencies = otherWaysRows(pending, new Set(), answered).map((row) => row.currency)
+
+        for (const currency of ['EUR', 'USD', 'MXN']) expect(currencies).not.toContain(currency)
+        // one-off Manteca transfers are not accounts, so they stay
+        expect(currencies).toEqual(expect.arrayContaining(['BRL', 'ARS']))
+    })
+
+    it('keeps a usable bank row beside an account row: a transfer to oneself needs no account slot', () => {
+        const answered = new Set<DepositCorridor>(['SEPA_EU', 'ACH_US', 'SPEI_MX'])
+
+        const kept = otherWaysRows(rows, new Set(), answered).map((row) => [row.labelKey, row.chip])
+
+        expect(kept).toEqual(
+            expect.arrayContaining([
+                ['sepa', 'active'],
+                ['usd', 'active'],
+            ])
+        )
+        // the MXN rail is not usable yet, and the account row says where it stands
+        expect(kept.map(([key]) => key)).not.toContain('mxn')
+    })
+
+    it('keeps the bank row of a corridor the backend gave no answer on: it may be the only fix', () => {
+        expect(otherWaysRows(rows, new Set()).map((row) => row.labelKey)).toContain('mxn')
     })
 })
 
