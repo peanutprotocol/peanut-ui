@@ -7,6 +7,7 @@ import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
     getPushProvisioningAvailability,
+    rememberCardForWallet,
     syncWalletAuthorizationToken,
 } from '@/utils/push-provisioning'
 
@@ -22,6 +23,7 @@ jest.mock('@/utils/push-provisioning', () => {
     return {
         ...actual,
         getPushProvisioningAvailability: jest.fn(),
+        rememberCardForWallet: jest.fn(),
         addCardToWallet: jest.fn(),
         syncWalletAuthorizationToken: jest.fn(),
     }
@@ -41,6 +43,7 @@ const mockedAddCard = addCardToWallet as jest.MockedFunction<typeof addCardToWal
 const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.MockedFunction<
     typeof syncWalletAuthorizationToken
 >
+const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
@@ -120,7 +123,8 @@ describe('usePushProvisioning', () => {
         })
 
         expect(mockedGetProvisioningData).toHaveBeenCalledWith('card-1', 'apple')
-        expect(mockedSyncWalletAuthorizationToken).toHaveBeenCalledWith('wallet-grant', 2_592_000)
+        expect(mockedSyncWalletAuthorizationToken).toHaveBeenCalledWith('card-1', 'wallet-grant', 2_592_000)
+        expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-1', last4: '0420' })
         expect(mockedAddCard).toHaveBeenCalledWith({
             peanutCardId: 'card-1',
             cardId: 'mea-card-1',
@@ -214,6 +218,31 @@ describe('usePushProvisioning', () => {
             wallet: 'apple',
             error: 'slow down',
         })
+    })
+
+    it('does not save a stale authorization when the selected card changes during the fetch', async () => {
+        let finishFetch!: (data: RainProvisioningDataResponse) => void
+        mockedGetProvisioningData.mockReturnValue(new Promise((resolve) => (finishFetch = resolve)))
+        const { result, rerender } = renderHook(({ selectedCard }) => usePushProvisioning(selectedCard), {
+            initialProps: { selectedCard: card },
+        })
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let pending!: Promise<Awaited<ReturnType<typeof result.current.addToWallet>>>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        rerender({ selectedCard: { id: 'card-2', last4: '2222' } })
+
+        let outcome!: Awaited<typeof pending>
+        await act(async () => {
+            finishFetch(provisioningData)
+            outcome = await pending
+        })
+        expect(outcome).toEqual({ added: false, canceled: true })
+        expect(mockedRememberCard).not.toHaveBeenCalled()
+        expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+        expect(mockedAddCard).not.toHaveBeenCalled()
     })
 
     // Google requires its own supplied Add to Google Wallet asset on any control

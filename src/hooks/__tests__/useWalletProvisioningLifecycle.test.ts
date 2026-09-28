@@ -145,7 +145,7 @@ describe('useWalletProvisioningLifecycle', () => {
         renderHook(() => useWalletProvisioningLifecycle())
 
         await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-a', last4: '1111' }))
-        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('grant-a', 2_592_000))
+        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('card-a', 'grant-a', 2_592_000))
         expect(mockedGetAuthorization).toHaveBeenCalledWith('card-a', 'apple', { stepUpToken: expect.any(String) })
     })
 
@@ -178,11 +178,29 @@ describe('useWalletProvisioningLifecycle', () => {
         await waitFor(() => expect(mockedGetAuthorization).toHaveBeenCalledWith('card-b', 'apple', expect.anything()))
 
         resolveB({ walletAuthorizationToken: 'grant-b', walletAuthorizationExpiresIn: 2_592_000 })
-        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('grant-b', 2_592_000))
+        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('card-b', 'grant-b', 2_592_000))
         resolveA({ walletAuthorizationToken: 'grant-a', walletAuthorizationExpiresIn: 2_592_000 })
         await Promise.resolve()
 
         expect(mockedSyncAuthorization).toHaveBeenCalledTimes(1)
-        expect(mockedSyncAuthorization).toHaveBeenLastCalledWith('grant-b', 2_592_000)
+        expect(mockedSyncAuthorization).toHaveBeenLastCalledWith('card-b', 'grant-b', 2_592_000)
+    })
+
+    it('clears the previous card grant before advertising a replacement without cached proof', async () => {
+        mockedFlag.mockReturnValue(true)
+        mockedCachedStepUpToken.mockReturnValue(null)
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+        const { rerender } = renderHook(() => useWalletProvisioningLifecycle())
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-a', last4: '1111' }))
+
+        mockedOverview.mockReturnValue(overviewWithCard('card-b'))
+        rerender()
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-b', last4: '2222' }))
+
+        expect(mockedClearAuthorization).toHaveBeenCalledTimes(1)
+        expect(mockedClearAuthorization.mock.invocationCallOrder[0]).toBeLessThan(
+            mockedRememberCard.mock.invocationCallOrder[1]
+        )
+        expect(mockedGetAuthorization).not.toHaveBeenCalled()
     })
 })

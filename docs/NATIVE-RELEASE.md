@@ -735,6 +735,36 @@ an inactive candidate and verifies the exact source, both compatibility-derived 
 floors, the stricter shared server floor and artifact before promotion. An existing `.0`
 record with incomplete metadata fails closed.
 
+### Native-first migration while the iOS 1.5 and Android 1.6 bridges are active
+
+When a main commit changes both native surfaces, the automatic main-push OTA
+correctly stops before upload: no shipped binary carries the new contract. The
+ordinary native workflow also refuses to replace the legacy bridge bundles.
+Use the two explicit manual stages instead:
+
+1. Confirm each legacy production channel has its last compatible bridge
+   bundle, then dispatch `release-native.yml` on the current `main` tip with
+   `nativeFirst=true` and `track=internal`. This requires both bridges to stay
+   active, uploads the 1.7.0 binaries to TestFlight and Play internal, leaves
+   both Capgo channels unchanged, and tags the exact commit only after both
+   builds succeed. Promote the binaries in the store consoles after device
+   validation. New binaries run their builtin JS while the old lanes are pinned.
+2. Once the new native release is available to users, dispatch
+   `release-ota.yml` on the current `main` tip with
+   `nativeMigrationCutover=true`. It requires the new native tag and both
+   platform floors to equal that release. It uploads separate signed bundles
+   with `min_update_version=1.7.0`, verifies each artifact, then changes each
+   production channel's bundle and native-version policy in one request.
+   Devices on 1.5/1.6 keep their last compatible installed bundle and need a
+   store update for later OTA releases. Never promote the 1.7 OTA to those
+   devices, or retire the bridge before a verified 1.7 binary is available.
+
+If either platform cutover fails, the other remains on its verified new bundle.
+Inspect both channels and the exact candidate artifacts, then rerun the manual
+cutover; it resumes the still-active bridge and publishes a fresh version to
+the already-cut-over platform. Do not treat a partial cutover as a successful
+release.
+
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated
   channel-policy interface used by Capgo CLI, since the public channel response omits

@@ -429,6 +429,40 @@ it('promotes a verified bridge and disables native-version downgrade protection 
     })
     expect(invoke('verify-promotion', policyResponses([promoted, channels[1]])).status).toBe(1)
 })
+it('atomically cuts a verified iOS bridge over to a bundle with the new native floor', () => {
+    const version = '1.7.1-ios'
+    const old = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    const next = channelPolicy('ios', version)
+    const bundle = {
+        ...goodBundle,
+        name: version,
+        comment: 'commit [ota-floors: android=1.7.0 ios=1.7.0]',
+        min_update_version: '1.7.0',
+    }
+    const result = invoke(
+        'promote-migration-cutover',
+        [
+            ...policyResponses([old, channels[1]]),
+            { body: [bundle] },
+            { body: { status: 'success' } },
+            ...policyResponses([next, channels[1]]),
+        ],
+        { VERSION: version, FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.7.0', NATIVE_FLOOR: '1.7.0' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'ios-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: true,
+        rolloutEnabled: false,
+    })
+    expect(
+        invoke('promote-migration-cutover', policyResponses([old, channels[1]]), {
+            VERSION: version,
+            NATIVE_FLOOR: '1.5.0',
+        }).status
+    ).toBe(1)
+})
 it('keeps bridge bundle numbers separate from the next public OTA number', () => {
     const bridgeChannels = [
         { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false },

@@ -18,8 +18,8 @@ enum WalletExtensionAuth {
         Bundle.main.object(forInfoDictionaryKey: accessGroupInfoKey) as? String
     }
 
-    static func saveAuthorizationToken(_ token: String, expiresIn: Int) {
-        let payload = CredentialPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
+    static func saveAuthorizationToken(_ token: String, forCardId cardId: String, expiresIn: Int) {
+        let payload = CredentialPayload(token: token, cardId: cardId, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
         guard let data = try? JSONEncoder().encode(payload),
               let encoded = String(data: data, encoding: .utf8) else { return }
         save(encoded, account: authorizationAccount)
@@ -40,7 +40,7 @@ enum WalletExtensionAuth {
         _ = SecItemAdd(query as CFDictionary, nil)
     }
 
-    static func authorizationToken() -> String? {
+    static func authorizationToken(forCardId cardId: String) -> String? {
         guard let encoded = read(account: authorizationAccount),
               let data = encoded.data(using: .utf8),
               let payload = try? JSONDecoder().decode(CredentialPayload.self, from: data),
@@ -48,6 +48,7 @@ enum WalletExtensionAuth {
             deleteAuthorizationToken()
             return nil
         }
+        guard payload.cardId == cardId else { return nil }
         return payload.token
     }
 
@@ -88,6 +89,7 @@ enum WalletExtensionAuth {
 
     private struct CredentialPayload: Codable {
         let token: String
+        let cardId: String
         let expiresAt: TimeInterval
     }
 }

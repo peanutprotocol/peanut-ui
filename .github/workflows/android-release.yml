@@ -43,6 +43,11 @@ on:
                 required: false
                 default: false
                 type: boolean
+            nativeFirst:
+                description: 'Native-first production migration: retain the legacy OTA channel'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -237,10 +242,17 @@ jobs:
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
                   PRERELEASE: ${{ inputs.prerelease == true }}
+                  NATIVE_FIRST: ${{ inputs.nativeFirst == true }}
               run: |
                   if [ "$PRERELEASE" = true ]; then
                       echo "needs_ota=false" >> "$GITHUB_OUTPUT"
                       echo "Dev pre-release: the production OTA channel is not read or written"
+                      exit 0
+                  fi
+                  if [ "$NATIVE_FIRST" = true ]; then
+                      test "$(node scripts/capgo-release-guard.mjs android-bridge-status)" = active
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Native-first migration: keep the verified Android legacy bridge pinned"
                       exit 0
                   fi
                   BRIDGE="$(node scripts/capgo-release-guard.mjs android-bridge-status)"

@@ -43,6 +43,9 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("peanutCardId is required", "BAD_PARAMS")
             return
         }
+        if WalletExtensionCardStore.load()?.cardId != cardId {
+            WalletExtensionAuth.deleteAuthorizationToken()
+        }
         WalletExtensionCardStore.save(.init(
             cardId: cardId,
             last4: call.getString("last4") ?? "",
@@ -60,13 +63,19 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setWalletAuthorizationToken(_ call: CAPPluginCall) {
         guard let token = call.getString("token"),
+              let cardId = call.getString("cardId"),
+              !cardId.isEmpty,
               let expiresIn = call.getInt("expiresIn"),
               !token.isEmpty,
               expiresIn > 0 else {
-            call.reject("token and expiresIn are required", "BAD_PARAMS")
+            call.reject("cardId, token and expiresIn are required", "BAD_PARAMS")
             return
         }
-        WalletExtensionAuth.saveAuthorizationToken(token, expiresIn: expiresIn)
+        guard WalletExtensionCardStore.load()?.cardId == cardId else {
+            call.reject("Wallet card changed before authorization was saved", "CARD_CHANGED")
+            return
+        }
+        WalletExtensionAuth.saveAuthorizationToken(token, forCardId: cardId, expiresIn: expiresIn)
         call.resolve()
     }
 

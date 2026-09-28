@@ -9,6 +9,7 @@ import {
     addCardToWallet,
     getPushProvisioningAvailability,
     PUSH_PROVISIONING_FLAG,
+    rememberCardForWallet,
     syncWalletAuthorizationToken,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
@@ -31,7 +32,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [isAdding, setIsAdding] = useState(false)
     const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
     const availabilityScopeRef = useRef(availabilityScope)
-    availabilityScopeRef.current = availabilityScope
+
+    useEffect(() => {
+        availabilityScopeRef.current = availabilityScope
+    }, [availabilityScope])
 
     useEffect(() => {
         let cancelled = false
@@ -61,8 +65,17 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
+            if (availabilityScopeRef.current !== scopeAtStart) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })
+                return { added: false, canceled: true }
+            }
             if (data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
-                await syncWalletAuthorizationToken(data.walletAuthorizationToken, data.walletAuthorizationExpiresIn)
+                await rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 })
+                await syncWalletAuthorizationToken(
+                    card.id,
+                    data.walletAuthorizationToken,
+                    data.walletAuthorizationExpiresIn
+                )
             }
             const result = await addCardToWallet({
                 peanutCardId: card.id,

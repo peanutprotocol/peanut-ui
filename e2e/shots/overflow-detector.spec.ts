@@ -52,6 +52,22 @@ test('flags a descendant box crossing the clip edge', async ({ page }) => {
     expect(found[0].kind).toBe('clip-x')
 })
 
+test('ignores offscreen Embla slides but catches clipped copy on the visible slide', async ({ page }) => {
+    const found = await detect(
+        page,
+        `<div style="width:100px;overflow:hidden">
+            <div style="display:flex;width:100px">
+                <div class="embla__slide" style="flex:0 0 100px;min-width:0">
+                    <span style="display:block;width:100px;white-space:nowrap">Visible translation that does not fit</span>
+                </div>
+                <div class="embla__slide" style="flex:0 0 100px;min-width:0">Next slide is intentionally offscreen</div>
+            </div>
+        </div>`
+    )
+    expect(found.some((item) => item.text.includes('Visible translation'))).toBe(true)
+    expect(found.some((item) => item.text.includes('Next slide'))).toBe(false)
+})
+
 test('flags a placeholder wider than its input', async ({ page }) => {
     const found = await detect(page, `<input style="width:80px" placeholder="Nombre de usuario demasiado largo">`)
     expect(found).toHaveLength(1)

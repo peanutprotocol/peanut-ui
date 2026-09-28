@@ -78,6 +78,7 @@ function runFloors(bridgeActive, androidBridgeActive = false) {
             ...process.env,
             BRIDGE_ACTIVE: bridgeActive ? 'active' : 'inactive',
             ANDROID_BRIDGE_ACTIVE: androidBridgeActive ? 'active' : 'inactive',
+            MIGRATION_CUTOVER: 'false',
             GITHUB_OUTPUT: output,
         },
     })
@@ -86,7 +87,13 @@ function runFloors(bridgeActive, androidBridgeActive = false) {
     return { status: result.status, floors }
 }
 
-function runPromotion({ firstMainSha, staleAfterFirst = false, bootstrap = false }) {
+function runPromotion({
+    firstMainSha,
+    staleAfterFirst = false,
+    bootstrap = false,
+    migration = false,
+    iosAlreadyCutOver = false,
+}) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-guard-'))
     const gitCalls = path.join(dir, 'git-calls')
     const nodeCalls = path.join(dir, 'node-calls')
@@ -122,6 +129,9 @@ function runPromotion({ firstMainSha, staleAfterFirst = false, bootstrap = false
             RELEASE_VERSION_ANDROID: '1.6.4-android',
             BRIDGE_ACTIVE: bootstrap ? 'active' : 'inactive',
             ANDROID_BRIDGE_ACTIVE: bootstrap ? 'active' : 'inactive',
+            MIGRATION_CUTOVER: migration ? 'true' : 'false',
+            IOS_BRIDGE_BEFORE: iosAlreadyCutOver ? 'inactive' : 'active',
+            ANDROID_BRIDGE_BEFORE: 'active',
             IOS_BRIDGE_PREVIOUS: bootstrap ? 'inactive' : 'active',
             ANDROID_BRIDGE_PREVIOUS: bootstrap ? 'inactive' : 'active',
             FLOOR_ANDROID: '1.6.0',
@@ -188,8 +198,8 @@ describe('release-ota.yml publishes main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toContain('next-ios-bridge')
         expect(workflow).toContain('next-android-bridge')
-        expect(workflow).toContain("echo 'bridge_active=active'")
-        expect(workflow).toContain("echo 'android_bridge_active=active'")
+        expect(workflow).toContain('migration_cutover=$MIGRATION_CUTOVER')
+        expect(workflow).toContain('promote-migration-cutover')
         const result = runPromotion({ firstMainSha: 'a'.repeat(40), bootstrap: true })
         expect(result.status).toBe(0)
         expect(result.calls.filter((call) => call.includes('promote-ios-bridge'))).toHaveLength(1)
@@ -228,9 +238,20 @@ describe('release-ota.yml publishes main source', () => {
         expect(result.calls.filter((call) => call.includes('promote-production'))).toHaveLength(1)
         expect(result.calls.filter((call) => call.includes('verify-production'))).toHaveLength(1)
     })
+
+    it('cuts over each legacy platform and resumes a partially completed cutover', () => {
+        const first = runPromotion({ firstMainSha: 'a'.repeat(40), migration: true })
+        expect(first.status).toBe(0)
+        expect(first.calls.filter((call) => call.includes('promote-migration-cutover'))).toHaveLength(2)
+
+        const resume = runPromotion({ firstMainSha: 'a'.repeat(40), migration: true, iosAlreadyCutOver: true })
+        expect(resume.status).toBe(0)
+        expect(resume.calls.filter((call) => call.includes('promote-migration-cutover'))).toHaveLength(1)
+        expect(resume.calls.filter((call) => call.includes('promote-production'))).toHaveLength(1)
+    })
 })
 
-function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'internal' } = {}) {
+function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'internal', nativeFirst = false } = {}) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
     const output = path.join(dir, 'output')
     const script = `
@@ -251,6 +272,7 @@ function runNative(guard, branch, event, { devTip = 'a'.repeat(40), track = 'int
             OTA_SOURCE_SHA: 'a'.repeat(40),
             DEV_TIP: devTip,
             TRACK: track,
+            NATIVE_FIRST: String(nativeFirst),
         },
         encoding: 'utf8',
     })
@@ -266,14 +288,14 @@ describe('native release source branch', () => {
         for (const event of ['workflow_run', 'workflow_dispatch']) {
             const result = runNative(guard, 'main', event)
             expect(result.status).toBe(0)
-            expect(result.outputs).toBe('prerelease=false\n')
+            expect(result.outputs).toBe('prerelease=false\nnative_first=false\n')
         }
     })
 
     it('pre-releases a dev dispatch only at the current dev tip', () => {
         const result = runNative(guard, 'dev', 'workflow_dispatch')
         expect(result.status).toBe(0)
-        expect(result.outputs).toBe('prerelease=true\n')
+        expect(result.outputs).toBe('prerelease=true\nnative_first=false\n')
 
         const stale = runNative(guard, 'dev', 'workflow_dispatch', { devTip: 'b'.repeat(40) })
         expect(stale.status).toBe(1)
@@ -284,6 +306,18 @@ describe('native release source branch', () => {
         const result = runNative(guard, 'dev', 'workflow_dispatch', { track: 'production' })
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('Play internal')
+    })
+
+    it('accepts native-first only as a manual release from the current main tip', () => {
+        const main = runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true })
+        expect(main.status).toBe(0)
+        expect(main.outputs).toBe('prerelease=false\nnative_first=true\n')
+        expect(runNative(guard, 'dev', 'workflow_dispatch', { nativeFirst: true }).status).toBe(1)
+        expect(runNative(guard, 'main', 'workflow_run', { nativeFirst: true }).status).toBe(1)
+        expect(runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true, track: 'production' }).status).toBe(1)
+        expect(
+            runNative(guard, 'main', 'workflow_dispatch', { nativeFirst: true, devTip: 'b'.repeat(40) }).status
+        ).toBe(1)
     })
 
     it.each([

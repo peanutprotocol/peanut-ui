@@ -136,6 +136,16 @@ export function findOverflows(exempt: string[]): Overflow[] {
             (d) => hasOwnText(d) && visible(d) && !truncates(d) && !isExempt(d)
         )
         for (const d of holders) {
+            // Embla keeps neighboring slides mounted beyond its clipped
+            // viewport. Their copy is reachable by swiping, so it is not a
+            // localization overflow. Still inspect the slide occupying the
+            // viewport, where a genuinely too-long translation can be lost.
+            const slide = d.closest('.embla__slide')
+            if (slide && el.contains(slide)) {
+                const slideBox = slide.getBoundingClientRect()
+                const center = slideBox.left + slideBox.width / 2
+                if (center < box.left || center > box.right) continue
+            }
             const r = d.getBoundingClientRect()
             // text extent, not box extent: a nowrap child at 100% width ends
             // its BOX exactly at the clip edge while its TEXT keeps going —
