@@ -34,6 +34,8 @@ type SendMoneyParams = {
      *  treats that as an idempotent re-entry of the trusted-completion path,
      *  and every other strategy relies on it to complete the charge. */
     chargeId?: string
+    /** The provider intent this send funds (see SpendBundleInput.fundsIntentId). */
+    fundsIntentId?: string
     /** Optional UI hook — fires once routing is picked, before any signing prompt. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Optional UI hook — fires when we're about to prompt for the one-time
@@ -75,6 +77,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             amountInUsd,
             kind = 'P2P_SEND',
             chargeId,
+            fundsIntentId,
             onStrategyDecided,
             onGrantRequired,
         }: SendMoneyParams) => {
@@ -85,6 +88,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 rainSpendingPower: rainCentsToUsdcUnits(overview?.balance?.spendingPower),
                 kind,
                 chargeId,
+                fundsIntentId,
                 onStrategyDecided,
                 onGrantRequired,
             })

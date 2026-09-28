@@ -155,6 +155,9 @@ export function SavedAccountsMapping({
     return (
         // board 17832:80463: saved accounts render as separated single rows
         <div className="flex flex-col gap-2">
+            {/* TODO(TASK-23054): badge a saved account that is one of the user's own virtual
+                accounts ("Virtual account"), to flag a round trip. Needs an exact match of
+                accounts.bank_identity to user_deposit_accounts instructions on the API side. */}
             {rows.map(({ account, destination, countryCodeForFlag, countryName, path }) => (
                 <ListItem
                     key={account.id}

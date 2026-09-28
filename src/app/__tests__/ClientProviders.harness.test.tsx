@@ -46,6 +46,7 @@ jest.mock('@/components/Global/TranslationSafeWrapper', () => passthrough('Trans
 jest.mock('@/i18n/app/AppIntlProvider', () => passthrough('AppIntlProvider'))
 jest.mock('@/i18n/app/MarketingIntlProvider', () => passthrough('MarketingIntlProvider'))
 jest.mock('../AppGlobals', () => passthrough('AppGlobals'))
+jest.mock('@/components/Global/AppHelpProvider', () => passthrough('AppHelpProvider'))
 jest.mock('@/components/Global/ConsoleGreeting', () => ({ ConsoleGreeting: () => null }))
 jest.mock('@/components/Global/ScreenOrientationLocker', () => ({ ScreenOrientationLocker: () => null }))
 jest.mock('@/components/Analytics/PathnamePageviewTracker', () => ({ PathnamePageviewTracker: () => null }))

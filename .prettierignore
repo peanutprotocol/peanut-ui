@@ -26,3 +26,6 @@ public/onboarding-quiz/
 
 # Byte-identical copy of mono/scripts/backdoor-scan.mjs; formatted there.
 scripts/backdoor-scan.mjs
+
+# Google Fonts responses stored as served; next/font reads them as its own fetch.
+scripts/next-font-google/css/

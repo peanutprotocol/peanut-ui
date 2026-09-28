@@ -46,7 +46,7 @@ import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.uti
  * same button in silence — that silence is what sent users through the check
  * again and again (TASK-22818).
  */
-const IDENTITY_ROUTE = '/profile/accounts-and-payments'
+const IDENTITY_ROUTE = '/profile/accounts'
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')
@@ -84,7 +84,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         <IconBubble
                             icon={nativeStepPending ? 'user-id' : 'check-circle'}
                             size="l"
-                            color={nativeStepPending ? 'blue' : 'green'}
+                            color={nativeStepPending ? 'yellow' : 'green'}
                         />
                         <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
                         <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>

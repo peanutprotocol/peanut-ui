@@ -14,6 +14,7 @@
 
 import {
     initiateSumsubKyc,
+    initiateSelfHealResubmission,
     startKycAction,
     isTerminalActionCode,
     restartIdentityVerification,
@@ -72,6 +73,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(result.error).toMatch(/try again shortly/i)
         // a transient failure must NOT be classified terminal
         expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('never shows a 4xx developer string; userMessage still wins', async () => {
+        respondWith(404, { error: 'No provider rejection found' })
+        const result = await initiateSelfHealResubmission('BRIDGE')
+        expect(result.error).not.toMatch(/no provider rejection found/i)
+        expect(result.code).toBe('resubmit_failed')
+
+        respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
+        expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
@@ -217,7 +228,8 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         const result = await startResidenceChangeVerification('PT')
 
-        expect(result.error).toMatch(/save a new residence/i)
+        // a 4xx `error` is not user copy: the localized fallback shows instead
+        expect(result.code).toBe('residence_change_failed')
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
     })
@@ -277,4 +289,25 @@ describe('startKycAction — durable session contract', () => {
         respondWith(200, { levelName: 'manteca-kyc' })
         expect((await startKycAction('manteca-kyc-action:BR')).code).toBe('invalid_response')
     })
+})
+
+// api#1738: resubmit refuses a residence the bank rails are closed to with a
+// 403 carrying `code` + `userMessage`. It is permanent, and never read as prose.
+describe('residence refusals (code field)', () => {
+    it.each(['residence_bank_restricted', 'uk_resident_blocked'])(
+        '%s on resubmit is terminal and keeps the user message',
+        async (code) => {
+            respondWith(403, {
+                error: 'Bank transfers are not available for your current or pending residence.',
+                code,
+                userMessage: 'Bank transfers are not available for your current or pending residence.',
+            })
+
+            const result = await initiateSelfHealResubmission('BRIDGE')
+
+            expect(result.code).toBe(code)
+            expect(isTerminalActionCode(result.code)).toBe(true)
+            expect(result.error).toMatch(/not available for your current or pending residence/)
+        }
+    )
 })

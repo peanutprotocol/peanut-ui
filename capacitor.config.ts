@@ -28,6 +28,14 @@ const config: CapacitorConfig = {
         webContentsDebuggingEnabled: process.env.WEBVIEW_DEBUG === 'true' || process.env.NODE_ENV !== 'production',
     },
     plugins: {
+        // The app paints a light status-bar safe zone even when the device uses
+        // dark mode. Configure the native plugin before the web bundle starts so
+        // icons are dark during launch and on routes that have not mounted yet.
+        StatusBar: {
+            style: 'LIGHT', // Capacitor LIGHT = dark foreground icons
+            backgroundColor: '#FAF4F0',
+            overlaysWebView: false,
+        },
         CapacitorUpdater: {
             // autoUpdate:false → the plugin no longer polls getLatest on every
             // foreground, which was hammering Capgo's cloud rate limit (429s in

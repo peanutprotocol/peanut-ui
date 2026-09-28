@@ -148,7 +148,9 @@ describe('tapping a corridor the gate has not cleared', () => {
     it('offers no button where the user can only wait', () => {
         blocked({ kind: 'waiting-on-provider', userMessage: null })
 
-        expect(screen.getByText(messages.depositAccounts.gate.waitTitle)).toBeInTheDocument()
+        expect(
+            screen.getByText(messages.depositAccounts.gate.waitTitle.replace('{currency}', 'EUR'))
+        ).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: messages.depositAccounts.gate.verifyCta })).not.toBeInTheDocument()
     })
 })

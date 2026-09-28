@@ -37,6 +37,6 @@ describe('HomeTopNav', () => {
 
         rerender(<HomeTopNav showRewards />)
         expect(container.querySelector('a[href="/rewards"]')).toBeInTheDocument()
-        expect(screen.getByText('Rewards')).toBeInTheDocument()
+        expect(screen.getByText('Points')).toBeInTheDocument()
     })
 })

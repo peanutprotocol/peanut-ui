@@ -6,17 +6,16 @@ import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import Badge from '@/components/Global/Badges/Badge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
-import { badgeAvatarKeys, basicAvatarKeys, dealHand, rollKeepsPick } from './avatar.utils'
+import { badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarKey } from './useAvatarKey'
-import { handSize, roveAvatarTiles } from './avatarPicker.utils'
+import { roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
 interface AvatarPickerProps {
@@ -27,13 +26,11 @@ interface AvatarPickerProps {
 const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
 /**
- * Two tiles per row, the user's initial first and the die last: a 2x2 screen on
- * a phone under 390px (two dealt stickers), a 2x3 screen from there (four).
- * Taps save; rolls only deal.
+ * Three tiles per row, the user's initial first and the die last: one 3x3
+ * screen on every phone (seven dealt stickers). Taps save; rolls only deal.
  */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
-    const badgeCopy = useBadgeCopy()
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
     const [preferBadge, setPreferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
@@ -43,7 +40,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badgeCopy(badge.code, badge.name).name]))
     const unlocked = badgeAvatarKeys(held)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.
@@ -93,8 +89,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const save = (key: string | null) => {
         if (!userId) return
-        // a tapped tile is in the hand, so a failed save may restore the saved pick again
-        pickReleased.current = false
         setPending(key)
         wanted.current = key
         if (!draining.current) void drain()
@@ -102,49 +96,39 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const [hand, setHand] = useState<(string | null)[]>([])
     const [turns, setTurns] = useState(0)
-    // Set when a narrow roll deals a hand without the pick on purpose, so the
-    // restore below does not put it back on the next user refetch.
-    const pickReleased = useRef(false)
     useEffect(() => {
         // Deal on open and when auth resolves. Keep an in-flight pick when reopening.
-        pickReleased.current = false
-        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined, dealt: handSize() }))
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
         // Taps and ordinary user refetches must not reshuffle the hand.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, userId])
 
     useEffect(() => {
-        if (!open || pending !== undefined || !saved || pickReleased.current) return
+        if (!open || pending !== undefined || !saved) return
         const earned = badgeAvatarKeys((user?.user.badges ?? []).map((badge) => badge.code))
         if (!basicAvatarKeys().includes(saved) && !earned.includes(saved)) return
         // A failed save after a roll can restore a saved sticker that is no longer in the hand.
-        setHand((current) =>
-            current.length && !current.includes(saved) ? dealHand(saved, earned, { dealt: handSize() }) : current
-        )
+        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned) : current))
     }, [open, pending, saved, user?.user.badges])
 
     const roll = () => {
         setTurns((n) => n + 1)
-        const dealt = handSize()
-        const keepPick = rollKeepsPick(dealt, pick, unlocked)
-        pickReleased.current = !keepPick
-        setHand(dealHand(pick, unlocked, { dealt, keepPick }))
+        setHand(dealHand(pick, unlocked))
     }
 
     // A legacy pick of another letter has no matching tile; do not mark the user's initial instead.
     const isChecked = (key: string | null) => (key === null ? pick === null || pick === initialKey : key === pick)
     const focusIndex = Math.max(0, hand.findIndex(isChecked))
 
-    const describe = (key: string | null): { name: string; line: string } => {
-        if (!key) return { name: t('initialName', { letter: first.toUpperCase() }), line: t('initialLine') }
+    const nameOf = (key: string | null): string => {
+        if (!key) return t('initialName', { letter: first.toUpperCase() })
         const [kind, code, slug] = key.split('.')
         if (kind === 'badge') {
             const nameKey = `badge.${code}.${slug}` as Parameters<typeof t>[0]
-            return { name: t.has(nameKey) ? t(nameKey) : capitalise(slug), line: badgeName[code] ?? code }
+            return t.has(nameKey) ? t(nameKey) : capitalise(slug)
         }
         const nameKey = `cast.${code}.name` as Parameters<typeof t>[0]
-        const lineKey = `cast.${code}.line` as Parameters<typeof t>[0]
-        return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }
+        return t.has(nameKey) ? t(nameKey) : capitalise(code)
     }
 
     // Consume the badge hint so later opens can deal any unlocked art.
@@ -156,15 +140,18 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     return (
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
-                {/* Pad the grid for focus rings; scroll-area padding must retain its safe-area inset. */}
-                <div className="grid grid-cols-2 gap-2 py-1">
+                {/* Pad the grid for focus rings; scroll-area padding must retain its safe-area inset.
+                    auto-rows-fr makes every row as tall as the tallest tile, so a wrapped name grows
+                    the whole grid alike. No aspect-square: a grid item with a ratio sizes itself from
+                    the row height and spills past its column. */}
+                <div className="grid auto-rows-fr grid-cols-3 gap-2 py-1">
                     {/* Keep tiles in the grid and the roll button outside the radio group. */}
                     <div role="radiogroup" aria-label={t('title')} className="contents" onKeyDown={roveAvatarTiles}>
                         {hand.map((key, index) => {
                             const initial = key === null
                             const checked = isChecked(key)
                             const earned = !!key?.startsWith('badge.')
-                            const { name, line } = describe(key)
+                            const name = nameOf(key)
                             return (
                                 <button
                                     key={key ?? 'initial'}
@@ -174,14 +161,18 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     tabIndex={index === focusIndex ? 0 : -1}
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
-                                        // Native buttons share Card's surface. Two tiles per row on every phone (TASK-22677);
-                                        // The 32px top padding clears the Earned tag (20px tall, 4px down) by 8px so it never touches the sticker.
-                                        // Under xs (390px) the sticker is 48px, which with one reserved text line each
-                                        // makes the tile about as tall as it is wide. The chosen tile follows the selected-rows
+                                        // Native buttons share Card's surface. Three tiles per row on every phone (TASK-23054);
+                                        // from 320 to 430px the content alone makes each tile about square (320: 91x106,
+                                        // 430: 127x127 with one line each). The sticker takes 3/5 of the tile width, so it scales with the
+                                        // tile instead of stepping at a breakpoint. The 12px top padding lets the Earned tag
+                                        // (4px down, 20px tall) overlap only the sticker's top corner, never the text or the
+                                        // face. A name that wraps grows every row alike. The chosen tile follows the selected-rows
                                         // rule in design.md: action-primary fill, over-color ink on every line, and a second
-                                        // channel besides colour (WCAG 1.4.1), here the 2px border.
-                                        `relative flex flex-col items-center ${CARD_SURFACE} px-2 pt-8 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'border-2 bg-action-primary'
+                                        // channel besides colour (WCAG 1.4.1), here a 1px inset ring inside the 1px border:
+                                        // it reads as a 2px edge but takes no layout, so the tile does not shift (QA-42).
+                                        // inset-ring, not ring: globals.css redefines the bare ring utility.
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-1 pt-3 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                        checked && 'bg-action-primary inset-ring inset-ring-border-default'
                                     )}
                                 >
                                     {earned && (
@@ -195,27 +186,17 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         name={initial ? username : undefined}
                                         avatarKey={initial ? initialKey : key}
                                         size="l"
-                                        className="h-12 w-12 xs:h-16 xs:w-16"
+                                        className="aspect-square h-auto w-3/5"
                                     />
-                                    {/* One line reserved, two allowed: a translated name that wraps grows its
-                                        grid row (rows stretch to the tallest tile), so nothing clips and the
-                                        common one-line case keeps the tile square. */}
+                                    {/* Two lines reserved for every name, so a roll that deals only one-line
+                                        names keeps the rows as tall as one with a wrapped name (TASK-23054). */}
                                     <span
                                         className={twMerge(
-                                            'mt-2 line-clamp-2 min-h-4 text-label-m',
+                                            'mt-1 min-h-8 text-label-m',
                                             checked && 'text-foreground-over-color-primary'
                                         )}
                                     >
                                         {name}
-                                    </span>
-                                    {/* grey on pink is 2.95:1, so the chosen tile's line takes the over-color ink */}
-                                    <span
-                                        className={twMerge(
-                                            'line-clamp-2 min-h-4 text-body-xs text-foreground-secondary',
-                                            checked && 'text-foreground-over-color-primary'
-                                        )}
-                                    >
-                                        {line}
                                     </span>
                                 </button>
                             )
@@ -224,7 +205,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     <button
                         type="button"
                         onClick={roll}
-                        className="flex flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed border-border-default bg-background-default px-2 py-4 text-button-s focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                        className="flex flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed border-border-default bg-background-default px-1 py-2 text-button-s focus-visible:outline-[3px] focus-visible:outline-action-focus"
                     >
                         <span
                             className={twMerge(

@@ -15,8 +15,6 @@ interface CardProps {
     onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
     'aria-disabled'?: boolean
     'aria-label'?: string
-    /** a card that opens a section below it, rather than navigating */
-    'aria-expanded'?: boolean
 }
 
 const Card: React.FC<CardProps> = ({
@@ -32,7 +30,6 @@ const Card: React.FC<CardProps> = ({
     onKeyDown,
     'aria-disabled': ariaDisabled,
     'aria-label': ariaLabel,
-    'aria-expanded': ariaExpanded,
 }) => {
     const getBorderRadius = () => {
         switch (position) {
@@ -92,7 +89,6 @@ const Card: React.FC<CardProps> = ({
             onKeyDown={onKeyDown ?? defaultKeyDown}
             aria-disabled={ariaDisabled}
             aria-label={ariaLabel}
-            aria-expanded={ariaExpanded}
         >
             {children}
         </div>

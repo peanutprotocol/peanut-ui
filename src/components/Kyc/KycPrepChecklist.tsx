@@ -60,7 +60,10 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
                 <Callout priority="attention" title={t('singleSession.title')} data-testid="kyc-prep-single-session">
                     {/* The banner's own body step is text-body-m, which reads
                         louder than the requirement titles right above it. */}
-                    <span className="text-body-s">{t('singleSession.body')}</span>
+                    <span className="flex flex-col gap-2 text-body-s">
+                        <span>{t('singleSession.body')}</span>
+                        <span>{t('howLong.hosted')}</span>
+                    </span>
                 </Callout>
             )}
             {/* Above "how long": the note is about WHAT may still be asked for,
@@ -69,10 +72,12 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
             {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}
             {/* Plain prose, not a card: the framed box read as one more
                 requirement alongside the list above it, when it is only a note. */}
-            <div className="flex flex-col gap-0.5">
-                <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
-                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
-            </div>
+            {!isHosted && (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
+                    <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
+                </div>
+            )}
         </div>
     )
 }

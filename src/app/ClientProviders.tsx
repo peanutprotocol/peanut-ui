@@ -28,6 +28,7 @@ import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
+import { AppHelpProvider } from '@/components/Global/AppHelpProvider'
 
 /*
  * Harness bootstrap ships only in harness builds. In prod bundles the dynamic
@@ -129,7 +130,13 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 <TranslationSafeWrapper>
                                     <ConsoleGreeting />
                                     <ScreenOrientationLocker />
-                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                    {marketing ? (
+                                        children
+                                    ) : (
+                                        <AppHelpProvider>
+                                            <AppGlobals>{children}</AppGlobals>
+                                        </AppHelpProvider>
+                                    )}
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>
                         </ContextProvider>

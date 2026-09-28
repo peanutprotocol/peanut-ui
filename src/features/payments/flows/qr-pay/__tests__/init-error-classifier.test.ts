@@ -21,6 +21,10 @@ import {
 const apiError = (message: string, code?: string) =>
     Object.assign(new Error(message), { name: 'ApiError', status: 422, code })
 
+/** The same shape with an explicit HTTP status, for the status-based retry gate. */
+const apiErrorWithStatus = (message: string, status: number, code?: string) =>
+    Object.assign(new Error(message), { name: 'ApiError', status, code })
+
 const scan = (over: Partial<QrScanInput> = {}): QrScanInput => ({
     hasLock: false,
     settledError: null,
@@ -56,6 +60,7 @@ describe('isNonRetryableQrInitError', () => {
         QR_INIT_CODE.MERCHANT_REFUND,
         QR_INIT_CODE.NOT_PROVISIONED,
         QR_INIT_CODE.KYC,
+        QR_INIT_CODE.SENDER_REJECTED,
         QR_INIT_CODE.PIX_MIN_AMOUNT,
         QR_INIT_CODE.PIX_RECURRING,
         QR_INIT_CODE.MISSING_AMOUNT,
@@ -82,6 +87,17 @@ describe('isNonRetryableQrInitError', () => {
 
     it('fails fast on the missing-auth AJV rejection, which can never carry a code', () => {
         expect(isNonRetryableQrInitError(new Error("body must have required property 'authorization'"))).toBe(true)
+    })
+
+    it('fails fast on a 400 or 422 whose code this build has not learned', () => {
+        // The API answers every deterministic refusal with one of those two
+        // statuses. A code added on the backend before the app learns it must
+        // not cost four POSTs and four price locks. A known code still decides
+        // for itself, whatever status the fixture carries.
+        expect(isNonRetryableQrInitError(apiErrorWithStatus('new refusal', 422, 'SOME_FUTURE_CODE'))).toBe(true)
+        expect(isNonRetryableQrInitError(apiErrorWithStatus('bad input', 400))).toBe(true)
+        expect(isNonRetryableQrInitError(apiErrorWithStatus('gateway', 502, 'SOME_FUTURE_CODE'))).toBe(false)
+        expect(isNonRetryableQrInitError(apiErrorWithStatus('busy', 422, QR_INIT_CODE.IN_PROGRESS))).toBe(false)
     })
 })
 
@@ -122,7 +138,7 @@ describe('classifyQrInitError — actionability depends on the call site', () =>
     })
 
     it('never marks an identity block amount-retryable', () => {
-        for (const code of [QR_INIT_CODE.KYC, QR_INIT_CODE.NOT_PROVISIONED]) {
+        for (const code of [QR_INIT_CODE.KYC, QR_INIT_CODE.NOT_PROVISIONED, QR_INIT_CODE.SENDER_REJECTED]) {
             expect(classifyQrInitError(apiError('x', code), 'amount-entry')?.amountRetryable).toBe(false)
         }
     })
@@ -134,6 +150,12 @@ describe('classifyQrInitError — actionability depends on the call site', () =>
 })
 
 describe('classifyScanOutcome', () => {
+    it('reports an unknown 4xx as a refusal of this scan, not a provider outage', () => {
+        expect(
+            classifyScanOutcome(scan({ settledError: apiErrorWithStatus('new refusal', 422, 'SOME_FUTURE_CODE') }))
+        ).toEqual({ kind: 'failed', reason: 'rejected' })
+    })
+
     it('a lock in hand outranks any earlier failure', () => {
         // The latch class, made unrepresentable: a scan that recovers on
         // reconnect must not stay hidden behind the outage message it showed

@@ -18,6 +18,9 @@ export default function WithdrawRoot() {
     const tNav = useTranslations('navigation')
     const flow = useWithdrawRootFlow()
 
+    // on its way to /withdraw/crypto: render nothing rather than a screen the user never chose
+    if (flow.forwardsToCrypto) return null
+
     if (flow.stepper.step === 'amount') {
         const pageTitle = flow.isFromSendFlow ? tNav('send') : tNav('withdraw')
         const { bankAmount } = flow
@@ -53,8 +56,9 @@ export default function WithdrawRoot() {
                         ? {
                               currency: bankAmount.currency.toUpperCase(),
                               rate: Number(bankAmount.rate),
-                              initialAmount: bankAmount.initialAmount,
-                              initialDenomination: bankAmount.initialDenomination,
+                              // back or refresh restores the field in the currency it was typed in
+                              initialAmount: bankAmount.isInUsd ? flow.rawTokenAmount : bankAmount.destinationAmount,
+                              initialDenomination: bankAmount.isInUsd ? 'USD' : bankAmount.currency.toUpperCase(),
                               onAmountChange: bankAmount.onDestinationAmountChange,
                               onDenominationChange: bankAmount.onDenominationChange,
                           }

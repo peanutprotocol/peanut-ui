@@ -21,7 +21,6 @@ export const CreateRequestLinkView = () => {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const onBack = useRequestBack()
-    const onDone = useRequestBack({ replace: true })
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
         requestAmount,
@@ -56,7 +55,7 @@ export const CreateRequestLinkView = () => {
                 requestAmount={requestAmount}
                 currency={currency}
                 bankPayable={bankInstructionsShared}
-                onDone={onDone}
+                onDone={onBack}
             />
         )
     }
@@ -102,6 +101,8 @@ export const CreateRequestLinkView = () => {
                     {...(currency !== 'USD' && {
                         primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
                         secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
+                        // the server stores the USD rounded up to the cent; the line shows that figure
+                        roundSecondaryUp: true,
                     })}
                 />
 

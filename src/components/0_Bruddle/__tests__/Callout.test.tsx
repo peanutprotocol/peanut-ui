@@ -127,18 +127,17 @@ describe('Callout', () => {
         expect(first).toHaveBeenCalledTimes(1)
     })
 
-    test('floating toast omits actions but keeps its dismiss control', () => {
+    // TASK-23054: a toast times out, so the floating card drops both actions and
+    // the close button, even when a caller passes them
+    test('floating toast omits actions and the close button', () => {
         const ctas: [{ label: string; onClick: () => void }] = [{ label: 'Retry', onClick: jest.fn() }]
-        const onDismiss = jest.fn()
         const { rerender, container } = render(
-            <Callout priority="error" variant="floating" ctas={ctas} onDismiss={onDismiss}>
+            <Callout priority="error" variant="floating" ctas={ctas} onDismiss={jest.fn()}>
                 Try again later
             </Callout>
         )
         expect(screen.getByRole('alert')).toHaveTextContent('Try again later')
-        expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-        expect(onDismiss).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
 
         rerender(<Callout priority="error" variant="floating" ctas={ctas} />)
         expect(container).toBeEmptyDOMElement()
@@ -170,15 +169,13 @@ describe('Callout', () => {
         expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
     })
 
-    test('the floating card does not clip the dismiss target, and its timer bar cannot intercept taps', () => {
+    test('the floating timer bar cannot intercept taps', () => {
         const { container } = render(
-            <Callout priority="success" variant="floating" progressMs={2000} onDismiss={() => {}}>
+            <Callout priority="success" variant="floating" progressMs={2000}>
                 Link cancelled successfully!
             </Callout>
         )
-        expect(container.firstElementChild).not.toHaveClass('overflow-hidden')
         expect(container.querySelector('span[aria-hidden]')).toHaveClass('pointer-events-none')
-        expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('after:-inset-2.5')
     })
 
     test('the inline banner never draws a countdown, even if a duration is passed', () => {

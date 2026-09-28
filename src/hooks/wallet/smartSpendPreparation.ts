@@ -54,7 +54,7 @@ export interface PreparedSmartSpend {
     calls: SmartSpendCall[]
     /** The payment lock this candidate pays. A different lock is a different payment. */
     lockCode: string
-    /** Epoch ms after which the lock is dead and so is the candidate. */
+    /** The lock's deadline on this device's clock, in ms (`receiveLock`); after it the candidate is dead too. */
     lockExpiresAtMs: number
     userOperation: UnsignedUserOperation
 }

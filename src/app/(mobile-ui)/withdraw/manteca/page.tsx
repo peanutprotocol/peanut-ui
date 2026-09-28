@@ -14,6 +14,7 @@ import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
@@ -28,7 +29,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -42,6 +43,7 @@ import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-loc
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
+import { formatBankAmount } from '@/utils/currency'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -96,6 +98,7 @@ import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/Mant
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -135,6 +138,8 @@ function MantecaBankWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
+    // The amount field can toggle to USD; the review and success lead with the currency typed.
+    const [isAmountTypedInUsd, setIsAmountTypedInUsd] = useState(false)
     // store original currency amount before price lock to restore on back navigation
     const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -196,6 +201,9 @@ function MantecaBankWithdrawFlow() {
     })
     const step = stepper.step
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
@@ -920,6 +928,15 @@ function MantecaBankWithdrawFlow() {
         return <Loading variant="mascot" />
     }
 
+    // Locked, both amounts are exact: fiat = USD × locked price, no fee. Before
+    // the lock, the amount the user did not type is an estimate.
+    const estimate = priceLock ? '' : '≈ '
+    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
+        priceLock?.fiatAmount ?? currencyAmount,
+        { maxDecimals: 2 }
+    )}`
+    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(usdAmount ?? '0', 'USD')}`
+
     if (step === 'success') {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
@@ -934,12 +951,13 @@ function MantecaBankWithdrawFlow() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.youJustWithdrew')}
                             </h1>
+                            {/* exact: the order ran at the locked price, fiat = USD × price */}
                             <div className="text-heading-s text-foreground-primary">
-                                {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                                {isAmountTypedInUsd ? usdLine : localLine}
                             </div>
-                            <div className="text-heading-card text-foreground-primary">
-                                ≈ ${formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                            </div>
+                            <p className="text-body-s text-foreground-secondary">
+                                {isAmountTypedInUsd ? localLine : usdLine}
+                            </p>
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.toDestination', { destination: destinationAddress })}
                             </h1>
@@ -954,7 +972,7 @@ function MantecaBankWithdrawFlow() {
                     <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
-                                router.push('/home')
+                                leaveToHome()
                                 resetState()
                             }}
                             shadowSize="4"
@@ -1099,6 +1117,7 @@ function MantecaBankWithdrawFlow() {
                                 price: 1,
                                 decimals: 2,
                             }}
+                            setCurrentDenomination={(symbol) => setIsAmountTypedInUsd(symbol.toUpperCase() === 'USD')}
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                             // the amount field is in the local currency while the balance row is
                             // usd, so the fill converts with currencyPrice.sell — the same
@@ -1150,12 +1169,14 @@ function MantecaBankWithdrawFlow() {
                         <h2 className="text-heading-card text-foreground-primary">
                             {t('manteca.enterAccountDetails')}
                         </h2>
-                        <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('manteca.accountDetailsHint', { country: selectedCountry?.id ?? '' })}
+                        </p>
                         <div className="space-y-2">
                             <Field error={fieldError}>
                                 <ValidatedInput
                                     value={destinationAddress}
-                                    placeholder={countryConfig!.accountNumberLabel}
+                                    placeholder={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
                                     onUpdate={(update) => {
                                         // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                         const normalizedValue =
@@ -1221,7 +1242,9 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                            <Callout priority="error">
+                                <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                            </Callout>
                         )}
                     </div>
                 </div>
@@ -1239,32 +1262,27 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <IconBubble
-                                    icon="bank"
-                                    size="xs"
-                                    color="blue"
-                                    className="absolute -right-1 -bottom-1"
-                                />
+                                <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-heading-s text-foreground-primary">
-                                    {currencyCode}{' '}
-                                    {formatNumberForDisplay(priceLock?.fiatAmount ?? currencyAmount, {
-                                        maxDecimals: 2,
-                                    })}
+                                    {isAmountTypedInUsd ? usdLine : localLine}
                                 </p>
-                                <div className="text-heading-card text-foreground-primary">
-                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                                </div>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {isAmountTypedInUsd ? localLine : usdLine}
+                                </p>
                             </div>
                         </div>
                     </Card>
                     {/* Review Summary */}
                     <Card className="space-y-0 px-4">
-                        <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
+                        <PaymentInfoRow
+                            label={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
+                            value={destinationAddress}
+                        />
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
@@ -1298,7 +1316,9 @@ function MantecaBankWithdrawFlow() {
                         </Callout>
                     )}
                     {(errorMessage || sumsubFlow.error) && (
-                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                        <Callout priority="error">
+                            <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                        </Callout>
                     )}
                 </div>
             )}

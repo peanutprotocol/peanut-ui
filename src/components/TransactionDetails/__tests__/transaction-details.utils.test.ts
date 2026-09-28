@@ -174,6 +174,13 @@ describe('senderNoteText', () => {
         expect(senderNoteText('/ROC/INVOICE 4471')).toBe('INVOICE 4471')
         expect(senderNoteText('  Rent March ')).toBe('Rent March')
     })
+
+    it('reads the remittance text after "//" in a structured SEPA reference', () => {
+        expect(senderNoteText('/ROC/NOT PROVIDED//testtttt')).toBe('testtttt')
+        expect(senderNoteText('/ROC/INV 4471//March rent')).toBe('INV 4471 · March rent')
+        expect(senderNoteText('/ROC/NOT PROVIDED//')).toBeUndefined()
+        expect(senderNoteText('/ROC/NOT PROVIDED//https://example.com/invoice')).toBe('https://example.com/invoice')
+    })
 })
 
 /**

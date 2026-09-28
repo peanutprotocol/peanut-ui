@@ -105,7 +105,7 @@ describe('ApplicationStatusScreen — pending residence block', () => {
         expect(screen.getByText('Residence change pending')).toBeInTheDocument()
         expect(screen.getByText(/approved residence is still active/i)).toBeInTheDocument()
         const link = screen.getByRole('link', { name: 'Review residence change' })
-        expect(link).toHaveAttribute('href', '/profile/accounts-and-payments?open=residence')
+        expect(link).toHaveAttribute('href', '/profile/payments?open=residence')
         expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
     })
 })

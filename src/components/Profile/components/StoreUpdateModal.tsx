@@ -34,8 +34,8 @@ const StoreUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () 
                         onClose()
                     },
                 },
-                { text: tUpdate('notNow'), variant: 'secondary', onClick: onClose },
             ]}
+            tertiaryCta={{ text: tUpdate('notNow'), onClick: onClose }}
         />
     )
 }

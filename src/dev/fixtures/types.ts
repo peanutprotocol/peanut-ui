@@ -22,6 +22,12 @@ export type Fixture = {
      * pair only. `fails` still wins over a reply.
      */
     replies?: Record<string, FixtureReply | ((path: string) => FixtureReply | null)>
+    /**
+     * Wallet balance in USD, e.g. `'0.17'`. The balance is not an API answer —
+     * fixtures ride the demo balance overlay — so a state that depends on it
+     * (the Home checklist's "Add money") says it here.
+     */
+    balance?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**

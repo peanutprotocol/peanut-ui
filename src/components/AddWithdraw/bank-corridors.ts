@@ -1,5 +1,5 @@
 import { BridgeAccountType } from '@/app/actions/types/users.types'
-import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
@@ -51,11 +51,12 @@ export interface BankCorridorSpec {
      * Where an address for this corridor may be, ISO 3166-1 alpha-2. The euro
      * area is one corridor of many countries, so this is a set, not a country.
      * An address from outside it is not this account's address and is never
-     * prefilled — a French address must not land in a US form.
+     * prefilled.
+     *
+     * Absent on a corridor that needs an address: the address is the account
+     * owner's own, in any country, and the form asks which country.
      */
     addressCountries?: ReadonlySet<string>
-    /** Options for the state field of an address, when the corridor has one. */
-    states?: readonly { readonly name: string; readonly code: string }[]
     fields: BankCorridorField[]
 }
 
@@ -151,7 +152,6 @@ const SPECS: Record<string, BankCorridorSpec> = {
         accountTest: (value) => validateMXCLabeAccount(value).isValid,
         needsAddress: true,
         addressCountries: new Set(['MX']),
-        states: MX_STATES,
         fields: [],
     },
     USA: {
@@ -161,9 +161,10 @@ const SPECS: Record<string, BankCorridorSpec> = {
         accountRequiredKey: 'accountNumberRequired',
         accountInvalidKey: 'accountNumberInvalid',
         accountTest: (value) => validateUSBankAccount(value).isValid,
+        // Bridge asks for the owner's address on a US account and takes one in
+        // any country (apidocs: beneficiary address validation). A Wise USD
+        // account held by someone in Lisbon has a Lisbon address.
         needsAddress: true,
-        addressCountries: new Set(['US']),
-        states: US_STATES,
         fields: [
             {
                 name: 'routingNumber',
@@ -269,6 +270,16 @@ export function hasBridgeBankCorridor(countryId: string): boolean {
     return bankCorridorFor(getCountryCodeForWithdraw(countryId)) !== null
 }
 
+/** Every catalog country's alpha-3 and alpha-2, both ways. */
+const ALPHA3_TO_ALPHA2: Record<string, string> = Object.fromEntries(
+    countryData
+        .filter((country) => country.type === 'country' && country.iso2 && country.iso3)
+        .map((country) => [country.iso3!.toUpperCase(), country.iso2!.toUpperCase()])
+)
+const ALPHA2_TO_ALPHA3: Record<string, string> = Object.fromEntries(
+    Object.entries(ALPHA3_TO_ALPHA2).map(([alpha3, alpha2]) => [alpha2, alpha3])
+)
+
 /**
  * Alpha-2 for an address country given as alpha-2 or alpha-3.
  *
@@ -280,11 +291,44 @@ export function addressCountryAlpha2(country: string | null | undefined): string
     const code = (country ?? '').trim().toUpperCase()
     if (!code) return null
     if (code.length === 2) return code
-    return ALPHA3_TO_ALPHA2[code] ?? ALL_COUNTRIES_ALPHA3_TO_ALPHA2[code] ?? null
+    return ALPHA3_TO_ALPHA2[code] ?? null
 }
 
-/** The corridors whose country is not in the SEPA map. */
-const ALPHA3_TO_ALPHA2: Record<string, string> = { USA: 'US', MEX: 'MX', GBR: 'GB', COL: 'CO' }
+/** Alpha-3 for an alpha-2 address country — the shape Bridge takes — or null when the catalog has no such country. */
+export function addressCountryAlpha3(alpha2: string | null | undefined): string | null {
+    return ALPHA2_TO_ALPHA3[(alpha2 ?? '').trim().toUpperCase()] ?? null
+}
+
+/**
+ * The states an address in this country chooses from, or none.
+ *
+ * Bridge requires a state on a US address ("Must be supplied for US
+ * addresses", external account API) and on an address in a country with
+ * states (beneficiary address validation). Mexico's list is the one the CLABE
+ * form always had.
+ */
+const STATES_BY_COUNTRY: Record<string, readonly { readonly name: string; readonly code: string }[]> = {
+    US: US_STATES,
+    MX: MX_STATES,
+}
+
+export function addressStatesFor(alpha2: string | null | undefined): readonly { name: string; code: string }[] {
+    return STATES_BY_COUNTRY[(alpha2 ?? '').toUpperCase()] ?? []
+}
+
+/**
+ * The country an address for this corridor is in, when the corridor fixes it:
+ * Mexico for a CLABE, the UK for a sort code. Null when the form asks (the US
+ * corridor) or the corridor spans many countries (the euro area).
+ */
+export function fixedAddressCountry(spec: BankCorridorSpec): string | null {
+    return spec.addressCountries?.size === 1 ? [...spec.addressCountries][0] : null
+}
+
+/** Does the form ask which country the owner's address is in? */
+export function asksAddressCountry(spec: BankCorridorSpec | null): boolean {
+    return !!spec?.needsAddress && !spec.addressCountries
+}
 
 /**
  * May an address in `country` be prefilled into this corridor's form?

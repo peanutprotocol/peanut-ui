@@ -271,6 +271,14 @@ describe('one-level .cause walk on the fallback', () => {
 })
 
 describe('backend wire codes', () => {
+    test('a saved bank account the provider refused maps to the add-it-again copy, not the 409 prose', () => {
+        const err = new ApiError('This bank account can no longer be used. Add it again.', {
+            status: 409,
+            code: 'BANK_ACCOUNT_NOT_USABLE',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'bankAccountNotUsable' })
+    })
+
     test('a wire-coded stale approval maps to localized copy instead of passthrough', () => {
         const stale = Object.assign(new Error('Your card needs to be re-enabled before you can withdraw.'), {
             name: 'StaleCardApprovalError',
@@ -286,16 +294,16 @@ describe('backend wire codes', () => {
         expect(friendlyError(err)).toEqual({ kind: 'code', code: 'rainInsufficientCollateral' })
     })
 
-    test('cooldown yields minutes, rounded up and floored at 1', () => {
+    // the number is rendered live by CooldownErrorText; a number here would freeze
+    test('cooldown always maps to the fixed copy', () => {
         const at = (retryAfterSec: number | null) =>
             Object.assign(new Error('A previous withdrawal is still active for this card.'), {
                 code: 'WITHDRAWAL_COOLDOWN_ACTIVE',
                 retryAfterSec,
             })
-        expect(friendlyError(at(90))).toEqual({ kind: 'params', code: 'rainCooldownRetry', values: { minutes: 2 } })
-        // 20s must not render "0 minutes"
-        expect(friendlyError(at(20))).toEqual({ kind: 'params', code: 'rainCooldownRetry', values: { minutes: 1 } })
-        expect(friendlyError(at(null))).toEqual({ kind: 'code', code: 'rainCooldownRetryShortly' })
+        for (const sec of [20, 90, null]) {
+            expect(friendlyError(at(sec))).toEqual({ kind: 'code', code: 'rainCooldownRetryShortly' })
+        }
     })
 
     test('both cooldown discriminants render the same copy', () => {
@@ -303,11 +311,7 @@ describe('backend wire codes', () => {
             code: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
             retryAfterSec: 120,
         })
-        expect(friendlyError(sigCooldown)).toEqual({
-            kind: 'params',
-            code: 'rainCooldownRetry',
-            values: { minutes: 2 },
-        })
+        expect(friendlyError(sigCooldown)).toEqual({ kind: 'code', code: 'rainCooldownRetryShortly' })
     })
 
     // The allow-list is load-bearing: third-party libraries set `.code` too, and

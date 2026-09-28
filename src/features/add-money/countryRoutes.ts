@@ -102,7 +102,9 @@ const UNUSABLE_ACCOUNT_STATUSES: ReadonlySet<string> = new Set(['revoked', 'unav
  *
  * A corridor can cover many countries — every euro member pays into the one
  * euro corridor — so the user's own residence picks which country's flow
- * opens, and the first live one answers when we do not know where they live.
+ * opens. Every member's flow pays the same currency and rail, so for a user
+ * who lives elsewhere the corridor's reference country answers; the first
+ * live one in the alphabet was Andorra, an odd name to see in the URL.
  * A corridor with no live country behind it (Colombia today) has no top-up,
  * and callers must not offer one.
  */
@@ -114,8 +116,12 @@ export function corridorTopUpHref(
     if (!isClaimable(rail)) return rail.topUpHref
     const live = liveCountriesFor(corridor)
     const resident = live.find(({ iso2 }) => residenceIso2s.some((residence) => residence.toUpperCase() === iso2))
-    return (resident ?? live[0])?.href
+    const reference = live.find(({ iso2 }) => iso2 === TOP_UP_REFERENCE_ISO2[corridor])
+    return (resident ?? reference ?? live[0])?.href
 }
+
+/** the country whose flow opens a multi-country corridor's top-up for a user who lives outside it */
+const TOP_UP_REFERENCE_ISO2: Partial<Record<DepositCorridor, string>> = { SEPA_EU: 'DE' }
 
 /**
  * Does this corridor have a top-up at all?

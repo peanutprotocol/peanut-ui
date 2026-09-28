@@ -8,16 +8,7 @@ let mockLocale = 'en'
 jest.mock('next-intl', () => ({
     useLocale: () => mockLocale,
     useTranslations: (ns: string) => {
-        const railLabels: Record<string, string> = {
-            ach: 'ACH',
-            sepa: 'SEPA',
-            faster_payments: 'Faster Payments',
-            spei: 'SPEI',
-            pix: 'Pix',
-            transfer_ar: 'Bank transfer',
-            fallback: 'Bank transfer',
-        }
-        const t = (key: string) => (ns === 'depositAccounts.rows.rails' ? (railLabels[key] ?? key) : `${ns}.${key}`)
+        const t = (key: string) => `${ns}.${key}`
         t.rich = (key: string) => `${ns}.${key}`
         return t
     },
@@ -45,7 +36,7 @@ jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({
 // countries it was given and drives onCountryClick, so we can assert the
 // currency-first list demotes country to a secondary list. The withdraw
 // currencies themselves are NOT mocked: the rows below come from the real
-// catalog, rail table and send-to-bank gate.
+// catalog and send-to-bank gate.
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: ({
         countries,
@@ -65,6 +56,21 @@ jest.mock('@/components/Common/CountryList', () => ({
         </div>
     ),
 }))
+
+// No live currency takes the expand path today (EUR routes by IBAN, every
+// other currency has one country), so a test can append a shared currency
+// that does. Empty by default: the rows then come from the real catalog.
+let mockExtraCurrencies: unknown[] = []
+jest.mock('../withdraw-currencies', () => {
+    const actual = jest.requireActual('../withdraw-currencies')
+    return {
+        ...actual,
+        liveWithdrawCurrencies: (...args: unknown[]) => [
+            ...actual.liveWithdrawCurrencies(...args),
+            ...mockExtraCurrencies,
+        ],
+    }
+})
 
 import { WithdrawCurrencyList } from '../WithdrawCurrencyList'
 
@@ -91,6 +97,7 @@ const currencyRows = () =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockLocale = 'en'
+    mockExtraCurrencies = []
 })
 
 describe('WithdrawCurrencyList — currency-first with country as fallback', () => {
@@ -107,7 +114,36 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
         const toggle = screen.getByTestId('withdraw-other-countries-toggle')
         expect(toggle).toBeInTheDocument()
         fireEvent.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
         expect(screen.getByTestId('country-list-all')).toBeInTheDocument()
+        fireEvent.click(toggle)
+        expect(screen.queryByTestId('country-list-all')).not.toBeInTheDocument()
+    })
+
+    it('a shared currency no IBAN decides opens its countries in place, and a pick routes', () => {
+        mockExtraCurrencies = [
+            {
+                code: 'XYZ',
+                name: 'Shared dollar',
+                flagCode: 'us',
+                countries: [
+                    { id: 'USA', path: 'usa', title: 'United States', type: 'country' },
+                    { id: 'MEX', path: 'mexico', title: 'Mexico', type: 'country' },
+                ],
+            },
+        ]
+        renderList()
+        const row = screen.getByTestId('withdraw-currency-XYZ')
+        expect(row).toHaveAttribute('aria-expanded', 'false')
+
+        fireEvent.click(row)
+        expect(row).toHaveAttribute('aria-expanded', 'true')
+        expect(onCountryClick).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('scoped-mexico'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'mexico' }))
+
+        fireEvent.click(row)
+        expect(row).toHaveAttribute('aria-expanded', 'false')
     })
 
     it('a single-country currency routes straight through (no disambiguation)', () => {
@@ -142,15 +178,27 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
 })
 
 describe('WithdrawCurrencyList — a currency row is the payout currency', () => {
-    it('uses one direction-correct currency and rail title format', () => {
+    it('titles each row by its currency code alone, with the currency name under it', () => {
         renderList()
 
-        expect(screen.getByTestId('withdraw-currency-EUR')).toHaveTextContent('EUR · SEPA')
-        expect(screen.getByTestId('withdraw-currency-GBP')).toHaveTextContent('GBP · Faster Payments')
-        expect(screen.getByTestId('withdraw-currency-USD')).toHaveTextContent('USD · ACH')
-        expect(screen.getByTestId('withdraw-currency-COP')).toHaveTextContent('COP · Bank transfer')
-        expect(screen.getByTestId('withdraw-currency-BRL')).toHaveTextContent('BRL · Pix')
-        expect(screen.getByTestId('withdraw-currency-ARS')).toHaveTextContent('ARS · Bank transfer')
+        // the Accounts hub rule (design.md): no rail name in the title
+        for (const [code, name] of [
+            ['EUR', 'Euro'],
+            ['GBP', 'British Pound'],
+            ['USD', 'US Dollar'],
+            ['MXN', 'Mexican Peso'],
+            ['BRL', 'Brazilian Real'],
+            ['ARS', 'Argentine Peso'],
+            ['COP', 'Colombian Peso'],
+        ]) {
+            const row = screen.getByTestId(`withdraw-currency-${code}`)
+            expect(row).toHaveTextContent(code)
+            expect(row).toHaveTextContent(name)
+            expect(row).not.toHaveTextContent('·')
+        }
+        for (const rail of ['SEPA', 'Faster Payments', 'ACH', 'SPEI', 'Pix', 'Bank transfer']) {
+            expect(screen.getByTestId('withdraw-currencies')).not.toHaveTextContent(rail)
+        }
     })
 
     it('offers no row for a currency the IBAN corridor never pays (PLN, SEK, CHF, DKK, NOK, CZK, HUF, RON)', () => {

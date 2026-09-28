@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -138,7 +139,7 @@ const ResidenceChangeDrawer = ({
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="globe" className="bg-action-primary" />
+                        <IconBubble {...CONCEPT_ICONS.otherCountries} />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('title')}</DrawerTitle>
                         </DrawerHeader>

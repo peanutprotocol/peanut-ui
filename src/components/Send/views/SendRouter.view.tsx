@@ -19,6 +19,7 @@ import { useMemo } from 'react'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
+import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
@@ -87,8 +88,10 @@ export const SendRouterView = () => {
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
-                // navigate to external wallet send flow
-                router.push('/withdraw?method=crypto')
+                // Straight to the destination screen. The old /withdraw?method=crypto
+                // entry rendered the Withdraw method list for a few frames before it
+                // forwarded here (TASK-23054).
+                router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
                 // navigate to pix send flow
@@ -196,7 +199,7 @@ export const SendRouterView = () => {
                         <IconBubble {...CONCEPT_ICONS.sendLink} size="m" />
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
-                            <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
+                            <ChatAppsLine />
                         </div>
                     </div>
                     <Button

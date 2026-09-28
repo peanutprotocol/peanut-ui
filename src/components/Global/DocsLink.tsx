@@ -6,11 +6,16 @@ import { useLocale } from 'next-intl'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
+import { useAppHelpDrawer } from '@/components/Global/AppHelpProvider'
+import { appHelpSlugForHref } from '@/components/Global/appHelpTypes'
+import { twMerge } from '@/utils/tw'
 
 interface DocsLinkProps {
     /** App-relative path to web-only content, e.g. `/en/help/transaction-limits`, `/terms`. */
     href: string
     className?: string
+    /** Also open legal documents in the drawer (used by About and article links). */
+    openInDrawer?: boolean
     children: ReactNode
     'aria-label'?: string
 }
@@ -39,10 +44,36 @@ export function localizeDocsHref(href: string, appLocale: string): string {
  * An `/en/…` path is retargeted at the reader's app locale, so call sites can
  * keep writing the canonical English path.
  */
-export default function DocsLink({ href, className, children, ...rest }: DocsLinkProps) {
+export default function DocsLink({ href, className, children, openInDrawer = false, ...rest }: DocsLinkProps) {
     const locale = useLocale()
     const isStandalone = usePWAStatus()
+    const openHelp = useAppHelpDrawer()
     const localizedHref = localizeDocsHref(href, locale)
+    const helpSlug = appHelpSlugForHref(localizedHref, openInDrawer)
+
+    if (openHelp && helpSlug) {
+        /* Same element as the link branches, so every className lays out the
+           same way: a <button> sizes to its content where an <a> stretches, and
+           that cut the About policy card and the KYC privacy footnote short.
+           No href, because the native link interceptor (useNativeAppLinks)
+           sends every a[href] to the in-app browser before the drawer opens. */
+        return (
+            <a
+                role="button"
+                tabIndex={0}
+                className={twMerge('cursor-pointer', className)}
+                onClick={() => openHelp(helpSlug)}
+                onKeyDown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return
+                    e.preventDefault()
+                    openHelp(helpSlug)
+                }}
+                {...rest}
+            >
+                {children}
+            </a>
+        )
+    }
 
     if (isStandalone && !isCapacitor()) {
         return (

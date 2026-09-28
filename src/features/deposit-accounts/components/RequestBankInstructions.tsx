@@ -73,9 +73,8 @@ export function RequestBankInstructions({
     let amountRow: { text: string; copyValue?: string; note?: string } | undefined
     if (amount) {
         const { value, currency, digits, approx } = bankPayAmountFigure(amount)
-        const text = t(approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
-            amount: formatBankAmount(value, currency),
-        })
+        const formatted = formatBankAmount(value, currency)
+        const text = approx ? t('bankTransfer.amountValueApprox', { amount: formatted }) : formatted
         if (amount.kind === 'usd-only') {
             amountRow = {
                 text,

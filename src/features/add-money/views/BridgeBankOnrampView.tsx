@@ -11,7 +11,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
@@ -45,7 +45,7 @@ export function BridgeBankOnrampView() {
         sumsubFlow,
         handleVerify,
         pendingModal,
-        advisoryModalProps,
+        advisoryDeadline,
         showBridgeTos,
         hideTos,
         setIsSupportModalOpen,
@@ -196,6 +196,7 @@ export function BridgeBankOnrampView() {
                             {t('eurAccountsOnlyDescription')}
                         </Callout>
                     )}
+                    {advisoryDeadline && <VerificationDeadlineNotice effectiveDate={advisoryDeadline} />}
                     <Button
                         variant="primary"
                         shadowSize="4"
@@ -252,8 +253,6 @@ export function BridgeBankOnrampView() {
                     reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
-
-                <AdvisoryPreemptModal {...advisoryModalProps} />
 
                 <KycReverificationPendingModal
                     isOpen={pendingModal.isOpen}

@@ -66,4 +66,19 @@ describe('native build server-route scan', () => {
         const describe = offenders.map((o) => `${toPosix(o.rel)} (${o.reason})`).join('\n')
         expect(describe).toBe('')
     })
+
+    // The in-app help articles ship to native as force-static route output.
+    it('keeps force-static route handlers and flags every other route handler', () => {
+        const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'native-scan-'))
+        try {
+            fs.mkdirSync(path.join(dir, 'static'))
+            fs.writeFileSync(path.join(dir, 'static', 'route.ts'), "export const dynamic = 'force-static'\n")
+            fs.mkdirSync(path.join(dir, 'server'))
+            fs.writeFileSync(path.join(dir, 'server', 'route.ts'), 'export async function GET() {}\n')
+            const offenders = detectUncoveredServerRoutes(dir).map((o) => path.basename(path.dirname(o.rel)))
+            expect(offenders).toEqual(['server'])
+        } finally {
+            fs.rmSync(dir, { recursive: true })
+        }
+    })
 })

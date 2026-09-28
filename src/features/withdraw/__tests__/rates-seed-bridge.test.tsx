@@ -7,7 +7,7 @@
  *
  * The seed now opens the field in USD (the input's own toggle), and the live
  * Bridge quote derives the MXN amount the review quotes. Runs the real flow
- * provider, method view, root flow, quote hook, Bridge minimum and AmountInput;
+ * provider, method view, root flow, quote hook, payout minimum and AmountInput;
  * only the server actions, wallet and list chrome are stubbed.
  */
 import React from 'react'
@@ -31,11 +31,6 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 const mockGetOfframpQuote = jest.fn()
 jest.mock('@/app/actions/offramp', () => ({
     getOfframpQuote: (...args: unknown[]) => mockGetOfframpQuote(...args),
-}))
-// the Bridge sell rate behind the MX minimum (50 MXN)
-jest.mock('@/hooks/useGetExchangeRate', () => ({
-    __esModule: true,
-    default: () => ({ exchangeRate: '17', isError: false }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: parseUnits('100', 6), formattedSpendableBalance: '100.00' }),
@@ -190,18 +185,19 @@ describe('Rates & fees USD amount → a saved CLABE (MXN amount step)', () => {
         expect(lastPush().searchParams.get('destinationAmount')).toBeNull()
     })
 
-    it('below the MX minimum ($3 at Bridge 17): Continue stays disabled and says why', async () => {
+    // USD 2 at 17 is MXN 34: the payout minimum is compared in MXN (TASK-23054)
+    it('below the MX minimum (50 MXN): Continue stays disabled and says why', async () => {
         renderFromRatesCta({ currencyCode: 'MXN', amount: '2' })
         fireEvent.click(screen.getByText('Saved CLABE'))
         await waitFor(() => expect(field().value).toBe('2'))
 
-        expect(await screen.findByText('Minimum withdrawal is $3.')).toBeInTheDocument()
+        expect(await screen.findByText('Minimum withdrawal is MX$50.')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
         // the message stays: later renders of the field must not clear it
         await act(async () => {
             await new Promise((resolve) => setTimeout(resolve, 400))
         })
-        expect(screen.getByText('Minimum withdrawal is $3.')).toBeInTheDocument()
+        expect(screen.getByText('Minimum withdrawal is MX$50.')).toBeInTheDocument()
     })
 
     it('fails closed when the quote is unavailable, and the seed survives the retry', async () => {
@@ -257,8 +253,9 @@ describe('Rates & fees USD amount → a saved EUR account, then Back from the re
         expect(screen.getByText('EUR')).toBeInTheDocument()
 
         setEurRate('0.95')
-        // the new rate moves the USD under it, never the EUR the user typed
-        await waitFor(() => expect(screen.getByText(/≈ USD 21\.05/)).toBeInTheDocument())
+        // the new rate moves the USD under it, never the EUR the user typed; the
+        // USD rounds up to the cent, as the quote charges it (20 / 0.95 = 21.052…)
+        await waitFor(() => expect(screen.getByText(/≈ USD 21\.06/)).toBeInTheDocument())
         expect(field().value).toBe('20')
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())

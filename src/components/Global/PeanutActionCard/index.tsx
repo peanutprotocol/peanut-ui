@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl'
 import Card from '../Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ChatAppsLine } from './ChatAppsLine'
 
 interface PeanutActionCardProps {
     type: 'request' | 'send'
@@ -9,8 +10,9 @@ interface PeanutActionCardProps {
 
 /**
  * intro card for the link flows, per the Request board (17831:78719) and
- * SendLink board (17832:79996): centered icon bubble, title, sub. Two
- * lines at most (Konrad, 2026-09-23; send card too since QA 2026-09-24).
+ * SendLink board (17832:79996): centered icon bubble, title, sub. The
+ * request card is two lines (Konrad, 2026-09-23); the send card shows the
+ * chat-apps line under its title and no description (Hugo, 2026-09-25).
  */
 const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
     const t = useTranslations('global')
@@ -21,11 +23,13 @@ const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
                 <div className="text-heading-card text-foreground-primary">
                     {type === 'request' ? t('peanutActionCard.requestTitle') : t('peanutActionCard.sendTitle')}
                 </div>
-                <div className="text-body-m text-foreground-secondary">
-                    {type === 'request'
-                        ? t('peanutActionCard.requestDescription')
-                        : t('peanutActionCard.sendDescription')}
-                </div>
+                {type === 'send' ? (
+                    <ChatAppsLine />
+                ) : (
+                    <div className="text-body-m text-foreground-secondary">
+                        {t('peanutActionCard.requestDescription')}
+                    </div>
+                )}
             </div>
         </Card>
     )

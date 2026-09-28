@@ -122,7 +122,7 @@ describe('SocketQueryRefresh', () => {
         emit('history_entry', ping('charge-2'))
         await settle()
         expect(serverFetchMock).toHaveBeenCalledTimes(3)
-        // the superseded request is cancelled, not left running on the server
+        // the superseded request is cancelled, not left open
         expect(first?.aborted).toBe(true)
         expect(serverFetchMock.mock.calls[2][1]?.signal?.aborted).toBe(false)
     })

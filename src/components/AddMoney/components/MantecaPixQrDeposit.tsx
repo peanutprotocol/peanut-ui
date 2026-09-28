@@ -110,7 +110,7 @@ const MantecaPixQrDeposit: FC<{
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">
                                 <p className="text-body-s text-foreground-secondary">{t('pix.qrExpired')}</p>
-                                <Button variant="secondary" className="w-full" onClick={onBack}>
+                                <Button variant="primary" className="w-full" onClick={onBack}>
                                     {t('pix.goBack')}
                                 </Button>
                             </div>

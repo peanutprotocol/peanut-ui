@@ -11,6 +11,13 @@ export type SignupNavigationType = 'initial' | 'forward' | 'back' | 'jump'
 
 const PEANUT_ORIGIN = 'https://peanut.me'
 
+const VERIFICATION_PAGES = [
+    '/profile/accounts',
+    '/profile/payments',
+    '/profile/accounts-and-payments',
+    '/profile/identity-verification',
+]
+
 /**
  * Converts redirect_uri into a low-cardinality acquisition branch. Keeping the
  * raw destination out of custom properties avoids IDs/query values fragmenting
@@ -34,15 +41,10 @@ export function classifySignupEntryFlow(redirectUri: string | null): SignupEntry
         const path = destination.pathname.replace(/\/+$/, '') || '/'
         if (path === '/' || path === '/home') return 'default'
         if (path === '/add-money' || path.startsWith('/add-money/')) return 'add-money'
-        // Matches both the current path and the pre-2026-09-19 URL (redirect_uri
-        // values from old links/bookmarks still arrive with the old segment) —
-        // both bucket into the same stable analytics label.
-        if (
-            path === '/profile/accounts-and-payments' ||
-            path.startsWith('/profile/accounts-and-payments/') ||
-            path === '/profile/identity-verification' ||
-            path.startsWith('/profile/identity-verification/')
-        ) {
+        // The two pages the old one split into (2026-09-25) and both retired
+        // URLs (redirect_uri values from old links/bookmarks still arrive with
+        // them) bucket into the same stable analytics label.
+        if (VERIFICATION_PAGES.some((page) => path === page || path.startsWith(`${page}/`))) {
             return 'identity-verification'
         }
         if (path === '/card' || path.startsWith('/card/')) return 'card'

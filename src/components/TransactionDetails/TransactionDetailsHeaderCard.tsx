@@ -6,6 +6,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
+    IN_SENTENCE_NAME_KEYS,
     SELF_DESCRIBING_NAME_KEYS,
     TRANSACTION_NAME_KEYS,
     translateTransactionName,
@@ -73,7 +74,10 @@ const getTitle = (
     userName: string,
     isLinkTransaction?: boolean,
     status?: StatusType,
-    nameKey?: TransactionNameKey
+    nameKey?: TransactionNameKey,
+    /** The name as it reads inside a sentence: the lowercase form of a
+     *  generic label, otherwise the same as `userName`. */
+    inSentenceName: string = userName
 ): React.ReactNode => {
     let titleText = userName
 
@@ -101,6 +105,7 @@ const getTitle = (
         // whose `identifier` arrives as a userId) so the header never renders
         // a 36-char string.
         const displayName = printableUserHandle(userName)
+        const sentenceName = printableUserHandle(inSentenceName)
 
         // check if this is a test transaction (setup confirmation)
         // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
@@ -118,7 +123,7 @@ const getTitle = (
                     // from outflow. Non-completed (pending / cancelled /
                     // failed) reads "Sending to".
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
@@ -129,18 +134,18 @@ const getTitle = (
                 if (nameKey === TRANSACTION_NAME_KEYS.receivedViaLink) {
                     titleText = t('title.receivedViaLink')
                 } else {
-                    titleText = t('title.receivedFrom', { name: displayName })
+                    titleText = t('title.receivedFrom', { name: sentenceName })
                 }
                 break
             case 'request_sent':
                 titleText = t(status === 'completed' ? 'title.requestedFrom' : 'title.requestingFrom', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'withdraw':
             case 'bank_withdraw':
                 titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'bank_claim':
@@ -152,17 +157,17 @@ const getTitle = (
                     titleText = t('enjoyPeanut')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
             case 'claim_external':
                 if (status === 'completed') {
-                    titleText = t('title.claimedTo', { name: displayName })
+                    titleText = t('title.claimedTo', { name: sentenceName })
                 } else if (status === 'failed') {
-                    titleText = t('title.claimTo', { name: displayName })
+                    titleText = t('title.claimTo', { name: sentenceName })
                 } else {
-                    titleText = t('title.claimingTo', { name: displayName })
+                    titleText = t('title.claimingTo', { name: sentenceName })
                 }
                 break
             case 'qr_payment':
@@ -171,13 +176,13 @@ const getTitle = (
                     // direction words: "Payment to {merchant}" (board 17490:115877).
                     // The self-contained "Failed QR payment attempt" label is
                     // handled by the self-describing escape at the top.
-                    titleText = t('title.paymentTo', { name: displayName })
+                    titleText = t('title.paymentTo', { name: sentenceName })
                 } else {
                     // Board 17490:115877 (Activity/CardPayment pending drawer):
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', { name: displayName })
+                    titleText = t('title.paidTo', { name: sentenceName })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -185,7 +190,7 @@ const getTitle = (
                 // money, worded like a send (PR #2813 review: direction must
                 // be readable from the receipt words, not the sign alone).
                 titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             default:
@@ -249,6 +254,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // instead of a shortened 0x. No ENS → getTitle shortens the raw address.
     const { primaryName } = usePrimaryNameServer(isAddress(userName) ? userName : undefined)
     const resolvedUserName = normalizeEnsName(primaryName) ?? localizedUserName
+    const inSentenceKey =
+        nameKey && nameKey in IN_SENTENCE_NAME_KEYS
+            ? IN_SENTENCE_NAME_KEYS[nameKey as keyof typeof IN_SENTENCE_NAME_KEYS]
+            : undefined
+    const inSentenceName = inSentenceKey ? t(inSentenceKey) : resolvedUserName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -355,7 +365,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                                 resolvedUserName,
                                                 isLinkTransaction,
                                                 status,
-                                                nameKey
+                                                nameKey,
+                                                inSentenceName
                                             ) as string)
                                 }
                                 isVerified={isVerified}
