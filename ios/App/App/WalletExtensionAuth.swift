@@ -76,6 +76,14 @@ enum WalletExtensionAuth {
         delete(account: authorizationAccount)
     }
 
+    static func deleteAuthorizationToken(forCardId cardId: String) {
+        guard let encoded = read(account: authorizationAccount),
+              let data = encoded.data(using: .utf8),
+              let payload = try? JSONDecoder().decode(CredentialPayload.self, from: data),
+              payload.cardId == cardId else { return }
+        deleteAuthorizationToken()
+    }
+
     private static func delete(account: String) {
         guard let accessGroup else { return }
         let query: [String: Any] = [

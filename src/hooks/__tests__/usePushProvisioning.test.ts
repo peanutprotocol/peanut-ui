@@ -6,6 +6,7 @@ import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } fr
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
+    clearWalletStateIfCardMatches,
     getPushProvisioningAvailability,
     rememberCardForWallet,
     syncWalletAuthorizationToken,
@@ -25,6 +26,7 @@ jest.mock('@/utils/push-provisioning', () => {
         getPushProvisioningAvailability: jest.fn(),
         rememberCardForWallet: jest.fn(),
         addCardToWallet: jest.fn(),
+        clearWalletStateIfCardMatches: jest.fn(),
         syncWalletAuthorizationToken: jest.fn(),
     }
 })
@@ -44,6 +46,7 @@ const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.
     typeof syncWalletAuthorizationToken
 >
 const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
+const mockedClearStaleCard = clearWalletStateIfCardMatches as jest.MockedFunction<typeof clearWalletStateIfCardMatches>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
@@ -74,6 +77,9 @@ describe('usePushProvisioning', () => {
         mockedIsAndroid.mockReturnValue(false)
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false })
         mockedGetProvisioningData.mockResolvedValue(provisioningData)
+        mockedRememberCard.mockResolvedValue(undefined)
+        mockedSyncWalletAuthorizationToken.mockResolvedValue(undefined)
+        mockedClearStaleCard.mockResolvedValue(undefined)
         jest.spyOn(posthog, 'capture').mockImplementation(() => undefined as never)
     })
 
@@ -242,6 +248,83 @@ describe('usePushProvisioning', () => {
         expect(outcome).toEqual({ added: false, canceled: true })
         expect(mockedRememberCard).not.toHaveBeenCalled()
         expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+        expect(mockedAddCard).not.toHaveBeenCalled()
+    })
+
+    it('clears only the old card when selection changes during the native mirror', async () => {
+        let finishMirror!: () => void
+        mockedRememberCard.mockReturnValueOnce(new Promise((resolve) => (finishMirror = resolve)))
+        const { result, rerender } = renderHook(({ selectedCard }) => usePushProvisioning(selectedCard), {
+            initialProps: { selectedCard: card },
+        })
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let pending!: Promise<Awaited<ReturnType<typeof result.current.addToWallet>>>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalled())
+        rerender({ selectedCard: { id: 'card-2', last4: '2222' } })
+
+        let outcome!: Awaited<typeof pending>
+        await act(async () => {
+            finishMirror()
+            outcome = await pending
+        })
+        expect(outcome).toEqual({ added: false, canceled: true })
+        expect(mockedClearStaleCard).toHaveBeenCalledWith('card-1')
+        expect(mockedRememberCard).toHaveBeenLastCalledWith({ peanutCardId: 'card-2', last4: '2222' })
+        expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+        expect(mockedAddCard).not.toHaveBeenCalled()
+    })
+
+    it('clears the old grant and skips native add when selection changes during grant storage', async () => {
+        let finishGrant!: () => void
+        mockedSyncWalletAuthorizationToken.mockReturnValue(new Promise((resolve) => (finishGrant = resolve)))
+        const { result, rerender } = renderHook(({ selectedCard }) => usePushProvisioning(selectedCard), {
+            initialProps: { selectedCard: card },
+        })
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let pending!: Promise<Awaited<ReturnType<typeof result.current.addToWallet>>>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        await waitFor(() => expect(mockedSyncWalletAuthorizationToken).toHaveBeenCalled())
+        rerender({ selectedCard: { id: 'card-2', last4: '2222' } })
+
+        let outcome!: Awaited<typeof pending>
+        await act(async () => {
+            finishGrant()
+            outcome = await pending
+        })
+        expect(outcome).toEqual({ added: false, canceled: true })
+        expect(mockedClearStaleCard).toHaveBeenCalledWith('card-1')
+        expect(mockedRememberCard).toHaveBeenLastCalledWith({ peanutCardId: 'card-2', last4: '2222' })
+        expect(mockedAddCard).not.toHaveBeenCalled()
+    })
+
+    it('clears a late native write after the card screen unmounts', async () => {
+        let finishMirror!: () => void
+        mockedRememberCard.mockReturnValueOnce(new Promise((resolve) => (finishMirror = resolve)))
+        const { result, unmount } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        let pending!: Promise<Awaited<ReturnType<typeof result.current.addToWallet>>>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalled())
+        unmount()
+
+        let outcome!: Awaited<typeof pending>
+        await act(async () => {
+            finishMirror()
+            outcome = await pending
+        })
+        expect(outcome).toEqual({ added: false, canceled: true })
+        expect(mockedClearStaleCard).toHaveBeenCalledWith('card-1')
+        expect(mockedRememberCard).toHaveBeenCalledTimes(1)
         expect(mockedAddCard).not.toHaveBeenCalled()
     })
 

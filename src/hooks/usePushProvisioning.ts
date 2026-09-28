@@ -7,6 +7,7 @@ import { rainApi } from '@/services/rain'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
+    clearWalletStateIfCardMatches,
     getPushProvisioningAvailability,
     PUSH_PROVISIONING_FLAG,
     rememberCardForWallet,
@@ -32,10 +33,16 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [isAdding, setIsAdding] = useState(false)
     const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
     const availabilityScopeRef = useRef(availabilityScope)
+    const latestSelectionRef = useRef({ cardId: card.id, last4: card.last4, flagOn })
 
     useEffect(() => {
         availabilityScopeRef.current = availabilityScope
-    }, [availabilityScope])
+        latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
+        return () => {
+            availabilityScopeRef.current = ''
+            latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn: false }
+        }
+    }, [availabilityScope, card.id, card.last4, flagOn])
 
     useEffect(() => {
         let cancelled = false
@@ -65,18 +72,36 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
-            if (availabilityScopeRef.current !== scopeAtStart) {
+            const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
+                if (availabilityScopeRef.current === scopeAtStart) return null
+                if (nativeWriteStarted) {
+                    await clearWalletStateIfCardMatches(card.id)
+                    // A late A write can have landed after B's app-wide mirror.
+                    // Put the current card back without touching B's grant.
+                    const latest = latestSelectionRef.current
+                    if (latest.flagOn && latest.cardId !== card.id && isIOSNative()) {
+                        await rememberCardForWallet({ peanutCardId: latest.cardId, last4: latest.last4 })
+                    }
+                }
                 posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })
                 return { added: false, canceled: true }
             }
+            const staleAfterFetch = await cancelStaleAdd(false)
+            if (staleAfterFetch) return staleAfterFetch
             if (data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
                 await rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 })
+                const staleAfterMirror = await cancelStaleAdd(true)
+                if (staleAfterMirror) return staleAfterMirror
                 await syncWalletAuthorizationToken(
                     card.id,
                     data.walletAuthorizationToken,
                     data.walletAuthorizationExpiresIn
                 )
+                const staleAfterGrant = await cancelStaleAdd(true)
+                if (staleAfterGrant) return staleAfterGrant
             }
+            const staleBeforeAdd = await cancelStaleAdd(false)
+            if (staleBeforeAdd) return staleBeforeAdd
             const result = await addCardToWallet({
                 peanutCardId: card.id,
                 cardId: data.cardId,

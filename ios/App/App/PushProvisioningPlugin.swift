@@ -32,6 +32,7 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "clearWalletLegacySession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWalletStateIfCardMatches", returnType: CAPPluginReturnPromise),
     ]
 
     private static func hasMeaConfig() -> Bool {
@@ -96,6 +97,18 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
+    @objc func clearWalletStateIfCardMatches(_ call: CAPPluginCall) {
+        guard let cardId = call.getString("cardId"), !cardId.isEmpty else {
+            call.reject("cardId is required", "BAD_PARAMS")
+            return
+        }
+        if WalletExtensionCardStore.load()?.cardId == cardId {
+            WalletExtensionCardStore.clear()
+        }
+        WalletExtensionAuth.deleteAuthorizationToken(forCardId: cardId)
+        call.resolve()
+    }
+
 #if canImport(MeaPushProvisioning)
     private var currentCall: CAPPluginCall?
     private var tokenizationResponseData: MppInitializeOemTokenizationResponseData?
@@ -120,6 +133,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func addCard(_ call: CAPPluginCall) {
         guard let cardId = call.getString("cardId"), let cardSecret = call.getString("cardSecret") else {
             call.reject("cardId and cardSecret are required", "BAD_PARAMS")
+            return
+        }
+        guard let peanutCardId = call.getString("peanutCardId"),
+              WalletExtensionCardStore.load()?.cardId == peanutCardId else {
+            call.reject("Selected Wallet card changed", "CARD_CHANGED")
             return
         }
         guard Self.hasMeaConfig() else {

@@ -46,6 +46,7 @@ interface PushProvisioningPlugin {
     clearWalletLegacySession(options: Record<string, never>): Promise<void>
     clearWalletCard(options: Record<string, never>): Promise<void>
     clearWalletAuthorizationToken(options: Record<string, never>): Promise<void>
+    clearWalletStateIfCardMatches(options: { cardId: string }): Promise<void>
     addCard(options: AddCardToWalletArgs): Promise<AddCardToWalletResult>
 }
 
@@ -111,4 +112,9 @@ export async function clearWalletCardForWallet(): Promise<void> {
 /** Drop the direct Wallet credential when the rollout is disabled. */
 export async function clearWalletAuthorizationToken(): Promise<void> {
     await PushProvisioning.call('clearWalletAuthorizationToken', {}, () => undefined)
+}
+
+/** Undo a stale async write without erasing a replacement card's Wallet state. */
+export async function clearWalletStateIfCardMatches(cardId: string): Promise<void> {
+    await PushProvisioning.call('clearWalletStateIfCardMatches', { cardId }, () => undefined)
 }
