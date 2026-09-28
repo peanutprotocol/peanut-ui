@@ -298,18 +298,14 @@ function runNative(
     guard,
     branch,
     event,
-    { devTip = 'a'.repeat(40), mainTip = 'a'.repeat(40), otaSha = 'a'.repeat(40), track = 'internal' } = {}
+    { mainTip = 'a'.repeat(40), otaSha = 'a'.repeat(40), runAttempt = '1', otaRunAttempt = '1', otaEvent = 'push' } = {}
 ) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
     const output = path.join(dir, 'output')
     const script = `
         git() {
             if [ "$1" = "ls-remote" ]; then
-                if [ "$3" = refs/heads/main ]; then
-                    printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"
-                else
-                    printf '%s\\trefs/heads/dev\\n' "$DEV_TIP"
-                fi
+                printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"
             else command git "$@"; fi
         }
         ${guard}
@@ -321,12 +317,13 @@ function runNative(
             GITHUB_REF_TYPE: 'branch',
             GITHUB_EVENT_NAME: event,
             GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+            GITHUB_RUN_ATTEMPT: runAttempt,
             GITHUB_SHA: 'a'.repeat(40),
             GITHUB_OUTPUT: output,
             OTA_SOURCE_SHA: otaSha,
-            DEV_TIP: devTip,
+            OTA_RUN_ATTEMPT: otaRunAttempt,
+            OTA_TRIGGER_EVENT: otaEvent,
             MAIN_TIP: mainTip,
-            TRACK: track,
         },
         encoding: 'utf8',
     })
@@ -376,28 +373,20 @@ function runNativeFloor(platform, bridgeStatus) {
 describe('native release source branch', () => {
     const guard = guardOf('release-native.yml')
 
-    it('releases completed main-push OTA attempts and main dispatches', () => {
-        for (const event of ['workflow_run', 'workflow_dispatch']) {
-            const result = runNative(guard, 'main', event)
-            expect(result.status).toBe(0)
-            expect(result.outputs).toBe('prerelease=false\n')
-        }
-    })
-
-    it('pre-releases a dev dispatch only at the current dev tip', () => {
-        const result = runNative(guard, 'dev', 'workflow_dispatch')
+    it('accepts only the first main-push OTA completion', () => {
+        const result = runNative(guard, 'main', 'workflow_run')
         expect(result.status).toBe(0)
-        expect(result.outputs).toBe('prerelease=true\n')
-
-        const stale = runNative(guard, 'dev', 'workflow_dispatch', { devTip: 'b'.repeat(40) })
-        expect(stale.status).toBe(1)
-        expect(stale.stderr).toContain('dev advanced after dispatch')
+        expect(result.outputs).toBe('')
     })
 
-    it('keeps dev pre-releases on Play internal', () => {
-        const result = runNative(guard, 'dev', 'workflow_dispatch', { track: 'production' })
-        expect(result.status).toBe(1)
-        expect(result.stderr).toContain('Play internal')
+    it.each([
+        ['manual main dispatch', 'main', 'workflow_dispatch', {}],
+        ['dev dispatch', 'dev', 'workflow_dispatch', {}],
+        ['rerun of native workflow', 'main', 'workflow_run', { runAttempt: '2' }],
+        ['rerun of OTA workflow', 'main', 'workflow_run', { otaRunAttempt: '2' }],
+        ['manually dispatched OTA', 'main', 'workflow_run', { otaEvent: 'workflow_dispatch' }],
+    ])('refuses %s', (_case, branch, event, options) => {
+        expect(runNative(guard, branch, event, options).status).toBe(1)
     })
 
     it('refuses a superseded main commit or an OTA run from another commit', () => {
@@ -405,32 +394,29 @@ describe('native release source branch', () => {
         const staleMain = runNative(guard, 'main', 'workflow_run', { mainTip: 'b'.repeat(40) })
         expect(staleMain.status).toBe(1)
         expect(staleMain.stderr).toContain('main advanced')
-        expect(runNative(guard, 'main', 'workflow_dispatch', { mainTip: 'b'.repeat(40) }).status).toBe(1)
     })
 
-    it.each([
-        ['dev', 'workflow_run'],
-        ['release/android-kyc', 'workflow_dispatch'],
-        ['feature/kyc', 'workflow_dispatch'],
-    ])('refuses %s on %s', (branch, event) => {
-        const result = runNative(guard, branch, event)
+    it.each(['dev', 'release/android-kyc', 'feature/kyc'])('refuses %s', (branch) => {
+        const result = runNative(guard, branch, 'workflow_run')
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('::error::')
     })
 
-    it('never tags or touches production OTA from a dev pre-release', () => {
+    it('has no direct manual or tag-push path into any native build', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
-        expect(workflow).toMatch(
-            /tag:\n\s+needs: \[resolve, ios, android\]\n\s+if: needs.resolve.outputs.prerelease != 'true'/
-        )
-        expect(workflow.match(/prerelease: \$\{\{ needs.resolve.outputs.prerelease == 'true' \}\}/g)).toHaveLength(2)
+        expect(workflow).not.toContain('workflow_dispatch:')
+        expect(workflow).toContain('github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1')
+        expect(workflow).toContain('track: internal')
+        expect(workflow.match(/prerelease: false/g)).toHaveLength(2)
         for (const platform of ['ios', 'android']) {
             const callee = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
-            expect(callee).toContain('PRERELEASE: ${{ inputs.prerelease == true }}')
-            expect(callee).toContain('echo "NEXT_PUBLIC_NATIVE_PRERELEASE=true"')
-            expect(callee).toContain(
-                'if [ "$PRERELEASE" = true ]; then\n                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"'
-            )
+            const triggers = callee.slice(callee.indexOf('on:\n'), callee.indexOf('\npermissions:'))
+            expect(triggers).toContain('workflow_call:')
+            expect(triggers).not.toContain('workflow_dispatch:')
+            expect(triggers).not.toContain('push:')
+            expect(callee).toContain("github.workflow == 'App Release Android & iOS'")
+            expect(callee).toContain("github.event_name == 'workflow_run'")
+            expect(callee).toContain('github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1')
         }
     })
 
@@ -456,7 +442,7 @@ describe('native release source branch', () => {
         expect(workflow).toContain('queue: max')
         expect(workflow).not.toContain('Require compatible production OTA lanes before either store upload')
         expect(workflow).not.toContain('nativeFirst')
-        expect(workflow).toContain("track: ${{ github.event_name == 'workflow_run' && 'internal' || inputs.track }}")
+        expect(workflow).toContain('track: internal')
         expect(workflow.match(/versionName: \$\{\{ needs.resolve.outputs.version \}\}/g)).toHaveLength(2)
     })
 
