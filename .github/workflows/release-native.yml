@@ -1,7 +1,7 @@
 name: App Release Android & iOS
 
-# After every main-push OTA attempt, build that same main commit for both
-# stores, even when the OTA cannot run on the older native binaries. A manual
+# After a successful main-push OTA, or one blocked specifically by native
+# incompatibility, build that same main commit for both stores. A manual
 # run on main retries the current head. The version is resolved
 # here, not typed, so iOS and Android share the same native version even though existing installs
 # remain on different versions.
@@ -54,9 +54,12 @@ concurrency:
 
 jobs:
     resolve:
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'push' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')) }}
         runs-on: ubuntu-latest
         environment: Production
+        permissions:
+            contents: read
+            actions: read
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             prerelease: ${{ steps.guard.outputs.prerelease }}
@@ -95,6 +98,25 @@ jobs:
                   MAIN_TIP="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)"
                   if [ "$MAIN_TIP" != "$GITHUB_SHA" ]; then
                       echo "::error::main advanced after native release dispatch (${GITHUB_SHA:0:7} -> ${MAIN_TIP:0:7}); dispatch again" >&2
+                      exit 1
+                  fi
+
+            - name: Read native-incompatible OTA evidence
+              if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' }}
+              uses: actions/download-artifact@v4
+              with:
+                  name: ota-native-incompatible-${{ github.event.workflow_run.id }}
+                  run-id: ${{ github.event.workflow_run.id }}
+                  github-token: ${{ github.token }}
+                  path: ota-native-incompatible
+
+            - name: Verify native-incompatible OTA evidence
+              if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' }}
+              env:
+                  OTA_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+              run: |
+                  if [ "$(cat ota-native-incompatible/head.sha)" != "$OTA_SOURCE_SHA" ]; then
+                      echo '::error::failed OTA did not attest native incompatibility for this main commit' >&2
                       exit 1
                   fi
 

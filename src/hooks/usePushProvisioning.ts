@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
+import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
@@ -41,7 +42,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
         return () => {
             availabilityScopeRef.current = ''
-            latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn: false }
+            latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
         }
     }, [availabilityScope, card.id, card.last4, flagOn])
 
@@ -77,18 +78,27 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
                 const loggedOut = getClearEpoch() !== authEpochAtStart
                 if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
-                const latest = latestSelectionRef.current
+                const currentSelection = () =>
+                    (availabilityScopeRef.current === '' && getWalletProvisioningOwner()) || latestSelectionRef.current
+                const latest = currentSelection()
                 const cardChanged = latest.cardId !== card.id
                 // Unmounting the card screen cancels the sheet, but Home still
                 // owns this active card's Wallet metadata and grant. Only a
                 // replacement card, disabled rollout, or logout may erase it.
-                const flagDisabledWhileMounted = availabilityScopeRef.current !== '' && !latest.flagOn
-                if (nativeWriteStarted && (cardChanged || flagDisabledWhileMounted || loggedOut)) {
+                if (nativeWriteStarted && (cardChanged || !latest.flagOn || loggedOut)) {
                     await clearWalletStateIfCardMatches(card.id)
                     // A late A write can have landed after B's app-wide mirror.
-                    // Put the current card back without touching B's grant.
-                    if (!loggedOut && latest.flagOn && cardChanged && isIOSNative()) {
-                        await rememberCardForWallet({ peanutCardId: latest.cardId, last4: latest.last4 })
+                    // Re-read after the clear: selection, flag, or auth may have
+                    // changed while the native bridge was in flight.
+                    const replacement = currentSelection()
+                    if (
+                        getClearEpoch() === authEpochAtStart &&
+                        replacement.flagOn &&
+                        replacement.cardId &&
+                        replacement.last4 &&
+                        isIOSNative()
+                    ) {
+                        await rememberCardForWallet({ peanutCardId: replacement.cardId, last4: replacement.last4 })
                     }
                 }
                 posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })

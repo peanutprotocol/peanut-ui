@@ -8,6 +8,7 @@ import { rainApi } from '@/services/rain'
 import { getCachedStepUpToken } from '@/services/step-up-cache'
 import { areFeatureFlagsLoaded } from '@/utils/featureFlag.utils'
 import { isIOSNative } from '@/utils/capacitor'
+import { clearWalletProvisioningOwner, setWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import {
     clearLegacyWalletSessionForWallet,
     clearWalletAuthorizationToken,
@@ -35,6 +36,20 @@ export function useWalletProvisioningLifecycle(): void {
     const cachedStepUpToken = getCachedStepUpToken()
     const bootstrapGeneration = useRef(0)
     const previousCardId = useRef<string | undefined>(undefined)
+
+    useEffect(() => {
+        if (iosNative && flagsLoaded && overviewLoaded) {
+            setWalletProvisioningOwner({
+                cardId: activeCardId ?? null,
+                last4: activeCardLast4 ?? null,
+                flagOn,
+            })
+        } else {
+            clearWalletProvisioningOwner()
+        }
+    }, [activeCardId, activeCardLast4, flagOn, flagsLoaded, iosNative, overviewLoaded])
+
+    useEffect(() => () => clearWalletProvisioningOwner(), [])
 
     useEffect(() => {
         if (!iosNative) return

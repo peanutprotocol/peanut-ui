@@ -215,9 +215,10 @@ and it is fine for it to lag behind what ships.
 > cases. See §9 "App-download QR links do not expand the native surface".
 
 Every update to `main` starts **App Release OTA** for that exact commit. It publishes
-only while that commit is still current `main`. When that main-push OTA attempt
-completes, **App Release Android & iOS** starts for the same commit even if the
-OTA could not ship because the native surface changed. It uploads one shared
+only while that commit is still current `main`. When that main-push OTA succeeds,
+or fails at the native-compatibility preflight, **App Release Android & iOS** starts
+for the same commit. A canceled or unrelated failed OTA does not start a native
+build. It uploads one shared
 native version to TestFlight and Play `internal` before writing the attested
 `v<version>` tag. Manual retries of both workflows use `main`. Neither release
 builds the `dev` app tree.
@@ -477,13 +478,14 @@ For a production OTA:
    launches, and recovery after an updater initialization failure. Unit tests cover these
    mechanisms but do not replace tests on the installed binaries.
 3. Merge the reviewed commit to `main`. That push starts **App Release OTA**.
-   Its completion starts **App Release Android & iOS** for the same main commit,
-   including when native incompatibility stops the OTA.
-4. Verify the automatic run's source SHA, compatibility checks, both exact candidate records and
-   platform channels, and the `ota-<version>` tag. The next public release exceeds previous
-   public OTA tags and uploads; the bridge IDs advance in their own lanes. Partial/deleted
-   uploads remain reserved.
-   `builtin` is a valid initial channel state; never overwrite a failed candidate.
+   A successful OTA, or a failure attested by its native-compatibility preflight,
+   starts **App Release Android & iOS** for the same main commit.
+4. If OTA succeeds, verify its source SHA, compatibility checks, both exact candidate
+   records and platform channels, and the `ota-<version>` tag. The next public release
+   exceeds previous public OTA tags and uploads; bridge IDs advance in their own lanes.
+   Partial/deleted uploads remain reserved. `builtin` is a valid initial channel state;
+   never overwrite a failed candidate. If native incompatibility blocks OTA, verify the
+   failure marker and native run instead; there are no candidate records or OTA tag.
 
 Updating `main` publishes to production after the automated checks; this workflow does not
 pause for device QA between upload and promotion. The reserved `ota-candidate` channel has
@@ -740,8 +742,8 @@ record with incomplete metadata fails closed.
 ### Native migration while the iOS 1.5 and Android 1.6 bridges are active
 
 When a main commit changes a native surface, the automatic main-push OTA
-stops before upload because no shipped binary carries the new contract. That
-completed OTA run starts the native workflow automatically. No special native
+stops before upload because no shipped binary carries the new contract. Its
+compatibility marker lets the native workflow start automatically. No special native
 release flag or second dispatch is needed.
 
 1. Confirm each legacy production channel has its last compatible bridge

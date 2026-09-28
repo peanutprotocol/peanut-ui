@@ -12,7 +12,9 @@ function guardOf(file) {
     if (file === 'release-ota.yml' || file === 'release-native.yml') {
         const step = workflow.slice(workflow.indexOf('- name: Guard release ref'))
         return step
-            .match(/run: \|\n([\s\S]*?)\n\s+- (?:name: Check out release tooling|uses: actions\/checkout)/)[1]
+            .match(
+                /run: \|\n([\s\S]*?)\n\s+- (?:name: (?:Check out release tooling|Read native-incompatible OTA evidence)|uses: actions\/checkout)/
+            )[1]
             .split('\n')
             .map((line) => line.replace(/^ {18}/, ''))
             .join('\n')
@@ -55,6 +57,47 @@ function floorShell() {
         .split('\n')
         .map((line) => line.replace(/^ {18}/, ''))
         .join('\n')
+}
+
+function nativeCompatibilityShell() {
+    const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+    const step = workflow.indexOf('- name: Preflight OTA native compatibility')
+    const runStart = workflow.indexOf('run: |', step)
+    const nextStep = workflow.indexOf('\n            - name:', runStart)
+    return workflow
+        .slice(runStart + 'run: |\n'.length, nextStep)
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+}
+
+function runNativeCompatibility(failure) {
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-native-compat-'))
+    const script = `
+        node() {
+            if [[ "$*" == *newest-native* ]]; then printf '1.6.0\\n'; return; fi
+            if [ "$2" = 'v1.6.0' ] && [ "$4" = android ]; then
+                if [ "$COMPAT_FAILURE" = drift ]; then
+                    echo "this tree's native surface differs from v1.6.0" >&2
+                    return 1
+                fi
+                if [ "$COMPAT_FAILURE" = unrelated ]; then
+                    echo 'tag verification failed' >&2
+                    return 1
+                fi
+            fi
+            echo 'native surface matches'
+        }
+        ${nativeCompatibilityShell()}
+    `
+    const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+        encoding: 'utf8',
+        env: { ...process.env, RUNNER_TEMP: dir, OTA_SOURCE_SHA: 'a'.repeat(40), COMPAT_FAILURE: failure },
+    })
+    const markerPath = path.join(dir, 'ota-native-incompatible', 'head.sha')
+    const marker = fs.existsSync(markerPath) ? fs.readFileSync(markerPath, 'utf8') : null
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { status: result.status, marker }
 }
 
 function runFloors(bridgeActive, androidBridgeActive = false) {
@@ -391,11 +434,24 @@ describe('native release source branch', () => {
         }
     })
 
-    it('uses one native version and the Play internal track after any main-push OTA completion', () => {
+    it('only hands success or an attested native-incompatible OTA to the store build', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+        const otaWorkflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/workflow_run:\n\s+workflows: \['App Release OTA'\]/)
         expect(workflow).toContain("github.event.workflow_run.event == 'push'")
-        expect(workflow).not.toContain('github.event.workflow_run.conclusion')
+        expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
+        expect(workflow).toContain("github.event.workflow_run.conclusion == 'failure'")
+        expect(workflow).toContain('name: ota-native-incompatible-${{ github.event.workflow_run.id }}')
+        expect(workflow).toContain('run-id: ${{ github.event.workflow_run.id }}')
+        expect(workflow).toContain('$(cat ota-native-incompatible/head.sha)" != "$OTA_SOURCE_SHA"')
+        expect(otaWorkflow).toContain('name: ota-native-incompatible-${{ github.run_id }}')
+        expect(runNativeCompatibility('none')).toEqual({ status: 0, marker: null })
+        expect(runNativeCompatibility('drift')).toEqual({ status: 1, marker: `${'a'.repeat(40)}\n` })
+        expect(runNativeCompatibility('unrelated')).toEqual({ status: 1, marker: null })
+    })
+
+    it('uses one native version and the Play internal track after a permitted main-push OTA', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
         expect(workflow).toContain('"$GITHUB_SHA" != "$OTA_SOURCE_SHA"')
         expect(workflow).toContain('queue: max')
         expect(workflow).not.toContain('Require compatible production OTA lanes before either store upload')

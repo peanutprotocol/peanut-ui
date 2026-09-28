@@ -222,6 +222,34 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            # Only a native-contract mismatch may hand a failed OTA to the
+            # automatic store build. Write the marker at the failing preflight,
+            # before any candidate upload or other failure can occur.
+            - name: Preflight OTA native compatibility
+              run: |
+                  FLOOR="$(node ../release-tooling/scripts/release-version.mjs newest-native --root "$PWD")"
+                  for PLATFORM in android ios; do
+                    if RESULT="$(node ../release-tooling/scripts/check-native-ota-surface.mjs "v$FLOOR" --platform "$PLATFORM" --root "$PWD" 2>&1)"; then
+                      echo "$RESULT"
+                    else
+                      echo "$RESULT" >&2
+                      if [[ "$RESULT" == *"this tree's native surface differs from v$FLOOR"* ]]; then
+                        mkdir -p "$RUNNER_TEMP/ota-native-incompatible"
+                        printf '%s\n' "$OTA_SOURCE_SHA" > "$RUNNER_TEMP/ota-native-incompatible/head.sha"
+                      fi
+                      exit 1
+                    fi
+                  done
+
+            - name: Record native-incompatible OTA
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ota-native-incompatible-${{ github.run_id }}
+                  path: ${{ runner.temp }}/ota-native-incompatible/head.sha
+                  if-no-files-found: ignore
+                  retention-days: 7
+
             # NEXT_PUBLIC_* values are baked into the static export at build time.
             # rpId MUST be peanut.me (passkeys + assetlinks/AASA). CAPACITOR_BUILD /
             # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.

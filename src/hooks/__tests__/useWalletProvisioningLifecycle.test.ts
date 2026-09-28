@@ -2,6 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { useWalletProvisioningLifecycle } from '../useWalletProvisioningLifecycle'
 import { rainApi } from '@/services/rain'
 import { isIOSNative } from '@/utils/capacitor'
+import { clearWalletProvisioningOwner, getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import {
     clearLegacyWalletSessionForWallet,
     clearWalletAuthorizationToken,
@@ -55,6 +56,7 @@ const overviewWithCard = (id: string) => ({
 describe('useWalletProvisioningLifecycle', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        clearWalletProvisioningOwner()
         mockedIsIOS.mockReturnValue(true)
         mockedFlag.mockReturnValue(false)
         mockedFlagsLoaded.mockReturnValue(true)
@@ -147,6 +149,24 @@ describe('useWalletProvisioningLifecycle', () => {
         await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-a', last4: '1111' }))
         await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('card-a', 'grant-a', 2_592_000))
         expect(mockedGetAuthorization).toHaveBeenCalledWith('card-a', 'apple', { stepUpToken: expect.any(String) })
+    })
+
+    it('publishes the current selection and flag even after the card screen is gone', () => {
+        mockedFlag.mockReturnValue(true)
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+        const { rerender, unmount } = renderHook(() => useWalletProvisioningLifecycle())
+        expect(getWalletProvisioningOwner()).toEqual({ cardId: 'card-a', last4: '1111', flagOn: true })
+
+        mockedOverview.mockReturnValue(overviewWithCard('card-b'))
+        rerender()
+        expect(getWalletProvisioningOwner()).toEqual({ cardId: 'card-b', last4: '2222', flagOn: true })
+
+        mockedFlag.mockReturnValue(false)
+        rerender()
+        expect(getWalletProvisioningOwner()).toEqual({ cardId: 'card-b', last4: '2222', flagOn: false })
+
+        unmount()
+        expect(getWalletProvisioningOwner()).toBeNull()
     })
 
     it('only mirrors metadata globally when no step-up proof is cached', async () => {
