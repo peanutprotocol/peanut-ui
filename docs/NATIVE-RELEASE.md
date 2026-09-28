@@ -215,10 +215,13 @@ and it is fine for it to lag behind what ships.
 > cases. See §9 "App-download QR links do not expand the native surface".
 
 Every update to `main` starts **App Release OTA** for that exact commit. It publishes
-only while that commit is still current `main`. A successful OTA starts **App Release
-Android & iOS** for the same commit, uploading one shared native version to TestFlight
-and Play `internal` before writing the attested `v<version>` tag. Manual retries of
-both workflows use `main`. Neither release builds the `dev` app tree.
+only while that commit is still current `main`. When that main-push OTA succeeds,
+or fails at the native-compatibility preflight, **App Release Android & iOS** starts
+for the same commit. A canceled or unrelated failed OTA does not start a native
+build. It uploads one shared
+native version to TestFlight and Play `internal` before writing the attested
+`v<version>` tag. Manual retries of both workflows use `main`. Neither release
+builds the `dev` app tree.
 
 1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
    its release QA is complete.
@@ -233,9 +236,26 @@ Use the workflow that matches the release:
 
 | | button | what it does |
 |-|--------|--------------|
-| native | **App Release Android & iOS** | successful `main` push OTA resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| native | **App Release Android & iOS** | completed `main` push OTA attempt resolves `<major>.<build+1>.0` → builds iOS + Android from that exact current commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| native pre-release | **App Release Android & iOS**, dispatched on `dev` | builds the current `dev` tip under the next `<major>.<build+1>.0` → TestFlight + Play `internal` only; no `v*` tag, no production OTA read or write, so the next `main` release resolves the same version |
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+
+To put native changes that `main` does not have yet in testers' hands, dispatch the same
+workflow on `dev`:
+
+```sh
+gh workflow run release-native.yml --repo peanutprotocol/peanut-ui --ref dev -f track=internal
+```
+
+It refuses a dispatch once `dev` has moved past the dispatched commit, and it skips the
+legacy-bridge preflight, reporting a mismatch as a warning instead. The build bakes
+`NEXT_PUBLIC_NATIVE_PRERELEASE=true`, which turns off the OTA check and the beta-updates
+switch: production serves `main` JS for the older native surfaces, and staging bundles
+sort below the unreleased native version, so neither lane can safely update it. Testers
+run the dev JS the binary was built with; dispatch again for newer dev. iOS build numbers are wall-clock seconds (the Play
+`versionCode` scheme), so a later `main` upload of the same version still sorts above a
+pre-release. Promote only `main` releases to the stores.
 
 Merging reviewed code to `main` starts production OTA for that exact commit. A successful
 OTA then starts the native TestFlight and Play internal build for the same commit. To retry
@@ -427,13 +447,12 @@ Later runs advance within those lanes. Verify a device on each old binary accept
 its first bridge and a later main-source OTA. The dedicated iOS and Android bridge
 workflows on `main` are manual recovery paths if the automatic bootstrap fails.
 
-While the legacy bridges are active, both automatic and manual OTA runs keep publishing
-iOS 1.5.x and Android 1.6.x bundles from the current `main` tree. The new native uploads
-leave those channels in place; promoting a newer `.0` would make offline older clients
-reject updates under their numeric gate. New binaries use the same shared native version
-and the floor-aware gate accepts the compatible legacy bundle. If `main` changes either
-platform's native surface, a preflight stops the coordinated store release before either
-upload until there is a migration path for that platform's older clients.
+While the legacy bridges are active, compatible OTA runs keep publishing iOS 1.5.x and
+Android 1.6.x bundles from the current `main` tree. If `main` changes either native
+surface, that OTA attempt stops before upload, but the following native build still runs.
+The new native uploads leave the old channels in place; promoting a newer `.0` would
+make offline older clients reject updates under their numeric gate. After the new binaries
+are available, the separate OTA cutover moves each platform to its new native floor.
 
 ### App-download QR links do not expand the native surface
 
@@ -459,12 +478,14 @@ For a production OTA:
    launches, and recovery after an updater initialization failure. Unit tests cover these
    mechanisms but do not replace tests on the installed binaries.
 3. Merge the reviewed commit to `main`. That push starts **App Release OTA**.
-   Its successful completion starts **App Release Android & iOS** for the same main commit.
-4. Verify the automatic run's source SHA, compatibility checks, both exact candidate records and
-   platform channels, and the `ota-<version>` tag. The next public release exceeds previous
-   public OTA tags and uploads; the bridge IDs advance in their own lanes. Partial/deleted
-   uploads remain reserved.
-   `builtin` is a valid initial channel state; never overwrite a failed candidate.
+   A successful OTA, or a failure attested by its native-compatibility preflight,
+   starts **App Release Android & iOS** for the same main commit.
+4. If OTA succeeds, verify its source SHA, compatibility checks, both exact candidate
+   records and platform channels, and the `ota-<version>` tag. The next public release
+   exceeds previous public OTA tags and uploads; bridge IDs advance in their own lanes.
+   Partial/deleted uploads remain reserved. `builtin` is a valid initial channel state;
+   never overwrite a failed candidate. If native incompatibility blocks OTA, verify the
+   failure marker and native run instead; there are no candidate records or OTA tag.
 
 Updating `main` publishes to production after the automated checks; this workflow does not
 pause for device QA between upload and promotion. The reserved `ota-candidate` channel has
@@ -717,6 +738,38 @@ needed. The channel version is read through structured Capgo APIs before the nat
 an inactive candidate and verifies the exact source, both compatibility-derived platform
 floors, the stricter shared server floor and artifact before promotion. An existing `.0`
 record with incomplete metadata fails closed.
+
+### Native migration while the iOS 1.5 and Android 1.6 bridges are active
+
+When a main commit changes a native surface, the automatic main-push OTA
+stops before upload because no shipped binary carries the new contract. Its
+compatibility marker lets the native workflow start automatically. No special native
+release flag or second dispatch is needed.
+
+1. Confirm each legacy production channel has its last compatible bridge
+   bundle before merging. The automatic native run uploads the new binaries to
+   TestFlight and Play internal, leaves active legacy Capgo channels unchanged,
+   and tags the exact commit only after both builds succeed. Promote the binaries
+   in the store consoles after device validation. New binaries carry their own JS
+   while the old lanes stay pinned. Native 1.7 and newer reject OTA bundles
+   from an older native release line, including saved or queued bridges. The
+   1.5/1.6 fleet retains bridge recovery, and same-release OTA rollbacks remain
+   available on newer binaries.
+2. Once the new native release is available to users, dispatch
+   `release-ota.yml` on the current `main` tip with
+   `nativeMigrationCutover=true`. It requires the new native tag and both
+   platform floors to equal that release. It uploads separate signed bundles
+   with `min_update_version=1.7.0`, verifies each artifact, then changes each
+   production channel's bundle and native-version policy in one request.
+   Devices on 1.5/1.6 keep their last compatible installed bundle and need a
+   store update for later OTA releases. Never promote the 1.7 OTA to those
+   devices, or retire the bridge before a verified 1.7 binary is available.
+
+If either platform cutover fails, the other remains on its verified new bundle.
+Inspect both channels and the exact candidate artifacts, then rerun the manual
+cutover; it resumes the still-active bridge and publishes a fresh version to
+the already-cut-over platform. Do not treat a partial cutover as a successful
+release.
 
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated

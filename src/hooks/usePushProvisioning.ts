@@ -1,14 +1,19 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
+import { getClearEpoch } from '@/utils/auth-token'
+import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
+    clearWalletStateIfCardMatches,
     getPushProvisioningAvailability,
     PUSH_PROVISIONING_FLAG,
+    rememberCardForWallet,
+    syncWalletAuthorizationToken,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
 
@@ -28,16 +33,29 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
     const [nativeAvailable, setNativeAvailable] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
+    const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
+    const availabilityScopeRef = useRef(availabilityScope)
+    const latestSelectionRef = useRef({ cardId: card.id, last4: card.last4, flagOn })
+
+    useEffect(() => {
+        availabilityScopeRef.current = availabilityScope
+        latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
+        return () => {
+            availabilityScopeRef.current = ''
+            latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
+        }
+    }, [availabilityScope, card.id, card.last4, flagOn])
 
     useEffect(() => {
         let cancelled = false
+        const iosNative = isIOSNative()
         // iOS only for now. Google requires its own supplied, localized "Add to
         // Google Wallet" button on any control that starts push provisioning, and
         // that asset ships with issuer onboarding — which is also the gate this
         // path waits on. Until then Android keeps the manual carousel rather than
         // starting the flow from a button Google has not sanctioned. The native
         // Android path underneath is complete; re-enable it with the asset.
-        if (!flagOn || !isIOSNative()) {
+        if (!flagOn || !iosNative) {
             setNativeAvailable(false)
             return
         }
@@ -47,15 +65,63 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         return () => {
             cancelled = true
         }
-    }, [flagOn, card.last4])
+    }, [flagOn, card.id, card.last4])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
+        const scopeAtStart = availabilityScope
+        const authEpochAtStart = getClearEpoch()
         const wallet = isIOSNative() ? 'apple' : 'google'
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_TAPPED, { wallet })
         setIsAdding(true)
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
+            const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
+                const loggedOut = getClearEpoch() !== authEpochAtStart
+                if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
+                const currentSelection = () =>
+                    (availabilityScopeRef.current === '' && getWalletProvisioningOwner()) || latestSelectionRef.current
+                const latest = currentSelection()
+                const cardChanged = latest.cardId !== card.id
+                // Unmounting the card screen cancels the sheet, but Home still
+                // owns this active card's Wallet metadata and grant. Only a
+                // replacement card, disabled rollout, or logout may erase it.
+                if (nativeWriteStarted && (cardChanged || !latest.flagOn || loggedOut)) {
+                    await clearWalletStateIfCardMatches(card.id)
+                    // A late A write can have landed after B's app-wide mirror.
+                    // Re-read after the clear: selection, flag, or auth may have
+                    // changed while the native bridge was in flight.
+                    const replacement = currentSelection()
+                    if (
+                        getClearEpoch() === authEpochAtStart &&
+                        replacement.flagOn &&
+                        replacement.cardId &&
+                        replacement.last4 &&
+                        isIOSNative()
+                    ) {
+                        await rememberCardForWallet({ peanutCardId: replacement.cardId, last4: replacement.last4 })
+                    }
+                }
+                posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })
+                return { added: false, canceled: true }
+            }
+            const staleAfterFetch = await cancelStaleAdd(false)
+            if (staleAfterFetch) return staleAfterFetch
+            if (data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
+                await rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 })
+                const staleAfterMirror = await cancelStaleAdd(true)
+                if (staleAfterMirror) return staleAfterMirror
+                await syncWalletAuthorizationToken(
+                    card.id,
+                    data.walletAuthorizationToken,
+                    data.walletAuthorizationExpiresIn
+                )
+                const staleAfterGrant = await cancelStaleAdd(true)
+                if (staleAfterGrant) return staleAfterGrant
+            }
+            const staleBeforeAdd = await cancelStaleAdd(false)
+            if (staleBeforeAdd) return staleBeforeAdd
             const result = await addCardToWallet({
+                peanutCardId: card.id,
                 cardId: data.cardId,
                 cardSecret: data.cardSecret,
                 cardholderName: data.cardholderName,
@@ -70,7 +136,21 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                       : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
                 { wallet, error: result.error }
             )
-            if (result.added || result.alreadyInWallet) setNativeAvailable(false)
+            if (result.added) {
+                // The iPhone may now have the card while a paired Watch can still
+                // take it. Recheck both devices instead of hiding the native row.
+                // An availability failure must not turn a successful add into a
+                // reported provisioning failure.
+                const { available, alreadyInWallet } = await getPushProvisioningAvailability(card.last4).catch(() => ({
+                    available: false,
+                    alreadyInWallet: false,
+                }))
+                if (availabilityScopeRef.current === scopeAtStart && flagOn) {
+                    setNativeAvailable(available && !alreadyInWallet)
+                }
+            } else if (result.alreadyInWallet) {
+                setNativeAvailable(false)
+            }
             return result
         } catch (e) {
             // Step-up cancel/timeout or the provisioning-data fetch failing
@@ -81,7 +161,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         } finally {
             setIsAdding(false)
         }
-    }, [card.id])
+    }, [availabilityScope, card.id, card.last4, flagOn])
 
     return { nativeAvailable, isAdding, addToWallet }
 }
