@@ -105,7 +105,8 @@ export default function MiniHeaderPage() {
 </div>
 <div className="flex flex-col gap-1">
     <MiniHeader>{t('youMust')}</MiniHeader>
-    <p className="text-body-s text-foreground-primary">{t.rich('sendExactly', { currency, amount, b })}</p>
+    <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
+    <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
 </div>`}
                 >
                     <div className="flex flex-col gap-4 text-left">
@@ -115,11 +116,13 @@ export default function MiniHeaderPage() {
                             <p className="text-body-s text-foreground-primary">And a reference code</p>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <MiniHeader>You must</MiniHeader>
+                            <MiniHeader>Required</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
-                                Send exactly <b>EUR 250.00</b>
+                                Copy the one-time reference code exactly
                             </p>
-                            <p className="text-body-s text-foreground-primary">Paste the reference in your transfer</p>
+                            <p className="text-body-s text-foreground-primary">
+                                Paste it in the description/reference field
+                            </p>
                         </div>
                     </div>
                 </ProductUsage.Example>

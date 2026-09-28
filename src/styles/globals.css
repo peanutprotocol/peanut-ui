@@ -42,6 +42,10 @@
          make w-xl/w-2xl etc. resolve, and ~70 dead call-sites use exactly
          those classes today. both need their call-sites triaged first.
        ─────────────────────────────────────────────────────────────────────── */
+    /* the one phone breakpoint: under it the badge tiles and the avatar hand use
+       the narrow layout (2x2 hand, 48px art). Keep in step with HAND_WIDE_MIN
+       in src/components/Avatar/avatarPicker.utils.ts (TASK-22677). */
+    --breakpoint-xs: 24.375rem;
 
     --color-action-primary: #ff90e8;
     --color-action-primary-hover: #ffa3ec;

@@ -9,6 +9,7 @@ const catalog = [
         publicDescription: 'Invited one friend.',
         iconUrl: '/badges/first_invite.svg',
         unlock: { kind: 'invites', target: 1 },
+        earnable: true,
     },
     {
         code: 'CARD_FIRST_SWIPE',
@@ -17,6 +18,16 @@ const catalog = [
         publicDescription: 'Used their card.',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
+        earnable: true,
+    },
+    {
+        code: 'PSYOPS_DIVISION',
+        name: 'Psyops Division',
+        description: 'Enlisted in the Psyops Division.',
+        publicDescription: 'Enlisted in the Psyops Division.',
+        iconUrl: '/badges/psyops_division.svg',
+        unlock: { kind: 'campaign' },
+        earnable: false,
     },
 ] satisfies BadgeCatalogEntry[]
 
@@ -43,6 +54,17 @@ describe('buildBadgeCollection', () => {
             ['CARD_FIRST_SWIPE', false],
         ])
         expect(badges[1]).toMatchObject({ name: 'FIRST_INVITE', description: 'Invite one friend.' })
+    })
+
+    it('never shows a badge nobody can earn as locked, but keeps it for its holder', () => {
+        const browsing = buildBadgeCollection([], catalog)
+        expect(browsing.map(({ code }) => code)).not.toContain('PSYOPS_DIVISION')
+
+        const holding = buildBadgeCollection([owned('PSYOPS_DIVISION', '2026-07-02T00:00:00Z')], catalog)
+        expect(holding.find(({ code }) => code === 'PSYOPS_DIVISION')).toMatchObject({
+            earned: true,
+            description: 'Enlisted in the Psyops Division.',
+        })
     })
 
     it('does not duplicate an earned badge from the catalog', () => {

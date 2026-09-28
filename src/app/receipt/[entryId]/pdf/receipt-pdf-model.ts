@@ -13,7 +13,8 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency, printableAddress } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
@@ -183,7 +184,7 @@ export function buildReceiptPdfModel(
         companyName: RECEIPT_COMPANY.name,
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
-        amountDisplay: `${headline.sign}$${formatCurrency(safeAmount.toString())}`,
+        amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
         convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,

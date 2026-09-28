@@ -43,10 +43,9 @@ const QRCodeWrapper = ({
 
     return (
         <div className={twMerge('relative mx-auto h-auto w-full max-w-[160px]', className)}>
-            {/* Container with black border and rounded corners */}
             <div
                 className={twMerge(
-                    'relative min-h-[160px] rounded border-2 border-black bg-white p-4',
+                    'relative min-h-[160px] rounded-sm border-2 border-border-default bg-background-default p-4',
                     (showLoading || disabled) && 'blur-sm'
                 )}
             >

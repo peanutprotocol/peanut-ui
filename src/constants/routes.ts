@@ -55,6 +55,7 @@ export const DEDICATED_ROUTES = [
     'lp',
     'exchange',
     'shhhhh',
+    'app-help', // static help article JSON for the in-app help drawer
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)
     'send-money-to',

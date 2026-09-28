@@ -98,8 +98,9 @@ export default function BalanceWarningDrawer({ visible, onCloseAction }: Balance
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* this is good news, not an alert — pink wallet, not the yellow warning tone */}
-                        <IconBubble icon="wallet" className="bg-action-primary" />
+                        {/* the balance is past the backup threshold and the slide asks the
+                            user to act: yellow, the needs-you tone (TASK-22761) */}
+                        <IconBubble icon="wallet" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('balanceWarningModal.title')}</DrawerTitle>
                             <DrawerDescription>{t('balanceWarningModal.congrats')}</DrawerDescription>

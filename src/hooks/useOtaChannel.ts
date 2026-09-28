@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
+import { isNativePrerelease } from '@/utils/native-prerelease'
 import {
     BETA_OTA_CHANNEL,
     clearPendingBetaExit,
@@ -86,7 +87,7 @@ export function useOtaChannel(): UseOtaChannel {
 
     // isNativeBridge() reads window, so it can only run after hydration.
     useEffect(() => {
-        if (!isNativeBridge()) return
+        if (!isNativeBridge() || isNativePrerelease()) return
         setSupported(true)
         refresh().catch((err) => console.warn('[capgo] channel read failed:', err))
     }, [refresh])

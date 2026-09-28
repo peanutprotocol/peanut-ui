@@ -13,7 +13,7 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkLegacyAndroidPermissions } from './check-legacy-android-permissions.mjs'
-import { diff, fingerprint, legacyV2Fingerprint, setRepoRoot } from './native-fingerprint.mjs'
+import { diff, fingerprint, legacyV2Fingerprint, platformDiff, setRepoRoot } from './native-fingerprint.mjs'
 
 const require = createRequire(import.meta.url)
 const { changesOutsidePlatform, changesUnsafeForSameVersion } = require('./check-native-change-scope.cjs')
@@ -122,12 +122,12 @@ export function checkNativeOtaSurface({ root = defaultRoot, baseRef, platform = 
     const baseline = replacementBaseline({ root, baseRef, platform, headRef })
 
     if (baseline === baseRef) {
-        const changes = diff(baseRef, headRef)
+        const changes = platformDiff(platform, baseRef, headRef)
         if (changes.length > 0) failChanged(baseRef, headRef, changes)
         return `native surface matches original ${baseRef} (${fingerprint(baseRef)})`
     }
 
-    const changes = diff(baseline, headRef)
+    const changes = platformDiff(platform, baseline, headRef)
     if (changes.length > 0) failChanged(baseline, headRef, changes)
     if (platform === 'android') checkLegacyAndroidPermissions({ root, ref: headRef })
     return `native surface matches attested ${platform} replacement ${baseline} (${fingerprint(

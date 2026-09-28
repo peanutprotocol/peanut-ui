@@ -21,7 +21,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
-    const apply = page.getByRole('button', { name: 'Get your card', exact: true })
+    const apply = page.getByRole('button', { name: 'Get card', exact: true })
     await expect(apply).toBeVisible()
     await expect(page.getByText(/closed beta|try the door|join.*waitlist/i)).toHaveCount(0)
     await shot(page, 'application')
@@ -35,21 +35,21 @@ test('an ordinary account reaches the application and card terms without a queue
 
 test('known prohibited geography keeps its regulatory screen', async ({ page }) => {
     await page.goto('/card?__fixture=card-prohibited')
-    await expect(page.getByText("Cards aren't available in your region yet")).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Get your card', exact: true })).toHaveCount(0)
+    await expect(page.getByText("Cards aren't available in this region yet")).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Get card', exact: true })).toHaveCount(0)
     await shot(page, 'prohibited')
 })
 
 test('an existing application keeps its pending provider status', async ({ page }) => {
     await page.goto('/card?__fixture=card-pending')
-    await expect(page.getByText('Setting up your card…')).toBeVisible()
+    await expect(page.getByText('Setting up card…')).toBeVisible()
     await shot(page, 'pending')
 })
 
 test('an existing holder can manage their card even with a prohibited residence', async ({ page }) => {
     await page.goto('/card?__fixture=card-holder')
     await expect(page.getByText('Card management', { exact: true })).toBeVisible()
-    await expect(page.getByText("Cards aren't available in your region yet")).toHaveCount(0)
+    await expect(page.getByText("Cards aren't available in this region yet")).toHaveCount(0)
     await shot(page, 'holder')
 })
 
@@ -89,6 +89,6 @@ test('the public landing sends a guest to signup with the card destination', asy
     await page.goto('/shhhhh')
     await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeVisible()
     await shot(page, 'landing')
-    await page.getByRole('button', { name: 'Get your card', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Get card', exact: true }).first().click()
     await expect(page).toHaveURL(/\/setup\?redirect_uri=%2Fcard/)
 })

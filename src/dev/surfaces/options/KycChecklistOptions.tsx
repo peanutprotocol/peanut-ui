@@ -26,6 +26,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <ActionModal
             visible
             onClose={() => {}}
+            tone="info"
             icon="badge"
             title={t('initiate.titleDefault')}
             description={

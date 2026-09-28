@@ -75,7 +75,12 @@ export function RewardsPage() {
 
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
+                <EmptyState
+                    icon="alert"
+                    iconColor="red"
+                    title={t('loadPointsFailed')}
+                    description={t('contactSupport')}
+                />
             </div>
         )
     }
@@ -121,8 +126,6 @@ export function RewardsPage() {
                     <Button variant="primary" shadowSize="4" onClick={openInviteModal} className="w-full">
                         {t('inviteNow')}
                     </Button>
-
-                    <div className="border-t border-border-disabled" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
@@ -178,7 +181,7 @@ export function RewardsPage() {
                     </div>
                 </Card>
 
-                {/* iOS presents the programme as cashback (see useAppTranslations);
+                {/* iOS presents the programme in points (see useAppTranslations);
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">
@@ -241,6 +244,7 @@ export function RewardsPage() {
                 ) : isInvitesError ? (
                     <EmptyState
                         icon="alert"
+                        iconColor="red"
                         title={t('loadInvitesFailed')}
                         description={t('contactSupport')}
                         containerClassName="!mt-8"
@@ -285,7 +289,6 @@ export function RewardsPage() {
                                                     avatarKey={invite.avatarKey}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
-                                                    context="card"
                                                     size="m"
                                                 />
                                             </div>
@@ -311,7 +314,7 @@ export function RewardsPage() {
                     <>
                         {/* if user has no invites: canonical empty state with modal button */}
                         <EmptyState
-                            icon="trophy"
+                            concept="rewards"
                             title={t('noInvitesYet')}
                             description={t('shareInviteLinkPrompt')}
                             containerClassName="!mt-8"

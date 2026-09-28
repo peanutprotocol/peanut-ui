@@ -22,6 +22,9 @@ interface Props {
      *  hosts that are themselves the copy button (nesting <button> is invalid
      *  DOM). The host drives copy() through the imperative ref. */
     interactive?: boolean
+    /** button mode only: the label at rest. Once copied it reads "Copied" for
+     *  two seconds, so the control itself confirms the copy. Defaults to "Copy code". */
+    label?: React.ReactNode
 }
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
@@ -35,6 +38,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
             buttonSize,
             onCopy,
             interactive = true,
+            label,
         },
         ref
     ) => {
@@ -81,7 +85,13 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     icon={copied ? 'check' : 'copy'}
                     variant="secondary"
                 >
-                    <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
+                    {label === undefined ? (
+                        <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
+                    ) : copied ? (
+                        t('copyField.copied')
+                    ) : (
+                        label
+                    )}
                 </Button>
             )
         }

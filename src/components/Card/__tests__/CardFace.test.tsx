@@ -77,3 +77,11 @@ describe('CardFace cardholder name', () => {
         expect(screen.getByText('4111 1111 1111 1234')).toBeInTheDocument()
     })
 })
+
+describe('CardFace virtual badge', () => {
+    // design.md badges: "Virtual" is a fact with no tone, so it is neutral, not accent
+    it('marks a virtual card with a neutral badge', () => {
+        render(<CardFace last4="1234" revealed={null} />)
+        expect(screen.getByText('Virtual')).toHaveClass('bg-background-badge-helper')
+    })
+})

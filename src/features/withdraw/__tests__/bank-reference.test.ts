@@ -1,4 +1,9 @@
-import { bankReferenceDestinationFields, bankReferenceProblem, bankReferenceSpecForRail } from '../bank-reference'
+import {
+    bankReferenceDestinationFields,
+    bankReferenceProblem,
+    bankReferenceSpecForRail,
+    payoutNoteForRail,
+} from '../bank-reference'
 
 const sepa = bankReferenceSpecForRail('sepa')!
 const ach = bankReferenceSpecForRail('ach')!
@@ -22,7 +27,7 @@ describe('bankReferenceSpecForRail', () => {
     })
 
     it('a rail the API cannot carry a reference on has no spec', () => {
-        for (const rail of ['wire', 'pix', '', undefined]) {
+        for (const rail of ['swift', 'pix', '', undefined]) {
             expect(bankReferenceSpecForRail(rail)).toBeNull()
         }
     })
@@ -78,7 +83,7 @@ describe('bankReferenceDestinationFields — what reaches the request', () => {
 
     it('sends nothing for an empty reference, a rail with no spec, or a reference that breaks the limits', () => {
         expect(bankReferenceDestinationFields('sepa', '')).toEqual({})
-        expect(bankReferenceDestinationFields('wire', 'Invoice 42')).toEqual({})
+        expect(bankReferenceDestinationFields('swift', 'Invoice 42')).toEqual({})
         expect(bankReferenceDestinationFields('sepa', 'short')).toEqual({})
         expect(bankReferenceDestinationFields('ach', 'Invoice #42')).toEqual({})
         // over each rail's own ceiling
@@ -87,5 +92,28 @@ describe('bankReferenceDestinationFields — what reaches the request', () => {
         expect(bankReferenceDestinationFields('co_bank_transfer', 'x'.repeat(19))).toEqual({})
         // SPEI takes no punctuation
         expect(bankReferenceDestinationFields('spei', 'RENTA-09')).toEqual({})
+    })
+})
+
+describe('USD speeds carry a reference (TASK-23054)', () => {
+    it('same-day ACH takes the ACH field and its 10-character limit', () => {
+        expect(bankReferenceSpecForRail('ach_same_day')).toEqual(bankReferenceSpecForRail('ach'))
+        expect(bankReferenceDestinationFields('ach_same_day', 'RENT SEP')).toEqual({ achReference: 'RENT SEP' })
+    })
+
+    it('a wire carries a memo of up to 140 characters', () => {
+        const wire = bankReferenceSpecForRail('wire')!
+        expect(wire.field).toBe('wireMessage')
+        expect([wire.minLength, wire.maxLength]).toEqual([1, 140])
+        expect(bankReferenceDestinationFields('wire', 'Invoice 42 / rent')).toEqual({
+            wireMessage: 'Invoice 42 / rent',
+        })
+        expect(bankReferenceProblem('x'.repeat(141), wire)).toBe('tooLong')
+        expect(bankReferenceProblem('Invoice #42', wire)).toBe('invalidChars')
+    })
+
+    it('says the payout comes from our partner on same-day ACH, and from Peanut on a wire', () => {
+        expect(payoutNoteForRail('ach_same_day')).toBe('payoutSenderAch')
+        expect(payoutNoteForRail('wire')).toBe('payoutSenderWire')
     })
 })

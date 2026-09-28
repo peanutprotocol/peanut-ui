@@ -33,7 +33,6 @@ const renderView = (overrides: Partial<React.ComponentProps<typeof RequestCreate
         currency: 'EUR',
         bankPayable: true,
         onDone: jest.fn(),
-        onCreateAnother: jest.fn(),
         ...overrides,
     }
 
@@ -60,13 +59,14 @@ it('makes successful creation persistent and celebrates once', () => {
     expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
 })
 
-it('starts another request only when asked', () => {
-    const props = renderView({ requestAmount: '', bankPayable: false })
+it('shows two buttons, primary Done first, then share', () => {
+    renderView({ requestAmount: '', bankPayable: false })
 
-    expect(screen.getByRole('button', { name: messages.request.shareOpenRequest })).toBeInTheDocument()
     expect(screen.queryByTestId('bank-status')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: messages.request.created.createAnother }))
-    expect(props.onCreateAnother).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+        messages.common.done,
+        messages.request.shareOpenRequest,
+    ])
 })
 
 it('exits the terminal state through Done', () => {

@@ -10,6 +10,7 @@ import { ETHEREUM_ICON } from '@/assets/icons'
 import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
+import Loading from '../Loading'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionDrawer from './CameraPermissionDrawer'
@@ -425,7 +426,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
                     />
                     {!isCameraReady && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
-                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            <Loading className="size-8 text-white" />
                             <span className="text-body-s text-white/80">{t('qrScanner.startingCamera')}</span>
                         </div>
                     )}

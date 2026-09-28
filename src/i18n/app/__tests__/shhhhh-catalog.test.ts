@@ -15,8 +15,8 @@ describe('/shhhhh catalog', () => {
     it('es-AR overlays voseo onto the es-419 copy', async () => {
         const [es419, esArResolved] = await Promise.all([loadMessages('es-419'), loadMessages('es-AR')])
 
-        expect(es419.shhhhh.hero.cta).toBe('Consigue tu tarjeta')
-        expect(esArResolved.shhhhh.hero.cta).toBe('Conseguí tu tarjeta')
+        expect(es419.shhhhh.howToApply.verifyTitle).toBe('Verifica.')
+        expect(esArResolved.shhhhh.howToApply.verifyTitle).toBe('Verificá.')
         // untouched keys still fall through to es-419
         expect(esArResolved.shhhhh.faq.q2.answer).toBe(es419.shhhhh.faq.q2.answer)
     })

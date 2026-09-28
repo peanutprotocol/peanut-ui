@@ -1,5 +1,6 @@
-import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { IconBubble } from '../0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '../0_Bruddle/conceptIcons'
 
 export const KYCStatusIcon = () => {
-    return <AvatarWithBadge icon="user-id" className="bg-background-icon-bubble-yellow" size="s" />
+    return <IconBubble {...CONCEPT_ICONS.verification} size="s" />
 }

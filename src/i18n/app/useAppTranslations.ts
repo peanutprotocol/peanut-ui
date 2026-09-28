@@ -11,9 +11,9 @@ type Namespace = NonNullable<Parameters<typeof useTranslations>[0]>
  *
  * App Store Review Guideline 3.1.5 (v) forbids cryptocurrency apps from
  * offering currency for "encouraging other users to download". The native iOS
- * build therefore presents the referral programme as cashback, attributed to
- * the invitee's payment rather than to their signup. Web and Android keep the
- * rewards vocabulary and render byte-for-byte what they rendered before.
+ * build therefore presents the referral programme in points, attributed to the
+ * invitee's payment rather than to their signup, and states dollar payouts
+ * without calling them a reward. Web and Android keep the rewards vocabulary.
  *
  * Overrides live in an `iosCopy` block inside the namespace they belong to, so
  * `t('title')` resolves `rewards.iosCopy.title` on iOS and `rewards.title`

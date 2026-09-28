@@ -128,6 +128,40 @@ describe('useSumsubKycFlow — cross-region routing', () => {
     // and the regions screen offers LATAM as one bucket, so it has none to send
     // and the backend has already tried the user's residence. Retrying repeats
     // the identical request, so it must not look retriable.
+    // api#1738: a residence refusal is localized from the capability reason
+    // catalog, never the UK copy for anyone else, and never retried
+    it('residence_bank_restricted is terminal and reads the country-neutral line', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Bank transfers are not available for your current or pending residence.',
+            code: 'residence_bank_restricted',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess: jest.fn() }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.isTerminalError).toBe(true)
+        expect(result.current.error).toBe(
+            "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime."
+        )
+        expect(result.current.error).not.toMatch(/UK/)
+    })
+
+    it('a resubmit refused for residence reads the localized line, not the backend prose', async () => {
+        mockResubmit.mockResolvedValue({
+            error: 'Bank transfers are not available for your current or pending residence.',
+            code: 'residence_bank_restricted',
+        } as never)
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess: jest.fn() }))
+
+        await act(async () => {
+            await result.current.handleSelfHealResubmit('BRIDGE')
+        })
+
+        expect(result.current.error).toMatch(/^Bank transfers aren't available for residents of your country/)
+    })
+
     it('target_country_required is terminal, not a retry loop', async () => {
         mockInitiate.mockResolvedValue({
             error: 'Bank transfers are not available for your country yet.',
@@ -1291,6 +1325,22 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         expect(result.current.isTerminalError).toBe(true)
         expect(result.current.error).toBeTruthy()
         expect(result.current.showWrapper).toBe(false)
+    })
+    it.each([
+        ['SUBMISSION_EXHAUSTED', /on our side/i],
+        ['IDENTITY_REJECTED', /think this is a mistake/i],
+        ['ACTION_REJECTED', /think this is a mistake/i],
+        ['PROVIDER_REJECTED', /think this is a mistake/i],
+    ] as const)('a blocked session (%s) says whose move it is, not "your ID is verified"', async (reasonCode, key) => {
+        mockStartAction.mockResolvedValue({
+            data: { levelName: 'manteca-kyc', session: { ...session, state: 'BLOCKED', reasonCode } },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.error).toMatch(key)
+        expect(result.current.error).not.toMatch(/your ID is verified/i)
     })
     it.each(['BLOCKED', 'SUBMISSION_PENDING', 'READY'] as const)(
         'clears stale %s state when re-entry resumes collection',

@@ -38,8 +38,10 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     }
 
     if (variant === 'card') {
+        // the mascot hangs 96/112px above the card, so the wrapper reserves that
+        // much top room — without it the card lands on the paragraph above
         return (
-            <div className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
+            <div className={`mx-auto ${PROSE_WIDTH} px-6 pt-24 pb-10 md:px-4 md:pt-28 md:pb-14`}>
                 <div className="relative">
                     <PeanutMascot
                         pose="pointing-down"

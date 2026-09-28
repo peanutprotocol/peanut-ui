@@ -15,6 +15,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -214,7 +215,7 @@ export function SemanticRequestConfirmView() {
                         estimationFailed={isFeeEstimationError}
                     />
 
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {/* buttons and error */}
@@ -246,7 +247,9 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="flex flex-col gap-2">
-                            <Callout priority="error">{errorMessage}</Callout>
+                            <Callout priority="error">
+                                <CooldownErrorText message={errorMessage} />
+                            </Callout>
                         </div>
                     )}
                 </div>

@@ -13,8 +13,8 @@ export function RoleCard({ role }: { role: OpenRole }) {
             <div className="flex flex-col gap-3">
                 <h3 className="text-heading-xs text-foreground-primary">{role.title}</h3>
                 <div className="flex flex-wrap gap-2">
-                    <Badge status="custom" customText={role.location} />
-                    <Badge status="custom" customText={role.compensation} />
+                    <Badge status="neutral" customText={role.location} />
+                    <Badge status="neutral" customText={role.compensation} />
                 </div>
             </div>
             <p className="text-body-s text-foreground-primary">{role.summary}</p>

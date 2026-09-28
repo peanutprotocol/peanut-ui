@@ -1,22 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
-
-export const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
-    ARS: 'ARS',
-    USD: '$',
-    EUR: '€',
-    MXN: 'MX$',
-    BRL: 'R$',
-    COP: 'Col$',
-    CRC: '₡',
-    BOB: '$b',
-    PUSD: 'PUSD',
-    GTQ: 'Q',
-    PHP: '₱',
-    GBP: '£',
-    JPY: '¥',
-    CAD: 'CA$',
-}
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 
 export const useCurrency = (currencyCode: string | null) => {
     const [code, setCode] = useState<string | null>(currencyCode?.toUpperCase() ?? null)

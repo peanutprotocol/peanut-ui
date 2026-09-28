@@ -43,6 +43,25 @@ it('renders nothing off native, where there is no OTA layer at all', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
+it('shows the public release in the beta card while retaining the Capgo ID for support', () => {
+    const previous = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+    process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION = '1.6.9'
+    try {
+        setup({
+            status: {
+                channel: 'android-mobile-release',
+                bundleVersion: '1.6.1000-android',
+                deviceId: 'abc-123',
+                onBuiltinBundle: false,
+            },
+        })
+        expect(screen.getByText('1.6.9-a')).toHaveAttribute('title', '1.6.1000-android')
+    } finally {
+        if (previous === undefined) delete process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+        else process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION = previous
+    }
+})
+
 describe('channel switching access', () => {
     it('keeps the join control enabled when the profile refresh has no badge', async () => {
         setup()

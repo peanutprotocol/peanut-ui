@@ -3,8 +3,11 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Badge from '@/components/Global/Badges/Badge'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useTranslations } from 'next-intl'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -19,12 +22,16 @@ const TITLES = {
     'pending-review': 'gate.reviewTitle',
     'finish-review': 'gate.finishReviewTitle',
     'finish-review-support': 'gate.finishReviewTitle',
+    'provider-review': 'gate.finishReviewTitle',
 } as const
 
 const BODIES = {
     none: 'gate.waitBody',
     'provide-email': 'gate.emailBody',
-    'accept-tos': 'gate.verifyBody',
+    // The title and the button already say it: one document to read and
+    // agree to. The identity sentence that used to sit here was about a
+    // different step (konrad review, 2026-09-23).
+    'accept-tos': null,
     // Support is offered to users who are already verified: a terminal
     // rejection, or a block the backend could not explain. The identity
     // sentence is false for both.
@@ -34,6 +41,7 @@ const BODIES = {
     'pending-review': 'gate.reviewBody',
     'finish-review': 'gate.finishReviewBody',
     'finish-review-support': 'gate.finishReviewSupportBody',
+    'provider-review': 'gate.providerReviewBody',
 } as const
 
 const LABELS = {
@@ -48,6 +56,7 @@ const LABELS = {
     'pending-review': 'gate.reviewCta',
     'finish-review': 'gate.finishReviewCta',
     'finish-review-support': 'gate.supportCta',
+    'provider-review': 'gate.finishReviewCta',
 } as const
 
 /** the picture each reason gets; the default says "closed to you", which a wait is not */
@@ -57,6 +66,7 @@ const ICONS = {
     'account-limit': 'peanut-support',
     'finish-review': 'user-id',
     'finish-review-support': 'peanut-support',
+    'provider-review': 'user-id',
 } as const
 
 /** Reasons with nothing to press: the button closes the drawer, and the drawer updates by itself. */
@@ -92,6 +102,7 @@ export function CorridorGateDrawer({
     isActing = false,
     actFailed = false,
     onClose,
+    onDismiss = onClose,
     onAct,
     onTopUp,
 }: {
@@ -104,7 +115,10 @@ export function CorridorGateDrawer({
     isActing?: boolean
     /** the button's action failed for a reason a retry may clear */
     actFailed?: boolean
+    /** the wait button: back to the list underneath */
     onClose: () => void
+    /** the user swiped or tapped the drawer away: back where they came from */
+    onDismiss?: () => void
     onAct: () => void
     /**
      * The other way in: a transfer the user sends themselves on this same
@@ -113,8 +127,16 @@ export function CorridorGateDrawer({
      */
     onTopUp?: () => void
 }) {
-    const { t, railName } = useDepositAccountCopy()
+    const { t } = useDepositAccountCopy()
+    const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
     const waiting = WAITS.has(notice.action)
+    // A residence rule: nothing clears it, so the one button closes the drawer.
+    // The UK rule keeps its own words (TASK-20729); every other residence gets
+    // the country-neutral line (api#1738).
+    const residence = notice.action === 'residence-restricted'
+    const closesOnly = waiting || residence
     /*
      * At the account cap there is nothing to unblock: the user holds every
      * account we open for them, and support opening one more is a conversation,
@@ -123,23 +145,35 @@ export function CorridorGateDrawer({
      * keeps its own button first — those DO clear the block.
      */
     const topUpLeads = !!onTopUp && notice.action === 'account-limit'
+    const bodyKey = notice.action === 'residence-restricted' ? undefined : BODIES[notice.action]
+    const body = residence
+        ? notice.ukResidence
+            ? tIdentity('reasons.uk_resident_blocked')
+            : t('list.residenceRestrictedBody', { currency: rail.currency })
+        : (notice.message ??
+          (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined))
+    const title =
+        notice.action === 'residence-restricted'
+            ? notice.ukResidence
+                ? tKyc('initiate.titleRegionUnavailable')
+                : t('gate.blockedTitle', { currency: rail.currency })
+            : t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })
+    const label = notice.action === 'residence-restricted' ? tCommon('gotIt') : t(LABELS[notice.action])
 
     const actButton = (
         <Button
-            key="act"
-            variant={topUpLeads ? 'secondary' : 'primary'}
+            variant="primary"
             className="w-full"
             loading={isActing}
             disabled={isActing}
-            onClick={waiting ? onClose : onAct}
+            onClick={closesOnly ? onClose : onAct}
             data-testid={`corridor-gate-${notice.action}`}
         >
-            {t(LABELS[notice.action])}
+            {label}
         </Button>
     )
     const topUpButton = onTopUp ? (
         <Button
-            key="top-up"
             variant={topUpLeads ? 'primary' : 'secondary'}
             className="w-full"
             onClick={onTopUp}
@@ -149,29 +183,29 @@ export function CorridorGateDrawer({
         </Button>
     ) : null
 
+    const gateIcon = ICONS[notice.action as keyof typeof ICONS] as IconName | undefined
+
     return (
         <Drawer
             open={open}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) onDismiss()
             }}
         >
             <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
                 <div className="flex flex-col items-center text-center">
                     {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
                     <IconBubble
-                        icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
-                        color="gray"
+                        icon={gateIcon ?? 'globe-lock'}
+                        // a wait is yellow; a residence rule is closed, gray like the
+                        // hub's closed rows; every other reason has a button that
+                        // clears it, so it is a way forward, blue (TASK-22761)
+                        color={waiting ? 'yellow' : residence ? 'gray' : 'blue'}
                         className="mb-4"
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>{t(TITLES[notice.action], { count: slotsHeld })}</DrawerTitle>
-                        <DrawerDescription>
-                            {notice.message ??
-                                (topUpLeads
-                                    ? t('gate.limitBodyTopUp')
-                                    : t(BODIES[notice.action], { currency: rail.currency }))}
-                        </DrawerDescription>
+                        <DrawerTitle>{title}</DrawerTitle>
+                        {body && <DrawerDescription>{body}</DrawerDescription>}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
                         and the button below is the retry */}
@@ -180,15 +214,25 @@ export function CorridorGateDrawer({
                             {t('gate.actFailed')}
                         </Callout>
                     )}
-                    {/* the leading button first in the DOM, so the order on
-                        screen and the tab order both say which one to press */}
-                    <div className="mt-6 flex w-full flex-col gap-2">
-                        {topUpLeads ? [topUpButton, actButton] : [actButton, topUpButton]}
-                    </div>
-                    {/* which corridor the user tapped, so the drawer is not about "an account" */}
-                    <p className="mt-4 text-body-xs text-foreground-secondary">
-                        {`${rail.currency} · ${railName(rail.corridor)}`}
-                    </p>
+                    {topUpLeads ? (
+                        // support is the escape here, not a second way to add
+                        // money, so it is the tertiary LinkButton under the primary
+                        <div className="mt-6 flex w-full flex-col items-center gap-6">
+                            {topUpButton}
+                            <LinkButton
+                                onClick={onAct}
+                                disabled={isActing}
+                                data-testid={`corridor-gate-${notice.action}`}
+                            >
+                                {label}
+                            </LinkButton>
+                        </div>
+                    ) : (
+                        <div className="mt-6 flex w-full flex-col gap-2">
+                            {actButton}
+                            {topUpButton}
+                        </div>
+                    )}
                 </div>
             </DrawerContent>
         </Drawer>

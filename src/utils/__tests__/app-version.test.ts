@@ -28,6 +28,23 @@ describe('formatRunningVersion', () => {
             '1.5.11715'
         )
     })
+
+    it.each([
+        ['1.5.1000-ios', '1.6.9-i'],
+        ['1.6.1000-android', '1.6.9-a'],
+        ['1.6.9-ios', '1.6.9-i'],
+    ])('shows the baked public version for %s', (otaVersion, expected) => {
+        expect(formatRunningVersion({ appVersion: '1.5.0', appBuild: '21653381', otaVersion }, '1.6.9')).toBe(expected)
+    })
+
+    it('keeps the bundle identity if the public release metadata is invalid', () => {
+        expect(
+            formatRunningVersion(
+                { appVersion: '1.5.0', appBuild: '21653381', otaVersion: '1.5.1000-ios' },
+                'unexpected'
+            )
+        ).toBe('1.5.1000-ios')
+    })
 })
 
 describe('getRunningVersion', () => {

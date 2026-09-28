@@ -24,7 +24,7 @@ const LOCALE_CODES = {
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
-const DEVICE_PROFILES = {
+const LEGACY_DEVICE_PROFILES = {
     '393x852': { platform: 'iphone', label: 'iPhone' },
     '440x956': { platform: 'iphone', label: 'iPhone Pro Max' },
     '360x800': { platform: 'android', label: 'Android' },
@@ -179,26 +179,50 @@ function syncShareableUrl() {
         history.replaceState(null, '', shareableHref())
 }
 function previewDevice() {
-    const capture = report?.type === 'comparison' ? report.after : report
+    const capture = activeComparison?.after ?? (report?.type === 'comparison' ? report.after : report)
     const profile = `${capture?.profile ?? report?.profile ?? ''}`.toLowerCase()
     const profileSize = /(\d{3,4})x(\d{3,4})/.exec(profile)
     const width = Number(capture?.width ?? report?.width ?? profileSize?.[1] ?? 393)
     const height = Number(capture?.height ?? report?.height ?? profileSize?.[2] ?? 852)
-    const preset = DEVICE_PROFILES[`${width}x${height}`]
-    const platform = preset?.platform ?? (profile.includes('android') ? 'android' : 'iphone')
+    const preset = LEGACY_DEVICE_PROFILES[`${width}x${height}`]
+    const declared = capture?.device
+    const platform =
+        declared?.platform === 'android'
+            ? 'android'
+            : declared?.platform === 'ios'
+              ? 'iphone'
+              : (preset?.platform ?? (profile.includes('android') ? 'android' : 'neutral'))
+    const safeArea = declared?.safeArea
+    const verified =
+        ['ios', 'android'].includes(declared?.platform) &&
+        ['dynamic-island', 'punch-hole'].includes(declared?.cutout) &&
+        ['top', 'right', 'bottom', 'left'].every(
+            (edge) => Number.isInteger(safeArea?.[edge]) && safeArea[edge] >= 0 && safeArea[edge] < height
+        )
     return {
         width,
         height,
         platform,
-        label: preset?.label ?? (platform === 'android' ? 'Android' : 'iPhone'),
+        label: verified ? declared.label : preset ? `${preset.label} viewport` : 'Viewport',
+        cutout: verified ? declared.cutout : 'none',
+        safeArea: verified ? safeArea : null,
+        verified,
     }
 }
 function phonePreview(content, label) {
     const device = previewDevice()
     const preview = el('figure', undefined, 'device-preview')
-    const frame = el('div', undefined, `device-frame ${device.platform}`)
+    const frame = el(
+        'div',
+        undefined,
+        `device-frame ${device.platform} ${device.verified ? `device-safe device-${device.cutout}` : 'device-legacy'}`
+    )
     frame.style.aspectRatio = `${device.width} / ${device.height}`
-    frame.setAttribute('aria-label', `${device.label} preview at ${device.width} by ${device.height}`)
+    frame.setAttribute(
+        'aria-label',
+        `${device.label} preview at ${device.width} by ${device.height}${device.verified ? ', safe areas simulated in capture' : ', legacy capture without safe-area simulation'}`
+    )
+    if (device.safeArea) frame.dataset.safeArea = Object.values(device.safeArea).join(',')
     const screen = el('div', undefined, 'device-screen')
     screen.append(content)
     frame.append(

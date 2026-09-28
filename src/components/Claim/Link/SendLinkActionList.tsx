@@ -374,7 +374,7 @@ const MethodCard = ({
                     {method.title}
                     {(showSoon || requiresVerification) && (
                         <Badge
-                            status={requiresVerification ? 'custom' : 'soon'}
+                            status={requiresVerification ? 'pending' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />
                     )}

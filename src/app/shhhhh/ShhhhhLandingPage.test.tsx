@@ -105,7 +105,7 @@ beforeEach(() => {
 
 const getCard = () => {
     render(<ShhhhhLandingPage />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Get your card' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Get card' })[0])
 }
 
 it('offers the public product and keeps a guest card destination through signup', async () => {

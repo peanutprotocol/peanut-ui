@@ -64,12 +64,8 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
                             void save(true)
                         },
                     },
-                    {
-                        text: tCommon('cancel'),
-                        variant: 'secondary',
-                        onClick: () => setIsConfirming(false),
-                    },
                 ]}
+                tertiaryCta={{ text: tCommon('cancel'), onClick: () => setIsConfirming(false) }}
             />
         </>
     )

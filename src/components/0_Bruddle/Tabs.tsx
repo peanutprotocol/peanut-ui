@@ -3,6 +3,7 @@
 import { Content, List, Root, Trigger } from '@radix-ui/react-tabs'
 import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
+import { CARD_SURFACE } from './Card'
 import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
 
 /**
@@ -63,6 +64,9 @@ interface TabDef {
     /** omit on EVERY tab for a triggers-only row — a value toggle whose
      *  switched content is rendered elsewhere on the screen */
     content?: ReactNode
+    /** a tab that cannot be picked right now: radix skips it in the arrow-key
+     *  order and ignores its taps. The caller says why next to the row. */
+    disabled?: boolean
 }
 
 interface TabsProps {
@@ -170,7 +174,7 @@ const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hid
 // states, so switching tabs never shifts anything. Everything here is
 // size-independent; the size-varying properties live in SIZES.
 const trigger =
-    'relative flex shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary'
+    'relative flex shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
 
 /**
  * `lg` deliberately lands on BottomNav's own 52px / px-6, so a large tab row
@@ -256,6 +260,7 @@ export const Tabs = ({
                         <Trigger
                             key={tab.value}
                             value={tab.value}
+                            disabled={tab.disabled}
                             className={twMerge(
                                 trigger,
                                 SIZES[size].row,
@@ -283,10 +288,7 @@ export const Tabs = ({
                         // radix computes its own hidden attribute from `forceMount ||
                         // isSelected`, so with forceMount on it never sets it and every
                         // panel would render stacked
-                        className={twMerge(
-                            'mt-4 rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
-                            focusRing
-                        )}
+                        className={twMerge(`mt-4 ${CARD_SURFACE} p-4 data-[state=inactive]:hidden`, focusRing)}
                     >
                         {tab.content}
                     </Content>

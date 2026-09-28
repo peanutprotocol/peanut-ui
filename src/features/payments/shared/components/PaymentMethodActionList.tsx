@@ -116,7 +116,7 @@ export function PaymentMethodActionList({
                                     {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
                                         <Badge
-                                            status={methodRequiresVerification ? 'custom' : 'soon'}
+                                            status={methodRequiresVerification ? 'pending' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
                                     )}

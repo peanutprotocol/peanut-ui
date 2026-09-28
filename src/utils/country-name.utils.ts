@@ -45,3 +45,25 @@ export function localizedCountryName(locale: string, iso2: string | undefined, f
 export function localizedCountryTitle(locale: string, country: Pick<CountryData, 'iso2' | 'title'>): string {
     return localizedCountryName(locale, country.iso2, country.title)
 }
+
+/**
+ * pt-BR contracts "de" with the country's article ("da França", "do Reino Unido",
+ * "dos Estados Unidos"); countries used without an article, like Portugal, and
+ * any code not listed here keep plain "de".
+ */
+const PT_BR_FROM_PREPOSITION: Record<string, string> = {
+    AR: 'da',
+    BR: 'do',
+    CO: 'da',
+    DE: 'da',
+    ES: 'da',
+    FR: 'da',
+    GB: 'do',
+    MX: 'do',
+    PT: 'de',
+    US: 'dos',
+}
+
+export function ptBrFromPreposition(iso2: string | undefined): string {
+    return (iso2 && PT_BR_FROM_PREPOSITION[iso2.toUpperCase()]) || 'de'
+}

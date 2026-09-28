@@ -30,12 +30,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // typed code, surfaced inline to the user — not server bugs.
     { pattern: /\/invites\/validate/, statuses: [400, 409] },
     // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
-    // quota noise and is not. useGetExchangeRate swallows the failure and
-    // returns a rate of '1', which bankWithdrawMinUsd turns into a wrong
-    // withdrawal minimum (MX shows $50 instead of ~$3) with nothing gating
-    // submission — so this 429 is the only alert for a wrong number on a money
-    // screen, and for the open FX-stampede P2 behind it. It reports until the
-    // keyed single-flight fix in no-cache.ts lands.
+    // quota noise and is not: it is the only alert for the open FX-stampede P2
+    // behind it. It reports until the keyed single-flight fix in no-cache.ts
+    // lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded
@@ -601,6 +598,10 @@ export type FetchWithSentryOptions = RequestInit & {
     silentTimeout?: boolean
 }
 
+/** What a fetch cancelled by its caller rejects with: the reason the caller gave, or a standard AbortError. */
+const cancelError = (signal: AbortSignal): unknown =>
+    signal.reason ?? Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
 export const fetchWithSentry = async (
     url: string,
     optionsWithTransport: FetchWithSentryOptions = {},
@@ -610,6 +611,33 @@ export const fetchWithSentry = async (
     const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
+    /*
+     * The caller's cancel (React Query aborts a fetch it superseded or no longer
+     * needs). Each leg's own timeout controller also follows it, so a cancel
+     * closes the connection and frees the client. It does not stop the query
+     * on the server, which runs to the end: the API's per-user rate limit is
+     * what bounds a burst. The signal used to be replaced by the timeout
+     * signal, and on 2026-09-24 ~100 superseded history requests piled up and
+     * starved the staging database. A cancel is not a failure, so it is never
+     * retried, never falls back to the OS client, and never reported.
+     */
+    const callerSignal = options.signal ?? undefined
+    if (callerSignal?.aborted) throw cancelError(callerSignal)
+    /*
+     * The OS HTTP client (CapacitorHttp) cannot cancel its request, so a native
+     * leg stops waiting on a cancel instead: the caller is released at once and
+     * the late response is neither returned nor reported. The request itself
+     * still reaches the server; SocketQueryRefresh keeps that to one per event.
+     */
+    const nativeLeg = (legMs: number): Promise<Response> => {
+        const request = nativeHttpRequest(url, options, legMs)
+        if (!callerSignal) return request
+        return new Promise<Response>((resolve, reject) => {
+            const onCancel = () => reject(cancelError(callerSignal))
+            callerSignal.addEventListener('abort', onCancel, { once: true })
+            request.then(resolve, reject).finally(() => callerSignal.removeEventListener('abort', onCancel))
+        })
+    }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
@@ -656,11 +684,12 @@ export const fetchWithSentry = async (
      */
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
-            const response = await nativeHttpRequest(url, options, legTimeoutMs())
+            const response = await nativeLeg(legTimeoutMs())
             await reportNonOkResponse(url, options, response, redactTelemetry)
             return response
         } catch {
-            // OS client failed — the WebView path below is the report of record
+            // OS client failed, or the caller cancelled — the WebView path below
+            // checks the cancel first and is otherwise the report of record
         }
     }
 
@@ -674,18 +703,22 @@ export const fetchWithSentry = async (
              * turning a genuine second chance into pure added latency. Throwing
              * the timeout the pool already earned is the honest outcome.
              */
+            if (callerSignal?.aborted) throw cancelError(callerSignal)
             const legMs = legTimeoutMs()
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
             }
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
+            const cancelLeg = () => controller.abort()
+            callerSignal?.addEventListener('abort', cancelLeg)
             try {
                 return await fetch(url, {
                     ...options,
                     signal: controller.signal,
                 })
             } catch (error) {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
                     // console.info: a retry that succeeds is not a failure, and
                     // the retry outcome is reported explicitly below.
@@ -696,6 +729,7 @@ export const fetchWithSentry = async (
                 throw error
             } finally {
                 clearTimeout(timeoutId)
+                callerSignal?.removeEventListener('abort', cancelLeg)
             }
         }
     }
@@ -707,16 +741,18 @@ export const fetchWithSentry = async (
 
         return response
     } catch (error: unknown) {
+        if (callerSignal?.aborted) throw error
         // WebView fetch rejected. On native, retry once over the OS HTTP client
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
         if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
-                const response = await nativeHttpRequest(url, options, legTimeoutMs())
+                const response = await nativeLeg(legTimeoutMs())
                 await reportNonOkResponse(url, options, response, redactTelemetry)
                 return response
             } catch {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
                 // fallback failed too — report the original WebView error below
             }
         }

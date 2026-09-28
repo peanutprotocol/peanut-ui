@@ -96,6 +96,29 @@ describe('native OTA replacement baseline', () => {
         expect(result.stdout).toContain('matches original v1.5.0')
     })
 
+    it('ignores Android-only native changes when verifying the iOS binary', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# Android-only change\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'Android release')
+
+        expect(run(fixture.root, '--platform', 'ios').status).toBe(0)
+        const android = run(fixture.root, '--platform', 'android')
+        expect(android.status).toBe(1)
+        expect(android.stderr).toContain('android/app/proguard-rules.pro')
+    })
+
+    it('rejects shared native changes on both platforms', () => {
+        fs.appendFileSync(path.join(fixture.root, 'capacitor.config.ts'), '\n// shared native config\n')
+        fixture.git('add', 'capacitor.config.ts')
+        fixture.git('commit', '-qm', 'shared native change')
+
+        for (const platform of ['ios', 'android']) {
+            const result = run(fixture.root, '--platform', platform)
+            expect(result.status).toBe(1)
+            expect(result.stderr).toContain('capacitor.config.ts')
+        }
+    })
+
     it('accepts an attested ProGuard-only replacement and later permission-safe JS commits', () => {
         fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# retain runtime metadata\n')
         fixture.git('add', 'android/app/proguard-rules.pro')

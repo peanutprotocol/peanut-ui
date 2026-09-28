@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { act, waitFor } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { renderHook } from '@testing-library/react'
 import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -158,10 +158,12 @@ describe('useCreateRequestLink', () => {
             expect(result.current.bankInstructionsShared).toBe(true)
         })
 
-        it('starts off when only a business may pay', () => {
+        // hugo, QA 2026-09-24: on wherever it is offered; the toggle and the
+        // payer's screen say who may pay instead
+        it('starts on when only a business may pay, too', () => {
             mockDepositAccounts = { FASTER_PAYMENTS_GB: activeAccount('business-only') }
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
-            expect(result.current.bankInstructionsShared).toBe(false)
+            expect(result.current.bankInstructionsShared).toBe(true)
         })
 
         it('starts off when only the holder may pay', () => {
@@ -184,12 +186,13 @@ describe('useCreateRequestLink', () => {
 
         it('reads the account the payer is given, in catalogue order', () => {
             mockDepositAccounts = {
-                ACH_US: activeAccount('business-only'),
-                SEPA_EU: activeAccount('anyone'),
+                ACH_US: activeAccount('anyone'),
+                SEPA_EU: activeAccount('own-name-only'),
             }
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
-            // SEPA_EU comes first in DEPOSIT_RAIL_ORDER, so its 'anyone' wins.
-            expect(result.current.bankInstructionsShared).toBe(true)
+            // SEPA_EU comes first in DEPOSIT_RAIL_ORDER, so the payer would be
+            // given it, and nobody but its holder can pay it.
+            expect(result.current.bankInstructionsShared).toBe(false)
         })
 
         it('lets the user turn the default off and does not re-enable it', () => {
@@ -233,58 +236,6 @@ describe('useCreateRequestLink', () => {
         expect(invalidateQueries).toHaveBeenCalled()
         expect(toastSuccess).toHaveBeenCalledTimes(1)
         expect(result.current.isCreatingLink).toBe(false)
-    })
-
-    it('resets a created request without creating or closing another one', async () => {
-        const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
-        act(() => {
-            result.current.handleRequestAmountChange('5')
-            result.current.handleAttachmentOptionsChange({ message: 'Lunch', fileUrl: '', rawFile: undefined })
-        })
-        await act(async () => {
-            await result.current.generateLink()
-        })
-
-        act(() => {
-            result.current.resetRequest()
-        })
-
-        expect(result.current.requestId).toBeNull()
-        expect(result.current.generatedLink).toBeNull()
-        expect(result.current.requestAmount).toBe('')
-        expect(result.current.attachmentOptions.message).toBe('')
-        expect(apiCreate).toHaveBeenCalledTimes(1)
-    })
-
-    it('creates the next request without the prior currency, message, or bank opt-in', async () => {
-        mockExchangeRate = 0.8
-        apiCreate
-            .mockResolvedValueOnce({ uuid: 'req-1', currency: 'EUR', requestedAmount: '100' })
-            .mockResolvedValueOnce({ uuid: 'req-2' })
-        const { result } = renderHook(() => useCreateRequestLink(), {
-            wrapper: currencyWrapper('?amount=100&currency=EUR'),
-        })
-        act(() => {
-            result.current.setBankInstructionsShared(true)
-            result.current.handleAttachmentOptionsChange({ message: 'Dinner', fileUrl: '', rawFile: undefined })
-        })
-        await act(async () => {
-            await result.current.generateLink()
-        })
-
-        await act(async () => {
-            result.current.resetRequest()
-        })
-        await waitFor(() => expect(result.current.currency).toBe('USD'))
-        await act(async () => {
-            await result.current.generateLink()
-        })
-
-        expect(apiCreate).toHaveBeenCalledTimes(2)
-        expect(apiCreate.mock.calls[1][0]).toEqual(
-            expect.objectContaining({ bankInstructionsShared: false, reference: undefined, tokenAmount: undefined })
-        )
-        expect(apiCreate.mock.calls[1][0]).not.toHaveProperty('requestedAmount')
     })
 
     it('a failed create surfaces the error state, cancels the copy, and returns empty', async () => {

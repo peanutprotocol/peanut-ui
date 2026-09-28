@@ -310,9 +310,10 @@ export default function ButtonPage() {
                             </Button>
                         </div>
                         <div>
+                            {/* a second path of equal weight — never cancel or go back, those are the tertiary LinkButton */}
                             <p className="text-label-l">Secondary CTA</p>
                             <Button variant="secondary" className="mt-2 w-full">
-                                Go Back
+                                Enter code
                             </Button>
                         </div>
                         <div>
@@ -350,7 +351,7 @@ export default function ButtonPage() {
                     <CodeBlock
                         label="Secondary CTA"
                         code={`<Button variant="secondary" className="w-full">
-  Go Back
+  Enter code
 </Button>`}
                     />
                     <CodeBlock

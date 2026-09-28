@@ -87,6 +87,7 @@ export const addBankAccount = async (
         if (!response.ok) {
             return {
                 error:
+                    responseJson.userMessage ||
                     responseJson.message ||
                     responseJson.error ||
                     `Failed to add bank account with status: ${response.status}`,

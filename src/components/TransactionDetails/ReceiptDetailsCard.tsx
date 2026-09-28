@@ -88,7 +88,11 @@ export function ReceiptDetailsCard({
     const statusDateLabel = (kind: ReceiptStatusDateKind) => {
         if (kind === 'claimed') return t('rows.claimed')
         if (kind === 'cancelled') return t('rows.cancelled')
-        if (kind === 'refunded') return t('rows.refunded')
+        // a deposit the bank sent back is Returned everywhere on the receipt,
+        // never Refunded (design.md status words)
+        if (kind === 'refunded') {
+            return transaction.actionLabelKey === 'type.returnedToSender' ? t('returnedStatus') : t('rows.refunded')
+        }
         if (kind === 'closed') return t('rows.closedAt')
         return getCompletedLabel()
     }
@@ -96,7 +100,7 @@ export function ReceiptDetailsCard({
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
 
-    const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
+    const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
 
     return (
         <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
@@ -170,6 +174,13 @@ export function ReceiptDetailsCard({
             {rowVisibilityConfig.cardPayment && <CardPaymentRows transaction={transaction} />}
 
             {rowVisibilityConfig.fee && <DataRow label={t('rows.fee')} value={feeDisplay} />}
+
+            {rowVisibilityConfig.bankReceives && (
+                <DataRow
+                    label={t('rows.bankReceives')}
+                    value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                />
+            )}
 
             {rowVisibilityConfig.mantecaDepositInfo && (
                 <MantecaDepositInfo transaction={transaction} country={country} />

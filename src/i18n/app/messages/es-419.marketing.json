@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Solo pagos con QR de Mercado Pago",
-                "brazil": "Solo pagos con QR Pix"
+                "brazil": "Solo pagos Pix con QR o clave"
             }
         },
         "tryDifferentCountry": "Prueba con otro país.",
@@ -56,7 +56,7 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar",
+        "slideToProceed": "Desliza y continúa",
         "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
@@ -96,8 +96,9 @@
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
+        "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en {time}.",
+        "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya puedes volver a intentarlo.",
         "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
@@ -106,6 +107,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
@@ -141,7 +143,7 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "redirecting": "Te llevamos a la tienda…",
+            "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
     },
@@ -171,7 +173,7 @@
         "hero": {
             "wordmark": "Tarjeta Peanut",
             "tagline": "Tu dinero. Listo para pagar.",
-            "cta": "Consigue tu tarjeta",
+            "cta": "Pedir tarjeta",
             "disclaimer": "Se requiere verificación y aprobación. Sin cuotas mensuales ni anuales. Se aplican las tarifas y los límites de los términos del titular.",
             "title": "Go Pink.",
             "pitch": "Un saldo. 150 millones de lugares donde pagar.",

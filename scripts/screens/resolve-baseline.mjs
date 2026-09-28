@@ -8,8 +8,14 @@ const repo = process.env.REPOSITORY,
 if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
     throw new Error('Invalid baseline lookup identity')
 
+// A page of 100 workflow runs is over 1 MB, execFileSync's default buffer (ENOBUFS).
 const api = (path, args = []) =>
-    JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repo, path), ...args], { encoding: 'utf8' }))
+    JSON.parse(
+        execFileSync('gh', ['api', repositoryApiPath(repo, path), ...args], {
+            encoding: 'utf8',
+            maxBuffer: 64 * 1024 * 1024,
+        })
+    )
 const currentRun = api(`actions/runs/${runId}`)
 const defaultBranch = api('').default_branch
 if (currentRun.event !== 'pull_request' || currentRun.head_repository?.full_name !== repo)
