@@ -15,7 +15,7 @@ import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 
 interface Props {
     isUsResident: boolean
-    /** Called with the two managed-funding boxes the person ticked, after every box is ticked. */
+    /** Called with the funding authorization after all card agreements are accepted. */
     onAccept: (consent: RainFundingConsent) => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
@@ -54,9 +54,8 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [checked, setChecked] = useState<Record<string, boolean>>({})
-    // The two managed-funding boxes follow the card terms. All boxes start
+    // The funding authorization follows the card terms. Every box starts
     // unticked and every one is required.
-    const [managementAccepted, setManagementAccepted] = useState(false)
     const [authorizationAccepted, setAuthorizationAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
@@ -104,15 +103,15 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     }, [isUsResident, terms.length])
 
     const allAccepted = useMemo(
-        () => terms.every((t) => checked[t.id]) && managementAccepted && authorizationAccepted,
-        [terms, checked, managementAccepted, authorizationAccepted]
+        () => terms.every((t) => checked[t.id]) && authorizationAccepted,
+        [terms, checked, authorizationAccepted]
     )
 
     const handleContinue = async () => {
         if (!allAccepted) return
         setSubmitting(true)
         try {
-            await onAccept({ managementAccepted, authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT })
+            await onAccept({ authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT })
         } finally {
             setSubmitting(false)
         }
@@ -145,9 +144,8 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
 
             <CardFundingConsent
                 authorizationText={RTF_AUTHORIZATION_TEXT}
-                managementAccepted={managementAccepted}
+                authorizationOnly
                 authorizationAccepted={authorizationAccepted}
-                onManagementChange={setManagementAccepted}
                 onAuthorizationChange={setAuthorizationAccepted}
                 disabled={submitting}
             />

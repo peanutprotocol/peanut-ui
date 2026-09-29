@@ -36,9 +36,8 @@ export type RainFundingResult =
     | { ok: true; status: RainFundingManagementStatus }
     | { ok: false; error: RainFundingError }
 
-/** What the user ticked. Both boxes are required; neither is ever implied. */
+/** What the user ticked. The authorization box is required and never implied. */
 export interface RainFundingConsent {
-    managementAccepted: boolean
     authorizationAccepted: boolean
     /** The authorization statement exactly as it was shown. */
     authorizationText: string

@@ -98,16 +98,27 @@ describe('CardTermsScreen managed funding consent', () => {
     const boxes = () => screen.getAllByRole('checkbox') as HTMLInputElement[]
     const continueButton = () => screen.getByRole('button', { name: 'Continue' })
 
-    it('keeps the four international rows, then adds the two new boxes — all unchecked', () => {
+    it('keeps the four international rows, then adds only the authorization box — all unchecked', () => {
         renderTerms(false)
+        expect(boxes()).toHaveLength(5)
+        expect(boxes().every((box) => !box.checked)).toBe(true)
+        expect(boxes()[4].closest('[role="listitem"]')).toBe(
+            screen.getByTestId('funding-authorization-statement').parentElement
+        )
+    })
+
+    it('keeps the five US rows, then adds only the authorization box — all unchecked', () => {
+        renderTerms(true)
         expect(boxes()).toHaveLength(6)
         expect(boxes().every((box) => !box.checked)).toBe(true)
     })
 
-    it('keeps the five US rows, then adds the two new boxes — all unchecked', () => {
-        renderTerms(true)
-        expect(boxes()).toHaveLength(7)
-        expect(boxes().every((box) => !box.checked)).toBe(true)
+    it('has no explanation paragraphs and no management box', () => {
+        renderTerms(false)
+        expect(screen.queryByTestId('funding-management-consent')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Peanut manages/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/renews automatically/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/The permission stays in place/)).not.toBeInTheDocument()
     })
 
     it('shows the exact authorization statement with the terms as a link, and no provider name', () => {
@@ -115,25 +126,11 @@ describe('CardTermsScreen managed funding consent', () => {
         const statement = screen.getByTestId('funding-authorization-statement')
         expect(statement).toHaveTextContent(AUTHORIZATION)
         expect(within(statement).getByRole('link', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
-        expect(screen.getByText(/our third party provider/)).toBeInTheDocument()
         expect(document.body.textContent).not.toMatch(/\bRain\b/)
         expect(document.body.textContent).not.toMatch(/existing/i)
     })
 
-    it('states the permission plainly: managed, renewed, ongoing, finite at any moment', () => {
-        renderTerms(false)
-        expect(
-            screen.getByText(/Peanut manages how much our third party provider can take from your wallet/)
-        ).toBeInTheDocument()
-        expect(screen.getByText(/renews automatically, including for money you add later/)).toBeInTheDocument()
-        expect(
-            screen.getByText(/The permission stays in place. The amount it allows at any one time is limited./)
-        ).toBeInTheDocument()
-        // no promise about a total cap, exclusive access or never signing again
-        expect(document.body.textContent).not.toMatch(/never sign|no one|only \$|total spend|cap on/i)
-    })
-
-    it('keeps Continue off until every box, old and new, is ticked', () => {
+    it('keeps Continue off until every original box and the authorization are ticked', () => {
         renderTerms(false)
         expect(continueButton()).toBeDisabled()
         // the four original rows alone are not enough
@@ -142,12 +139,10 @@ describe('CardTermsScreen managed funding consent', () => {
             .forEach((box) => fireEvent.click(box))
         expect(continueButton()).toBeDisabled()
         fireEvent.click(boxes()[4])
-        expect(continueButton()).toBeDisabled()
-        fireEvent.click(boxes()[5])
         expect(continueButton()).toBeEnabled()
     })
 
-    it.each([4, 5])('stays off when only new box %i is left unticked', (skipped) => {
+    it.each([0, 1, 2, 3, 4])('stays off when only box %i is left unticked', (skipped) => {
         renderTerms(false)
         boxes().forEach((box, index) => index !== skipped && fireEvent.click(box))
         expect(continueButton()).toBeDisabled()
@@ -159,7 +154,6 @@ describe('CardTermsScreen managed funding consent', () => {
         fireEvent.click(continueButton())
         await waitFor(() =>
             expect(onAccept).toHaveBeenCalledWith({
-                managementAccepted: true,
                 authorizationAccepted: true,
                 authorizationText: AUTHORIZATION,
             })

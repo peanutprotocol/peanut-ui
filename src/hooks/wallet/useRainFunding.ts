@@ -128,7 +128,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                     return { ok: false, error }
                 }
                 try {
-                    if (!consent.managementAccepted || !consent.authorizationAccepted) {
+                    if (!consent.authorizationAccepted) {
                         return fail({ kind: 'consent-required' })
                     }
 
@@ -283,7 +283,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                             serializedPermission,
                             consent: {
                                 termsVersion: toSign.permission.termsVersion,
-                                managementAccepted: true,
+                                authorizationAccepted: true,
                                 authorizationText: toSign.permission.authorizationText,
                             },
                         })

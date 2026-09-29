@@ -222,7 +222,6 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
         })
         expect(mockGrant).toHaveBeenCalledTimes(1)
         expect(mockGrant).toHaveBeenCalledWith({
-            managementAccepted: true,
             authorizationAccepted: true,
             authorizationText: AUTHORIZATION,
         })

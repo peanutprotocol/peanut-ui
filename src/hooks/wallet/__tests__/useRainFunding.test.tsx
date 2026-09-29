@@ -101,7 +101,7 @@ const funding = (status: Status = 'required', overrides: Record<string, unknown>
 const LEGACY_ID = `0x02${'ab'.repeat(20)}`
 const MIGRATION = { uninstall: [{ validationId: LEGACY_ID, deinitData: '0x1234' }], invalidateNonceFloor: 5 }
 
-const CONSENT = { managementAccepted: true, authorizationAccepted: true, authorizationText: AUTHORIZATION }
+const CONSENT = { authorizationAccepted: true, authorizationText: AUTHORIZATION }
 
 let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -168,10 +168,12 @@ describe('useRainFunding.grant — the signed permission', () => {
             serializedPermission: 'SERIALIZED_PERMISSION',
             consent: {
                 termsVersion: 'rtf-2026-09-29',
-                managementAccepted: true,
+                authorizationAccepted: true,
                 authorizationText: AUTHORIZATION,
             },
         })
+        // the payload carries the one consent field; nothing is implied
+        expect(mockSubmitFundingGrant.mock.calls[0][0].consent).not.toHaveProperty('managementAccepted')
     })
 
     it('denies every ERC-1271 signature: a signature-caller policy with no allowed callers and no flag override', async () => {
@@ -218,11 +220,8 @@ describe('useRainFunding.grant — the signed permission', () => {
 })
 
 describe('useRainFunding.grant — consent gates', () => {
-    it.each([
-        ['management box', { ...CONSENT, managementAccepted: false }],
-        ['authorization box', { ...CONSENT, authorizationAccepted: false }],
-    ])('an unticked %s reads, signs and sends nothing', async (_name, consent) => {
-        const { out, hook } = await runGrant(consent)
+    it('an unticked authorization reads, signs and sends nothing', async () => {
+        const { out, hook } = await runGrant({ ...CONSENT, authorizationAccepted: false })
         expect(out).toEqual({ ok: false, error: { kind: 'consent-required' } })
         expect(hook.result.current.lastError).toEqual({ kind: 'consent-required' })
         expect(mockGetCardFunding).not.toHaveBeenCalled()

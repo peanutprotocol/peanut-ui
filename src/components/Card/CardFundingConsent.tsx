@@ -10,32 +10,37 @@ import { toMarketingLocale } from '@/i18n/localeBridge'
 interface Props {
     /** Exact authorization statement the backend will record. Shown as is, never translated. */
     authorizationText: string
-    managementAccepted: boolean
     authorizationAccepted: boolean
-    onManagementChange: (accepted: boolean) => void
     onAuthorizationChange: (accepted: boolean) => void
+    /** The Home prompt's own extra box; not used with `authorizationOnly`. */
+    managementAccepted?: boolean
+    onManagementChange?: (accepted: boolean) => void
     disabled?: boolean
-    /** Render only the two boxes (the terms screen already sits under its own heading). */
-    boxesOnly?: boolean
+    /**
+     * Only the authorization checkbox, with no explanation and no management
+     * box: the new-card agreements screen, where it follows the original
+     * agreements.
+     */
+    authorizationOnly?: boolean
 }
 
 /**
- * What a person agrees to for managed card funding: a plain description of the
- * permission and the two explicit, unchecked boxes that gate every grant.
- * Shared by the Home prompt for existing cardholders and the new-user card
- * terms, so both say the same thing.
+ * What a person agrees to for managed card funding. The Home prompt for
+ * existing cardholders shows a plain description and two explicit, unchecked
+ * boxes; the new-card agreements show just the authorization checkbox
+ * (`authorizationOnly`). Both use the same checkbox and terms link.
  *
  * The terms are a public legal page. The link opens it in a new tab, so
  * nothing the person ticked is lost.
  */
 const CardFundingConsent: FC<Props> = ({
     authorizationText,
-    managementAccepted,
     authorizationAccepted,
-    onManagementChange,
     onAuthorizationChange,
+    managementAccepted = false,
+    onManagementChange,
     disabled,
-    boxesOnly,
+    authorizationOnly,
 }) => {
     const t = useTranslations('card.funding')
     // The configured site origin, so the page opens in sandbox and preview
@@ -66,7 +71,7 @@ const CardFundingConsent: FC<Props> = ({
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="card-funding-consent">
-            {!boxesOnly && (
+            {!authorizationOnly && (
                 <div className="flex flex-col gap-2 text-body-s text-foreground-secondary">
                     <p>{t('body')}</p>
                     <p>{t('distinction')}</p>
@@ -74,16 +79,18 @@ const CardFundingConsent: FC<Props> = ({
             )}
 
             <div role="list" className="flex flex-col gap-3">
-                <Card role="listitem" className="flex-row items-start gap-3 p-4">
-                    <Checkbox
-                        value={managementAccepted}
-                        onChange={(e) => !disabled && onManagementChange(e.target.checked)}
-                        className="mt-0.5"
-                    />
-                    <div className="flex-1 text-body-s" data-testid="funding-management-consent">
-                        {t('managementConsent')}
-                    </div>
-                </Card>
+                {!authorizationOnly && (
+                    <Card role="listitem" className="flex-row items-start gap-3 p-4">
+                        <Checkbox
+                            value={managementAccepted}
+                            onChange={(e) => !disabled && onManagementChange?.(e.target.checked)}
+                            className="mt-0.5"
+                        />
+                        <div className="flex-1 text-body-s" data-testid="funding-management-consent">
+                            {t('managementConsent')}
+                        </div>
+                    </Card>
+                )}
                 <Card role="listitem" className="flex-row items-start gap-3 p-4">
                     <Checkbox
                         value={authorizationAccepted}

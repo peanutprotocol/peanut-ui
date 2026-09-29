@@ -93,9 +93,7 @@ export default function EnableAutoBalanceBanner() {
 
     const onContinue = () => {
         if (isSubmitting || !consentGiven) return
-        void grant({ managementAccepted, authorizationAccepted, authorizationText }).then(() =>
-            setLastAttemptFor(cardId)
-        )
+        void grant({ authorizationAccepted, authorizationText }).then(() => setLastAttemptFor(cardId))
     }
 
     const ctas: ActionModalButtonProps[] = [

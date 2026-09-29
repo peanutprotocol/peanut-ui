@@ -12735,12 +12735,12 @@
                                 "properties": {
                                     "consent": {
                                         "properties": {
+                                            "authorizationAccepted": {
+                                                "type": "boolean"
+                                            },
                                             "authorizationText": {
                                                 "maxLength": 256,
                                                 "type": "string"
-                                            },
-                                            "managementAccepted": {
-                                                "type": "boolean"
                                             },
                                             "termsVersion": {
                                                 "maxLength": 64,
@@ -12749,7 +12749,7 @@
                                         },
                                         "required": [
                                             "termsVersion",
-                                            "managementAccepted",
+                                            "authorizationAccepted",
                                             "authorizationText"
                                         ],
                                         "type": "object"

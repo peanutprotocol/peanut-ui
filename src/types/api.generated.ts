@@ -7349,8 +7349,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         consent: {
+                            authorizationAccepted: boolean;
                             authorizationText: string;
-                            managementAccepted: boolean;
                             termsVersion: string;
                         };
                         serializedPermission: string;

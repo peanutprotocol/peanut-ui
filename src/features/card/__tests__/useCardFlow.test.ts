@@ -204,7 +204,6 @@ describe('useCardFlow', () => {
 
     describe('handleAcceptTerms — the funding permission follows the application', () => {
         const CONSENT = {
-            managementAccepted: true,
             authorizationAccepted: true,
             authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
         }
