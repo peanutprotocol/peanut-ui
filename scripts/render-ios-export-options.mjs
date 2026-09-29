@@ -64,7 +64,7 @@ export function renderExportOptionsPlist({
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
-    const outputPath = process.env.EXPORT_OPTIONS_PATH || '/tmp/ExportOptions.plist'
+    const outputPath = required('EXPORT_OPTIONS_PATH')
     const plist = renderExportOptionsPlist({
         appProfileName: required('PROFILE_NAME'),
         teamId: required('APPLE_TEAM_ID'),
@@ -72,6 +72,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
         walletExtensionProfileName: process.env.WALLET_EXTENSION_PROFILE_NAME,
         walletExtensionUiProfileName: process.env.WALLET_EXTENSION_UI_PROFILE_NAME,
     })
-    fs.writeFileSync(outputPath, plist)
+    // Never follow or overwrite a pre-existing path in the runner's temp area.
+    fs.writeFileSync(outputPath, plist, { flag: 'wx', mode: 0o600 })
     console.log(`[render-ios-export-options] wrote ${outputPath}`)
 }

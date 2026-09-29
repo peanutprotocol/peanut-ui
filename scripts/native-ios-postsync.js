@@ -214,7 +214,7 @@ if (pkg.includes('IdensicMobileSDK')) {
     // Patch the generated CapApp-SPM Package.swift (cap sync rewrites it, so
     // this runs after every sync — same lifecycle as the SumSub patch above).
     let capPkg = fs.readFileSync(capPkgPath, 'utf8')
-    const hasMppTarget = capPkg.includes('name: "MeaPushProvisioning"')
+    const hasMppTarget = /\.binaryTarget\s*\(\s*name:\s*"MeaPushProvisioning"/.test(capPkg)
     const hasMppProduct = capPkg.includes('targets: ["MeaPushProvisioning"]')
     const hasMppDependency = capPkg.includes('\n                "MeaPushProvisioning"\n')
 

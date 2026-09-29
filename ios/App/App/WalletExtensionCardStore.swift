@@ -10,7 +10,7 @@ import Foundation
  * plugin mirrors this when the card screen is opened, so Wallet can discover
  * the card even before the in-app sheet has been presented.
  *
- * This file is compiled into BOTH the app target and PushProvisioningExtension.
+ * This file is compiled into the app and both Wallet extension targets.
  * Only non-sensitive display metadata belongs here — never card secrets: the
  * extension fetches provisioning credentials on demand. `cardId` is Peanut's
  * internal UUID, not MeaWallet's processor card ID.

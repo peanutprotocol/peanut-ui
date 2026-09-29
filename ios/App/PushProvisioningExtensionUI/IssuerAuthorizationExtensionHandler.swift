@@ -32,7 +32,8 @@ class IssuerAuthorizationExtensionHandler: UIViewController, PKIssuerProvisionin
             completionHandler?(.canceled)
             return
         }
-        guard WalletExtensionAuth.authorizationToken() != nil else {
+        guard let card = WalletExtensionCardStore.load(),
+              WalletExtensionAuth.authorizationToken(forCardId: card.cardId) != nil else {
             completionHandler?(.canceled)
             return
         }

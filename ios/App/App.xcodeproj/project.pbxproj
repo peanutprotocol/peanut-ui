@@ -31,6 +31,7 @@
 		AA0000000000000000000009 /* WalletExtensionAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000101 /* WalletExtensionAuth.swift */; };
 		AA000000000000000000000A /* PushProvisioningExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010B /* PushProvisioningExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA000000000000000000000B /* PushProvisioningExtensionUI.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010C /* PushProvisioningExtensionUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA000000000000000000000C /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -400,6 +401,7 @@
 			files = (
 				AA0000000000000000000008 /* IssuerAuthorizationExtensionHandler.swift in Sources */,
 				AA0000000000000000000009 /* WalletExtensionAuth.swift in Sources */,
+				AA000000000000000000000C /* WalletExtensionCardStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
