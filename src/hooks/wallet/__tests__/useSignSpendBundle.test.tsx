@@ -563,11 +563,14 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
     })
 })
 
+const UNFORCED_KINDS = ['QR_PAY', 'FIAT_OFFRAMP'] as const
+
 /**
- * QR_PAY routed to collateral-only keeps the DIRECT artifact: one admin
- * signature, the backend submits the withdrawal straight to the recipient.
+ * Collateral that covers the amount signs DIRECTLY for every unforced caller:
+ * one admin signature, the backend submits the withdrawal straight to the
+ * recipient. A genuine mixed spend (smart account contributes) is unchanged.
  */
-describe('useSignSpendBundle — QR_PAY collateral funding stays direct (one passkey signature)', () => {
+describe.each(UNFORCED_KINDS)('useSignSpendBundle — %s collateral funding signs directly', (kind) => {
     function signQrCollateral() {
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
         return act(async () =>
@@ -575,7 +578,7 @@ describe('useSignSpendBundle — QR_PAY collateral funding stays direct (one pas
                 requiredUsdcAmount: 150_000_000n, // $150
                 recipient: RECIPIENT,
                 rainSpendingPower: 200_000_000n,
-                kind: 'QR_PAY',
+                kind,
             })
         )
     }
@@ -605,63 +608,26 @@ describe('useSignSpendBundle — QR_PAY collateral funding stays direct (one pas
         const artifact = (await signQrCollateral()) as unknown as object
         expect(getSpendArtifactMeta(artifact)).toEqual({ coordinatorAddress: PREP.coordinatorAddress })
     })
-})
 
-/**
- * Non-QR collateral funding (FIAT_OFFRAMP) still EXECUTES through the mixed
- * pipeline: it is the one with a durable reservation, a precomputed hash and
- * definitive failure codes, so a late rotation is recoverable on the same
- * lock. The funding SOURCE the user's routing picked is preserved — the whole
- * amount still comes from collateral, even when the smart account holds a
- * balance.
- */
-describe('useSignSpendBundle — non-QR collateral funding runs on the mixed pipeline', () => {
-    function signOrdinary() {
-        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
-        return act(async () =>
-            result.current.signSpend({
-                requiredUsdcAmount: 150_000_000n, // $150
-                recipient: RECIPIENT,
-                rainSpendingPower: 200_000_000n,
-                kind: 'FIAT_OFFRAMP',
-            })
-        )
-    }
+    it('a genuine mixed spend still withdraws only the shortfall and keeps the modern capability metadata', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
 
-    it.each([
-        ['an empty smart account', 0n],
-        ['a smart account that also has funds', 40_000_000n],
-    ])('%s: the FULL amount is drawn from collateral to the kernel', async (_label, smartBalance) => {
-        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance })
+        const artifact = (await signQrCollateral()) as unknown as { strategy: string; rainPreparationId?: string }
 
-        const artifact = (await signOrdinary()) as unknown as { strategy: string; rainPreparationId?: string }
-
-        expect(artifact.strategy).toBe('mixed')
-        expect(artifact.rainPreparationId).toBe('prep-1')
+        expect(artifact).toMatchObject({ strategy: 'mixed', rainPreparationId: 'prep-1' })
         expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
-            {
-                // Full required amount, not a shortfall.
-                amount: '15000',
-                totalAmountCents: '15000',
-                // Kernel account is the withdraw beneficiary; the transfer to
-                // the recipient rides in the same UserOp.
-                recipientAddress: ACCOUNT,
-                directTransfer: false,
-            },
+            { amount: '10000', totalAmountCents: '15000', recipientAddress: ACCOUNT, directTransfer: false },
             { suppressCooldownEvent: false }
         )
-    })
-
-    it('keeps the modern capability metadata for late recovery', async () => {
-        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
-        const artifact = (await signOrdinary()) as unknown as object
-        expect(getSpendArtifactMeta(artifact)).toEqual({
+        expect(getSpendArtifactMeta(artifact as unknown as object)).toEqual({
             coordinatorAddress: PREP.coordinatorAddress,
             mixedSpendContract: 'broadcast-first-revert-v1',
         })
     })
+})
 
-    it('a FORCED collateral-only spend (lock/cancel card) still signs the direct withdrawal', async () => {
+describe('useSignSpendBundle — forced collateral-only', () => {
+    it('a FORCED collateral-only spend (lock/cancel card) signs the direct withdrawal without routing', async () => {
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
         let artifact: unknown
         await act(async () => {
@@ -684,10 +650,10 @@ describe('useSignSpendBundle — non-QR collateral funding runs on the mixed pip
 
 /**
  * Real routing (resolveSpendStrategy + the cent conversions) for the sub-cent
- * QR quote 15.24486273 USDC: paid as 15,244,863 units, withdrawn as 1525 cents.
+ * quote 15.24486273 USDC: paid as 15,244,863 units, withdrawn as 1525 cents.
  * Only the live smart balance read and the Rain API are stubbed.
  */
-describe('useSignSpendBundle — QR quote 15.24486273 (15,244,863 units, 1525 cents), real routing', () => {
+describe.each(UNFORCED_KINDS)('useSignSpendBundle — %s quote 15.24486273 (1525 cents), real routing', (kind) => {
     const QUOTE = parseUnits('15.24486273', 6)
 
     it('the quote is 15,244,863 units and needs 1525 cents', () => {
@@ -716,7 +682,7 @@ describe('useSignSpendBundle — QR quote 15.24486273 (15,244,863 units, 1525 ce
                 requiredUsdcAmount: QUOTE,
                 recipient: RECIPIENT,
                 rainSpendingPower: rainCentsToUsdcUnits(rainCents),
-                kind: 'QR_PAY',
+                kind,
             })
         )
     }
@@ -780,7 +746,7 @@ describe('useSignSpendBundle — QR quote 15.24486273 (15,244,863 units, 1525 ce
  * been broadcast when the prepare/sign leg fails, so a proven controller
  * rotation re-signs once. Unknown failures stay fail-closed.
  */
-describe('useSignSpendBundle — direct QR artifact pre-effect recovery', () => {
+describe.each(UNFORCED_KINDS)('useSignSpendBundle — direct %s artifact pre-effect recovery', (kind) => {
     const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 
     function signDirectQr() {
@@ -792,7 +758,7 @@ describe('useSignSpendBundle — direct QR artifact pre-effect recovery', () => 
                     requiredUsdcAmount: 150_000_000n,
                     recipient: RECIPIENT,
                     rainSpendingPower: 200_000_000n,
-                    kind: 'QR_PAY',
+                    kind,
                 })
                 .catch((e: Error) => e)
         )

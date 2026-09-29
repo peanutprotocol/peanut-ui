@@ -134,12 +134,13 @@ export type SignSpendProgressEvent =
  *
  * Strategies map to backend behaviour:
  * - smart-only: backend broadcasts the signed UserOp via the bundler.
- * - mixed: backend broadcasts the signed UserOp (which atomically pulls
- *   collateral and forwards the full amount to the recipient). Used for genuine
- *   mixed spends and for non-QR collateral spends, which keep this pipeline.
- * - collateral-only: QR_PAY and `forceStrategy` callers (lock/cancel card).
- *   Backend submits the signed Rain withdrawal via the user's session-key
- *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only).
+ * - mixed: only when the smart account genuinely contributes; backend
+ *   broadcasts the signed UserOp (which atomically pulls the collateral
+ *   shortfall and forwards the full amount to the recipient).
+ * - collateral-only: routed collateral spends (QR_PAY, FIAT_OFFRAMP) and
+ *   `forceStrategy` callers (lock/cancel card). Backend
+ *   submits the signed Rain withdrawal via the user's session-key UserOp with
+ *   `directTransfer=true` (one admin EIP-712 signature for an approved account).
  */
 
 export const useSignSpendBundle = () => {
@@ -222,16 +223,6 @@ export const useSignSpendBundle = () => {
                     collateralOnlyAllowed: true,
                     flow: 'sign-only',
                 }))
-                /*
-                 * Non-QR collateral spends keep executing as mixed, for that
-                 * pipeline's existing recovery contract. QR_PAY keeps direct
-                 * signing: the deployed backend funds first for it. smartBalance
-                 * = 0 keeps the whole amount funded from collateral.
-                 */
-                if (strategy === 'collateral-only' && kind !== 'QR_PAY') {
-                    strategy = 'mixed'
-                    smartBalance = 0n
-                }
             }
 
             onStrategyDecided?.(strategy)
