@@ -29,6 +29,21 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
+/**
+ * Model a returning holder who dismissed Home's first-visit dialogs. The
+ * fixture balance would otherwise open a separate warning over the card
+ * prompt. These are the same stored values used by the screenshot fixtures.
+ */
+async function asReturningHomeVisitor(page: Page) {
+    await page.addInitScript(() => {
+        window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
+        window.localStorage.setItem(
+            'demo-user:user-preferences',
+            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+        )
+    })
+}
+
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
     const apply = page.getByRole('button', { name: 'Get card', exact: true })
@@ -68,6 +83,7 @@ test('an existing holder can manage their card even with a prohibited residence'
 test('an existing holder without the funding permission gets the centered Home prompt with two unchecked boxes', async ({
     page,
 }) => {
+    await asReturningHomeVisitor(page)
     await page.goto('/home?__fixture=card-funding-needed')
     await expect(page.getByText('Finish setting up the card', { exact: true })).toBeVisible()
     await expect(page.getByText('One passkey tap to start using your card.')).toBeVisible()
@@ -98,6 +114,7 @@ test('an existing holder without the funding permission gets the centered Home p
 })
 
 test('a legacy holder is told there are two confirmations', async ({ page }) => {
+    await asReturningHomeVisitor(page)
     await page.goto('/home?__fixture=card-funding-migration')
     await expect(page.getByText(/confirm twice with your passkey/i)).toBeVisible()
     await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
@@ -105,6 +122,7 @@ test('a legacy holder is told there are two confirmations', async ({ page }) => 
 })
 
 test('a grant waiting for confirmation shows Check status and Skip, not the boxes', async ({ page }) => {
+    await asReturningHomeVisitor(page)
     await page.goto('/home?__fixture=card-funding-pending')
     await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
     await expect(page.getByText('Skip for now')).toBeVisible()
@@ -113,6 +131,7 @@ test('a grant waiting for confirmation shows Check status and Skip, not the boxe
 })
 
 test('Home asks for nothing when the permission is ready, paused, or its state cannot be read', async ({ page }) => {
+    await asReturningHomeVisitor(page)
     for (const fixture of ['card-funding-enabled', 'card-funding-unavailable', 'card-funding-error']) {
         await page.goto(`/home?__fixture=${fixture}`)
         await expect(page.getByText('Activity', { exact: true }).first()).toBeVisible()
