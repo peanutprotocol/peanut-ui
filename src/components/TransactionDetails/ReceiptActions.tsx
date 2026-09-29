@@ -16,7 +16,7 @@ import { getCancelDepositKind } from './provider-actions/cancel-deposit.utils'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
-import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
+import { openReceiptPdfUrl, receiptPdfPath, receiptPdfVersion } from './receipt-pdf-link.utils'
 import { useReceiptPdfFile } from './useReceiptPdfFile'
 import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
@@ -121,7 +121,12 @@ export function ReceiptActions({
 
     // hooks are unconditional; finals fetch eagerly with the stored bearer so
     // the share sheet opens inside the click's user activation.
-    const pdfFile = useReceiptPdfFile({ entryId: transaction.id, kind: kind ?? '', prefetch: canSharePdf })
+    const pdfFile = useReceiptPdfFile({
+        entryId: transaction.id,
+        kind: kind ?? '',
+        prefetch: canSharePdf,
+        version: receiptPdfVersion(transaction),
+    })
     // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
     // while the drawer is open with the row visible
     const referralAction = useReceiptReferralAction(transaction, {

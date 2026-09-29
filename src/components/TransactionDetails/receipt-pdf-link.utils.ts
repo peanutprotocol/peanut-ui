@@ -1,5 +1,6 @@
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
+import type { TransactionDetails } from './transactionTransformer'
 
 /** the pdf route path with the locale in the url — the bytes vary by locale
  *  and final receipts are cdn-cached by url (see the route's cache notes). */
@@ -26,3 +27,15 @@ export function openReceiptPdfUrl(pdfPath: `/${string}`): void {
     anchor.click()
     anchor.remove()
 }
+
+/** the receipt state the pdf renders; when it changes, a file fetched for the
+ *  earlier state is outdated (pending → completed, refunds, amount fixes). */
+export const receiptPdfVersion = (transaction: TransactionDetails): string =>
+    [
+        transaction.status,
+        String(transaction.amount),
+        transaction.tokenAmount,
+        transaction.currency?.amount,
+        transaction.fee,
+        transaction.cancelledDate ? String(transaction.cancelledDate) : undefined,
+    ].join('|')

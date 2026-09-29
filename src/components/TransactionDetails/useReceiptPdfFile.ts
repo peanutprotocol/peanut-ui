@@ -66,11 +66,15 @@ export function useReceiptPdfFile({
     entryId,
     kind,
     prefetch = false,
+    version = '',
 }: {
     entryId: string
     kind: string
     /** fetch eagerly on mount — the private-receipt behavior since #3159 */
     prefetch?: boolean
+    /** the receipt's current state; a change drops the file fetched for the
+     *  earlier state, so an open drawer never shares an outdated pdf */
+    version?: string
 }) {
     const t = useAppTranslations('transaction')
     const toast = useToast()
@@ -79,10 +83,11 @@ export function useReceiptPdfFile({
     const [error, setError] = useState(false)
     const [busy, setBusy] = useState<'share' | 'download' | null>(null)
     const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
-    // the identity a cached or in-flight file belongs to; a receipt/locale
-    // switch must never share the previous transaction's document
-    const pathRef = useRef(pdfPath)
-    pathRef.current = pdfPath
+    // the identity a cached or in-flight file belongs to; a receipt, locale or
+    // state switch must never share the previous document
+    const fileIdentity = `${pdfPath}#${version}`
+    const identityRef = useRef(fileIdentity)
+    identityRef.current = fileIdentity
     // state alone cannot guard same-tick double taps (it only lands on the
     // next render); the ref makes repeated selection while pending a no-op
     const busyRef = useRef(false)
@@ -106,7 +111,7 @@ export function useReceiptPdfFile({
         return () => {
             cancelled = true
         }
-    }, [entryId, pdfPath, prefetch])
+    }, [entryId, pdfPath, prefetch, fileIdentity])
 
     const runFileAction = async (
         action: 'share' | 'download',
@@ -116,6 +121,7 @@ export function useReceiptPdfFile({
         busyRef.current = true
         setBusy(action)
         const requestPath = pdfPath
+        const requestIdentity = fileIdentity
         try {
             // cached file first, synchronously — the share sheet must open
             // inside the click's user activation when the prefetch landed
@@ -132,7 +138,7 @@ export function useReceiptPdfFile({
                 }
                 // the receipt changed while fetching: this file belongs to
                 // the previous identity — do not cache it, do not deliver it
-                if (pathRef.current !== requestPath) return
+                if (identityRef.current !== requestIdentity) return
                 setPdf(receipt)
             }
             const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })

@@ -34,8 +34,9 @@ const mockNativeRequest = CapacitorHttp.request as jest.Mock
 
 /* the hook powers the receipt's primary share button AND the more-actions
    drawer rows (TASK-22452) — this harness stands in for both consumers. */
-function Harness({ entryId, kind, prefetch = true }: { entryId: string; kind: string; prefetch?: boolean }) {
-    const pdf = useReceiptPdfFile({ entryId, kind, prefetch })
+type HarnessProps = { entryId: string; kind: string; prefetch?: boolean; version?: string }
+function Harness({ entryId, kind, prefetch = true, version }: HarnessProps) {
+    const pdf = useReceiptPdfFile({ entryId, kind, prefetch, version })
     return (
         <div>
             <button disabled={pdf.unavailable || pdf.busy !== null} onClick={() => void pdf.share()}>
@@ -48,7 +49,7 @@ function Harness({ entryId, kind, prefetch = true }: { entryId: string; kind: st
     )
 }
 
-const renderHarness = (props: { entryId: string; kind: string; prefetch?: boolean }) =>
+const renderHarness = (props: HarnessProps) =>
     render(
         <IntlWrapper>
             <Harness {...props} />
@@ -230,5 +231,77 @@ describe('useReceiptPdfFile — review regressions (TASK-22452)', () => {
             headers: { get: () => 'inline; filename="busy-receipt.pdf"' },
         })
         await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledTimes(1))
+    })
+})
+
+// TASK-23188: a drawer left open across a payment update must not share the
+// file it prefetched for the earlier state.
+describe('useReceiptPdfFile — receipt freshness', () => {
+    const pdfResponse = (body: string, filename: string) => ({
+        ok: true,
+        status: 200,
+        blob: jest.fn().mockResolvedValue(new Blob([body], { type: 'application/pdf' })),
+        headers: { get: () => `inline; filename="${filename}"` },
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(false)
+    })
+
+    test('an open drawer refetches and shares the new file after the receipt changes', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValueOnce(pdfResponse('%PDF-pending', 'pending.pdf'))
+            .mockResolvedValueOnce(pdfResponse('%PDF-completed', 'completed.pdf'))
+
+        const view = render(
+            <IntlWrapper>
+                <Harness entryId="entry-live" kind="DIRECT_TRANSFER" version="pending|10" />
+            </IntlWrapper>
+        )
+        await waitFor(() => expect(screen.getByRole('button', { name: 'share' })).toBeEnabled())
+
+        // same receipt, new state — the drawer stays open
+        view.rerender(
+            <IntlWrapper>
+                <Harness entryId="entry-live" kind="DIRECT_TRANSFER" version="completed|10" />
+            </IntlWrapper>
+        )
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'share' })).toBeEnabled())
+
+        fireEvent.click(screen.getByRole('button', { name: 'share' }))
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledTimes(1))
+        expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'completed.pdf')
+    })
+
+    test('a file fetched for the earlier state is not delivered after the receipt changes', async () => {
+        let resolveOld!: (value: unknown) => void
+        global.fetch = jest
+            .fn()
+            .mockImplementationOnce(() => new Promise((res) => (resolveOld = res)))
+            .mockResolvedValueOnce(pdfResponse('%PDF-new', 'amount-12.pdf'))
+
+        const view = render(
+            <IntlWrapper>
+                <Harness entryId="entry-amount" kind="QR_PAY" prefetch={false} version="completed|10" />
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'download' }))
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
+
+        view.rerender(
+            <IntlWrapper>
+                <Harness entryId="entry-amount" kind="QR_PAY" prefetch={false} version="completed|12" />
+            </IntlWrapper>
+        )
+        await waitFor(() => {})
+        resolveOld(pdfResponse('%PDF-old', 'amount-10.pdf'))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'download' })).toBeEnabled())
+        expect(mockDownloadBlob).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'download' }))
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'amount-12.pdf'))
     })
 })
