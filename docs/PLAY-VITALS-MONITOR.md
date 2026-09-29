@@ -13,11 +13,15 @@ public, so treat the artifact as public. Chip's
 [`prod-watch`](https://github.com/peanutprotocol/mono/tree/main/ops/schedulers/prod-watch)
 reads it and owns Discord routing, deduplication, recovery, and Notion tasks.
 
-The workflow keeps private state in an Actions cache to avoid escalating an old
-issue when reports have not changed. The first successful run seeds existing
+The workflow encrypts its state with keys derived from the existing Play
+credential before saving it to an Actions cache. Fork PRs can read caches from
+the base branch, so the cache must not contain plain crash counts or report
+times. The first successful run seeds existing
 crashes at P3. New issues reach P2 at two affected users and P1 at five.
 The 7-day rate starts at P3 when already high; a fresh high daily point reaches
-P2. The Google Play overall threshold is 1.09%.
+P2. The Google Play overall threshold is 1.09%. If the publisher key rotates,
+change the cache key prefix in the workflow to start a new baseline. An old
+cache will fail authentication rather than report a false recovery.
 
 ## Activation
 

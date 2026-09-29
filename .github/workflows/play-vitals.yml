@@ -31,9 +31,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: ${{ runner.temp }}/play-vitals-state.json
-                  key: play-vitals-${{ github.run_id }}
+                  key: play-vitals-v2-${{ github.run_id }}
                   restore-keys: |
-                      play-vitals-
+                      play-vitals-v2-
             - name: Check user-perceived Android crashes
               env:
                   PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -52,7 +52,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: ${{ runner.temp }}/play-vitals-state.json
-                  key: play-vitals-${{ github.run_id }}
+                  key: play-vitals-v2-${{ github.run_id }}
             - name: Publish minimal signal for Chip
               if: success() && (github.event_name == 'schedule' || inputs.dry_run == false)
               uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

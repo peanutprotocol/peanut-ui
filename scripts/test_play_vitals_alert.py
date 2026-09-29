@@ -1,7 +1,9 @@
 """Play Vitals state sent to Chip contains no crash report details."""
 
 import unittest
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 import play_vitals_alert as alert
 
@@ -17,6 +19,8 @@ def snapshot(users=1, last="2026-09-29T11:00:00Z", rate=None):
 
 
 class PlayVitalsAlertTest(unittest.TestCase):
+    CREDENTIALS = {"private_key": "test-only-key"}
+
     def test_baseline_and_unchanged_issue_stay_p3(self):
         first, state = alert.assess(snapshot(users=6), {})
         self.assertEqual(first["issues"][0]["severity"], "P3")
@@ -46,6 +50,26 @@ class PlayVitalsAlertTest(unittest.TestCase):
         self.assertEqual(raised["rate"]["severity"], "P2")
         low, _ = alert.assess(snapshot(rate={"day": "2026-09-30", "percent": 0.5}), state)
         self.assertIsNone(low["rate"]["severity"])
+
+    def test_cache_encrypts_counts_and_report_times(self):
+        _, state = alert.assess(snapshot(users=6), {})
+        envelope = alert.encode_state(state, self.CREDENTIALS)
+        self.assertEqual(alert.decode_state(envelope, self.CREDENTIALS), state)
+        self.assertNotIn("2026-09-29T11:00:00Z", str(envelope))
+        self.assertNotIn('"users":6', str(envelope))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "state.json"
+            alert.save_json(path, envelope)
+            self.assertEqual(alert.load_state(path, self.CREDENTIALS), state)
+            self.assertNotIn("2026-09-29T11:00:00Z", path.read_text())
+
+    def test_cache_rejects_tampering_and_key_rotation(self):
+        envelope = alert.encode_state({"seeded": True}, self.CREDENTIALS)
+        with self.assertRaisesRegex(RuntimeError, "authenticated"):
+            alert.decode_state(envelope, {"private_key": "rotated-key"})
+        envelope["ciphertext"] = envelope["ciphertext"][:-4] + "AAAA"
+        with self.assertRaisesRegex(RuntimeError, "authenticated"):
+            alert.decode_state(envelope, self.CREDENTIALS)
 
 
 if __name__ == "__main__":
