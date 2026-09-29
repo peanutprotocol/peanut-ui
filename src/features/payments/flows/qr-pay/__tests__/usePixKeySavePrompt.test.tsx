@@ -4,9 +4,9 @@ import { mantecaApi } from '@/services/manteca'
 
 jest.mock('@/services/manteca', () => ({ mantecaApi: { savePixKey: jest.fn() } }))
 const mockFetchUser = jest.fn()
-let mockAccounts: Array<{ type: string; identifier: string }> = []
+let mockAccounts: Array<{ type: string; identifier: string }> | undefined = []
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockAccounts }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockAccounts ? { accounts: mockAccounts } : null, fetchUser: mockFetchUser }),
 }))
 
 const mockSavePixKey = mantecaApi.savePixKey as jest.Mock
@@ -38,6 +38,21 @@ describe('usePixKeySavePrompt', () => {
         expect(renderHook(() => usePixKeySavePrompt(null, undefined)).result.current.isOffered).toBe(false)
     })
 
+    it('is not offered until the account list has loaded', () => {
+        mockAccounts = undefined
+        expect(renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA')).result.current.isOffered).toBe(false)
+    })
+
+    it('saves once, however often a success is reported', () => {
+        const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
+        act(() => result.current.setChecked(true))
+
+        act(() => result.current.saveAfterPayment())
+        act(() => result.current.saveAfterPayment())
+
+        expect(mockSavePixKey).toHaveBeenCalledTimes(1)
+    })
+
     it('holds Pay while the box is ticked and the name is blank', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, undefined))
 
@@ -51,14 +66,14 @@ describe('usePixKeySavePrompt', () => {
     it('saves the key with the trimmed name only when the box is ticked, then refreshes the account list', async () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
 
-        act(() => result.current.saveAtSubmit())
+        act(() => result.current.saveAfterPayment())
         expect(mockSavePixKey).not.toHaveBeenCalled()
 
         act(() => {
             result.current.setChecked(true)
             result.current.setNickname('  Maria  ')
         })
-        act(() => result.current.saveAtSubmit())
+        act(() => result.current.saveAfterPayment())
 
         expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Maria')
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
@@ -70,7 +85,7 @@ describe('usePixKeySavePrompt', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
         act(() => result.current.setChecked(true))
 
-        expect(() => act(() => result.current.saveAtSubmit())).not.toThrow()
+        expect(() => act(() => result.current.saveAfterPayment())).not.toThrow()
         await waitFor(() => expect(consoleError).toHaveBeenCalled())
         expect(mockFetchUser).not.toHaveBeenCalled()
         consoleError.mockRestore()

@@ -40,7 +40,7 @@ import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from
 import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { MANTECA_QR_INIT_SCAN_TIMEOUT_MS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
-import { isPixRecurringCode } from '@/utils/withdraw.utils'
+import { isPixRecurringCode, normalizePixInput } from '@/utils/withdraw.utils'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
@@ -105,7 +105,11 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
  */
 export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
     const { qrCode, timestamp, qrType } = scan
-    const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
+    // A key pasted into the scanner arrives as typed ("123.456.789-09",
+    // "5511912345678"). The lookup, the display and the save all use the form
+    // the key screen produces, which is also the one the PIX directory holds.
+    const verifiedPixKey = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
+    const pixKeyLabel = verifiedPixKey ? normalizePixInput(verifiedPixKey) : null
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
     // from the scanner resolves here. Without data the key itself is shown.
     const { data: pixKeyOwner, error: pixKeyOwnerError, isPending: isPixKeyOwnerPending } = usePixKeyOwner(pixKeyLabel)
@@ -1083,13 +1087,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         setQrPayment,
     ])
 
-    const { saveAtSubmit: savePixKeyAtSubmit } = pixKeySave
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {
-            savePixKeyAtSubmit()
             await handleMantecaPayment()
         }
-    }, [paymentProcessor, handleMantecaPayment, savePixKeyAtSubmit])
+    }, [paymentProcessor, handleMantecaPayment])
+
+    // Only a payment that went through saves its key: a Pay tap can also end
+    // in a re-quote, a refusal or a failure.
+    const { saveAfterPayment: savePixKeyAfterPayment } = pixKeySave
+    useEffect(() => {
+        if (isSuccess) savePixKeyAfterPayment()
+    }, [isSuccess, savePixKeyAfterPayment])
 
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair

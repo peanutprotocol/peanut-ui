@@ -4,6 +4,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 import { useQrPayFlow } from './QrPayFlowContext'
 import { formatBrTaxId } from '@/utils/br-tax-id.utils'
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export function useQrReceipt() {
     const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel } = useQrPayFlow()
@@ -14,7 +15,7 @@ export function useQrReceipt() {
         const now = new Date()
         // A PIX key the payer looked up: the owner, with the key beside the name,
         // as activity shows it.
-        const counterparty = pixKeyOwner?.name ?? qrPayment.details.merchant.name
+        const counterparty = pixKeyOwner ? normalizeMerchantName(pixKeyOwner.name) : qrPayment.details.merchant.name
         return {
             // Manteca synthetic id — the only key /receipt/<id>
             // resolves, and what Activity rows already carry.

@@ -229,9 +229,11 @@ export function QrPaySuccessView() {
                                     onClick={() => {
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
+                                        // A person's name paid by PIX key stays out of the URL,
+                                        // which analytics records and a request can be shared from.
                                         const params = new URLSearchParams({
                                             amount: String(usdAmount ?? ''),
-                                            merchant: paidTo,
+                                            ...(pixKeyOwner ? {} : { merchant: paidTo }),
                                         })
                                         const splitBillUrl = `/request?${params.toString()}`
                                         router.push(splitBillUrl)

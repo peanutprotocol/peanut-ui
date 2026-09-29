@@ -350,7 +350,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
+                    {/* A PIX-key title carries a person's name and key: masked in session replay. */}
+                    <h2
+                        className={`flex items-center justify-center text-body-xs text-foreground-secondary ${nameDetail ? 'ph-mask ph-no-capture' : ''}`}
+                    >
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (

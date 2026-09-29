@@ -106,7 +106,9 @@ describe('TransactionDetailsHeaderCard direction words', () => {
             userName: 'Maria Da Silva',
             nameDetail: 'maria@silva.com.br',
         })
-        expect(screen.getByText('Paid to Maria Da Silva · maria@silva.com.br')).toBeInTheDocument()
+        const title = screen.getByText('Paid to Maria Da Silva · maria@silva.com.br')
+        // A person's name and key: masked in session replay.
+        expect(title.closest('h2')).toHaveClass('ph-mask', 'ph-no-capture')
     })
 
     it('leaves the self-contained failed-QR label unprefixed', () => {

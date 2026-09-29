@@ -613,7 +613,7 @@ function applyDefaults() {
     mockMantecaApi.getPixKeyOwner.mockRejectedValue(new Error('PIX key lookup unavailable'))
 
     mockUseAuth.mockReturnValue({
-        user: { user: { username: 'test-user' } },
+        user: { user: { username: 'test-user' }, accounts: [] },
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })
@@ -975,6 +975,17 @@ describe('GROUP 2: Payment Form States', () => {
         expect(await screen.findByText('MARIA DA SILVA')).toBeInTheDocument()
         expect(screen.getByText('CPF 123.456.789-09').closest('p')).toHaveClass('ph-mask', 'ph-no-capture')
         expect(screen.queryByText(/\*/)).not.toBeInTheDocument()
+    })
+
+    test('a punctuated CPF pasted into the scanner is looked up, shown and saved in its digits-only form', async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******09' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = '123.456.789-09'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText('CPF 123.456.789-09')).toBeInTheDocument()
+        expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith('12345678909')
     })
 
     test('a pasted PIX key the directory does not know stops before the amount step', async () => {
