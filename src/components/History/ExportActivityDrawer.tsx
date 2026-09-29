@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -43,6 +43,7 @@ const FORMAT_OPTIONS: { value: ActivityExportFormat; label: string }[] = [
  */
 export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawerProps) => {
     const t = useTranslations('history')
+    const locale = useLocale()
     const toast = useToast()
     const { user } = useAuth()
     const { fromIso, toIso, from, to, activePreset } = useHistoryRange()
@@ -61,7 +62,7 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
             mounted.current = false
         }
     }, [])
-    const identity = `${user?.user.userId}:${open}:${format}:${fromIso}:${toIso}`
+    const identity = `${user?.user.userId}:${open}:${format}:${locale}:${fromIso}:${toIso}`
     const identityRef = useRef(identity)
     identityRef.current = identity
     useEffect(() => {
@@ -85,7 +86,7 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
             let file = prepared
             if (!file) {
                 posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_STARTED, event)
-                file = await prepareActivityExport({ format, fromIso, toIso })
+                file = await prepareActivityExport({ format, locale, fromIso, toIso })
                 if (!mounted.current || identityRef.current !== current) return
                 setPrepared(file)
                 // The second tap opens the native share sheet with active user consent.

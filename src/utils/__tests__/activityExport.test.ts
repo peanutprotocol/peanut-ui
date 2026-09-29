@@ -33,6 +33,7 @@ describe('activity downloads', () => {
         })
         const prepared = await prepareActivityExport({
             format: 'pdf',
+            locale: 'en',
             fromIso: '2026-08-01T00:00:00.000Z',
             toIso: '2026-08-31T23:59:59.999Z',
         })
@@ -46,9 +47,28 @@ describe('activity downloads', () => {
         expect(await saveActivityExport(prepared)).toBe('saved')
         expect(downloadBlob).toHaveBeenCalledWith(prepared.blob, 'activity.pdf')
     })
+    // the API accepts exactly these four values, so each one must reach it unchanged
+    it.each(['en', 'es-419', 'es-AR', 'pt-BR'] as const)(
+        'asks for the file in %s on the web and on native',
+        async (locale) => {
+            const localeOf = (url: string) => new URLSearchParams(url.split('?')[1]).get('locale')
+            fetchMock.mockResolvedValue({
+                ok: true,
+                headers: { get: (name: string) => (name === 'content-type' ? 'application/pdf' : null) },
+                blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+            })
+            await prepareActivityExport({ format: 'pdf', locale })
+            expect(localeOf(fetchMock.mock.calls[0][0])).toBe(locale)
+
+            native.mockReturnValue(true)
+            ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 200, data: btoa('%PDF'), headers: {} })
+            await prepareActivityExport({ format: 'pdf', locale })
+            expect(localeOf((CapacitorHttp.request as jest.Mock).mock.calls[0][0].url)).toBe(locale)
+        }
+    )
     it('keeps server validation failures out of downloaded files', async () => {
         fetchMock.mockResolvedValue({ ok: false, json: async () => ({ code: 'EXPORT_UNVERIFIED' }) })
-        await expect(prepareActivityExport({ format: 'xlsx' })).rejects.toThrow('EXPORT_UNVERIFIED')
+        await expect(prepareActivityExport({ format: 'xlsx', locale: 'en' })).rejects.toThrow('EXPORT_UNVERIFIED')
         expect(downloadBlob).not.toHaveBeenCalled()
     })
     it('fetches native XLSX as a binary with owner auth', async () => {
@@ -58,7 +78,7 @@ describe('activity downloads', () => {
             data: btoa('PK workbook'),
             headers: { 'Content-Disposition': 'attachment; filename="activity.xlsx"' },
         })
-        const file = await prepareActivityExport({ format: 'xlsx' })
+        const file = await prepareActivityExport({ format: 'xlsx', locale: 'en' })
         expect(CapacitorHttp.request).toHaveBeenCalledWith(
             expect.objectContaining({ responseType: 'arraybuffer', headers: { Authorization: 'Bearer owner-token' } })
         )

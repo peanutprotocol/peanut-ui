@@ -3,6 +3,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
+import type { AppLocale } from '@/i18n/app/config'
 
 export type ActivityExportFormat = 'pdf' | 'csv' | 'xlsx'
 export type ActivityExportFile = { blob: Blob; fileName: string }
@@ -34,11 +35,14 @@ const MIME: Record<ActivityExportFormat, string> = {
 
 export async function prepareActivityExport(options: {
     format: ActivityExportFormat
+    /** The API accepts exactly the app locales and writes PDF and XLSX files in that language. */
+    locale: AppLocale
     fromIso?: string
     toIso?: string
 }): Promise<ActivityExportFile> {
     const params = new URLSearchParams({ format: options.format })
     params.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone)
+    params.set('locale', options.locale)
     if (options.fromIso) params.set('from', options.fromIso)
     if (options.toIso) params.set('to', new Date(new Date(options.toIso).getTime() + 1).toISOString())
     const path = `/users/history/export?${params}`
