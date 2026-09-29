@@ -80,10 +80,19 @@ test('an existing holder without the funding permission gets the centered Home p
     // no way out before a failure: no close button and no skip
     await expect(page.getByText('Skip for now')).toHaveCount(0)
     await shot(page, 'funding-needed')
-    // ticking both, and only both, enables Continue
-    await boxes.nth(0).check({ force: true })
+    // ticking both, and only both, enables Continue. The native input is
+    // visually hidden (`sr-only`); a person taps the visible box, which is its label.
+    const tick = (index: number) =>
+        page
+            .locator('label')
+            .filter({ has: page.getByRole('checkbox') })
+            .nth(index)
+            .click()
+    await tick(0)
+    await expect(boxes.nth(0)).toBeChecked()
     await expect(cont).toBeDisabled()
-    await boxes.nth(1).check({ force: true })
+    await tick(1)
+    await expect(boxes.nth(1)).toBeChecked()
     await expect(cont).toBeEnabled()
     await shot(page, 'funding-needed-ticked')
 })
@@ -113,7 +122,7 @@ test('Home asks for nothing when the permission is ready, paused, or its state c
 
 test('re-issuing a card ends the card terms with the two new unchecked boxes', async ({ page }) => {
     await page.goto('/card?__fixture=card-reissue')
-    await page.getByRole('button', { name: 'Get your card', exact: true }).click()
+    await page.getByRole('button', { name: 'Get card', exact: true }).click()
     await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
     const boxes = page.getByRole('checkbox')
     // international: the four original rows, then the two new ones
@@ -133,7 +142,7 @@ test('cancelling a card is an ordinary cancel with no permission-removal step', 
     // confirm is deterministic. Keys go to the page, not to a locator: the
     // handle disables and then unmounts as the cancel runs, and a locator
     // action would wait on it.
-    const handle = page.getByRole('button', { name: 'Slide to Cancel', exact: true })
+    const handle = page.getByRole('button', { name: 'Slide to cancel', exact: true })
     await expect(handle).toBeVisible()
     await handle.focus()
     for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')

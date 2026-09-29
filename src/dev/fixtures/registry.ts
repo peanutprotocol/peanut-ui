@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import type { RainCardFunding, RainFundingManagementStatus } from '@/services/rain'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -629,13 +630,12 @@ const CARD_HOLDER_OVERVIEW = {
 // session signer — a fixture never signs. `allowance` is informational only:
 // every fixture gives a large one on purpose, because readiness is the
 // backend's `management.status` and never the allowance.
+// Typed from the API schema, so a change to the funding response breaks this
+// file at typecheck instead of drifting.
 const cardFunding = (
-    status: 'required' | 'migration_required' | 'pending' | 'ready' | 'temporarily_unavailable',
-    migration: {
-        uninstall: { validationId: string; deinitData: string }[]
-        invalidateNonceFloor: number
-    } | null = null
-) => ({
+    status: RainFundingManagementStatus,
+    migration: RainCardFunding['management']['migration'] = null
+): RainCardFunding => ({
     chainId: '42161',
     tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     operatorAddress: '0x0000000000000000000000000000000000000001',
