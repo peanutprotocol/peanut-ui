@@ -6,7 +6,25 @@ import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 
 export type ActivityExportFormat = 'pdf' | 'csv' | 'xlsx'
 export type ActivityExportFile = { blob: Blob; fileName: string }
-export class ActivityDownloadError extends Error {}
+/** `message` is the API code; `refusal` names the check that refused the file, when the API says. */
+export class ActivityDownloadError extends Error {
+    constructor(
+        code: string,
+        public refusal?: string
+    ) {
+        super(code)
+    }
+}
+
+/** The API's 4xx body, whatever transport delivered it. */
+function refusalFrom(body: unknown): { code?: string; refusal?: string } {
+    if (!body || typeof body !== 'object') return {}
+    const { code, reason } = body as { code?: unknown; reason?: unknown }
+    return {
+        code: typeof code === 'string' ? code : undefined,
+        refusal: typeof reason === 'string' ? reason : undefined,
+    }
+}
 
 const MIME: Record<ActivityExportFormat, string> = {
     pdf: 'application/pdf',
@@ -40,6 +58,14 @@ export async function prepareActivityExport(options: {
             readTimeout: 60_000,
         })
         if (response.status !== 200 || typeof response.data !== 'string') {
+            // an error body arrives base64-encoded like the file would; decode it for the reason
+            let body: unknown = null
+            try {
+                body = typeof response.data === 'string' ? JSON.parse(atob(response.data)) : response.data
+            } catch {
+                body = null
+            }
+            const { refusal } = refusalFrom(body)
             throw new ActivityDownloadError(
                 response.status === 413
                     ? 'EXPORT_TOO_LARGE'
@@ -47,7 +73,8 @@ export async function prepareActivityExport(options: {
                       ? 'EXPORT_UNVERIFIED'
                       : response.status === 429
                         ? 'EXPORT_BUSY'
-                        : 'EXPORT_FAILED'
+                        : 'EXPORT_FAILED',
+                refusal
             )
         }
         const bytes = Uint8Array.from(atob(response.data), (char) => char.charCodeAt(0))
@@ -61,8 +88,8 @@ export async function prepareActivityExport(options: {
             redactTelemetry: true,
         })
         if (!response.ok) {
-            const body = (await response.json().catch(() => ({}))) as { code?: string }
-            throw new ActivityDownloadError(body.code ?? 'EXPORT_FAILED')
+            const { code, refusal } = refusalFrom(await response.json().catch(() => null))
+            throw new ActivityDownloadError(code ?? 'EXPORT_FAILED', refusal)
         }
         if (!response.headers.get('content-type')?.startsWith(MIME[options.format]))
             throw new ActivityDownloadError('EXPORT_FAILED')

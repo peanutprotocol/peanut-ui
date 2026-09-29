@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useHistoryRange } from '@/hooks/useHistoryRange'
 import { useHistoryRangeLabel } from '@/hooks/useHistoryRangeLabel'
 import {
+    ActivityDownloadError,
     prepareActivityExport,
     saveActivityExport,
     type ActivityExportFormat,
@@ -98,7 +99,10 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
             }
         } catch (cause) {
             const reason = cause instanceof Error ? cause.message : 'EXPORT_FAILED'
-            posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_FAILED, { ...event, reason })
+            // `refusal` is the API's check name (e.g. reward-credit-missing): which
+            // ledger gap stopped the file, without any record id
+            const refusal = cause instanceof ActivityDownloadError ? cause.refusal : undefined
+            posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_FAILED, { ...event, reason, refusal })
             if (!mounted.current || identityRef.current !== current) return
             const key = (
                 {
