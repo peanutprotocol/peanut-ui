@@ -975,6 +975,27 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.queryByTestId('amount-field')).not.toBeInTheDocument()
     })
 
+    test("Pay waits for a pasted key's owner lookup to answer", async () => {
+        setupMantecaPayment()
+        let answerOwner: (owner: unknown) => void = () => {}
+        mockMantecaApi.getPixKeyOwner.mockReturnValue(
+            new Promise((resolve) => {
+                answerOwner = resolve
+            })
+        )
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText(pixKey)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+
+        await act(async () => answerOwner({ name: 'MARIA DA SILVA', legalIdMasked: null }))
+
+        expect(await screen.findByText('MARIA DA SILVA')).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+    })
+
     test('a scanned merchant QR never looks up a PIX key owner', async () => {
         setupMantecaPayment()
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })

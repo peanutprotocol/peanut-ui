@@ -107,7 +107,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
     // from the scanner resolves here. Without data the key itself is shown.
-    const { data: pixKeyOwner, error: pixKeyOwnerError } = usePixKeyOwner(pixKeyLabel)
+    const { data: pixKeyOwner, error: pixKeyOwnerError, isPending: isPixKeyOwnerPending } = usePixKeyOwner(pixKeyLabel)
+    // A pasted key reaches the form before its lookup answers. Pay waits for the
+    // answer, so the user sees who is paid, or the unknown-key stop, first.
+    const isAwaitingPixKeyOwner = !!pixKeyLabel && isPixKeyOwnerPending
     const tWithdraw = useTranslations('withdraw')
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
@@ -1226,6 +1229,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         merchantName,
         pixKeyLabel,
         pixKeyOwner,
+        isAwaitingPixKeyOwner,
         // kyc gate
         gate,
         shouldBlockPay,

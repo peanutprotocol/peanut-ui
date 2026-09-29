@@ -39,6 +39,7 @@ export function QrPayFormView() {
         merchantName,
         pixKeyLabel,
         pixKeyOwner,
+        isAwaitingPixKeyOwner,
         methodIcon,
         currency,
         currencyAmount,
@@ -234,6 +235,7 @@ export function QrPayFormView() {
                             isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
+                            isAwaitingPixKeyOwner ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
                             limitsValidation.isBlocking
