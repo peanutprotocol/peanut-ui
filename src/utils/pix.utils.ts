@@ -1,6 +1,8 @@
 import { createStaticPix, hasError } from 'pix-utils'
 import { validatePixKey, isPixEmvcoQr } from './withdraw.utils'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
+import { brTaxIdKind, formatBrTaxId, type BrTaxIdKind } from './br-tax-id.utils'
+import { SAVED_ADDRESS_NICKNAME_MAX } from './saved-address.utils'
 
 /**
  * Converts a raw PIX key into an EMVCo BR Code string.
@@ -67,4 +69,33 @@ export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): stri
  */
 export function isPixKeyNotFound(error: unknown): boolean {
     return apiErrorStatus(error) === 404 && wireErrorCode(error) === API_ERROR_CODES.PAYMENT_DESTINATION_NOT_FOUND
+}
+
+/**
+ * What to show under a PIX key owner's name. A CPF or CNPJ key is the owner's
+ * own tax ID, typed in full by the user, so it shows once and unmasked. Any
+ * other key shows next to the owner's masked tax ID. A tax ID whose kind cannot
+ * be told is left out rather than labelled "CPF/CNPJ".
+ */
+export function pixKeyOwnerDetails(
+    pixKey: string,
+    legalIdMasked: string | null
+): { pixKey: string | null; taxId: { kind: BrTaxIdKind; value: string } | null } {
+    const keyKind = brTaxIdKind(pixKey)
+    if (keyKind) return { pixKey: null, taxId: { kind: keyKind, value: formatBrTaxId(pixKey) } }
+    const maskedKind = legalIdMasked ? brTaxIdKind(legalIdMasked) : null
+    return {
+        pixKey,
+        taxId: maskedKind && legalIdMasked ? { kind: maskedKind, value: legalIdMasked } : null,
+    }
+}
+
+/**
+ * The name offered when saving a PIX key: the owner's whole name when it fits
+ * the address book's cap, otherwise their first name, cut to fit.
+ */
+export function defaultPixKeyNickname(ownerName: string): string {
+    const name = ownerName.trim().replace(/\s+/g, ' ')
+    if (name.length <= SAVED_ADDRESS_NICKNAME_MAX) return name
+    return name.split(' ')[0].slice(0, SAVED_ADDRESS_NICKNAME_MAX)
 }

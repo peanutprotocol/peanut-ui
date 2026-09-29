@@ -118,11 +118,16 @@ export function buildReceiptPdfModel(
 
     // Counterparty: FE-generated labels localize via nameKey; raw counterparty
     // data renders via printableAddress (shortens addresses, passes usernames).
-    const counterparty = transaction.nameKey
+    const counterpartyName = transaction.nameKey
         ? t(`transaction.${transaction.nameKey}`, transaction.nameParams)
         : transaction.userName
           ? printableAddress(transaction.userName)
           : undefined
+    // A PIX-key payment reads "Maria Da Silva · maria@silva.com.br", as in the drawer title.
+    const counterparty =
+        counterpartyName && transaction.nameDetail
+            ? `${counterpartyName} · ${transaction.nameDetail}`
+            : counterpartyName
     push(
         role === EHistoryUserRole.RECIPIENT ? t('transaction.officialReceipt.pdf.from') : t('transaction.rows.to'),
         counterparty

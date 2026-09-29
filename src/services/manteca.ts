@@ -539,4 +539,14 @@ export const mantecaApi = {
         }
         return response.json()
     },
+    /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
+    savePixKey: async (pixKey: string, label: string): Promise<void> => {
+        const response = await serverFetch('/manteca/pix-key/saved', {
+            method: 'POST',
+            body: jsonStringify({ pixKey, label }),
+        })
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, `Saving the PIX key failed: ${response.statusText}`)
+        }
+    },
 }

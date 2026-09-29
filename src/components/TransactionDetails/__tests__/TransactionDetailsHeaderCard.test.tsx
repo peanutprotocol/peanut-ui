@@ -99,6 +99,16 @@ describe('TransactionDetailsHeaderCard direction words', () => {
         expect(screen.getByText('Paid to Museumsinsel')).toBeInTheDocument()
     })
 
+    it('titles a PIX-key payment "Paid to {owner} · {key}"', () => {
+        renderHeaderCard({
+            direction: 'qr_payment',
+            status: 'completed',
+            userName: 'Maria Da Silva',
+            nameDetail: 'maria@silva.com.br',
+        })
+        expect(screen.getByText('Paid to Maria Da Silva · maria@silva.com.br')).toBeInTheDocument()
+    })
+
     it('leaves the self-contained failed-QR label unprefixed', () => {
         renderHeaderCard({
             direction: 'qr_payment',

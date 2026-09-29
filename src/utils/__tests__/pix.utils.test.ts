@@ -1,4 +1,10 @@
-import { pixKeyToBRCode, pixKeyToQrPayUrl, verifiedPixKeyLabel } from '@/utils/pix.utils'
+import {
+    defaultPixKeyNickname,
+    pixKeyOwnerDetails,
+    pixKeyToBRCode,
+    pixKeyToQrPayUrl,
+    verifiedPixKeyLabel,
+} from '@/utils/pix.utils'
 
 jest.mock('@/assets', () => ({}))
 
@@ -144,4 +150,50 @@ test('full PIX key survives the redirect and cannot mislabel a different payment
     const params = new URLSearchParams(pixKeyToQrPayUrl(key)!.split('?')[1])
     expect(verifiedPixKeyLabel(params.get('qrCode')!, params.get('pixKey'))).toBe(key)
     expect(verifiedPixKeyLabel(pixKeyToBRCode('other@example.com')!, key)).toBeNull()
+})
+
+describe('pixKeyOwnerDetails', () => {
+    it('shows a CPF key once, in full, as the CPF it is', () => {
+        expect(pixKeyOwnerDetails('09579927189', '09*******89')).toEqual({
+            pixKey: null,
+            taxId: { kind: 'CPF', value: '095.799.271-89' },
+        })
+    })
+
+    it('shows a CNPJ key once, in full, as the CNPJ it is', () => {
+        expect(pixKeyOwnerDetails('11222333000181', '11**********81')).toEqual({
+            pixKey: null,
+            taxId: { kind: 'CNPJ', value: '11.222.333/0001-81' },
+        })
+    })
+
+    it('shows any other key next to the masked tax ID, labelled by its length', () => {
+        expect(pixKeyOwnerDetails('maria@silva.com.br', '04*******80')).toEqual({
+            pixKey: 'maria@silva.com.br',
+            taxId: { kind: 'CPF', value: '04*******80' },
+        })
+        expect(pixKeyOwnerDetails('+5511912345678', '11**********81')).toEqual({
+            pixKey: '+5511912345678',
+            taxId: { kind: 'CNPJ', value: '11**********81' },
+        })
+    })
+
+    it('leaves out a tax ID whose kind cannot be told, or that is missing', () => {
+        expect(pixKeyOwnerDetails('maria@silva.com.br', '20********87')).toEqual({
+            pixKey: 'maria@silva.com.br',
+            taxId: null,
+        })
+        expect(pixKeyOwnerDetails('maria@silva.com.br', null)).toEqual({ pixKey: 'maria@silva.com.br', taxId: null })
+    })
+})
+
+describe('defaultPixKeyNickname', () => {
+    it('keeps a name that fits the 15-character address-book cap', () => {
+        expect(defaultPixKeyNickname(' MARIA  DA SILVA ')).toBe('MARIA DA SILVA')
+    })
+
+    it('falls back to the first name, cut to fit', () => {
+        expect(defaultPixKeyNickname('Arthur de Jesus Lima Alvino')).toBe('Arthur')
+        expect(defaultPixKeyNickname('Maximilianogregorio Santos')).toBe('Maximilianogreg')
+    })
 })

@@ -163,6 +163,7 @@ export const TransactionDetailsReceipt = ({
                 actionLabelKey={transaction.actionLabelKey}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
+                nameDetail={transaction.nameDetail}
                 nameParams={transaction.nameParams}
                 amountDisplay={amountDisplay}
                 sign={headSign}

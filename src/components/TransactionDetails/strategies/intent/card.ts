@@ -2,9 +2,23 @@ import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { isNegativeWireAmount, normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { formatBrTaxId } from '@/utils/br-tax-id.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const raw = entry.recipientAccount?.identifier
+    // A PIX key the payer looked up arrives with its owner's name (the payer's
+    // own history only): name the owner and keep the key beside the name.
+    const ownerName = entry.recipientAccount?.fullName
+    if (raw && ownerName) {
+        return {
+            direction: 'qr_payment',
+            transactionCardType: 'pay',
+            nameForDetails: normalizeMerchantName(ownerName),
+            nameDetail: formatBrTaxId(raw),
+            isPeerActuallyUser: false,
+            isLinkTx: false,
+        }
+    }
     return {
         direction: 'qr_payment',
         transactionCardType: 'pay',

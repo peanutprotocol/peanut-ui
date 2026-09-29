@@ -1478,7 +1478,7 @@
                 "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
         },
-        "pixKeyOwnerDetails": "{pixKey} · CPF/CNPJ {taxId}"
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Adicionar cartão",

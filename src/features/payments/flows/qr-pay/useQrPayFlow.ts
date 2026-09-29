@@ -2,6 +2,7 @@
 
 import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
+import { usePixKeySavePrompt } from './usePixKeySavePrompt'
 import {
     isSpendRecoveryOutcome,
     SpendRecoveryAbortedError,
@@ -111,6 +112,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // A pasted key reaches the form before its lookup answers. Pay waits for the
     // answer, so the user sees who is paid, or the unknown-key stop, first.
     const isAwaitingPixKeyOwner = !!pixKeyLabel && isPixKeyOwnerPending
+    const pixKeySave = usePixKeySavePrompt(pixKeyLabel, pixKeyOwner?.name)
     const tWithdraw = useTranslations('withdraw')
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
@@ -1081,11 +1083,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         setQrPayment,
     ])
 
+    const { saveAtSubmit: savePixKeyAtSubmit } = pixKeySave
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {
+            savePixKeyAtSubmit()
             await handleMantecaPayment()
         }
-    }, [paymentProcessor, handleMantecaPayment])
+    }, [paymentProcessor, handleMantecaPayment, savePixKeyAtSubmit])
 
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair
@@ -1230,6 +1234,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
+        pixKeySave,
         // kyc gate
         gate,
         shouldBlockPay,

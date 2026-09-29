@@ -303,6 +303,30 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockOnMethodChosen).not.toHaveBeenCalled()
     })
 
+    describe('a saved Brazil PIX key', () => {
+        const BR_PIX_ACCOUNT = { type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }
+
+        it('in Send, opens the PIX key screen with the key filled in', () => {
+            mockIsBankFromSend = true
+            mockUserAccounts = [BR_PIX_ACCOUNT]
+            renderView()
+            fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
+
+            const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+            expect(pushed).toContain('country=brazil')
+            expect(pushed).toContain('method=pix')
+            expect(pushed).toContain('destination=maria%40silva.com.br')
+        })
+
+        it('in a withdrawal, keeps the first-party BRL offramp', () => {
+            mockUserAccounts = [BR_PIX_ACCOUNT]
+            renderView()
+            fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
+
+            expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).not.toContain('method=pix')
+        })
+    })
+
     it('a saved non-Manteca account sets the flow state and advances WITHOUT navigating', () => {
         renderView()
         fireEvent.click(screen.getByTestId(`account-${IBAN_ACCOUNT.identifier}`))

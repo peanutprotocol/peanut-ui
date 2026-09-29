@@ -360,6 +360,9 @@ export interface TransactionDetails {
      *  `t(nameKey, nameParams)` and fall back to `userName`. */
     nameKey?: TransactionNameKey
     nameParams?: Record<string, string>
+    /** Shown beside `userName` in the drawer title and on the receipt (see
+     *  TransactionStrategyOutput.nameDetail). */
+    nameDetail?: string
     /** The counterparty is an actual Peanut user (not a raw address, bank
      *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
      *  Authoritative gate for whether the name/avatar can deep-link to a
@@ -574,6 +577,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let nameForDetails = out.nameForDetails
     let nameKey = out.nameKey
     let nameParams = out.nameParams
+    let nameDetail = out.nameDetail
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
@@ -599,6 +603,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
         nameKey = reaperFailKey(reaperFailReason)
         nameParams = undefined
+        nameDetail = undefined
         isPeerActuallyUser = false
     } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
         // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
@@ -611,6 +616,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         nameForDetails = 'Failed QR payment attempt'
         nameKey = TRANSACTION_NAME_KEYS.failedQrPayment
         nameParams = undefined
+        nameDetail = undefined
         isPeerActuallyUser = false
     }
 
@@ -703,6 +709,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         userName: nameForDetails,
         nameKey,
         nameParams,
+        nameDetail,
         amount,
         tokenAmount: entry.amount,
         fullName,
