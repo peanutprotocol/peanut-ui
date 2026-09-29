@@ -140,11 +140,11 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
                     month_caption: 'flex h-10 items-center px-1 text-body-m-semibold text-foreground-primary',
                     nav: 'absolute right-0 top-0 flex h-10 items-center gap-1',
                     button_previous: twMerge(
-                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:bg-background-disabled disabled:opacity-40',
+                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover disabled:opacity-40',
                         focusRing
                     ),
                     button_next: twMerge(
-                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:bg-background-disabled disabled:opacity-40',
+                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover disabled:opacity-40',
                         focusRing
                     ),
                     chevron: 'size-5 fill-current',

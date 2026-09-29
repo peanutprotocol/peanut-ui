@@ -21,9 +21,8 @@ import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import React, { useMemo, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
+import { HistoryFilterButton } from '@/components/History/HistoryFilterButton'
 import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
 import { useHistoryRange } from '@/hooks/useHistoryRange'
 import { useHistoryRangeLabel } from '@/hooks/useHistoryRangeLabel'
@@ -276,24 +275,11 @@ const HistoryPage = () => {
     }, [combinedAndSortedEntries])
 
     const filterButton = (
-        <Button
-            variant="secondary"
-            className={twMerge(
-                // nav circle recipe (board 17802:61534): 40px visual, pseudo-element to 44px
-                'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5',
-                // an applied range borrows the Tabs (ex SegmentedControl) selected recipe:
-                // action-primary border + the app's 10% selected tint, glyph stays
-                // black. not-active: lets the stroke button's own full-pink press
-                // show through (law 7) — a plain utility would override it.
-                // No navigation-board row covers this; flagged ❓ in the PR body.
-                hasActiveRange && 'border-action-primary not-active:bg-action-primary/10'
-            )}
-            aria-label={hasActiveRange ? t('range.titleActive', { range: rangeLabel }) : t('range.title')}
+        <HistoryFilterButton
+            active={hasActiveRange}
+            label={hasActiveRange ? t('range.titleActive', { range: rangeLabel }) : t('range.title')}
             onClick={() => setRangeDrawerOpen(true)}
-            data-testid="history-filters"
-        >
-            <Icon name="list-filter" size={20} />
-        </Button>
+        />
     )
 
     const drawers = (
