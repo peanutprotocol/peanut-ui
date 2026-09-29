@@ -308,12 +308,14 @@ export const useSignSpendBundle = () => {
                 // the user's session-key UserOp (1 tap total).
                 if (strategy === 'collateral-only') {
                     // The backend chooses the intent kind from the destination
-                    // (TASK-21815) — nothing user-declared goes on the wire.
+                    // (TASK-21815); only a bank offramp declares itself, since it
+                    // shares the QR provider address and would record as QR_PAY.
                     const prep = await rainApi.prepareWithdrawal(
                         {
                             amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                             recipientAddress: recipient,
                             directTransfer: true,
+                            ...(kind === 'FIAT_OFFRAMP' ? { kind } : {}),
                         },
                         { suppressCooldownEvent: suppressCooldownEvent === true || signRecovered }
                     )

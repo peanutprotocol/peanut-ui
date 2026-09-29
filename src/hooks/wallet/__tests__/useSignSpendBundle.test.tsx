@@ -17,6 +17,7 @@ import type { ReactNode } from 'react'
 import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { rainCentsToUsdcUnits, usdcUnitsToRainCents } from '@/utils/balance.utils'
+import { MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
 import { submitSignedSpend } from '../signSpendRetry'
 import { useSignSpendBundle } from '../useSignSpendBundle'
 import {
@@ -564,6 +565,47 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
 })
 
 const UNFORCED_KINDS = ['QR_PAY', 'FIAT_OFFRAMP'] as const
+/** Only a bank offramp declares its kind on a direct prepare. */
+const offrampDisambiguator = (kind: (typeof UNFORCED_KINDS)[number]) => (kind === 'FIAT_OFFRAMP' ? { kind } : {})
+
+/** QR and bank offramp pay the same shared provider address. */
+describe('useSignSpendBundle — shared provider address disambiguation', () => {
+    const SHARED_PROVIDER_ADDRESS = MANTECA_QR_DEPOSIT_ADDRESS_NON_AR
+    const preparedBody = async (kind: (typeof UNFORCED_KINDS)[number]) => {
+        mockPrepareWithdrawal.mockClear()
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: SHARED_PROVIDER_ADDRESS,
+                rainSpendingPower: 200_000_000n,
+                kind,
+            })
+        })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+        return mockPrepareWithdrawal.mock.calls[0][0]
+    }
+
+    it('FIAT_OFFRAMP declares its kind on the shared address', async () => {
+        expect(await preparedBody('FIAT_OFFRAMP')).toStrictEqual({
+            amount: '15000',
+            recipientAddress: SHARED_PROVIDER_ADDRESS,
+            directTransfer: true,
+            kind: 'FIAT_OFFRAMP',
+        })
+    })
+
+    it('QR_PAY on the same address sends no kind and keeps the backend default', async () => {
+        expect(await preparedBody('QR_PAY')).toStrictEqual({
+            amount: '15000',
+            recipientAddress: SHARED_PROVIDER_ADDRESS,
+            directTransfer: true,
+        })
+    })
+})
 
 /**
  * Collateral that covers the amount signs DIRECTLY for every unforced caller:
@@ -596,7 +638,7 @@ describe.each(UNFORCED_KINDS)('useSignSpendBundle — %s collateral funding sign
             rainWithdrawal: { preparationId: 'prep-1', directTransfer: true, adminSignature: '0xadminsig' },
         })
         expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
-            { amount: '15000', recipientAddress: RECIPIENT, directTransfer: true },
+            { amount: '15000', recipientAddress: RECIPIENT, directTransfer: true, ...offrampDisambiguator(kind) },
             { suppressCooldownEvent: false }
         )
         expect(mockSignTypedData).toHaveBeenCalledTimes(1)
@@ -705,7 +747,7 @@ describe.each(UNFORCED_KINDS)('useSignSpendBundle — %s quote 15.24486273 (1525
         })
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
         expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
-            { amount: '1525', recipientAddress: RECIPIENT, directTransfer: true },
+            { amount: '1525', recipientAddress: RECIPIENT, directTransfer: true, ...offrampDisambiguator(kind) },
             { suppressCooldownEvent: false }
         )
         expect(mockSignTypedData).toHaveBeenCalledTimes(1)
