@@ -2398,7 +2398,7 @@
             "error": "Export failed. Try again.",
             "save": "Save file",
             "tooLarge": "This date range is too large. Choose a shorter range.",
-            "unverified": "We could not verify every transaction in this range. Please contact support.",
+            "unverified": "We could not verify every transaction in this range. Try again later or contact support.",
             "busy": "Downloads are busy. Please try again shortly.",
             "saveUnavailable": "File saving is unavailable on this device. Please download from the web app."
         },

@@ -2398,7 +2398,7 @@
             "error": "La exportación falló. Intenta de nuevo.",
             "save": "Guardar archivo",
             "tooLarge": "Este período es demasiado amplio. Elige uno más corto.",
-            "unverified": "No pudimos verificar todas las transacciones de este período. Contacta a soporte.",
+            "unverified": "No pudimos verificar todas las transacciones de este período. Inténtalo de nuevo más tarde o contacta a soporte.",
             "busy": "Hay varias descargas en curso. Inténtalo de nuevo en un momento.",
             "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web."
         },
