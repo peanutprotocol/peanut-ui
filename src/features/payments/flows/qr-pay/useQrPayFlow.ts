@@ -40,7 +40,7 @@ import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from
 import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { MANTECA_QR_INIT_SCAN_TIMEOUT_MS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
-import { isPixRecurringCode, normalizePixInput } from '@/utils/withdraw.utils'
+import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
@@ -105,11 +105,7 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
  */
 export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
     const { qrCode, timestamp, qrType } = scan
-    // A key pasted into the scanner arrives as typed ("123.456.789-09",
-    // "5511912345678"). The lookup, the display and the save all use the form
-    // the key screen produces, which is also the one the PIX directory holds.
-    const verifiedPixKey = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
-    const pixKeyLabel = verifiedPixKey ? normalizePixInput(verifiedPixKey) : null
+    const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
     // from the scanner resolves here. Without data the key itself is shown.
     const { data: pixKeyOwner, error: pixKeyOwnerError, isPending: isPixKeyOwnerPending } = usePixKeyOwner(pixKeyLabel)
@@ -1093,12 +1089,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentProcessor, handleMantecaPayment])
 
-    // Only a payment that went through saves its key: a Pay tap can also end
-    // in a re-quote, a refusal or a failure.
+    // A payment that went through saves its key, and so does one still
+    // settling: the flow does not follow it to its end, and the user asked to
+    // keep an owner the directory confirmed. A Pay tap that ends in a re-quote,
+    // a refusal or a failure saves nothing.
     const { saveAfterPayment: savePixKeyAfterPayment } = pixKeySave
+    const isPaymentSettling = !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) === 'processing'
     useEffect(() => {
-        if (isSuccess) savePixKeyAfterPayment()
-    }, [isSuccess, savePixKeyAfterPayment])
+        if (isSuccess || isPaymentSettling) savePixKeyAfterPayment()
+    }, [isSuccess, isPaymentSettling, savePixKeyAfterPayment])
 
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair

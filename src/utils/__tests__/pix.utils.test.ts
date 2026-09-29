@@ -121,6 +121,18 @@ describe('PIX Utilities', () => {
             expect(pixKeyToQrPayUrl('not-a-valid-key')).toBeNull()
             expect(pixKeyToQrPayUrl('')).toBeNull()
         })
+
+        // BR Code field 26, sub-field 01: the key, with its two-digit length.
+        it.each([
+            ['123.456.789-09', '12345678909'],
+            ['12.345.678/0001-95', '12345678000195'],
+            ['5511912345678', '+5511912345678'],
+        ])('pays and names a typed key %s in its directory form %s', (typed, key) => {
+            const params = new URLSearchParams(pixKeyToQrPayUrl(typed)!.split('?')[1])
+            expect(params.get('qrCode')).toContain(`01${String(key.length).padStart(2, '0')}${key}`)
+            expect(params.get('pixKey')).toBe(key)
+            expect(verifiedPixKeyLabel(params.get('qrCode')!, params.get('pixKey'))).toBe(key)
+        })
     })
 })
 

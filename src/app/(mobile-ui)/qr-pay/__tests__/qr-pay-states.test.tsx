@@ -205,6 +205,7 @@ const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
     getPixKeyOwner: jest.fn(),
+    savePixKey: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -986,6 +987,8 @@ describe('GROUP 2: Payment Form States', () => {
 
         expect(await screen.findByText('CPF 123.456.789-09')).toBeInTheDocument()
         expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith('12345678909')
+        // The BR Code that is paid carries the same digits-only key (field 26, sub-field 01).
+        expect(mockMantecaApi.initiateQrPayment.mock.calls[0][0].qrCode).toContain('011112345678909')
     })
 
     test('a pasted PIX key the directory does not know stops before the amount step', async () => {
@@ -1037,6 +1040,35 @@ describe('GROUP 2: Payment Form States', () => {
 
         fireEvent.change(name, { target: { value: '' } })
         expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+    })
+
+    test('a PIX-key payment still settling saves the key the user asked to keep', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        mockMantecaApi.savePixKey.mockResolvedValue(undefined)
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue({
+            id: 'qp1',
+            externalId: 'ext1',
+            sessionId: 's1',
+            status: 'ACTIVE',
+            currentStage: 'processing',
+            stages: [],
+            type: 'PIX_PAYMENT',
+            details: { depositAddress: '0x123', merchant: { name: 'MARIA@SILVA.COM.BR' } },
+        })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        fireEvent.click(screen.getByLabelText('Save to address book'))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        expect(mockMantecaApi.savePixKey).toHaveBeenCalledWith(pixKey, 'MARIA DA SILVA')
     })
 
     test('a scanned merchant QR offers no address-book save', async () => {

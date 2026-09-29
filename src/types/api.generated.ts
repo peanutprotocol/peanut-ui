@@ -5909,7 +5909,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -11045,6 +11045,7 @@ export interface paths {
                                 type: string;
                                 updatedAt: string;
                                 userId: string | null;
+                                isPixRecipient: boolean;
                             };
                         };
                     };

@@ -325,6 +325,19 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
 
             expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).not.toContain('method=pix')
         })
+
+        it("offers someone else's key, saved from a payment, in Send but not in a withdrawal", () => {
+            const recipientKey = { ...BR_PIX_ACCOUNT, isPixRecipient: true }
+            mockUserAccounts = [recipientKey, IBAN_ACCOUNT]
+            const { unmount } = renderView()
+            expect(screen.queryByTestId(`account-${recipientKey.identifier}`)).not.toBeInTheDocument()
+            expect(screen.getByTestId(`account-${IBAN_ACCOUNT.identifier}`)).toBeInTheDocument()
+            unmount()
+
+            mockIsBankFromSend = true
+            renderView()
+            expect(screen.getByTestId(`account-${recipientKey.identifier}`)).toBeInTheDocument()
+        })
     })
 
     it('a saved non-Manteca account sets the flow state and advances WITHOUT navigating', () => {

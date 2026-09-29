@@ -1,5 +1,5 @@
 import { createStaticPix, hasError } from 'pix-utils'
-import { validatePixKey, isPixEmvcoQr } from './withdraw.utils'
+import { validatePixKey, isPixEmvcoQr, normalizePixInput } from './withdraw.utils'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { brTaxIdKind, formatBrTaxId, type BrTaxIdKind } from './br-tax-id.utils'
 import { SAVED_ADDRESS_NICKNAME_MAX } from './saved-address.utils'
@@ -20,8 +20,13 @@ export const pixKeyToBRCode = (pixKey: string): string | null => {
         return trimmed
     }
 
+    // The BR Code standard wants the key as the PIX directory holds it: digits
+    // only for a CPF or CNPJ, +55 for a phone. A scanned or pasted key arrives
+    // as typed ("123.456.789-09", "5511912345678").
+    const key = normalizePixInput(trimmed)
+
     // Validate the PIX key first
-    const validation = validatePixKey(trimmed)
+    const validation = validatePixKey(key)
     if (!validation.valid) {
         return null
     }
@@ -30,9 +35,9 @@ export const pixKeyToBRCode = (pixKey: string): string | null => {
     // merchantName is the PIX key itself (truncated to 25 chars per EMVCo spec)
     // Note: transactionAmount is optional at runtime despite TypeScript types
     const pix = createStaticPix({
-        merchantName: trimmed.substring(0, 25),
+        merchantName: key.substring(0, 25),
         merchantCity: 'Sao Paulo',
-        pixKey: trimmed,
+        pixKey: key,
     } as Parameters<typeof createStaticPix>[0])
 
     if (hasError(pix)) {
@@ -55,12 +60,15 @@ export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
     if (!brCode) return null
     const timestamp = Date.now()
     // type=PIX mirrors EQrType.PIX; qr-pay routes it to the Manteca PIX rail.
-    const keyParam = isPixEmvcoQr(pixKey.trim()) ? '' : `&pixKey=${encodeURIComponent(pixKey.trim())}`
+    const keyParam = isPixEmvcoQr(pixKey.trim()) ? '' : `&pixKey=${encodeURIComponent(normalizePixInput(pixKey))}`
     return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX${keyParam}`
 }
 
+/** The key a `/qr-pay` URL names, in its directory form, when it is the key the BR Code pays. */
 export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): string | null {
-    return pixKey && pixKeyToBRCode(pixKey) === qrCode ? pixKey : null
+    if (!pixKey) return null
+    const key = normalizePixInput(pixKey)
+    return pixKeyToBRCode(key) === qrCode ? key : null
 }
 
 /**
