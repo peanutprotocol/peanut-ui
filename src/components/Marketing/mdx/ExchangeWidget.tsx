@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryStates } from 'nuqs'
-import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
+import ExchangeRateWidget, { type ExchangeRateWidgetLabels } from '@/components/Global/ExchangeRateWidget'
 import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
@@ -19,9 +19,11 @@ interface ExchangeWidgetProps {
     destinationCurrency?: string
     /** ISO 4217 source currency code. Defaults to "USD". */
     sourceCurrency?: string
+    /** Bound to the page's locale by createMdxComponents; English defaults otherwise. */
+    labels?: Partial<ExchangeRateWidgetLabels>
 }
 
-function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: ExchangeWidgetProps) {
+function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD', labels }: ExchangeWidgetProps) {
     const router = useRouter()
     const [{ from, to }, setQuery] = useQueryStates(
         { from: parseAsString, to: parseAsString },
@@ -64,6 +66,7 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
                     ctaAction={(from, to) => {
                         router.push(`/send?from=${from}&to=${to}`)
                     }}
+                    labels={labels}
                 />
             </div>
         </section>
@@ -88,7 +91,7 @@ const amountFieldSkeleton = (
  *   <ExchangeWidget destinationCurrency="ARS" />
  *   <ExchangeWidget destinationCurrency="BRL" sourceCurrency="EUR" />
  */
-export function ExchangeWidget({ destinationCurrency, sourceCurrency }: ExchangeWidgetProps) {
+export function ExchangeWidget({ destinationCurrency, sourceCurrency, labels }: ExchangeWidgetProps) {
     return (
         <Suspense
             fallback={
@@ -112,7 +115,11 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
                 </section>
             }
         >
-            <ExchangeWidgetInner destinationCurrency={destinationCurrency} sourceCurrency={sourceCurrency} />
+            <ExchangeWidgetInner
+                destinationCurrency={destinationCurrency}
+                sourceCurrency={sourceCurrency}
+                labels={labels}
+            />
         </Suspense>
     )
 }

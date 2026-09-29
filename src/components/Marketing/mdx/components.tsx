@@ -16,6 +16,7 @@ import { PROSE_LINK, PROSE_WIDTH } from '../constants'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
+import { exchangeWidgetLabels } from '@/components/LandingPage/landingStrings'
 
 /**
  * Component map for MDX content rendering.
@@ -38,6 +39,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
     const i18n = getTranslations(locale)
     return {
         ...mdxComponents,
+        Hero: (props) => <Hero {...props} locale={locale} />,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
         // CompareSavings is a client component, so its copy is picked here key
         // by key: passing the whole catalog would serialize ~14 KB of unused
@@ -54,6 +56,9 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
                 }}
             />
         ),
+        // Same catalog keys the landing page hands its widget — the embed is a
+        // client component, so only the widget's own labels cross over.
+        ExchangeWidget: (props) => <ExchangeWidget {...props} labels={exchangeWidgetLabels(i18n)} />,
         Steps: (props) => <Steps {...props} locale={locale} />,
         RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
         FAQ: (props) => <FAQ {...props} locale={locale} />,

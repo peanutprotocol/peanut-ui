@@ -52,6 +52,10 @@ interface WithdrawBankReviewViewProps {
     isSubmitReady: boolean
     /** On-chain leg already fired — never offer Retry (double-pay). */
     submittedTxHash: string | null
+    /** The send may have gone out (outcome unknown) — never offer Retry; `error` says to check Activity. */
+    sendOutcomeUnknown?: boolean
+    /** The app replaced an old quote on submit; the user checks the new amounts. */
+    quoteNotice?: string | null
     error: { showError: boolean; errorMessage: string }
     balanceErrorMessage: string | null
     confirmPendingCopy: string
@@ -91,6 +95,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     isLoading,
     isSubmitReady,
     submittedTxHash,
+    sendOutcomeUnknown = false,
+    quoteNotice = null,
     error,
     balanceErrorMessage,
     confirmPendingCopy,
@@ -172,7 +178,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     options={usdSpeed.options}
                     selected={usdSpeed.selected}
                     onSelect={usdSpeed.onSelect}
-                    disabled={isLoading || !!submittedTxHash}
+                    disabled={isLoading || !!submittedTxHash || sendOutcomeUnknown}
                 />
             )}
 
@@ -256,7 +262,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                    {/* a conversion's cost is in its rate, so it never claims a zero fee */}
+                    {!convertsCurrency && <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />}
                 </Card>
             )}
 
@@ -298,7 +305,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         value={reference}
                         maxLength={referenceSpec.maxLength}
                         // the transfer is created with the reference; it cannot change after
-                        disabled={isLoading || !!submittedTxHash}
+                        disabled={isLoading || !!submittedTxHash || sendOutcomeUnknown}
                         onChange={(e) => onReferenceChange(e.target.value)}
                         onBlur={() => setReferenceTouched(true)}
                         className="text-body-s"
@@ -306,10 +313,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
-            {onRetryQuote && !submittedTxHash && <RateUnavailable onRetry={onRetryQuote} />}
-            {submittedTxHash ? (
-                // On-chain leg already fired. Even if confirmOfframp failed
-                // we must NOT offer Retry — it would re-run sendMoney() and
+            {onRetryQuote && !submittedTxHash && !sendOutcomeUnknown && <RateUnavailable onRetry={onRetryQuote} />}
+            {submittedTxHash || sendOutcomeUnknown ? (
+                // On-chain leg already fired, or may have. Even if confirmOfframp
+                // failed we must NOT offer Retry — it would re-run sendMoney() and
                 // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
                 // state and a Done button that takes the user home.
                 <Button shadowSize="4" className="w-full" onClick={onDone}>
@@ -353,10 +360,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Callout priority="info" title={t('bank.transferProcessing')}>
                     {confirmPendingCopy}
                 </Callout>
+            ) : error.showError ? (
+                <Callout priority="error" data-testid="withdraw-error">
+                    <CooldownErrorText message={error.errorMessage} />
+                </Callout>
             ) : (
-                error.showError && (
-                    <Callout priority="error">
-                        <CooldownErrorText message={error.errorMessage} />
+                // neutral: the quote moved, the withdrawal did not fail
+                quoteNotice && (
+                    <Callout priority="info" data-testid="quote-updated-notice">
+                        {quoteNotice}
                     </Callout>
                 )
             )}

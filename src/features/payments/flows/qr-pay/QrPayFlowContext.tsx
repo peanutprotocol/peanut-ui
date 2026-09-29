@@ -12,7 +12,15 @@ interface QrPayFlowProviderProps extends QrPayScanParams {
     children: ReactNode
 }
 
-export function QrPayFlowProvider({ qrCode, timestamp, qrType, pixKey, children }: QrPayFlowProviderProps) {
+export function QrPayFlowProvider({
+    qrCode,
+    timestamp,
+    qrType,
+    pixKey,
+    amountUsd,
+    onAmountUsdConsumed,
+    children,
+}: QrPayFlowProviderProps) {
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     const [errorCode, setErrorCode] = useState<string | null>(null)
@@ -50,7 +58,7 @@ export function QrPayFlowProvider({ qrCode, timestamp, qrType, pixKey, children 
             waitingForMerchantAmount,
             setWaitingForMerchantAmount,
         },
-        { qrCode, timestamp, qrType, pixKey }
+        { qrCode, timestamp, qrType, pixKey, amountUsd, onAmountUsdConsumed }
     )
 
     return <QrPayFlowContext.Provider value={surface}>{children}</QrPayFlowContext.Provider>

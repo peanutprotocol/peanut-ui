@@ -56,6 +56,7 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
+        "rateIncludesConversionCost": "Inclui o custo de conversão.",
         "slideToProceed": "Deslize e continue",
         "userAvatarAlt": "Avatar de {username}"
     },

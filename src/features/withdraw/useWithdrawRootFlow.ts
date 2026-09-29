@@ -160,8 +160,15 @@ export function useWithdrawRootFlow() {
     // The field can toggle to USD. A USD amount the user typed is handed on as
     // USD, exact, and the review leads with it; only a bank amount is re-quoted.
     // The URL keeps the toggle and the USD, so back and refresh restore both.
+    // A USD amount picked upstream (Rates & fees) arrives as `amount` alone, with
+    // no unit and no bank amount, and opens the field in USD too.
     const [amountCurrencyParam, setAmountCurrencyParam] = useQueryState('amountCurrency', parseAsString)
-    const isBankFieldInUsd = !!bankCurrency && amountCurrencyParam === 'usd'
+    const isBankFieldInUsd =
+        !!bankCurrency && (amountCurrencyParam === 'usd' || (!amountCurrencyParam && !!urlAmount && !destinationAmount))
+    // The unit the bank-currency field shows right now, set by its unit report.
+    // A ref: the field reports its unit and then its amounts in one flush, before
+    // the URL (and isBankFieldInUsd) catch up.
+    const bankFieldInUsdRef = useRef(false)
 
     // The USD floor under every bank payout. No amount-step minimum for crypto:
     // same-chain (Arbitrum) withdrawals are direct transfers with no floor,
@@ -272,18 +279,21 @@ export function useWithdrawRootFlow() {
 
             // the URL is the durable copy of the typed amount (survives refresh,
             // shareable mid-flow) — nuqs throttles the actual history writes.
-            // For a bank-currency amount the USD is only derived; the bank amount is stored.
-            if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
-            // the field re-reports an unchanged USD when the rate refreshes; an
-            // unchanged URL write can discard Continue's navigation (see below)
-            else if (isBankFieldInUsd && newValue !== urlAmount) void setUrlAmount(newValue === '' ? null : newValue)
+            // For a bank-currency amount the USD is only derived; the bank amount is
+            // stored — unless the field is in USD, whose typed value must survive a
+            // refresh and Back. An unchanged value is not rewritten: a URL write
+            // discards a navigation in flight (Continue's push), and a re-report of
+            // the seed must not clear it.
+            if ((!bankCurrency || bankFieldInUsdRef.current) && newValue !== urlAmount) {
+                void setUrlAmount(newValue === '' ? null : newValue)
+            }
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, isBankFieldInUsd, urlAmount]
+        [setUrlAmount, urlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency]
     )
 
     const handleDestinationAmountChange = useCallback(
@@ -297,6 +307,26 @@ export function useWithdrawRootFlow() {
             void setDestinationAmount(next || null)
         },
         [setDestinationAmount, destinationAmount]
+    )
+
+    // The unit the user types in is kept in the URL (`amountCurrency`). Switching
+    // the field to the bank currency drops the USD, so Back reopens on the bank
+    // amount the user typed and a new quote cannot replace it; switching to USD
+    // stores the USD, so Back reopens on that.
+    const handleBankDenominationChange = useCallback(
+        (symbol: string) => {
+            if (!bankCurrency) return
+            const inUsd = symbol.toUpperCase() === 'USD'
+            bankFieldInUsdRef.current = inUsd
+            const unit = inUsd ? 'usd' : null
+            if (unit !== amountCurrencyParam) void setAmountCurrencyParam(unit)
+            if (inUsd) {
+                if (rawTokenAmount && rawTokenAmount !== urlAmount) void setUrlAmount(rawTokenAmount)
+            } else if (urlAmount) {
+                void setUrlAmount(null)
+            }
+        },
+        [bankCurrency, amountCurrencyParam, setAmountCurrencyParam, rawTokenAmount, urlAmount, setUrlAmount]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -319,8 +349,11 @@ export function useWithdrawRootFlow() {
             const params = new URLSearchParams()
             for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value)
             if (isFromSendFlow && methodParam && !params.has('method')) params.set('method', methodParam)
-            // a bank-currency amount is handed on as typed; the review quotes its USDC
-            if (bankCurrency && !isBankFieldInUsd) {
+            // Each amount is handed on in the unit it was typed in. A bank-currency
+            // amount goes as destinationAmount and the review quotes its USDC; a USD
+            // amount (any USD account, or a bank account whose field is in USD) goes
+            // as typed — the bank amount beside it is only an estimate.
+            if (bankCurrency && !bankFieldInUsdRef.current) {
                 if (destinationAmount) params.set('destinationAmount', destinationAmount)
             } else if (rawTokenAmount) {
                 params.set('amount', rawTokenAmount)
@@ -328,7 +361,7 @@ export function useWithdrawRootFlow() {
             const qs = params.toString()
             return qs ? `?${qs}` : ''
         },
-        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount, isBankFieldInUsd]
+        [isFromSendFlow, methodParam, rawTokenAmount, bankCurrency, destinationAmount]
     )
 
     const handleAmountContinue = useCallback(() => {
@@ -491,10 +524,7 @@ export function useWithdrawRootFlow() {
                   destinationAmount,
                   onDestinationAmountChange: handleDestinationAmountChange,
                   isInUsd: isBankFieldInUsd,
-                  onDenominationChange: (symbol: string) => {
-                      const next = symbol.toUpperCase() === 'USD' ? 'usd' : null
-                      if (next !== amountCurrencyParam) void setAmountCurrencyParam(next)
-                  },
+                  onDenominationChange: handleBankDenominationChange,
               }
             : null,
         handleAmountChange,

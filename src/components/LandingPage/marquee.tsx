@@ -4,15 +4,15 @@ import type { MarqueeItem } from '../Global/MarqueeWrapper/marquee.types'
 
 type MarqueeProps = {
     visible?: boolean
-    /** Plain words, or `{ label, href }` for the ones that link somewhere. */
-    message?: MarqueeItem[]
+    /** Plain words, or `{ label, href }` for the ones that link somewhere. Each caller brings its own localized words. */
+    message: MarqueeItem[]
     imageSrc?: string
     backgroundColor?: string
 }
 
 export function Marquee({
     visible = true,
-    message = ['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC'],
+    message,
     imageSrc = HandThumbsUp.src,
     backgroundColor = 'bg-yellow-500',
 }: MarqueeProps) {

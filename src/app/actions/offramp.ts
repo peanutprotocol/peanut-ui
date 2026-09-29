@@ -1,5 +1,6 @@
 import {
     type OfframpQuote,
+    type OfframpQuoteAmount,
     type UsdPayoutRailFees,
     type TCreateGuestOfframpRequest,
     type TCreateOfframpRequest,
@@ -65,16 +66,18 @@ export async function createOfframp(
 }
 
 /**
- * Quote a withdrawal typed in the bank currency: the USDC that pays that
- * amount at the current rate. Without `destinationAmount`, only the rate.
+ * Quote a withdrawal: the USDC that pays a typed bank amount, or the bank
+ * amount a typed USDC amount buys (an estimate: Bridge converts at settlement).
+ * Without an amount, only the rate.
  */
 export async function getOfframpQuote(
     destinationCurrency: string,
-    destinationAmount?: string
+    amount?: OfframpQuoteAmount
 ): Promise<{ data?: OfframpQuote; error?: string }> {
     try {
         const query = new URLSearchParams({ destinationCurrency })
-        if (destinationAmount) query.set('destinationAmount', destinationAmount)
+        if (amount && 'destinationAmount' in amount) query.set('destinationAmount', amount.destinationAmount)
+        if (amount && 'sourceAmount' in amount) query.set('sourceAmount', amount.sourceAmount)
         const response = await serverFetch(`/bridge/offramp/quote?${query.toString()}`, { method: 'GET' })
         const data = await response.json()
         if (!response.ok) {

@@ -340,4 +340,13 @@ describe('demoRespond — withdraw quote (TASK-23054)', () => {
         expect(body.rate).toBe('1')
         expect(body.sourceAmount).toBeUndefined()
     })
+
+    it('answers typed USDC too, with both amounts at the same 1:1 rate', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&sourceAmount=50.12',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(await res.json()).toMatchObject({ sourceAmount: '50.12', destinationAmount: '50.12' })
+    })
 })

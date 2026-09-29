@@ -914,15 +914,16 @@ export async function demoRespond(
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
     // The withdraw quote depends on its query, which route handlers never see:
-    // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
+    // answer it here at a synthetic 1:1 rate, so the USDC equals the typed
+    // amount on either side.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {
         const query = new URL(path, 'http://capture.invalid').searchParams
-        const destinationAmount = query.get('destinationAmount') ?? undefined
+        const amount = query.get('destinationAmount') ?? query.get('sourceAmount') ?? undefined
         return json({
             destinationCurrency: query.get('destinationCurrency') ?? 'eur',
             rate: '1',
             updatedAt: CREATED_AT,
-            ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+            ...(amount ? { destinationAmount: amount, sourceAmount: amount } : {}),
         })
     }
 

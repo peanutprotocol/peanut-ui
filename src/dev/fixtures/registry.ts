@@ -9,7 +9,7 @@
 // responses were checked against production on 2026-04-16. That file is gone;
 // this registry replaced it.
 
-import type { Fixture } from './types'
+import type { Fixture, FixtureReply } from './types'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -17,7 +17,112 @@ import {
     DEPOSIT_RAIL_POLICY,
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { paths } from '@/types/api.generated'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+
+type FxRateBody = paths['/fx/rate']['get']['responses'][200]['content']['application/json']
+
+/**
+ * A simulated display rate for ONE pair, in the exact GET /fx/rate contract
+ * (fetchDisplayRate validates every field). The timestamps are stamped when
+ * the request arrives, so the reply is fresh under the shots' frozen clock and
+ * under a live one. Any other pair — a swap, say — answers null and falls to
+ * the offline demo's 503, so no pair is ever quoted that this fixture did not
+ * name. Not a price: a round synthetic figure for screenshots only.
+ */
+export function simulatedFxRate(from: string, to: string, rate: string): (path: string) => FixtureReply | null {
+    return (path) => {
+        const query = new URL(path, 'http://fixture.local').searchParams
+        if (query.get('from') !== from || query.get('to') !== to) return null
+        const now = new Date().toISOString()
+        const body: FxRateBody = {
+            from,
+            to,
+            rate,
+            basis: 'display_sell',
+            indicative: true,
+            selection: 'provider_pair',
+            fromSource: 'identity',
+            toSource: 'manteca',
+            generatedAt: now,
+            effectiveAt: now,
+        }
+        return { status: 200, body }
+    }
+}
+
+/** 5 BRL per USD: round enough that 10 → 50 and 0.1 → 0.5 read at a glance. */
+const SIMULATED_USD_BRL = { 'GET /fx/rate': simulatedFxRate('USD', 'BRL', '5') }
+
+type OfframpQuoteBody = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
+
+/** The amount syntax the quote accepts (the API's DESTINATION_AMOUNT_PATTERN), in whole cents. */
+function toCents(amount: string | null): bigint | null {
+    if (!amount || !/^(?=.*[1-9])\d{1,12}(\.\d{1,2})?$/.test(amount)) return null
+    const [whole, fraction = ''] = amount.split('.')
+    return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'))
+}
+
+const fromCents = (cents: bigint): string => `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`
+
+const invalidAmount = (): FixtureReply => ({ status: 400, body: { error: 'Enter an amount with at most 2 decimals.' } })
+
+/**
+ * A simulated withdrawal quote for ONE bank currency at a fixed Bridge rate (4
+ * decimals), for screenshots only. Amounts round as the API does: USDC for a
+ * typed bank amount rounds up to the cent; typed USDC comes back unchanged,
+ * with its estimated bank amount rounded down. Another currency answers null
+ * and gets the demo's 1:1 estimate. Times are stamped on each request, so
+ * every answer is fresh. Not a price, and no provider is called.
+ */
+export function simulatedWithdrawalQuote(currency: string, rate: string) {
+    const quote = (path: string): FixtureReply | null => {
+        const query = new URL(path, 'http://fixture.local').searchParams
+        if (query.get('destinationCurrency') !== currency) return null
+        const now = Date.now()
+        const typedDestination = query.get('destinationAmount')
+        const typedSource = query.get('sourceAmount')
+        if (!typedDestination && !typedSource) {
+            const body: OfframpQuoteBody = {
+                destinationCurrency: currency,
+                rate,
+                updatedAt: new Date(now).toISOString(),
+            }
+            return { status: 200, body }
+        }
+
+        const rateUnits = BigInt(rate.replace('.', '')) // 4 decimals
+        let sourceCents: bigint
+        let destinationCents: bigint
+        if (typedDestination) {
+            const cents = toCents(typedDestination)
+            if (cents === null) return invalidAmount()
+            destinationCents = cents
+            sourceCents = (cents * 10_000n + rateUnits - 1n) / rateUnits
+        } else {
+            const cents = toCents(typedSource)
+            if (cents === null) return invalidAmount()
+            sourceCents = cents
+            destinationCents = (cents * rateUnits) / 10_000n
+            if (destinationCents === 0n) return { status: 400, body: { error: 'The amount is too small to withdraw.' } }
+        }
+
+        const body: OfframpQuoteBody = {
+            destinationCurrency: currency,
+            rate,
+            updatedAt: new Date(now).toISOString(),
+            // the typed side comes back exactly as typed, as from the API
+            destinationAmount: typedDestination ?? fromCents(destinationCents),
+            sourceAmount: typedSource ?? fromCents(sourceCents),
+        }
+        return { status: 200, body }
+    }
+
+    return { 'GET /bridge/offramp/quote': quote }
+}
+
+// A synthetic Bridge sell rate, EUR per USD. No Peanut margin: none is collected.
+const EUR_WITHDRAWAL_RATE = '0.8955'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -82,6 +187,47 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[0], label: 'Payroll', lastUsedAt: '2026-08-12T09:00:00.000Z' },
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
+
+// Bank review in EUR: a verified Bridge customer whose Spanish IBAN is a
+// Bridge account, which is what the submit needs before it asks create:
+// identity verified, the EU SEPA rail enabled (the review's withdraw gate reads
+// channel 'bank', country 'EU' — the demo user has no EU rail, so without this
+// the submit opens the "Unlock Spain" KYC drawer), a Bridge customer id, and the
+// account's Bridge id. Synthetic state for browser QA only: nothing here reaches
+// a provider or advances anyone's real KYC. Every amount comes from
+// simulatedWithdrawalQuote. Arrays replace on merge, so the rails listed are
+// the whole list: the demo's US rail, and SEPA.
+const SEPA_WITHDRAW_USER = {
+    'GET /users/me': {
+        user: { bridgeCustomerId: 'fixture-bridge-customer' },
+        accounts: [WALLET_ACCOUNT, { ...BANK_ACCOUNTS[0], bridgeAccountId: 'fixture-bridge-iban' }],
+        identityVerification: { status: 'verified' },
+        capabilities: {
+            rails: [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    channel: 'bank',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'enabled',
+                },
+                {
+                    id: 'bridge.sepa_eu',
+                    provider: 'bridge',
+                    method: 'SEPA_EU',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'enabled',
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+        },
+    },
+}
 
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
@@ -1041,6 +1187,45 @@ export const FIXTURES: Record<string, Fixture> = {
                 hasMore: false,
             },
         },
+    },
+
+    // ---------------------------------------------------------------------
+    // Rates & fees (TASK-19427). The offline demo answers GET /fx/rate 503, so
+    // a quote needs a whole reply. It is scoped to USD → BRL: swapping the pair
+    // in the widget asks for BRL → USD, which this fixture does not answer, and
+    // the screen falls to "rate unavailable" — the honest answer, not a made-up
+    // one. Swaps are covered by the widget's Jest tests.
+    // ---------------------------------------------------------------------
+    'rates-and-fees': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=10',
+        about: 'Rates & fees with a simulated 5 BRL/USD quote: 10 USD → 50 BRL, Withdraw now enabled.',
+        waitFor: '[data-testid="exchange-rate-pill"]',
+        replies: SIMULATED_USD_BRL,
+    },
+    'rates-and-fees-below-minimum': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=0.1',
+        about: 'Rates & fees below the PIX floor: 0.1 USD → 0.5 BRL, Withdraw now disabled, "Minimum withdrawal: 1 BRL".',
+        waitFor: '[data-testid="exchange-rate-minimum"]',
+        replies: SIMULATED_USD_BRL,
+    },
+    'rates-and-fees-unavailable': {
+        route: '/profile/exchange-rate?from=USD&to=BRL&amount=10',
+        about: 'Rates & fees when the rate cannot be read: no quote, no fee claim, no delivery time.',
+        waitFor: '[data-testid="exchange-rate-pill"]',
+    },
+
+    // ---------------------------------------------------------------------
+    // Withdrawals to a EUR bank (TASK-19427): the quote at Bridge's rate, and
+    // the bank amount always an estimate. A synthetic rate, stamped fresh on
+    // every request. The bank review keeps its account in flow memory, so it
+    // has no URL of its own: open /withdraw, pick the Spanish IBAN, type the
+    // amount and Continue.
+    // ---------------------------------------------------------------------
+    'withdraw-bank-estimated-payout': {
+        route: '/withdraw',
+        about: 'Bank review at 0.8955: pick the Spanish IBAN, 20 EUR, Continue — $22.34 for ≈ €20. In USD, 12.01 sends exactly $12.01 for ≈ €10.75.',
+        responses: SEPA_WITHDRAW_USER,
+        replies: simulatedWithdrawalQuote('eur', EUR_WITHDRAWAL_RATE),
     },
 
     // ---------------------------------------------------------------------

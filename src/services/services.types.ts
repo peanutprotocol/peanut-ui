@@ -378,10 +378,14 @@ export interface TCreateOfframpRequest {
     }
 }
 
+/** The side of an offramp the user typed: the bank amount, or the USDC that leaves the balance. */
+export type OfframpQuoteAmount = { destinationAmount: string } | { sourceAmount: string }
+
 /**
  * GET /bridge/offramp/quote: the USDC a typed bank amount costs at the current
- * rate (`rate` = bank units per 1 USDC, fee included). Derived from the
- * generated contract, so a field the API drops fails the build at every reader.
+ * rate (`rate` = bank units per 1 USDC, fee included), or the estimated bank
+ * amount a typed USDC amount buys. Derived from the generated contract, so a
+ * field the API drops fails the build at every reader.
  */
 export type OfframpQuote = paths['/bridge/offramp/quote']['get']['responses'][200]['content']['application/json']
 

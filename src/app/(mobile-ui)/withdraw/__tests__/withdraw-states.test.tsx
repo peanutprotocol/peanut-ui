@@ -126,7 +126,7 @@ jest.mock('@/hooks/useBridgeOfframpQuote', () => ({
 const mockUseGetExchangeRate = jest.fn()
 jest.mock('@/hooks/useGetExchangeRate', () => ({
     __esModule: true,
-    default: () => mockUseGetExchangeRate(),
+    default: (args: unknown) => mockUseGetExchangeRate(args),
 }))
 
 const mockUseLimitsValidation = jest.fn()
@@ -622,7 +622,8 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
 
             fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '4' } })
             expect(screen.getByText('Continue')).not.toBeDisabled()
-            expect(mockUseGetExchangeRate).not.toHaveBeenCalled()
+            // the minimum needs no second rate: the sell-rate request never runs
+            expect(mockUseGetExchangeRate).not.toHaveBeenCalledWith(expect.objectContaining({ enabled: true }))
         } finally {
             bridgeUtils.getMinimumAmount.mockImplementation(() => 1)
         }

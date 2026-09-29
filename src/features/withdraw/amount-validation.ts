@@ -84,6 +84,18 @@ export function meetsBankPayoutMinimum(bankAmount: number, currency: string | nu
 }
 
 /**
+ * The smallest USD amount whose bank amount at `rate` (bank currency per 1 USD)
+ * reaches `bankMinimum`, never under the $1 floor: the payout minimum as Rates
+ * & fees shows it in USD. Rounded up to the cent, not the dollar, so it matches
+ * the bank-currency comparison above.
+ */
+export function usdForBankPayoutMinimum(bankMinimum: number, rate: number): number {
+    // toFixed drops float noise: 3 / 0.75 * 100 must stay 400, not ceil to 401
+    const cents = Math.ceil(Number(((bankMinimum / rate) * 100).toFixed(6)))
+    return Math.max(BRIDGE_OFFRAMP_MIN_USD, cents / 100)
+}
+
+/**
  * Validate + normalize the USD amount right before creating a bank offramp
  * (Chip review, PR #2917): the URL string must be a finite positive number at
  * or above the $1 Bridge floor and within the displayed spendable balance. The
