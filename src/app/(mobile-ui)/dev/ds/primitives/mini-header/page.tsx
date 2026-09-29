@@ -21,7 +21,7 @@ export default function MiniHeaderPage() {
 
             <DocSection
                 title="How it looks"
-                description="From signup, the account-ready step (src/components/Setup/Views/SignTestTransaction.tsx): two grey uppercase labels, plain prose under each."
+                description="From signup, the account-ready step (Setup SignTestTransaction view): two grey uppercase labels, plain prose under each."
             >
                 <DocSection.Content>
                     <div className="flex w-full flex-col gap-4 text-left">
