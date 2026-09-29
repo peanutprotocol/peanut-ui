@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
@@ -12,12 +12,18 @@ jest.mock('@/app/actions/exchange-rate', () => ({
     getExchangeRate: (...args: unknown[]) => getExchangeRateMock(...args),
 }))
 
-const wrapper = ({ children }: { children: React.ReactNode }) => {
-    const client = new QueryClient({
-        defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
-    })
+const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } } })
+function wrapperFor(client: QueryClient) {
+    return function ClientWrapper({ children }: { children: React.ReactNode }) {
+        return React.createElement(QueryClientProvider, { client }, children)
+    }
+}
+// one client per mounted hook, stable across its re-renders
+function FreshClientWrapper({ children }: { children: React.ReactNode }) {
+    const [client] = React.useState(makeClient)
     return React.createElement(QueryClientProvider, { client }, children)
 }
+const wrapper = FreshClientWrapper
 
 describe('useGetExchangeRate', () => {
     beforeEach(() => {
@@ -53,16 +59,50 @@ describe('useGetExchangeRate', () => {
         }
     )
 
-    // The '1' fallback showed "1 USD = 1.0000 EUR" and made the COP minimum $4,000.
-    it('a failed call is an error with no rate, never 1', async () => {
-        jest.useFakeTimers()
-        try {
-            getExchangeRateMock.mockResolvedValue({ error: 'upstream 500' })
-            const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.IBAN }), { wrapper })
-            await waitFor(() => expect(result.current.isRateError).toBe(true), { timeout: 20000 })
-            expect(result.current.exchangeRate).toBeNull()
-        } finally {
-            jest.useRealTimers()
-        }
+    /**
+     * A failed Bridge rate used to resolve as '1', which the MX minimum turned
+     * into a fabricated $50 (and "1 USD = 1.0000 EUR", a $4,000 COP minimum).
+     * It is now an error with no rate — never a 1:1.
+     */
+    it.each([
+        ['an API error', { error: 'upstream 500' }],
+        ['a missing sell_rate', { data: {} }],
+        ['an empty sell_rate', { data: { sell_rate: '' } }],
+        ['a zero sell_rate', { data: { sell_rate: '0' } }],
+        ['a negative sell_rate', { data: { sell_rate: '-1' } }],
+        ['Infinity', { data: { sell_rate: 'Infinity' } }],
+        ['NaN', { data: { sell_rate: 'NaN' } }],
+        ['a junk suffix', { data: { sell_rate: '17junk' } }],
+    ])('fails closed on %s: no rate, error state', async (_label, response) => {
+        getExchangeRateMock.mockResolvedValue(response)
+        const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.CLABE }), { wrapper })
+        await waitFor(() => expect(result.current.isError).toBe(true))
+        expect(result.current.exchangeRate).toBeNull()
+        expect(getExchangeRateMock).toHaveBeenCalledTimes(1) // no retry stampede
+    })
+
+    it('a background refresh that fails drops the retained rate, and recovery restores it', async () => {
+        const client = makeClient()
+        getExchangeRateMock.mockResolvedValueOnce({ data: { sell_rate: '17' } })
+        const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.CLABE }), {
+            wrapper: wrapperFor(client),
+        })
+        await waitFor(() => expect(result.current.exchangeRate).toBe('17'))
+
+        getExchangeRateMock.mockResolvedValueOnce({ error: 'upstream 500' })
+        await act(async () => {
+            await client.refetchQueries({ queryKey: ['exchangeRate', AccountType.CLABE] })
+        })
+        // react-query notifies observers on a macrotask after the fetch settles
+        await waitFor(() => expect(result.current.isError).toBe(true))
+        expect(result.current.exchangeRate).toBeNull()
+
+        getExchangeRateMock.mockResolvedValueOnce({ data: { sell_rate: '16.5' } })
+        await act(async () => {
+            await client.refetchQueries({ queryKey: ['exchangeRate', AccountType.CLABE] })
+        })
+        await waitFor(() => expect(result.current.exchangeRate).toBe('16.5'))
+        expect(result.current.isError).toBe(false)
+        client.clear()
     })
 })

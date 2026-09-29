@@ -1,14 +1,29 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useDebounce } from './useDebounce'
+import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
 type InputValue = number | ''
+
+/**
+ * The source amount a caller wants the NEXT pair change to start from, as a
+ * fresh object per request: identity says "new intent", the value says what
+ * (a number, or '' for a deliberately empty field).
+ */
+type SourceAmountIntent = { value: InputValue }
+
+// A source derived from a typed destination is rounded UP at the wallet
+// token's precision, so the amount that would be sent always funds what was
+// asked for (0.17 USD × 5.8 = 0.986 BRL; 0.172414 USD funds 1 BRL).
+const SOURCE_SCALE = 10 ** PEANUT_WALLET_TOKEN_DECIMALS
+const ceilToSourcePrecision = (value: number) => Math.ceil(value * SOURCE_SCALE - 1e-6) / SOURCE_SCALE
 
 interface UseExchangeRateProps {
     sourceCurrency: string
     destinationCurrency: string
     initialSourceAmount?: number
+    /** A pair change with a fresh intent starts from its value; without one, from `initialSourceAmount`. */
+    sourceAmountIntent?: SourceAmountIntent
     enabled?: boolean
 }
 
@@ -24,58 +39,51 @@ interface UseExchangeRateReturn {
     getDestinationDisplayValue: () => string
 }
 
+const isValidAmount = (amount: InputValue): amount is number => typeof amount === 'number' && amount > 0
+
 export function useExchangeRate({
     sourceCurrency,
     destinationCurrency,
     initialSourceAmount = 10,
+    sourceAmountIntent,
     enabled = true,
 }: UseExchangeRateProps): UseExchangeRateReturn {
-    // State
-    const [sourceAmount, setSourceAmount] = useState<InputValue>(initialSourceAmount)
-    const [destinationAmount, setDestinationAmount] = useState<InputValue>('')
-    const [destinationInputValue, setDestinationInputValue] = useState('')
+    // What the user typed on each side, and which side was typed last. Both
+    // amounts are derived from these and the current rate at render time —
+    // never stored by an effect, so no render can pair one pair's amount with
+    // another pair's rate (TASK-21369).
+    const [sourceInput, setSourceInput] = useState<InputValue>(initialSourceAmount)
+    const [destinationInput, setDestinationInput] = useState<{ text: string; amount: InputValue }>({
+        text: '',
+        amount: '',
+    })
     const [lastEditedField, setLastEditedField] = useState<'source' | 'destination' | null>(null)
 
-    // Debounced values
-    const debouncedSourceAmount = useDebounce(sourceAmount, 500)
-    const debouncedDestinationAmount = useDebounce(destinationAmount, 500)
-
-    // Utility functions
-    const isValidAmount = (amount: InputValue): amount is number => typeof amount === 'number' && amount > 0
-
-    const clearDestinationFields = () => {
-        setDestinationAmount('')
-        setDestinationInputValue('')
-    }
-
-    const updateDestinationFromCalculation = (calculatedAmount: number) => {
-        setDestinationAmount(calculatedAmount)
-        setDestinationInputValue(calculatedAmount.toFixed(2))
+    // A new pair restarts from the source side; a new amount alone replaces
+    // the source input. Adjusted during render so no frame shows the old
+    // inputs against the new pair.
+    const [seen, setSeen] = useState({ sourceCurrency, destinationCurrency, initialSourceAmount, sourceAmountIntent })
+    if (seen.sourceCurrency !== sourceCurrency || seen.destinationCurrency !== destinationCurrency) {
+        const fresh = sourceAmountIntent !== undefined && sourceAmountIntent !== seen.sourceAmountIntent
+        setSeen({ sourceCurrency, destinationCurrency, initialSourceAmount, sourceAmountIntent })
+        setSourceInput(fresh ? sourceAmountIntent.value : initialSourceAmount)
+        setDestinationInput({ text: '', amount: '' })
+        setLastEditedField(null)
+    } else if (seen.initialSourceAmount !== initialSourceAmount) {
+        setSeen({ ...seen, initialSourceAmount })
+        setSourceInput(initialSourceAmount)
     }
 
     // Handlers
     const handleSourceAmountChange = useCallback((amount: InputValue) => {
-        setSourceAmount(amount)
+        setSourceInput(amount)
         setLastEditedField('source')
     }, [])
 
     const handleDestinationAmountChange = useCallback((inputValue: string, amount: InputValue) => {
-        setDestinationInputValue(inputValue)
-        setDestinationAmount(amount)
+        setDestinationInput({ text: inputValue, amount })
         setLastEditedField('destination')
     }, [])
-
-    const getDestinationDisplayValue = useCallback(() => {
-        if (lastEditedField === 'destination') {
-            return destinationInputValue
-        }
-
-        if (destinationAmount === '') {
-            return ''
-        }
-
-        return typeof destinationAmount === 'number' ? destinationAmount.toFixed(2) : String(destinationAmount)
-    }, [lastEditedField, destinationInputValue, destinationAmount])
 
     // Client-side cached exchange rate (5 minutes)
     const {
@@ -108,48 +116,29 @@ export function useExchangeRate({
     // screen even though the query is in its terminal error state.
     const exchangeRate = isError ? 0 : (rateData?.rate ?? 0)
 
-    // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
-    useEffect(() => {
-        if (exchangeRate <= 0) {
-            if (lastEditedField === 'destination') setSourceAmount('')
-            else clearDestinationFields()
-            return
-        }
+    // The typed side is authoritative; the other follows the rate. No rate
+    // (loading, error) leaves the derived side empty.
+    let sourceAmount: InputValue
+    let destinationAmount: InputValue
+    if (lastEditedField === 'destination') {
+        destinationAmount = destinationInput.amount
+        sourceAmount =
+            exchangeRate > 0 && isValidAmount(destinationInput.amount)
+                ? ceilToSourcePrecision(destinationInput.amount / exchangeRate)
+                : ''
+    } else {
+        sourceAmount = sourceInput
+        destinationAmount = exchangeRate > 0 && isValidAmount(sourceInput) ? sourceInput * exchangeRate : ''
+    }
 
-        const hasValidSource = isValidAmount(debouncedSourceAmount)
-        const hasValidDestination = isValidAmount(debouncedDestinationAmount)
+    const destinationInputValue =
+        lastEditedField === 'destination'
+            ? destinationInput.text
+            : typeof destinationAmount === 'number'
+              ? destinationAmount.toFixed(2)
+              : ''
 
-        if (lastEditedField === 'source') {
-            if (!hasValidSource) {
-                clearDestinationFields()
-                return
-            }
-            const calculatedAmount = debouncedSourceAmount * exchangeRate
-            updateDestinationFromCalculation(calculatedAmount)
-            return
-        }
-
-        if (lastEditedField === 'destination') {
-            if (!hasValidDestination) {
-                setSourceAmount('')
-                return
-            }
-            const calculatedSourceAmount = debouncedDestinationAmount / exchangeRate
-            setSourceAmount(parseFloat(calculatedSourceAmount.toFixed(2)))
-            return
-        }
-
-        // Initial load - calculate destination from source
-        if (!lastEditedField && hasValidSource) {
-            const calculatedAmount = debouncedSourceAmount * exchangeRate
-            updateDestinationFromCalculation(calculatedAmount)
-        }
-    }, [debouncedSourceAmount, debouncedDestinationAmount, lastEditedField, exchangeRate])
-
-    // Update source amount when initial amount changes
-    useEffect(() => {
-        setSourceAmount(initialSourceAmount)
-    }, [initialSourceAmount])
+    const getDestinationDisplayValue = useCallback(() => destinationInputValue, [destinationInputValue])
 
     return {
         sourceAmount,

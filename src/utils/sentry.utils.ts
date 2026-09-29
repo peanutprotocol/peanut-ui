@@ -30,9 +30,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // typed code, surfaced inline to the user — not server bugs.
     { pattern: /\/invites\/validate/, statuses: [400, 409] },
     // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
-    // quota noise and is not: it is the only alert for the open FX-stampede P2
-    // behind it. It reports until the keyed single-flight fix in no-cache.ts
-    // lands.
+    // quota noise and is not. useBankWithdrawMinimum fails closed on it, so
+    // Rates & fees blocks a GB/MX/CO withdrawal for as long as it lasts — this
+    // 429 is the alert for that, and for the open FX-stampede P2 behind it. It
+    // reports until the keyed single-flight fix in no-cache.ts lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded

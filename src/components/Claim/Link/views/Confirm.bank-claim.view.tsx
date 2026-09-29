@@ -13,6 +13,7 @@ import { useMemo } from 'react'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import ExchangeRate from '@/components/ExchangeRate'
+import { AccountType } from '@/interfaces/interfaces'
 import { currencyToAccountType, getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 import { useTranslations } from 'next-intl'
 
@@ -96,7 +97,10 @@ export function ConfirmBankClaimView({
                         />
                     )}
                     <ExchangeRate accountType={accountType} />
-                    <PaymentInfoRow hideBottomBorder label={t('fee')} value={'$0'} />
+                    {/* a conversion's cost is in its rate, so it never claims a zero fee */}
+                    {accountType === AccountType.US && (
+                        <PaymentInfoRow hideBottomBorder label={t('fee')} value={'$0'} />
+                    )}
                 </Card>
 
                 <div className="space-y-4">

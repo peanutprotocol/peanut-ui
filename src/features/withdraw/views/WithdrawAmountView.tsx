@@ -40,10 +40,10 @@ interface WithdrawAmountViewProps {
         /** Destination units per 1 USD, fees included. */
         rate: number
         initialAmount: string
-        /** 'USD' when the user had toggled the field to USD; `initialAmount` is then the USD. */
+        /** 'USD' when the amount is in USD (toggled, or carried in from Rates & fees); `initialAmount` is then the USD. */
         initialDenomination: string
         onAmountChange: (value: string) => void
-        /** The field's currency toggle: 'USD' when the user types the USD amount instead. */
+        /** The unit the field shows ('USD' or the bank currency), on open and on every switch. */
         onDenominationChange: (symbol: string) => void
     }
 }

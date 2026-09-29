@@ -256,7 +256,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                    {/* a conversion's cost is in its rate, so it never claims a zero fee */}
+                    {!convertsCurrency && <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />}
                 </Card>
             )}
 

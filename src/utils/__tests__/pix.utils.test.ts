@@ -115,6 +115,19 @@ describe('PIX Utilities', () => {
             expect(pixKeyToQrPayUrl('not-a-valid-key')).toBeNull()
             expect(pixKeyToQrPayUrl('')).toBeNull()
         })
+
+        // The USD amount chosen upstream rides along only when the wallet can
+        // carry it; qr-pay converts it at its own live rate.
+        it('carries a valid USD amount as amountUsd, normalized', () => {
+            const params = new URLSearchParams(pixKeyToQrPayUrl('user@example.com', '0.20')!.split('?')[1])
+            expect(params.get('amountUsd')).toBe('0.2')
+            expect(params.get('pixKey')).toBe('user@example.com')
+        })
+
+        it.each(['', 'abc', '1e3', '-1', '0', '0.1234567', ' 5'])('drops a malformed USD amount (%p)', (amount) => {
+            const params = new URLSearchParams(pixKeyToQrPayUrl('user@example.com', amount)!.split('?')[1])
+            expect(params.get('amountUsd')).toBeNull()
+        })
     })
 })
 

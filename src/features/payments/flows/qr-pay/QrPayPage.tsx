@@ -59,9 +59,16 @@ function QrPayFlowContent() {
 
 // exported page component with provider; the entry route keys this on the
 // scan (qrCode + timestamp) so a new scan starts from clean state
-export function QrPayPage({ qrCode, timestamp, qrType, pixKey }: QrPayScanParams) {
+export function QrPayPage({ qrCode, timestamp, qrType, pixKey, amountUsd, onAmountUsdConsumed }: QrPayScanParams) {
     return (
-        <QrPayFlowProvider qrCode={qrCode} timestamp={timestamp} qrType={qrType} pixKey={pixKey}>
+        <QrPayFlowProvider
+            qrCode={qrCode}
+            timestamp={timestamp}
+            qrType={qrType}
+            pixKey={pixKey}
+            amountUsd={amountUsd}
+            onAmountUsdConsumed={onAmountUsdConsumed}
+        >
             <QrPayFlowContent />
         </QrPayFlowProvider>
     )

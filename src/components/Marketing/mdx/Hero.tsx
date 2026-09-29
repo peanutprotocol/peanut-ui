@@ -2,6 +2,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { heroMarqueeMessages } from '../heroMarquee'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -16,13 +19,15 @@ interface HeroProps {
     ctaHref?: string
     /** @deprecated — ignored. Use standalone <ExchangeWidget> in MDX body instead. */
     currency?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
 }
 
 /**
  * MDX Hero — large bold title (Roboto Flex), subtitle, white CTA button
  * on pink background.
  */
-export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
+export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE }: HeroProps) {
     return (
         <>
             <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
@@ -58,7 +63,7 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                 </div>
             </section>
             <MarqueeComp
-                message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
+                message={heroMarqueeMessages(getTranslations(locale))}
                 imageSrc={HandThumbsUp.src}
                 backgroundColor="bg-action-secondary"
             />

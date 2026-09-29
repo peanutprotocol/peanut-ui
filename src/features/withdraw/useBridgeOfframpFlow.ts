@@ -83,6 +83,7 @@ import {
 export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
+    const tRate = useTranslations('exchangeRate')
     const toFriendlyError = useFriendlyError()
     // Copy shown when the on-chain deposit to the Bridge address succeeded but the
     // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
@@ -359,8 +360,8 @@ export function useBridgeOfframpFlow() {
         }
 
         // A USD ?amount= meets a GBP/MXN/COP minimum through the quote rate —
-        // the submit is disabled until it loads; reaching here early is a race,
-        // not a user error: no-op rather than under-enforce.
+        // the submit is disabled until it is usable; reaching here without it is
+        // a race or a failed rate, never a user error: no-op rather than guess.
         if (!isMinReady) return
         // The ToS step calls this directly, past the disabled button: a quote
         // whose refresh failed is never confirmed.
@@ -623,7 +624,11 @@ export function useBridgeOfframpFlow() {
         error,
         isLoading,
         submittedTxHash,
-        balanceErrorMessage,
+        // The view renders this as the blocking notice under the disabled
+        // submit; a failed Bridge rate blocks the same way and must say why.
+        // A bank-currency amount's failed quote already shows its inline retry.
+        balanceErrorMessage:
+            balanceErrorMessage ?? (minNeedsRate && bankQuote.isError ? tRate('widget.rateUnavailable') : null),
         confirmPendingCopy,
         reference,
         setReference,
