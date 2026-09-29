@@ -2,10 +2,11 @@ import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
 import type { TransactionDetails } from './transactionTransformer'
 
-/** the pdf route path with the locale in the url — the bytes vary by locale
- *  and final receipts are cdn-cached by url (see the route's cache notes). */
-export const receiptPdfPath = (entryId: string, kind: string, locale: string): `/${string}` =>
-    `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
+/** the pdf route path with the locale and receipt state in the url — the
+ *  bytes vary by both and final receipts are cdn-cached by url (see the
+ *  route's cache notes), so a refund or amount fix must change the url. */
+export const receiptPdfPath = (entryId: string, kind: string, locale: string, version: string): `/${string}` =>
+    `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}&v=${encodeURIComponent(version)}`
 
 /**
  * the public-capability download path: a plain same-origin url. on web the
