@@ -44,9 +44,9 @@ describe('DownloadReceiptPdfLink', () => {
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
         expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-        // the button look comes from Button's link mode; purple = the public
+        // the button look comes from Button's link mode; primary = the public
         // receipt's one primary (TASK-22452)
-        expect(link).toHaveClass('btn', 'btn-purple')
+        expect(link).toHaveClass('btn', 'btn-primary')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })

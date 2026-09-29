@@ -332,6 +332,7 @@ const HomeHistory = ({
             <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 <EmptyState
                     icon="alert"
+                    iconColor="red"
                     title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
                     description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />
@@ -363,7 +364,7 @@ const HomeHistory = ({
                         const kycEntry = buildKycHistoryEntry(user)
                         return kycEntry ? (
                             <div className="space-y-3">
-                                <KycStatusItem position="single" />
+                                <KycStatusItem position="solo" />
                             </div>
                         ) : (
                             <EmptyState

@@ -73,6 +73,28 @@ const SupportDrawer = () => {
     })
 
     /*
+     * Defence in depth, not the fix.
+     *
+     * This drawer IS the app's support surface, and it is mounted by every app
+     * layout, so while it exists the stock Crisp launcher must not be on screen.
+     * The real fix is the marketing layout's own lifecycle
+     * (components/Marketing/CrispLauncher); this marker only makes sure a future
+     * main-window Crisp loader cannot leak a bubble into the app the way the
+     * marketing widget did.
+     *
+     * The rule keys off an attribute the APP sets rather than one marketing
+     * sets, so it can never reach the drawer's `/crisp-proxy` iframe: that is a
+     * separate document, which renders no SupportDrawer and therefore carries no
+     * marker, and the chatbox inside it stays visible.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.crispLauncher = 'hidden'
+        return () => {
+            delete document.documentElement.dataset.crispLauncher
+        }
+    }, [])
+
+    /*
      * The handshake pull happens once at iframe boot; later changes (email/name
      * resolving mid-session, a new prefill) are pushed over the same channel so
      * Crisp never keeps a stale identity. Token/locale changes remount the iframe
@@ -443,7 +465,7 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background-page pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-2xl bg-background-page pt-2 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
@@ -467,12 +489,14 @@ const SupportDrawer = () => {
             >
                 {/* drag handle */}
                 <div
-                    className="flex cursor-grab items-center justify-center pb-4 active:cursor-grabbing"
+                    className="flex cursor-grab items-center justify-center pb-6 active:cursor-grabbing"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className="h-1.5 w-10 rounded-full bg-black" />
+                    {/* radius, no border and handle geometry match DrawerContent; the
+                        page-tint fill stays because the chat and its loading states paint it */}
+                    <div className="h-[5px] w-8 rounded-full bg-foreground-secondary" />
                 </div>
 
                 {/* min-h-0 lets the iframe row shrink below its content when the panel does */}
@@ -492,7 +516,7 @@ const SupportDrawer = () => {
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
                                 <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
-                                <Button variant="stroke" className="w-full" onClick={handleRetry}>
+                                <Button variant="secondary" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>
                             </div>

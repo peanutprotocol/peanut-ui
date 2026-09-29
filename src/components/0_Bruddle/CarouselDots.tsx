@@ -17,7 +17,7 @@ export const CarouselDots = ({ count, activeIndex, onSelect, className, ...props
     <div className={twMerge('flex items-center gap-2', className)} {...props}>
         {Array.from({ length: count }, (_, i) => {
             const dotClass =
-                i === activeIndex ? 'h-2 w-6 rounded-round bg-border-default' : 'size-2 rounded-round bg-border-subtle'
+                i === activeIndex ? 'h-2 w-6 rounded-full bg-border-default' : 'size-2 rounded-full bg-border-subtle'
             return onSelect ? (
                 // 8px dots sit 8px apart, so a full 44px hit area would overlap
                 // its neighbours — the pseudo-element extends to ~32px tall and

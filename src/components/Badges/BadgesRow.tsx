@@ -101,7 +101,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
     return (
         <div className={twMerge('space-y-3', className)}>
             <h2 className="text-body-m-semibold">{t('title')}</h2>
-            <Card position="single" className="relative flex h-20 items-center justify-center">
+            <Card position="solo" className="relative flex h-20 items-center justify-center">
                 {/* Badge viewport container */}
                 <div
                     ref={viewportRef}
@@ -148,12 +148,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                 {/* Right navigation button */}
                 {canScrollRight && (
                     <div className="absolute top-1/2 -right-2 -translate-y-1/2">
-                        <Button
-                            variant="transparent-dark"
-                            size="small"
-                            onClick={scrollRight}
-                            aria-label={t('showNext')}
-                        >
+                        <Button variant="ghost" size="small" onClick={scrollRight} aria-label={t('showNext')}>
                             <Icon name="chevron-up" size={24} className="rotate-90" />
                         </Button>
                     </div>
@@ -162,12 +157,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                 {/* Left navigation button */}
                 {canScrollLeft && (
                     <div className="absolute top-1/2 -left-2 -translate-y-1/2">
-                        <Button
-                            variant="transparent-dark"
-                            size="small"
-                            onClick={scrollLeft}
-                            aria-label={t('showPrevious')}
-                        >
+                        <Button variant="ghost" size="small" onClick={scrollLeft} aria-label={t('showPrevious')}>
                             <Icon name="chevron-up" size={24} className="-rotate-90" />
                         </Button>
                     </div>

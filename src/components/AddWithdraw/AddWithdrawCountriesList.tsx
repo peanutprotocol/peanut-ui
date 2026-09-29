@@ -3,7 +3,9 @@
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Section } from '@/components/0_Bruddle/Section'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -11,31 +13,45 @@ import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { useSafeBack } from '@/hooks/useSafeBack'
-import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
+import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useOptionalWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
+import { liveRailsForCountry } from '@/features/destinations/country-rails'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { hasBridgeBankCorridor, SEPA_DESTINATION, SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import TokenAndNetworkConfirmationDrawer from '../Global/TokenAndNetworkConfirmationDrawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import {
+    capabilityStateForProfile,
+    deriveGate,
+    resolveKycModalVariant,
+    getGateUserMessage,
+    getGateReasonCode,
+    isVerifiableGate,
+    type GateState,
+} from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useTosGuard } from '@/hooks/useTosGuard'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import Loading from '@/components/Global/Loading'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
 import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
@@ -45,6 +61,9 @@ import { localizedCountryTitle } from '@/utils/country-name.utils'
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
 }
+
+/** A submit that stopped because the screen it was made on is gone. Silent: the form only resets its spinner. */
+const SUBMIT_CANCELLED = { error: 'cancelled', silent: true }
 
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
@@ -63,6 +82,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // ?method=bank — so the marker alone doesn't mean "send". Same guard as
     // AddWithdrawRouterView.
     const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
+    // Back from a country returns to the list it was picked from. Rewinding,
+    // not pushing: a pushed list kept the country page under it, so browser
+    // back from the list reopened the country.
+    const leaveForParent = useReturnTo(
+        flow === 'add'
+            ? '/add-money?method=bank'
+            : isBankFromSend
+              ? `/withdraw?showAll=true&method=${methodParam}`
+              : '/withdraw?showAll=true&rail=bank'
+    )
 
     // hooks
     const { deviceType } = useDeviceType()
@@ -96,29 +125,98 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 router.push(countrySlug ? rewriteMethodPath(`/add-money/${countrySlug}/bank`) : '/add-money')
                 return
             }
-            setView('form')
+            void setStepParam('form')
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
 
-    // component level states
-    const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && urlAmount ? 'form' : 'list')
+    // component level states. The screen is named in the URL, not inferred:
+    // `?step=form` is the bank-account form, no `step` is the rail list. It used
+    // to flip to the form purely because `?amount=` was present, which tied the
+    // screen to a value that now arrives AFTER the destination (TASK-22589).
+    // `step` is the name every flow in the app gives its cursor; `?view=` stays
+    // the native route selector (`?view=bank` is a rewritten path segment, not
+    // a step) and old `?view=form` links are rewritten below.
+    const [stepParam, setStepParam] = useQueryState('step', parseAsStringEnum(['form']))
+    const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
     const countryFromQuery = searchParams.get('country')
-    const viewFromQuery = searchParams.get('view')
+    const viewFromQuery = viewParam
     const rawCountry = countryFromQuery || params.country
     const countryPathParts = Array.isArray(rawCountry) ? rawCountry : [rawCountry].filter(Boolean)
     const isBankPage = viewFromQuery === 'bank' || countryPathParts[countryPathParts.length - 1] === 'bank'
     const countrySlugFromUrl =
         isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
-    const currentCountry = countryData.find(
-        (country) => country.type === 'country' && country.path === countrySlugFromUrl
+    // Old links still say "form" two older ways: /withdraw/<country>?amount=50
+    // was the bank form before the screen got its own name, and `?view=form`
+    // was that name for one release. Name it `step`, keep the amount, and the
+    // user lands where the link meant to send them.
+    useEffect(() => {
+        if (flow !== 'withdraw' || stepParam) return
+        if (viewParam === 'form') {
+            void setViewParam(null)
+            void setStepParam('form')
+            return
+        }
+        if (urlAmount) void setStepParam('form')
+    }, [flow, stepParam, viewParam, urlAmount, setStepParam, setViewParam])
+
+    // The euro area is a destination, not a country: SEPA routes by IBAN, so the
+    // form is reached with no country picked and reads it off the IBAN instead
+    // (QA round 2, Q2). It is deliberately absent from `countryData` so no
+    // country list can ever offer it as a country.
+    const isSepaDestination = countrySlugFromUrl === SEPA_PATH
+    const currentCountry = isSepaDestination
+        ? SEPA_DESTINATION
+        : countryData.find((country) => country.type === 'country' && country.path === countrySlugFromUrl)
+
+    // The country's live withdraw rails answer two questions on this screen:
+    // which rail the bank form is collecting details for, and whether the rail
+    // list was skipped on the way in. One live rail means it was — the country
+    // pick goes straight to the form (see WithdrawMethodView).
+    const liveRails = useMemo(
+        () => (flow === 'withdraw' && currentCountry ? liveRailsForCountry(currentCountry.id, 'withdraw') : []),
+        [flow, currentCountry]
     )
+    const bankRail = liveRails.find((rail) => rail.id.endsWith('-default-bank-withdraw'))
+    const railListSkipped = liveRails.length === 1
+    // The euro area has no rail list of its own — it IS the euro bank form, so a
+    // link straight to it never lands on an empty list screen.
+    const view =
+        isSepaDestination ||
+        stepParam === 'form' ||
+        (railListSkipped && bankRail && !bankRail.path?.includes('/manteca'))
+            ? 'form'
+            : 'list'
+
+    // A URL is not a permission. The form rendered for `?step=form` on ANY
+    // country, so a hand-edited URL reached a form whose submit can only fail
+    // with "unsupported country". The review page one step later already
+    // refuses the same URL — this is that guard, one screen earlier
+    // (useBridgeOfframpFlow: validate country is supported for bank
+    // withdrawals). The euro area passes it: SEPA is a corridor of its own.
+    useEffect(() => {
+        if (flow !== 'withdraw' || view !== 'form') return
+        if (!currentCountry || hasBridgeBankCorridor(currentCountry.id)) return
+        router.replace(`/withdraw${isBankFromSend ? `?method=${methodParam}` : ''}`)
+    }, [flow, view, currentCountry, router, isBankFromSend, methodParam])
+
+    // A country whose one live rail is Manteca has no screen here: it forwards to
+    // that flow. Known from the URL on the first render, so the rail list never
+    // shows on the way (TASK-23054).
+    const mantecaForwardPath =
+        liveRails.length === 1 && liveRails[0].path?.includes('/manteca') ? liveRails[0].path : undefined
+    useEffect(() => {
+        if (!mantecaForwardPath) return
+        const extra = new URLSearchParams()
+        if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
+        if (urlAmount) extra.set('amount', urlAmount)
+        router.replace(rewriteMethodPath(mantecaForwardPath, extra.toString()))
+    }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
@@ -137,17 +235,57 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // second-country enrollment, a still-provisioning rail) can't re-block
     // them. The prior unscoped `isBankRailUnderReview` check did exactly that
     // and dead-ended ready users behind a "You're all set / Go back" modal.
-    const { isKycApproved, gateFor } = useCapabilities()
+    const { gateFor } = useCapabilities()
     const bankRegionIntent = useBankRegionIntent()
-    const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
-    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
-    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    // This screen serves both the add-money (deposit) and withdraw flows. Gate on
+    // the operation that matches the flow — a withdraw-enabled but deposit-blocked
+    // user must not be blocked here, and the reverse.
+    const gateOp = flow === 'withdraw' ? 'withdraw' : 'deposit'
+    const gateScope = useMemo(() => ({ channel: 'bank' as const, country: bankCountry }), [bankCountry])
+    const renderGate = useMemo(() => gateFor(gateOp, gateScope), [gateFor, gateOp, gateScope])
+    // A submit resolves its gate from the profile it fetched. When that verdict
+    // blocks, it is presented from here until the context has rendered a newer
+    // user than the one the submit saw — the render gate can still say `ready`.
+    const [fetchedBlock, setFetchedBlock] = useState<{ gate: GateState; seenUser: typeof user } | null>(null)
+    const userRef = useRef(user)
+    userRef.current = user
+    useEffect(() => {
+        if (fetchedBlock && user !== fetchedBlock.seenUser) setFetchedBlock(null)
+    }, [user, fetchedBlock])
+    const gate = fetchedBlock?.gate ?? renderGate
+    // `openTos`, not `guardWithTos`: the verdict is resolved here, for this
+    // country and operation (or the fetched profile); the guard's own unscoped
+    // deposit read can still say ready
+    const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
+    // wait-only gates (provider review, provisioning) get the amount steps' "please wait"
+    const pendingModal = useWaitingOnProviderModal(gate)
+    const openPendingModal = pendingModal.open
 
     // stores the callback to replay after tos acceptance in the list view
     const pendingAfterTosRef = useRef<(() => void) | null>(null)
+
+    // A rail tapped on a `loading` gate is held on its row and replayed once,
+    // when the gate answers, for the country it was made on.
+    const [heldMethod, setHeldMethod] = useState<{ method: SpecificPaymentMethod; countryPath: string } | null>(null)
+    const replayHeldRef = useRef<(method: SpecificPaymentMethod) => void>(() => {})
+    useEffect(() => {
+        if (!heldMethod || gate.kind === 'loading') return
+        setHeldMethod(null)
+        if (heldMethod.countryPath !== currentCountry?.path) return
+        replayHeldRef.current(heldMethod.method)
+    }, [heldMethod, gate.kind, currentCountry?.path])
+
+    // A submit belongs to the screen it started on (country, view, mount): it
+    // re-checks this generation after every await and stops, settled, when it moved.
+    const submitGenerationRef = useRef(0)
+    const cancelHeldSubmit = useCallback(() => {
+        submitGenerationRef.current += 1
+        setFetchedBlock(null)
+    }, [])
+    useEffect(() => cancelHeldSubmit, [cancelHeldSubmit, view, currentCountry?.path])
 
     // close kyc modal when sumsub sdk opens
     useEffect(() => {
@@ -156,49 +294,68 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     /** returns true if the user is gated (caller should return early) */
     const checkBridgeGate = useCallback(
-        (onAfterTos?: () => void): boolean => {
-            if (gate.kind !== 'ready') {
-                // capabilities still loading OR provider doing internal review —
-                // caller should wait, NOT open a KYC modal. For `loading` we
-                // don't yet know if the user is approved. For `waiting-on-provider`
-                // (Bridge KYC review, post_processing) there's no user action to
-                // take; opening the modal would imply otherwise.
-                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return true
-                if (gate.kind === 'accept-tos') {
-                    pendingAfterTosRef.current = onAfterTos ?? null
-                    guardWithTos()
-                } else if (gate.kind === 'provide-email') {
-                    setShowProvideEmail(true)
-                } else {
-                    setIsKycModalOpen(true)
-                }
+        (method: SpecificPaymentMethod, replay: () => void): boolean => {
+            if (gate.kind === 'ready') return false
+            if (gate.kind === 'loading') {
+                // capabilities have not answered yet: hold the tap on its row and
+                // run it once they have (the effect above), instead of dropping it
+                setHeldMethod({ method, countryPath: currentCountry?.path ?? '' })
                 return true
             }
-            return false
+            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
+                // provider doing internal review (Bridge KYC review, post_processing)
+                // or a rail still provisioning: no user action to take. Say so —
+                // the KYC modal would imply there is one.
+                openPendingModal()
+                return true
+            }
+            if (gate.kind === 'accept-tos') {
+                pendingAfterTosRef.current = replay
+                openTos()
+            } else if (gate.kind === 'provide-email') {
+                setShowProvideEmail(true)
+            } else {
+                setIsKycModalOpen(true)
+            }
+            return true
         },
-        [gate, guardWithTos]
+        [gate, openTos, currentCountry?.path, openPendingModal]
     )
 
     const handleFormSubmit = async (
         payload: AddBankAccountPayload,
         _rawData: IBankAccountDetails
     ): Promise<{ error?: string; silent?: boolean }> => {
+        const generation = submitGenerationRef.current
+        const cancelled = () => submitGenerationRef.current !== generation
+
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
-        await fetchUser()
+        // strict: a failed refresh rejects instead of handing back the cached
+        // profile — nothing is gated on a profile the refresh could not confirm
+        let profile: Awaited<ReturnType<typeof fetchUser>>
+        try {
+            profile = await fetchUser({ throwOnError: true })
+        } catch {
+            return cancelled() ? SUBMIT_CANCELLED : { error: tCommon('genericError') }
+        }
+        if (cancelled()) return SUBMIT_CANCELLED
+        // no profile (expired session): nothing to gate on, so nothing is sent
+        if (!profile) return { error: tCommon('genericError') }
+        // the fetched profile's verdict, not a render's: a render can lag the fetch
+        const settled = deriveGate(capabilityStateForProfile(profile, false), gateOp, gateScope)
 
         // unified bridge gate: tos → fixable rejection → blocked → enrollment
         // return a non-visible error to prevent the form from treating this as success
-        if (gate.kind !== 'ready') {
-            // capabilities still loading OR provider doing internal review —
-            // silently no-op (don't show a KYC modal). `waiting-on-provider`
-            // means no user action available.
-            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') {
-                return { error: 'gate_blocked', silent: true }
-            }
-            if (gate.kind === 'accept-tos') {
-                guardWithTos()
-            } else if (gate.kind === 'provide-email') {
+        if (settled.kind !== 'ready') {
+            if (profile !== userRef.current) setFetchedBlock({ gate: settled, seenUser: userRef.current })
+            if (!isVerifiableGate(settled.kind) && settled.kind !== 'accept-tos') {
+                // provider doing internal review or a rail still provisioning:
+                // no user action available — show the wait, not a KYC modal
+                openPendingModal()
+            } else if (settled.kind === 'accept-tos') {
+                openTos()
+            } else if (settled.kind === 'provide-email') {
                 // A rail that flipped to email-blocked between form-open and submit
                 // is self-serve — open the email sheet, NOT the contact-support KYC
                 // modal (mirrors checkBridgeGate; the whole point of provide-email).
@@ -209,114 +366,110 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             return { error: 'gate_blocked', silent: true }
         }
 
-        // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
-        // email and name are now collected by sumsub — no need to check them here
-        if (isUserKycApproved) {
-            const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
+        // ready: an in-scope bank rail is enabled, so the account can be added
+        // directly. Email and name are collected by sumsub — not checked here.
+        const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
 
-            const result = await addBankAccount(payload)
-            if (result.error) {
-                return { error: result.error }
-            }
-            if (!result.data) {
-                return { error: tAddMoney('errors.bankAccountFailed') }
-            }
-
-            // after successfully adding, we refetch user data to get the new account
-            // and remove any temporary data from local storage.
-            const updatedUser = await fetchUser() // refetch user to get the new bank account
-
-            const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
-
-            if (newAccount) {
-                withdrawFlow?.setSelectedBankAccount(newAccount)
-            } else {
-                // fallback to the previous method if we can't find the new account
-                // this can happen if the user object is not updated immediately
-                const newAccountFromResponse = result.data as Account
-                // The freshly-added account hasn't surfaced in the user refetch yet.
-                // The add-bank-account response is the projected wire shape, so it
-                // already carries bridgeAccountId + the legacy `type`. Guard: without
-                // a bridgeAccountId the confirm step dead-ends on "Bank account is
-                // missing", so surface a retryable error rather than navigating.
-                if (!newAccountFromResponse?.bridgeAccountId) {
-                    return { error: tAddMoney('errors.bankAccountSettingUp') }
-                }
-                // ensure details has accountOwnerName for confirmation page display
-                newAccountFromResponse.details = {
-                    ...(newAccountFromResponse.details || {}),
-                    countryCode: payload.countryCode,
-                    countryName: payload.countryName,
-                    bankName: newAccountFromResponse.details?.bankName || null,
-                    accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
-                }
-                withdrawFlow?.setSelectedBankAccount(newAccountFromResponse)
-            }
-
-            if (currentCountry) {
-                // carry the typed amount + send marker to the review screen
-                const params = new URLSearchParams()
-                if (isBankFromSend && methodParam) params.set('method', methodParam)
-                if (urlAmount) params.set('amount', urlAmount)
-                const qs = params.toString()
-                router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
-            }
-            return {}
+        const result = await addBankAccount(payload)
+        if (cancelled()) return SUBMIT_CANCELLED
+        if (result.error) {
+            return { error: result.error }
+        }
+        if (!result.data) {
+            return { error: tAddMoney('errors.bankAccountFailed') }
         }
 
-        // scenario (2): if the user hasn't completed kyc yet
-        // name and email are now collected by sumsub sdk — no need to save them beforehand
-        if (!isUserKycApproved) {
-            await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(currentCountry),
-                undefined,
-                undefined,
-                currentCountry?.id
-            )
+        // after successfully adding, we refetch user data to get the new account
+        // and remove any temporary data from local storage.
+        const updatedUser = await fetchUser() // refetch user to get the new bank account
+        if (cancelled()) return SUBMIT_CANCELLED
+
+        const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
+
+        if (newAccount) {
+            withdrawFlow?.setSelectedBankAccount(newAccount)
+        } else {
+            // fallback to the previous method if we can't find the new account
+            // this can happen if the user object is not updated immediately
+            const newAccountFromResponse = result.data as Account
+            // The freshly-added account hasn't surfaced in the user refetch yet.
+            // The add-bank-account response is the projected wire shape, so it
+            // already carries bridgeAccountId + the legacy `type`. Guard: without
+            // a bridgeAccountId the confirm step dead-ends on "Bank account is
+            // missing", so surface a retryable error rather than navigating.
+            if (!newAccountFromResponse?.bridgeAccountId) {
+                return { error: tAddMoney('errors.bankAccountSettingUp') }
+            }
+            // ensure details has accountOwnerName for confirmation page display
+            newAccountFromResponse.details = {
+                ...(newAccountFromResponse.details || {}),
+                countryCode: payload.countryCode,
+                countryName: payload.countryName,
+                bankName: newAccountFromResponse.details?.bankName || null,
+                accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
+            }
+            withdrawFlow?.setSelectedBankAccount(newAccountFromResponse)
         }
 
+        // The destination is settled — the amount step is next, and it is
+        // the last thing the user fills in before the review.
+        selectBankMethod()
+        router.push(withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount }))
         return {}
     }
 
-    const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
-        const title = method.id.endsWith('-sepa-instant-withdraw') ? t('methods.euroBankTransfers') : method.title
-        if (method.path && method.path.includes('/manteca')) {
-            // Manteca methods route directly (has own amount input)
-            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
-            router.push(rewriteMethodPath(method.path, extraParams))
-        } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
-            if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
-
-            // Bridge methods: set in context and land on the amount step
+    /**
+     * Name the bank rail in flow memory. The form can also be entered cold — a
+     * refresh, or a link straight to `?view=form` — and memory does not survive
+     * that, so both handoffs out of the form call this rather than assume the
+     * rail list set it. Without it the amount step's guard sees no method and
+     * bounces the user back, losing the account they just added.
+     */
+    const selectBankMethod = useCallback(
+        (title?: string) => {
             withdrawFlow?.setSelectedMethod({
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
-                title,
+                title: title ?? bankRail?.title,
             })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
+        },
+        [withdrawFlow, currentCountry, bankRail]
+    )
+
+    const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        // a new tap is the new intent: a rail still held for the gate is let go
+        setHeldMethod(null)
+        if (method.path && method.path.includes('/manteca')) {
+            // Manteca methods route directly (has own amount input). The path
+            // already carries its own `method=<rail>` (bank-transfer/pix), so the
+            // send origin travels in the dedicated `sendMethod` param — appending a
+            // second `method=` would lose to the first and drop the send origin,
+            // sending Back to Withdraw instead of Send. Mirror the single-rail
+            // redirect above, which already writes sendMethod.
+            const extraParams = isBankFromSend ? `sendMethod=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
+        } else if (method.id.includes('default-bank-withdraw')) {
+            if (checkBridgeGate(method, () => handleWithdrawMethodClick(method))) return
+
+            // Bridge methods: set in context and open the bank-account form.
+            // The amount comes after the destination now (TASK-22589).
+            selectBankMethod(method.title)
+            void setViewParam('form')
             return
-        } else if (method.id.includes('crypto-withdraw')) {
-            withdrawFlow?.setSelectedMethod({
-                type: 'crypto',
-                countryPath: 'crypto',
-                title: 'Crypto',
-            })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
         } else if (method.path) {
-            // other methods with paths — rewrite dynamic routes for native
-            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            // other methods with paths — rewrite dynamic routes for native. Forward
+            // the send origin in the dedicated `sendMethod` param, same as the
+            // manteca branch, so a path that carries its own `method=` never masks it.
+            const extraParams = isBankFromSend ? `sendMethod=${methodParam}` : undefined
             router.push(rewriteMethodPath(method.path, extraParams))
         }
     }
 
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
+        setHeldMethod(null)
         if (method.path) {
-            if (method.id === 'crypto-add') {
-                setIsSupportedTokensModalOpen(true)
-                return
-            }
-            if (checkBridgeGate(() => handleAddMethodClick(method))) return
+            if (checkBridgeGate(method, () => handleAddMethodClick(method))) return
 
             const target = rewriteMethodPath(method.path)
             // force full navigation in capacitor — router.push to same page with
@@ -328,6 +481,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
         }
     }
+    // the handlers are fresh each render; the held-tap effect runs the current one
+    replayHeldRef.current = flow === 'withdraw' ? handleWithdrawMethodClick : handleAddMethodClick
 
     const methods = useMemo(() => {
         if (!currentCountry) return undefined
@@ -341,6 +496,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // filter apple pay and google pay for add flow based on device type
         const filteredAddMethods = (countryMethods.add || []).filter((method) => {
+            // Crypto belongs to the flow, not to a country: the Add drawer
+            // offers it before the country is picked, and it does the same
+            // thing in every country. Listing it again here made the second
+            // row of every country list a repeat of a choice already made.
+            if (method.id === 'crypto-add') {
+                return false
+            }
             if (method.id === 'apple-pay-add') {
                 return deviceType === DeviceType.IOS || deviceType === DeviceType.WEB
             }
@@ -369,6 +531,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             </div>
         )
     }
+
+    // The redirect above is in flight. Rendering the form meanwhile would flash
+    // a screen the user cannot complete, which is the thing being prevented.
+    if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
+    if (mantecaForwardPath) return null
 
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (
@@ -419,6 +586,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
+            <KycReverificationPendingModal
+                isOpen={pendingModal.isOpen}
+                onClose={pendingModal.close}
+                message={pendingModal.message}
+            />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>
     )
@@ -431,27 +603,28 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
                     }
                     onPrev={() => {
-                        void setUrlAmount(null)
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
+                        // a submit still in flight is not to run on a screen
+                        // the user has left
+                        cancelHeldSubmit()
+                        withdrawFlow?.setSelectedMethod(null)
 
-                        // if coming from send flow, go back to amount input on /withdraw?method=bank
-                        if (flow === 'withdraw' && isBankFromSend) {
-                            if (currentCountry) {
-                                withdrawFlow?.setSelectedMethod({
-                                    type: 'bridge',
-                                    countryPath: currentCountry.path,
-                                    currency: currentCountry.currency,
-                                    title: 'To Bank',
-                                })
-                            }
-                            router.push(`/withdraw?step=amount&method=${methodParam}`)
+                        // The rail list was skipped on the way in, so going back
+                        // to it would land the user on a screen they never chose.
+                        // Return them to the country pick instead. The euro area
+                        // has no rail list at all — clearing `step` would leave
+                        // the user on the same form with a dead back button.
+                        if (railListSkipped || isSepaDestination) {
+                            withdrawFlow?.setSelectedBankAccount(null)
+                            leaveForParent()
                             return
                         }
-
-                        // otherwise go back to list
-                        withdrawFlow?.setSelectedMethod(null)
-                        setView('list')
+                        // Only update query state when staying on this route. A queued
+                        // nuqs update can otherwise overwrite the country-list navigation.
+                        void setUrlAmount(null)
+                        void setStepParam(null)
+                        void setViewParam(null)
                     }}
                 />
                 <DynamicBankAccountForm
@@ -462,14 +635,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     error={null}
                     amountDisplay={urlAmount}
                     onExistingAccount={(account) => {
-                        // the typed account already exists — select it and go
-                        // straight to review, keeping amount + send marker
+                        // the typed account already exists — select it and carry
+                        // on to the amount step, keeping the send marker
+                        selectBankMethod()
                         withdrawFlow?.setSelectedBankAccount(account)
-                        const params = new URLSearchParams()
-                        if (isBankFromSend && methodParam) params.set('method', methodParam)
-                        if (urlAmount) params.set('amount', urlAmount)
-                        const qs = params.toString()
-                        router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
+                        router.push(
+                            withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount })
+                        )
                     }}
                 />
                 {sharedModals}
@@ -486,38 +658,34 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
-                        const copy = method.id.endsWith('-sepa-instant-withdraw')
-                            ? {
-                                  title: t('methods.euroBankTransfers'),
-                                  description: t('methods.euroBankTransfersDescription'),
-                              }
-                            : method
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
                             flow === 'add' &&
                             method.id === 'pix-add' &&
                             underMaintenanceConfig.pixBrazilOnrampMaintenance
+                        // the row a tap is held on carries the wait, and takes
+                        // no second tap while it does
+                        const isHeld = heldMethod?.method.id === method.id
                         return (
                             <ListItem
                                 key={method.id}
-                                disabled={method.isSoon}
-                                title={copy.title}
-                                body={<div className="text-body-xs">{copy.description}</div>}
+                                disabled={method.isSoon || isHeld}
+                                title={method.title}
+                                body={<div className="text-body-xs">{method.description}</div>}
                                 leading={
-                                    typeof method.icon === 'string' || method.icon === undefined ? (
+                                    method.icon === ('bank' as IconName) ? (
+                                        <IconBubble {...CONCEPT_ICONS.bank} size="s" />
+                                    ) : method.id === 'crypto-add' || method.id === 'crypto-withdraw' ? (
+                                        <IconBubble {...CONCEPT_ICONS.crypto} size="s" />
+                                    ) : typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
-                                            name={copy.title ?? method.id}
-                                            size="extra-small"
+                                            name={method.title ?? method.id}
+                                            size="s"
                                             inlineStyle={{
-                                                backgroundColor:
-                                                    method.icon === ('bank' as IconName)
-                                                        ? 'var(--color-background-icon-bubble-yellow)'
-                                                        : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
-                                                          ? 'var(--color-background-icon-bubble-yellow)'
-                                                          : getColorForUsername(copy.title).lightShade,
-                                                color: method.icon === ('bank' as IconName) ? 'black' : 'black',
+                                                backgroundColor: getColorForUsername(method.title).lightShade,
+                                                color: 'black',
                                             }}
                                         />
                                     ) : (
@@ -531,17 +699,19 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                     )
                                 }
                                 trailing={
-                                    method.isSoon ? (
-                                        <StatusBadge status="soon" size="small" />
+                                    isHeld ? (
+                                        <Loading />
+                                    ) : method.isSoon ? (
+                                        <Badge status="soon" size="small" />
                                     ) : isPixOnrampUnderMaintenance ? (
-                                        <StatusBadge
+                                        <Badge
                                             status="pending"
                                             customText={tAddMoney(PIX_BRAZIL_ONRAMP_MAINTENANCE.badgeKey)}
                                             size="small"
                                         />
                                     ) : null
                                 }
-                                chevron={!method.isSoon && !isPixOnrampUnderMaintenance}
+                                chevron={!method.isSoon && !isPixOnrampUnderMaintenance && !isHeld}
                                 onClick={() => {
                                     if (flow === 'withdraw') {
                                         handleWithdrawMethodClick(method)
@@ -563,16 +733,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {
-                    if (flow === 'add') {
-                        router.push('/add-money?method=bank')
-                    } else {
+                    // a tap still held for the gate must not run into the
+                    // navigation that is leaving this screen
+                    setHeldMethod(null)
+                    if (flow === 'withdraw') {
                         withdrawFlow?.setSelectedMethod(null)
                         withdrawFlow?.setSelectedBankAccount(null)
                         void setUrlAmount(null)
-                        router.push(
-                            isBankFromSend ? `/withdraw?showAll=true&method=${methodParam}` : '/withdraw?showAll=true'
-                        )
                     }
+                    // the withdraw country list is only ever reached on the bank
+                    // rail — without history, the fallback names it so the chooser
+                    // does not re-offer crypto
+                    leaveForParent()
                 }}
             />
             <div className="flex-1 overflow-y-auto">
@@ -581,17 +753,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     methods?.withdraw &&
                     renderPaymentMethods(t('chooseWithdrawingMethod'), methods.withdraw)}
             </div>
-            {flow === 'add' && (
-                <TokenAndNetworkConfirmationDrawer
-                    onClose={() => {
-                        setIsSupportedTokensModalOpen(false)
-                    }}
-                    onAccept={() => {
-                        router.push('/add-money/crypto')
-                    }}
-                    isVisible={isSupportedTokensModalOpen}
-                />
-            )}
             {sharedModals}
         </div>
     )

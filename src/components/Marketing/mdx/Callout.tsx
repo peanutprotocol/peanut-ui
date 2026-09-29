@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout as DsCallout } from '@/components/0_Bruddle/Callout'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { PROSE_WIDTH } from '../constants'
@@ -20,8 +20,8 @@ const PRIORITIES = {
 } as const
 
 /**
- * Highlighted callout for tips, warnings, or important info — the DS
- * Notification banner. It used to be a hand-rolled tinted box with its own
+ * Highlighted callout for tips, warnings, or important info — the MDX
+ * author-facing wrapper over the DS Callout banner. It used to be a hand-rolled tinted box with its own
  * purple/green/yellow fills and a left rail; the tone belongs to the component.
  */
 export function Callout({ type = 'info', locale = DEFAULT_LOCALE, children }: CalloutProps) {
@@ -34,9 +34,9 @@ export function Callout({ type = 'info', locale = DEFAULT_LOCALE, children }: Ca
 
     return (
         <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
-            <Notification priority={PRIORITIES[type] ?? 'info'} title={labels[type] ?? labels.info}>
+            <DsCallout priority={PRIORITIES[type] ?? 'info'} title={labels[type] ?? labels.info}>
                 {children}
-            </Notification>
+            </DsCallout>
         </div>
     )
 }

@@ -6,7 +6,7 @@ import posthog from 'posthog-js'
 import { Fragment } from 'react'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
@@ -214,7 +214,7 @@ const ReConsentModal = () => {
                             )
                         })}
                     </p>
-                    {error && <Notification priority="error">{error}</Notification>}
+                    {error && <Callout priority="error">{error}</Callout>}
                 </div>
             }
             checkbox={{
@@ -225,7 +225,7 @@ const ReConsentModal = () => {
             ctas={[
                 {
                     text: submitting ? t('reConsent.saving') : t('reConsent.acceptCta'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     disabled: !checked || submitting,
                     onClick: handleAccept,
@@ -233,14 +233,8 @@ const ReConsentModal = () => {
                     // squashes h-13 buttons when the CTAs are stacked
                     className: 'sm:flex-none',
                 },
-                {
-                    text: t('reConsent.notNow'),
-                    variant: 'stroke',
-                    disabled: submitting,
-                    onClick: handlePostpone,
-                    className: 'sm:flex-none',
-                },
             ]}
+            tertiaryCta={{ text: t('reConsent.notNow'), disabled: submitting, onClick: handlePostpone }}
             ctaClassName={STACKED_CTAS}
         />
     )

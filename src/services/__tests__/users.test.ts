@@ -89,3 +89,15 @@ describe('usersApi.requestDeletion', () => {
         await expect(usersApi.requestDeletion()).rejects.toThrow('Failed to request account deletion')
     })
 })
+
+it.each([
+    {
+        status: 409,
+        body: { error: 'A deposit is still arriving.', code: 'DEPOSIT_IN_FLIGHT' },
+        code: 'DEPOSIT_IN_FLIGHT',
+    },
+    { status: 503, body: { error: 'DEPOSIT_ACCOUNTS_UNAVAILABLE' }, code: 'DEPOSIT_ACCOUNTS_UNAVAILABLE' },
+])('preserves deletion refusal $code for localized UI copy', async ({ status, body, code }) => {
+    mockServerFetch.mockResolvedValue(response({ ok: false, status, body }))
+    await expect(usersApi.requestDeletion()).rejects.toMatchObject({ name: 'ApiError', status, code })
+})

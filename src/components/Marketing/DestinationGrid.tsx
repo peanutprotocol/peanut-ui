@@ -47,12 +47,16 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                         alt={`${countryName} flag`}
                                         width={32}
                                         height={24}
-                                        className="rounded-sm"
+                                        className="shrink-0 rounded-sm"
                                     />
                                 )}
-                                <div className="flex items-center gap-1">
-                                    <span className="text-body-m-semibold">{countryName}</span>
-                                    <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
+                                <div className="flex min-w-0 items-center gap-1">
+                                    <span className="truncate text-body-m-semibold">{countryName}</span>
+                                    <Icon
+                                        name="arrow-up-right"
+                                        size={16}
+                                        className="shrink-0 text-foreground-secondary"
+                                    />
                                 </div>
                             </Card>
                         </Link>

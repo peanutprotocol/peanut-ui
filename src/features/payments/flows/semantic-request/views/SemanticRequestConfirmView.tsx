@@ -14,7 +14,8 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -156,7 +157,7 @@ export function SemanticRequestConfirmView() {
             <PageStack.Center className="gap-4 pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
-                        avatarSize="small"
+                        avatarSize="m"
                         transactionType={'REQUEST_PAYMENT'}
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
@@ -214,7 +215,7 @@ export function SemanticRequestConfirmView() {
                         estimationFailed={isFeeEstimationError}
                     />
 
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {/* buttons and error */}
@@ -246,7 +247,9 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="flex flex-col gap-2">
-                            <Notification priority="error">{errorMessage}</Notification>
+                            <Callout priority="error">
+                                <CooldownErrorText message={errorMessage} />
+                            </Callout>
                         </div>
                     )}
                 </div>

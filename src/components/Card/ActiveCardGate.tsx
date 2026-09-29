@@ -51,11 +51,10 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
                     <NavHeader title={t('yourCard.navTitle')} onPrev={onBack} />
                     <PageStack.Center>
                         <EmptyState
-                            icon="credit-card"
-                            iconColor="brand"
+                            concept="card"
                             title={t(noCardMessageKey)}
                             cta={
-                                <Button variant="purple" className="mt-4 w-full" onClick={onBack}>
+                                <Button variant="primary" className="mt-4 w-full" onClick={onBack}>
                                     {t('backToCard')}
                                 </Button>
                             }

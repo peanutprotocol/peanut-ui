@@ -1,4 +1,4 @@
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge' // Assuming this path is correct
+import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge' // Assuming this path is correct
 import Image from 'next/image'
 import React, { useState } from 'react'
 
@@ -7,7 +7,7 @@ interface DisplayIconProps {
     altText: string
     fallbackName: string
     sizeClass?: string
-    badgeSize?: 'extra-small' | 'small' | 'medium' | 'large'
+    badgeSize?: AvatarSize
     className?: string
 }
 
@@ -16,7 +16,7 @@ const DisplayIcon: React.FC<DisplayIconProps> = ({
     altText,
     fallbackName,
     sizeClass = 'h-6 w-6',
-    badgeSize = 'extra-small',
+    badgeSize = 's',
     className = '',
 }) => {
     const [imageError, setImageError] = useState(false)

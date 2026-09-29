@@ -6,10 +6,8 @@ name: App Release iOS
 # Android keystore-as-secret), the build is reproducible, and the IPA lands on
 # TestFlight for manual App Store promotion. No Ruby/fastlane toolchain.
 #
-# Trigger: normally called by release-native.yml, which resolves the version so
-#          nobody types one. A `vX.Y.Z` tag push and a manual dispatch stay as
-#          break-glass paths; both validate the version against the release scheme
-#          (`v*` is too loose a glob to reject a tag like v2026.02.26 on its own).
+# Trigger: called only by the automatic main-push release-native.yml workflow,
+# which resolves the version so nobody types one.
 # Prereq: the `ios/` Capacitor platform must be committed on the branch CI builds
 #         (currently only present in the peanut-ui-ios2 worktree).
 #
@@ -35,16 +33,8 @@ on:
                 required: false
                 default: false
                 type: boolean
-    push:
-        tags: ['v*']
-    workflow_dispatch:
-        inputs:
-            versionName:
-                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
-                required: false
-                type: string
-            pushDebug:
-                description: 'Enable OneSignal verbose logging in this build'
+            prerelease:
+                description: 'Dev pre-release: leave the production OTA channel untouched'
                 required: false
                 default: false
                 type: boolean
@@ -52,21 +42,19 @@ on:
 permissions:
     contents: read
 
+env:
+    ALLOW_IOS_BRIDGE: '1'
+    ALLOW_ANDROID_BRIDGE: '1'
+
 concurrency:
-    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
-    # `production-release` here (which serialises iOS and Android for that path only —
-    # the price of not racing a concurrent OTA). When release-native.yml calls this
-    # workflow the parent already holds the mutex, and github.event_name is the
-    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
-    # deadlocking against its parent. A direct dispatch of this workflow is
-    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
-    group: >-
-        ${{ github.event_name == 'push' && 'production-release'
-        || format('ios-release-{0}', github.ref) }}
+    # The caller owns the production-release mutex. Keep a separate group here
+    # so the reusable job cannot deadlock against its parent.
+    group: ${{ format('ios-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
     release:
+        if: ${{ github.workflow == 'App Release Android & iOS' && github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'push' }}
         runs-on: macos-15
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
@@ -99,12 +87,8 @@ jobs:
                   INPUT_VERSION: ${{ inputs.versionName || '' }}
                   LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
-                  # release-native.yml resolves the version and passes it here, so the
-                  # input wins; a break-glass tag push falls back to the tag name minus
-                  # its leading 'v' (v1.1.0 -> 1.1.0). Either way it is validated
-                  # against the release scheme before a 30-minute build starts, which is
-                  # what stops an off-scheme tag (v2026.02.26 is on main) from shipping
-                  # a binary the OTA lane can never sort above. Resolved once, up front,
+                  # release-native.yml resolves the version and passes it here.
+                  # Validate it before a 30-minute build starts. Resolved once, up front,
                   # so the OTA floor check and the bundle publish below see the exact
                   # version the binary ships with. Keep in lockstep with
                   # android-release.yml.
@@ -120,7 +104,7 @@ jobs:
                       VERSION_NAME="${GITHUB_REF_NAME#v}"
                   fi
                   if [ -z "$VERSION_NAME" ]; then
-                      echo "::error::no versionName — call this from release-native.yml, or push a vX.Y.0 tag" >&2
+                      echo "::error::no versionName — this workflow must be called from release-native.yml" >&2
                       exit 1
                   fi
                   node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
@@ -142,7 +126,21 @@ jobs:
                   PLATFORM: ios
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
+                  PRERELEASE: ${{ inputs.prerelease == true }}
               run: |
+                  if [ "$PRERELEASE" = true ]; then
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Dev pre-release: the production OTA channel is not read or written"
+                      exit 0
+                  fi
+                  # The 1.5.x bridge is the only production path for native 1.5.0
+                  # clients. Publishing a new .0 to this channel would strand them.
+                  BRIDGE="$(node scripts/capgo-release-guard.mjs bridge-status)"
+                  if [ "$BRIDGE" = active ]; then
+                      echo "needs_ota=false" >> "$GITHUB_OUTPUT"
+                      echo "Keeping the iOS 1.5.x bridge for older installs; the new binary carries its own JS"
+                      exit 0
+                  fi
                   CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   if [ "$CURRENT" = builtin ]; then
                     echo "needs_ota=true" >> "$GITHUB_OUTPUT"
@@ -207,6 +205,9 @@ jobs:
                   {
                       if [ "${{ inputs.pushDebug }}" = "true" ]; then
                           echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true"
+                      fi
+                      if [ "${{ inputs.prerelease }}" = "true" ]; then
+                          echo "NEXT_PUBLIC_NATIVE_PRERELEASE=true"
                       fi
                       if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
                           echo "NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true"
@@ -312,9 +313,6 @@ jobs:
                   PROFILE_NAME: ${{ steps.provision.outputs.name }}
                   WALLET_EXTENSION_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_name }}
                   WALLET_EXTENSION_UI_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_ui_name }}
-                  # Monotonic, always-increments-even-on-rerun. TestFlight requires each
-                  # upload's build number to exceed the last.
-                  IOS_BUILD_NUMBER: ${{ github.run_number }}
                   IOS_VERSION_NAME: ${{ steps.version.outputs.name }}
                   # native sentry sdk dsn — Info.plist SentryDSN <- $(SENTRY_DSN) build
                   # setting. same project dsn the js layer bakes into the static export
@@ -329,15 +327,21 @@ jobs:
                   # itself stamped from package.json by scripts/native-ios-postsync.js
                   # during the build step above, so this is belt-and-braces rather than
                   # the only thing standing between us and the old hand-maintained 1.0.
-                  # CURRENT_PROJECT_VERSION is always the CI run number.
+                  # CURRENT_PROJECT_VERSION must exceed every earlier upload of this
+                  # version. run_number cannot promise that: inside workflow_call it
+                  # is the caller's counter, and the main and dev lanes both call this.
+                  # Wall-clock seconds, the scheme Play's versionCode already uses, can.
                   # Info.plist reads both via $(...) build settings.
+                  IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"
+                  echo "build number $IOS_BUILD_NUMBER (version $IOS_VERSION_NAME)"
                   MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
                   XCODE_WALLET_ARGS=()
                   if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then
                       XCODE_WALLET_ARGS+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=\$(inherited) PEANUT_REQUIRE_PUSH_PROVISIONING")
                   fi
 
-                  EXPORT_OPTIONS_PATH=/tmp/ExportOptions.plist node scripts/render-ios-export-options.mjs
+                  EXPORT_OPTIONS_DIR="$(mktemp -d "${RUNNER_TEMP}/peanut-export.XXXXXX")"
+                  EXPORT_OPTIONS_PATH="$EXPORT_OPTIONS_DIR/ExportOptions.plist" node scripts/render-ios-export-options.mjs
 
                   # Manual signing lives in the App target's Release build config
                   # (CODE_SIGN_STYLE=Manual, DEVELOPMENT_TEAM, CODE_SIGN_IDENTITY,
@@ -364,7 +368,7 @@ jobs:
                       -exportArchive \
                       -archivePath build/ios/App.xcarchive \
                       -exportPath build/ios \
-                      -exportOptionsPlist /tmp/ExportOptions.plist
+                      -exportOptionsPlist "$EXPORT_OPTIONS_DIR/ExportOptions.plist"
 
             - name: Verify push entitlements + Sentry DSN in exported IPA
               env:
@@ -465,9 +469,8 @@ jobs:
                   # already in App Store Connect by then, so skip the wait.
                   wait-for-processing: 'false'
 
-            # Publish the native .0 record to this platform's channel. The other
-            # native job may reuse it only after exact source/floor/artifact checks;
-            # an existing record alone never counts as a successful upload.
+            # Publish a matching .0 only when this platform has no active legacy
+            # bridge. The shared record is verified before promotion.
             - name: Publish matching production OTA bundle
               if: steps.ota_floor.outputs.needs_ota == 'true' && github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'
               env:

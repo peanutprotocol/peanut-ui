@@ -1,0 +1,44 @@
+{
+    "title": "Multi-action screens — revised review",
+    "description": "Screens with three or more simultaneous action controls. Navigation menus, card-management rows, payment-method lists and other repeated selectors are excluded.",
+    "locales": ["en", "es-419", "es-AR", "pt-BR"],
+    "captureMissing": true,
+    "items": [
+        {
+            "id": "fixture-home-verification-needed",
+            "note": "Add, Send and Request are peer quick actions above a separate Complete verification action, like the supplied example."
+        },
+        {
+            "id": "fixture-home",
+            "note": "The same three quick actions remain visible for a verified user, with a different home-card state."
+        },
+        {
+            "id": "82-f-choice-card-requires-info",
+            "note": "Upload proof of address, Upload identity documents and Contact support are separate remediation controls."
+        },
+        {
+            "id": "01-a-landing",
+            "note": "Sign up, Log in and Recover wallet are visible together."
+        },
+        {
+            "id": "83-f-choice-residence-restricted",
+            "note": "Continue anyway, Notify me and Change country are distinct next steps."
+        },
+        {
+            "id": "84-f-choice-public-profile-guest",
+            "note": "Send, Request and Join Peanut are separate actions on one page."
+        },
+        {
+            "id": "85-f-choice-claim-error",
+            "note": "Retry, Talk to support and Go back to home are simultaneous recovery actions."
+        },
+        {
+            "id": "p58-qr-success",
+            "note": "Split bill or Home, See receipt and Invite friends appear as separate actions, depending on account state."
+        },
+        {
+            "id": "86-f-choice-not-found",
+            "note": "Go home appears beside two support controls that duplicate an intent."
+        }
+    ]
+}

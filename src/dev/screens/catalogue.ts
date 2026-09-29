@@ -17,6 +17,7 @@ export type Screen = {
     routePattern?: string
     fixture: string
     clicks: string[]
+    clickTestIds?: string[]
     source?: string
     exclusion?: string
     unavailable?: string
@@ -48,7 +49,7 @@ const readiness: Record<string, string> = {
     '11-a-earlyusermodal': 'Earn from invites',
     'fixture-reconsent': 'A small update to our terms',
     '18-a-reconsentmodal': 'A small update to our terms',
-    '67-e-provideemailstep': 'Add your email to continue',
+    '67-e-provideemailstep': 'Add email to continue',
 }
 const routeOverrides: Record<
     string,
@@ -82,9 +83,7 @@ const definitions: Screen[] = [
         route: f.route,
         fixture: id,
         clicks: [],
-        // The pending application screen IS a spinner ("Setting up your
-        // card…") — same carve-out as 24-b-kycverificationinprogressmodal.
-        expectsLoading: id === 'card-pending',
+        expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,
@@ -101,6 +100,7 @@ const definitions: Screen[] = [
         route: routeOverrides[id]?.route ?? `/dev/surfaces?s=${id}`,
         fixture: routeOverrides[id]?.fixture ?? s.shotFixture ?? 'profile-edit',
         clicks: s.shotClick ? [s.shotClick] : [],
+        clickTestIds: s.shotClickTestId ? [s.shotClickTestId] : [],
         source: s.path,
         expectsLoading: id === '24-b-kycverificationinprogressmodal',
         event: routeOverrides[id]?.event,

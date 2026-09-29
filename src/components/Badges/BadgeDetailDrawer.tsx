@@ -9,6 +9,9 @@ import { captureBadgeShare, getBadgeShareLink, getBadgeShareText } from './badge
 import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
+import { twMerge } from '@/utils/tw'
 
 type BadgeDetailDrawerProps = {
     isOpen: boolean
@@ -17,24 +20,41 @@ type BadgeDetailDrawerProps = {
     title: string
     description: string
     logo: string | StaticImageData
+    earned?: boolean
+    unlockText?: string
 }
 
 // Shared by the badges list and the badge-unlock drawer (which closes itself
 // before opening this, so the two sheets never stack). The primary action
 // shares the badge; swipe / hardware back / overlay dismiss.
-export const BadgeDetailDrawer = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailDrawerProps) => {
+export const BadgeDetailDrawer = ({
+    isOpen,
+    onClose,
+    code,
+    title,
+    description,
+    logo,
+    earned = true,
+    unlockText,
+}: BadgeDetailDrawerProps) => {
     const t = useTranslations('badges')
     const locale = useLocale()
     const { user: authUser } = useAuth()
     const username = authUser?.user?.username
     // the sharer's own invite link, so a guest signup credits them
     const shareLink = getBadgeShareLink(username)
-    useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_DETAIL, username)
+    useBadgeShareImpression(isOpen && earned, REFERRAL_SOURCES.BADGE_DETAIL, username)
 
     const shareText = getBadgeShareText(code, title, shareLink, {
         locale,
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
     })
+
+    // What holding the badge gives: the avatars it unlocks, counted from the
+    // generated manifest, so a badge gets its box the day its art lands. Perk
+    // rewards stay out on purpose: a reward tied to the card needs Rain's review
+    // before any copy names it.
+    const avatarCount = code ? badgeAvatarKeys([code]).length : 0
 
     return (
         <Drawer
@@ -58,7 +78,7 @@ export const BadgeDetailDrawer = ({ isOpen, onClose, code, title, description, l
                             width={240}
                             src={logo}
                             alt={title}
-                            className="h-42 w-auto object-contain"
+                            className={twMerge('h-42 w-auto object-contain', !earned && 'opacity-40 grayscale')}
                             unoptimized
                         />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
@@ -66,17 +86,32 @@ export const BadgeDetailDrawer = ({ isOpen, onClose, code, title, description, l
                             <DrawerDescription>{description}</DrawerDescription>
                         </DrawerHeader>
                     </div>
-                    <ShareButton
-                        title=""
-                        className="w-full"
-                        onSuccess={() => {
-                            captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
-                            onClose()
-                        }}
-                        generateText={() => Promise.resolve(shareText)}
-                    >
-                        {t('shareAchievement')}
-                    </ShareButton>
+                    <div className="flex w-full flex-col gap-4">
+                        {avatarCount > 0 && (
+                            <Callout
+                                priority="success"
+                                title={t('whatYouGet')}
+                                items={[t('benefit.avatars', { count: avatarCount })]}
+                            />
+                        )}
+                        {earned ? (
+                            <ShareButton
+                                title=""
+                                className="w-full"
+                                onSuccess={() => {
+                                    captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
+                                    onClose()
+                                }}
+                                generateText={() => Promise.resolve(shareText)}
+                            >
+                                {t('shareAchievement')}
+                            </ShareButton>
+                        ) : (
+                            <Callout priority="helper" title={t('howToUnlock')}>
+                                {unlockText}
+                            </Callout>
+                        )}
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

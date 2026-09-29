@@ -119,7 +119,7 @@ export default function SendWithPeanutCta({
         <>
             {storeHandoffModal}
             <Button
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="w-full"
                 icon={icon}

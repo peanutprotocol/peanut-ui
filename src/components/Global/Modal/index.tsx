@@ -6,7 +6,7 @@ import { useBackHandler } from '@/hooks/useBackHandler'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Icons/Icon'
 
-type ModalProps = {
+export type ModalProps = {
     className?: string
     classWrap?: string
     classOverlay?: string
@@ -136,7 +136,7 @@ const Modal = ({
                                 ) : (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={tCommon('close')}

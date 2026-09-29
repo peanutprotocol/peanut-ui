@@ -15,7 +15,8 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -38,6 +39,7 @@ export function SendInputView() {
         attachment,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -83,6 +85,7 @@ export function SendInputView() {
                         setPrimaryAmount={setAmount}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                     />
@@ -111,7 +114,11 @@ export function SendInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
+                    {error.showError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={error.errorMessage} />
+                        </Callout>
+                    )}
                 </div>
 
                 {/* action list for non-logged in users */}

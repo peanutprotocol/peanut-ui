@@ -48,6 +48,25 @@ const screen = (id, image = a) => ({
     image,
     thumbnail: image,
 })
+const iphoneDevice = {
+    platform: 'ios',
+    label: 'iPhone',
+    cutout: 'dynamic-island',
+    safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+}
+test('capture device metadata is canonical and part of comparison identity', () => {
+    const withDevice = { ...capture([screen('home')]), device: iphoneDevice }
+    assert.deepEqual(validateCapture(withDevice).device, iphoneDevice)
+    assert.throws(
+        () =>
+            validateCapture({
+                ...withDevice,
+                device: { ...iphoneDevice, safeArea: { ...iphoneDevice.safeArea, top: 0 } },
+            }),
+        /Unsupported capture device/
+    )
+    assert.throws(() => compare(capture([screen('home')]), withDevice, dir), /environments differ/)
+})
 test('same pixels remain unchanged; changed pixels get a diff', () => {
     const r = compare(capture([screen('home')]), capture([screen('home', b)]), dir)
     assert.equal(r.screens[0].status, 'changed')
@@ -108,11 +127,26 @@ test('reject empty, duplicate, path traversal, and forged completion', () => {
     assert.throws(() => validateCapture(capture([screen('../escape')])))
     assert.throws(() => validateCapture(capture([{ ...screen('home'), image: '../../secret' }])))
     assert.throws(() => validateCapture({ ...capture([screen('home')]), locale: 'fr', profile: 'fr-393x852' }))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), width: 440 }))
+    assert.throws(() =>
+        validateCapture({ ...capture([screen('home')]), profile: 'en-999x999', width: 999, height: 999 })
+    )
     assert.equal(
         validateCapture({ ...capture([{ ...screen('home'), status: 'failed', reason: 'timeout' }]), complete: true })
             .complete,
         false
     )
+})
+test('accepts each additional baseline profile only when its name and dimensions agree', () => {
+    for (const [width, height] of [
+        [440, 956],
+        [360, 800],
+        [320, 712],
+    ]) {
+        const input = { ...capture([screen('home')]), profile: `en-${width}x${height}`, width, height }
+        assert.equal(validateCapture(input).profile, input.profile)
+        assert.throws(() => validateCapture({ ...input, height: height + 1 }), /Unsupported capture profile/)
+    }
 })
 test('asset digest and dimensions are checked before decoding', () => {
     const name = '0'.repeat(64) + '.png'

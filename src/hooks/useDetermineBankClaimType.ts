@@ -68,7 +68,9 @@ export function useDetermineBankClaimType(senderUserId: string): {
                 // a null senderDetails is a lookup miss, not a negative answer
                 setSenderCanReceiveBankOfframp(senderDetails ? senderKycApproved : null)
 
-                if (senderKycApproved) {
+                // the API reports whether guest bank claims are switched on; a
+                // missing field (older API) counts as off
+                if (senderKycApproved && senderDetails?.guestBankClaimEnabled === true) {
                     // condition 3: Receiver not KYC approved BUT sender is → GuestBankClaim
                     setSenderDetails(senderDetails)
                     setClaimType(BankClaimType.GuestBankClaim)

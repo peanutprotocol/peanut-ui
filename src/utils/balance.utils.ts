@@ -5,8 +5,13 @@ import { formatUnits, parseUnits } from 'viem'
  * Parse a USD amount (string or number) to token base units PRECISELY — the same
  * `parseUnits` the spend itself uses, so the gate verifies exactly what execution
  * will require (no float `Math.floor` divergence at the boundary). Returns null
- * for anything invalid — empty, NaN, negative, locale comma, >decimals fraction,
+ * for anything invalid — empty, NaN, negative, locale comma,
  * scientific/overflow/Infinity — so the gate fails closed and NEVER throws.
+ *
+ * It does NOT reject a fraction longer than the token carries: parseUnits
+ * ROUNDS that rather than throwing. A caller that promises the amount to
+ * somebody else must refuse the longer fraction itself — see parseUsdAmount in
+ * features/withdraw/amount-validation.
  */
 export const parseUsdAmountToUnits = (amountUsd: string | number): bigint | null => {
     try {

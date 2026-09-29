@@ -61,7 +61,9 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('../useReceiptPdfFile', () => ({
     useReceiptPdfFile: () => ({ share: jest.fn(), download: jest.fn(), busy: null, unavailable: false, error: false }),
 }))
-jest.mock('@/components/Global/ShareButton/useShareAction', () => ({ useShareAction: () => jest.fn() }))
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }),
+}))
 jest.mock('../ReceiptMoreActionsDrawer', () => ({ ReceiptMoreActionsDrawer: () => null }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => null }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => null }))

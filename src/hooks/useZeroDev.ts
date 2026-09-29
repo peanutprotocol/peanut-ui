@@ -20,6 +20,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    withIOSPasskeyLoginRecovery,
 } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
@@ -47,7 +48,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
+import { rescueUserOpReceipt, userOpRevertedError } from '@/utils/userop-rescue.utils'
 import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 // types
@@ -315,17 +316,20 @@ export const useZeroDev = () => {
             // racing autoShimWebAuthn runs the webview's raw WebAuthn, which
             // silently hangs in Capacitor) and bound the ceremony to 60s so a
             // never-settling toWebAuthnKey can't leave isLoggingIn true until
-            // app kill. A late result is discarded and its verify token is not
-            // captured (ceremony window closed) — see passkeyCeremony.utils.
+            // app kill. Each automatic recovery gets a fresh bounded ceremony
+            // window; a late result is discarded and its verify token is not
+            // captured after that attempt's window closes.
             const webAuthnKey = await withCeremonyPurpose('login', () =>
-                guardPasskeyCeremony(() =>
-                    toWebAuthnKey({
-                        passkeyName: '[]',
-                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                        mode: WebAuthnMode.Login,
-                        passkeyServerHeaders,
-                        rpID: rpId,
-                    })
+                withIOSPasskeyLoginRecovery(() =>
+                    guardPasskeyCeremony(() =>
+                        toWebAuthnKey({
+                            passkeyName: '[]',
+                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                            mode: WebAuthnMode.Login,
+                            passkeyServerHeaders,
+                            rpID: rpId,
+                        })
+                    )
                 )
             )
 
@@ -349,6 +353,11 @@ export const useZeroDev = () => {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (code === 'NETWORK') {
                 captureException(err, { tags: { error_type: 'passkey_server_failure' } })
+            } else if (code === 'PASSKEY_INTERRUPTED') {
+                // An exhausted platform retry still never authenticated an
+                // assertion. Preserve any valid cached session/key and report
+                // it without routing through destructive login cleanup.
+                captureException(err, { level: 'warning', tags: { error_type: 'login_interrupted' } })
             } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)
@@ -472,7 +481,7 @@ export const useZeroDev = () => {
                 // transfer that moved no funds.
                 if (rescued && !rescued.success) {
                     if (opts?.returnRevertedReceipt) return { userOpHash, receipt: rescued.receipt }
-                    throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+                    throw userOpRevertedError(userOpHash, rescued.success)
                 }
                 return { userOpHash, receipt: rescued?.receipt ?? null }
             }
@@ -489,7 +498,7 @@ export const useZeroDev = () => {
             // kernelMigration.utils.ts).
             if (!userOpReceipt.success) {
                 if (opts?.returnRevertedReceipt) return { userOpHash, receipt: userOpReceipt.receipt }
-                throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+                throw userOpRevertedError(userOpHash, userOpReceipt.success)
             }
 
             return {

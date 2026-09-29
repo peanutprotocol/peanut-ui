@@ -25,7 +25,9 @@ export default function AppDivergencesPage() {
                     <code className="rounded-sm bg-foreground-primary/10 px-1">bg-peanut-repeat-normal</code>, the{' '}
                     <code className="rounded-sm bg-foreground-primary/10 px-1">Title</code> primitive). Those are
                     labeled <span className="rounded-sm bg-foreground-primary/10 px-1">showcase-only</span> /{' '}
-                    <span className="rounded-sm bg-foreground-primary/10 px-1">dead</span>.
+                    <span className="rounded-sm bg-foreground-primary/10 px-1">dead</span>. Snapshot as of 2026-09-18 —
+                    the numbers are frozen at that date, and later PRs (TASK-22817 and after) have already changed some
+                    of them.
                 </>
             }
             categories={APP_DIVERGENCE_CATEGORIES}

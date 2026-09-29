@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { focusManager } from '@tanstack/react-query'
+import { setConnectivityAppActive } from '@/utils/connectivity'
 import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
@@ -18,6 +19,8 @@ import { dispatchBackPress } from '@/utils/back-handler'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
+import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
@@ -97,7 +100,7 @@ export function useNativeAppLinks() {
             // Same URL twice in one boot = cold-start double delivery
             // (getLaunchUrl + the bridge's appUrlOpen replay) — one nav is right.
             if (url === lastDispatchedUrl && Date.now() - lastDispatchedAt < 3000) return true
-            const target = deepLinkToNativePath(url)
+            let target = deepLinkToNativePath(url)
             if (!target) {
                 /*
                  * A peanut.me path with no native stand-in (blog, help, legal,
@@ -121,6 +124,17 @@ export function useNativeAppLinks() {
                 captureLink(source, url, null, 'dropped')
                 return false
             }
+            // App-download QRs use /home because that association already ships
+            // in the native binary. The web proxy turns the same URL into /app;
+            // native consumes the marker here, applies the handoff directly,
+            // and navigates to its sanitized destination (or plain /home).
+            try {
+                const parsed = new URL(url, 'https://peanut.me')
+                if (parsed.pathname === '/home' && parsed.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+                    const payload = parseDeferredPayload(parsed.search)
+                    target = payload ? (applyDeferredPayload(payload).dest ?? '/home') : '/home'
+                }
+            } catch {}
             // same-origin guard: only ever navigate to an in-app relative path
             const safe = sanitizeRedirectURL(target)
             if (!safe) {
@@ -172,6 +186,7 @@ export function useNativeAppLinks() {
                 // resumed app kept rendering its pre-background query data (stale
                 // home Activity). Drive the focusManager from the native lifecycle.
                 const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+                    setConnectivityAppActive(isActive)
                     focusManager.setFocused(isActive)
                     // Android WebViews do not reliably emit visibilitychange on
                     // resume. Refresh lightweight notification consumers (the

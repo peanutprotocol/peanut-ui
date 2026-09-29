@@ -39,7 +39,7 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Solo pagos con QR de Mercado Pago",
-                "brazil": "Solo pagos con QR Pix"
+                "brazil": "Solo pagos Pix con QR o clave"
             }
         },
         "tryDifferentCountry": "Prueba con otro país.",
@@ -56,7 +56,7 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar",
+        "slideToProceed": "Desliza y continúa",
         "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
@@ -96,8 +96,9 @@
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
+        "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en {time}.",
+        "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya puedes volver a intentarlo.",
         "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
@@ -106,6 +107,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
@@ -117,6 +119,7 @@
         "userOpReverted": "No se pudo completar el pago. Intenta de nuevo."
     },
     "migration": {
+        "downloadPeanut": "Descargar Peanut",
         "downloadPrompt": {
             "earlyTitle": "¡La app de Peanut ya está aquí!",
             "earlyDescription": "Peanut ahora es una app, en la App Store y Google Play. La misma cuenta, más rápida, y avisos al instante cuando llega dinero.",
@@ -140,7 +143,7 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "redirecting": "Te llevamos a la tienda…",
+            "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
     },
@@ -170,20 +173,38 @@
         "hero": {
             "wordmark": "Tarjeta Peanut",
             "tagline": "Tu dinero. Listo para pagar.",
-            "body": "Usa tu Peanut Card en línea y, sin contacto, con Apple Pay o Google Pay donde estén disponibles, donde se acepta Visa.",
-            "cta": "Consigue tu tarjeta",
-            "disclaimer": "Se requiere verificación y aprobación. Sin cuotas mensuales ni anuales. Se aplican las tarifas y los límites de los términos del titular."
+            "cta": "Pedir tarjeta",
+            "disclaimer": "Se requiere verificación y aprobación. Sin cuotas mensuales ni anuales. Se aplican las tarifas y los límites de los términos del titular.",
+            "title": "Go Pink.",
+            "pitch": "Un saldo. 150 millones de lugares donde pagar.",
+            "lead": "Una tarjeta Visa virtual que paga con tu saldo de Peanut. En línea y en tiendas con Apple Pay o Google Pay donde estén disponibles."
         },
         "whatItDoes": {
-            "titleLine1": "Una tarjeta.",
-            "titleLine2": "Tus pagos de todos los días.",
-            "body": "Agrega dinero a Peanut por transferencia bancaria, desde un exchange o con stablecoins compatibles. Paga en línea o agrega tu tarjeta a Apple Pay o Google Pay donde estén disponibles."
+            "titleLine1": "Es una tarjeta.",
+            "titleLine2": "Ese es todo el truco.",
+            "body": "Cárgala como ya mueves tu dinero: transferencia bancaria, retiro desde un exchange o stablecoins. Después paga donde se acepta Visa.",
+            "statMerchants": "comercios que aceptan Visa",
+            "statBalance": "saldo",
+            "statMonthlyFees": "cuotas mensuales",
+            "statAnnualFees": "cuotas anuales"
+        },
+        "whoItsFor": {
+            "title": "Hecha para el dinero que no se queda quieto.",
+            "body": "Nómadas, expats, trabajadores remotos, viajeros frecuentes. Un solo saldo para pagar donde se acepta Visa."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para ti.",
+            "body1": "Si tu dinero vive en un solo país y una sola moneda, tu tarjeta bancaria ya funciona. Quédate con ella.",
+            "body2": "Si tu dinero vive en otro lado, cruza fronteras, está en dólares o en más de un lugar, la Peanut Card se hizo para ti."
         },
         "howToApply": {
-            "title": "Cómo obtener tu tarjeta",
-            "verify": "Inicia sesión y completa la verificación de identidad.",
-            "terms": "Revisa y acepta los términos del titular.",
-            "spend": "Una vez aprobada, agrega fondos y empieza a pagar."
+            "title": "Cómo obtenerla.",
+            "signInTitle": "Inicia sesión.",
+            "signInBody": "O crea tu cuenta. Toma un minuto.",
+            "verifyTitle": "Verifica.",
+            "verifyBody": "Una verificación de identidad, más los términos del titular.",
+            "spendTitle": "Paga.",
+            "spendBody": "¿Aprobada? Agrega dinero y paga."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -193,7 +214,7 @@
             "noMonthlyFee": "SIN CUOTA MENSUAL"
         },
         "faq": {
-            "title": "Preguntas sobre Peanut Card",
+            "title": "Preguntas.",
             "q1": {
                 "question": "¿Qué es Peanut Card?",
                 "answer": "Peanut Card es una tarjeta Visa virtual para usar tu saldo de Peanut en línea y con billeteras móviles compatibles."
@@ -224,8 +245,9 @@
             }
         },
         "ready": {
-            "title": "Obtén tu Peanut Card",
-            "subtitle": "Empieza tu solicitud hoy."
+            "title": "¿Lista?",
+            "subtitle": "Inicia sesión, verifica, paga.",
+            "disclaimer": "Sujeta a elegibilidad. Se requiere verificación de identidad."
         }
     }
 }

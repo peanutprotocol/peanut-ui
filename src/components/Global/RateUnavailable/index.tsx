@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
 
 interface RateUnavailableProps {
@@ -20,9 +20,9 @@ const RateUnavailable = ({ onRetry, className }: RateUnavailableProps) => {
 
     return (
         <div className={className}>
-            {/* dev shipped this on ErrorAlert; that component is retired here — Notification is the branch mapping */}
-            <Notification priority="error">{t('rateUnavailable')}</Notification>
-            <Button variant="stroke" shadowSize="4" icon="retry" size="medium" onClick={onRetry} className="mt-4">
+            {/* dev shipped this on ErrorAlert; that component is retired here — Callout is the branch mapping */}
+            <Callout priority="error">{t('rateUnavailable')}</Callout>
+            <Button variant="secondary" shadowSize="4" icon="retry" size="medium" onClick={onRetry} className="mt-4">
                 {tCommon('retry')}
             </Button>
         </div>

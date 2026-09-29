@@ -6,7 +6,8 @@
  * locale gets its own project. Everything else — server, timeouts,
  * determinism — comes from playwright.shots.config.ts. The check is absolute
  * (is text clipped?), not comparative, so there is no baseline and no width
- * matrix.
+ * matrix. The truncation projects run overflow-truncation.spec.ts: the screens
+ * where no copy may be cut at all, at 375px in every app locale.
  *
  *   npm run test:i18n-overflow            # build, then check
  *   npm run test:i18n-overflow:run        # check again, no rebuild
@@ -26,6 +27,15 @@ export default defineConfig({
             use: {
                 ...base.use,
                 viewport: { width: 320, height: 568 },
+                locale,
+            },
+        })),
+        ...(['en', ...LOCALES] as const).map((locale) => ({
+            name: `truncation-${locale}`,
+            testMatch: /overflow-truncation\.spec\.ts/,
+            use: {
+                ...base.use,
+                viewport: { width: 375, height: 667 },
                 locale,
             },
         })),

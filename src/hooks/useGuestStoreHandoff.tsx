@@ -45,5 +45,10 @@ export function useGuestStoreHandoff({
         <ScanToDownloadModal visible onClose={() => setPending(null)} surface={surface} handoff={pending.handoff} />
     ) : null
 
-    return { interceptGuestCta, storeHandoffModal }
+    // Whether the next interceptGuestCta call will handle the click. Call sites label
+    // the button with it — "Download Peanut" must not be the copy on a button that
+    // still opens web signup because the flag is off or the app is native.
+    const handoffActive = migrationOn && !isCapacitor()
+
+    return { interceptGuestCta, storeHandoffModal, handoffActive }
 }

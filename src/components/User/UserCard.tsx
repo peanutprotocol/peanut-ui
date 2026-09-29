@@ -12,6 +12,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import PotProgress from './PotProgress'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 interface UserCardProps {
     type: 'send' | 'request' | 'received_link' | 'request_pay' | 'request_fulfilment'
@@ -37,7 +38,7 @@ const UserCard = ({
     username,
     fullName,
     recipientType,
-    size = 'extra-small',
+    size = 's',
     message,
     fileUrl,
     isVerified,
@@ -89,10 +90,10 @@ const UserCard = ({
                     <UserAvatar name={username} avatarKey={avatarKey} size={size} decorative />
                 ) : (
                     <AvatarWithBadge
-                        icon="wallet-outline"
+                        // an address is the crypto concept (coins on blue)
+                        icon={CONCEPT_ICONS.crypto.icon}
                         inlineStyle={{
-                            // drift fix: was an off-token gold hex — snapped to the DS yellow
-                            backgroundColor: 'var(--color-background-icon-bubble-yellow)',
+                            backgroundColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`,
                             color: AVATAR_TEXT_DARK,
                         }}
                         size={size}
@@ -125,7 +126,7 @@ const UserCard = ({
                                     // as colors) — keep stock classes there.
                                     className={
                                         type === 'request_pay'
-                                            ? 'text-heading-s text-foreground-primary md:text-heading-m'
+                                            ? 'text-heading-s text-foreground-primary'
                                             : 'text-body-m'
                                     }
                                     isLink={type !== 'request_pay'}

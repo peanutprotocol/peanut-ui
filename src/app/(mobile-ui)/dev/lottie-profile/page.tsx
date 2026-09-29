@@ -5,7 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { MASCOT_ART_BOXES } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
@@ -167,7 +167,7 @@ export default function LottieProfilePage() {
                         {([1, 3, 10] as const).map((count) => (
                             <Button
                                 key={count}
-                                variant={instances === count ? 'purple' : 'stroke'}
+                                variant={instances === count ? 'primary' : 'secondary'}
                                 size="small"
                                 onClick={() => setInstances(count)}
                             >
@@ -210,7 +210,7 @@ export default function LottieProfilePage() {
                 </Section>
             )}
 
-            <Notification
+            <Callout
                 priority="info"
                 title="Run protocol"
                 items={[

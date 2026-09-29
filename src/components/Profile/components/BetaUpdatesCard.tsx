@@ -7,6 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
+import { formatOtaBundleVersion } from '@/utils/app-version'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -60,7 +61,7 @@ export const BetaUpdatesCard = () => {
                 toast.success(t('joined'))
                 break
             case 'join-no-bundle':
-                toast.warning(t('joinedWithoutBundle'))
+                toast.attention(t('joinedWithoutBundle'))
                 break
             case 'closed':
                 toast.error(t('closed', { channel: BETA_OTA_CHANNEL }))
@@ -92,7 +93,7 @@ export const BetaUpdatesCard = () => {
     }
 
     return (
-        <Card position="single" className="space-y-3 p-4">
+        <Card position="solo" className="space-y-3 p-4">
             <div className="flex items-center justify-between gap-4">
                 <div>
                     <h2 className="text-label-l text-black">{t('heading')}</h2>
@@ -110,7 +111,9 @@ export const BetaUpdatesCard = () => {
                 </div>
                 <div className="flex justify-between gap-4">
                     <dt>{t('bundleLabel')}</dt>
-                    <dd>{status?.bundleVersion ?? '—'}</dd>
+                    <dd title={status?.bundleVersion ?? undefined}>
+                        {status?.bundleVersion ? formatOtaBundleVersion(status.bundleVersion) : '—'}
+                    </dd>
                 </div>
                 {status?.deviceId && (
                     <div className="flex justify-between gap-4">

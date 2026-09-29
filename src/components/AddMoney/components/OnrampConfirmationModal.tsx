@@ -4,24 +4,21 @@ import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
 
 interface OnrampConfirmationModalProps {
     visible: boolean
     onClose: () => void
     onConfirm: () => void
-    amount: string
-    currency: string
 }
 
-export const OnrampConfirmationModal = ({
-    visible,
-    onClose,
-    onConfirm,
-    amount,
-    currency,
-}: OnrampConfirmationModalProps) => {
+/**
+ * Shown before a bank top-up is created. A top-up is matched on the deposit
+ * reference only (any amount is accepted), so the reference is the one thing
+ * the user must get right.
+ */
+export const OnrampConfirmationModal = ({ visible, onClose, onConfirm }: OnrampConfirmationModalProps) => {
     const t = useTranslations('addMoney.confirmationModal')
     const tCommon = useTranslations('common')
     return (
@@ -38,10 +35,9 @@ export const OnrampConfirmationModal = ({
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerTitle>{t('title')}</DrawerTitle>
                     </div>
-                    {/* Two topics, two grey mini-headers, plain text under each —
-                        neither was ever a warning. That leaves the mismatch block
-                        as the one Notification, and the only coloured thing on a
-                        screen that confirms an irreversible transfer. */}
+                    {/* The mismatch warning is the one Callout after the two
+                        plain-text topics; use the attention tone to match the
+                        yellow alert bubble above. */}
                     <div className="flex w-full flex-col gap-4 text-left">
                         <div className="flex flex-col gap-1">
                             <MiniHeader>{t('nextStep')}</MiniHeader>
@@ -51,20 +47,13 @@ export const OnrampConfirmationModal = ({
 
                         <div className="flex flex-col gap-1">
                             <MiniHeader>{t('youMust')}</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">
-                                {t.rich('sendExactly', {
-                                    currency,
-                                    amount,
-                                    b: (chunks) => <b>{chunks}</b>,
-                                })}
-                            </p>
                             <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
                             <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
                         </div>
 
-                        <Notification priority="error" title={t('mismatchTitle')}>
+                        <Callout priority="attention" title={t('mismatchTitle')}>
                             {t('mismatchDescription')}
-                        </Notification>
+                        </Callout>
                     </div>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="mt-4 w-full" data-vaul-no-drag>

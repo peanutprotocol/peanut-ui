@@ -694,13 +694,11 @@ describe('native-routes', () => {
         })
 
         /*
-         * The claim is `/app` + `/app/*`, but only `/app` is a real page — on
-         * the web app and in the static export alike. The wildcard therefore has
-         * to collapse rather than pass through, or an installed user opening
-         * peanut.me/app/anything gets the SPA's missing-route → home bounce,
-         * which reads as a dropped tap.
+         * /app is no longer OS-associated, but old links and app-authored URLs
+         * can still reach the mapper. Preserve that compatibility without
+         * navigating to nonexistent /app/* pages.
          */
-        it('collapses the /app wildcard onto the one real page', () => {
+        it('collapses legacy /app paths onto the one real page', () => {
             expect(deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
             expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
             expect(deepLinkToNativePath('https://peanut.me/app/x?pnutdl=1&dest=%2Fsend')).toBe(
@@ -947,5 +945,50 @@ describe('redactNativePath (deep-link telemetry)', () => {
         expect(redactNativePath('/qr/')).toBe('/qr/')
         expect(redactNativePath('/')).toBe('/')
         expect(redactNativePath('')).toBe('')
+    })
+})
+
+// Preserve profile-build links and legacy app-link routing together.
+describe('deepLinkToNativePath — flagged /dev carve-out beside the /app collapse', () => {
+    const ORIGINAL_FLAG = process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
+
+    afterEach(() => {
+        if (ORIGINAL_FLAG === undefined) delete process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
+        else process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED = ORIGINAL_FLAG
+        jest.resetModules()
+    })
+
+    // NEXT_PUBLIC_* is read once at module load, so the module must be required
+    // again with the env var already set — and the capacitor mock re-armed on
+    // the fresh registry copy.
+    function loadWithFlag(enabled: boolean) {
+        if (enabled) process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED = 'true'
+        else delete process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
+        let mod!: typeof import('../native-routes')
+        jest.isolateModules(() => {
+            ;(require('@/utils/capacitor').isCapacitor as jest.Mock).mockReturnValue(true)
+            mod = require('../native-routes')
+        })
+        return mod
+    }
+
+    it('lets a profile build open the one /dev route it ships', () => {
+        const mod = loadWithFlag(true)
+        expect(mod.deepLinkToNativePath('https://peanut.me/dev/lottie-profile')).toBe('/dev/lottie-profile')
+        expect(mod.isNativeExportPath('/dev/lottie-profile')).toBe(true)
+    })
+
+    it('keeps /dev links out of a normal build', () => {
+        const mod = loadWithFlag(false)
+        expect(mod.deepLinkToNativePath('https://peanut.me/dev/lottie-profile')).toBeNull()
+        expect(mod.isNativeExportPath('/dev/lottie-profile')).toBe(false)
+    })
+
+    // /app is web-only now: download QRs enter through /home?app_entry=1. The
+    // wildcard pages do not exist in the export, so they collapse onto /app.
+    it('still collapses /app/* onto /app with the query intact', () => {
+        const mod = loadWithFlag(true)
+        expect(mod.deepLinkToNativePath('https://peanut.me/app/ios?src=qr')).toBe('/app?src=qr')
+        expect(mod.deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
     })
 })

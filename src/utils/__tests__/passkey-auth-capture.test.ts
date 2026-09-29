@@ -57,6 +57,27 @@ describe('installPasskeyVerifyCapture', () => {
         await window.fetch('/users/me')
         expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
     })
+
+    it.each([400, 401])(
+        'surfaces a rejected login assertion before ZeroDev decodes the %i body as a success',
+        async (status) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Rejected' }, status))
+
+            await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).rejects.toMatchObject({
+                name: 'PasskeyVerifyRejectedError',
+                status,
+            })
+            expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+            expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
+        }
+    )
+
+    it('preserves non-auth login failures for the existing server/network classification', async () => {
+        const response = jsonResponse({ error: 'Login unavailable' }, 500)
+        mockUnderlyingFetch.mockResolvedValueOnce(response)
+
+        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).resolves.toBe(response)
+    })
 })
 
 it.each(['options', 'verify'])(

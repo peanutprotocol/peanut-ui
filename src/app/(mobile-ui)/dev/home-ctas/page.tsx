@@ -2,14 +2,14 @@
 
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
+import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import { type ActivationStep } from '@/hooks/useActivationStatus'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import { type OnboardingState } from '@/utils/activation-step.utils'
 import DevPageShell from '../_components/DevPageShell'
 
 /**
@@ -31,7 +31,8 @@ const noop = (label: string) => () => console.log(`[dev/home-ctas] ${label}`)
 type CarouselPreview = {
     id: string
     label: string
-    icon: IconName
+    icon?: IconName
+    concept?: Concept
     title: ReactNode
     description: ReactNode
     iconContainerClassName?: string
@@ -39,35 +40,13 @@ type CarouselPreview = {
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
-    isPerkClaim?: boolean
 }
 
 const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     {
-        id: 'perk-claim',
-        label: 'Perk claim (pink-dot, no X) — Card Pioneer reward',
-        icon: 'gift',
-        iconContainerClassName: 'bg-action-primary',
-        iconSize: 16,
-        isPerkClaim: true,
-        title: (
-            <p>
-                <b>+$5</b> reward ready!
-            </p>
-        ),
-        description: (
-            <p>
-                <b>Alice</b> used Peanut. Tap to claim.
-            </p>
-        ),
-    },
-
-    {
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
-        icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
-        iconSize: 16,
+        concept: 'qrPay',
         title: (
             <span>
                 Pay with <b>QR code payments</b>
@@ -82,9 +61,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     {
         id: 'kyc-prompt',
         label: 'KYC prompt — unlock QR (un-verified user)',
-        icon: 'qr-code',
-        iconContainerClassName: 'bg-action-secondary',
-        iconSize: 16,
+        concept: 'qrPay',
         title: (
             <span>
                 Unlock <b>QR code payments</b>
@@ -98,10 +75,8 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'invite-friends',
-        label: 'Invite friends (logo variant)',
-        icon: 'invite-heart',
-        logo: STAR_STRAIGHT_ICON,
-        logoSize: 30,
+        label: 'Invite friends (rewards concept)',
+        concept: 'rewards',
         title: 'Invite friends. Earn rewards',
         description: 'Earn rewards every time your friends use Peanut.',
     },
@@ -129,19 +104,65 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'notification-prompt',
-        label: 'Notification prompt',
+        label: 'Callout prompt',
         icon: 'bell',
         title: 'Stay in the loop!',
         description: 'Turn on notifications and get alerts for all your wallet activity.',
     },
 ]
 
-// Each activation-funnel step (one CTA shown at a time on the real home screen).
-const ACTIVATION_STEPS: { step: Exclude<ActivationStep, 'completed'>; label: string }[] = [
-    { step: 'verify', label: "STEPS.verify — 'Unlock payments'" },
-    { step: 'deposit', label: "STEPS.deposit — 'Deposit'" },
-    { step: 'card', label: "STEPS.card — 'Get your card' (dismissable)" },
-    { step: 'outbound', label: "STEPS.outbound — 'Make your first payment'" },
+// The getting-started checklist in each onboarding state (resolveOnboarding).
+const ONBOARDING_STATES: { label: string; onboarding: OnboardingState }[] = [
+    {
+        label: 'New user — verify next',
+        onboarding: {
+            verify: 'todo',
+            addMoneyDone: false,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'card_qr',
+            step: 'verify',
+        },
+    },
+    {
+        label: 'ID check in review — add money next (card only)',
+        onboarding: {
+            verify: 'in_review',
+            addMoneyDone: false,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'card',
+            step: 'add_money',
+        },
+    },
+    {
+        label: 'Money in before the ID check, no card, QR pay blocked (three rows) — verify next',
+        onboarding: {
+            verify: 'todo',
+            addMoneyDone: true,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'none',
+            step: 'verify',
+        },
+    },
+    {
+        label: 'Verified, $0 — add money next (QR only)',
+        onboarding: {
+            verify: 'done',
+            addMoneyDone: false,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'qr',
+            step: 'add_money',
+        },
+    },
+    {
+        label: 'Verified and funded — first payment next (card and QR: opens the chooser)',
+        onboarding: {
+            verify: 'done',
+            addMoneyDone: true,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'card_qr',
+            step: 'first_payment',
+        },
+    },
 ]
 
 export default function HomeCTAsPreviewPage() {
@@ -161,12 +182,12 @@ export default function HomeCTAsPreviewPage() {
                                 title={cta.title}
                                 description={cta.description}
                                 icon={cta.icon}
+                                concept={cta.concept}
                                 iconContainerClassName={cta.iconContainerClassName}
                                 iconSize={cta.iconSize}
                                 logo={cta.logo}
                                 mascotPose={cta.mascotPose}
                                 logoSize={cta.logoSize}
-                                isPerkClaim={cta.isPerkClaim}
                                 onClose={noop(`close ${cta.id}`)}
                                 onClick={noop(`click ${cta.id}`)}
                             />
@@ -174,25 +195,20 @@ export default function HomeCTAsPreviewPage() {
                     ))}
                 </Section>
 
-                {/* Activation funnel steps */}
-                <Section title="Activation funnel steps (ActivationCTAs)" className="gap-4">
-                    {ACTIVATION_STEPS.map(({ step, label }) => (
-                        <div key={step} className="flex flex-col gap-2">
+                {/* Getting-started checklist states */}
+                <Section title="Getting-started checklist (ActivationCTAs)" className="gap-4">
+                    {ONBOARDING_STATES.map(({ label, onboarding }) => (
+                        <div key={label} className="flex flex-col gap-2">
                             <p className="text-body-xs text-foreground-secondary">{label}</p>
-                            <ActivationCTAs
-                                activationStep={step}
-                                onDismissCard={step === 'card' ? noop('dismiss card step') : undefined}
-                            />
+                            <ActivationCTAs onboarding={onboarding} />
                         </div>
                     ))}
                 </Section>
 
-                <Notification priority="info" title="Preview behavior">
-                    Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
-                    defaults when logged out, so every step renders here regardless of real KYC state — except the spend
-                    step, which needs card access or a QR rail to have an activating spend to route to, and so stays
-                    empty in a logged-out preview.
-                </Notification>
+                <Callout priority="info" title="Preview behavior">
+                    The checklist reads defensive hooks (useCapabilities / useIdentityVerification) that return empty
+                    defaults when logged out, so every state renders here regardless of real KYC state.
+                </Callout>
             </div>
         </DevPageShell>
     )

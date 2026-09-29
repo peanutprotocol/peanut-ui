@@ -23,8 +23,8 @@ export default function BordersPage() {
                         <span className="text-body-xs text-foreground-secondary">standard</span>
                     </div>
                     <div className="flex flex-col items-center gap-1">
-                        <div className="size-16 rounded-round border border-border-default bg-background-badge-accent/30" />
-                        <span className="text-label-m">rounded-round</span>
+                        <div className="size-16 rounded-full border border-border-default bg-background-badge-accent/30" />
+                        <span className="text-label-m">rounded-full</span>
                         <span className="text-body-xs text-foreground-secondary">badges, avatars</span>
                     </div>
                 </div>

@@ -5,23 +5,21 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 
 interface InitialWithdrawViewProps {
-    amount: string
-    onReview: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
+    onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
@@ -29,14 +27,14 @@ interface InitialWithdrawViewProps {
 }
 
 export default function InitialWithdrawView({
-    amount,
-    onReview,
+    onContinue,
     onBack,
     isProcessing,
     isFromSendFlow = false,
 }: InitialWithdrawViewProps) {
     const { withdrawData } = useWithdrawFlow()
     const t = useTranslations('withdraw')
+    const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
@@ -119,7 +117,7 @@ export default function InitialWithdrawView({
         }
     }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
 
-    const handleReview = () => {
+    const handleContinue = () => {
         // Context record already includes the synthetic non-EVM withdraw
         // destinations (merged once in tokenSelector.context).
         const xchainChainData = supportedChainsAndTokens[selectedChainID]
@@ -139,7 +137,7 @@ export default function InitialWithdrawView({
         const selectedChainData = xchainChainData ?? fallbackChainData
 
         if (selectedTokenData && selectedChainData && recipient.address) {
-            onReview({
+            onContinue({
                 token: selectedTokenData,
                 chain: selectedChainData,
                 address: recipient.address,
@@ -186,16 +184,6 @@ export default function InitialWithdrawView({
             <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
-                <PeanutActionDetailsCard
-                    avatarSize="small"
-                    transactionType={'WITHDRAW'}
-                    recipientType="USERNAME"
-                    recipientName={''}
-                    amount={`${formatAmount(parseFloat(amount))}`}
-                    tokenSymbol="USDC"
-                    isFromSendFlow={isFromSendFlow}
-                />
-
                 <TokenSelector viewType="withdraw" />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
@@ -233,9 +221,9 @@ export default function InitialWithdrawView({
                 )}
 
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
-                    onClick={handleReview}
+                    onClick={handleContinue}
                     disabled={
                         !selectedTokenData ||
                         !selectedChainID ||
@@ -248,7 +236,7 @@ export default function InitialWithdrawView({
                     loading={isProcessing}
                     className="w-full"
                 >
-                    {t('review')}
+                    {tCommon('continue')}
                 </Button>
             </div>
         </PageStack>

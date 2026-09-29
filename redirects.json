@@ -158,13 +158,13 @@
     },
     {
         "source": "/sh",
-        "destination": "/card",
-        "permanent": false
+        "destination": "/shhhhh",
+        "permanent": true
     },
     {
         "source": "/sh/:path*",
-        "destination": "/card",
-        "permanent": false
+        "destination": "/shhhhh",
+        "permanent": true
     },
     {
         "source": "/pints",

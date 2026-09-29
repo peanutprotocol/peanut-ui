@@ -23,14 +23,14 @@ const RainCooldownIntroModal = () => {
         <ActionModal
             visible={showIntroModal}
             onClose={dismissIntroModal}
+            tone="attention"
             icon="clock"
-            iconContainerClassName="bg-action-secondary"
             title={t('rainCooldownIntroModal.title')}
             description={t('rainCooldownIntroModal.description')}
             ctas={[
                 {
                     text: tCommon('gotIt'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     onClick: dismissIntroModal,
                 },

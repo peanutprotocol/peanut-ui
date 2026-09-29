@@ -9,6 +9,11 @@ import { validateEnsName } from '@/utils/general.utils'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
+// Synthetic fixtures — no customer data.
+const PIX_MERCHANT_PAYLOAD =
+    '00020126580014br.gov.bcb.pix0136synthetic-key-0000-0000-0000000000005204000053039865802BR6304ABCD'
+const TYPED_SENTENCE = `${'quiero enviar plata a mi hermano que vive en cordoba '.repeat(5)}.`
+
 // Test case type definition for better maintainability
 type TestCase = {
     input: string
@@ -246,15 +251,23 @@ describe('GeneralRecipientInput Type Detection', () => {
                 input: 'kusharc',
                 expectedType: 'ens',
                 expectedValid: false,
-                description: 'username treated as ENS in withdrawal context',
-                expectedError: 'ENS name not found',
+                description: 'bare username rejected locally in withdrawal context',
+                expectedError: 'Enter a wallet address or an ENS name.',
             },
             {
                 input: 'someuser123',
                 expectedType: 'ens',
                 expectedValid: false,
-                description: 'alphanumeric username treated as ENS in withdrawal context',
-                expectedError: 'ENS name not found',
+                description: 'alphanumeric free text rejected locally in withdrawal context',
+                expectedError: 'Enter a wallet address or an ENS name.',
+            },
+            {
+                input: 'CASA.FUTBOLERA',
+                expectedType: 'ens',
+                expectedValid: false,
+                description: 'Argentine alias guided to the merchant QR',
+                expectedError:
+                    "You can't pay another person by alias. Scan the merchant payment QR code, or use Withdraw to send to your own account.",
             },
             {
                 input: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
@@ -302,5 +315,25 @@ describe('GeneralRecipientInput Type Detection', () => {
                 })
             }
         )
+
+        it.each([
+            ['an Argentine alias', 'CASA.FUTBOLERA'],
+            ['a pasted PIX merchant payload', PIX_MERCHANT_PAYLOAD],
+            ['a typed sentence', TYPED_SENTENCE],
+            ['a bare username', 'kusharc'],
+        ])('rejects %s locally, with no ENS lookup', async (_description, input) => {
+            await setup(input, true)
+
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 0))
+            })
+
+            // The rejection really happened (not just a pending debounce)...
+            expect(onUpdateMock).toHaveBeenCalledWith(
+                expect.objectContaining({ isValid: false, errorMessage: expect.stringMatching(/\S/) })
+            )
+            // ...and it cost no network call.
+            expect(ens.resolveEns).not.toHaveBeenCalled()
+        })
     })
 })

@@ -21,7 +21,7 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('framer-motion', () => ({ useInView: () => false }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } } }),
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/hooks/useCountUp', () => ({ useCountUp: (value: number) => value }))
@@ -33,7 +33,7 @@ jest.mock('@/utils/capacitor', () => ({ isIOSNative: () => false }))
 jest.mock('@/utils/format.utils', () => ({ shortenPoints: (n: number) => ({ number: String(n), suffix: '' }) }))
 jest.mock('@/utils/native-routes', () => ({ profileUrl: (u: string) => `/${u}` }))
 jest.mock('@/utils/general.utils', () => ({ getInitialsFromName: () => 'A' }))
-jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'single' }))
+jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'solo' }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => {
     return function MockPageContainer(p: { children?: React.ReactNode }) {
         return <div>{p.children}</div>
@@ -51,7 +51,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('@/components/Global/NavigationArrow', () => () => null)
 jest.mock('@/components/Global/InvitesGraph', () => () => null)
-jest.mock('@/components/Global/InviteFriendsDrawer', () => () => null)
+jest.mock('@/components/Global/InviteFriendsModal', () => () => null)
 jest.mock('@/components/Points/InviteePointsBadge', () => () => null)
 jest.mock('@/components/TransactionDetails/TransactionAvatarBadge', () => () => null)
 jest.mock('@/components/UserHeader', () => ({ VerifiedUserLabel: () => null }))
@@ -121,6 +121,16 @@ describe('RewardsPage when the points total fails to load', () => {
 
         expect(screen.getByTestId('loading')).toBeInTheDocument()
         expect(screen.queryByTestId('empty-state-loadPointsFailed')).not.toBeInTheDocument()
+    })
+
+    it('renders the points hero while the invite list is still in flight', () => {
+        mockQueryResults.tierInfo = TIER_INFO_OK
+        mockQueryResults.invites = IN_FLIGHT
+
+        const { container } = render(<RewardsPage />)
+
+        expect(container).toHaveTextContent('150 pointsLabel')
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
     })
 
     it('renders the points total when the request succeeds', () => {

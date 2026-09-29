@@ -17,6 +17,10 @@ test('the current catalogue accounts for every app route', () => {
         '/card-payment',
         '/request/pay',
         '/pay/[...recipient]',
+        '/profile/identity-verification',
+        '/profile/identity-verification/additional',
+        '/profile/accounts-and-payments',
+        '/profile/accounts-and-payments/additional',
     ])
     const aliases = result.filter((entry) => routingAliases.has(entry.route))
     assert.equal(aliases.length, routingAliases.size)

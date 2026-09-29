@@ -21,7 +21,7 @@ import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
@@ -29,7 +29,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useAuth } from '@/context/authContext'
-import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
+import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
@@ -37,6 +37,7 @@ import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
@@ -48,6 +49,7 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -65,6 +67,8 @@ type DirectSuccessViewProps = {
     type?: 'SEND' | 'REQUEST' | 'DEPOSIT'
     headerTitle?: string
     currencyAmount?: string
+    /** A second amount under the headline, already formatted: the other currency of a conversion. */
+    secondaryAmount?: string
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     /**
@@ -75,14 +79,10 @@ type DirectSuccessViewProps = {
      */
     isFromSendFlow?: boolean
     redirectTo?: string
-    // When true, the "Done"/cancel navigation replaces the current history entry instead of
-    // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
-    // pop the user back into the now-completed flow.
-    replaceOnDone?: boolean
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
-    chargeDetails?: TRequestChargeResponse | ChargeEntry | null
+    chargeDetails?: TRequestChargeResponse | null
     paymentDetails?: PaymentCreationResponse | null
     parsedPaymentData?: ParsedURL | null
     usdAmount?: string
@@ -98,11 +98,11 @@ const PaymentSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
+    secondaryAmount,
     isExternalWalletFlow,
     isWithdrawFlow,
     isFromSendFlow,
     redirectTo = '/home',
-    replaceOnDone = false,
     onComplete,
     points,
     chargeDetails,
@@ -157,8 +157,8 @@ const PaymentSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
-        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
@@ -166,11 +166,15 @@ const PaymentSuccessView = ({
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            // the drawer selection is `?tx=<id>` in the url — fall back to the
-            // charge uuid so the receipt stays openable when the hash is absent
-            id: paymentDetails?.payerTransactionHash ?? chargeDetails.uuid,
+            // The receipt page and its PDF twin resolve a charge through
+            // GET /history/:id, which matches `transaction_intents.id` (the
+            // charge uuid) AND the intent kind. A tx hash, or the wrong kind,
+            // 404s ("receipt PDF unavailable"). This id is also the `?tx=<id>`
+            // drawer-selection key; the on-chain hash still renders from
+            // `txHash` below.
+            id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as StatusPillType,
+            status: 'completed' as IconStatusType,
             amount: parseFloat(amountValue),
             createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             completedAt: new Date(),
@@ -181,7 +185,7 @@ const PaymentSuccessView = ({
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
-                kind: 'DIRECT_TRANSFER',
+                kind: receiptKindForCharge(chargeDetails),
                 link: receiptLink,
             },
             // external-wallet withdrawals have no username/identifier — fall back to
@@ -270,15 +274,14 @@ const PaymentSuccessView = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])
 
+    // Rewinds to the destination past every entry the flow pushed, or replaces
+    // this page with it. A push kept the finished flow under home, so back from
+    // home reopened the request or send just completed (QA-09); a replace
+    // still kept the flow's earlier entries.
+    const leaveFlow = useReturnTo(!!authUser?.user.userId ? redirectTo : '/setup')
     const handleDone = () => {
-        // Navigate first, then call onComplete - otherwise onComplete may reset state
-        // causing this component to unmount before router.push executes
-        const target = !!authUser?.user.userId ? redirectTo : '/setup'
-        if (replaceOnDone) {
-            router.replace(target)
-        } else {
-            router.push(target)
-        }
+        // navigate before onComplete, which may reset state and unmount this view first
+        leaveFlow()
         onComplete?.()
     }
 
@@ -336,6 +339,7 @@ const PaymentSuccessView = ({
                                 ))}
                         </h1>
                         <h2 className="text-heading-s">{displayAmount}</h2>
+                        {secondaryAmount && <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>}
                         {message && (
                             <p className="text-body-s text-foreground-secondary">
                                 {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}
@@ -356,7 +360,7 @@ const PaymentSuccessView = ({
                     )}
                     {!isExternalWalletFlow && receiptTransaction && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             onClick={() => {
                                 if (receiptTransaction) {

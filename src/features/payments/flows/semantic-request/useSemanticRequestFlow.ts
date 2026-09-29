@@ -21,6 +21,7 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -91,6 +92,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         formattedSpendableBalance,
+        spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
@@ -355,6 +357,13 @@ export function useSemanticRequestFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
+                // Card re-approval dismissed, or the screen left, before
+                // anything was prepared or signed — control flow, not a failed
+                // payment. The charge stays open for another attempt.
+                if (err instanceof SpendRecoveryAbortedError) {
+                    setIsLoading(false)
+                    return { success: false }
+                }
                 const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
@@ -591,6 +600,10 @@ export function useSemanticRequestFlow() {
             })
             queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
+            // Card re-approval dismissed, or the screen left, before anything
+            // was prepared or signed — control flow, not a failed payment.
+            if (err instanceof SpendRecoveryAbortedError) return
+
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
@@ -673,6 +686,7 @@ export function useSemanticRequestFlow() {
         isLoggedIn,
         walletAddress,
         formattedBalance: formattedSpendableBalance,
+        balanceFillAmount: spendableBalanceDecimal,
         isXChain,
         isDiffToken,
         needsRoute,

@@ -1,6 +1,7 @@
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Divider } from '@/components/0_Bruddle/Divider'
 import { NOTION_JOB_BOARD_URL, OPEN_ROLES } from '@/components/Jobs/openRoles'
 import { RoleCard } from '@/components/Jobs/RoleCard'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
@@ -12,6 +13,21 @@ import Link from 'next/link'
 // describes itself. Don't add a headcount, a funding number, an office, or a perk
 // that isn't written down there. The team bios in that file are still placeholders,
 // so only names and roles are used.
+const WORK_BLOCKS = [
+    {
+        label: 'The product is live',
+        body: "Invite-only doesn't mean quiet. What you ship this week lands on people who are moving real money this week, in a currency that isn't the one they earn in.",
+    },
+    {
+        label: 'The map is the job',
+        body: "MercadoPago QR in Argentina. PIX in Brazil. Bank transfers in 40+ countries. Every market is another set of rails, another set of rules about ID and bank accounts, and another group of people who'd rather not think about either.",
+    },
+    {
+        label: "Who you'd be joining",
+        body: 'Hugo Montenegro and Konrad co-founded Peanut. Peanut is a trading name of Squirrel Labs Ltd, registered in England & Wales (No. 14558823).',
+    },
+] as const
+
 export function Careers() {
     return (
         <>
@@ -39,30 +55,19 @@ export function Careers() {
 
                     <section className="flex flex-col gap-4">
                         <h2 className="text-heading-xs text-foreground-primary">How the work works</h2>
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">The product is live</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    Invite-only doesn&apos;t mean quiet. What you ship this week lands on people who are
-                                    moving real money this week, in a currency that isn&apos;t the one they earn in.
-                                </p>
-                            </Card>
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">The map is the job</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    MercadoPago QR in Argentina. PIX in Brazil. Bank transfers in 40+ countries. Every
-                                    market is another set of rails, another set of rules about ID and bank accounts, and
-                                    another group of people who&apos;d rather not think about either.
-                                </p>
-                            </Card>
-                            <Card className="gap-2 p-6" shadowSize="4">
-                                <h3 className="text-label-l text-foreground-secondary">Who you&apos;d be joining</h3>
-                                <p className="text-body-s text-foreground-primary">
-                                    Hugo Montenegro and Konrad co-founded Peanut. Peanut is a trading name of Squirrel
-                                    Labs Ltd, registered in England &amp; Wales (No. 14558823).
-                                </p>
-                            </Card>
-                        </div>
+                        {/* same composition as the press kit's "Company description" card:
+                            one shadowed card, labelled blocks stacked with a rule between */}
+                        <Card shadowSize="4" className="p-6">
+                            {WORK_BLOCKS.map(({ label, body }, index) => (
+                                <div key={label}>
+                                    {index > 0 && <Divider />}
+                                    <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                        {label}
+                                    </h3>
+                                    <p className="text-body-s text-foreground-primary">{body}</p>
+                                </div>
+                            ))}
+                        </Card>
                         <p className="text-body-s text-foreground-secondary">
                             The bar for everything we build is one line:{' '}
                             <span className="text-body-s-semibold text-foreground-primary">
@@ -98,36 +103,46 @@ export function Careers() {
                         )}
                     </section>
 
-                    <section className="flex flex-col gap-4">
-                        <div className="flex items-start gap-4">
-                            <PeanutMascot pose="waving-hello" className="hidden h-24 w-auto shrink-0 sm:block" />
-                            <div className="flex flex-col gap-2">
-                                <h2 className="text-heading-xs text-foreground-primary">Ready?</h2>
-                                <p className="text-body-m text-foreground-primary">
-                                    Applications go through our Notion board — that&apos;s the only place we read them.
-                                    Skip the cover letter. Tell us what you&apos;d do in your first month.
-                                </p>
+                    {/* Ruled marketing CTA composition — mascot peeking from behind the card.
+                        Same shape as Marketing/mdx/CTA variant="card"; the top padding is the
+                        mascot's overhang, since the section gap alone can't hold it. */}
+                    <section className="relative pt-24 md:pt-28">
+                        <PeanutMascot
+                            pose="waving-hello"
+                            alt="Peanut mascot"
+                            className="absolute -top-2 left-1/2 z-0 h-32 w-32 -translate-x-1/2 md:h-40 md:w-40"
+                        />
+                        <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
+                            <h2 className="text-heading-xs text-foreground-primary">Ready?</h2>
+                            <p className="max-w-prose text-body-m text-foreground-primary">
+                                Applications go through our Notion board — that&apos;s the only place we read them. Skip
+                                the cover letter. Tell us what you&apos;d do in your first month.
+                            </p>
+                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+                                <Button
+                                    href={NOTION_JOB_BOARD_URL}
+                                    external
+                                    shadowSize="4"
+                                    className="w-full justify-center px-8 sm:w-auto"
+                                >
+                                    Apply on Notion
+                                </Button>
+                                <Button variant="secondary" href="/lp" className="w-full justify-center px-8 sm:w-auto">
+                                    See what we&apos;ve built
+                                </Button>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:max-w-sm">
-                            <Button href={NOTION_JOB_BOARD_URL} external shadowSize="4" className="w-full">
-                                Apply on Notion
-                            </Button>
-                            <Button variant="stroke" href="/lp" className="w-full">
-                                See what we&apos;ve built
-                            </Button>
-                        </div>
-                        <p className="text-body-s text-foreground-secondary">
-                            Curious first? Read the{' '}
-                            <Link href="/en/press" className="text-foreground-primary underline">
-                                press kit
-                            </Link>{' '}
-                            or poke around{' '}
-                            <Link href="/en/help" className="text-foreground-primary underline">
-                                the help centre
-                            </Link>
-                            .
-                        </p>
+                            <p className="text-body-s text-foreground-secondary">
+                                Curious first? Read the{' '}
+                                <Link href="/en/press" className="text-foreground-primary underline">
+                                    press kit
+                                </Link>{' '}
+                                or poke around{' '}
+                                <Link href="/en/help" className="text-foreground-primary underline">
+                                    the help centre
+                                </Link>
+                                .
+                            </p>
+                        </Card>
                     </section>
                 </div>
             </MarketingShell>

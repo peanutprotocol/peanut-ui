@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 import type { ReceiptViewModel } from '../useReceiptViewModel'
@@ -36,10 +36,10 @@ jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
     default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }))
-const mockShareUrl = jest.fn()
-jest.mock('@/components/Global/ShareButton/useShareAction', () => ({
-    useShareAction: () => mockShareUrl,
-}))
+const mockCopy = jest.fn()
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
+const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn() }
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
 const mockPdfShare = jest.fn()
 const mockPdfDownload = jest.fn()
 let mockPdfBusy: 'share' | 'download' | null = null
@@ -62,7 +62,11 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
-jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
+jest.mock('../provider-actions/CancelDepositActions', () => ({
+    CancelDepositActions: ({ confirmOpen }: { confirmOpen: boolean }) => (
+        <div data-testid="cancel-confirm-host" data-confirm-open={String(confirmOpen)} />
+    ),
+}))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => <div data-testid="support-link" /> }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => <div data-testid="public-download" /> }))
 // the drawer mock surfaces its rows as buttons so the menu is testable
@@ -131,23 +135,25 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
     test('nonsplittable private kind: pdf share is the primary; download + support live in the drawer', () => {
         renderActions(transaction('DIRECT_TRANSFER', 'https://peanut.me/recipient'), vm())
 
-        expect(screen.getByTestId('private-pdf-share')).toBeInTheDocument()
-        expect(screen.queryByTestId('public-share')).not.toBeInTheDocument()
+        expect(screen.getByTestId('pdf-share')).toBeInTheDocument()
         expect(screen.queryByTestId('public-download')).not.toBeInTheDocument()
         // no duplicate share row when share owns the primary slot
         expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
+        // the stamped pay link is not a public receipt — never offered as a copy
+        expect(screen.queryByTestId('more-action-copy-link')).not.toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-support')).toBeInTheDocument()
         // support moved into the drawer — no separate footer link
         expect(screen.queryByTestId('support-link')).not.toBeInTheDocument()
     })
 
-    test('nonsplittable capability kind: url share primary, download demoted to the drawer', () => {
+    test('nonsplittable capability kind: the same pdf share primary, copy link + download in the drawer', () => {
         renderActions(transaction('OFFRAMP'), vm())
 
-        expect(screen.getByTestId('public-share')).toBeInTheDocument()
-        expect(screen.queryByTestId('private-pdf-share')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('pdf-share'))
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
         expect(screen.queryByTestId('public-download')).not.toBeInTheDocument()
+        expect(screen.getByTestId('more-action-copy-link')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
     })
 
@@ -155,7 +161,7 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         renderActions(transaction('QR_PAY'), vm())
 
         expect(screen.getByText('actions.splitBill')).toBeInTheDocument()
-        expect(screen.queryByTestId('public-share')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('pdf-share')).not.toBeInTheDocument()
         expect(screen.getByTestId('more-action-share')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-support')).toBeInTheDocument()
@@ -168,14 +174,32 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         fireEvent.click(screen.getByTestId('more-actions-trigger'))
         expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'true')
 
+        // a qr payment shares the pdf file, exactly like a p2p send
         fireEvent.click(screen.getByTestId('more-action-share'))
-        expect(mockShareUrl).toHaveBeenCalledTimes(1)
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
         // qr pay is a public-capability kind: its drawer download keeps the
         // pre-existing url path (anchor/web, system browser/native) — never
         // the authenticated file hook
         fireEvent.click(screen.getByTestId('more-action-download'))
         expect(mockOpenReceiptPdfUrl).toHaveBeenCalledWith('/receipt/entry-1/pdf?kind=QR_PAY&locale=en')
         expect(mockPdfDownload).not.toHaveBeenCalled()
+    })
+
+    test('copy link copies the public receipt url and confirms it', async () => {
+        mockCopy.mockResolvedValue(true)
+        renderActions(transaction('QR_PAY'), vm())
+
+        fireEvent.click(screen.getByTestId('more-action-copy-link'))
+        await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('actions.linkCopied'))
+        expect(mockCopy).toHaveBeenCalledWith(expect.stringContaining('/receipt/entry-1?kind=QR_PAY'))
+    })
+
+    test('a failed copy says so', async () => {
+        mockCopy.mockResolvedValue(false)
+        renderActions(transaction('OFFRAMP'), vm())
+
+        fireEvent.click(screen.getByTestId('more-action-copy-link'))
+        await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('actions.linkCopyFailed'))
     })
 
     test('a private kind downloads through the authenticated file hook', () => {
@@ -208,5 +232,92 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
         // support stays reachable outside the drawer
         expect(screen.getByTestId('support-link')).toBeInTheDocument()
+    })
+
+    const pendingDeposit = {
+        ...transaction('ONRAMP'),
+        direction: 'bank_deposit',
+        status: 'pending',
+        extraDataForDrawer: {
+            kind: 'ONRAMP',
+            provider: 'BRIDGE',
+            depositInstructions: { deposit_message: 'BRGTESTREF' },
+        },
+    } as unknown as TransactionDetails
+    const pendingBankRequest = {
+        ...transaction('P2P_REQUEST_FULFILL'),
+        status: 'pending',
+        extraDataForDrawer: {
+            kind: 'P2P_REQUEST_FULFILL',
+            originalUserRole: EHistoryUserRole.SENDER,
+            fulfillmentType: 'bridge',
+        },
+    } as unknown as TransactionDetails
+
+    test.each([
+        ['pending bank deposit', pendingDeposit, vm(), 'actions.cancelDeposit'],
+        [
+            'pending bank-paid request (sender)',
+            pendingBankRequest,
+            vm({ isPendingBankRequest: true }),
+            'actions.cancelDepositRequest',
+        ],
+    ])('%s: share is the primary, cancel is a More actions row that opens the confirm', (_, tx, viewModel, label) => {
+        render(
+            <ReceiptActions
+                transaction={tx}
+                vm={viewModel}
+                isPublic={false}
+                amountDisplay="$10"
+                shouldShowQrShare={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+            />
+        )
+
+        // two buttons at most: share + more actions, never a cancel button
+        expect(screen.getByTestId('pdf-share')).toBeInTheDocument()
+        expect(screen.getByTestId('more-actions-trigger')).toBeInTheDocument()
+        expect(
+            screen.getAllByRole('button').filter((b) => b.closest('[data-testid="more-actions-drawer"]') === null)
+        ).toHaveLength(2)
+        expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
+
+        const confirmHost = screen.getByTestId('cancel-confirm-host')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'false')
+        expect(screen.getByTestId('more-action-cancel')).toHaveTextContent(label)
+
+        fireEvent.click(screen.getByTestId('more-actions-trigger'))
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        // the row closes the menu and opens the shared confirm
+        expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'false')
+        expect(confirmHost).toHaveAttribute('data-confirm-open', 'true')
+    })
+
+    test('pending → completed → pending: the confirm stays closed and the parent lock is released', () => {
+        const setIsModalOpen = jest.fn()
+        const props = {
+            vm: vm(),
+            isPublic: false,
+            amountDisplay: '$10',
+            shouldShowQrShare: false,
+            setIsLoading: jest.fn(),
+            onClose: jest.fn(),
+            setIsModalOpen,
+        }
+        const { rerender } = render(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        fireEvent.click(screen.getByTestId('more-action-cancel'))
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'true')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        const completed = { ...pendingDeposit, status: 'completed' } as unknown as TransactionDetails
+        rerender(<ReceiptActions transaction={completed} {...props} />)
+        expect(screen.queryByTestId('cancel-confirm-host')).not.toBeInTheDocument()
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
+
+        // a stale refetch shows the entry as pending again
+        rerender(<ReceiptActions transaction={pendingDeposit} {...props} />)
+        expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'false')
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
     })
 })

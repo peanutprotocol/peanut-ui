@@ -4,7 +4,7 @@
  * src/dev/surfaces/registry.tsx can only mount a surface that takes an
  * open/visible prop. The overlays declared inline in a page — the three Backup
  * FAQ sheets, the qr-pay KYC branches, the delete-account sequence — have no
- * such prop, and neither do the `Notification` blocks that sit in a screen
+ * such prop, and neither do the `Callout` blocks that sit in a screen
  * rather than in an overlay. Those are reachable only by loading the real route
  * and, where needed, clicking the thing that opens them.
  *

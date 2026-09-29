@@ -50,7 +50,7 @@ const NoMoreJailDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visibl
                             {t('noMoreJailModal.line2')}
                         </DrawerDescription>
                     </DrawerHeader>
-                    <Button variant="purple" shadowSize="4" className="w-full justify-center gap-2" onClick={onClose}>
+                    <Button variant="primary" shadowSize="4" className="w-full justify-center gap-2" onClick={onClose}>
                         <div>{t('noMoreJailModal.startUsingCta')}</div>
                         <div className="flex items-center gap-1">
                             <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />

@@ -2,10 +2,11 @@
 
 // Resolves, per platform, the OLDEST native release a bundle may be delivered to.
 //
-// Capgo carries one min_update_version per bundle record. Production OTA .1+
-// uploads separate iOS/Android records so each server floor protects legacy
-// clients before their first floor-aware OTA. The native .0 record is shared,
-// so it uses the stricter (higher) of the two compatible platform floors.
+// Production uploads the same web export as separate iOS and Android bundle
+// records. Each record gets its platform's `min_update_version`, so Capgo can
+// admit older compatible iOS binaries without also admitting Android binaries
+// below the Android floor. The native .0 record is shared, so it uses the
+// stricter (higher) of the two compatible platform floors.
 //
 // So the floor is computed here, per platform, from the surface rather than the
 // number: walk the native releases newest-first and keep going while that
@@ -22,6 +23,7 @@
 // Usage:
 //   node scripts/ota-platform-floor.mjs                 # both, as KEY=value lines
 //   node scripts/ota-platform-floor.mjs --platform ios   # one, as a bare version
+//   node scripts/ota-platform-floor.mjs --lowest         # diagnostic only
 //   node scripts/ota-platform-floor.mjs --shared         # safe floor for one shared record
 //   node scripts/ota-platform-floor.mjs --prospective-version 1.8.0
 //   node scripts/ota-platform-floor.mjs --prospective-version 1.8.0 --replacement-platform android
@@ -30,6 +32,7 @@
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { replacementBaseline } from './check-native-ota-surface.mjs'
 import { diff, platformDiff, setRepoRoot } from './native-fingerprint.mjs'
 import { allNativeReleases, setRepoRoot as setVersionRepoRoot } from './release-version.mjs'
 
@@ -147,7 +150,8 @@ export function platformFloor({
     for (const { major, build } of releases) {
         if (major !== currentMajor) break
         const tag = `v${major}.${build}.0`
-        if (platformDiff(platform, tag, headRef).length > 0) break
+        const baseline = replacementBaseline({ root, baseRef: tag, platform, headRef })
+        if (platformDiff(platform, baseline, headRef).length > 0) break
         floor = `${major}.${build}.0`
     }
     if (floor === null) {
@@ -205,8 +209,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
         if (platform && argv.includes('--shared')) throw new Error('--platform and --shared are mutually exclusive')
         const options = { headRef, root, prospectiveVersion, replacementPlatform }
         if (argv.includes('--lowest')) {
-            // Diagnostic only. Never use this value as a shared server floor:
-            // legacy updaters cannot enforce the stricter platform requirement.
+            // Diagnostic compatibility view for operators and regression tests.
+            // Production must upload separate platform records and use
+            // `--platform`; this permissive value must not be sent to Capgo.
             const floors = platformFloors(options)
             const lowest = PLATFORMS.map((name) => floors[name]).sort(compareVersions)[0]
             process.stdout.write(`${lowest}\n`)

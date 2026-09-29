@@ -85,7 +85,7 @@ export default function DevSafeAreaPage() {
             description="What the app reserves for status and system bars. A gap between the env and variable values is the bug."
             width="prose"
         >
-            <Button variant="stroke" size="small" onClick={refresh}>
+            <Button variant="secondary" size="small" onClick={refresh}>
                 Refresh
             </Button>
 

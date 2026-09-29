@@ -12,7 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -20,6 +20,7 @@ import {
 } from '@/constants/manteca.consts'
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -106,7 +107,7 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <IconBubble icon="bank" size="xs" color="blue" className="absolute -right-1 -bottom-1" />
+                            <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
@@ -121,9 +122,9 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <Notification priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
                     {t('manteca.sendOnlyOwnAccountDescription')}
-                </Notification>
+                </Callout>
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
@@ -163,7 +164,7 @@ const MantecaDepositShareDetails = ({
             <ShareButton
                 generateText={async () => generateShareText()}
                 title={t('manteca.shareTitle')}
-                variant="purple"
+                variant="primary"
                 className="w-full"
             >
                 {t('manteca.shareDetails')}

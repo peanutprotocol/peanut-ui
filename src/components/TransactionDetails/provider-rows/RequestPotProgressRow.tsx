@@ -33,7 +33,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                 no inline style, ratchet-clean; the legacy coin-marker
                 ProgressBar is off-board for receipts */}
             <progress
-                className="h-1 w-full appearance-none overflow-hidden rounded-round bg-background-disabled [&::-moz-progress-bar]:bg-action-primary [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-action-primary"
+                className="h-1 w-full appearance-none overflow-hidden rounded-full bg-background-disabled [&::-moz-progress-bar]:bg-action-primary [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-action-primary"
                 value={Math.min(potCollected, potGoal)}
                 max={potGoal}
             />

@@ -36,8 +36,13 @@ export const avatarPool = (heldCodes: readonly string[]): string[] => [
     ...badgeAvatarKeys(heldCodes),
 ]
 
-// slots 2-8 of the hand; slot 1 is the initial and slot 9 is the die
-const DEALT = 7
+/**
+ * Stickers dealt after the initial. The grid is three tiles wide with the
+ * initial first and the die last, one 3x3 screen on every phone (hugo,
+ * 2026-09-25, TASK-23054): the initial, seven dealt, the die. Measured at
+ * 320x568 and 375x667, the three rows fit the drawer with room to spare.
+ */
+export const HAND_SIZE = 7
 
 /**
  * The given keys, each drawing once: a key whose art this bundle does not know
@@ -56,14 +61,14 @@ const distinctArt = (keys: readonly string[]): string[] => {
 
 /**
  * The hand the picker deals: index 0 is always the initial (null) and never
- * re-deals, then seven keys from the deck — the basics plus what the user's
+ * re-deals, then HAND_SIZE keys from the deck — the basics plus what the user's
  * badges unlocked. One is guaranteed to be an earned badge avatar whenever the
  * user holds a badge with art (`prefer` narrows that draw to one badge, for the
  * badge-earned toast's deep link), the current pick stays in the hand so the
- * selected state is on screen, and the rest fills the seven. Slots 2-8 are
- * shuffled together and no two of them draw the same art. Rolling deals again
- * and never changes the pick (Split's semantics: the die changes what is
- * offered, not who you are).
+ * selected state is on screen, and the rest fills the hand. The dealt slots are
+ * shuffled together and no two of them draw the same art. Rolling never changes
+ * the pick (Split's semantics: the die changes what is offered, not who you
+ * are).
  *
  * A pick outside the deck is not dealt: a letter is slot 1's own art, and a key
  * this bundle's manifest does not know (a lagging native bundle after the API
@@ -82,7 +87,7 @@ export function dealHand(
     if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
     if (pick && deck.includes(pick)) hand.push(pick)
     const rest = deck.filter((key) => !hand.includes(key))
-    while (hand.length < DEALT && rest.length) hand.push(draw(rest))
+    while (hand.length < HAND_SIZE && rest.length) hand.push(draw(rest))
     for (let i = hand.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1))
         ;[hand[i], hand[j]] = [hand[j], hand[i]]

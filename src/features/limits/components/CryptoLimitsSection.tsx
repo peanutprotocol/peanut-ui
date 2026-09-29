@@ -13,7 +13,7 @@ export default function CryptoLimitsSection() {
     const t = useTranslations('limits.crypto')
     return (
         <Section title={t('title')}>
-            <Card position="single" className="flex items-center justify-between px-4 py-3">
+            <Card position="solo" className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
                     <span className="text-body-s">{t('noLimits')}</span>
                     <Tooltip content={t('tooltip')} position="top">

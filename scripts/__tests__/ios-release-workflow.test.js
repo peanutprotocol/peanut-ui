@@ -1,7 +1,7 @@
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
-const { execFileSync } = require('child_process')
+const { execFileSync, spawnSync } = require('child_process')
 
 const workflowSource = fs.readFileSync(path.join(__dirname, '..', '..', '.github/workflows/ios-release.yml'), 'utf8')
 const targetStripper = fs.readFileSync(path.join(__dirname, '..', 'disable-wallet-ios-targets.mjs'), 'utf8')
@@ -27,9 +27,40 @@ describe('iOS release workflow', () => {
         )
     })
 
+    // Both the main and dev lanes call this workflow, and run_number is the caller's
+    // counter, so it cannot order uploads of one version across them.
+    it('numbers builds by wall clock, not the caller run number', () => {
+        expect(workflowSource).not.toContain('github.run_number')
+        expect(workflowSource).toContain('IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"')
+        expect(workflowSource).toContain('CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"')
+    })
+
     it('accepts plutil raw true for the Wallet extension entitlement', () => {
         expect(workflowSource).toContain('if [ "$PAYMENT" != "true" ]; then')
         expect(workflowSource).not.toContain('if [ "$PAYMENT" != "1" ]; then')
+    })
+
+    it('compiles the shared card store into the Wallet authorization UI extension', () => {
+        const sourcePhase = projectSource.match(
+            /\/\* PushProvisioningExtensionUI Sources \*\/ = \{[\s\S]*?files = \(([\s\S]*?)\);/
+        )?.[1]
+        expect(sourcePhase).toBeDefined()
+        const buildIds = [...sourcePhase.matchAll(/([A-F0-9]{24}) \/\* .*? in Sources \*\//g)].map((match) => match[1])
+        const sourceNames = buildIds.map((id) => {
+            const fileRef = projectSource.match(
+                new RegExp(`${id} /\\* .*? \\*/ = \\{isa = PBXBuildFile; fileRef = ([A-F0-9]{24})`)
+            )?.[1]
+            return projectSource.match(
+                new RegExp(`${fileRef} /\\* .*? \\*/ = \\{isa = PBXFileReference;[^\\n]*path = ([^;]+);`)
+            )?.[1]
+        })
+        expect(sourceNames).toEqual(
+            expect.arrayContaining([
+                'IssuerAuthorizationExtensionHandler.swift',
+                'WalletExtensionAuth.swift',
+                'WalletExtensionCardStore.swift',
+            ])
+        )
     })
 
     it('keeps unentitled iOS releases available by omitting Wallet targets', () => {
@@ -112,6 +143,17 @@ describe('iOS release workflow', () => {
                 'Peanut Wallet Push Provisioning Authorization App Store'
             )
             expect(document.documentElement.textContent).not.toContain('${WALLET_EXTENSION_PROFILE_NAME}')
+            expect(fs.statSync(outputPath).mode & 0o777).toBe(0o600)
+            const overwrite = spawnSync(process.execPath, [renderExportOptions], {
+                env: {
+                    ...process.env,
+                    APPLE_TEAM_ID: 'TEAM123',
+                    PROFILE_NAME: 'Peanut Wallet App Store',
+                    WALLET_PROVISIONING_ENABLED: 'false',
+                    EXPORT_OPTIONS_PATH: outputPath,
+                },
+            })
+            expect(overwrite.status).not.toBe(0)
         } finally {
             fs.rmSync(directory, { recursive: true, force: true })
         }

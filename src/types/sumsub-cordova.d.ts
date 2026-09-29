@@ -40,14 +40,24 @@ declare global {
     }
 
     interface SNSMobileSDKInstance {
-        /** Resolves only once the native screen closes. */
+        /** Resolves only once the native screen closes, and never if Android destroys it. */
         launch(): Promise<SNSMobileSDKResult>
         dismiss(): void
+        /** Runs this instance's handler for a native event. */
+        sendEvent(name: string, data: unknown): void
+        /** Asks this instance's expiration handler for a token and hands it to native. */
+        getNewAccessToken(): void
     }
 
     interface Window {
         SNSMobileSDK?: {
             init(accessToken: string, tokenExpirationHandler: () => Promise<string>): SNSMobileSDKBuilder
+            /** Clears a stale JavaScript instance lock; supplied by the Cordova wrapper. */
+            reset?(): void
+            /** Called by native code for status events; routes to the wrapper's current instance. */
+            sendEvent?(name: string, data: unknown): void
+            /** Called by native code when the token expires. */
+            getNewAccessToken?(): void
         }
     }
 }

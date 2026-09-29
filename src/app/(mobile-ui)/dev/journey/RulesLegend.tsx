@@ -1,7 +1,7 @@
 'use client'
 
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import StuckBadge from './StuckBadge'
 import type { SpecRules } from './journeyTypes'
 
@@ -17,11 +17,7 @@ function Rule({ label, children }: { label: string; children: React.ReactNode })
 /** Compact legend strip for the email machine's global rules (from spec.rules). */
 export default function RulesLegend({ rules, specError }: { rules: SpecRules | null; specError: string | null }) {
     if (!rules) {
-        return (
-            <Notification priority={specError ? 'error' : 'info'}>
-                {specError ?? 'Loading email-machine rules…'}
-            </Notification>
-        )
+        return <Callout priority={specError ? 'error' : 'info'}>{specError ?? 'Loading email-machine rules…'}</Callout>
     }
     return (
         <div className="flex flex-wrap gap-2">

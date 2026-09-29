@@ -1,4 +1,5 @@
 import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable } from '@simplewebauthn/browser'
+import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { isCapacitor } from '@/utils/capacitor'
 
 export type PasskeyCapability = {
@@ -14,6 +15,13 @@ const unsupported = (error: string, browserSupported: boolean): PasskeyCapabilit
 })
 
 export const checkPasskeyCapability = async (): Promise<PasskeyCapability> => {
+    // The QA browser has no platform authenticator and does not need one: the
+    // harness signs with its own key. Without this every scenario stops at the
+    // unsupported-browser modal.
+    if (harnessPasskeyBypass()) {
+        return { isSupported: true, error: null, browserSupported: true }
+    }
+
     // Native shells use the Capacitor passkey bridge; browser APIs can return
     // false negatives inside their webviews.
     if (isCapacitor()) {

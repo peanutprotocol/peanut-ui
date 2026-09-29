@@ -23,11 +23,21 @@ jest.mock('@/constants/general.consts', () => ({
     PEANUT_API_URL: process.env.NEXT_PUBLIC_PEANUT_API_URL,
 }))
 
+// Synthetic fixtures — no customer data.
+const PIX_MERCHANT_PAYLOAD =
+    '00020126580014br.gov.bcb.pix0136synthetic-key-0000-0000-0000000000005204000053039865802BR6304ABCD'
+const TYPED_SENTENCE = `${'quiero enviar plata a mi hermano que vive en cordoba '.repeat(5)}.`
+
 describe('Recipient Validation', () => {
     describe('getRecipientType', () => {
         it('should identify ENS names', () => {
             expect(getRecipientType('vitalik.eth')).toBe('ENS')
             expect(getRecipientType('user.subdomain.eth')).toBe('ENS')
+        })
+
+        it('should identify DNS-backed ENS names', () => {
+            expect(getRecipientType('example.com')).toBe('ENS')
+            expect(getRecipientType('sub.example.xyz')).toBe('ENS')
         })
 
         it('should identify Ethereum addresses', () => {
@@ -38,9 +48,27 @@ describe('Recipient Validation', () => {
             expect(getRecipientType('kusharc')).toBe('USERNAME')
         })
 
-        it('should treat non-addresses as ENS when isWithdrawal is true', () => {
-            expect(getRecipientType('kusharc', true)).toBe('ENS')
-            expect(getRecipientType('someuser', true)).toBe('ENS')
+        it('should reject an Argentine payment alias before ENS', () => {
+            expect(() => getRecipientType('CASA.FUTBOLERA')).toThrow('Paying another person by alias is not supported')
+            expect(() => getRecipientType('CASA.FUTBOLERA', true)).toThrow(
+                'Paying another person by alias is not supported'
+            )
+        })
+
+        it('should keep ENS precedence for an alias-shaped name that really resolves', () => {
+            // Same 6-20 char dotted shape as an alias, but a real namespace.
+            expect(getRecipientType('vitalik.eth')).toBe('ENS')
+            expect(getRecipientType('example.com')).toBe('ENS')
+        })
+
+        it('should reject free text in withdrawal context instead of calling ENS', () => {
+            expect(() => getRecipientType('kusharc', true)).toThrow('Enter a wallet address or an ENS name')
+            expect(() => getRecipientType('someuser', true)).toThrow('Enter a wallet address or an ENS name')
+        })
+
+        it('should reject a dotted string that is no supported ENS name', () => {
+            // Too long for the alias shape, so it falls to the ENS message.
+            expect(() => getRecipientType('not.a.real.ens.namespace.at.all')).toThrow('Invalid ENS name')
         })
 
         it('should still identify ENS and addresses correctly when isWithdrawal is true', () => {
@@ -85,9 +113,44 @@ describe('Recipient Validation', () => {
             await expect(validateAndResolveRecipient('lmaoo')).rejects.toThrow('Invalid Peanut username')
         })
 
-        it('should treat non-addresses as ENS in withdrawal context', async () => {
-            await expect(validateAndResolveRecipient('kusharc', true)).rejects.toThrow('ENS name not found')
-            await expect(validateAndResolveRecipient('someuser', true)).rejects.toThrow('ENS name not found')
+        it('should reject free text in withdrawal context with no ENS lookup', async () => {
+            mockResolveEns.mockClear()
+            await expect(validateAndResolveRecipient('kusharc', true)).rejects.toThrow(
+                'Enter a wallet address or an ENS name'
+            )
+            await expect(validateAndResolveRecipient('someuser', true)).rejects.toThrow(
+                'Enter a wallet address or an ENS name'
+            )
+            expect(mockResolveEns).not.toHaveBeenCalled()
+        })
+
+        it('should guide an Argentine alias to the QR with no ENS lookup', async () => {
+            mockResolveEns.mockClear()
+            await expect(validateAndResolveRecipient('CASA.FUTBOLERA', true)).rejects.toMatchObject({
+                code: 'ARGENTINE_ALIAS',
+            })
+            expect(mockResolveEns).not.toHaveBeenCalled()
+        })
+
+        it.each([
+            ['a pasted PIX merchant payload', PIX_MERCHANT_PAYLOAD],
+            ['a typed sentence', TYPED_SENTENCE],
+            ['an overlong label', `${'a'.repeat(64)}.eth`],
+            ['a malformed name', 'test..eth'],
+        ])('should reject %s with no ENS lookup', async (_description, input) => {
+            mockResolveEns.mockClear()
+            await expect(validateAndResolveRecipient(input, true)).rejects.toThrow()
+            expect(mockResolveEns).not.toHaveBeenCalled()
+        })
+
+        it('should resolve DNS-backed ENS names', async () => {
+            mockResolveEns.mockClear()
+            mockResolveEns.mockResolvedValueOnce('0x1234567890123456789012345678901234567890')
+
+            const result = await validateAndResolveRecipient('sub.example.xyz', true)
+
+            expect(mockResolveEns).toHaveBeenCalledWith('sub.example.xyz', undefined)
+            expect(result.recipientType).toBe('ENS')
         })
 
         it('should forward the destination chainId to ENS resolution (ENSIP-11)', async () => {

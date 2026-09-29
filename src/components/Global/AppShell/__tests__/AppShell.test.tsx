@@ -56,7 +56,25 @@ describe('AppShell bottom nav slot', () => {
         )
 
         const content = container.querySelector('#scrollable-content')
-        expect(content).toHaveClass('px-4', 'pt-4', 'pb-6')
+        expect(content).toHaveClass('pt-4', 'pb-6')
         expect(content).not.toHaveClass('py-6')
+    })
+
+    /* The page width bug: with px-4 on the scroll container the centering
+       margins swallow it past the cap, so a page rendered 448 wide on desktop
+       while the bottom nav spanned 416. The inset belongs inside the cap, on
+       the same element that carries max-w-md, so both come out 416. */
+    it('puts the screen inset inside the capped column, not on the scroll container', () => {
+        const { container } = render(
+            <AppShell variant="app">
+                <div>content</div>
+            </AppShell>
+        )
+
+        const content = container.querySelector('#scrollable-content')
+        expect(content).not.toHaveClass('px-4')
+
+        const column = content?.firstElementChild
+        expect(column).toHaveClass('max-w-md', 'px-4', 'mx-auto')
     })
 })

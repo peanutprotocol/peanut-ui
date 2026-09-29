@@ -1,19 +1,19 @@
 'use client'
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
-import { type FC, useEffect, useMemo, useState } from 'react'
+import { type ComponentProps, type FC, useEffect, useMemo, useRef, useState } from 'react'
 import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
-import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -33,8 +33,17 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const t = useTranslations('claim')
     const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const [destinationAddress, setDestinationAddress] = useState('')
+    // Lives here, not in the review step: Back to DETAILS unmounts that step,
+    // and the claimed hash (plus the in-flight guard) must outlive it so the
+    // next Withdraw retries the same hash instead of spending the link again.
+    const claimRecovery = useRef<ComponentProps<typeof MantecaReviewStep>['recovery']>({
+        claimed: null,
+        inFlight: false,
+    })
     const { canDo, isKycApproved, rails, nextActions } = useCapabilities()
 
     // MIGRATION-REVIEW: MercadoPago/PIX claim is a `pay` operation over Manteca. Old gate was
@@ -96,13 +105,14 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     destinationAddress={destinationAddress}
                     amount={amount}
                     currency={selectedCurrency}
+                    recovery={claimRecovery.current}
                 />
             )
         }
 
         if (currentStep === MercadoPagoStep.SUCCESS) {
             return (
-                <Button variant="purple" shadowSize="4" className="w-full" onClick={() => router.push('/home')}>
+                <Button variant="primary" shadowSize="4" className="w-full" onClick={leaveToHome}>
                     {t('backToHome')}
                 </Button>
             )
@@ -121,7 +131,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             return
         }
         if (currentStep === MercadoPagoStep.SUCCESS) {
-            router.push('/home')
+            leaveToHome()
             return
         }
     }
@@ -133,7 +143,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     viewType={isSuccess ? 'SUCCESS' : 'NORMAL'}
-                    avatarSize="medium"
+                    avatarSize="l"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
                     recipientName={
@@ -148,11 +158,12 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-                {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
+                {sumsubFlow.error && <Callout priority="error">{sumsubFlow.error}</Callout>}
             </PageStack.Center>
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
+                taxIdCountry={targetCountry === 'BR' ? 'BR' : targetCountry === 'AR' ? 'AR' : undefined}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {

@@ -1,6 +1,8 @@
 import {
     contentGeneratedAt,
+    helpArticleTitle,
     listAllContent,
+    listContentSlugs,
     readPageContent,
     resolveContentHref,
     type ContentFrontmatter,
@@ -185,5 +187,29 @@ describe('contentGeneratedAt', () => {
         // A real authored date, not the build clock.
         expect(at!.getTime()).toBeLessThan(Date.now())
         expect(at!.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
+    })
+})
+
+describe('helpArticleTitle', () => {
+    it.each([
+        ['Peanut Transaction Limits | Peanut Help', 'Peanut Transaction Limits'],
+        ['Límites de transacciones | Ayuda Peanut', 'Límites de transacciones'],
+        ['Limites de transações | Ajuda Peanut', 'Limites de transações'],
+        ['Reportar un Error o Falla de Seguridad | Peanut', 'Reportar un Error o Falla de Seguridad'],
+        ['A title with no suffix', 'A title with no suffix'],
+    ])('%s → %s', (title, expected) => {
+        expect(helpArticleTitle(title)).toBe(expected)
+    })
+
+    it('leaves no site suffix on any help article in any locale', () => {
+        for (const slug of listContentSlugs('help')) {
+            for (const locale of ['en', 'es-419', 'es-ar', 'pt-br']) {
+                const page = readPageContent<{ title?: string }>('help', slug, locale)
+                if (!page?.frontmatter.title) continue
+                const title = helpArticleTitle(page.frontmatter.title)
+                expect(title).not.toContain('|')
+                expect(title.length).toBeGreaterThan(0)
+            }
+        }
     })
 })

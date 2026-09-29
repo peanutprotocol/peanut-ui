@@ -8,10 +8,11 @@ import { Button } from '@/components/0_Bruddle/Button'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
-import { useShareAction } from '@/components/Global/ShareButton/useShareAction'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { PasskeyDocsLink } from '@/components/Setup/Views/SignTestTransaction'
 import { useModalsContext } from '@/context/ModalsContext'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
+import { getCancelDepositKind } from './provider-actions/cancel-deposit.utils'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
@@ -25,6 +26,7 @@ import { hasReceiptPage, isRequestEntry, isSendLinkEntry, isSplittable } from '.
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { openExternalUrl } from '@/utils/capacitor'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
 
@@ -41,6 +43,8 @@ const CANCEL_LINK_KEYS = {
  * Split when the spend is splittable, Share receipt otherwise, Download on
  * the public page — with the remaining actions demoted into the
  * More-actions drawer. Pending links/requests keep their decision buttons.
+ * Share receipt means the same thing on every kind: the PDF file. Kinds with
+ * a public receipt page also get a secondary "Copy link" row.
  * All api side effects route through useReceiptActions — this view only
  * holds ephemeral UI state.
  */
@@ -70,37 +74,54 @@ export function ReceiptActions({
     const router = useRouter()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
     const { setIsSupportModalOpen } = useModalsContext()
+    const toast = useToast()
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
 
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [showMoreActions, setShowMoreActions] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-    // Sync child-drawer state to the parent details drawer — it keeps itself
-    // open while any of our drawers are up (vaul NestedRoot contract).
-    useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions)
-    }, [showCancelLinkDrawer, showMoreActions, setIsModalOpen])
-
-    // An action/payment URL is not necessarily a public receipt URL. Only the
-    // dedicated receipt-page kinds may share it; every other completed kind
-    // shares the authenticated PDF file (#3159 boundary, unchanged here).
+    // Every completed kind shares the same thing: the authenticated PDF file.
+    // An action/payment URL is not necessarily a public receipt URL, so only
+    // the dedicated receipt-page kinds offer a link, as a secondary copy row.
     const kind = transaction.extraDataForDrawer?.kind
-    const receiptUrl = getReceiptUrl(transaction)
     const hasPublicReceiptPage = hasReceiptPage(transaction)
-    const canShareUrl = vm.shouldShowShareReceipt && hasPublicReceiptPage && !!receiptUrl
-    const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !hasPublicReceiptPage && !!kind
-    const canShareReceipt = canShareUrl || canSharePdf
+    const receiptPageUrl = hasPublicReceiptPage ? getReceiptUrl(transaction) : undefined
+    const canCopyLink = vm.shouldShowShareReceipt && !!receiptPageUrl
+    const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const showSplitCta = !isPublic && isSplittable(transaction)
+    // cancelling a pending deposit or bank-paid request is a More actions row,
+    // never a receipt button, so the receipt shows two buttons at most. the
+    // cancel needs the loading/close handlers, which public pages never pass.
+    const cancelKind =
+        !isPublic && setIsLoading && onClose ? getCancelDepositKind(transaction, isPendingBankRequest) : null
+    const cancelInDrawer = cancelKind !== null
+    // gated on cancelInDrawer: once the entry stops being cancellable the
+    // confirm unmounts, and a stale open flag must not re-lock the parent.
+    const cancelConfirmOpen = cancelInDrawer && showCancelConfirm
+    // the confirm unmounts before its own reset can run, so clear the flag
+    // here too — otherwise a later pending refetch reopens it untapped.
+    useEffect(() => {
+        setShowCancelConfirm(false)
+    }, [cancelInDrawer, transaction.id])
+
+    // Sync child-drawer state to the parent details drawer — it keeps itself
+    // open while any of our drawers are up (vaul NestedRoot contract). The
+    // cancel confirm is included because it opens in the same render that
+    // closes the more-actions drawer; this effect runs after the child's and
+    // would otherwise release the lock the child just took.
+    useEffect(() => {
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen)
+    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, setIsModalOpen])
     // one primary per state: split first, else share (never both visible)
-    const sharePrimary = !showSplitCta && canShareReceipt
+    const sharePrimary = !showSplitCta && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
 
-    // hooks are unconditional; prefetch mirrors the old PrivateReceiptPdfActions
-    // scope — private-kind finals fetch eagerly with the stored bearer.
+    // hooks are unconditional; finals fetch eagerly with the stored bearer so
+    // the share sheet opens inside the click's user activation.
     const pdfFile = useReceiptPdfFile({ entryId: transaction.id, kind: kind ?? '', prefetch: canSharePdf })
-    const shareReceiptUrl = useShareAction({ url: receiptUrl ?? '' })
     // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
     // while the drawer is open with the row visible
     const referralAction = useReceiptReferralAction(transaction, {
@@ -135,6 +156,12 @@ export function ReceiptActions({
         else openExternalUrl(target.url).catch((err) => console.warn('failed to open request link:', err))
     }
 
+    const handleCopyLink = async () => {
+        if (!receiptPageUrl) return
+        if (await copyTextToClipboard(receiptPageUrl)) toast.success(t('actions.linkCopied'))
+        else toast.error(t('actions.linkCopyFailed'))
+    }
+
     const handleCancelSendLink = async () => {
         if (!setIsLoading || !onClose) return
         setIsLoading(true)
@@ -162,17 +189,6 @@ export function ReceiptActions({
     // download, support. the referral row joins here (TASK-22452 item 5).
     const moreActions: ReceiptMoreAction[] = []
     if (!isPublic) {
-        if (showSplitCta && canShareUrl) {
-            moreActions.push({
-                icon: 'share',
-                title: t('actions.shareReceipt'),
-                onSelect: () => {
-                    setShowMoreActions(false)
-                    void shareReceiptUrl()
-                },
-                'data-testid': 'more-action-share',
-            })
-        }
         if (showSplitCta && canSharePdf) {
             moreActions.push({
                 icon: 'share',
@@ -183,6 +199,17 @@ export function ReceiptActions({
                 },
                 disabled: pdfFile.unavailable || pdfFile.busy !== null,
                 'data-testid': 'more-action-share',
+            })
+        }
+        if (canCopyLink) {
+            moreActions.push({
+                icon: 'link',
+                title: t('actions.copyLink'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    void handleCopyLink()
+                },
+                'data-testid': 'more-action-copy-link',
             })
         }
         if (canDownloadPdf) {
@@ -200,6 +227,19 @@ export function ReceiptActions({
                 },
                 disabled: !downloadViaUrl && (pdfFile.unavailable || pdfFile.busy !== null),
                 'data-testid': 'more-action-download',
+            })
+        }
+        if (cancelInDrawer) {
+            // same hand-off as the support row: close the menu, open the next surface
+            moreActions.push({
+                icon: 'ban',
+                title: cancelKind === 'bank-request' ? t('actions.cancelDepositRequest') : t('actions.cancelDeposit'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    setShowCancelConfirm(true)
+                },
+                disabled: isLoading,
+                'data-testid': 'more-action-cancel',
             })
         }
         if (referralAction && (showSplitCta || sharePrimary)) {
@@ -226,7 +266,7 @@ export function ReceiptActions({
         <>
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
                         {t('actions.shareLink')}
                     </ShareButton>
@@ -239,7 +279,7 @@ export function ReceiptActions({
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
                                 onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
-                                variant="stroke"
+                                variant="secondary"
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
@@ -257,24 +297,22 @@ export function ReceiptActions({
             )}
 
             {isPendingRequester && setIsLoading && onClose && (
-                <div className="pr-1">
-                    <Button
-                        icon="ban"
-                        iconSize={18}
-                        loading={isLoading}
-                        disabled={isLoading}
-                        onClick={handleCloseRequest}
-                        variant="stroke"
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
-                    </Button>
-                </div>
+                <Button
+                    icon="ban"
+                    iconSize={18}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    onClick={handleCloseRequest}
+                    variant="secondary"
+                    shadowSize="4"
+                    className="flex w-full items-center gap-1"
+                >
+                    {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
+                </Button>
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
-                <div className="flex flex-col gap-2 pr-1">
+                <div className="flex flex-col gap-2">
                     <Button onClick={handlePay} shadowSize="4" className="flex w-full items-center gap-1">
                         <Icon name="currency" size={20} />
                         {t('actions.pay')}
@@ -284,7 +322,7 @@ export function ReceiptActions({
                         iconSize={18}
                         disabled={isLoading}
                         onClick={handleRejectRequest}
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
@@ -296,7 +334,7 @@ export function ReceiptActions({
             {/* the final-state cta group (S/8 inside one action area): the one
                 primary, then the overflow trigger */}
             {(showSplitCta || sharePrimary || showMoreActionsButton) && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     {showSplitCta && (
                         <Button
                             onClick={() =>
@@ -309,15 +347,7 @@ export function ReceiptActions({
                         </Button>
                     )}
 
-                    {sharePrimary && canShareUrl && (
-                        <div data-testid="public-share">
-                            <ShareButton url={receiptUrl!} className="w-full">
-                                {t('actions.shareReceipt')}
-                            </ShareButton>
-                        </div>
-                    )}
-
-                    {sharePrimary && canSharePdf && (
+                    {sharePrimary && (
                         <Button
                             shadowSize="4"
                             className="w-full"
@@ -325,7 +355,7 @@ export function ReceiptActions({
                             disabled={pdfFile.unavailable || pdfFile.busy !== null}
                             onClick={() => void pdfFile.share()}
                             icon={<Icon name="share" size={20} />}
-                            data-testid="private-pdf-share"
+                            data-testid="pdf-share"
                         >
                             {t('actions.shareReceipt')}
                         </Button>
@@ -333,7 +363,7 @@ export function ReceiptActions({
 
                     {showMoreActionsButton && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             className="w-full"
                             onClick={() => setShowMoreActions(true)}
@@ -342,6 +372,22 @@ export function ReceiptActions({
                             {t('actions.moreActions')}
                         </Button>
                     )}
+
+                    {/* the cancel's trigger is the more-actions row, so only the
+                        confirm drawer and any error render here. it unmounts once
+                        the entry stops being cancellable, which releases the
+                        parent drawer lock through its effect cleanup. */}
+                    {cancelInDrawer && (
+                        <CancelDepositActions
+                            transaction={transaction}
+                            isPendingBankRequest={isPendingBankRequest}
+                            setIsLoading={setIsLoading}
+                            onClose={onClose}
+                            setIsModalOpen={setIsModalOpen}
+                            confirmOpen={showCancelConfirm}
+                            onConfirmOpenChange={setShowCancelConfirm}
+                        />
+                    )}
                 </div>
             )}
 
@@ -349,20 +395,11 @@ export function ReceiptActions({
                 support sits in the same tight group (S/8) — the link wrapper
                 reserves its own 44px target so the two cannot overlap */}
             {isPublic && canDownloadPdf && kind && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} />
                     {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>
             )}
-
-            <CancelDepositActions
-                transaction={transaction}
-                isPendingBankRequest={isPendingBankRequest}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-                onClose={onClose}
-                setIsModalOpen={setIsModalOpen}
-            />
 
             {/* support link section or passkey docs for test transactions —
                 unless the public action group above already carries it */}

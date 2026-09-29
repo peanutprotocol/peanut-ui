@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -332,7 +332,7 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <LinkButton onClick={handleSkipEmail} className="self-center">
+                                <LinkButton onClick={handleSkipEmail} className="mt-2 self-center">
                                     {tCommon('skipForNow')}
                                 </LinkButton>
                             )}
@@ -349,7 +349,7 @@ const JoinWaitlistPage = () => {
                                 {tNotifications('enable')}
                             </Button>
 
-                            <LinkButton onClick={() => setStep('jail')} className="self-center">
+                            <LinkButton onClick={() => setStep('jail')} className="mt-2 self-center">
                                 {tNotifications('notNow')}
                             </LinkButton>
                         </div>
@@ -402,7 +402,7 @@ const JoinWaitlistPage = () => {
                                 )}
                             </div>
 
-                            {error && <Notification priority="error">{error}</Notification>}
+                            {error && <Callout priority="error">{error}</Callout>}
 
                             <LinkButton onClick={handleLogout} className="self-center">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}

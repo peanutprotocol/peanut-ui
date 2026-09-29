@@ -32,6 +32,7 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "clearWalletLegacySession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWalletStateIfCardMatches", returnType: CAPPluginReturnPromise),
     ]
 
     private static func hasMeaConfig() -> Bool {
@@ -42,6 +43,9 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let cardId = call.getString("peanutCardId"), !cardId.isEmpty else {
             call.reject("peanutCardId is required", "BAD_PARAMS")
             return
+        }
+        if WalletExtensionCardStore.load()?.cardId != cardId {
+            WalletExtensionAuth.deleteAuthorizationToken()
         }
         WalletExtensionCardStore.save(.init(
             cardId: cardId,
@@ -60,13 +64,19 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setWalletAuthorizationToken(_ call: CAPPluginCall) {
         guard let token = call.getString("token"),
+              let cardId = call.getString("cardId"),
+              !cardId.isEmpty,
               let expiresIn = call.getInt("expiresIn"),
               !token.isEmpty,
               expiresIn > 0 else {
-            call.reject("token and expiresIn are required", "BAD_PARAMS")
+            call.reject("cardId, token and expiresIn are required", "BAD_PARAMS")
             return
         }
-        WalletExtensionAuth.saveAuthorizationToken(token, expiresIn: expiresIn)
+        guard WalletExtensionCardStore.load()?.cardId == cardId else {
+            call.reject("Wallet card changed before authorization was saved", "CARD_CHANGED")
+            return
+        }
+        WalletExtensionAuth.saveAuthorizationToken(token, forCardId: cardId, expiresIn: expiresIn)
         call.resolve()
     }
 
@@ -84,6 +94,18 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func clearWalletAuthorizationToken(_ call: CAPPluginCall) {
         WalletExtensionAuth.deleteAuthorizationToken()
+        call.resolve()
+    }
+
+    @objc func clearWalletStateIfCardMatches(_ call: CAPPluginCall) {
+        guard let cardId = call.getString("cardId"), !cardId.isEmpty else {
+            call.reject("cardId is required", "BAD_PARAMS")
+            return
+        }
+        if WalletExtensionCardStore.load()?.cardId == cardId {
+            WalletExtensionCardStore.clear()
+        }
+        WalletExtensionAuth.deleteAuthorizationToken(forCardId: cardId)
         call.resolve()
     }
 
@@ -111,6 +133,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func addCard(_ call: CAPPluginCall) {
         guard let cardId = call.getString("cardId"), let cardSecret = call.getString("cardSecret") else {
             call.reject("cardId and cardSecret are required", "BAD_PARAMS")
+            return
+        }
+        guard let peanutCardId = call.getString("peanutCardId"),
+              WalletExtensionCardStore.load()?.cardId == peanutCardId else {
+            call.reject("Selected Wallet card changed", "CARD_CHANGED")
             return
         }
         guard Self.hasMeaConfig() else {
@@ -143,6 +170,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let config = data.addPaymentPassRequestConfiguration else {
                 call.reject("No pass request configuration", "INIT_FAILED")
                 return
+            }
+            if let pai = data.primaryAccountIdentifier, !pai.isEmpty {
+                // PassKit uses this to omit devices that already have the card,
+                // including the iPhone when only a paired Watch is eligible.
+                config.primaryAccountIdentifier = pai
             }
             if let name = call.getString("cardholderName"), !name.isEmpty {
                 config.cardholderName = name

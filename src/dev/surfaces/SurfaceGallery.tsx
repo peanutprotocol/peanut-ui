@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { OPTION_SURFACES, SURFACES, SURFACE_IDS } from '@/dev/surfaces/registry'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -29,9 +29,9 @@ function SurfaceHost({ id }: { id: string }) {
     if (option) return <>{option.render()}</>
     if (!surface)
         return (
-            <Notification priority="error" className="m-4">
+            <Callout priority="error" className="m-4">
                 Unknown surface: {id}
-            </Notification>
+            </Callout>
         )
     if (surface.blocked) {
         return (

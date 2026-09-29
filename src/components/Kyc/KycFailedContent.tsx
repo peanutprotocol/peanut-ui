@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl'
 import { RejectLabelsList } from './RejectLabelsList'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 
 interface KycFailedContentProps {
     rejectLabels?: string[] | null
@@ -13,7 +13,7 @@ export const KycFailedContent = ({ rejectLabels, isTerminal }: KycFailedContentP
     const t = useTranslations('kyc')
 
     if (isTerminal) {
-        return <Notification priority="error">{t('terminalDescription')}</Notification>
+        return <Callout priority="error">{t('terminalDescription')}</Callout>
     }
 
     return <RejectLabelsList rejectLabels={rejectLabels} />

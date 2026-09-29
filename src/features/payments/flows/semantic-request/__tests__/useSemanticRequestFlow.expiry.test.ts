@@ -142,6 +142,7 @@ jest.mock('@/utils/settled-tx-hash.utils', () => ({
 }))
 
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => {
     beforeEach(() => {
@@ -178,6 +179,45 @@ describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => 
 
         expect(mockSendTransactions).toHaveBeenCalled()
         expect(mockCalculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
+})
+
+/**
+ * The spend engine's pre-prepare controller check can end the attempt before
+ * anything is prepared or signed — a dismissed card re-approval, or the screen
+ * left. The charge stays open, so this is not a failed payment.
+ */
+describe('useSemanticRequestFlow — card re-approval cancelled before signing', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        // A live quote — the expiry suite above leaves a stale one behind, and
+        // an expired quote returns before the spend is ever attempted.
+        route.quoteExpiresAt = null
+    })
+
+    it('shows no failure and records nothing when the spend aborts', async () => {
+        mockSendTransactions.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+
+        await act(async () => {
+            await result.current.executePayment()
+        })
+
+        expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(ctx.setIsSuccess).not.toHaveBeenCalled()
+        expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
+    })
+
+    it('a real send failure still surfaces', async () => {
+        mockSendTransactions.mockRejectedValue(new Error('bundler 502'))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+
+        await act(async () => {
+            await result.current.executePayment()
+        })
+
+        expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 })
 

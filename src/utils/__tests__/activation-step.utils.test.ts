@@ -1,0 +1,256 @@
+/**
+ * The Home onboarding checklist rules (TASK-23054):
+ * Create account ✓ · Verify identity · Add money · First payment.
+ *
+ * "Add money" is done on any money received or held (wallet or card
+ * collateral) — $0.17 by crypto counts. "First payment" is done only
+ * on the API activation (card spend or QR pay), and exists only for a user who
+ * can make one; a user with neither card nor QR has three rows.
+ */
+import {
+    type OnboardingInput,
+    type VerifyRowInput,
+    canAlreadyTransact,
+    canHideChecklist,
+    holdsMoney,
+    resolveOnboarding,
+    selectFirstPaymentRoute,
+    verifyRowStatus,
+} from '@/utils/activation-step.utils'
+import type { RailCapability } from '@/types/capabilities'
+
+const USDC = (usd: number) => BigInt(Math.round(usd * 1e6))
+
+const base: OnboardingInput = {
+    identity: { status: 'not_started' },
+    milestone: 'registered',
+    isActivated: false,
+    holdsMoney: false,
+    firstPaymentRoute: 'card_qr',
+    cardHeld: false,
+}
+type Overrides = Partial<Omit<OnboardingInput, 'identity'>> & {
+    /** shorthand for identity.status */
+    identityStatus?: VerifyRowInput['status']
+    identity?: Partial<VerifyRowInput>
+}
+const resolve = ({ identityStatus, identity, ...overrides }: Overrides) =>
+    resolveOnboarding({
+        ...base,
+        ...overrides,
+        identity: { ...base.identity, ...(identityStatus ? { status: identityStatus } : {}), ...identity },
+    })
+
+describe('holdsMoney', () => {
+    it('is false with nothing in the wallet and no card balance', () => {
+        expect(holdsMoney(0n, null)).toBe(false)
+        expect(holdsMoney(undefined, undefined)).toBe(false)
+        expect(holdsMoney(0n, { spendingPower: 0, inTransitToCollateralCents: 0 })).toBe(false)
+    })
+
+    it('counts $0.17 in the wallet', () => {
+        expect(holdsMoney(USDC(0.17), null)).toBe(true)
+    })
+
+    it('counts card collateral when the wallet is empty', () => {
+        expect(holdsMoney(0n, { spendingPower: 2500 })).toBe(true)
+    })
+
+    it('counts a collateral top-up still in transit', () => {
+        expect(holdsMoney(0n, { spendingPower: 0, inTransitToCollateralCents: 17 })).toBe(true)
+    })
+})
+
+describe('resolveOnboarding — every state on the page', () => {
+    it('new user: nothing done, verify is next', () => {
+        expect(resolve({})).toEqual({
+            verify: 'todo',
+            addMoneyDone: false,
+            firstPaymentDone: false,
+            firstPaymentRoute: 'card_qr',
+            cardHeld: false,
+            step: 'verify',
+        })
+    })
+
+    it('ID check in review: the row is open but not actionable, so add money is next', () => {
+        const state = resolve({ identityStatus: 'processing' })
+        expect(state.verify).toBe('in_review')
+        expect(state.step).toBe('add_money')
+    })
+
+    it('ID check needs action: its own state, verify is next', () => {
+        expect(resolve({ identityStatus: 'action_required' })).toMatchObject({
+            verify: 'action_required',
+            step: 'verify',
+        })
+    })
+
+    it('ID check failed on a final decision: failed, never to-do, and it cannot be hidden', () => {
+        const state = resolve({ identity: { status: 'failed', isTerminalFailure: true } })
+        expect(state).toMatchObject({ verify: 'failed', step: 'verify' })
+        expect(canHideChecklist(state)).toBe(false)
+    })
+
+    it('a FINAL rejection stored as action_required is failed too (the hook folds it into isTerminalFailure)', () => {
+        expect(resolve({ identity: { status: 'action_required', isTerminalFailure: true } }).verify).toBe('failed')
+    })
+
+    it('region refused: failed (the region card replaces the list)', () => {
+        expect(resolve({ identity: { status: 'failed', isRegionRestricted: true } }).verify).toBe('failed')
+    })
+
+    it('a retryable failure (the check itself errored) needs action, not a dead end', () => {
+        expect(resolve({ identity: { status: 'failed', isTerminalFailure: false } }).verify).toBe('action_required')
+    })
+
+    it('already moving money on an enabled rail without the ID check: verify counts as done', () => {
+        for (const status of ['not_started', 'action_required', 'failed'] as const) {
+            expect(
+                resolve({ identity: { status, canTransact: true, isTerminalFailure: status === 'failed' } }).verify
+            ).toBe('done')
+        }
+        const state = resolve({ identity: { status: 'not_started', canTransact: true }, milestone: 'funded' })
+        expect(state.step).toBe('first_payment')
+        expect(canHideChecklist(state)).toBe(true)
+    })
+
+    it('verified, $0: add money is next', () => {
+        const state = resolve({ identityStatus: 'verified', milestone: 'verified' })
+        expect(state).toMatchObject({ verify: 'done', addMoneyDone: false, step: 'add_money' })
+    })
+
+    it('verified, $0.17 by crypto the ledger has not booked (milestone verified): add money done', () => {
+        const state = resolve({
+            identityStatus: 'verified',
+            milestone: 'verified',
+            holdsMoney: holdsMoney(USDC(0.17), null),
+        })
+        expect(state).toMatchObject({ addMoneyDone: true, step: 'first_payment' })
+    })
+
+    it('card collateral only (wallet 0): add money done', () => {
+        const state = resolve({
+            identityStatus: 'verified',
+            milestone: 'verified',
+            holdsMoney: holdsMoney(0n, { spendingPower: 2500 }),
+        })
+        expect(state.addMoneyDone).toBe(true)
+    })
+
+    it('bank top-up moved out again (milestone funded, $0 now): add money stays done', () => {
+        expect(resolve({ identityStatus: 'verified', milestone: 'funded' }).addMoneyDone).toBe(true)
+    })
+
+    it('money in before the ID check: add money done, verify is still next', () => {
+        const state = resolve({ milestone: 'funded', holdsMoney: true })
+        expect(state).toMatchObject({ verify: 'todo', addMoneyDone: true, step: 'verify' })
+    })
+
+    it('activated (card spend or QR pay): completed', () => {
+        const state = resolve({ identityStatus: 'verified', milestone: 'activated', isActivated: true })
+        expect(state).toMatchObject({ addMoneyDone: true, firstPaymentDone: true, step: 'completed' })
+    })
+})
+
+describe('resolveOnboarding — what completes the checklist', () => {
+    const funded = { identityStatus: 'verified' as const, milestone: 'funded' as const, holdsMoney: true }
+
+    it.each(['card_qr', 'card', 'qr'] as const)('%s: only the API activation completes the payment row', (route) => {
+        expect(resolve({ ...funded, firstPaymentRoute: route }).step).toBe('first_payment')
+        expect(resolve({ ...funded, firstPaymentRoute: route, isActivated: true }).step).toBe('completed')
+    })
+
+    it('none (no card, no QR): no payment row, complete once verified and funded', () => {
+        expect(resolve({ ...funded, firstPaymentRoute: 'none' })).toMatchObject({
+            firstPaymentDone: false,
+            step: 'completed',
+        })
+    })
+
+    it('pending (card eligibility loading or failed): the row holds its place, never complete', () => {
+        expect(resolve({ ...funded, firstPaymentRoute: 'pending' })).toMatchObject({
+            firstPaymentDone: false,
+            step: 'first_payment',
+        })
+    })
+
+    it('none: not complete while the ID check is open or in review, or before money arrives', () => {
+        expect(resolve({ milestone: 'funded', holdsMoney: true, firstPaymentRoute: 'none' }).step).toBe('verify')
+        expect(
+            resolve({ identityStatus: 'processing', milestone: 'funded', holdsMoney: true, firstPaymentRoute: 'none' })
+                .step
+        ).toBe('verify')
+        expect(resolve({ identityStatus: 'verified', firstPaymentRoute: 'none' }).step).toBe('add_money')
+    })
+})
+
+describe('selectFirstPaymentRoute — the one eligibility selector', () => {
+    it('card and QR → card_qr', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: true })).toBe('card_qr')
+    })
+
+    it('card only → card', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: false })).toBe('card')
+    })
+
+    it('QR only → qr', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: true })).toBe('qr')
+    })
+
+    it('neither → none', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: false })).toBe('none')
+    })
+
+    it('card eligibility unknown (loading or failed) → pending, whatever the QR answer', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: true })).toBe('pending')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: undefined, canPayQr: false })).toBe('pending')
+    })
+
+    it('the QR gate still loading → pending, whatever the card answer', () => {
+        expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: undefined })).toBe('pending')
+        expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: undefined })).toBe('pending')
+    })
+})
+
+describe('canHideChecklist — only once the payment row is the one left', () => {
+    const funded = { identityStatus: 'verified' as const, milestone: 'funded' as const, holdsMoney: true }
+
+    it('verified and funded, payment open → can hide', () => {
+        expect(canHideChecklist(resolve(funded))).toBe(true)
+    })
+
+    it('not before Add money is done, and not before the ID check is done', () => {
+        expect(canHideChecklist(resolve({ identityStatus: 'verified', milestone: 'verified' }))).toBe(false)
+        expect(canHideChecklist(resolve({ milestone: 'funded', holdsMoney: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ identityStatus: 'processing', milestone: 'funded' }))).toBe(false)
+    })
+
+    it('not when there is nothing left to hide', () => {
+        expect(canHideChecklist(resolve({ ...funded, isActivated: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'none' }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'pending' }))).toBe(false)
+    })
+})
+
+describe('verifyRowStatus — identity only, as the carousel reads it', () => {
+    it('is done only on a verified identity when nothing else is known', () => {
+        expect(verifyRowStatus({ status: 'verified' })).toBe('done')
+        expect(verifyRowStatus({ status: 'not_started' })).toBe('todo')
+        expect(verifyRowStatus({ status: 'processing' })).toBe('in_review')
+        expect(verifyRowStatus({ status: 'action_required' })).toBe('action_required')
+    })
+})
+
+describe('canAlreadyTransact', () => {
+    const rail = (status: RailCapability['status']) => ({ status }) as RailCapability
+
+    it('any enabled rail, or the API activation', () => {
+        expect(canAlreadyTransact([rail('enabled')], false)).toBe(true)
+        expect(canAlreadyTransact([], true)).toBe(true)
+    })
+
+    it('not on pending, requires-info or blocked rails alone', () => {
+        expect(canAlreadyTransact([rail('pending'), rail('requires-info'), rail('blocked')], false)).toBe(false)
+    })
+})

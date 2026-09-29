@@ -8,7 +8,7 @@ import {
 } from '@/utils/residence-availability'
 import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
-import { buildUnlockGroups, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
+import { buildBankRows, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
 
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
@@ -112,12 +112,12 @@ describe('multi-currency rail sets are qualified, not promised', () => {
 // above against `regionIntentForResidence`). What it catches is the DS-review
 // failure itself: signup naming a rail that Unlock payments then shows as
 // unavailable for the same residence.
-describe('residenceAvailability vs buildUnlockGroups', () => {
+describe('residenceAvailability vs buildBankRows', () => {
     const ROW_FOR_RAIL: Record<AvailabilityRailKey, UnlockRowLabelKey> = {
-        pix: 'saBank',
-        arQr: 'saBank',
-        spei: 'naBank',
-        usdAch: 'naBank',
+        pix: 'brl',
+        arQr: 'ars',
+        spei: 'mxn',
+        usdAch: 'usd',
         eurSepa: 'sepa',
         gbpFps: 'sepa',
     }
@@ -126,14 +126,12 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
 
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
-        return buildUnlockGroups({
-            regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-            qrOnly: { brazil: false, argentina: false },
+        return buildBankRows({
+            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
             restrictions,
-            card: 'get',
             residenceIso2: iso2,
             isEuropeResidence: iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2),
-        }).flatMap((group) => group.rows)
+        })
     }
 
     // Every country the residence picker offers, not a hand-picked sample — a
@@ -160,7 +158,9 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     it('a banking-restricted residence lists no rail and Unlock payments marks every bank row unavailable', () => {
         for (const iso2 of ['JP', 'RU']) {
             expect(residenceAvailability(sets, iso2).available.filter(isRail)).toEqual([])
-            const bankRows = unlockRowsFor(iso2).filter((row) => row.id !== 'p2p' && row.id !== 'card')
+            const bankRows = unlockRowsFor(iso2).filter(
+                (row) => row.id !== 'p2p' && row.id !== 'card' && row.id !== 'crypto'
+            )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
     })

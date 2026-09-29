@@ -20,7 +20,7 @@ jest.mock('next/navigation', () => ({
 describe('useSendFlowOrigin', () => {
     beforeEach(() => mockSearchParams.clear())
 
-    it('flags a crypto send (Send → Exchange or Wallet)', () => {
+    it('flags a crypto send (Send → Crypto)', () => {
         mockSearchParams.set('method', 'crypto')
         expect(renderHook(() => useSendFlowOrigin()).result.current).toEqual({
             isFromSendFlow: true,
@@ -63,5 +63,16 @@ describe('useSendFlowOrigin', () => {
             isCryptoFromSend: false,
             sendFlowMethod: null,
         })
+    })
+})
+
+it('keeps the send origin separate from the provider rail method', () => {
+    mockSearchParams.set('method', 'bank-transfer')
+    mockSearchParams.set('sendMethod', 'bank')
+    expect(renderHook(() => useSendFlowOrigin()).result.current).toEqual({
+        isFromSendFlow: true,
+        isBankFromSend: true,
+        isCryptoFromSend: false,
+        sendFlowMethod: 'bank',
     })
 })

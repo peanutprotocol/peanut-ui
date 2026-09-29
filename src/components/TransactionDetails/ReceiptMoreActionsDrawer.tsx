@@ -18,9 +18,8 @@ export interface ReceiptMoreAction {
 /**
  * the receipt's action overflow (TASK-22452): secondary actions demoted out
  * of the cta stack. drawer + list recipes (design.md) — ListGroup positions,
- * ListItem rows with an IconBubble leading. yellow size-s bubbles are the
- * user's explicit pick for receipt actions, not a global action-color rule —
- * flagged for the board. `nested` follows the CancelSendLinkDrawer pattern:
+ * ListItem rows with an IconBubble leading. the actions are plain
+ * information, so their s bubbles are blue (TASK-22761). `nested` follows the CancelSendLinkDrawer pattern:
  * inside the transaction-details drawer this must be a vaul NestedRoot and
  * the parent is kept open through setIsModalOpen, wired by ReceiptActions.
  */
@@ -45,7 +44,7 @@ export function ReceiptMoreActionsDrawer({
                         <ListItem
                             key={action.title}
                             title={action.title}
-                            leading={<IconBubble icon={action.icon} color="yellow" size="s" />}
+                            leading={<IconBubble icon={action.icon} color="blue" size="s" />}
                             onClick={action.onSelect}
                             disabled={action.disabled}
                             data-testid={action['data-testid']}

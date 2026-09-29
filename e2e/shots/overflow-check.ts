@@ -7,7 +7,7 @@
 export type Overflow = {
     selector: string
     text: string
-    kind: 'clip-x' | 'clip-y' | 'placeholder'
+    kind: 'clip-x' | 'clip-y' | 'placeholder' | 'document-horizontal-scroll' | 'truncated'
     detail: string
 }
 
@@ -24,6 +24,9 @@ export type Overflow = {
  *  - an input/textarea whose placeholder or value is wider than its content
  *    box (inputs clip natively, scrollWidth does not see it — the original
  *    "Usuario*" bug)
+ *  - a document wider than the viewport, which nothing above can see: the
+ *    per-element scan only looks at elements that already clip, so an
+ *    UNCLIPPED positioned child pushing past the right edge is invisible to it
  */
 export function findOverflows(exempt: string[]): Overflow[] {
     const bad: Overflow[] = []
@@ -76,6 +79,22 @@ export function findOverflows(exempt: string[]): Overflow[] {
     const hasOwnText = (el: Element): boolean =>
         Array.from(el.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim().length > 0)
 
+    // an unclipped positioned child widens the whole document without any
+    // element reporting a clip, so the per-element scan below cannot see it —
+    // that is how decorative art 16px past the viewport shipped. chromium
+    // books that overflow on html OR body depending on the child's containing
+    // block (abs children of body land only on body.scrollWidth), so read both.
+    const doc = document.documentElement
+    const pageWidth = Math.max(doc.scrollWidth, document.body.scrollWidth)
+    if (pageWidth > doc.clientWidth + 1) {
+        bad.push({
+            selector: 'html',
+            text: 'page scrolls horizontally',
+            kind: 'document-horizontal-scroll',
+            detail: `scrollWidth ${pageWidth} > clientWidth ${doc.clientWidth}`,
+        })
+    }
+
     for (const el of Array.from(document.body.querySelectorAll('*'))) {
         if (!visible(el)) continue
         if (isExempt(el)) continue
@@ -117,6 +136,16 @@ export function findOverflows(exempt: string[]): Overflow[] {
             (d) => hasOwnText(d) && visible(d) && !truncates(d) && !isExempt(d)
         )
         for (const d of holders) {
+            // Embla keeps neighboring slides mounted beyond its clipped
+            // viewport. Their copy is reachable by swiping, so it is not a
+            // localization overflow. Still inspect the slide occupying the
+            // viewport, where a genuinely too-long translation can be lost.
+            const slide = d.closest('.embla__slide')
+            if (slide && el.contains(slide)) {
+                const slideBox = slide.getBoundingClientRect()
+                const center = slideBox.left + slideBox.width / 2
+                if (center < box.left || center > box.right) continue
+            }
             const r = d.getBoundingClientRect()
             // text extent, not box extent: a nowrap child at 100% width ends
             // its BOX exactly at the clip edge while its TEXT keeps going —
@@ -129,6 +158,43 @@ export function findOverflows(exempt: string[]): Overflow[] {
             } else if (clipY && textBottom > box.bottom + 3) {
                 flag(d, 'clip-y', `text extent ${Math.round(textBottom)}px > clip edge ${Math.round(box.bottom)}px`)
             }
+        }
+    }
+    return bad
+}
+
+/**
+ * Runs in the page. Finds text inside `scope` that is cut short on purpose —
+ * ellipsis or line-clamp — and does not fit. findOverflows skips deliberate
+ * truncation, because addresses and usernames truncate by design; that is how
+ * "Withdraw to your own accou…" shipped in the home Send drawer (QA
+ * 2026-09-24). Screens whose copy must never be cut run this as well.
+ */
+export function findTruncations(scope: string): Overflow[] {
+    const bad: Overflow[] = []
+    for (const root of Array.from(document.querySelectorAll(scope))) {
+        for (const el of [root, ...Array.from(root.querySelectorAll('*'))]) {
+            const cs = getComputedStyle(el)
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue
+            const clamp = (cs as unknown as Record<string, string>).webkitLineClamp
+            const clamped = clamp !== undefined && clamp !== 'none'
+            const cutX = cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1
+            // +3 vertical tolerance: line-height rounding trips a +1 check
+            const cutY = clamped && el.scrollHeight > el.clientHeight + 3
+            if (!cutX && !cutY) continue
+            bad.push({
+                selector:
+                    el.tagName.toLowerCase() +
+                    [...el.classList]
+                        .slice(0, 3)
+                        .map((c) => `.${c}`)
+                        .join(''),
+                text: ((el as HTMLElement).innerText ?? '').trim().replace(/\s+/g, ' ').slice(0, 80),
+                kind: 'truncated',
+                detail: cutX
+                    ? `scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}`
+                    : `scrollHeight ${el.scrollHeight} > clientHeight ${el.clientHeight}`,
+            })
         }
     }
     return bad

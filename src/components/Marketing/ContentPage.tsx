@@ -43,7 +43,7 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
-                <article className="content-page bg-background-page select-text">
+                <article className="content-page select-text">
                     {children}
                     {/* the trail sits at the bottom of the page: the header already
                         gives the way back, so the crumbs are a footer affordance */}

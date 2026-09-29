@@ -63,7 +63,10 @@ jest.mock('@/services/rain', () => ({
 }))
 
 let mockOverview: unknown
-const mockRefetch = jest.fn()
+// The hook reads the coordinator off a FRESH refetch (TASK-22734), so the
+// refetch result — not the cached `overview` — is what the grant pins to.
+let mockFreshOverview: unknown
+const mockRefetch = jest.fn(async () => ({ isSuccess: true, data: mockFreshOverview }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: mockOverview, refetch: mockRefetch }),
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -127,28 +130,30 @@ jest.mock('@/context/kernelClient.context', () => ({
 import { createKernelAccount } from '@zerodev/sdk'
 import { useGrantSessionKey } from '../useGrantSessionKey'
 
-describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validator', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        mockEnsureClient.mockResolvedValue({ account: { address: USER_ADDRESS } })
-        // createKernelAccount (mocked @zerodev/sdk) echoes the sudo validator it
-        // was given so serializePermissionAccount can encode it.
-        ;(createKernelAccount as jest.Mock).mockImplementation(
-            (_pc: unknown, opts: { address: string; plugins: { sudo: { address: string } } }) =>
-                Promise.resolve({
-                    address: opts.address,
-                    __sudoValidator: opts.plugins.sudo,
-                    kernelPluginManager: { getAction: () => ({}), hook: undefined },
-                })
-        )
-        mockGetSessionKeyAddress.mockResolvedValue({ address: SESSION_KEY })
-        mockGetPatchedSudoValidator.mockResolvedValue(mockPatchedValidator)
-        mockOverview = {
-            status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: COORDINATOR },
-            cards: [{ id: 'card-1', status: 'ACTIVE' }],
-        }
-    })
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockEnsureClient.mockResolvedValue({ account: { address: USER_ADDRESS } })
+    // createKernelAccount (mocked @zerodev/sdk) echoes the sudo validator it
+    // was given so serializePermissionAccount can encode it.
+    ;(createKernelAccount as jest.Mock).mockImplementation(
+        (_pc: unknown, opts: { address: string; plugins: { sudo: { address: string } } }) =>
+            Promise.resolve({
+                address: opts.address,
+                __sudoValidator: opts.plugins.sudo,
+                kernelPluginManager: { getAction: () => ({}), hook: undefined },
+            })
+    )
+    mockGetSessionKeyAddress.mockResolvedValue({ address: SESSION_KEY })
+    mockGetPatchedSudoValidator.mockResolvedValue(mockPatchedValidator)
+    mockOverview = {
+        status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: COORDINATOR },
+        cards: [{ id: 'card-1', status: 'ACTIVE' }],
+    }
+    mockFreshOverview = mockOverview
+    mockRefetch.mockImplementation(async () => ({ isSuccess: true, data: mockFreshOverview }))
+})
 
+describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validator', () => {
     it('returns a recoverable error when wallet readiness fails, without submitting an approval', async () => {
         mockEnsureClient.mockRejectedValueOnce(new Error('Wallet initialization failed'))
         const { result } = renderHook(() => useGrantSessionKey())
@@ -195,5 +200,98 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         expect(serialized).toBe(`permission:sudo=${V003_VALIDATOR}`)
         expect(serialized).not.toContain(V002_VALIDATOR)
         expect(mockGetPatchedSudoValidator).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK-22734)', () => {
+    const NEW_COORDINATOR = '0x00000000000000000000000000000000000000ee'
+
+    it('A→B: builds the withdrawAsset permission for the coordinator the FRESH overview reports, not the cached one', async () => {
+        // Client-cached overview still says A (pre-upgrade); the refetch reads
+        // the backend's own (repaired) metadata, which now says B.
+        mockFreshOverview = {
+            status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: NEW_COORDINATOR },
+            cards: [{ id: 'card-1', status: 'ACTIVE' }],
+        }
+        const { toCallPolicy } = jest.requireMock('@zerodev/permissions/policies') as { toCallPolicy: jest.Mock }
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        await act(async () => {
+            const r = await result.current.serializeGrant()
+            expect(r.ok).toBe(true)
+        })
+
+        expect(mockRefetch).toHaveBeenCalledTimes(1)
+        const policyArgs = toCallPolicy.mock.calls[0][0] as {
+            permissions: { target: string }[]
+        }
+        const targets = policyArgs.permissions.map((p) => p.target)
+        expect(targets).toContain(NEW_COORDINATOR)
+        expect(targets).not.toContain(COORDINATOR)
+    })
+
+    it('does not mint a grant when the fresh overview read fails — a stale coordinator must never be pinned', async () => {
+        mockRefetch.mockImplementation(async () => ({ isSuccess: false, data: undefined, error: new Error('offline') }))
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.serializeGrant>> | undefined
+        await act(async () => {
+            out = await result.current.serializeGrant()
+        })
+
+        expect(out).toEqual({ ok: false, error: { kind: 'unexpected', message: 'offline' } })
+        expect(mockPatchedValidator.signTypedData).not.toHaveBeenCalled()
+        expect(mockSubmitWithdrawSessionApproval).not.toHaveBeenCalled()
+    })
+
+    // The 400 the grant store returns when the controller moved while this
+    // approval was being saved. Keeping it typed is what lets a spend treat it
+    // as a rotation candidate instead of a dead-end failure.
+    it('preserves the stale-approval refusal as its own error kind', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(
+            Object.assign(new Error('This approval targets an outdated card contract'), {
+                name: 'StaleCardApprovalError',
+                code: 'STALE_CARD_APPROVAL',
+            })
+        )
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({
+            ok: false,
+            error: { kind: 'stale-approval', message: 'This approval targets an outdated card contract' },
+        })
+    })
+
+    it('a grant-store failure without that code stays unexpected', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(new Error('could not deserialize'))
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({ ok: false, error: { kind: 'unexpected', message: 'could not deserialize' } })
+    })
+
+    it('reports no-contracts when the fresh overview has no coordinator (backend has none cached)', async () => {
+        mockFreshOverview = {
+            status: { contractAddress: COLLATERAL_PROXY },
+            cards: [{ id: 'card-1', status: 'ACTIVE' }],
+        }
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.serializeGrant>> | undefined
+        await act(async () => {
+            out = await result.current.serializeGrant()
+        })
+
+        expect(out).toEqual({ ok: false, error: { kind: 'no-contracts' } })
+        expect(mockPatchedValidator.signTypedData).not.toHaveBeenCalled()
     })
 })

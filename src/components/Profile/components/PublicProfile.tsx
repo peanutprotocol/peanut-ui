@@ -22,6 +22,8 @@ import { toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRequestContact } from '@/hooks/useRequestContact'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -39,6 +41,8 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
     const t = useTranslations('profile.publicProfile')
     const tNav = useTranslations('navigation')
+    const tRequest = useTranslations('request')
+    const requestContact = useRequestContact(username, isLoggedIn)
     const [profileUserId, setProfileUserId] = useState<string | null>(null)
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
@@ -133,7 +137,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
     // One element, two doors — the guest card and the Request-gate modal.
     const joinCtaButton = (
-        <Button variant="purple" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
+        <Button variant="primary" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
             {t('joinCta')}
         </Button>
     )
@@ -196,7 +200,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div className="flex items-center justify-normal gap-4">
                         <Button
                             onClick={handleSend}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             icon="arrow-up-right"
                             className="w-1/2"
@@ -205,6 +209,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </Button>
 
                         <Button
+                            disabled={
+                                isLoggedIn &&
+                                !!user?.user.hasAppAccess &&
+                                (!requestContact.data || requestContact.isError)
+                            }
                             onClick={() => {
                                 if (isLoggedIn && user?.user.hasAppAccess) {
                                     router.push(requestUrl(username))
@@ -212,7 +221,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                     setShowInviteModal(true)
                                 }
                             }}
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             icon="arrow-down-left"
                             className="w-1/2"
@@ -226,12 +235,24 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     </div>
                 )}
 
+                {isLoggedIn &&
+                    user?.user.hasAppAccess &&
+                    !isSelfProfile &&
+                    !requestContact.isLoading &&
+                    (!requestContact.data || requestContact.isError) && (
+                        <Callout priority="helper">
+                            {tRequest(
+                                requestContact.isError ? 'errors.contactsUnavailable' : 'errors.moneyContactsOnly'
+                            )}
+                        </Callout>
+                    )}
+
                 {/* badges row */}
                 <BadgesRow badges={profileBadges} isSelfProfile={isSelfProfile} />
 
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
-                    <Card position="single" className="flex flex-col gap-4 p-4 text-center">
+                    <Card position="solo" className="flex flex-col gap-4 p-4 text-center">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-center gap-2">
                                 <Image src={HandThumbsUpV2.src} alt={t('joinPeanutAlt')} width={20} height={20} />
@@ -275,7 +296,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 >
                     <DrawerContent>
                         <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
-                            <IconBubble icon="user" className="bg-action-primary" />
+                            <IconBubble icon="user" color="yellow" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
                                 <DrawerDescription>

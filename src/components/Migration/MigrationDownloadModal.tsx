@@ -124,12 +124,10 @@ export default function MigrationDownloadModal({
     // friendly urgency (deadline in the copy) for the final stretch
     const isUrgent = forceVariant ? forceVariant === 'urgent' : daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
 
-    // desktop stacks it under the App Store + Google Play pair — a third CTA
-    // steps down to ghost (kush ruling 2026-09-10); on phone it is the second
-    // CTA and stays the stroke secondary
+    // a defer action: the tertiary link on every device (ruled 2026-09-25,
+    // hugo — reverses the 2026-09-10 ghost/secondary split)
     const remindLaterCta = {
         text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
-        variant: (isDesktop ? 'transparent' : 'stroke') as 'transparent' | 'stroke',
         onClick: snooze,
     }
 
@@ -140,6 +138,7 @@ export default function MigrationDownloadModal({
         <ActionModal
             visible={renderVisible}
             onClose={snooze}
+            tone="peanut"
             icon="mobile-install"
             title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}
             description={
@@ -147,13 +146,14 @@ export default function MigrationDownloadModal({
             }
             content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
             ctaClassName="md:flex-col gap-4"
+            tertiaryCta={remindLaterCta}
             ctas={
                 isDesktop
-                    ? [remindLaterCta]
+                    ? undefined
                     : [
                           {
                               text: STORE_NAME[store],
-                              variant: 'purple',
+                              variant: 'primary',
                               shadowSize: '4',
                               icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
                               onClick: () => {
@@ -164,7 +164,6 @@ export default function MigrationDownloadModal({
                                   openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
                               },
                           },
-                          remindLaterCta,
                       ]
             }
         />

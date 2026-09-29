@@ -5,7 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
@@ -13,10 +13,22 @@ import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/se
 import { getExplorerUrl } from '@/utils/general.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useMemo, useState } from 'react'
+
+/** An EVM transaction hash, the only shape the history route keys a receipt on. */
+const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
+
+/**
+ * The receipt key for a deposit hash: the `tx:` form for an EVM hash, and the
+ * hash itself, untouched, for a Solana or Tron one — lowercasing a base58
+ * Solana hash would corrupt it.
+ */
+export function receiptIdForDepositHash(txHash: string | undefined): string {
+    if (!txHash) return 'deposit'
+    return EVM_TX_HASH.test(txHash) ? `tx:${txHash.toLowerCase()}` : txHash
+}
 
 // static — peanut wallet is always on arbitrum
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
@@ -37,8 +49,10 @@ export function useAddMoneyCryptoFlow() {
         { get: (key: string) => (key === RETURN_TO_PARAM ? rawReturnTo : null) },
         '/add-money/crypto'
     )
-    const router = useRouter()
-    const onBack = returnTo ? () => router.push(returnTo) : safeBack
+    // rewinds to the origin, past that /home entry; pushing it kept this flow
+    // under the origin, so back from the origin reopened the deposit
+    const leaveToOrigin = useReturnTo(returnTo ?? '/add-money')
+    const onBack = returnTo ? leaveToOrigin : safeBack
     const { address: peanutWalletAddress } = useWallet()
     // no default: a bare /add-money/crypto shows the choose-network step per the
     // Add/Crypto board (17830:78020); ?network= deep-links keep working
@@ -92,7 +106,15 @@ export function useAddMoneyCryptoFlow() {
                 : undefined
         const now = new Date()
         return {
-            id: depositResult.txHash ?? 'deposit',
+            // GET /history/:id resolves a crypto deposit by `tx:<lowercase evm
+            // hash>`, by the intent uuid, and by a history row's
+            // `<hash>-<logIndex>` — never by a bare hash, which is not a
+            // receipt key. The hash here is always EVM whatever network the
+            // user picked: Rhino bridges a Solana or Tron deposit to Arbitrum
+            // and this is that settlement transfer. The base58 branch stays
+            // anyway, so a hash that is not EVM-shaped is passed through
+            // byte-for-byte rather than lowercased into a different string.
+            id: receiptIdForDepositHash(depositResult.txHash),
             txHash: depositResult.txHash,
             explorerUrl,
             direction: 'add',

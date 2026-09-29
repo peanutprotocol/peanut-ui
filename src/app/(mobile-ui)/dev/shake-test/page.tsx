@@ -189,7 +189,7 @@ export default function DevShakeTestPage() {
                                 const hapticResult = `Haptic fired through ${isCapacitor() ? 'the native engine' : 'the web Vibration API'}.`
                                 toast.info(hapticResult)
                             }}
-                            variant="stroke"
+                            variant="secondary"
                             icon="mobile-install"
                         >
                             Vibrate for 200ms
@@ -220,7 +220,7 @@ export default function DevShakeTestPage() {
                             description="Check that the confetti appeared at the right time."
                         />
 
-                        <Button variant="stroke" icon="retry" onClick={reset}>
+                        <Button variant="secondary" icon="retry" onClick={reset}>
                             Test again
                         </Button>
                     </div>

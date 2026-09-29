@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs'
+import { appendFileSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { createStorage } from './cloudflare-storage.mjs'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
@@ -9,6 +10,7 @@ import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.m
 import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
+import { existingAssetPaths, publishReport } from './publish.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
 const LOCALES = {
     en: 'English',
@@ -18,6 +20,24 @@ const LOCALES = {
 }
 const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
 const localeSlug = (locale) => ({ en: 'en', 'es-419': 'es-419', 'es-AR': 'es-ar', 'pt-BR': 'pt-br' })[locale]
+
+async function mapBounded(values, operation, limit = 2) {
+    const output = new Array(values.length)
+    let cursor = 0
+    await Promise.all(
+        Array.from({ length: Math.min(limit, values.length) }, async () => {
+            while (cursor < values.length) {
+                const index = cursor++
+                output[index] = await operation(values[index])
+            }
+        })
+    )
+    return output
+}
+
+function recordPublished(value) {
+    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `published=${value}\n`)
+}
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -37,6 +57,7 @@ if (run.event === 'pull_request') {
     const binding = reviewProvenance(repo, run, candidates, (args) => execFileSync('git', args, { encoding: 'utf8' }))
     if (!binding) {
         console.log('Superseded or closed PR run; preserving the current report link.')
+        recordPublished(false)
         process.exit(0)
     }
     pr = binding.pr
@@ -144,6 +165,7 @@ if (capturePairs.length) {
 }
 const date = run.created_at.slice(0, 10)
 const reports = []
+const publications = []
 for (const capturePair of capturePairs) {
     const captureAttempt = capturePair.attempt
     const dirs = [capturePair.before, capturePair.after]
@@ -178,7 +200,7 @@ for (const capturePair of capturePairs) {
         PR_NUMBER: pr ? String(pr.number) : '',
         CHANGED_SCREENS: String(changedScreens),
     }
-    execFileSync('node', ['scripts/screens/publish.mjs', reportDir, path], { stdio: 'inherit', env })
+    publications.push({ inputDir: reportDir, reportPath: path, env })
     reports.push({ locale: after.locale, path, before, after })
     // Historical reports retain both full source libraries as well as their comparison.
     const libraries =
@@ -200,26 +222,42 @@ for (const capturePair of capturePairs) {
                     copyFileSync(join(source, 'assets', name), join(destination, 'assets', name))
                 }
         writeFileSync(`${destination}/manifest.json`, JSON.stringify(capture))
-        execFileSync(
-            'node',
-            [
-                'scripts/screens/publish.mjs',
-                destination,
-                `${date}/${branch}/${slug}/${capture.commit}/run-${runId}-${attempt}`,
-            ],
-            {
-                stdio: 'inherit',
-                env: {
-                    ...env,
-                    EXPECTED_HEAD: capture.commit,
-                    EXPECTED_BASE: '',
-                    CAPTURE_ATTEMPT: String(captureAttempt),
-                    SOURCE_BRANCH: branch,
-                },
-            }
-        )
+        publications.push({
+            inputDir: destination,
+            reportPath: `${date}/${branch}/${slug}/${capture.commit}/run-${runId}-${attempt}`,
+            env: {
+                ...env,
+                EXPECTED_HEAD: capture.commit,
+                EXPECTED_BASE: '',
+                CAPTURE_ATTEMPT: String(captureAttempt),
+                SOURCE_BRANCH: branch,
+            },
+        })
     }
 }
+
+// Every report and image remains immutable and retained. Share one R2 client,
+// one existing-asset snapshot plus shared conversion and write maps across the
+// run so duplicate content is never converted or uploaded twice. Shared indexes
+// are refreshed by the separately serialized index job after all entry markers
+// are committed.
+const storage = await createStorage()
+const knownAssets = await existingAssetPaths(storage)
+const assetWrites = new Map()
+const assetConversions = new Map()
+await mapBounded(publications, ({ inputDir, reportPath, env }) =>
+    publishReport({
+        inputDir,
+        reportPath,
+        env,
+        storage,
+        knownAssets,
+        assetWrites,
+        assetConversions,
+        updateSharedIndexes: false,
+    })
+)
+recordPublished(true)
 
 if (pr) {
     const marker = '<!-- screen-library -->'

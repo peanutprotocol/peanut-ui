@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import {
     initiateSumsubKyc,
     getVerificationSession,
@@ -21,6 +22,7 @@ import {
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -103,15 +105,22 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
 
-    // Localize a failed action result: known codes map onto catalog copy,
-    // codeless results keep the backend's display-ready prose.
+    // Localize a failed action result: known codes map onto catalog copy (a
+    // residence refusal onto its capability reason line), codeless results
+    // keep the backend's display-ready prose.
     const actionErrorMessage = useCallback(
-        (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
-            (result.code && result.code in ACTION_ERROR_KEYS
-                ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
-                : result.error) ?? null,
-        [t]
+        (result: { error?: string; code?: SumsubActionErrorCode }): string | null => {
+            const reasonKey = reasonCodeKey(result.code)
+            if (reasonKey) return tIdentity(reasonKey)
+            return (
+                (result.code && result.code in ACTION_ERROR_KEYS
+                    ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
+                    : result.error) ?? null
+            )
+        },
+        [t, tIdentity]
     )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -146,7 +155,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setShowWrapper(false)
                 setIsVerificationProgressModalOpen(false)
                 setIsTerminalError(true)
-                setError(t('railsUnavailableError'))
+                // SUBMISSION_EXHAUSTED is our side giving up on the submission:
+                // support can finish it. Every other reason (a rejected ID, a
+                // rejected questionnaire, the provider refusing) is a decision.
+                setError(
+                    t(
+                        session.reasonCode === 'SUBMISSION_EXHAUSTED'
+                            ? 'sessionBlockedSubmissionError'
+                            : 'sessionBlockedDecisionError'
+                    )
+                )
             } else if (session.state === 'READY') {
                 setShowWrapper(false)
                 setIsVerificationProgressModalOpen(true)
@@ -174,6 +192,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const levelNameRef = useRef<string | undefined>(undefined)
     // tracks the selected target country across initiate + refresh for country-scoped Manteca actions
     const targetCountryRef = useRef<string | undefined>(undefined)
+    // the deposit corridor being verified for, across initiate + poll + refresh:
+    // the backend reads the level from it, so a refresh without it could open
+    // the wrong one
+    const corridorRef = useRef<DepositCorridor | undefined>(undefined)
     const residenceChangeCountryRef = useRef<string | null>(null)
     // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
     const initiatingRef = useRef(false)
@@ -317,6 +339,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         const pollStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({
+                    corridor: corridorRef.current,
                     regionIntent: regionIntentRef.current,
                     levelName: levelNameRef.current,
                     targetCountry: targetCountryRef.current,
@@ -353,7 +376,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             levelName?: string,
             crossRegion?: boolean,
             rawTargetCountry?: string,
-            correctSession = false
+            correctSession = false,
+            corridor?: DepositCorridor
         ) => {
             // targetCountry is only ever consumed by the BE as a Manteca geo
             // (pendingMantecaGeo stamp + action externalId suffix). Call sites
@@ -391,6 +415,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 const response = await initiateSumsubKyc({
+                    corridor,
                     regionIntent: overrideIntent ?? regionIntent,
                     levelName,
                     crossRegion,
@@ -419,7 +444,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (isTerminalActionCode(response.code)) {
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
-                    setError(response.error || t('errorInitiateFailed'))
+                    setError(actionErrorMessage(response) || t('errorInitiateFailed'))
                     return false
                 }
 
@@ -465,6 +490,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
                 targetCountryRef.current = targetCountry
+                corridorRef.current = corridor
 
                 // cross-region: bridge-direct means no SDK needed — backend is handling
                 // rail enrollment + submission. go straight to the post-approval flow.
@@ -667,6 +693,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
 
         const response = await initiateSumsubKyc({
+            corridor: corridorRef.current,
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
             targetCountry: targetCountryRef.current,
@@ -875,6 +902,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             verificationSessionRef.current = null
             setVerificationSession(null)
             setShowCorrection(false)
+            setIsTerminalError(false)
+            setIsVerificationProgressModalOpen(false)
+            setShowWrapper(false)
             setIsLoading(true)
             setError(null)
             userInitiatedRef.current = true
@@ -884,6 +914,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 const response = await startKycAction(key)
+                if (response.data?.session) {
+                    userInitiatedRef.current = false
+                    targetCountryRef.current = response.data.session.targetCountry
+                    regionIntentRef.current = 'LATAM'
+                    setIsMultiLevel(false)
+                    acceptSessionView(response.data.session)
+                    if (['CORRECTION_REQUIRED', 'BLOCKED'].includes(response.data.session.state)) return
+                    if (!response.data.token) {
+                        setIsVerificationProgressModalOpen(true)
+                        return
+                    }
+                }
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
                     setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
@@ -902,7 +944,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError]
+        [t, actionErrorMessage, setError, acceptSessionView]
     )
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,

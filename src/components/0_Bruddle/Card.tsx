@@ -1,15 +1,15 @@
 import { twMerge } from '@/utils/tw'
 
-type ShadowSize = '4' | '6' | '8'
+export type CardShadowSize = '4' | '6' | '8'
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-    shadowSize?: ShadowSize
+    shadowSize?: CardShadowSize
 }
 
 /** Shared surface for Card and native button tiles (board 17802:61536). */
 export const CARD_SURFACE = 'rounded-sm border border-border-default bg-background-default'
 
-const shadowClasses: Record<ShadowSize, string> = {
+const shadowClasses: Record<CardShadowSize, string> = {
     '4': 'shadow-4',
     '6': 'shadow-primary-6',
     '8': 'shadow-primary-8',

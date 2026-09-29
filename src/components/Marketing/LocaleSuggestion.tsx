@@ -7,7 +7,7 @@ import Cookies from 'js-cookie'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { persistLocale } from '@/i18n/app/locale-store'
 import { type Locale } from '@/i18n/types'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { localeHref } from './LocaleSwitcher'
 
 const DISMISS_KEY = 'locale-suggestion-dismissed'
@@ -16,7 +16,7 @@ const DISMISS_KEY = 'locale-suggestion-dismissed'
 // importing '@/i18n' would ship every locale's full catalog in the client
 // bundle of each landing page for just these two strings. Keep in sync with
 // the localeSuggestion* keys in src/i18n/{locale}.json. The dismiss label is
-// no longer here — Notification owns its close button and labels it from the
+// no longer here — Callout owns its close button and labels it from the
 // page's own catalog.
 const STRINGS: Record<Locale, { text: string; cta: string }> = {
     en: { text: 'If you prefer to see this page in English,', cta: 'click here!' },
@@ -75,12 +75,12 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
     }
 
     return (
-        // lang rides the wrapper, not the Notification: the banner speaks the
+        // lang rides the wrapper, not the Callout: the banner speaks the
         // SUGGESTED language while the page around it does not.
         <div lang={suggested}>
             {/* square corners only: the compact inline anatomy is a borderless tint
                 (ruled 2026-09-03), and this one runs edge to edge. */}
-            <Notification priority="info" onDismiss={dismiss} className="rounded-none">
+            <Callout priority="info" onDismiss={dismiss} className="rounded-none">
                 {i18n.text}{' '}
                 <Link
                     href={localeHref(pathname, suggested)}
@@ -90,7 +90,7 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
                 >
                     {i18n.cta}
                 </Link>
-            </Notification>
+            </Callout>
         </div>
     )
 }

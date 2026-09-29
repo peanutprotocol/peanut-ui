@@ -239,7 +239,7 @@ export default function NetworkCanvas({
                 {presentTypes.map((type) => (
                     <span key={type} className="inline-flex items-center gap-1">
                         <span
-                            className="size-2 rounded-round"
+                            className="size-2 rounded-full"
                             style={{ backgroundColor: TYPE_COLOR[type] }}
                             aria-hidden="true"
                         />

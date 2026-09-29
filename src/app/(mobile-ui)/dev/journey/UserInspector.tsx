@@ -5,7 +5,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { JOURNEY_API_BASE } from './journeyData'
 import { inspectParam } from './userLookup'
@@ -73,7 +73,7 @@ export default function UserInspector() {
                 </Button>
             </div>
 
-            {error && <Notification priority="error">{error}</Notification>}
+            {error && <Callout priority="error">{error}</Callout>}
 
             {result && (
                 <Card className="p-3">
@@ -91,9 +91,9 @@ export default function UserInspector() {
                             ? new Date(result.user.cardAccessGrantedAt).toLocaleDateString()
                             : 'not granted'}
                     </p>
-                    <Notification priority="info" className="mt-2" title="Current nudge">
+                    <Callout priority="info" className="mt-2" title="Current nudge">
                         <span className="font-mono text-body-xs">{dueLabel}</span>
-                    </Notification>
+                    </Callout>
 
                     <Section title="Lifecycle email history" className="mt-3">
                         {result.history.length === 0 ? (

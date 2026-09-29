@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Card } from '@/components/0_Bruddle/Card'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
@@ -37,9 +37,9 @@ export function QrClaimView({ shakeClass, isLoading, error, onClaim, onShakeChan
                 </Card>
 
                 {/* Important note */}
-                <Notification priority="attention">
+                <Callout priority="attention">
                     {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
-                </Notification>
+                </Callout>
 
                 {/* Claim button — DRY with /card eligibility-check via
                     <HoldToClaimButton />. */}
@@ -52,7 +52,7 @@ export function QrClaimView({ shakeClass, isLoading, error, onClaim, onShakeChan
                     {isLoading ? t('claim.claiming') : t('claim.holdToClaim')}
                 </HoldToClaimButton>
 
-                {error && <Notification priority="error">{error}</Notification>}
+                {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
         </PageStack>
     )

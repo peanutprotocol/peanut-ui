@@ -69,12 +69,13 @@ export const PostSignupActionManager = ({
             preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}
             description={actionConfig.description}
+            tone="success"
             icon={actionConfig.icon}
             ctas={[
                 {
                     text: actionConfig.cta,
                     onClick: actionConfig.action,
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                 },
             ]}

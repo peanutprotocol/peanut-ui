@@ -80,7 +80,11 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'localhost' }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => false,
+    isIOSNative: () => false,
+    getNativeRpId: () => 'localhost',
+}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 
 /*

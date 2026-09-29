@@ -22,15 +22,18 @@ export function bankStepGuards({
 }
 
 export function cryptoStepGuards({
+    hasDestination,
     prepared,
     executed,
 }: {
+    hasDestination: boolean
     /** charge + route data exist (pre-execution). */
     prepared: boolean
     /** the transfer broadcast and returned a transaction identifier. */
     executed: boolean
 }): Partial<Record<WithdrawCryptoStep, FlowStepGuard<WithdrawCryptoStep>>> {
     return {
+        amount: { ok: hasDestination },
         review: { ok: prepared },
         success: { ok: prepared && executed },
     }
@@ -39,18 +42,20 @@ export function cryptoStepGuards({
 export type MantecaOutcome = 'success' | 'failure' | null
 
 export function mantecaStepGuards({
+    hasDestination,
     hasAmount,
     priceLocked,
     outcome,
 }: {
+    hasDestination: boolean
     hasAmount: boolean
     priceLocked: boolean
     /** set only by the withdrawal submission — success or terminal failure. */
     outcome: MantecaOutcome
 }): Partial<Record<WithdrawMantecaStep, FlowStepGuard<WithdrawMantecaStep>>> {
     return {
-        'bank-details': { ok: hasAmount },
-        review: { ok: hasAmount && priceLocked },
+        amount: { ok: hasDestination, fallback: 'bank-details' },
+        review: { ok: hasDestination && hasAmount && priceLocked },
         success: { ok: outcome === 'success' },
         failure: { ok: outcome === 'failure' },
     }

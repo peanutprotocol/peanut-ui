@@ -50,6 +50,7 @@ export function QrPayProviderRejectionView() {
                           ? (qrKycUserMessage ?? t('kyc.restartDescription'))
                           : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
+                tone="error"
                 icon={
                     methodIcon ? (
                         <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
@@ -64,7 +65,7 @@ export function QrPayProviderRejectionView() {
                                       provider: 'MANTECA',
                                       actionKey: qrKycActionKey,
                                   }),
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                               icon: 'upload-cloud' satisfies IconName,
                           }
@@ -72,14 +73,14 @@ export function QrPayProviderRejectionView() {
                           ? {
                                 text: t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                                 icon: 'upload-cloud' satisfies IconName,
                             }
                           : {
                                 text: tCommon('contactSupport'),
                                 onClick: () => setIsSupportModalOpen(true),
-                                variant: 'stroke' as const,
+                                variant: 'secondary' as const,
                             },
                 ]}
             />

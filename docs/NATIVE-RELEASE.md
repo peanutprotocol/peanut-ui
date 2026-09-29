@@ -183,10 +183,13 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
-The About screen shows this three-part version of the code currently running: the native
-version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
-build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
-it is not appended as a fourth dotted segment because it is not a comparable release.
+The About screen shows the native version for the built-in bundle. For production OTAs,
+the workflow bakes in the public release number and About appends `-i` or `-a` for the
+platform. For example, the release after `ota-1.6.8` appears as `1.6.9-i` on iOS and
+`1.6.9-a` on Android. Capgo currently needs separate internal compatibility IDs in the
+`1.5.1000+-ios` and `1.6.1000+-android` lanes to reach older native clients. Its
+dashboard shows those raw IDs. The platform build identifier (`versionCode` /
+`CFBundleVersion`) remains separate support metadata.
 
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
@@ -197,29 +200,33 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
-> **Owed to the next native release: the `/app` App Links claim.**
-> `d91ea7cee` added `/app` + `/app/*` to `public/.well-known/apple-app-site-association`
-> and `/app` + `/app/` to `android/app/src/main/AndroidManifest.xml`. `v1.6.0` predates
-> that commit, so no shipped binary or AASA ever carried the claim — but the manifest half
-> moved the native fingerprint, and `check-native-ota-surface` compares that fingerprint
-> against the binary an OTA targets. The two lines therefore blocked every production
-> bundle while delivering nothing, with the fleet stuck on JS older than its own binary.
-> Both platforms were reverted together so the iOS↔Android parity case in
-> `src/utils/__tests__/app-links.test.ts` stays enforced; only the two `/app`-presence
-> cases are `it.skip`.
+> **Download QRs use the shipped `/home` App Links claim.**
+> `d91ea7cee` once added `/app` + `/app/*` to the AASA file and the Android manifest.
+> `v1.6.0` predates that commit, so no shipped binary ever carried the claim, but the
+> manifest half moved the native fingerprint that `check-native-ota-surface` compares
+> against the binary an OTA targets — blocking every production bundle while delivering
+> nothing. Both platforms were reverted together, and restoring them was queued for the
+> next release.
 >
-> **Restore all three in the PR that cuts the next native release** — the AASA entries, the
-> manifest entries, and the two skipped cases. Never restore them on `dev` alone: an intent
-> filter cannot ship over the air, so on their own they block OTA again for no user-visible
-> gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
+> That plan is superseded. Download QRs now enter through the already-shipped `/home`
+> association plus an `app_entry` marker, so an installed app opens them with no new
+> intent filter and no store release. `/app` stays web-only, and
+> `src/utils/__tests__/app-links.test.ts` pins its absence on both platforms with live
+> cases. See §9 "App-download QR links do not expand the native surface".
 
-The native and production OTA workflows are manual and accept `dev`, `main`, and
-`release/android-kyc`. Select the source branch before dispatch — a supported branch name
-does not prove that its current commit is ready to ship.
+Every update to `main` starts **App Release OTA** for that exact commit. It publishes
+only while that commit is still current `main`. When that main-push OTA succeeds,
+or fails at the native-compatibility preflight, **App Release Android & iOS** starts
+for the same commit. A canceled or unrelated failed OTA does not start a native
+build. It uploads one shared native version to TestFlight and Play `internal`
+before writing the attested `v<version>` tag. Production OTA and native
+workflows have no manual dispatch trigger; reruns are rejected. The native
+children also have no tag-push trigger.
 
-1. Inspect the selected branch's current commit and confirm its release QA is complete.
-2. Before dispatching from `main`, verify it contains the reviewed native changes and
-   completed KYC fixes. A workflow change alone does not include those fixes.
+1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
+   its release QA is complete.
+2. Before merging to `main`, verify it contains the reviewed native changes and completed
+   KYC fixes. Updating the workflow alone does not include those fixes.
 3. Before integrating `release/android-kyc`, compare it with current production and
    preserve later production fixes. This branch started from an older OTA commit.
 4. Complete the reviewed back-merge into `dev` and production release into `main`
@@ -227,62 +234,32 @@ does not prove that its current commit is ready to ship.
 
 Use the workflow that matches the release:
 
-| | button | what it does |
-|-|--------|--------------|
-| native | **App Release Android & iOS** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
-| Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
-| OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+| | trigger | what it does |
+|-|---------|--------------|
+| native | **App Release Android & iOS**, after the first completed OTA from a `main` push | resolves `<major>.<build+1>.0` → builds iOS + Android from that exact current commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| OTA | **App Release OTA**, on a `main` push | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
-All three lanes require a manual dispatch. A push or merge does not release an app or OTA.
-The workflow resolves the version; do not create release tags by hand.
+Merging reviewed code to `main` starts production OTA for that exact commit. Its
+first successful or native-incompatible completion starts the native TestFlight
+and Play internal build for the same commit. There is no manual OTA or native
+retry: if a release fails, correct the cause in a reviewed `main` change so a
+fresh push runs the release sequence.
 
-Use the Android replacement lane only for an Android-only native correction to the
-currently shipped build. It verifies the existing native tag attests both platforms,
-checks that every native input changed since that tag is an explicitly
-legacy-compatible Android packaging input, and keeps the existing native
-`versionName`. Today that allowlist contains only `android/app/proguard-rules.pro`;
-plugin manifests, native bridges, dependencies, resources, permissions, and build
-configuration all require **App Release Android & iOS**. That narrow rule matters because Capgo
-cannot distinguish an original Android 1.5.0 install from its replacement: both must
-continue to accept the same JS bundle. Advancing the shared native version for Android
-alone would instead make the production Capgo minimum strand the older iOS binary.
+The workflow pins `main` at checkout, uses that commit's release tooling and app source,
+then verifies that `main` remains at that SHA before uploading and before each
+platform promotion. Review the run's
+**Main commit** before treating it as a release of the intended code. The workflows resolve
+versions; do not create release tags by hand.
 
-After Play accepts a replacement AAB, a separate credentialless job records an
-annotated `android-v<version>-replacement-<commit>` tag. The production build job keeps
-read-only repository access; only this small post-release job receives `contents:
-write`, and its only write is that tag. Future OTA checks accept the tag only when it is
-annotated, is an ancestor of the bundle commit, fingerprints the tagged native surface,
-and differs from the original `v<version>` tag only by the legacy-compatible allowlist.
-The attestation also names the `android-capacitor-permissions-v1` JavaScript guard.
-While the floor still includes original Android 1.5.0 binaries, every OTA scans all
-shipped source: direct Capacitor `checkPermissions` / `requestPermissions` calls are
-forbidden, `@capacitor/camera` may only be loaded by the iOS preflight wrapper, and that
-wrapper must return on Android before the lazy import. This prevents a later JS-only
-change from reintroducing the native crash on the original same-version population.
-Adding a new permission-bearing plugin changes the native fingerprint and is rejected
-independently. Any native drift or legacy-permission violation blocks OTA. The guard is
-retired naturally when a coordinated native release advances the Android floor beyond
-the original binary. The tag is created after the Play upload, so a failed or
-never-launched replacement cannot prematurely relax the OTA guard.
+The former manual Android same-version replacement and dev pre-release paths
+are closed. A native correction now goes through a reviewed `main` update and
+the coordinated iOS/Android release. Existing replacement-baseline attestations
+remain valid for OTA compatibility checks.
 
-The tag is written **after** the build, as the record of what shipped — a failed run
-leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
-`GITHUB_TOKEN` on purpose: GitHub does not start workflows from a push made with it, so
-the tag records the release without re-triggering the build. **A PAT there would
-double-build.**
-
-If that replacement must restore a missing native `.0` Capgo record, the publisher passes
-an explicit replacement-platform flag and revalidates the complete diff against the same
-legacy-compatible allowlist before deriving its floors. The shared record remains gated at
-the existing native version when the replacement surface differs, so the post-store OTA
-step cannot fail merely because the original release tag correctly describes the original
-binary.
-
-Both build workflows still accept a `v*` tag push as break-glass, and validate the
-version against the scheme before starting. That check is what a glob cannot do: `v*`
-cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped — only
-the major comparison catches it.
-
+The tag is written **after** both builds succeed, as the record of what shipped.
+CI uses `GITHUB_TOKEN` so its tag push cannot start another workflow. The iOS
+and Android build workflows accept only calls from the automatic combined native
+workflow; tag pushes and direct dispatches cannot launch them.
 ---
 
 ### Android release optimization
@@ -353,8 +330,8 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
 Removes the "release only builds on one laptop" gap — keystore lives as CI secrets,
 the build is reproducible, the AAB lands on a Play track.
 
-- **Trigger:** called by `release-native.yml` (§6, "Version scheme"). A `vX.Y.0` tag push and a
-  manual dispatch stay as break-glass paths.
+- **Trigger:** called only by the first automatic `release-native.yml` run after a
+  `main`-push OTA. Direct dispatches, tag pushes, and reruns are rejected.
 - **Flow:** checkout (submodules) → JDK 17 + Node 22 → install → decode keystore +
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
   (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
@@ -364,7 +341,7 @@ the build is reproducible, the AAB lands on a Play track.
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
 
-**Required repo secrets:**
+**Required GitHub Actions secrets:**
 
 | Secret | What |
 |--------|------|
@@ -373,8 +350,13 @@ the build is reproducible, the AAB lands on a Play track.
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
 | `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — **optional**; OneSignal push does not read it (see §Android push) |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
-| `CAPGO_API_KEY` | OTA (used by the `App Release OTA` workflow) |
+| `CAPGO_API_KEY` | Capgo API key. Store an app-authorized release key in the `Production` environment and a separate staging key in `Staging-OTA`. |
+| `CAPGO_PRIVATE_KEY` | Existing v2 bundle signing key. Store the same native-compatible value in `Production` and `Staging-OTA`; generating a new key would require a native app release. |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
+
+The release, native, and legacy bridge jobs that read these Capgo secrets use
+`Production`; `App Staging OTA` uses `Staging-OTA`. Remove the old repository-wide
+Capgo secrets after both environments contain working values.
 
 > Housekeeping: the secret is named `NEXT_PUBLIC_SENTRY_DSN` but a Sentry DSN is public
 > by design (it ships in every web bundle) — the `secrets.*` storage is convention, not
@@ -387,41 +369,76 @@ the build is reproducible, the AAB lands on a Play track.
 
 ## 9. OTA updates (Capgo)
 
-`App Release OTA` builds and publishes a production static export after a manual dispatch
-from `dev`, `main`, or `release/android-kyc`. This backport includes the protections from
-PR #3111 while preserving the existing release refs and manual trigger.
+`App Release OTA` builds and publishes a production static export automatically after every
+update to `main`. A manual dispatch on `main` retries its current commit. The app source
+and release tooling both come from that commit.
 
 | trigger | channel | bundle version |
 | ------- | ------- | -------------- |
-| **App Release OTA** — manual, approved release ref | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
+| **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | public `ota-<major>.<build>.<ota+1>` tag; internal `1.5.1000+-ios` / `1.6.1000+-android` bridge bundles while needed |
+| **App Release OTA** — manual dispatch on `main` | same two production channels | same release and bundle scheme |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
 
-For an OTA from `dev`:
+The compatibility bridge keeps iOS 1.5.0 and Android 1.6.0 installations eligible while
+their native surfaces remain compatible. The public release counter ignores the bridge
+IDs, but each internal platform lane still increments independently and reserves failed
+or deleted uploads.
 
-1. Merge the reviewed protections and desired app changes into `dev`. Record its exact
-   commit and wait for its required checks. Verify the installed native versions in scope.
+The first main-push OTA establishes the compatible old numeric lanes if needed.
+Later runs advance within those lanes. Verify a device on each old binary accepts
+its first bridge and a later main-source OTA. The dedicated iOS and Android bridge
+workflows on `main` are manual recovery paths if the automatic bootstrap fails.
+
+While the legacy bridges are active, compatible OTA runs keep publishing iOS 1.5.x and
+Android 1.6.x bundles from the current `main` tree. If `main` changes either native
+surface, that OTA attempt stops before upload, but the following native build still runs.
+The new native uploads leave the old channels in place; promoting a newer `.0` would
+make offline older clients reject updates under their numeric gate. After the new binaries
+are available, the separate OTA cutover moves each platform to its new native floor.
+
+### App-download QR links do not expand the native surface
+
+Generated download QRs use `https://peanut.me/home?app_entry=1`, not `/app`.
+`/home` is already present in the Android intent filter and every iOS AASA entry
+shipped with v1.6. In a browser, `src/proxy.ts` removes `app_entry` and redirects
+to the `/app` smart-store page while preserving the deferred-link payload. In an
+installed app, `useNativeAppLinks` consumes the marker, applies that payload, and
+opens its sanitized destination or `/home`.
+
+Keep `/app` out of `AndroidManifest.xml` and the AASA file. Adding it there is a
+native-surface change and requires a coordinated store release; server-side App
+Link configuration cannot make an Android binary claim paths outside its
+manifest. Existing `/app` links remain valid web smart links, while newly
+generated QRs get installed-app opening without a native rebuild.
+
+For a production OTA:
+
+1. Merge the desired app changes into `dev`, record its exact commit, and wait for its
+   required checks. Verify the installed native versions in scope.
 2. Validate on representative real devices that the current OTA accepts the candidate and
    the candidate can receive a subsequent compatible OTA. Include cold starts, offline
    launches, and recovery after an updater initialization failure. Unit tests cover these
    mechanisms but do not replace tests on the installed binaries.
-3. Open Actions → **App Release OTA** → **Run workflow** and select `dev`. The CLI equivalent
-   is `gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref dev`.
-4. Verify the run's source SHA, compatibility checks, both exact candidate records and
-   platform channels, and the `ota-<version>` tag. The next version exceeds both channels,
-   previous OTA tags and reserved platform upload names (including partial/deleted uploads).
-   `builtin` is a valid initial channel state; never overwrite a failed candidate.
+3. Merge the reviewed commit to `main`. That push starts **App Release OTA**.
+   A successful OTA, or a failure attested by its native-compatibility preflight,
+   starts **App Release Android & iOS** for the same main commit.
+4. If OTA succeeds, verify its source SHA, compatibility checks, both exact candidate
+   records and platform channels, and the `ota-<version>` tag. The next public release
+   exceeds previous public OTA tags and uploads; bridge IDs advance in their own lanes.
+   Partial/deleted uploads remain reserved. `builtin` is a valid initial channel state;
+   never overwrite a failed candidate. If native incompatibility blocks OTA, verify the
+   failure marker and native run instead; there are no candidate records or OTA tag.
 
-Dispatching publishes to production after the automated checks; this workflow does not
+Updating `main` publishes to production after the automated checks; this workflow does not
 pause for device QA between upload and promotion. The reserved `ota-candidate` channel has
 all device audiences disabled. Existing staging builds use a different version sequence
 and do not emit the new floor marker: do not promote a staging bundle to production or
 use it as proof of per-platform production delivery.
 
-An active or unreadable progressive rollout stops the release before version resolution
-and is checked again immediately before production promotion. The stable bundle and
-rollout target are separate channel state; changing one does not clear the other. The
-workflow leaves an existing rollout untouched. Avoid concurrent dashboard/channel edits
-during publication: the preflight read and promotion are separate API operations.
+An active or unreadable progressive rollout stops the release before version resolution.
+At promotion, the workflow sets the stable bundle and disables rollout in one Capgo API
+mutation, then reads the complete channel policy and exact artifact back. This prevents a
+dashboard rollout enabled after preflight from surviving the bundle change.
 
 The early inline `notifyAppReady()` avoids false rollbacks when the OS freezes an app in
 the background. The custom incomplete-boot counter stays armed until React has rendered
@@ -460,9 +477,13 @@ the tree above that is `android 1.6.0, ios 1.5.0`.
 
 Resolved `@capacitor/android` and `@capacitor/ios` versions affect only their own platform's
 floor. Core, cross-platform plugins, and unclassified native dependencies still affect
-both. The complete native fingerprint keeps its existing combined dependency digest so
-stored same-version replacement attestations remain valid; only per-platform comparisons
-use a scoped dependency digest.
+both. New replacement tags use the v3 fingerprint, which records Android, iOS, and shared
+dependency digests separately. The verifier retains the original combined v2 calculation
+solely so immutable replacement tags created under that schema remain valid.
+
+The floor scan resolves an attested same-version replacement before comparing each release.
+Without that baseline, a narrowly compatible Android packaging repair would make the floor
+resolver reject every later OTA even though the publish guard accepts the same replacement.
 
 - **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and the
   resolved plugin versions sit outside `android/` and `ios/` while describing the native
@@ -476,8 +497,9 @@ use a scoped dependency digest.
   surface differs from the newest release still fails `check-native-ota-surface` and still
   needs a coordinated native release.
 - **Each platform gets its own server floor.** The same web export is uploaded as two
-  signed bundle records: `1.6.N-ios` with minimum `1.5.0`, and `1.6.N-android` with minimum
-  `1.6.0`. Channels are platform-exclusive defaults using Metadata targeting. Android
+  signed bundle records: currently `1.5.1000+-ios` with minimum `1.5.0`, and
+  `1.6.1000+-android` with minimum `1.6.0`. Channels are platform-exclusive defaults
+  using Metadata targeting. Android
   1.5.0 is rejected by Capgo before its old updater can download the first floor-aware
   bundle. Android 1.6.0 can update immediately without waiting for iOS adoption.
 
@@ -532,14 +554,24 @@ tagging. Promotions are separate API operations: if the second fails, one platfo
 advance while the other keeps its prior bundle. Fix the cause and rerun; reserved bundle
 names force a fresh version. This verifies publication, not boot behavior on real devices.
 
-**The floors are kept next to the staged bundle id.** A bundle is admitted at check time,
-when the comment is in hand, but applied on a *later launch* — and the plugin's queue
-carries only an id and a version (`BundleInfo` has no comment field). Without that, the
+**The floors are kept next to the downloaded bundle id.** A bundle is admitted at check time,
+when the comment is in hand, but applied on a *later launch* — and `BundleInfo`
+carries only an id and a version, not the comment. Without that, the
 launch-time gate re-asks with nothing to answer from, falls back to the version rule, and
-disarms the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
-throw it away on every launch. Only one bundle is ever queued, so it is one entry, replaced
-before native queueing on each stage and dropped when the queue is. A mismatched id reads
+discards the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
+throw it away on every launch. Only one downloaded bundle is selected for the next launch;
+the local marker and its floors are replaced together. A mismatched id reads
 as "no floors", which is also what a bundle staged before any of this existed gets.
+
+**Applying a mobile OTA:** The app downloads the bundle during a session without calling
+Capgo `next()`. `next()` would also install when Android backgrounds the app for a passkey
+prompt, interrupting signing. On a later launch the client verifies that the download is
+still present and compatible, then uses `set()` while the splash covers the reload. The
+splash waits briefly for that decision on launches with a saved download. Old JS may have
+left a native `next()` queue; the new client disarms that queue and retains the compatible
+download. Android binaries with a Capgo plugin older than 8.46 cannot use `set()` safely;
+their manual Update app action arms `next()` only immediately before an explicit app exit.
+The OTA is not automatically applied on an ordinary background transition.
 
 The scan that produces a floor **stops at the major boundary**, even where the surface
 matches across it. A major is a deliberate app-generation break: `release-version.mjs`
@@ -569,6 +601,26 @@ the new server defaults on their next check. A local beta subscription or dashbo
 assignment overrides defaults; inspect those separately. Updated beta exit calls
 `unsetChannel()`, verifies the platform default and resets to builtin. It never assigns
 an explicit `production` override. A surviving dashboard override requires admin removal.
+
+**Legacy local channel preferences need a delivery path.** Updater 8.51.14 persists every
+successful `getChannel()` answer as a local `defaultChannel`. Devices that read the old
+`production` channel before the platform split can therefore keep sending
+`defaultChannel: production`, even though their Dashboard Device Override is `None`.
+The old beta exit also tried to self-assign `production`. A mobile-disabled `production`
+channel then returns `no_channel` on update checks; changing the server defaults alone
+does not clear that local preference. The newer client clears a verified legacy
+`production` preference on an About read or after `no_channel`, then retries the check
+once. It also avoids diagnosing a dashboard override solely from an unexpected channel
+name after leaving beta.
+
+That client repair cannot reach a device whose current updater cannot download it.
+Before retiring a bridge delivery route, audit retained devices by platform, native
+version, last contact and **Dashboard override versus reported default channel**.
+Plan a compatible one-time bridge for eligible binaries, verify the actual installed
+bundle and next update check on a small cohort, then expand. A single shared bridge
+bundle has one native minimum: setting it to Android 1.6.0 does not repair iOS 1.5.0
+devices. Those devices need an independently verified compatible iOS artifact or a
+new native binary. Do not treat a synthetic Capgo Debug API Request as device adoption.
 
 There are two distinct legacy states:
 
@@ -614,7 +666,7 @@ own. Two things had to line up:
   surface check and `--auto-min-update-version`. Retiring a workflow on `dev`/`main` does
   **not** retire it at older commits, and the same trap applies to the `v*` prefix. Treat
   every `ota-*` / `v*` tag push as running last month's pipeline, and ship through the
-  current manual OTA and native workflows instead.
+  current automatic native and OTA workflows instead.
 
 `check-native-ota-surface.mjs` already asserted the same ancestry, but only as a
 precondition of its fingerprint diff — in the deploy job, after a full install and native
@@ -629,12 +681,49 @@ an inactive candidate and verifies the exact source, both compatibility-derived 
 floors, the stricter shared server floor and artifact before promotion. An existing `.0`
 record with incomplete metadata fails closed.
 
+### Native migration while the iOS 1.5 and Android 1.6 bridges are active
+
+When a main commit changes a native surface, the automatic main-push OTA
+stops before upload because no shipped binary carries the new contract. Its
+compatibility marker lets the native workflow start automatically. No special native
+release flag or second dispatch is needed.
+
+1. Confirm each legacy production channel has its last compatible bridge
+   bundle before merging. The automatic native run uploads the new binaries to
+   TestFlight and Play internal, leaves active legacy Capgo channels unchanged,
+   and tags the exact commit only after both builds succeed. Promote the binaries
+   in the store consoles after device validation. New binaries carry their own JS
+   while the old lanes stay pinned. Native 1.7 and newer reject OTA bundles
+   from an older native release line, including saved or queued bridges. The
+   1.5/1.6 fleet retains bridge recovery, and same-release OTA rollbacks remain
+   available on newer binaries.
+2. Once the new native release is available to users, merge a reviewed commit
+   that adds `.github/native-ota-cutover-version` containing the tagged native
+   version (for example, `1.7.0`). That push automatically starts
+   `release-ota.yml`; the cutover requires the marker to match the current
+   native tag and the new platform floors to equal that release. It uploads separate signed bundles
+   with `min_update_version=1.7.0`, verifies each artifact, then changes each
+   production channel's bundle and native-version policy in one request.
+   Devices on 1.5/1.6 keep their last compatible installed bundle and need a
+   store update for later OTA releases. Never promote the 1.7 OTA to those
+   devices, or retire the bridge before a verified 1.7 binary is available.
+
+If either platform cutover fails, the other remains on its verified new bundle.
+Inspect both channels and the exact candidate artifacts, then merge a reviewed
+fix to `main`. The resulting automatic OTA resumes the still-active bridge and
+publishes a fresh version to the already-cut-over platform. Do not treat a
+partial cutover as a successful release. The marker can be removed in a later
+reviewed commit once both bridges are inactive.
+
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated
   channel-policy interface used by Capgo CLI, since the public channel response omits
   platform flags. Unreadable policies or missing metadata exposure stop publication.
-- **Manual dispatch publishes after checks.** The workflow uses the `Production` GitHub
-  environment; adding required reviewers there is a separate repository policy decision.
+- **An automatic native release publishes a matching `.0` bootstrap bundle after
+  the native checks pass where a platform's legacy bridge is inactive.** An active
+  bridge retains its compatible 1.5.x or 1.6.x channel. Production OTA
+  remains automatic from `main`. The native workflow uses the `Production` GitHub environment;
+  adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced
   by the channel's Metadata strategy. Each `.1+` OTA uses its own platform floor; a shared
   native `.0` record uses the higher of its two compatibility-derived floors. Never use
@@ -701,11 +790,10 @@ record with incomplete metadata fails closed.
   **Why it exists:** `min_update_version` only blocks *delivery*, only under the
   `metadata` channel strategy, and does not itself prove source compatibility. Previously nothing
   reported that an incompatible bundle had been *built* — the mismatch first
-  appeared on a user's device. The remedy for a failure is a coordinated native release
-  or the narrowly gated same-version Android replacement lane—never widening or
-  skipping the check.
+  appeared on a user's device. The remedy for a failure is a coordinated native
+  release from a reviewed `main` update, never widening or skipping the check.
 - **Rollout:** this workflow requires progressive rollout disabled and promotes both
-  stable channels after checks. Device QA must happen before dispatch; a separate reviewed
+  stable channels after checks. Device QA must happen before merging to `main`; a separate reviewed
   rollout process is required for percentage-based delivery.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
   `autoDeleteFailed` + `autoDeletePrevious`): a bundle that never calls
@@ -863,8 +951,8 @@ PR alone cannot make Apple Wallet accept a card.
 After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in
 addition to the source fingerprint. Older tags and manually created tags lack
-this evidence and cannot serve as OTA floors. Run App Release Android & iOS to establish
-a compatible floor; do not add an attestation to an unverified old tag.
+this evidence and cannot serve as OTA floors. Merge reviewed native code to `main`
+to establish a compatible floor; do not add an attestation to an unverified old tag.
 
 The enabled archive gate proves SDK compilation and profile entitlements, not
 vendor activation or Apple launch readiness. Those remain separate launch checks.

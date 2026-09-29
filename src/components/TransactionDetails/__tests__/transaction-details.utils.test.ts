@@ -12,7 +12,14 @@
  * enum (`WALLET_EXTERNAL`), which never reaches the FE. Each case below fails
  * on the pre-fix code (where `'address'` fell through to `formatIban`).
  */
-import { getAccountCopyValue, bankAccountLabelKey, receiptIssuedAt } from '../transaction-details.utils'
+import {
+    getAccountCopyValue,
+    bankAccountLabelKey,
+    receiptHeadlineAmount,
+    isSameReceiptMinute,
+    receiptStatusDate,
+    senderNoteText,
+} from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
 // 3rd char is a LETTER (G) — dodges the /^[a-zA-Z]{2}\d/ display heuristic.
@@ -90,7 +97,7 @@ describe('bankAccountLabelKey', () => {
     })
 })
 
-describe('receiptIssuedAt', () => {
+describe('receiptStatusDate', () => {
     const base = {
         date: '2026-08-01T10:00:00.000Z',
         createdAt: '2026-08-01T10:00:00.000Z',
@@ -98,24 +105,109 @@ describe('receiptIssuedAt', () => {
         claimedAt: '2026-08-03T09:00:00.000Z',
         cancelledDate: '2026-08-04T15:00:00.000Z',
     }
+    const at = (tx: Parameters<typeof receiptStatusDate>[0]) => {
+        const result = receiptStatusDate(tx)
+        return result && { kind: result.kind, date: result.date.toISOString() }
+    }
 
-    it('completed receipts date from the claim/settlement', () => {
-        expect(receiptIssuedAt({ ...base, status: 'completed' })?.toISOString()).toBe(base.claimedAt)
-        expect(receiptIssuedAt({ ...base, status: 'completed', claimedAt: undefined })?.toISOString()).toBe(
-            base.completedAt
-        )
+    it('a claimed receipt names the claim once, not the claim and the completion', () => {
+        expect(at({ ...base, status: 'completed' })).toEqual({ kind: 'claimed', date: base.claimedAt })
+        expect(at({ ...base, status: 'completed', claimedAt: undefined })).toEqual({
+            kind: 'completed',
+            date: base.completedAt,
+        })
     })
 
     it('cancelled and closed receipts date from the cancellation', () => {
-        expect(receiptIssuedAt({ ...base, status: 'cancelled' })?.toISOString()).toBe(base.cancelledDate)
-        expect(receiptIssuedAt({ ...base, status: 'closed' })?.toISOString()).toBe(base.cancelledDate)
+        expect(at({ ...base, status: 'cancelled' })).toEqual({ kind: 'cancelled', date: base.cancelledDate })
+        expect(at({ ...base, status: 'closed' })).toEqual({ kind: 'closed', date: base.cancelledDate })
     })
 
     it('refunded receipts date from the refund (the display date)', () => {
-        expect(receiptIssuedAt({ ...base, status: 'refunded' })?.toISOString()).toBe(base.date)
+        expect(at({ ...base, status: 'refunded' })).toEqual({ kind: 'refunded', date: base.date })
     })
 
     it('pending receipts date from creation', () => {
-        expect(receiptIssuedAt({ ...base, status: 'pending' })?.toISOString()).toBe(base.createdAt)
+        expect(at({ ...base, status: 'pending' })).toEqual({ kind: 'created', date: base.createdAt })
+    })
+
+    it('yields nothing for an unreadable date rather than an Invalid Date', () => {
+        expect(receiptStatusDate({ status: 'pending', date: 'not-a-date', createdAt: 'not-a-date' })).toBeUndefined()
+    })
+})
+
+describe('isSameReceiptMinute', () => {
+    it('reads two events inside one printed minute as the same value', () => {
+        expect(isSameReceiptMinute(new Date('2026-08-01T10:00:05.000Z'), new Date('2026-08-01T10:00:55.000Z'))).toBe(
+            true
+        )
+    })
+
+    it('tells apart events a minute apart', () => {
+        expect(isSameReceiptMinute(new Date('2026-08-01T10:00:55.000Z'), new Date('2026-08-01T10:01:05.000Z'))).toBe(
+            false
+        )
+    })
+})
+
+/**
+ * SEPA remittance fields carry a "/ROC/" tag, and a payer who typed nothing
+ * arrives as "/ROC/NOT PROVIDED". The Sender's note row printed that as if a
+ * person had written it.
+ */
+describe('senderNoteText', () => {
+    it.each([
+        ['/ROC/NOT PROVIDED'],
+        ['/roc/not provided'],
+        ['/ROC/'],
+        ['NOTPROVIDED'],
+        ['NOT PROVIDED'],
+        [''],
+        ['   '],
+        [null],
+        [undefined],
+    ])('treats %p as no note', (raw) => {
+        expect(senderNoteText(raw)).toBeUndefined()
+    })
+
+    it('keeps what the payer wrote, without the SEPA tag', () => {
+        expect(senderNoteText('/ROC/INVOICE 4471')).toBe('INVOICE 4471')
+        expect(senderNoteText('  Rent March ')).toBe('Rent March')
+    })
+
+    it('reads the remittance text after "//" in a structured SEPA reference', () => {
+        expect(senderNoteText('/ROC/NOT PROVIDED//testtttt')).toBe('testtttt')
+        expect(senderNoteText('/ROC/INV 4471//March rent')).toBe('INV 4471 · March rent')
+        expect(senderNoteText('/ROC/NOT PROVIDED//')).toBeUndefined()
+        expect(senderNoteText('/ROC/NOT PROVIDED//https://example.com/invoice')).toBe('https://example.com/invoice')
+    })
+})
+
+/**
+ * The receipt screen and the PDF used to answer "how much" differently: a
+ * $100 pot that collected $40 printed $100.00 on one and $40.00 on the other,
+ * and the PDF dropped the sign so a refund read like a spend.
+ */
+describe('receiptHeadlineAmount', () => {
+    it('leads a request pot with what it collected, not with its goal', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 40 }, 100, '+')
+
+        expect(headline).toEqual({ amount: 40, sign: '', isCollectedTotal: true })
+    })
+
+    it('leads a goal-less pot with its collected total', () => {
+        const headline = receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: 47.25 }, 0, '')
+
+        expect(headline.amount).toBe(47.25)
+    })
+
+    it('keeps the direction sign on everything that is not a pot', () => {
+        expect(receiptHeadlineAmount({}, 12.5, '-')).toEqual({ amount: 12.5, sign: '-', isCollectedTotal: false })
+        expect(receiptHeadlineAmount({}, 12.5, '+').sign).toBe('+')
+    })
+
+    it('reads an unusable amount as zero rather than printing NaN', () => {
+        expect(receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: null }, 0, '').amount).toBe(0)
+        expect(receiptHeadlineAmount({}, Number.NaN, '-').amount).toBe(0)
     })
 })

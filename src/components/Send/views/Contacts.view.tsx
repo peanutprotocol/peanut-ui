@@ -16,6 +16,7 @@ import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 import { useTranslations } from 'next-intl'
 import { isPlausibleUsername } from '@/constants/routes'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { usersApi } from '@/services/users'
@@ -159,7 +160,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             <FieldError>{usernameCheckError}</FieldError>
                             {canRetryUsernameCheck && (
                                 <Button
-                                    variant="transparent"
+                                    variant="ghost"
                                     className="h-auto w-fit p-0 text-body-xs"
                                     onClick={() => setUsernameCheckRetry((retry) => retry + 1)}
                                 >
@@ -174,10 +175,11 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                     <div className="space-y-2">
                         <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
                         <ListItem
-                            position="single"
+                            position="solo"
                             title={t('contacts.usernameFound', { username: exactUsername })}
+                            truncate
                             body={t('contacts.continueToSend')}
-                            leading={<IconBubble icon="user" size="s" color="green" />}
+                            leading={<IconBubble {...CONCEPT_ICONS.peanutUser} size="s" />}
                             chevron
                             onClick={() => handleUserSelect(exactUsername)}
                         />
@@ -201,11 +203,11 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                             <ListItem
                                                 position={
                                                     contacts.length === 1
-                                                        ? 'single'
+                                                        ? 'solo'
                                                         : index === 0
-                                                          ? 'first'
+                                                          ? 'top'
                                                           : index === contacts.length - 1
-                                                            ? 'last'
+                                                            ? 'bottom'
                                                             : 'middle'
                                                 }
                                                 key={contact.userId}
@@ -222,7 +224,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                 body={`@${contact.username}`}
                                                 leading={
                                                     <UserAvatar
-                                                        size="extra-small"
+                                                        size="s"
                                                         name={contact.username}
                                                         avatarKey={contact.avatarKey}
                                                         decorative
@@ -250,9 +252,16 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     containerClassName="w-full"
                                     title={t('contacts.errorTitle')}
                                     icon="alert"
+                                    iconColor="red"
                                     description={t('contacts.errorDescription')}
                                     cta={
-                                        <Button shadowSize="4" onClick={() => refetch()} className="mt-4" icon="retry">
+                                        <Button
+                                            shadowSize="4"
+                                            onClick={() => refetch()}
+                                            className="mt-4"
+                                            icon="retry"
+                                            iconSize={12}
+                                        >
                                             {tCommon('retry')}
                                         </Button>
                                     }

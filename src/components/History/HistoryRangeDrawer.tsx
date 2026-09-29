@@ -113,7 +113,7 @@ export const HistoryRangeDrawer = ({ open, onOpenChange, nested, onDownload }: H
                             DS has no drawer-footer recipe — flagged in the PR body. */}
                         <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 bg-background-default px-4 pt-3">
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 disabled={isCustom && !draftRange?.from}
@@ -122,7 +122,7 @@ export const HistoryRangeDrawer = ({ open, onOpenChange, nested, onDownload }: H
                                 {tCommon('save')}
                             </Button>
                             {onDownload && (
-                                <Button variant="stroke" className="w-full justify-center" onClick={onDownload}>
+                                <Button variant="secondary" className="w-full justify-center" onClick={onDownload}>
                                     {t('export.download')}
                                 </Button>
                             )}

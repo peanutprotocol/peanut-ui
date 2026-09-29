@@ -51,7 +51,7 @@ function invoke(mode, responses, overrides = {}) {
       const requests = [];
       try {
         const result = await run(input.mode, { env: input.env, fetchImpl: async (url, init) => {
-          requests.push({ url: String(url), method: init.method, body: init.body && JSON.parse(init.body) });
+          requests.push({ url: String(url), method: init.method, headers: init.headers, body: init.body && JSON.parse(init.body) });
           let response = input.responses.shift();
           if (response?.routes) response = response.routes[new URL(url).pathname];
           if (!response) throw new Error('unexpected request');
@@ -72,9 +72,43 @@ function verify(rows, overrides) {
     return invoke('verify-bundle', [{ body: candidate }, { body: rows }], overrides)
 }
 
+it('sends Capgo API keys in the Authorization header accepted by the app endpoint', () => {
+    const result = verify([goodBundle])
+    expect(result.status).toBe(0)
+    expect(result.requests[0].headers).toMatchObject({ Authorization: env.CAPGO_API_KEY })
+    expect(result.requests[0].headers).not.toHaveProperty('x-api-key')
+})
+
 it('verifies the exact structured bundle record', () => {
     expect(verify([goodBundle]).status).toBe(0)
     expect(verify({ data: [goodBundle] }).status).toBe(0)
+})
+it('permits the explicit iOS 1.5 bridge with a newer Android floor only in bridge mode', () => {
+    const bridge = { ...goodBundle, name: '1.5.1000-ios' }
+    const options = { VERSION: bridge.name, IOS_LEGACY_BRIDGE: '1' }
+    expect(verify([bridge], options).status).toBe(0)
+    expect(verify([bridge], { VERSION: bridge.name }).status).toBe(1)
+    expect(verify([bridge], { ...options, PLATFORM: 'android' }).status).toBe(1)
+    expect(verify([bridge], { ...options, FLOOR_IOS: '1.4.0' }).status).toBe(1)
+})
+it('permits an Android 1.6 bridge only with its matching platform and floor', () => {
+    const bridge = { ...goodBundle, name: '1.6.1000-android', min_update_version: '1.6.0' }
+    const options = {
+        PLATFORM: 'android',
+        VERSION: bridge.name,
+        ANDROID_LEGACY_BRIDGE: '1',
+        NATIVE_FLOOR: '1.6.0',
+    }
+    expect(verify([bridge], options).status).toBe(0)
+    expect(verify([bridge], { ...options, PLATFORM: 'ios' }).status).toBe(1)
+    expect(verify([bridge], { ...options, FLOOR_ANDROID: '1.5.0' }).status).toBe(1)
+})
+it('binds a manual release to the pinned main commit instead of the dev workflow commit', () => {
+    const mainSha = 'b'.repeat(40)
+    const mainBundle = { ...goodBundle, link: `https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}` }
+    expect(verify([mainBundle], { OTA_SOURCE_SHA: mainSha }).status).toBe(0)
+    expect(verify([goodBundle], { OTA_SOURCE_SHA: mainSha }).status).toBe(1)
+    expect(verify([mainBundle], { OTA_SOURCE_SHA: '' }).status).toBe(1)
 })
 it.each(['1.6.2', '1.6.30', '11.6.3', '1.6.3-rc1', '1.6.3.1'])(
     'cannot use %s even when its subject names the requested version',
@@ -111,6 +145,27 @@ it('follows pagination using exact names', () => {
     const result = invoke('verify-bundle', [{ body: candidate }, { body: older }, { body: [goodBundle] }])
     expect(result.status).toBe(0)
     expect(result.requests[2].url).toContain('page=1')
+})
+it('accepts Capgo’s empty-page response after an exactly full bundle page', () => {
+    const terminalPage = {
+        status: 400,
+        body: { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    }
+    const rows = [goodBundle, ...Array.from({ length: 49 }, (_, i) => ({ name: `1.6.${i + 100}` }))]
+    const result = invoke('verify-bundle', [{ body: candidate }, { body: rows }, terminalPage])
+    expect(result.status).toBe(0)
+    expect(result.requests[2].url).toContain('page=1')
+    expect(invoke('current-release', [...policyResponses(), { body: rows }, terminalPage]).status).toBe(0)
+})
+it('does not treat other HTTP 400 errors as the end of bundle pagination', () => {
+    const rows = Array.from({ length: 50 }, (_, i) => ({ name: `1.6.${i + 100}` }))
+    for (const body of [
+        { error: 'cannot_get_bundle', message: "You can't access this app", moreInfo: { app_id: env.CAPGO_APP_ID } },
+        { error: 'cannot_get_bundle', message: 'Cannot get bundle', moreInfo: { supabaseError: { code: 'DB_ERROR' } } },
+        { error: 'some_other_error', message: 'Cannot get bundle', moreInfo: { supabaseError: null } },
+    ]) {
+        expect(invoke('verify-bundle', [{ body: candidate }, { body: rows }, { status: 400, body }]).status).toBe(1)
+    }
 })
 it.each([{ status: 401 }, { status: 500 }, { networkError: true }, { invalidJson: true }])(
     'fails closed on API failure: %j',
@@ -279,6 +334,162 @@ it('keeps a partial or deleted upload reserved, and ignores the staging counter'
     expect(result.result).toBe('1.6.3')
     expect(invoke('current-release', [...policyResponses(), { body: [] }]).result).toBe('builtin')
 })
+it('reserves the next iOS 1.5 bridge version even after a partial upload', () => {
+    const result = invoke('next-ios-bridge', [
+        ...policyResponses(),
+        { body: [{ name: '1.5.1000-ios', deleted: true }, { name: '1.6.7-ios' }] },
+    ])
+    expect(result.result).toBe('1.5.1001-ios')
+})
+it('reserves the next Android 1.6 bridge version even after a partial upload', () => {
+    const result = invoke('next-android-bridge', [
+        ...policyResponses(),
+        { body: [{ name: '1.6.1000-android', deleted: true }, { name: '1.7.2-android' }] },
+    ])
+    expect(result.result).toBe('1.6.1001-android')
+})
+it('recognizes only the verified Android bridge policy', () => {
+    const bridge = { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false }
+    expect(invoke('android-bridge-status', policyResponses()).result).toBe('inactive')
+    expect(invoke('android-bridge-status', policyResponses([channels[0], bridge])).result).toBe('active')
+    expect(invoke('verify-promotion', policyResponses([channels[0], bridge])).status).toBe(1)
+    expect(
+        invoke('verify-promotion', policyResponses([channels[0], bridge]), { ALLOW_ANDROID_BRIDGE: '1' }).status
+    ).toBe(0)
+    expect(
+        invoke(
+            'android-bridge-status',
+            policyResponses([channels[0], { ...bridge, version: { id: 42, name: '1.7.2-android' } }])
+        ).status
+    ).toBe(1)
+    expect(
+        invoke(
+            'android-bridge-status',
+            policyResponses([channels[0], { ...bridge, version: { id: 42, name: '1.6.8-android' } }])
+        ).status
+    ).toBe(1)
+})
+it('promotes an Android 1.6 bridge without changing iOS routing', () => {
+    const version = '1.6.1000-android'
+    const bridgeBundle = { ...goodBundle, name: version, min_update_version: '1.6.0' }
+    const promoted = { ...channelPolicy('android', version), disable_auto_update_under_native: false }
+    const result = invoke(
+        'promote-android-bridge',
+        [
+            ...policyResponses(),
+            { body: [bridgeBundle] },
+            { body: { status: 'success' } },
+            ...policyResponses([channels[0], promoted]),
+        ],
+        { PLATFORM: 'android', VERSION: version, ANDROID_LEGACY_BRIDGE: '1', NATIVE_FLOOR: '1.6.0' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'android-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: false,
+        rolloutEnabled: false,
+    })
+})
+it('recognizes the verified iOS bridge channel while preserving Android policy', () => {
+    const bridge = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    expect(invoke('bridge-status', policyResponses()).result).toBe('inactive')
+    expect(invoke('bridge-status', policyResponses([bridge, channels[1]])).result).toBe('active')
+    expect(invoke('current-release', [...policyResponses([bridge, channels[1]]), { body: [] }]).status).toBe(1)
+    expect(
+        invoke('current-release', [...policyResponses([bridge, channels[1]]), { body: [] }], {
+            ALLOW_IOS_BRIDGE: '1',
+        }).status
+    ).toBe(0)
+    expect(
+        invoke('bridge-status', policyResponses([{ ...bridge, version: { id: 42, name: '1.6.8-ios' } }, channels[1]]))
+            .status
+    ).toBe(1)
+})
+it('promotes a verified bridge and disables native-version downgrade protection only for iOS', () => {
+    const version = '1.5.1000-ios'
+    const bridge = { ...goodBundle, name: version }
+    const promoted = { ...channelPolicy('ios', version), disable_auto_update_under_native: false }
+    const result = invoke(
+        'promote-ios-bridge',
+        [
+            ...policyResponses(),
+            { body: [bridge] },
+            { body: { status: 'success' } },
+            ...policyResponses([promoted, channels[1]]),
+        ],
+        { VERSION: version, IOS_LEGACY_BRIDGE: '1' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'ios-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: false,
+        rolloutEnabled: false,
+    })
+    expect(invoke('verify-promotion', policyResponses([promoted, channels[1]])).status).toBe(1)
+})
+it('atomically cuts a verified iOS bridge over to a bundle with the new native floor', () => {
+    const version = '1.7.1-ios'
+    const old = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    const next = channelPolicy('ios', version)
+    const bundle = {
+        ...goodBundle,
+        name: version,
+        comment: 'commit [ota-floors: android=1.7.0 ios=1.7.0]',
+        min_update_version: '1.7.0',
+    }
+    const result = invoke(
+        'promote-migration-cutover',
+        [
+            ...policyResponses([old, channels[1]]),
+            { body: [bundle] },
+            { body: { status: 'success' } },
+            ...policyResponses([next, channels[1]]),
+        ],
+        { VERSION: version, FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.7.0', NATIVE_FLOOR: '1.7.0' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[4].body).toMatchObject({
+        channel: 'ios-mobile-release',
+        version,
+        disableAutoUpdateUnderNative: true,
+        rolloutEnabled: false,
+    })
+    expect(
+        invoke('promote-migration-cutover', policyResponses([old, channels[1]]), {
+            VERSION: version,
+            NATIVE_FLOOR: '1.5.0',
+        }).status
+    ).toBe(1)
+})
+it('keeps bridge bundle numbers separate from the next public OTA number', () => {
+    const bridgeChannels = [
+        { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false },
+        { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false },
+    ]
+    const releases = [
+        { name: '1.6.7-ios' },
+        { name: '1.6.7-android' },
+        { name: '1.5.1000-ios' },
+        { name: '1.6.1000-android' },
+        { name: '1.5.1001-ios', deleted: true },
+        { name: '1.6.1001-android', deleted: true },
+    ]
+    const result = invoke('current-release', [...policyResponses(bridgeChannels), { body: releases }], {
+        ALLOW_IOS_BRIDGE: '1',
+        ALLOW_ANDROID_BRIDGE: '1',
+    })
+    expect(result.status).toBe(0)
+    expect(result.result).toBe('1.6.7')
+    const bridgeEnv = { ALLOW_IOS_BRIDGE: '1', ALLOW_ANDROID_BRIDGE: '1' }
+    expect(invoke('next-ios-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result).toBe(
+        '1.5.1002-ios'
+    )
+    expect(
+        invoke('next-android-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result
+    ).toBe('1.6.1002-android')
+})
 it('verifies the selected production artifact after promotion', () => {
     const rows = [channelPolicy('ios', env.VERSION), channels[1]]
     expect(invoke('verify-production', [...policyResponses(rows), { body: [goodBundle] }]).status).toBe(0)
@@ -316,98 +527,93 @@ it('allows reuse only of a verified native .0 record from the exact source', () 
     expect(invoke('existing-native', [], { VERSION: '1.7.1-ios' }).status).toBe(1)
 })
 
-// Run the actual promotion shell; only executables are replaced. The real
-// preflight consumes recorded API responses. Post-promotion verification has
-// separate exact-artifact cases above. No network or publication is possible.
-function promotion(change = {}, apiFails = false, versions = { ios: 'builtin', android: 'builtin' }) {
-    const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
-    const step = source.slice(
-        source.indexOf('- name: Promote verified bundles'),
-        source.indexOf('- name: Deployment summary')
-    )
-    const shell = step.match(/run: \|\n([\s\S]*)/)[1]
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-promotion-'))
-    const marker = path.join(dir, 'production-mutated')
-    const driver = `
-      const mode = process.argv[2]; process.argv[1] = process.execPath;
-      globalThis.fetch = () => { throw new Error('unexpected live request'); };
-      if (!['verify-promotion', 'current-version'].includes(mode)) process.exit(0);
-      const { run } = await import(${JSON.stringify(SCRIPT)});
-      const responses = JSON.parse(process.env.TEST_RESPONSES);
-      try { const result = await run(mode, { fetchImpl: async () => ({
-        ok: process.env.TEST_API_FAILS !== 'true', status: 503,
-        json: async () => responses.shift().body
-      }) }); if (mode === 'current-version') process.stdout.write(result); }
-      catch (error) { console.error(error.message); process.exitCode = 1; }
-    `
-    try {
-        const result = spawnSync(
-            'bash',
+it('promotes one platform bundle and disables rollout in the same mutation', () => {
+    const promoted = channelPolicy('ios', env.VERSION)
+    const result = invoke('promote-production', [
+        ...policyResponses(),
+        { body: { status: 'success' } },
+        ...policyResponses([promoted, channels[1]]),
+    ])
+
+    expect(result.status).toBe(0)
+    expect(result.requests[3]).toMatchObject({
+        method: 'POST',
+        body: {
+            app_id: env.CAPGO_APP_ID,
+            channel: 'ios-mobile-release',
+            version: env.VERSION,
+            rolloutEnabled: false,
+        },
+    })
+})
+it('continues the 1.5.x iOS lane only when the bridge policy is active', () => {
+    const bridge = { ...channelPolicy('ios', '1.5.1000-ios'), disable_auto_update_under_native: false }
+    const next = { ...bridge, version: { id: 42, name: '1.5.1001-ios' } }
+    const options = { PLATFORM: 'ios', VERSION: '1.5.1001-ios', ALLOW_IOS_BRIDGE: '1', IOS_LEGACY_BRIDGE: '1' }
+    expect(
+        invoke(
+            'promote-production',
             [
-                '-euo',
-                'pipefail',
-                '-c',
-                `
-          node() { "$NODE_BINARY" --input-type=module -e "$GUARD_DRIVER" "$@"; }
-          npx() { printf '%s\n' "$*" >> "$PROMOTED_FILE"; }
-          ${shell}
-        `,
+                ...policyResponses([bridge, channels[1]]),
+                { body: { status: 'success' } },
+                ...policyResponses([next, channels[1]]),
             ],
-            {
-                encoding: 'utf8',
-                env: {
-                    ...process.env,
-                    ...env,
-                    RELEASE_VERSION: '1.6.3',
-                    NODE_BINARY: process.execPath,
-                    GUARD_DRIVER: driver,
-                    PROMOTED_FILE: marker,
-                    TEST_API_FAILS: String(apiFails),
-                    TEST_RESPONSES: JSON.stringify(
-                        policyResponses([
-                            { ...channelPolicy('ios', versions.ios), ...change },
-                            channelPolicy('android', versions.android),
-                        ])
-                    ),
-                },
-            }
-        )
-        return {
-            status: result.status,
-            promoted: fs.existsSync(marker),
-            calls: fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8').trim().split('\n') : [],
-        }
-    } finally {
-        fs.rmSync(dir, { recursive: true, force: true })
-    }
-}
-it.each([{ rollout_enabled: true }, { rollout_enabled: null }, { android: true }, { disable_auto_update: 'major' }])(
-    'the actual workflow cannot mutate either channel after rejected preflight %j',
-    (change) => {
-        expect(promotion(change)).toMatchObject({ status: 1, promoted: false })
-    }
-)
-it('the actual workflow stops before mutation on API failure', () => {
-    expect(promotion({}, true)).toMatchObject({ status: 1, promoted: false })
+            options
+        ).status
+    ).toBe(0)
+    const rejected = invoke('promote-production', policyResponses([bridge, channels[1]]), {
+        ...options,
+        IOS_LEGACY_BRIDGE: '0',
+    })
+    expect(rejected.status).toBe(1)
+    expect(rejected.requests.every((request) => request.method === 'GET')).toBe(true)
 })
-it('the actual workflow promotes only after both platform policies pass', () => {
-    expect(promotion()).toMatchObject({ status: 0, promoted: true })
+it('continues the 1.6.x Android lane only in Android bridge mode', () => {
+    const bridge = { ...channelPolicy('android', '1.6.1000-android'), disable_auto_update_under_native: false }
+    const next = { ...bridge, version: { id: 42, name: '1.6.1001-android' } }
+    const options = {
+        PLATFORM: 'android',
+        VERSION: '1.6.1001-android',
+        ALLOW_ANDROID_BRIDGE: '1',
+        ANDROID_LEGACY_BRIDGE: '1',
+        NATIVE_FLOOR: '1.6.0',
+    }
+    expect(
+        invoke(
+            'promote-production',
+            [
+                ...policyResponses([channels[0], bridge]),
+                { body: { status: 'success' } },
+                ...policyResponses([channels[0], next]),
+            ],
+            options
+        ).status
+    ).toBe(0)
+    const rejected = invoke('promote-production', policyResponses([channels[0], bridge]), {
+        ...options,
+        ANDROID_LEGACY_BRIDGE: '0',
+    })
+    expect(rejected.status).toBe(1)
+    expect(rejected.requests.every((request) => request.method === 'GET')).toBe(true)
 })
-it('bypasses Capgo metadata comparison only while each production channel is builtin', () => {
-    const bootstrap = promotion()
-    expect(bootstrap.status).toBe(0)
-    expect(bootstrap.calls).toHaveLength(2)
-    expect(bootstrap.calls.every((call) => call.includes('--ignore-metadata-check'))).toBe(true)
 
-    const partialBootstrap = promotion({}, false, { ios: '1.6.4-ios', android: 'builtin' })
-    expect(partialBootstrap.status).toBe(0)
-    expect(partialBootstrap.calls[0]).not.toContain('--ignore-metadata-check')
-    expect(partialBootstrap.calls[1]).toContain('--ignore-metadata-check')
+it('does not mutate production after a rejected policy preflight', () => {
+    const result = invoke(
+        'promote-production',
+        policyResponses([{ ...channels[0], rollout_enabled: true }, channels[1]])
+    )
+    expect(result.status).toBe(1)
+    expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
+})
 
-    const laterOta = promotion({}, false, { ios: '1.6.4-ios', android: '1.6.4-android' })
-    expect(laterOta.status).toBe(0)
-    expect(laterOta.calls).toHaveLength(2)
-    expect(laterOta.calls.every((call) => !call.includes('--ignore-metadata-check'))).toBe(true)
+it('fails when Capgo does not persist the exclusive promotion', () => {
+    const result = invoke('promote-production', [
+        ...policyResponses(),
+        { body: { status: 'success' } },
+        ...policyResponses(),
+    ])
+    expect(result.status).toBe(1)
+    expect(result.error).toContain('did not persist the exclusive promotion')
 })
 it('uploads and verifies both artifacts before any production promotion', () => {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
@@ -417,50 +623,90 @@ it('uploads and verifies both artifacts before any production promotion', () => 
     expect(source).toContain('--channel ota-candidate')
     expect(source).toContain('UPLOAD_GUARD_ARGS+=(--ignore-checksum-check)')
     expect(source).toContain('"${UPLOAD_GUARD_ARGS[@]}"')
-    expect(source).not.toContain('channel set production')
+    expect(source).toContain('capgo-release-guard.mjs promote-production')
+    expect(source).not.toContain('channel set')
 })
 
 it('bypasses the candidate checksum collision only for the second platform record', () => {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
     const step = source.slice(source.indexOf('- name: Upload bundles'), source.indexOf('- name: Verify the floors'))
     const shell = step.match(/run: \|\n([\s\S]*)/)[1]
+    const mainSha = 'b'.repeat(40)
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-platform-uploads-'))
     const calls = path.join(dir, 'calls')
-    try {
-        const result = spawnSync(
-            'bash',
-            [
-                '-euo',
-                'pipefail',
-                '-c',
-                `
+    const shellCommand = `
           npx() { printf '%s\\n' "$*" >> "$CALLS_FILE"; }
           ${shell}
-        `,
-            ],
-            {
-                encoding: 'utf8',
-                env: {
-                    ...process.env,
-                    CAPGO_API_KEY: 'api-key',
-                    CAPGO_PRIVATE_KEY: 'private-key',
-                    COMMIT_MSG: 'release',
-                    RELEASE_VERSION: '1.6.4',
-                    FLOOR_ANDROID: '1.6.0',
-                    FLOOR_IOS: '1.5.0',
-                    GITHUB_SHA: SHA,
-                    CALLS_FILE: calls,
-                },
-            }
-        )
+        `
+    try {
+        const result = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                COMMIT_MSG: 'release',
+                RELEASE_VERSION: '1.6.4',
+                RELEASE_VERSION_IOS: '1.6.4-ios',
+                RELEASE_VERSION_ANDROID: '1.6.4-android',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                GITHUB_SHA: SHA,
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
         expect(result.status).toBe(0)
         const [ios, android] = fs.readFileSync(calls, 'utf8').trim().split('\n')
         expect(ios).toContain('--bundle 1.6.4-ios')
+        expect(ios).toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${mainSha}`)
+        expect(ios).not.toContain(`--link https://github.com/peanutprotocol/peanut-ui/commit/${SHA}`)
         expect(ios).toContain('--min-update-version 1.5.0')
         expect(ios).not.toContain('--ignore-checksum-check')
         expect(android).toContain('--bundle 1.6.4-android')
         expect(android).toContain('--min-update-version 1.6.0')
         expect(android).toContain('--ignore-checksum-check')
+
+        const bridgeResult = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                RELEASE_VERSION: '1.6.5',
+                RELEASE_VERSION_IOS: '1.5.1001-ios',
+                RELEASE_VERSION_ANDROID: '1.6.5-android',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
+        expect(bridgeResult.status).toBe(0)
+        const [, , bridgedIos, nextAndroid] = fs.readFileSync(calls, 'utf8').trim().split('\n')
+        expect(bridgedIos).toContain('--bundle 1.5.1001-ios')
+        expect(bridgedIos).toContain('--min-update-version 1.5.0')
+        expect(nextAndroid).toContain('--bundle 1.6.5-android')
+
+        const bothBridges = spawnSync('bash', ['-euo', 'pipefail', '-c', shellCommand], {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                CAPGO_API_KEY: 'api-key',
+                CAPGO_PRIVATE_KEY: 'private-key',
+                RELEASE_VERSION: '1.7.1',
+                RELEASE_VERSION_IOS: '1.5.1002-ios',
+                RELEASE_VERSION_ANDROID: '1.6.1001-android',
+                FLOOR_ANDROID: '1.6.0',
+                FLOOR_IOS: '1.5.0',
+                OTA_SOURCE_SHA: mainSha,
+                CALLS_FILE: calls,
+            },
+        })
+        expect(bothBridges.status).toBe(0)
+        const uploads = fs.readFileSync(calls, 'utf8').trim().split('\n')
+        expect(uploads.at(-2)).toContain('--bundle 1.5.1002-ios')
+        expect(uploads.at(-1)).toContain('--bundle 1.6.1001-android')
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }
@@ -474,6 +720,7 @@ it('never assigns a prerelease .0 identity that sorts below its native binary', 
 // cover the ordering and failures that can otherwise promote an absent artifact.
 function publishNative({
     existing = 'missing',
+    raceWinner = 'missing',
     failure = '',
     platform = 'ios',
     androidFloor = '1.7.0',
@@ -508,7 +755,10 @@ function publishNative({
             fi
             printf '%s\\n' "$2" >> "$CALL_LOG"
             [ "$FAILURE" != "$2" ] || return 1
-            if [ "$2" = existing-native ]; then printf '%s' "$EXISTING"; fi
+            if [ "$2" = existing-native ]; then
+              COUNT="$(grep -c '^existing-native$' "$CALL_LOG")"
+              if [ "$COUNT" -eq 1 ]; then printf '%s' "$EXISTING"; else printf '%s' "$RACE_WINNER"; fi
+            fi
           }
           npx() {
             printf '%s\\n' "$*" >> "$CALL_LOG"
@@ -532,6 +782,7 @@ function publishNative({
                     IS_REBUILD: isRebuild ? 'true' : 'false',
                     CALL_LOG: log,
                     EXISTING: existing,
+                    RACE_WINNER: raceWinner,
                     FAILURE: failure,
                     PUBLISH_SCRIPT: path.join(ROOT, 'scripts/publish-native-ota.sh'),
                 },
@@ -546,12 +797,11 @@ it.each(['ios', 'android'])('native publisher verifies before promoting %s', (pl
     const { status, calls } = publishNative({ platform })
     expect(status).toBe(0)
     const upload = calls.findIndex((line) => line.includes('bundle upload'))
-    const promote = calls.findIndex((line) => line.includes('channel set'))
+    const promote = calls.indexOf('promote-production')
     expect(upload).toBeGreaterThan(calls.indexOf('existing-native'))
     expect(calls[upload]).toContain('--min-update-version 1.7.0')
     expect(calls[upload]).toContain('[ota-floors: android=1.7.0 ios=1.7.0]')
     expect(promote).toBeGreaterThan(calls.indexOf('verify-bundle'))
-    expect(calls[promote]).toContain(`channel set ${platform}-mobile-release`)
     expect(calls.at(-1)).toBe('verify-production')
 })
 it('native publisher uses the stricter compatible floor when platform floors differ', () => {
@@ -584,6 +834,12 @@ it('native publisher skips uploading only an already verified record', () => {
     expect(calls.some((line) => line.includes('bundle upload'))).toBe(false)
     expect(calls).toContain('verify-bundle')
 })
+it('native publisher recovers only when a concurrent upload verifies exactly', () => {
+    const { status, calls } = publishNative({ failure: 'upload', raceWinner: '1.8.0' })
+    expect(status).toBe(0)
+    expect(calls.filter((line) => line === 'existing-native')).toHaveLength(2)
+    expect(calls.indexOf('verify-bundle')).toBeLessThan(calls.indexOf('promote-production'))
+})
 it.each([
     'floor-android',
     'floor-ios',
@@ -592,8 +848,10 @@ it.each([
     'upload',
     'verify-bundle',
     'verify-promotion',
+    'promote-production',
 ])('native publisher cannot promote after %s fails', (failure) => {
     const { status, calls } = publishNative({ failure })
     expect(status).toBe(1)
-    expect(calls.some((line) => line.includes('channel set'))).toBe(false)
+    if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
+    expect(calls).not.toContain('verify-production')
 })

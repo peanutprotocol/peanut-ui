@@ -11,6 +11,8 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -120,6 +122,47 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
+// Mirror GET /badge/catalog: only badges a user can earn today.
+// Registry metric metadata alone is not an unlock path.
+const DEMO_BADGE_CATALOG = [
+    {
+        code: 'CARD_FIRST_SWIPE',
+        name: 'First Swipe',
+        description: 'You put your card to work.',
+        publicDescription: 'They put their card to work.',
+        iconUrl: '/badges/happy_card.svg',
+        unlock: { kind: 'card_purchase' },
+        earnable: true,
+    },
+    {
+        code: 'CARD_SPENT_1K',
+        name: '$1K Club',
+        description: '$1K swiped.',
+        publicDescription: '$1K swiped.',
+        iconUrl: '/badges/money_stack.svg',
+        unlock: { kind: 'card_spend', targetUsd: 1000 },
+        earnable: true,
+    },
+    {
+        code: 'ENS',
+        name: 'Name Dropper',
+        description: 'You paid at a name. Or got paid at yours.',
+        publicDescription: 'They moved money with an ENS name.',
+        iconUrl: '/badges/ens.svg',
+        unlock: { kind: 'ens_payment' },
+        earnable: true,
+    },
+    {
+        code: 'TRON',
+        name: 'Tron Native',
+        description: 'Found on Tron. Where the dollars actually move.',
+        publicDescription: 'Found on Tron. Where the dollars actually move.',
+        iconUrl: '/badges/tron.svg',
+        unlock: { kind: 'campaign' },
+        earnable: true,
+    },
+]
+
 const demoRequest = (uuid: string, options?: RequestInit) => {
     const body = parseBody(options)
     const tokenAmount = String(body.tokenAmount ?? body.requestProps?.tokenAmount ?? body.local_price?.amount ?? '0')
@@ -137,6 +180,9 @@ const demoRequest = (uuid: string, options?: RequestInit) => {
         attachmentUrl: null,
         createdAt: CREATED_AT,
         updatedAt: CREATED_AT,
+        paidAt: null,
+        receivedAmount: null,
+        bankInstructionsShared: false,
         charges: [],
         history: [],
         recipientAccount: {
@@ -374,6 +420,37 @@ let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
+/**
+ * The euro account the demo user holds, shaped like sandbox output with
+ * documentation coordinates instead of real ones.
+ *
+ * Sandbox opens the account in the user's own name, so `nameOnAccount` is
+ * `user` and the holder is the demo user. Who may pay in, and on what terms,
+ * is NOT written here: it comes from the one fixture table that mirrors the
+ * backend's rail rules, so demo and the design harness cannot disagree about
+ * what a euro account promises.
+ */
+const DEMO_DEPOSIT_ACCOUNT_EUR = {
+    id: 'demo-deposit-account-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+    instructions: {
+        accountHolderName: 'Demo User',
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: 'Demo User',
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
+        paymentRails: ['sepa'],
+    },
+} satisfies DepositAccount
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -391,6 +468,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             }
         },
     },
+    // The bank form asks for this the moment it opens with "this account is
+    // mine" ticked, so every fixture that mounts the form needs an answer or
+    // the capture harness fails on an unmapped route. An empty body is the
+    // route's own "nothing to prefill" answer: the form asks for the address,
+    // which is what the form fixtures exist to show. A fixture that wants the
+    // prefilled form overrides this key with a synthetic address.
+    { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -415,6 +499,23 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         },
     },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
+    // Standing deposit accounts. The baseline user holds the EUR one and
+    // nothing else, so the list shows one held corridor and the rest open to
+    // claim — the state most users are in. Fixtures override this to reach the
+    // others.
+    {
+        method: 'GET',
+        pattern: '/users/deposit-accounts',
+        // The dollar corridor is the one the demo user can still open, so it
+        // comes back with the terms it would carry. Held corridors are never
+        // in `claimable` — their terms are confirmed and travel on the account.
+        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR], claimable: [CLAIMABLE_USD_PREVIEW] }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/deposit-accounts',
+        handler: () => ({ depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR }),
+    },
     {
         method: 'GET',
         pattern: '/users/username/:username',
@@ -486,6 +587,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: ({ params, options }) => demoRequest(params.uuid, options),
     },
     { method: 'DELETE', pattern: '/requests/:uuid', handler: ({ params }) => demoRequest(params.uuid) },
+    // What is left to pay on each rail. A demo request is in dollars and shares
+    // no bank details, so the Peanut rail alone answers, with no figure: the
+    // demo request is open-amount. A fixture overrides this where it needs rails.
+    {
+        method: 'GET',
+        pattern: '/requests/:uuid/pay-amounts',
+        handler: () => ({
+            requestCurrency: 'USD',
+            requestAmount: null,
+            remainingAmount: null,
+            rails: [{ kind: 'peanut_balance', payerAmount: { amount: null, currency: 'USD', isEstimate: false } }],
+        }),
+    },
 
     // send links
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
@@ -700,6 +814,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/points/invites',
         handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
     },
+    { method: 'GET', pattern: '/badge/catalog', handler: () => ({ badges: DEMO_BADGE_CATALOG }) },
 
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
@@ -797,6 +912,19 @@ export async function demoRespond(
 ): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
+
+    // The withdraw quote depends on its query, which route handlers never see:
+    // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
+    if (method === 'GET' && pathname === '/bridge/offramp/quote') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const destinationAmount = query.get('destinationAmount') ?? undefined
+        return json({
+            destinationCurrency: query.get('destinationCurrency') ?? 'eur',
+            rate: '1',
+            updatedAt: CREATED_AT,
+            ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
 
     // Capture mode never calls live rates or support sessions.
     if (capture?.offline && method === 'GET') {

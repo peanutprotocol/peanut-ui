@@ -19,9 +19,11 @@ function memoryStorage({ failLatest = false, sourceEntries = entries, reports = 
     for (const [path, report] of Object.entries(reports))
         objects.set(`reports/${path}/manifest.json`, Buffer.from(JSON.stringify(report)))
     const calls = []
+    const reads = []
     let shouldFail = failLatest
     return {
         calls,
+        reads,
         objects,
         async list({ prefix }) {
             return {
@@ -32,6 +34,7 @@ function memoryStorage({ failLatest = false, sourceEntries = entries, reports = 
             }
         },
         async read(pathname) {
+            reads.push(pathname)
             return objects.get(pathname)
         },
         async put(pathname, body) {
@@ -98,6 +101,24 @@ test('latest prefers the English locale when the dev catalogue has a locale matr
     assert.equal(selectLatest(matrix).locale, 'en')
 })
 
+test('additional viewport entries remain browsable without replacing default latest or inheriting comparison counts', async () => {
+    const commit = sha('f')
+    const defaultPath = `2026-09-15/dev/en/${commit}/run-70-1`
+    const viewportPath = `2026-09-15/dev/en/320x712/${commit}/run-71-1`
+    const comparisonPath = `2026-09-15/pr-3166/en/${commit}/run-71-1`
+    const storage = memoryStorage({
+        sourceEntries: [
+            { path: defaultPath, locale: 'en', complete: true, sequence: 70 },
+            { path: viewportPath, locale: 'en', complete: true, sequence: 71 },
+            { path: comparisonPath, locale: 'en', complete: true, sequence: 71, changedScreens: 5 },
+        ],
+    })
+    const { entries, latest } = await updateIndexes(storage)
+    assert.equal(latest.path, defaultPath)
+    assert.equal(entries.find((entry) => entry.path === viewportPath).profile, '320x712')
+    assert.equal(entries.find((entry) => entry.path === viewportPath).changedScreens, undefined)
+})
+
 test('a newer Nutcracker run does not replace the latest deterministic app catalogue', () => {
     const nutcracker = {
         path: `2026-09-14/nutcracker/en/${sha('a')}/run-99-1`,
@@ -116,4 +137,32 @@ test('an interrupted pointer update can be retried safely', async () => {
     assert.equal(retry.latest.path, entries[2].path)
     assert.deepEqual(storage.calls, ['index.json', 'latest.json', 'index.json', 'latest.json'])
     assert.deepEqual(JSON.parse((await storage.read('latest.json')).toString()), { path: entries[2].path })
+})
+
+test('index refresh reuses immutable entries from the prior index', async () => {
+    const first = {
+        path: `2026-09-15/dev/en/${sha('a')}/run-40-1`,
+        locale: 'en',
+        complete: true,
+        sequence: 40,
+    }
+    const storage = memoryStorage({ sourceEntries: [first] })
+    await updateIndexes(storage)
+    storage.reads.length = 0
+
+    const second = {
+        path: `2026-09-16/dev/en/${sha('b')}/run-41-1`,
+        locale: 'en',
+        complete: true,
+        sequence: 41,
+    }
+    const firstObject = `entries/${first.path.replaceAll('/', '_')}.json`
+    const secondObject = `entries/${second.path.replaceAll('/', '_')}.json`
+    storage.objects.set(secondObject, Buffer.from(JSON.stringify(second)))
+
+    const { entries: refreshed } = await updateIndexes(storage)
+    assert.equal(refreshed.length, 2)
+    assert.ok(storage.reads.includes('index.json'))
+    assert.ok(storage.reads.includes(secondObject))
+    assert.equal(storage.reads.includes(firstObject), false)
 })

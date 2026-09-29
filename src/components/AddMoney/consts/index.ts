@@ -43,7 +43,7 @@ const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     },
     {
         id: 'crypto-add',
-        icon: 'wallet-outline' as IconName,
+        icon: 'coins' as IconName,
         path: '/add-money/crypto',
         title: 'From Crypto',
         description: 'Usually arrives instantly',
@@ -75,38 +75,12 @@ const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     isSoon: false,
 }
 
-const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
-    {
-        id: 'crypto-withdraw',
-        icon: 'wallet-outline' as IconName,
-        title: 'Crypto',
-        description: 'Withdraw to a wallet address',
-        isSoon: false,
-        path: '/withdraw/crypto',
-    },
-    {
-        id: 'default-bank-withdraw',
-        icon: 'bank' as IconName,
-        title: 'To Bank',
-        description: 'Standard bank withdrawal',
-        isSoon: false,
-    },
-]
-
 const countrySpecificWithdrawMethods: Record<
     string,
     Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
     Brazil: [{ title: 'Pix', description: 'Instant transfers', icon: PIX, isSoon: false }],
-    Argentina: [
-        {
-            title: 'Mercado Pago',
-            description: 'Instant transfers',
-            icon: MERCADO_PAGO,
-            isSoon: false,
-        },
-    ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
     Kenya: [{ title: 'M-Pesa', description: 'Over 90% penetration, also in Tanzania, Mozambique, etc.' }],
     Portugal: [{ title: 'MB WAY', description: 'Popular for QR payments, instant transfers.' }],
@@ -2601,6 +2575,10 @@ export const COUNTRY_SPECIFIC_METHODS: Record<string, CountrySpecificMethods> = 
 // incl. the 2025/26 SEPA joiners AL/MD/ME/MK/RS) plus US
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
 export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    // Åland (ALA) keeps its corridor although it uses Finnish banking: its IBANs
+    // start FI and the form reads the country off the IBAN, so the payout is
+    // identical to Finland's. Dropping it would turn a destination we CAN pay
+    // into a waitlist row (QA round 2, Q2).
     ALA: 'AX',
     ALB: 'AL',
     AND: 'AD',
@@ -2659,7 +2637,9 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
+// Colombia withdraws to a Colombian bank account; the deposit side opens
+// separately, on the standing-account corridor.
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'CO'])
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
 const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
@@ -2706,33 +2686,13 @@ countryData.forEach((country) => {
             })
         }
 
-        // 2. add SEPA for EUR countries if not already present from specifics
-        if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
-            // Germany as proxy for SEPA availability
-            const sepaExists = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
-            if (!sepaExists) {
-                withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
-                    icon: 'bank' as IconName,
-                    title: 'Euro bank transfers',
-                    description: 'Usually arrives within 20 minutes, up to 1 business day.',
-                    isSoon: false,
-                })
-            }
-        }
-
-        // 3. add DEFAULT_BANK_WITHDRAW_METHOD if an identical method (by title and icon) is not already present
-        // AND if SEPA was added, don't add default bank
+        // 2. add DEFAULT_BANK_WITHDRAW_METHOD if an identical method (by title and icon) is not already present
         const defaultBankTitle = DEFAULT_BANK_WITHDRAW_METHOD.title
         const defaultBankIcon = DEFAULT_BANK_WITHDRAW_METHOD.icon
 
-        const sepaWasAdded = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
-
         const genericBankExists = withdrawList.some((m) => m.title === defaultBankTitle && m.icon === defaultBankIcon)
 
-        // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
-        // for now, we simplify: if SEPA was added, we assume default bank is redundant.
-        if (!genericBankExists && !sepaWasAdded) {
+        if (!genericBankExists) {
             const isMantecaSupportedCountry = isMantecaCountry(country.path)
 
             withdrawList.push({
@@ -2743,14 +2703,6 @@ countryData.forEach((country) => {
                     : `/withdraw/${countryCode.toLowerCase()}/bank`,
                 isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
-        }
-
-        const cryptoWithdrawMethod = DEFAULT_WITHDRAW_METHODS.find((m) => m.id === 'crypto-withdraw')
-        if (cryptoWithdrawMethod) {
-            const cryptoExists = withdrawList.some((m) => m.id === 'crypto-withdraw')
-            if (!cryptoExists) {
-                withdrawList.unshift(cryptoWithdrawMethod)
-            }
         }
 
         // filter add methods: include Mercado Pago only for LATAM countries

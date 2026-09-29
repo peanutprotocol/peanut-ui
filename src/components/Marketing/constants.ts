@@ -14,3 +14,9 @@ export const HUB_WIDTH = 'max-w-[720px]'
  *  the lift shadow is the DS `shadow-primary-6` step, not an arbitrary one. */
 export const CARD_HOVER =
     'transition-all duration-fast hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-primary-6 active:translate-x-1 active:translate-y-1 active:shadow-none'
+
+/** Inline prose link: a link inside a sentence just underlines the surrounding
+ *  text (design.md — the one exception to LinkButton). One string, so the MDX
+ *  element map and any component that writes its own anchor cannot drift. */
+export const PROSE_LINK =
+    'text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'

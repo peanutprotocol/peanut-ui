@@ -105,7 +105,7 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
                             {amountFieldSkeleton}
                             <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
                             <div className="min-h-17 w-full rounded-sm border border-border-default" />
-                            <div className="h-11 w-full animate-pulse rounded-round bg-foreground-primary/10" />
+                            <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
                             <div className="min-h-4 w-full" />
                         </Card>
                     </div>

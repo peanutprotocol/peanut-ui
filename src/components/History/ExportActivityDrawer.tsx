@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
@@ -18,7 +18,7 @@ import {
     type ActivityExportFile,
 } from '@/utils/activityExport.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { rangeAnalytics } from '@/utils/historyRange.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
@@ -36,7 +36,7 @@ const FORMAT_OPTIONS: { value: ActivityExportFormat; label: string }[] = [
 ]
 
 /**
- * Export the activity history as a file. Format via SegmentedControl, range
+ * Export the activity history as a file. Format via Tabs (triggers only), range
  * via the shared timeframe drawer (nested), download over authed fetch —
  * native delivery uses a fresh tap after file preparation.
  */
@@ -120,23 +120,23 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
             <DrawerContent accessibleTitle={t('export.title')} className="py-4">
                 <div className="flex flex-col gap-4 pb-2">
                     <div className="text-center text-heading-xs">{t('export.title')}</div>
-                    <SegmentedControl
+                    <Tabs
                         aria-label={t('export.format')}
-                        fullWidth
+                        fullWidth="stretch"
                         value={format}
-                        onChange={(value) => setFormat(value as ActivityExportFormat)}
-                        options={FORMAT_OPTIONS}
+                        onValueChange={(value) => setFormat(value as ActivityExportFormat)}
+                        tabs={FORMAT_OPTIONS}
                     />
                     <ListItem
-                        position="single"
+                        position="solo"
                         leading={<IconBubble icon="calendar" size="s" />}
                         title={t('export.range')}
                         body={rangeLabel}
                         chevron
                         onClick={() => setRangeOpen(true)}
                     />
-                    {error && <Notification priority="error">{error}</Notification>}
-                    <Button variant="purple" className="w-full" loading={isExporting} onClick={handleDownload}>
+                    {error && <Callout priority="error">{error}</Callout>}
+                    <Button variant="primary" className="w-full" loading={isExporting} onClick={handleDownload}>
                         {t(prepared && isCapacitor() ? 'export.save' : 'export.download')}
                     </Button>
                 </div>

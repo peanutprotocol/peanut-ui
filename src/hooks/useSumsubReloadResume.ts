@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useQueryState, parseAsJson } from 'nuqs'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { DEPOSIT_CORRIDORS } from '@/features/deposit-accounts/params'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 
 const REGION_INTENTS: readonly KYCRegionIntent[] = ['LATAM', 'ROW', 'EU', 'NA', 'STANDARD']
 
@@ -9,11 +11,12 @@ export type KycResumeState = {
     levelName?: string
     crossRegion?: boolean
     targetCountry?: string
+    corridor?: DepositCorridor
 }
 
 const parseKycResumeState = (value: unknown): KycResumeState | null => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
-    const { intent, levelName, crossRegion, targetCountry } = value as Record<string, unknown>
+    const { intent, levelName, crossRegion, targetCountry, corridor } = value as Record<string, unknown>
     const asString = (v: unknown) => (typeof v === 'string' ? v : undefined)
     const asIntent = (v: unknown) =>
         REGION_INTENTS.includes(v as KYCRegionIntent) ? (v as KYCRegionIntent) : undefined
@@ -22,6 +25,7 @@ const parseKycResumeState = (value: unknown): KycResumeState | null => {
         levelName: asString(levelName),
         crossRegion: typeof crossRegion === 'boolean' ? crossRegion : undefined,
         targetCountry: asString(targetCountry),
+        corridor: DEPOSIT_CORRIDORS.includes(corridor as DepositCorridor) ? (corridor as DepositCorridor) : undefined,
     }
 }
 

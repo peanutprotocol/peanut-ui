@@ -15,10 +15,6 @@ jest.mock('@/utils/bridge.utils', () => ({
     getCurrencyConfig: () => ({ currency: 'eur', paymentRail: 'sepa' }),
 }))
 
-jest.mock('@/app/actions/currency', () => ({
-    getCurrencyPrice: jest.fn(),
-}))
-
 const country = { id: 'DE', type: 'country', path: 'germany' } as unknown as CountryData
 
 describe('useCreateOnramp', () => {
@@ -85,5 +81,23 @@ describe('useCreateOnramp', () => {
             response = await result.current.createOnramp({ amount: '100', country })
         })
         expect(response).toEqual(data)
+    })
+
+    // The amount field keeps "100." mid-typing, and the API answers 400 to
+    // anything that is not a plain 2-decimal amount.
+    it.each([
+        ['100.', '100.00'],
+        ['.5', '0.50'],
+        ['100', '100.00'],
+        ['99.9', '99.90'],
+    ])('sends the typed amount %s as %s', async (typed, sent) => {
+        apiFetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ transferId: 't-1' }) })
+        const { result } = renderHook(() => useCreateOnramp())
+
+        await act(async () => {
+            await result.current.createOnramp({ amount: typed, country })
+        })
+        const body = JSON.parse(apiFetchMock.mock.calls[0][1].body)
+        expect(body.amount).toBe(sent)
     })
 })

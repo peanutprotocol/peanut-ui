@@ -2,9 +2,8 @@ import { getExchangeRate } from './exchange-rate'
 import { AccountType } from '@/interfaces/interfaces'
 import { mantecaApi } from '@/services/manteca'
 import { unstable_cache } from '@/utils/no-cache'
+import { BRIDGE_CURRENCIES, MANTECA_CURRENCIES } from '@/constants/quotable-currencies.consts'
 
-const MANTECA_CURRENCIES = ['ARS', 'BRL', 'COP', 'CRC', 'PUSD', 'GTQ', 'PHP', 'BOB']
-const BRIDGE_CURRENCIES = ['EUR', 'MXN', 'GBP']
 const BRIDGE_ACCOUNT_TYPE: Record<string, AccountType> = {
     EUR: AccountType.IBAN,
     MXN: AccountType.CLABE,

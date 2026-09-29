@@ -1,8 +1,9 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -10,6 +11,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
@@ -56,7 +58,7 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -148,6 +150,11 @@ const LinkSendInitialView = () => {
                 }
             }, 0)
         } catch (error) {
+            // Card re-approval dismissed, or the screen left, before the link's
+            // deposit was prepared or signed — no link exists and nothing was
+            // spent. Control flow, not a failed link creation.
+            if (error instanceof SpendRecoveryAbortedError) return
+
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
@@ -258,7 +265,7 @@ const LinkSendInitialView = () => {
     // Client-side validation errors carry an errorCode ('invalidAmount' /
     // 'notEnoughBalanceAddFunds') — they render as the amount field's own
     // error. Submit-time failures (createLink, cooldown, settling copy) have
-    // no code and stay in the flow-level Notification with the retry CTA.
+    // no code and stay in the flow-level Callout with the retry CTA.
     const isFieldError =
         !!errorState?.showError &&
         (errorState.errorCode === 'invalidAmount' || errorState.errorCode === 'notEnoughBalanceAddFunds')
@@ -269,14 +276,15 @@ const LinkSendInitialView = () => {
         <>
             <PeanutActionCard type="send" />
 
-            <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+            <Field error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
                 <AmountInput
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleAmountChange}
                     onSubmit={handleOnNext}
                     walletBalance={peanutWalletBalance}
+                    balanceFillAmount={spendableBalanceDecimal}
                 />
-            </FieldColumn>
+            </Field>
 
             <BaseInput
                 placeholder={tCommon('comment')}
@@ -286,9 +294,9 @@ const LinkSendInitialView = () => {
             />
 
             {isBelowFiatClaimMinimum && (
-                <Notification priority="attention" data-testid="info-card">
+                <Callout priority="attention" data-testid="info-card">
                     {t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
-                </Notification>
+                </Callout>
             )}
 
             <div className="flex flex-col gap-4">
@@ -309,9 +317,9 @@ const LinkSendInitialView = () => {
                     </Button>
                 )}
                 {isFlowError && (
-                    <Notification priority="error" data-testid="error-alert">
-                        {errorState.errorMessage}
-                    </Notification>
+                    <Callout priority="error" data-testid="error-alert">
+                        <CooldownErrorText message={errorState.errorMessage} />
+                    </Callout>
                 )}
             </div>
         </>

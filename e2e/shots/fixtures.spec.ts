@@ -38,11 +38,27 @@ const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
 // 'disabled'` in the screenshot call only rewinds CSS animations; framer-motion
 // drives inline transitions from JS, so those need the stylesheet too.
 const FREEZE_CSS = `
+/* the fixture strip is scaffolding, never product — it belongs in no shot */
+[data-fixture-banner] {
+    display: none !important;
+}
 *, *::before, *::after {
     animation: none !important;
     transition: none !important;
     caret-color: transparent !important;
     scroll-behavior: auto !important;
+}
+`
+
+// Unpins the app shell's inner scroller so the document itself grows, and
+// takes the fixed bottom nav out of the frame it would otherwise cover.
+const FULL_PAGE_CSS = `
+#scrollable-content {
+    overflow: visible !important;
+    height: auto !important;
+}
+[data-testid='app-shell-nav'] {
+    display: none !important;
 }
 `
 
@@ -81,7 +97,6 @@ async function settle(page: Page): Promise<void> {
             )
         })
     }, LOADERS)
-    await page.addStyleTag({ content: FREEZE_CSS })
     await page.evaluate(() => document.fonts.ready.then(() => undefined))
     // next/image decodes lazily; an image that lands after the shot is the
     // classic one-pixel-different rerun. Only in-viewport images count: the
@@ -130,7 +145,22 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.addInitScript(seenOnceModals)
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
-        await settle(page)
+        // Before the wait, not after: a loading fixture never reaches settle,
+        // and it needs the strip hidden as much as every other shot does.
+        await page.addStyleTag({ content: FREEZE_CSS })
+        // A fixture whose whole subject is a loader has nothing to settle to.
+        // Waiting for the loader itself, rather than a fixed delay, is what
+        // keeps the shot off the app's own boot mascot.
+        if (fixture.isLoadingState) {
+            if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
+            else await page.waitForTimeout(2000)
+        } else {
+            await settle(page)
+            // A fixture whose subject arrives after a debounce — the amount
+            // error is 300ms behind the amount — names it, so the shot waits
+            // for the thing it is a shot of rather than the frame before it.
+            if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
+        }
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
         // bounces every protected route to /setup — which settles fine, so the
@@ -143,12 +173,25 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             })
             .toBe(name)
 
+        // Full-page capture needs the DOCUMENT to be the scroller. The app
+        // shell scrolls an inner element inside a `min-h-dvh` column, so
+        // `fullPage: true` alone returns the viewport and nothing more — the
+        // share screen's caveats never made it into the PNG. Letting the page
+        // grow then puts the fixed bottom nav over the last line, so hide it:
+        // the app reserves space for it, that reservation is inside the
+        // scroller we just unpinned.
+        if (fixture.fullPage) {
+            await page.addStyleTag({ content: FULL_PAGE_CSS })
+            await settle(page)
+        }
+
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({
             path: join(OUT_DIR, `${name}@${width}.png`),
             animations: 'disabled',
             caret: 'hide',
             scale: 'css',
+            fullPage: fixture.fullPage ?? false,
         })
     })
 }

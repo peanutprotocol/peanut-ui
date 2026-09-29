@@ -3,13 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { ReceiptUnavailable } from '../ReceiptUnavailable'
 
-jest.mock('next/image', () => ({
-    __esModule: true,
-    default: (props: Record<string, unknown>) => React.createElement('img', props as Record<string, string>),
-}))
-
-jest.mock('@/assets/logos/peanut-logo-dark.svg', () => 'peanut-logo-dark.svg')
-
 const renderVariant = (variant?: 'gone' | 'loadFailed', onRetry?: () => void) =>
     render(
         <IntlWrapper>
@@ -18,10 +11,9 @@ const renderVariant = (variant?: 'gone' | 'loadFailed', onRetry?: () => void) =>
     )
 
 describe('ReceiptUnavailable', () => {
-    test('defaults to the gone copy with branding and a home CTA — and no retry', () => {
+    test('defaults to the gone copy with a home CTA — and no retry', () => {
         renderVariant()
         expect(screen.getByText('This receipt link is no longer available')).toBeInTheDocument()
-        expect(screen.getByAltText('Peanut Logo')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: /go to home/i })).toHaveAttribute('href', '/home')
         expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
     })
@@ -54,5 +46,18 @@ describe('ReceiptUnavailable', () => {
         } finally {
             Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
         }
+    })
+
+    // the bubble follows the state, same rule as an activity row (TASK-22452):
+    // a dead link is terminal but nobody failed, a load that failed did.
+    test('gone shows a gray dead-link bubble, loadFailed a red alert', () => {
+        const { container, unmount } = renderVariant()
+        expect(container.querySelector('svg.lucide-unlink')).not.toBeNull()
+        expect(container.querySelector('.bg-background-icon-bubble-gray')).not.toBeNull()
+        unmount()
+
+        const failed = renderVariant('loadFailed')
+        expect(failed.container.querySelector('svg.lucide-triangle-alert')).not.toBeNull()
+        expect(failed.container.querySelector('.bg-background-icon-bubble-red')).not.toBeNull()
     })
 })

@@ -7,7 +7,7 @@
         "node": "^20.9.0 || ^22.0.0"
     },
     "scripts": {
-        "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
+        "dev": "node scripts/backdoor-scan.mjs --local --guard && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:clean": "rm -rf .next && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:fallback": "next dev --webpack",
         "postinstall": "node scripts/copy-flags.mjs",
@@ -111,7 +111,6 @@
         "gray-matter": "^4.0.3",
         "html-to-image": "^1.11.13",
         "i18n-iso-countries": "^7.13.0",
-        "iban-to-bic": "^1.4.0",
         "js-cookie": "^3.0.5",
         "lottie-web": "^5.13.0",
         "lucide-react": "^1.8.0",
@@ -121,8 +120,8 @@
         "nuqs": "^2.8.6",
         "p2-es": "1.2.3",
         "pix-utils": "^2.8.2",
-        "posthog-js": "^1.418.11",
-        "posthog-node": "5.50.0",
+        "posthog-js": "^1.428.4",
+        "psl": "1.15.0",
         "qr-scanner": "^1.4.2",
         "react": "^19.2.1",
         "react-day-picker": "^10.0.1",
@@ -258,6 +257,7 @@
             "protobufjs": "^7.5.5"
         },
         "patchedDependencies": {
+            "@capacitor/clipboard": "patches/@capacitor__clipboard.patch",
             "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }
     },

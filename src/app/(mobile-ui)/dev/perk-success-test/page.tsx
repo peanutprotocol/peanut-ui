@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -97,7 +97,7 @@ export default function PerkSuccessTestPage() {
             width="prose"
         >
             <div className="space-y-4">
-                <Notification priority="info" title="Test the perk claim success screen">
+                <Callout priority="info" title="Test the perk claim success screen">
                     <NumberedList
                         items={[
                             'Select “Trigger Success” to show the success screen.',
@@ -105,7 +105,7 @@ export default function PerkSuccessTestPage() {
                             'Select the preview to dismiss it and load the next mock perk.',
                         ]}
                     />
-                </Notification>
+                </Callout>
 
                 {/* Current Perk Info */}
                 <Card className="p-4">
@@ -119,7 +119,7 @@ export default function PerkSuccessTestPage() {
 
                 {/* Trigger Button */}
                 {!showSuccess && (
-                    <Button variant="purple" onClick={handleShowSuccess} className="w-full">
+                    <Button variant="primary" onClick={handleShowSuccess} className="w-full">
                         Trigger Success
                     </Button>
                 )}
@@ -169,14 +169,14 @@ export default function PerkSuccessTestPage() {
                 {/* Quick Actions */}
                 <div className="flex gap-2">
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => setCurrentPerkIndex((prev) => (prev + 1) % MOCK_PERKS.length)}
                         className="flex-1"
                     >
                         Next Perk
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         onClick={() => {
                             setShowSuccess(false)
                             setPlaySound(false)

@@ -35,10 +35,18 @@ export function useTosGuard() {
         return false
     }, [needsTos])
 
+    /**
+     * Show the step for an `accept-tos` verdict the caller has already resolved
+     * — a country-scoped withdraw gate, or a freshly fetched profile — which
+     * the unscoped deposit read above may not see yet.
+     */
+    const openTos = useCallback(() => setShowBridgeTos(true), [])
+
     const hideTos = useCallback(() => setShowBridgeTos(false), [])
 
     return {
         guardWithTos,
+        openTos,
         showBridgeTos,
         hideTos,
         needsTos,

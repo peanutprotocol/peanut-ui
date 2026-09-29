@@ -1,13 +1,14 @@
 'use client'
 
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import {
     deriveRegionAccess,
     pendingBankRailRegionPaths,
@@ -26,7 +27,7 @@ import { useRegionLabel } from '@/hooks/useRegionLabel'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
@@ -82,7 +83,7 @@ const LimitsPageView = () => {
             <NavHeader title={t('title')} onPrev={goBack} />
 
             {/* page description */}
-            <Notification priority="info">{t('pageDescription')}</Notification>
+            <Callout priority="info">{t('pageDescription')}</Callout>
 
             {/* fiat limits section */}
             {!hasAnyKyc && <FiatLimitsLockedCard />}
@@ -110,11 +111,11 @@ const LimitsPageView = () => {
                                 className="size-8 rounded-full object-cover"
                             />
                         }
-                        position="single"
+                        position="solo"
                         title={restOfWorldName}
                         onClick={() => {}}
                         disabled={true}
-                        trailing={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
+                        trailing={<Badge status="soon" customText={tCommon('comingSoon')} />}
                     />
                 </Section>
             )}
@@ -123,8 +124,8 @@ const LimitsPageView = () => {
             {activeCard && (
                 <Section title={t('cardLimits.title')}>
                     <ListItem
-                        position="single"
-                        leading={<Icon name="credit-card" size={24} />}
+                        position="solo"
+                        leading={<IconBubble {...CONCEPT_ICONS.card} size="s" />}
                         title={t('cardLimits.manage')}
                         body={<div>{t('cardLimits.description')}</div>}
                         chevron
@@ -218,12 +219,12 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                             title={label.name}
                             onClick={() => {
                                 if (!isPending) {
-                                    router.push('/profile/identity-verification')
+                                    router.push('/profile/accounts')
                                 }
                             }}
                             disabled={isPending}
                             body={<div className="text-body-xs">{label.description}</div>}
-                            trailing={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
+                            trailing={isPending && <Badge status="pending" customText={tCommon('pending')} />}
                             chevron={!isPending}
                         />
                     )

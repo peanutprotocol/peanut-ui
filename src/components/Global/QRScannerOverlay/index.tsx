@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, {
     type ActionModalButtonProps,
     type ActionModalCheckboxProps,
+    type ActionModalTertiaryCta,
     type ActionModalTone,
 } from '@/components/Global/ActionModal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
@@ -34,6 +35,7 @@ enum EModalType {
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
+    ARGENTINA_ALIAS = 'ARGENTINA_ALIAS',
 }
 
 interface QrResultModalProps {
@@ -50,6 +52,7 @@ interface QrResultModalContent {
     title: string
     description: React.ReactNode
     ctas: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
     checkbox?: ActionModalCheckboxProps
 }
 
@@ -124,7 +127,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             tone: 'success',
             title: t('qrScannerOverlay.titleWillBeNotified'),
             description: t('qrScannerOverlay.willBeNotified', { qrName }),
-            ctas: [{ text: tCommon('close'), variant: 'stroke', onClick: onClose }],
+            ctas: [{ text: tCommon('close'), shadowSize: '4', onClick: onClose }],
         },
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
@@ -150,17 +153,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                         closeAfterNavigation()
                     },
                 },
-                // The only way out: preventClose covers Escape, the backdrop and
-                // the back handler, and the X is hidden, so without this the user
-                // has to accept the warning to leave the modal.
-                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
             ],
+            // The only way out: preventClose covers Escape, the backdrop and
+            // the back handler, and the X is hidden, so without this the user
+            // has to accept the warning to leave the modal.
+            tertiaryCta: { text: tCommon('close'), onClick: onClose },
         },
         // A payload that is not an http(s) link is not one the user can be asked
         // to trust, so it is reported as unrecognised instead of offered.
         [EModalType.EXTERNAL_URL]: externalUrl
             ? {
-                  tone: 'warning',
+                  tone: 'attention',
                   title: t('qrScannerOverlay.titleExternalUrl'),
                   description: (
                       <>
@@ -169,10 +172,8 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                           <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
                       </>
                   ),
-                  ctas: [
-                      { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
-                      { text: tCommon('close'), variant: 'stroke', onClick: onClose },
-                  ],
+                  ctas: [{ text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() }],
+                  tertiaryCta: { text: tCommon('close'), onClick: onClose },
               }
             : unrecognizedContent,
         [EModalType.UNRECOGNIZED]: unrecognizedContent,
@@ -183,6 +184,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                 <>
                     <p>{t('qrScannerOverlay.pixRecurringIntro')}</p>
                     <p>{t('qrScannerOverlay.pixRecurringBody')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+        },
+        [EModalType.ARGENTINA_ALIAS]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleArgentinaAlias'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.argentinaAliasIntro')}</p>
+                    <p>{t('qrScannerOverlay.argentinaAliasBody')}</p>
                 </>
             ),
             ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
@@ -349,6 +361,13 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
+            // Before ENS and before the generic URL branch: a typed Argentine
+            // alias is not a name to look up, it is a "scan the merchant QR"
+            // answer. No resolver call is made for one.
+            case EQrType.ARGENTINA_ALIAS: {
+                showModal(EModalType.ARGENTINA_ALIAS)
+                return { success: true }
+            }
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {

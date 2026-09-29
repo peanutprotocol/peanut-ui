@@ -13,13 +13,13 @@ import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
+import type { MarqueeChip } from '@/lib/landingContent'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
 // JSON) into whatever chunk imports it, and it renders far below the fold.
@@ -31,8 +31,7 @@ type LandingPageClientProps = {
     heroConfig: {
         primaryCta: CTAButton
     }
-    marqueeMessages: string[]
-    locale: Locale
+    marqueeMessages: MarqueeChip[]
     strings: LandingStrings
     contentHrefs: LandingContentHrefs
     // Server-rendered slots
@@ -50,7 +49,6 @@ type LandingPageClientProps = {
 export function LandingPageClient({
     heroConfig,
     marqueeMessages,
-    locale,
     strings,
     contentHrefs,
     problemSlot,
@@ -72,8 +70,9 @@ export function LandingPageClient({
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
     // Only the words with a real article behind them become links; the rest
-    // stay plain text. Words come from the content system's marquee list, so an
-    // edit there just drops out of this map and renders unlinked.
+    // stay plain text. Words come from the content system's marquee list and are
+    // matched by their English id, so translated chips keep their links and an
+    // edit to the en list just drops out of this map and renders unlinked.
     const marqueeProps = useMemo(() => {
         const hrefs: Record<string, string> = {
             'No transfer fees': contentHrefs.pricing,
@@ -88,21 +87,21 @@ export function LandingPageClient({
         }
         return {
             visible: true,
-            message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
+            message: marqueeMessages.map(({ id, label }) => (hrefs[id] ? { label, href: hrefs[id] } : label)),
         }
     }, [contentHrefs, marqueeMessages])
 
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
-            // Every card feature opens the public application.
+            // the whole strip is the door: every word goes to /shhhhh
             message: [
                 tDoorMarquee('peanutCard'),
                 tDoorMarquee('contactless'),
                 tDoorMarquee('available'),
                 tDoorMarquee('online'),
                 tDoorMarquee('noMonthlyFee'),
-            ].map((label) => ({ label, href: '/card' })),
+            ].map((label) => ({ label, href: '/shhhhh' })),
         }),
         [tDoorMarquee]
     )
@@ -113,7 +112,7 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                locale={locale}
+                contentHrefs={contentHrefs}
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />

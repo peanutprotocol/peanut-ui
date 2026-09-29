@@ -26,6 +26,7 @@ export enum BridgeAccountType {
     US = 'us',
     CLABE = 'clabe',
     GB = 'gb', // uk bank accounts (sort code + account number)
+    CO_BANK_TRANSFER = 'co_bank_transfer', // colombian bank accounts
 }
 
 // matches the BridgeAccountOwnerType enum on the backend
@@ -46,7 +47,9 @@ export interface AddBankAccountPayload {
         lastName?: string
         businessName?: string
     }
-    address: {
+    // Only the corridors whose provider body carries a beneficiary address
+    // send one.
+    address?: {
         street: string
         city: string
         country: string
@@ -56,4 +59,10 @@ export interface AddBankAccountPayload {
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
+    // colombian bank accounts
+    documentType?: string
+    documentNumber?: string
+    bankCode?: string
+    accountCategory?: string
+    phoneNumber?: string
 }

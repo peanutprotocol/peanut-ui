@@ -16,7 +16,8 @@ import { useQrPayFlow } from '../QrPayFlowContext'
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
-    const { view, paymentMethodName, errorInitiatingPayment, onBack, retryOrderNotReady } = useQrPayFlow()
+    const { view, paymentMethodName, errorInitiatingPayment, initErrorNeedsSupport, onBack, retryOrderNotReady } =
+        useQrPayFlow()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const supportLink = (
@@ -30,7 +31,8 @@ export function QrPayBlockedView() {
     )
 
     // A failed init keeps its historical shape: message + CTA inside the card,
-    // no title, no support link.
+    // no title. The support link appears only for the refusals whose copy
+    // sends the user to support, so the one instruction on screen is reachable.
     if (view === 'INIT_ERROR') {
         return (
             <PageStack>
@@ -41,10 +43,11 @@ export function QrPayBlockedView() {
                         <IconBubble icon="alert" color="red" size="m" />
                         <p className="text-body-m"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
 
-                        <Button onClick={onBack} variant="purple">
+                        <Button onClick={onBack} variant="primary">
                             {t('maintenance.goBack')}
                         </Button>
                     </Card>
+                    {initErrorNeedsSupport ? supportLink : null}
                 </PageStack.Center>
             </PageStack>
         )
@@ -74,11 +77,11 @@ export function QrPayBlockedView() {
                     </p>
                 </Card>
                 {isMaintenance ? (
-                    <Button onClick={onBack} variant="purple" shadowSize="4">
+                    <Button onClick={onBack} variant="primary" shadowSize="4">
                         {t('maintenance.goBack')}
                     </Button>
                 ) : (
-                    <Button onClick={retryOrderNotReady} variant="purple" shadowSize="4">
+                    <Button onClick={retryOrderNotReady} variant="primary" shadowSize="4">
                         {t('orderNotReady.cta')}
                     </Button>
                 )}

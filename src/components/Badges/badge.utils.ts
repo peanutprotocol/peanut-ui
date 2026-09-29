@@ -63,6 +63,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     FOUNDER_HOUSE: 'On-chain energy, off-chain handshakes. Built it IRL at Founder Haus 🤝',
     BUG_WHISPERER: 'I found a real bug in Peanut, reported it, and stuck around. Someone owes me a beer 🐛🍺',
     SUPPORT_SURVIVOR: 'I found a real bug in Peanut, reported it, and stuck around. Someone owes me a beer 🐛🍺',
+    WHITE_HAT: 'I broke into Peanut, told them how, and walked out the front door. Certified White Hat 🤠',
     SHHHHH: "I know the secret. That's all I'm allowed to say 🤫",
     NOT_SO_SHHHH: "I couldn't keep the secret… and Peanut paid me for it 🤫💸",
     CARD_FIRST_SWIPE: 'Just put my Peanut card to work for the first time. They grow up so fast 💳',

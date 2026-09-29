@@ -1,7 +1,7 @@
 /**
- * PaymentMethodActionList — "Exchange or Wallet" visibility
+ * PaymentMethodActionList — "Crypto" visibility
  *
- * Regression: the direct-send flow rendered the "Exchange or Wallet" card
+ * Regression: the direct-send flow rendered the "Crypto" card
  * without an onPayWithExternalWallet handler, so it was enabled but its tap was
  * a silent no-op (dead button). The card must only render when the caller can
  * honor it (i.e. provides the handler — the semantic-request flow does).
@@ -19,8 +19,8 @@ jest.mock('next/navigation', () => ({
 
 // Return a fixed method list so the filter is the only thing under test.
 const METHODS = [
-    { id: 'bank', title: 'Bank', description: 'd', icons: [], soon: false },
-    { id: 'exchange-or-wallet', title: 'Exchange or Wallet', description: 'd', icons: [], soon: false },
+    { id: 'bank', title: 'Bank transfer', description: 'd', icons: [], soon: false },
+    { id: 'exchange-or-wallet', title: 'Crypto', description: 'd', icons: [], soon: false },
 ]
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: METHODS, isLoading: false }),
@@ -35,7 +35,7 @@ jest.mock('@/utils/general.utils', () => ({ saveRedirectUrl: jest.fn() }))
 jest.mock('@/components/0_Bruddle/Divider', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/IconStack', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({ __esModule: true, default: () => <div /> }))
+jest.mock('@/components/Global/Badges/Badge', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: { title: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
         <button onClick={props.onClick} disabled={props.disabled}>
@@ -48,18 +48,18 @@ import { PaymentMethodActionList } from '../PaymentMethodActionList'
 
 beforeEach(() => jest.clearAllMocks())
 
-describe('PaymentMethodActionList — Exchange or Wallet card', () => {
+describe('PaymentMethodActionList — Crypto card', () => {
     it('is hidden when no onPayWithExternalWallet handler is provided (direct-send)', () => {
         render(<PaymentMethodActionList isAmountEntered={true} />)
-        expect(screen.queryByText('Exchange or Wallet')).not.toBeInTheDocument()
+        expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
         // other methods still render
-        expect(screen.getByText('Bank')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
     })
 
     it('is shown and invokes the handler when onPayWithExternalWallet is provided (semantic-request)', () => {
         const onPay = jest.fn()
         render(<PaymentMethodActionList isAmountEntered={true} onPayWithExternalWallet={onPay} />)
-        const card = screen.getByText('Exchange or Wallet')
+        const card = screen.getByText('Crypto')
         expect(card).toBeInTheDocument()
         fireEvent.click(card)
         expect(onPay).toHaveBeenCalledTimes(1)

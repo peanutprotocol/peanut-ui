@@ -22,6 +22,27 @@ test('worker exposes only protected gallery objects and supports read methods', 
     ])
         assert.equal((await worker.fetch(request(path), env)).status, 404)
     assert.equal(reads, 0)
+    const collectionUrl = '/collections/multi-action-screens-revised-review-20260921-05ad56c3fe/?locale=en#fixture-home'
+    const continueResponse = await worker.fetch(
+        request(`/screen-data/auth/continue?return=${encodeURIComponent(collectionUrl)}`),
+        env
+    )
+    assert.equal(continueResponse.status, 302)
+    assert.equal(continueResponse.headers.get('location'), collectionUrl)
+    assert.equal(continueResponse.headers.get('cache-control'), 'no-store')
+    for (const unsafe of [
+        'https://evil.example/',
+        '//evil.example/',
+        '/\\evil.example/',
+        '/screen-data/index.json',
+        'javascript:alert(1)',
+    ])
+        assert.equal(
+            (await worker.fetch(request(`/screen-data/auth/continue?return=${encodeURIComponent(unsafe)}`), env))
+                .status,
+            400
+        )
+    assert.equal(reads, 0)
     assert.equal((await worker.fetch(request('/screen-data/index.json', 'POST'), env)).status, 405)
     const index = await worker.fetch(request('/screen-data/index.json'), env)
     assert.equal(index.headers.get('cache-control'), 'private, max-age=60')

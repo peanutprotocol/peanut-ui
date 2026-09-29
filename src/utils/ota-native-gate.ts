@@ -121,8 +121,8 @@ export function nativeLine(version: string): [number, number] | null {
  * Whether `bundleVersion` was built for a newer binary than `binaryVersion` —
  * i.e. only a store update can deliver it.
  *
- * Capgo already refuses the opposite direction on-device
- * (`disable_auto_update_under_native`); this is the direction nothing enforced.
+ * The opposite direction is checked separately by `bundlePredatesBinary`:
+ * legacy bridge channels deliberately allow below-native updates in Capgo.
  * A native release auto-publishes a matching `<major>.<build>.0` bundle so that
  * devices on the new binary have something to update to (TASK-21793), and that
  * bundle is built from the same commit as the binary — new plugins, permissions
@@ -140,6 +140,22 @@ export function bundleNeedsNewerBinary(bundleVersion: string, binaryVersion: str
     if (!bundle || !binary) return false
     if (bundle[0] !== binary[0]) return bundle[0] > binary[0]
     return bundle[1] > binary[1]
+}
+
+/**
+ * Keep new binaries on JS from their own release or later while production
+ * channels still serve the legacy bridges. A candidate's minimum native floor
+ * says it can RUN here, not that it includes this release's fixes.
+ *
+ * The 1.5/1.6 fleet still needs lower-version bridge recovery, so this starts
+ * with native 1.7. Same-release OTA rollbacks remain allowed; only the native
+ * release line is compared. Unreadable versions keep the existing fail-open
+ * behavior, and later candidates still pass through needsStoreUpdate.
+ */
+export async function bundlePredatesBinary(bundleVersion: string): Promise<boolean> {
+    const binary = await getBinaryInfo()
+    if (!binary?.appVersion || !bundleNeedsNewerBinary(binary.appVersion, '1.6.0')) return false
+    return bundleNeedsNewerBinary(binary.appVersion, bundleVersion)
 }
 
 /**

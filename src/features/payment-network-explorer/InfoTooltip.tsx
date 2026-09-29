@@ -24,7 +24,7 @@ export default function InfoTooltip({ label, children }: InfoTooltipProps) {
         >
             <Button
                 type="button"
-                variant="transparent"
+                variant="ghost"
                 shape="square"
                 size="small"
                 icon="info"

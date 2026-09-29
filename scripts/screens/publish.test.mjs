@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
 import { hash, storeAsset } from './core.mjs'
-import { publishReport } from './publish.mjs'
+import { updateIndexes } from './publication-index.mjs'
+import { existingAssetPaths, publishReport } from './publish.mjs'
 
 const commit = 'a'.repeat(40)
 
@@ -119,6 +120,45 @@ test('publication writes the entry commit marker before shared pointers', async 
             }
         )
         assert.equal(hash(sourceBytes), name.split('.')[0])
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('extra viewport capture publishes its full resolution without advancing default latest', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-viewport-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const png = new PNG({ width: 320, height: 712 })
+        png.data.fill(127)
+        const name = storeAsset(assets, PNG.sync.write(png))
+        const input = { ...capture(name), profile: 'en-320x712', width: 320, height: 712 }
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(input))
+        const storage = memoryStorage()
+        const path = `2026-09-21/dev/en/320x712/${commit}/run-123-1`
+        await publishReport({
+            inputDir: dir,
+            reportPath: path,
+            storage,
+            env: { SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example', EXPECTED_HEAD: commit },
+        })
+        const entry = JSON.parse(storage.objects.get(`entries/${path.replaceAll('/', '_')}.json`))
+        assert.equal(entry.profile, '320x712')
+        assert.equal(storage.objects.has('latest.json'), false)
+        const publicReport = JSON.parse(storage.objects.get(`reports/${path}/manifest.json`))
+        const { default: sharp } = await import('sharp')
+        const output = await sharp(storage.objects.get(`assets/${publicReport.screens[0].image}`)).metadata()
+        assert.deepEqual([output.width, output.height], [320, 712])
+        await assert.rejects(
+            publishReport({
+                inputDir: dir,
+                reportPath: `2026-09-21/dev/en/360x800/${commit}/run-123-1`,
+                storage,
+                env: { SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example' },
+            }),
+            /profile/
+        )
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }
@@ -282,6 +322,52 @@ test('publication accepts sanitized Nutcracker journeys without changing the syn
         assert.equal(storage.objects.has(`assets/${thumbnailName}`), false)
         const metadata = await sharp(storage.objects.get(`assets/${manifest.screens[0].image}`)).metadata()
         assert.deepEqual({ width: metadata.width, height: metadata.height }, { width: 240, height: 2400 })
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('batched publication retains every report while uploading a shared image once', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-batch-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const image = new PNG({ width: 393, height: 852 })
+        image.data.fill(127)
+        const name = storeAsset(assets, PNG.sync.write(image))
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(capture(name)))
+        const storage = memoryStorage()
+        const knownAssets = await existingAssetPaths(storage)
+        const assetWrites = new Map()
+        const assetConversions = new Map()
+        const paths = [`2026-09-23/dev/en/${commit}/run-123-1`, `2026-09-23/main/en/${commit}/run-123-1`]
+
+        for (const reportPath of paths)
+            await publishReport({
+                inputDir: dir,
+                reportPath,
+                env: {
+                    SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                    EXPECTED_HEAD: commit,
+                    DEV_SEQUENCE: '123',
+                    RUN_ATTEMPT: '1',
+                },
+                storage,
+                knownAssets,
+                assetWrites,
+                assetConversions,
+                updateSharedIndexes: false,
+            })
+
+        assert.equal(assetConversions.size, 1)
+        assert.equal(storage.calls.filter((pathname) => pathname.startsWith('assets/')).length, 1)
+        assert.equal(storage.calls.filter((pathname) => pathname.startsWith('entries/')).length, 2)
+        assert.equal(storage.objects.has('index.json'), false)
+        for (const reportPath of paths) assert.equal(storage.objects.has(`reports/${reportPath}/manifest.json`), true)
+
+        const { entries } = await updateIndexes(storage)
+        assert.equal(entries.length, 2)
+        assert.equal(storage.objects.has('index.json'), true)
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }

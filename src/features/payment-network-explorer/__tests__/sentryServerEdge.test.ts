@@ -49,11 +49,13 @@ describe('server and edge payment explorer Sentry guard', () => {
         }
     })
 
-    it.each(['sentry.server.config', 'sentry.edge.config'])('wires both route-aware hooks in %s', (moduleName) => {
+    const loadConfig = (moduleName: string, vercelEnv: string) => {
         const previousNodeEnv = process.env.NODE_ENV
+        const previousVercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
         const setNodeEnv = (value: string | undefined) =>
             Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, value, writable: true })
         setNodeEnv('production')
+        process.env.NEXT_PUBLIC_VERCEL_ENV = vercelEnv
         mockSentryInit.mockClear()
         try {
             jest.isolateModules(() => {
@@ -61,9 +63,24 @@ describe('server and edge payment explorer Sentry guard', () => {
             })
         } finally {
             setNodeEnv(previousNodeEnv)
+            if (previousVercelEnv === undefined) delete process.env.NEXT_PUBLIC_VERCEL_ENV
+            else process.env.NEXT_PUBLIC_VERCEL_ENV = previousVercelEnv
         }
+        return mockSentryInit.mock.calls[0]?.[0]
+    }
 
-        const options = mockSentryInit.mock.calls[0]?.[0]
+    // Preview keeps reporting; a local build (no VERCEL_ENV) infers 'development'
+    // and does not, even though NODE_ENV says production.
+    it.each(['sentry.server.config', 'sentry.edge.config'])(
+        'inits on a preview but not on a local build in %s',
+        (moduleName) => {
+            expect(loadConfig(moduleName, 'preview')).toBeDefined()
+            expect(loadConfig(moduleName, '')).toBeUndefined()
+        }
+    )
+
+    it.each(['sentry.server.config', 'sentry.edge.config'])('wires both route-aware hooks in %s', (moduleName) => {
+        const options = loadConfig(moduleName, 'production')
         expect(options?.beforeSend).toEqual(expect.any(Function))
         expect(options?.beforeSendTransaction).toEqual(expect.any(Function))
         expect(options?.beforeSend({ request: { url: '/dev/payment-graph?password=marker' } })).toBeNull()

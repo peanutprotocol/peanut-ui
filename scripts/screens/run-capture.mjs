@@ -4,12 +4,15 @@ import { createServer } from 'node:net'
 import { execFileSync, spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
 import { existsSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { prepare } from './prepare.mjs'
+import { captureProfile } from './capture-profiles.mjs'
 const [sourceArg, sha, outArg] = process.argv.slice(2)
 const requireFullCatalogue = process.argv.includes('--full-catalogue')
 const locale = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('--locale='.length) ?? 'en'
 const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? ''
 const executable = process.argv.find((arg) => arg.startsWith('--executable='))?.slice('--executable='.length) ?? ''
+const profile = captureProfile(process.argv.find((arg) => arg.startsWith('--profile='))?.slice('--profile='.length))
 if (!['en', 'es-419', 'es-AR', 'pt-BR'].includes(locale)) throw new Error('Unsupported capture locale')
 if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Expected immutable target SHA')
 const source = resolve(sourceArg),
@@ -36,6 +39,8 @@ const run = (cmd, args, cwd = source) =>
             SCREEN_CAPTURE_BUILD: '1',
             NEXT_PUBLIC_PEANUT_API_URL: base + '/screen-capture-api',
             NODE_OPTIONS: '--max-old-space-size=6144',
+            // Fonts come from this checkout, not Google Fonts: see next-font-google/mock.cjs.
+            NEXT_FONT_GOOGLE_MOCKED_RESPONSES: fileURLToPath(new URL('../next-font-google/mock.cjs', import.meta.url)),
         },
     })
 const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source, encoding: 'utf8' }).trim()
@@ -85,6 +90,7 @@ try {
             ...(only ? [`--only=${only}`] : []),
             ...(executable ? [`--executable=${executable}`] : []),
             `--locale=${locale}`,
+            `--profile=${profile.name}`,
             `--source=${source}`,
             `--sha=${sha}`,
             `--url=${base}`,

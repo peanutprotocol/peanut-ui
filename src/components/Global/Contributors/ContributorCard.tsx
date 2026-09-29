@@ -11,6 +11,7 @@ import { isAddress } from 'viem'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
 import { profileUrl } from '@/utils/native-routes'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export type Contributor = {
     uuid: string
@@ -45,20 +46,21 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                         <UserAvatar
                             name={contributor.username ?? ''}
                             avatarKey={contributor.avatarKey}
-                            size="extra-small"
+                            size="s"
                             decorative
                         />
                     ) : (
                         <AvatarWithBadge
                             name={contributor.username ?? ''}
-                            size={'extra-small'}
+                            size={'s'}
                             inlineStyle={{
+                                // an address is the crypto concept (coins on blue)
                                 backgroundColor: isEvmAddress
-                                    ? 'var(--color-background-icon-bubble-yellow)'
+                                    ? `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`
                                     : colors.lightShade,
                             }}
                             textColor={isEvmAddress ? 'var(--color-foreground-primary)' : colors.darkShade}
-                            icon={isEvmAddress ? 'wallet-outline' : undefined}
+                            icon={isEvmAddress ? CONCEPT_ICONS.crypto.icon : undefined}
                         />
                     )}
 

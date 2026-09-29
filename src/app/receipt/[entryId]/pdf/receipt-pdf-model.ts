@@ -1,13 +1,20 @@
-import { EHistoryUserRole } from '@/utils/history.utils'
+import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isFxBearingFlow, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
-    receiptIssuedAt,
+    receiptHeadlineAmount,
+    receiptStatusDate,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
+import {
+    isSettledConversion,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency, isStableCoin, printableAddress } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
@@ -59,24 +66,6 @@ function formatDate(source: string | Date | undefined | null, locale: string): s
     return `${day} - ${time} UTC`
 }
 
-/** Local fiat / destination-token conversion — same preference order and
- *  stablecoin skip as the receipt component's `convertedAmount`. */
-function convertedAmount(transaction: TransactionDetails): string | undefined {
-    const code = transaction.currency?.code
-    const amount = transaction.currency?.amount
-    if (code && amount) {
-        const upper = code.toUpperCase()
-        if (upper !== 'USD' && !isStableCoin(upper)) {
-            return `${upper} ${formatCurrency(amount)}`
-        }
-    }
-    const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-    if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
-        return `${transaction.tokenAmount} ${tokenSymbol}`
-    }
-    return undefined
-}
-
 /**
  * Everything the PDF renders, derived from the SAME view model the receipt
  * page uses (`mapTransactionDataForDrawer(...).transactionDetails`), so the
@@ -115,10 +104,11 @@ export function buildReceiptPdfModel(
     const allowCancelledSenderFields =
         !isCancelled || (isSendLinkEntry(transaction) && role === EHistoryUserRole.SENDER)
 
-    // One canonical issuance date is always the first field — the shared
-    // status-branched rule (receiptIssuedAt), so page and pdf can never
-    // disagree; never the download time.
-    push(t('transaction.officialReceipt.issuedOn'), formatDate(receiptIssuedAt(transaction), locale))
+    // One date leads the rows: the date of the state the document records,
+    // from the same rule as the screen's status row (receiptStatusDate), never
+    // the download time. No readable date, no row — never a dash.
+    const statusDate = formatDate(receiptStatusDate(transaction)?.date, locale)
+    if (statusDate !== DATE_FALLBACK) push(t('transaction.officialReceipt.pdf.date'), statusDate)
 
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
@@ -137,16 +127,6 @@ export function buildReceiptPdfModel(
         role === EHistoryUserRole.RECIPIENT ? t('transaction.officialReceipt.pdf.from') : t('transaction.rows.to'),
         counterparty
     )
-
-    const exchangeRateDisplay =
-        isFxBearingFlow(transaction) &&
-        drawer?.receipt?.exchange_rate &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD' &&
-        !isStableCoin(transaction.currency.code) &&
-        !isCancelled
-            ? `1 USD = ${transaction.currency.code.toUpperCase()} ${formatCurrency(drawer.receipt.exchange_rate, 4)}`
-            : undefined
 
     if (transaction.fee !== undefined && !isCancelled) {
         push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
@@ -172,7 +152,7 @@ export function buildReceiptPdfModel(
         )
     }
 
-    push(t('common.exchangeRate'), exchangeRateDisplay)
+    push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
     if (transaction.txHash) {
         push(t('transaction.rows.txId'), transaction.txHash)
@@ -186,16 +166,17 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.transferId'), transaction.id)
     }
 
-    // The history-entry id is the one identifier every receipt can use to tie
-    // a renamed or printed document back to the source activity.
-    push(t('transaction.officialReceipt.reference'), transaction.id)
+    // The payer's own reference on a bank deposit is NOT printed. It is free
+    // text a third party typed (up to 300 characters), and "Share receipt" sends
+    // this document onward. The owner still reads it in the receipt drawer.
+    // Temporary decision TD-12.
 
-    const numericAmount = Number(transaction.amount)
-    // A request pot's `amount` is its goal, not proof of money received. The
-    // receipt headline must always use the rollup's collected total, whether
-    // the pot had a goal or not.
-    const receiptAmount = transaction.isRequestPotLink ? Number(transaction.totalAmountCollected) : numericAmount
-    const safeAmount = Number.isFinite(receiptAmount) ? Math.abs(receiptAmount) : 0
+    // One rule for both the screen and this document — see receiptHeadlineAmount.
+    const headline = receiptHeadlineAmount(transaction, Number(transaction.amount), getTransactionSign(transaction))
+    const safeAmount = Math.abs(headline.amount)
+    // Same rule as the screen: no conversion on a cancelled entry; settled it
+    // is a fact, before that an estimate.
+    const converted = isCancelled ? undefined : receiptConvertedAmount(transaction)
 
     return {
         title: t('transaction.officialReceipt.pdf.title'),
@@ -203,8 +184,8 @@ export function buildReceiptPdfModel(
         companyName: RECEIPT_COMPANY.name,
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
-        amountDisplay: `$${formatCurrency(safeAmount.toString())}`,
-        convertedAmountDisplay: convertedAmount(transaction),
+        amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
+        convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }

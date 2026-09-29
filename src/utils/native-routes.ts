@@ -137,8 +137,9 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return appendParams(path, extraParams)
     }
 
-    // OS associations also claim /app/*, but only /app exists in the native export.
-    // Preserve the query so /app can apply the deferred payload and open its destination.
+    // /app is deliberately not OS-associated: download QRs use the already-
+    // shipped /home claim. Keep mapping direct/app-authored and legacy /app
+    // URLs for compatibility, collapsing the nonexistent wildcard pages.
     if (segments[0] === 'app') {
         return appendParams('/app', extraParams)
     }
@@ -269,7 +270,7 @@ function mapDeepLinkPath(parsed: URL): string | null {
  */
 export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
-    // QR scans can open this page inside the app, where it applies any deferred payload.
+    // Kept for direct/app-authored and legacy links; new QR scans enter via /home.
     'app',
     'badges',
     'card',

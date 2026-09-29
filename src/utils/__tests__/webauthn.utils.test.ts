@@ -5,7 +5,9 @@ import {
     getPasskeyErrorSetupKey,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    withIOSPasskeyLoginRecovery,
 } from '../webauthn.utils'
+import { isIOSNative } from '@/utils/capacitor'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -14,7 +16,14 @@ jest.mock('posthog-js', () => ({
 
 jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
 }))
+
+jest.mock('@/utils/capacitor', () => ({
+    isIOSNative: jest.fn(() => false),
+}))
+
+const mockIsIOSNative = isIOSNative as jest.Mock
 
 describe('capturePasskeySignFailure', () => {
     beforeEach(() => {
@@ -44,11 +53,11 @@ describe('capturePasskeySignFailure', () => {
 })
 
 describe('classifyPasskeyError', () => {
-    test('maps iOS ASAuthorizationError 1004 (failed, e.g. no usable passkey) to LOGIN_CANCELED', () => {
+    test('maps exhausted iOS ASAuthorizationError 1004 to PASSKEY_INTERRUPTED, not a false no-passkey claim', () => {
         const err = new Error(
             'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
         )
-        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_INTERRUPTED')
     })
 
     test('maps iOS ASAuthorizationError 1001 (user canceled) to LOGIN_CANCELED', () => {
@@ -77,6 +86,84 @@ describe('classifyPasskeyError', () => {
 
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
+    })
+})
+
+describe('withIOSPasskeyLoginRecovery', () => {
+    const authorizationFailed = () =>
+        new Error(
+            'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
+        )
+    const verifyRejected = () =>
+        Object.assign(new Error('Passkey verification was rejected'), { name: 'PasskeyVerifyRejectedError' })
+
+    beforeEach(() => {
+        mockIsIOSNative.mockReturnValue(true)
+    })
+
+    afterEach(() => {
+        mockIsIOSNative.mockReturnValue(false)
+        jest.useRealTimers()
+    })
+
+    test('recovers a cold-start 1004 and one rejected credential in a single bounded flow', async () => {
+        jest.useFakeTimers()
+        const operation = jest
+            .fn<Promise<string>, []>()
+            .mockRejectedValueOnce(authorizationFailed())
+            .mockRejectedValueOnce(verifyRejected())
+            .mockResolvedValueOnce('verified')
+
+        const result = withIOSPasskeyLoginRecovery(operation)
+        await jest.runAllTimersAsync()
+
+        await expect(result).resolves.toBe('verified')
+        expect(operation).toHaveBeenCalledTimes(3)
+        expect(posthog.capture).toHaveBeenNthCalledWith(1, 'passkey_login_retry', {
+            retry_reason: 'authorization_failed',
+            retry_number: 1,
+            native: true,
+        })
+        expect(posthog.capture).toHaveBeenNthCalledWith(2, 'passkey_login_retry', {
+            retry_reason: 'verification_rejected',
+            retry_number: 2,
+            native: true,
+        })
+    })
+
+    test('does not retry a real user cancellation', async () => {
+        const operation = jest
+            .fn<Promise<string>, []>()
+            .mockRejectedValue(
+                new Error(
+                    'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)'
+                )
+            )
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toThrow('error 1001')
+        expect(operation).toHaveBeenCalledTimes(1)
+    })
+
+    test('never retries the same recovery reason twice', async () => {
+        jest.useFakeTimers()
+        const operation = jest.fn<Promise<string>, []>().mockRejectedValue(authorizationFailed())
+
+        const result = withIOSPasskeyLoginRecovery(operation)
+        const assertion = expect(result).rejects.toThrow('error 1004')
+        await jest.runAllTimersAsync()
+
+        await assertion
+        expect(operation).toHaveBeenCalledTimes(2)
+    })
+
+    test('leaves web and Android behavior unchanged', async () => {
+        mockIsIOSNative.mockReturnValue(false)
+        const operation = jest.fn<Promise<string>, []>().mockRejectedValue(verifyRejected())
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toMatchObject({
+            name: 'PasskeyVerifyRejectedError',
+        })
+        expect(operation).toHaveBeenCalledTimes(1)
     })
 })
 

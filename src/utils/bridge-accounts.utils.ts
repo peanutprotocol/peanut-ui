@@ -2,6 +2,7 @@ import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { isIBAN } from 'validator'
 import { apiFetch } from '@/utils/api-fetch'
+import { type Account } from '@/interfaces/interfaces'
 
 // Re-export from interfaces (defined there to avoid circular dependency)
 export type { BridgeKycStatus } from '@/interfaces/interfaces'
@@ -29,19 +30,6 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     const response = await apiFetch('/validate-bank-account-number', {
         method: 'POST',
         body: JSON.stringify({ bankAccountNumber }),
-    })
-
-    if (response.status !== 200) {
-        return false
-    } else {
-        return true
-    }
-}
-
-export async function validateBic(bic: string): Promise<boolean> {
-    const response = await apiFetch('/is-valid-bic', {
-        method: 'POST',
-        body: JSON.stringify({ bic }),
     })
 
     if (response.status !== 200) {
@@ -98,4 +86,13 @@ export function isValidUKAccountNumber(accountNumber: string): boolean {
     const cleaned = accountNumber.replace(/\s/g, '')
     // uk account numbers are 6-8 digits (legacy accounts may have 6-7, padded to 8 downstream)
     return /^\d{6,8}$/.test(cleaned)
+}
+
+/**
+ * False for a saved bank account the provider refused because it belongs to an
+ * earlier provider customer of the user (TASK-23054). The API has switched it
+ * off; hiding it lets the user add the same account again.
+ */
+export function isUsableSavedAccount(account: Pick<Account, 'deactivationReason'>): boolean {
+    return account.deactivationReason !== 'not_owned_by_current_bridge_customer'
 }

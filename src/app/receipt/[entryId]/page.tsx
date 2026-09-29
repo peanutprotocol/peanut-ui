@@ -8,6 +8,7 @@ import {
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
+import { OwnerReceiptView } from './OwnerReceiptView'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
@@ -58,7 +59,8 @@ export async function generateMetadata({
 
     let transactionDetails: TransactionDetails
     try {
-        const authorization = await getReceiptAuthorization()
+        // Crypto deposit links keep a public baseline across client account changes.
+        const authorization = kind === 'CRYPTO_DEPOSIT' ? undefined : await getReceiptAuthorization()
         const entry = await getHistoryEntry(entryId, kind, authorization)
         if (!entry) {
             return basicMetadata
@@ -123,7 +125,8 @@ export default async function ReceiptPage({
     }
     let entry: HistoryEntry | null
     try {
-        const authorization = await getReceiptAuthorization()
+        // Crypto deposit links keep a public baseline across client account changes.
+        const authorization = kind === 'CRYPTO_DEPOSIT' ? undefined : await getReceiptAuthorization()
         entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         // A BE hiccup was crashing the whole Server Components render
@@ -146,5 +149,9 @@ export default async function ReceiptPage({
     if (!transactionDetails) {
         return <PublicReceiptPage state="loadFailed" />
     }
-    return <PublicReceiptPage transaction={transactionDetails} />
+    return (
+        <PublicReceiptPage>
+            <OwnerReceiptView entryId={entryId} kind={kind} serverDetails={transactionDetails} />
+        </PublicReceiptPage>
+    )
 }

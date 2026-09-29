@@ -57,7 +57,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = (size: 'small' | 'large') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
+    const ownAvatar = (size: 'm' | 'xl') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
 
     // Preview and staging links use their own origin.
     const profileUrl = shareableUrl(`/${username}`)
@@ -97,19 +97,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     onChangeAvatar ? (
                         <Button
                             type="button"
-                            variant="stroke"
+                            variant="secondary"
                             shadowSize="4"
                             onClick={onChangeAvatar}
                             aria-label={tAvatar('change')}
                             className="size-16 w-16 shrink-0 rounded-full p-0"
                         >
-                            {ownAvatar('small')}
+                            {ownAvatar('m')}
                         </Button>
                     ) : (
-                        ownAvatar('large')
+                        ownAvatar('xl')
                     )
                 ) : (
-                    <UserAvatar name={username} avatarKey={avatarKey} size="medium" />
+                    <UserAvatar name={username} avatarKey={avatarKey} size="l" />
                 )}
 
                 {/* Without a full name, the self profile's handle appears only in the pill. */}
@@ -148,7 +148,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <ShareButton
                             url={profileUrl}
                             title=""
-                            variant="transparent"
+                            variant="ghost"
                             showIcon={false}
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)

@@ -24,7 +24,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Field } from '@/components/0_Bruddle/Field'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 
@@ -84,11 +84,11 @@ export default function DeferredLinkDevPage() {
                     </pre>
                 </Card>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button variant="stroke" size="small" onClick={refresh}>
+                    <Button variant="secondary" size="small" onClick={refresh}>
                         Refresh
                     </Button>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         size="small"
                         onClick={() => {
                             localStorage.removeItem(CONSUMED_KEY)
@@ -102,7 +102,7 @@ export default function DeferredLinkDevPage() {
 
             <Section title="Web to store hand-off">
                 <Button
-                    variant="stroke"
+                    variant="secondary"
                     onClick={() => {
                         setPayload(buildDeferredPayload('/home'))
                         setCopied(false)
@@ -121,7 +121,7 @@ export default function DeferredLinkDevPage() {
                 )}
                 {payload && (
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         icon="copy"
                         onClick={async () => {
                             await copyIOSHandoff(payload)
@@ -134,7 +134,7 @@ export default function DeferredLinkDevPage() {
             </Section>
 
             <Section title="Native install referrer">
-                <Button variant="stroke" onClick={readReferrer}>
+                <Button variant="secondary" onClick={readReferrer}>
                     Read raw Android referrer
                 </Button>
                 <Card className="p-3">
@@ -154,9 +154,9 @@ export default function DeferredLinkDevPage() {
                 </Field>
                 <Button onClick={simulate}>Parse and apply</Button>
                 {simulateResult && (
-                    <Notification priority={simulateResult.startsWith('rejected') ? 'error' : 'success'}>
+                    <Callout priority={simulateResult.startsWith('rejected') ? 'error' : 'success'}>
                         <span className="font-mono break-all">{simulateResult}</span>
-                    </Notification>
+                    </Callout>
                 )}
             </Section>
         </DevPageShell>

@@ -29,13 +29,13 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
                             <UserAvatar
                                 name={contributor.username ?? ''}
                                 avatarKey={contributor.avatarKey}
-                                size="tiny"
+                                size="xs"
                                 decorative
                             />
                         ) : (
                             /* AvatarWithBadge derives the per-username colors
                                itself when none are passed */
-                            <AvatarWithBadge name={contributor.username ?? ''} size="tiny" />
+                            <AvatarWithBadge name={contributor.username ?? ''} size="xs" />
                         )}
                         <span className="truncate text-body-s text-foreground-primary">
                             {printableUserHandle(contributor.username ?? '')}

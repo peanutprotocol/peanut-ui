@@ -21,8 +21,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSafeBack = jest.fn()
+const mockReturnTo = jest.fn()
 jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => mockSafeBack,
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
 }))
 
 jest.mock('@/services/rhino', () => ({
@@ -93,10 +95,10 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.network).toBe('SOL')
     })
 
-    it('back pushes a same-origin returnTo instead of history-back', () => {
+    it('back returns to a same-origin returnTo instead of history-back', () => {
         const { result } = renderFlow(`?returnTo=${encodeURIComponent('/profile/exchange-rate')}`)
         act(() => result.current.onBack())
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate')
+        expect(mockReturnTo).toHaveBeenCalledWith('/profile/exchange-rate')
         expect(mockSafeBack).not.toHaveBeenCalled()
     })
 
@@ -104,7 +106,7 @@ describe('useAddMoneyCryptoFlow', () => {
         const { result } = renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
         act(() => result.current.onBack())
         expect(mockSafeBack).toHaveBeenCalled()
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockReturnTo).not.toHaveBeenCalled()
     })
 
     it('handleSuccess records the deposit and flips to the success view', () => {
@@ -124,6 +126,50 @@ describe('useAddMoneyCryptoFlow', () => {
         // receipt details derive from the deposit result
         expect(result.current.depositTransactionDetails?.amount).toBe(50)
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
+    })
+
+    // A bare hash is not a receipt key: GET /history/:id resolves a crypto
+    // deposit by the `tx:` surrogate, the intent uuid, or a history row's
+    // `<hash>-<logIndex>`. The success screen builds the first of those.
+    it('keys the receipt on the prefixed transaction hash', () => {
+        const { result } = renderFlow()
+
+        act(() =>
+            result.current.handleSuccess(50, {
+                status: 'completed',
+                amount: 50,
+                txHash: '0xAB'.padEnd(66, 'c'),
+            } as never)
+        )
+
+        expect(result.current.depositTransactionDetails?.id).toBe(`tx:${'0xab'.padEnd(66, 'c')}`)
+        // the on-chain hash itself is unchanged: it is what the receipt prints
+        expect(result.current.depositTransactionDetails?.txHash).toBe('0xAB'.padEnd(66, 'c'))
+    })
+
+    // The hash on this screen is always EVM, because Rhino bridges a Solana or
+    // Tron deposit to Arbitrum and this is that settlement transfer. The
+    // passthrough below is the guard on that: should a chain's own hash ever
+    // reach here, it is carried byte-for-byte rather than lowercased into a
+    // different string, and it is offered no document it cannot fetch.
+    it.each([
+        ['solana', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
+        ['tron', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],
+    ])('leaves a %s hash exactly as the chain wrote it', (_network, hash) => {
+        const { result } = renderFlow()
+
+        act(() => result.current.handleSuccess(50, { status: 'completed', amount: 50, txHash: hash } as never))
+
+        expect(result.current.depositTransactionDetails?.id).toBe(hash)
+        expect(result.current.depositTransactionDetails?.txHash).toBe(hash)
+    })
+
+    it('falls back to a plain key when the deposit carries no hash', () => {
+        const { result } = renderFlow()
+
+        act(() => result.current.handleSuccess(50))
+
+        expect(result.current.depositTransactionDetails?.id).toBe('deposit')
     })
 
     it('handleSuccessComplete clears the success state', () => {

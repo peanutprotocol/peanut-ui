@@ -66,9 +66,21 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ setPrimaryAmount, onSubmit }: { setPrimaryAmount: (value: string) => void; onSubmit?: () => void }) => (
+    default: ({
+        setPrimaryAmount,
+        onSubmit,
+        walletBalance,
+        balanceFillAmount,
+    }: {
+        setPrimaryAmount: (value: string) => void
+        onSubmit?: () => void
+        walletBalance?: string
+        balanceFillAmount?: number
+    }) => (
         <input
             data-testid="amount-input"
+            data-wallet-balance={walletBalance}
+            data-balance-fill={balanceFillAmount}
             onChange={(e) => setPrimaryAmount(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSubmit?.()}
         />
@@ -92,8 +104,9 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 }))
 
 // ds: no ErrorAlert/InfoCard mocks — the view renders the real 0_Bruddle
-// Notification with data-testid="error-alert" / "info-card"
+// Callout with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 // ---------- helpers ----------
 
@@ -103,6 +116,7 @@ const walletState = (spendableDollars: number | undefined) => ({
     fetchBalance: jest.fn(),
     spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
     formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
+    spendableBalanceDecimal: spendableDollars,
 })
 
 /** Drives the flow context from inside the provider (AmountInput is mocked out). */
@@ -273,6 +287,27 @@ describe('LinkSendInitialView validation errors keep the primary CTA', () => {
     })
 })
 
+/**
+ * The spend engine checks the card controller before preparing or signing the
+ * link's deposit, and that check can end the attempt: the re-approval prompt
+ * was dismissed, or the screen was left. No link exists and nothing was spent,
+ * so the view must stay as it was rather than showing a failed creation.
+ */
+describe('LinkSendInitialView — card re-approval cancelled before the deposit', () => {
+    test('shows no error and keeps the primary CTA', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(mockCreateLink).toHaveBeenCalled())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.getByText('Create link')).toBeInTheDocument()
+        expect(screen.queryByText('Retry')).not.toBeInTheDocument()
+    })
+})
+
 // TASK-21669: "0"/"0.00" are truthy strings — they used to pass the string-
 // truthiness guard and create a real zero-value on-chain link.
 describe('LinkSendInitialView zero-amount gate', () => {
@@ -295,5 +330,29 @@ describe('LinkSendInitialView zero-amount gate', () => {
 
         renderView('20')
         await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+    })
+})
+
+// TASK-22452: send-via-link and withdraw-to-crypto used to disagree — withdraw's
+// balance row filled the amount, send's rendered the same text and did nothing.
+// The spendable total is the ceiling on both, so both fill it.
+describe('LinkSendInitialView balance fill', () => {
+    test('the balance row can fill the whole spendable balance', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('')
+
+        const input = await screen.findByTestId('amount-input')
+        expect(input).toHaveAttribute('data-wallet-balance', '100.00')
+        expect(input).toHaveAttribute('data-balance-fill', '100')
+    })
+
+    test('nothing to fill while the balance is still loading', async () => {
+        mockUseWallet.mockReturnValue(walletState(undefined))
+
+        renderView('')
+
+        const input = await screen.findByTestId('amount-input')
+        expect(input).not.toHaveAttribute('data-balance-fill')
     })
 })

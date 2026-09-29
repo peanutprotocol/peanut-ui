@@ -5,8 +5,10 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { type FC } from 'react'
 
 interface ClaimedViewProps {
@@ -17,7 +19,14 @@ interface ClaimedViewProps {
 export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) => {
     const { user } = useAuth()
     const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo('/home')
     const t = useTranslations('claim')
+    const tMigration = useTranslations('migration')
+    // guest on a spent link: during the migration the CTA hands them the app
+    // instead of web signup
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
 
     return (
         <PageStack>
@@ -25,7 +34,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
             <PageStack.Center className="gap-4">
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">
-                        <IconBubble icon="info" size="s" color="yellow" />
+                        <IconBubble icon="info" size="s" color="blue" />
                     </div>
                     <div className="space-y-2 text-center">
                         <h1 className="text-heading-card text-foreground-primary">{t('claimed.title')}</h1>
@@ -47,13 +56,21 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                     </div>
                 </Card>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="w-full"
-                    onClick={() => router.push(user ? '/home' : '/setup')}
+                    onClick={() => {
+                        if (user) {
+                            leaveToHome()
+                            return
+                        }
+                        if (interceptGuestCta()) return
+                        router.push('/setup')
+                    }}
                 >
-                    {user ? t('backToHome') : t('claimed.getStarted')}
+                    {user ? t('backToHome') : handoffActive ? tMigration('downloadPeanut') : t('claimed.getStarted')}
                 </Button>
+                {storeHandoffModal}
             </PageStack.Center>
         </PageStack>
     )

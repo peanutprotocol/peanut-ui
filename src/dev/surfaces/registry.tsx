@@ -26,9 +26,8 @@ import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
@@ -49,7 +48,6 @@ import SupportedNetworksDrawer from '@/components/AddMoney/components/SupportedN
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
-import WelcomeUnlockDrawer from '@/components/Home/WelcomeUnlockDrawer'
 import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
 import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
@@ -65,9 +63,8 @@ import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
-import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
-import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
+import type { OnboardingState } from '@/utils/activation-step.utils'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
@@ -77,6 +74,8 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
+import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -117,8 +116,32 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
     )
 }
 
+/** verified, funded, card and QR open: the first-payment row opens the chooser */
+const FUNDED_CARD_ONBOARDING: OnboardingState = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'first_payment',
+}
 const noop = () => {}
 const asyncNoop = async () => {}
+
+/**
+ * `/dev/*` deliberately removes AppShell's page padding so the gallery can
+ * stage drawers and overlays edge-to-edge. Full app-page surfaces still need
+ * the production horizontal frame, otherwise their `w-full` content is
+ * captured against the viewport instead of the app's content column.
+ */
+function AppPageSurface({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="min-h-inherit w-full px-4">
+            <div data-testid="app-page-surface-content" className="mx-auto min-h-inherit w-full max-w-md">
+                {children}
+            </div>
+        </div>
+    )
+}
 
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -224,9 +247,9 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '15-a-invitefriendsmodal': {
-        name: 'InviteFriendsDrawer',
-        path: 'Global/InviteFriendsDrawer/index.tsx',
-        render: () => <InviteFriendsDrawer visible onClose={noop} username="demo" />,
+        name: 'InviteFriendsModal',
+        path: 'Global/InviteFriendsModal/index.tsx',
+        render: () => <InviteFriendsModal visible onClose={noop} username="demo" />,
     },
     '17-a-nomorejailmodal': {
         ...SURFACE_META['17-a-nomorejailmodal'],
@@ -243,18 +266,6 @@ export const SURFACES: Record<string, Surface> = {
     '20-a-setupnotificationsmodal': {
         ...SURFACE_META['20-a-setupnotificationsmodal'],
         render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
-    },
-    '21-b-advisorypreemptmodal': {
-        ...SURFACE_META['21-b-advisorypreemptmodal'],
-        render: () => (
-            <AdvisoryPreemptModal
-                visible
-                effectiveDate="2026-10-01"
-                onCompleteNow={noop}
-                onDoLater={noop}
-                onClose={noop}
-            />
-        ),
     },
     '22-b-initiatekycmodal': {
         ...SURFACE_META['22-b-initiatekycmodal'],
@@ -324,13 +335,15 @@ export const SURFACES: Record<string, Surface> = {
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
+            // a real badge with avatar art, so the gallery shows the
+            // "What you get" box
             <BadgeDetailDrawer
                 isOpen
                 onClose={noop}
-                code="first-invite"
-                title="First Invite"
-                description="You invited your first friend to Peanut."
-                logo="/badges/first-invite.webp"
+                code="BETA_TESTER"
+                title="Beta Tester"
+                description="You broke things so others don't have to."
+                logo="/badges/beta_tester.svg"
             />
         ),
     },
@@ -357,7 +370,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '39-c-onrampconfirmationmodal': {
         ...SURFACE_META['39-c-onrampconfirmationmodal'],
-        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
+        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} />,
     },
     '40-c-supportednetworksmodal': {
         name: 'SupportedNetworksDrawer',
@@ -390,28 +403,6 @@ export const SURFACES: Record<string, Surface> = {
                 onReverify={noop}
             />
         ),
-    },
-    '46-c-perkclaimmodal': {
-        ...SURFACE_META['46-c-perkclaimmodal'],
-        render: () => (
-            <PerkClaimDrawer
-                visible
-                onClose={noop}
-                onClaimed={noop}
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-            />
-        ),
-    },
-    '47-c-welcomeunlockmodal': {
-        name: 'WelcomeUnlockDrawer',
-        path: 'Home/WelcomeUnlockDrawer/index.tsx',
-        render: () => <WelcomeUnlockDrawer isOpen onClose={noop} />,
     },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
@@ -627,8 +618,8 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <LimitsWarningCard
-                    type="warning"
-                    titleKind="warning"
+                    type="attention"
+                    titleKind="attention"
                     title="Transaction limit"
                     items={[{ text: 'You can pay up to $500 today.' }]}
                 />
@@ -716,12 +707,14 @@ export const SURFACES: Record<string, Surface> = {
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
         render: () => (
-            <ApplicationStatusScreen
-                variant="requires-info"
-                onUploadProofOfAddress={noop}
-                onUploadIdentity={noop}
-                onContactSupport={noop}
-            />
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
         ),
     },
     '83-f-choice-residence-restricted': {
@@ -734,7 +727,11 @@ export const SURFACES: Record<string, Surface> = {
     },
     '84-f-choice-public-profile-guest': {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
-        render: () => <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />,
+        render: () => (
+            <AppPageSurface>
+                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+            </AppPageSurface>
+        ),
     },
     '85-f-choice-claim-error': {
         ...SURFACE_META['85-f-choice-claim-error'],
@@ -753,30 +750,57 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['86-f-choice-not-found'],
         render: () => <NotFoundScreen />,
     },
-    '69-d-perkclaimsuccess': {
-        name: 'PerkClaimSuccessDrawer',
-        path: 'Home/PerkClaimSuccessDrawer.tsx',
+    '87-f-request-created': {
+        ...SURFACE_META['87-f-request-created'],
         render: () => (
-            <PerkClaimSuccessDrawer
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-                claimPhase="revealed"
-                onClose={noop}
-                onDismiss={noop}
-            />
+            <AppPageSurface>
+                <RequestCreatedView
+                    requestId="fixture-request"
+                    generatedLink="https://peanut.me/request/pay?id=fixture-request"
+                    requestAmount="25"
+                    currency="EUR"
+                    bankPayable={false}
+                    onDone={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
+    '88-f-request-bank-currency': {
+        ...SURFACE_META['88-f-request-bank-currency'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <BankTransferChooserDrawer
+                    requestId="fixture-request"
+                    rails={[
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.sepa_eu',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '25.00', currency: 'EUR', isEstimate: false },
+                        },
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.faster_payments_gb',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '21.50', currency: 'GBP', isEstimate: true },
+                        },
+                    ]}
+                    recipientUsername="ana"
+                    recipientAvatarKey="basic.frog"
+                    requestMessage="Dinner in Berlin"
+                    requestAmount="25.00 EUR"
+                    bankRowProps={{ bankPayable: true, remainingUsd: 27 }}
+                    onUnavailable={noop}
+                />
+            </div>
         ),
     },
     '70-d-activationctas-outbound': {
-        // the spend chooser opens on the card's CTA tap — the shot spec (or a
-        // human) clicks "Start Spending"; needs a fixture granting card access
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
-        render: () => <ActivationCTAs activationStep="outbound" />,
+        // the first-payment chooser opens on the row tap — the shot spec (or a
+        // human) clicks the row; needs a fixture granting card access
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
+        render: () => <ActivationCTAs onboarding={FUNDED_CARD_ONBOARDING} />,
     },
     '66-d-backupfaqlosephone': {
         name: 'Backup FAQ — lose phone',

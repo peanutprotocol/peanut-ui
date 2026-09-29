@@ -17,7 +17,7 @@ export const SumsubSdkErrorView = ({ onClose, message }: SumsubSdkErrorViewProps
         <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <Icon name="alert" size={24} className="text-foreground-error" />
             <p className="text-center text-body-l font-medium">{message}</p>
-            <Button variant="purple" shadowSize="4" onClick={onClose}>
+            <Button variant="primary" shadowSize="4" onClick={onClose}>
                 {tCommon('close')}
             </Button>
         </div>

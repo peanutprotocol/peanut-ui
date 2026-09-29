@@ -61,10 +61,10 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
 
     // Manteca synthetic ids are case-sensitive lookup keys: an id that was
     // uppercased could not be used to find the entry it belongs to.
-    test('keeps a mixed-case receipt id verbatim in its reference row', () => {
+    test('keeps a mixed-case receipt id verbatim', () => {
         const mixed = { ...baseTx, id: 'MaNtEcA-Qr-7f3B-AbCd' }
         const m = buildReceiptPdfModel(mixed, t, 'en')
-        expect(row(m, 'transaction.officialReceipt.reference')).toBe('MaNtEcA-Qr-7f3B-AbCd')
+        expect(row(m, 'transaction.rows.transferId')).toBe('MaNtEcA-Qr-7f3B-AbCd')
     })
 
     test('carries the official-document header and footer facts', () => {
@@ -81,10 +81,11 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     })
 
     test('renders amount, status, and the core rows', () => {
-        // formatCurrency mirrors the page: decimal places follow the input string
-        expect(model.amountDisplay).toBe('$125.5')
+        // formatBankAmount, like the page: cents shown, no .00 on a round amount
+        // signed like the screen: a bank withdraw is money leaving
+        expect(model.amountDisplay).toBe('-$125.50')
         expect(model.rows[0]).toEqual({
-            label: 'transaction.officialReceipt.issuedOn',
+            label: 'transaction.officialReceipt.pdf.date',
             value: expect.stringContaining('2026'),
         })
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
@@ -92,19 +93,13 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.rows.to')).toBe('kkonrad')
         expect(row(model, 'transaction.rows.fee')).toBe('0.5')
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
-        // bank_withdraw carries its transfer reference
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
-        expect(row(model, 'transaction.officialReceipt.reference')).toBe(baseTx.id)
-        expect(labels(model).slice(-3)).toEqual([
-            'transaction.rows.txId',
-            'transaction.rows.transferId',
-            'transaction.officialReceipt.reference',
-        ])
+        expect(labels(model).slice(-2)).toEqual(['transaction.rows.txId', 'transaction.rows.transferId'])
         expect(labels(model)).not.toContain('transaction.rows.pointsEarned')
     })
 
     test('completed OFFRAMP uses one Date field at the top', () => {
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.created')
     })
@@ -117,7 +112,7 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.created')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.txId')
@@ -163,28 +158,44 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
-        expect(labels(model).slice(-5)).toEqual([
+        expect(labels(model).slice(-4)).toEqual([
             'IBAN',
             'common.exchangeRate',
             'transaction.rows.txId',
             'transaction.rows.transferId',
-            'transaction.officialReceipt.reference',
         ])
     })
 
-    test('keeps a reference when transaction and transfer ids are unavailable', () => {
-        const model = buildReceiptPdfModel(
+    test('prints no receipt-reference row — the file name and URL identify the receipt', () => {
+        const card = buildReceiptPdfModel(
             withOverrides({ direction: 'card', txHash: undefined }, { transactionCardType: 'card_payment' }),
             t,
             'en'
         )
+        const cancelled = buildReceiptPdfModel(withOverrides({ status: 'cancelled' }), t, 'en')
+        for (const model of [card, cancelled]) {
+            expect(labels(model).some((label) => label.includes('reference'))).toBe(false)
+        }
+        expect(card.fileName).toBe(`peanut-receipt-${baseTx.id}.pdf`)
+    })
 
-        expect(labels(model)).not.toContain('transaction.rows.txId')
-        expect(labels(model)).not.toContain('transaction.rows.transferId')
-        expect(model.rows.at(-1)).toEqual({
-            label: 'transaction.officialReceipt.reference',
-            value: baseTx.id,
-        })
+    test('the converted amount reads as an estimate until the entry settles', () => {
+        const fx = { currency: { amount: '21.33', code: 'EUR' } }
+        const pending = buildReceiptPdfModel(withOverrides({ ...fx, status: 'pending' }), t, 'en')
+        const settled = buildReceiptPdfModel(withOverrides(fx), t, 'en')
+        const cancelled = buildReceiptPdfModel(withOverrides({ ...fx, status: 'cancelled' }), t, 'en')
+        expect(pending.convertedAmountDisplay).toBe('≈ EUR 21.33')
+        expect(settled.convertedAmountDisplay).toBe('EUR 21.33')
+        expect(cancelled.convertedAmountDisplay).toBeUndefined()
+        // refunded, or returned after settling: the money did convert
+        const refunded = buildReceiptPdfModel(withOverrides({ ...fx, status: 'refunded' }), t, 'en')
+        const returned = buildReceiptPdfModel(
+            withOverrides({ ...fx, status: 'failed' }, { wasReturned: true }),
+            t,
+            'en'
+        )
+        expect(refunded.convertedAmountDisplay).toBe('EUR 21.33')
+        expect(returned.convertedAmountDisplay).toBe('EUR 21.33')
     })
 
     test('cancelled entries drop fee/bank/transfer rows but keep the Date field', () => {
@@ -198,15 +209,11 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.cancelled')
         expect(labels(model)).not.toContain('transaction.rows.fee')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
         expect(labels(model)).not.toContain('IBAN')
-        expect(model.rows.at(-1)).toEqual({
-            label: 'transaction.officialReceipt.reference',
-            value: baseTx.id,
-        })
     })
 
     test('memo renders as the comment row, memoKey preferred over raw memo', () => {
@@ -250,7 +257,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(model.amountDisplay).toBe('$40.00')
+        expect(model.amountDisplay).toBe('$40')
     })
 
     test('claimed send link uses its claim timestamp as Date', () => {
@@ -267,7 +274,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 22, 2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
     })
 
     test('closed request pot uses its closure timestamp as Date', () => {
@@ -286,41 +293,66 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 23, 2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 23, 2026')
     })
 
-    test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
+    // The screen hides the row when the shared rule yields no date, so the
+    // document leaves it out too rather than printing a dash at a reader.
+    test('an unreadable issuance date drops the row instead of printing a dash', () => {
         const model = buildReceiptPdfModel(
-            withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined }),
+            withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined, date: 'not-a-date' }),
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toBe('-')
+        expect(labels(model)).not.toContain('transaction.officialReceipt.pdf.date')
+    })
+
+    // A refund and a spend of the same value printed an identical headline.
+    test('the headline carries the direction sign', () => {
+        const sent = buildReceiptPdfModel(withOverrides({ direction: 'send', amount: 12.5 }), t, 'en')
+        const received = buildReceiptPdfModel(withOverrides({ direction: 'receive', amount: 12.5 }), t, 'en')
+
+        expect(sent.amountDisplay).toBe('-$12.50')
+        expect(received.amountDisplay).toBe('+$12.50')
+    })
+
+    // A pot reports what it collected, and a collected total has no direction.
+    test('a request pot headline carries no sign', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                { amount: 100, isRequestPotLink: true, totalAmountCollected: 40, status: 'closed' },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$40')
     })
 })
 
 describe('buildReceiptPdfModel — app locales', () => {
-    // the leading row is the issuance date since TASK-22452 (relabelled from
-    // the generic Date — same status-branched source timestamp)
+    // the leading row is the status date: one "Date", from the same rule as
+    // the screen's status row
     const localizedCopy: ReadonlyArray<[AppLocale, string, string, string]> = [
-        ['en', 'Transaction Receipt', 'Issued on', 'Reference'],
-        ['es-419', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
-        ['es-AR', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
-        ['pt-BR', 'Comprovante da transação', 'Emitido em', 'Referência'],
+        ['en', 'Transaction Receipt', 'Date', 'Transfer ID'],
+        ['es-419', 'Comprobante de la transacción', 'Fecha', 'ID de transferencia'],
+        ['es-AR', 'Comprobante de la transacción', 'Fecha', 'ID de transferencia'],
+        ['pt-BR', 'Comprovante da transação', 'Data', 'ID da transferência'],
     ]
 
     test('covers every supported app locale', () => {
         expect(localizedCopy.map(([locale]) => locale)).toEqual(APP_LOCALES)
     })
 
-    test.each(localizedCopy)('renders receipt copy in %s', async (locale, title, dateLabel, referenceLabel) => {
+    test.each(localizedCopy)('renders receipt copy in %s', async (locale, title, dateLabel, transferLabel) => {
         const messages = await loadMessages(locale)
         const translate = createTranslator({ locale, messages }) as PdfTranslate
         const model = buildReceiptPdfModel(baseTx, translate, locale)
 
         expect(model.title).toBe(title)
         expect(model.rows[0].label).toBe(dateLabel)
-        expect(model.rows.at(-1)?.label).toBe(referenceLabel)
+        expect(model.rows.at(-1)?.label).toBe(transferLabel)
     })
 })
 
@@ -347,15 +379,14 @@ describe('buildReceiptPdfModel — representative private kinds', () => {
             t,
             'en'
         )
-        expect(model.rows[0].label).toBe('transaction.officialReceipt.issuedOn')
+        expect(model.rows[0].label).toBe('transaction.officialReceipt.pdf.date')
         expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
         expect(row(model, 'transaction.rows.to')).toBe('Aerolineas Argentinas')
         expect(row(model, 'common.exchangeRate')).toContain('ARS')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
-        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
     })
 
-    test('p2p direct transfer: counterparty, memo, reference — no bank rows', () => {
+    test('p2p direct transfer: counterparty and memo — no bank rows', () => {
         const model = buildReceiptPdfModel(
             withOverrides(
                 { direction: 'send', userName: 'nacho', memo: 'gracias!', txHash: undefined },
@@ -364,11 +395,10 @@ describe('buildReceiptPdfModel — representative private kinds', () => {
             t,
             'en'
         )
-        expect(model.rows[0].label).toBe('transaction.officialReceipt.issuedOn')
+        expect(model.rows[0].label).toBe('transaction.officialReceipt.pdf.date')
         expect(row(model, 'transaction.rows.to')).toBe('nacho')
         expect(row(model, 'common.comment')).toBe('gracias!')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
-        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
     })
 
     test('send-link claim: recipient side reads From and dates from the claim', () => {
@@ -390,8 +420,20 @@ describe('buildReceiptPdfModel — representative private kinds', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 22, 2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
         expect(row(model, 'transaction.officialReceipt.pdf.from')).toBe('kkonrad')
-        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
+    })
+})
+
+describe('buildReceiptPdfModel — bank deposit sender reference', () => {
+    // Free text a third party typed, in a document the owner shares onward.
+    test('the payer reference stays out of the document, whatever it says', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'bank_deposit' }, { kind: 'ONRAMP', senderReference: 'INVOICE 4471' }),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('transaction.rows.senderNote')
+        expect(JSON.stringify(model)).not.toContain('INVOICE 4471')
     })
 })
