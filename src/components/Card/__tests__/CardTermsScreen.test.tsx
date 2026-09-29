@@ -21,6 +21,11 @@ import CardTermsScreen from '@/components/Card/CardTermsScreen'
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
+// A sandbox-style origin: the terms link must follow the configured site origin.
+jest.mock('@/constants/general.consts', () => ({
+    ...jest.requireActual('@/constants/general.consts'),
+    BASE_URL: 'https://peanut.mucu.dev',
+}))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { capture: jest.fn() },
@@ -109,7 +114,7 @@ describe('CardTermsScreen managed funding consent', () => {
         renderTerms(false)
         const statement = screen.getByTestId('funding-authorization-statement')
         expect(statement).toHaveTextContent(AUTHORIZATION)
-        expect(within(statement).getByRole('button', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
+        expect(within(statement).getByRole('link', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
         expect(screen.getByText(/our third party provider/)).toBeInTheDocument()
         expect(document.body.textContent).not.toMatch(/\bRain\b/)
         expect(document.body.textContent).not.toMatch(/existing/i)
@@ -161,10 +166,22 @@ describe('CardTermsScreen managed funding consent', () => {
         )
     })
 
-    it('opens a draft-for-review panel from the terms link without inventing legal text', () => {
+    it('links the terms to the public page in a new tab without ticking either box, and shows no draft placeholder', () => {
         renderTerms(false)
-        fireEvent.click(screen.getByRole('button', { name: 'Real-Time Funding Terms' }))
-        expect(screen.getByText(/Draft for review/)).toBeInTheDocument()
-        expect(screen.getByText(/not final legal text/)).toBeInTheDocument()
+        const link = screen.getByRole('link', { name: 'Real-Time Funding Terms' })
+        expect(link).toHaveAttribute('href', 'https://peanut.mucu.dev/en/real-time-funding-terms')
+        expect(link).toHaveAttribute('target', '_blank')
+        fireEvent.click(link)
+        expect(boxes().every((box) => !box.checked)).toBe(true)
+        expect(continueButton()).toBeDisabled()
+        expect(document.body.textContent).not.toMatch(/draft|rtf-sandbox/i)
+    })
+
+    it.each([
+        ['es-419', 'es-419'],
+        ['pt-BR', 'pt-br'],
+    ] as const)('the terms link follows the %s locale', (locale, marketing) => {
+        renderAt(locale)
+        expect(hrefs()).toContain(`https://peanut.mucu.dev/${marketing}/real-time-funding-terms`)
     })
 })

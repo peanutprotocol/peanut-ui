@@ -1677,9 +1677,6 @@
             "body": "Peanut manages how much our third party provider can take from your wallet for card payments. This renews automatically, including for money you add later.",
             "distinction": "The permission stays in place. The amount it allows at any one time is limited.",
             "managementConsent": "I agree that Peanut manages this card permission for me.",
-            "termsDraftBadge": "Draft for review",
-            "termsDraftBody": "This draft is not final legal text.",
-            "termsVersion": "Version {version}",
             "termsChanged": "The terms changed. Read them again and confirm.",
             "walletMismatch": "This card is linked to a different wallet. Contact support."
         },

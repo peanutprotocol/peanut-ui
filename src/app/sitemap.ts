@@ -36,6 +36,7 @@ const CARD_LEGAL_SLUGS = [
     'card-prohibited-activities',
     'card-terms-international',
     'card-terms-us',
+    'real-time-funding-terms',
 ] as const
 
 // --- lastmod sources ---

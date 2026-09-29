@@ -90,7 +90,7 @@ const funding = (status: Status = 'required', overrides: Record<string, unknown>
     permission: {
         scopeVersion: 2,
         ceiling: CEILING,
-        termsVersion: 'rtf-sandbox-draft-2026-09-29',
+        termsVersion: 'rtf-2026-09-29',
         authorizationText: AUTHORIZATION,
     },
     management: { status, reason: null, migration },
@@ -167,7 +167,7 @@ describe('useRainFunding.grant — the signed permission', () => {
         expect(mockSubmitFundingGrant).toHaveBeenCalledWith({
             serializedPermission: 'SERIALIZED_PERMISSION',
             consent: {
-                termsVersion: 'rtf-sandbox-draft-2026-09-29',
+                termsVersion: 'rtf-2026-09-29',
                 managementAccepted: true,
                 authorizationText: AUTHORIZATION,
             },

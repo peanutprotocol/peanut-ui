@@ -1,16 +1,15 @@
 'use client'
-import { type FC, useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { Callout } from '@/components/0_Bruddle/Callout'
+import { type FC } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { BASE_URL } from '@/constants/general.consts'
 import { RTF_TERMS_LABEL } from '@/constants/rain.consts'
+import { toMarketingLocale } from '@/i18n/localeBridge'
 
 interface Props {
     /** Exact authorization statement the backend will record. Shown as is, never translated. */
     authorizationText: string
-    /** Terms version when known; only shown in the draft panel. */
-    termsVersion?: string
     managementAccepted: boolean
     authorizationAccepted: boolean
     onManagementChange: (accepted: boolean) => void
@@ -25,10 +24,12 @@ interface Props {
  * permission and the two explicit, unchecked boxes that gate every grant.
  * Shared by the Home prompt for existing cardholders and the new-user card
  * terms, so both say the same thing.
+ *
+ * The terms are a public legal page. The link opens it in a new tab, so
+ * nothing the person ticked is lost.
  */
 const CardFundingConsent: FC<Props> = ({
     authorizationText,
-    termsVersion,
     managementAccepted,
     authorizationAccepted,
     onManagementChange,
@@ -37,7 +38,9 @@ const CardFundingConsent: FC<Props> = ({
     boxesOnly,
 }) => {
     const t = useTranslations('card.funding')
-    const [termsOpen, setTermsOpen] = useState(false)
+    // The configured site origin, so the page opens in sandbox and preview
+    // builds as well as in production.
+    const termsHref = `${BASE_URL}/${toMarketingLocale(useLocale())}/real-time-funding-terms`
 
     // The link sits inside the statement; when the backend's text does not
     // contain the term the statement is shown whole, without a link.
@@ -47,14 +50,14 @@ const CardFundingConsent: FC<Props> = ({
         rest.length > 0 ? (
             <>
                 {before}
-                <button
-                    type="button"
+                <a
+                    href={termsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-foreground-primary underline"
-                    onClick={() => setTermsOpen((open) => !open)}
-                    aria-expanded={termsOpen}
                 >
                     {RTF_TERMS_LABEL}
-                </button>
+                </a>
                 {after}
             </>
         ) : (
@@ -92,13 +95,6 @@ const CardFundingConsent: FC<Props> = ({
                     </div>
                 </Card>
             </div>
-
-            {termsOpen && (
-                <Callout priority="attention" title={`${RTF_TERMS_LABEL} · ${t('termsDraftBadge')}`}>
-                    {t('termsDraftBody')}
-                    {termsVersion ? ` ${t('termsVersion', { version: termsVersion })}` : ''}
-                </Callout>
-            )}
         </div>
     )
 }

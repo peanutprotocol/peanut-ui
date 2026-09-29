@@ -157,7 +157,6 @@ export default function EnableAutoBalanceBanner() {
                 isPending ? undefined : (
                     <CardFundingConsent
                         authorizationText={authorizationText}
-                        termsVersion={funding?.permission.termsVersion}
                         managementAccepted={managementAccepted}
                         authorizationAccepted={authorizationAccepted}
                         onManagementChange={setManagementAccepted}

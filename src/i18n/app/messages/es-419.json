@@ -1677,9 +1677,6 @@
             "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
             "distinction": "El permiso sigue vigente. El monto que permite en cada momento es limitado.",
             "managementConsent": "Acepto que Peanut gestione este permiso de la tarjeta por mí.",
-            "termsDraftBadge": "Borrador en revisión",
-            "termsDraftBody": "Este borrador no es el texto legal final.",
-            "termsVersion": "Versión {version}",
             "termsChanged": "Los términos cambiaron. Léelos de nuevo y confirma.",
             "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contacta a soporte."
         },

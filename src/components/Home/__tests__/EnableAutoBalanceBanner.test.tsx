@@ -35,13 +35,17 @@ let mockLastError: RainFundingError | null
 let mockIsSubmitting: boolean
 let mockStep: string
 let mockFundingEnabledArg: boolean | undefined
+jest.mock('@/constants/general.consts', () => ({
+    ...jest.requireActual('@/constants/general.consts'),
+    BASE_URL: 'https://peanut.mucu.dev',
+}))
 jest.mock('@/hooks/wallet/useRainFunding', () => ({
     useRainFunding: ({ enabled }: { enabled?: boolean }) => {
         mockFundingEnabledArg = enabled
         return {
             funding: mockStatus
                 ? {
-                      permission: { authorizationText: AUTHORIZATION, termsVersion: 'rtf-sandbox-draft-2026-09-29' },
+                      permission: { authorizationText: AUTHORIZATION, termsVersion: 'rtf-2026-09-29' },
                       allowance: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
                   }
                 : undefined,
@@ -224,11 +228,15 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
         })
     })
 
-    it('opens the terms as a draft for review, not as final legal text', () => {
+    it('links the terms to the public page without ticking either box, and shows no draft placeholder', () => {
         render(<EnableAutoBalanceBanner />)
-        fireEvent.click(screen.getByRole('button', { name: 'Real-Time Funding Terms' }))
-        expect(screen.getByText(/Draft for review/)).toBeInTheDocument()
-        expect(screen.getByText(/rtf-sandbox-draft-2026-09-29/)).toBeInTheDocument()
+        const link = screen.getByRole('link', { name: 'Real-Time Funding Terms' })
+        expect(link).toHaveAttribute('href', 'https://peanut.mucu.dev/en/real-time-funding-terms')
+        expect(link).toHaveAttribute('target', '_blank')
+        fireEvent.click(link)
+        expect(boxes().every((box) => !box.checked)).toBe(true)
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+        expect(document.body.textContent).not.toMatch(/draft|rtf-sandbox/i)
     })
 
     it('unticks everything when the terms changed under the person', () => {

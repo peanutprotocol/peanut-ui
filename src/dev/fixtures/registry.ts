@@ -645,7 +645,7 @@ const cardFunding = (
     permission: {
         scopeVersion: 2,
         ceiling: '300000000',
-        termsVersion: 'rtf-sandbox-draft-2026-09-29',
+        termsVersion: 'rtf-2026-09-29',
         authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
     },
     management: { status, reason: null, migration },
