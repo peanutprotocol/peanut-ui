@@ -10,6 +10,31 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { DesignNote } from '../../_components/DesignNote'
+
+// design.md "icon sizing": three steps, bigger only for an empty/error hero
+const SIZES: { size: string; use: string; inCards: string }[] = [
+    {
+        size: '16',
+        use: 'Inline next to text: info hints, section titles, a status beside a label',
+        inCards: 'A hint or status next to text inside the card',
+    },
+    {
+        size: '20',
+        use: 'Inside buttons and nav circles (40px circle + 20px icon)',
+        inCards: 'The trailing chevron of a list item (ListItem chevron draws it)',
+    },
+    {
+        size: '24',
+        use: 'The default (no size prop): list-item leading, standalone icons',
+        inCards: 'A bare list-item leading icon; the card header icon, inside an m IconBubble',
+    },
+    {
+        size: '40+',
+        use: 'Only a hero illustration on an empty or error state',
+        inCards: 'Never inside a content card',
+    },
+]
 
 const ALL_ICONS: IconName[] = [
     'alert',
@@ -135,15 +160,51 @@ export default function IconsPage() {
                 <EmptyState icon="search" title="No matching icons" description={`No icons match “${search}”.`} />
             )}
 
+            <DocSection
+                title="Sizes"
+                description="Three steps: 16, 20, 24. Always pass size={N}, never tailwind h-X w-X. A wrong-size icon in a button is a bug, not a taste choice."
+            >
+                <DocSection.Content>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-body-s">
+                            <thead className="text-foreground-secondary">
+                                <tr>
+                                    <th className="py-2 pr-4">Size</th>
+                                    <th className="py-2 pr-4">Use for</th>
+                                    <th className="py-2">In a card</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {SIZES.map((row) => (
+                                    <tr key={row.size} className="border-t border-border-default align-top">
+                                        <td className="py-2 pr-4">
+                                            <code>{row.size}</code>
+                                        </td>
+                                        <td className="py-2 pr-4">{row.use}</td>
+                                        <td className="py-2">{row.inCards}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <DesignNote type="info">
+                        Inside an IconBubble the bubble sets the glyph: xs and s draw 16, m draws 24, l draws 40. Pass
+                        the bubble size, never an Icon size. A list item uses two sizes at once: 24 leading, 20 for the
+                        trailing chevron.
+                    </DesignNote>
+                    <DesignNote type="warning">
+                        18, 22 and 28 are off the scale. The .icon-16 to .icon-28 classes are legacy: globals.css
+                        applies .icon-18 and .icon-16 only to old non-Icon SVGs inside .btn, and .icon-20, .icon-22,
+                        .icon-24 and .icon-28 have no callers. Do not size an icon with a class.
+                    </DesignNote>
+                </DocSection.Content>
+            </DocSection>
+
             <DocSection title="Usage">
                 <DocSection.Code>
                     <CodeBlock
                         label="Usage"
                         code={`import { Icon, type IconName } from '@/components/Global/Icons/Icon'\n<Icon name="check" size={20} />`}
-                    />
-                    <CodeBlock
-                        label="Size Classes (tailwind)"
-                        code={`.icon-16 .icon-18 .icon-20 .icon-22 .icon-24 .icon-28`}
                     />
                 </DocSection.Code>
             </DocSection>

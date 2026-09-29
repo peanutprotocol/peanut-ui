@@ -7,6 +7,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { DesignNote } from './_components/DesignNote'
 import { DocPage } from './_components/DocPage'
 
 import { LUCIDE_FILL_NONE, SIDEBAR_CONFIG, TIERS } from './_components/nav-config'
@@ -31,7 +32,7 @@ const stats = [
 // tier titles, hrefs and icons come from nav-config so this index matches the sidebar
 const TIER_DESCRIPTIONS: Record<string, string> = {
     foundations: 'Color tokens, typography, spacing, shadows, icons, and borders',
-    primitives: 'Bruddle base components: Button, Card, Input, Select, Checkbox, Toast',
+    primitives: 'Building blocks under the patterns: Button, Card, Input, Select, Checkbox, Toast',
     patterns: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
     audit: 'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
     playground: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
@@ -47,11 +48,18 @@ export default function DesignSystemPage() {
                     title={<h1 className="text-foreground-over-color-primary">Peanut Design System</h1>}
                     description={
                         <span className="text-foreground-over-color-secondary">
-                            Foundations → Primitives → Patterns → Audit → Playground
+                            Start from Patterns. Drop to Primitives and Foundations only when no pattern fits.
                         </span>
                     }
                 />
             </Card>
+
+            {/* one notice for every figma mention on the site (ruled 2026-09-21) */}
+            <DesignNote type="warning">
+                Figma is UNMAINTAINED — a frozen reference, not a spec. This site and the code are the source of truth.
+                A &quot;figma board&quot; mentioned on any page is history: nothing syncs to it and code owes it
+                nothing.
+            </DesignNote>
 
             {/* Quick stats — DS Cards (no dedicated stat-tile primitive) */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
