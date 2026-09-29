@@ -1,50 +1,49 @@
 'use client'
 
+import { captureException } from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { slugify } from '@/utils/general.utils'
+import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
 
 interface TokenDisplayData {
     symbol: string
-    icon: string
+    icon: string | undefined
 }
 
 /**
  * Token symbol + icon for the receipt's token-and-network row. Wire data wins;
- * CoinGecko is the fallback for legacy entries that only carry a chain name.
+ * CoinGecko fills a missing icon or symbol. The lookup is optional metadata:
+ * a failure never hides a symbol the wire already knows.
  * Tanstack query (not useState/useEffect) per the DS state decision table.
  */
-export function useTokenDisplay(transaction: TransactionDetails | null): {
-    tokenData: TokenDisplayData | null
-    isLoading: boolean
-} {
+export function useTokenDisplay(transaction: TransactionDetails | null): TokenDisplayData | null {
     const details = transaction?.tokenDisplayDetails
-    const fromWire =
-        details?.tokenIconUrl && details?.tokenSymbol
-            ? { symbol: details.tokenSymbol, icon: details.tokenIconUrl }
-            : null
-    const needsFetch = !!details && !fromWire && !!details.chainName && !!transaction?.tokenAddress
+    const platformId = resolveChainRegistryEntry(details?.chainId ?? details?.chainName ?? '')?.coingeckoPlatformId
+    const needsFetch =
+        !!details && !(details.tokenIconUrl && details.tokenSymbol) && !!platformId && !!transaction?.tokenAddress
 
-    const { data, isLoading } = useQuery({
-        queryKey: ['coingecko-token', details?.chainName, transaction?.tokenAddress],
+    const { data } = useQuery({
+        queryKey: ['coingecko-token', platformId, transaction?.tokenAddress],
         enabled: needsFetch,
         staleTime: Infinity,
         retry: false,
-        queryFn: async (): Promise<TokenDisplayData | null> => {
-            const chainName = slugify(details!.chainName!)
-            const res = await fetch(
-                `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction!.tokenAddress}`
-            )
-            if (!res.ok) {
-                throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+        queryFn: async (): Promise<{ symbol: string; icon: string } | null> => {
+            try {
+                const res = await fetch(
+                    `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${transaction!.tokenAddress}`
+                )
+                // 404 = CoinGecko doesn't list this token; the fallback icon covers it
+                if (res.status === 404) return null
+                if (!res.ok) throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+                const tokenDetails = await res.json()
+                return { symbol: tokenDetails.symbol, icon: tokenDetails.image.large }
+            } catch (error) {
+                captureException(error)
+                return null
             }
-            const tokenDetails = await res.json()
-            return { symbol: tokenDetails.symbol, icon: tokenDetails.image.large }
         },
     })
 
-    return {
-        tokenData: fromWire ?? data ?? null,
-        isLoading: needsFetch && isLoading,
-    }
+    const symbol = details?.tokenSymbol ?? data?.symbol
+    return symbol ? { symbol, icon: details?.tokenIconUrl ?? data?.icon } : null
 }

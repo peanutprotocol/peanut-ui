@@ -288,6 +288,7 @@ function computeDerivedFields(entry: HistoryEntry): {
         | {
               tokenSymbol: string | undefined
               tokenIconUrl: string | undefined
+              chainId: string
               chainName: string | undefined
               chainIconUrl: string | undefined
           }
@@ -338,6 +339,7 @@ function computeDerivedFields(entry: HistoryEntry): {
         tokenDisplayDetails = {
             tokenSymbol,
             tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
+            chainId: entry.chainId,
             chainName,
             chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
         }
@@ -517,6 +519,7 @@ export interface TransactionDetails {
     tokenDisplayDetails?: {
         tokenSymbol?: string
         tokenIconUrl?: string
+        chainId?: string
         chainName?: string
         chainIconUrl?: string
     }
